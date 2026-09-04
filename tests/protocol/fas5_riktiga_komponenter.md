@@ -29,10 +29,12 @@ Den här körningen byter ut lådorna mot 3201 riktiga komponenter och ställer
 | Storhet | Ur filen |
 |---|---|
 | namn, kategori, tillverkare | **läst**, 3201 av 3201 |
-| räckvidd | **läst** 1437, **härledd ur profilen** 236, **saknas** resten |
+| räckvidd | **läst** 1437, **härledd ur profilen** 225, **saknas** 1539 |
 | gränssnittens namn, sektioner, ramar och fälttyper | **läst**, 11 563 st i 3062 komponenter |
 | monteringsramarnas NAMN | **läst**, 9824 st i 3086 komponenter |
-| monteringsramarnas LÄGE | **saknas**, 0 av 9824 |
+| monteringsramarnas LÄGE | **läst** 3036, **härlett** 121, **saknas** 6667 av 9824 |
+| transportörens flödesordning | **läst** för 122 av 163 |
+| transportörens flödesriktning som vektor | **saknas** för 303 av 324 ramar |
 | omslutande volym | **saknas**, 0 av 3201 |
 
 Den sista raden är hela skälet till att den här körningen behövs. Lådan finns
@@ -188,9 +190,24 @@ Minst tre avvisade par ska prövas:
 | `Reach` / profilens största radie | `check_reach` | samma tal inom 10 mm |
 | ledernas namn och gränser | `get_joints` | identiska namn, gränser inom 0,1 |
 
-De 236 robotar där `Reach` är tomt men profilen ger ett tal är den intressanta
-raden: håller profilen mot VC är hålet fyllt, och håller den inte ska
-`rackvidd_ur_fakta` sluta härleda.
+De 225 robotar där `Reach` är tomt eller noll men profilen ger ett tal är den
+intressanta raden: håller profilen mot VC är hålet fyllt, och håller den inte
+ska `rackvidd_ur_fakta` sluta härleda.
+
+## Steg 10 — transportörens riktning
+
+`flode_ur_fakta` läser **ordningen** (vilket gränssnitt tar emot, vilket lämnar
+ifrån sig) men lämnar **riktningen** som `None`, för ramarnas läge är
+parametriskt i 303 av 324 fall.
+
+| Ur filen | Ur VC | Krav |
+|---|---|---|
+| `flode.in_granssnitt` / `ut_granssnitt` | `list_flow_connectors` | samma namn, samma roller |
+| `flode.riktning_mm` = `None` | `get_transform` på ramarna via `list_frames` | VC ska ge ett läge där filen inte kan |
+
+Den andra raden är den som betyder något: om VC svarar med ramlägen är
+riktningen **hämtbar men inte läsbar**, och då hör den till `Bindning` vid
+sidan av lådan — inte till filen.
 
 ## De trasiga fallen
 
