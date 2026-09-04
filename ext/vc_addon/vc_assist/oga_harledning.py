@@ -1116,7 +1116,15 @@ def sekvensdom(flanker, spec, t_slut):
         {"start": {"signal": "plc:givare", "flank": "RISE"},
          "steg": [{"signal": "plc:stopp", "flank": "RISE",
                    "min_s": 0.0, "max_s": 0.5}, ...],
+         "hogst": {"plc:stopp": 1},
          "min_cykler": 2}
+
+    `hogst` ar en RAKNING, inte en ordning: hur manga ganger en signal far ga
+    hog under EN cykel. Den behovs darfor att en ordningsdom tar den FORSTA
+    flanken som passar och sedan slutar titta - en station som gor om hela
+    sitt arbete flera ganger pa samma produkt haller alltsa ordningen. MATT
+    (M-50): en nivalasning dar en flank kravs gav 3-4 stopp per produkt och
+    passerade ordningsdomen pa fem cykler av sex.
 
     Varje steg raknas fran CYKELNS start, inte fran foregaende steg. Skalet ar
     att ett fel i ett tidigt steg annars skulle flytta hela facit med sig och
@@ -1127,10 +1135,22 @@ def sekvensdom(flanker, spec, t_slut):
     avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
     aldrig se likadana ut.
 
-    Returnerar {"cykler": [...], "domda": n, "brott": [...], "obestambar": ...}
+    TVA storheter, aldrig ihopblandade (M-65 §4):
+      brott      steget UTEBLEV innan nasta cykel borjade - ordningen holl
+                 inte. Det ar SEKVENSENS fel.
+      tidsbrott  steget kom, i ratt ordning, men FOR SENT eller FOR TIDIGT
+                 mot sitt fonster. Det ar TIMINGENS fel.
+    Fore M-65 var de en: ett steg utanfor sitt fonster raknades som
+    uteblivet, och sekvensdomaren fallde da ocksa varje tidsfel. Tva domare
+    som faller samma cell provar inte varandra.
+
+    Varje steg far ett status: OK, MISSING, TOO_LATE eller TOO_EARLY.
+
+    Returnerar {"cykler": [...], "domda": n, "brott": [...], "tidsbrott": [...],
+                "obestambar": ...}
     """
-    ut = {"cykler": [], "domda": 0, "brott": [], "obestambar": None,
-          "avhuggna": 0}
+    ut = {"cykler": [], "domda": 0, "brott": [], "tidsbrott": [],
+          "obestambar": None, "avhuggna": 0}
     if not spec:
         ut["obestambar"] = "ingen sekvens deklarerad"
         return ut
@@ -1159,29 +1179,60 @@ def sekvensdom(flanker, spec, t_slut):
             ut["cykler"].append(rad)
             continue
         golv = t0
+        # Cykelns egen grans: nasta start, annars seriens slut. Ett steg
+        # soks i HELA cykeln, inte bara i sitt fonster - annars gar det inte
+        # att skilja "kom for sent" fran "kom aldrig".
+        cykelslut = nasta if nasta is not None else float(t_slut)
         felet = None
+        tidsfel = []
         for s in steg:
-            fran = max(golv, t0 + float(s.get("min_s", 0.0)))
-            till = min(slut, t0 + float(s.get("max_s", 0.0)))
-            t = None if till < fran - 1e-9 else _flank_vid(
-                flanker, s["signal"], s["flank"], fran, till)
+            min_s = float(s.get("min_s", 0.0))
+            max_s = float(s.get("max_s", 0.0))
+            t = _flank_vid(flanker, s["signal"], s["flank"], golv, cykelslut)
             post = {"signal": s["signal"], "flank": s["flank"],
-                    "min_s": float(s.get("min_s", 0.0)),
-                    "max_s": float(s.get("max_s", 0.0)),
+                    "min_s": min_s, "max_s": max_s,
                     "t": None if t is None else round(t, 4),
                     "dt_s": None if t is None else round(t - t0, 4)}
-            rad["steg"].append(post)
             if t is None:
+                post["status"] = "MISSING"
                 felet = ("cykel %d: %s %s uteblev i fonstret %.2f-%.2f s efter "
-                         "starten" % (i, s["signal"], s["flank"],
-                                      float(s.get("min_s", 0.0)),
-                                      float(s.get("max_s", 0.0))))
+                         "starten" % (i, s["signal"], s["flank"], min_s, max_s))
+                rad["steg"].append(post)
                 break
+            if t > t0 + max_s + 1e-9:
+                post["status"] = "TOO_LATE"
+                tidsfel.append("cykel %d: %s %s kom %.2f s efter starten, "
+                               "fonstret ar %.2f-%.2f s"
+                               % (i, s["signal"], s["flank"], t - t0, min_s, max_s))
+            elif t < t0 + min_s - 1e-9:
+                post["status"] = "TOO_EARLY"
+                tidsfel.append("cykel %d: %s %s kom redan %.2f s efter starten, "
+                               "fonstret ar %.2f-%.2f s"
+                               % (i, s["signal"], s["flank"], t - t0, min_s, max_s))
+            else:
+                post["status"] = "OK"
+            rad["steg"].append(post)
             golv = t
-        rad["ok"] = felet is None
+        # Rakningen: hur manga ganger en signal gick hog under cykeln. En
+        # for hog rakning ar SEKVENSENS fel, inte timingens - stationen gjorde
+        # nagot den inte skulle, den gjorde det inte vid fel tid.
+        rad["antal"] = {}
+        for signal in sorted(spec.get("hogst") or {}):
+            tak = int((spec.get("hogst") or {})[signal])
+            n = len([f for f in flanker
+                     if f["signal"] == signal and f["flank"] == "RISE"
+                     and t0 - 1e-9 <= float(f["t"]) < cykelslut])
+            rad["antal"][signal] = n
+            if n > tak and felet is None:
+                felet = ("cykel %d: %s gick hog %d ganger, hogst %d ar "
+                         "tillatet" % (i, signal, n, tak))
+        rad["ok"] = felet is None and not tidsfel
         if felet:
             rad["fel"] = felet
             ut["brott"].append(felet)
+        if tidsfel:
+            rad["tidsfel"] = list(tidsfel)
+            ut["tidsbrott"].extend(tidsfel)
         ut["domda"] += 1
         ut["cykler"].append(rad)
     krav = int(spec.get("min_cykler", 1))

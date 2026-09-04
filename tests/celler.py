@@ -542,6 +542,22 @@ def mindist_nara():
     return b, plan()
 
 
+def kontakt():
+    """Minsta avstandet gar till 0,0 - utan nagon detektortraff.
+
+    M-36: measureDistance ger 0,0 bade vid nudd och vid 900 mm overlapp, och
+    vcCollisionDetector - som skulle ha gett traffen - tommer tyst sina
+    nodlistor och svarar noll. Kontakten i minsta avstandet AR
+    kollisionsmattet. TRASIG CELL for kollisionsdomaren.
+    """
+    b = _grundcell("kontakt")
+    for i, r in enumerate(b.rader):
+        d = 200.0 if i < 40 else (0.0 if 44 <= i <= 46 else 50.0)
+        r["mind"] = {"gripper+fixtur": {"d_mm": d, "p1": [0, 0, 0], "p2": [0, 0, 0],
+                                        "metod": "measureDistance"}}
+    return b, plan()
+
+
 def kollision_med_feature():
     """Traffen bar ocksa VILKEN yta som traffade vilken (getHitFeatureA/B)."""
     b = _grundcell("kollision_med_feature")
@@ -765,6 +781,7 @@ STATION_TEMPLATE = "station_sekvens"
 # slapper efter processtiden, och slappsignalen kommer efter stoppet.
 STATIONSSEKVENS = {
     "start": {"signal": "plc:givare", "flank": "RISE"},
+    "hogst": {"plc:stopp": 1, "plc:slapp": 1},
     "steg": [{"signal": "plc:stopp", "flank": "RISE", "min_s": 0.0, "max_s": 0.5},
              {"signal": "plc:stopp", "flank": "FALL", "min_s": 1.5, "max_s": 2.5},
              {"signal": "plc:slapp", "flank": "RISE", "min_s": 1.5, "max_s": 2.8},
@@ -773,11 +790,18 @@ STATIONSSEKVENS = {
 }
 
 
-def stationsplan(sekvens=True, forregling=True):
-    """Planen for en station: ingen del, inget verktyg, en deklarerad sekvens."""
+def stationsplan(sekvens=True, forregling=True, hogst=True):
+    """Planen for en station: ingen del, inget verktyg, en deklarerad sekvens.
+
+    `hogst` gar att stanga av for sig. Skalet ar att en cell som provar EN
+    grind inte ska falla pa en annan: forreglingscellen bryter forreglingen
+    med en andra stoppuls, och den pulsen ar ocksa ett brott mot rakningen.
+    """
     p = {"floor_z": 0.0, "movers": {}, "stations": {}}
     if sekvens:
         p["sekvens"] = dict(STATIONSSEKVENS)
+        if not hogst:
+            p["sekvens"].pop("hogst", None)
     if forregling:
         p["forregling"] = [["plc:stopp", "plc:slapp"]]
     return p
@@ -905,7 +929,27 @@ def station_forregling_utan_deklaration():
     b = Stationsbygge()
     for _ in range(3):
         _stationscykel(b, stopp_igen=True)
-    return b, stationsplan(forregling=False)
+    return b, stationsplan(forregling=False, hogst=False)
+
+
+def station_gor_om_arbetet():
+    """Ratt ORDNING varje gang, men stationen gor om hela cykeln pa SAMMA
+    produkt - givaren ligger kvar hog och stoppet gar ut tva ganger.
+
+    En ordningsdom tar den forsta flanken som passar och slutar titta; bara
+    en RAKNING ser det. Cellen finns for att just den missen ar MATT (M-50).
+    """
+    b = Stationsbygge()
+    for _ in range(3):
+        n = int(round(8.0 * RATE))
+        for i in range(n):
+            t = i * DT - STATION_TOMT_S
+            givare = 0.0 <= t < 7.2
+            stopp = (0.1 <= t < 2.0) or (2.6 <= t < 4.5)
+            slapp = (2.0 <= t < 2.5) or (4.5 <= t < 5.0)
+            b.steg({"givare": givare, "stopp": stopp, "slapp": slapp},
+                   x_mm=0.0 if stopp else t * 250.0)
+    return b, stationsplan()
 
 
 def station_bara_en_cykel():
@@ -959,6 +1003,7 @@ ALLA = {
     "robot_stopp_begransande": robot_stopp_begransande,
     # kollision och minsta avstand
     "mindist_nara": mindist_nara,
+    "kontakt": kontakt,
     "kollision_med_feature": kollision_med_feature,
     # stationer
     "station_svalt": station_svalt,
@@ -987,6 +1032,7 @@ ALLA = {
     "station_forsent": station_forsent,
     "station_forregling_bruten": station_forregling_bruten,
     "station_forregling_utan_deklaration": station_forregling_utan_deklaration,
+    "station_gor_om_arbetet": station_gor_om_arbetet,
     "station_bara_en_cykel": station_bara_en_cykel,
     "station_utan_deklaration": station_utan_deklaration,
 }

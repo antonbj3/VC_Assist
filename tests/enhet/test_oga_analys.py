@@ -54,6 +54,7 @@ FACIT = {
     "under_golvet":  ("FAIL", "UNDERGROUND VIOLATION"),
     "kollision":     ("FAIL", "COLLISION gripper_finger x fixtur_vagg"),
     "kollision_med_feature": ("FAIL", "COLLISION gripper_finger x fixtur_vagg"),
+    "kontakt":       ("FAIL", "COLLISION gripper x fixtur t=2.200s"),
     "kort_uppehall": ("FAIL", "SHORT"),
     "for_fa_prov":   ("INCONCLUSIVE", None),
     # scenen som helhet
@@ -83,6 +84,7 @@ FACIT = {
     "station_slapper_aldrig":   ("FAIL", None),
     "station_forsent":          ("FAIL", None),
     "station_forregling_bruten": ("FAIL", None),
+    "station_gor_om_arbetet":   ("FAIL", None),
     "station_bara_en_cykel":    ("INCONCLUSIVE", None),
     "station_utan_deklaration": ("INCONCLUSIVE", None),
 }
@@ -512,7 +514,7 @@ def test_forreglingsbrottet_bar_sin_matta_overlapp_i_sekunder():
     post = a.harledt["station"]["forregling"][0]
     assert post["brott"] is True
     assert abs(post["overlapp_s"] - 0.75) < 1e-6, post
-    assert "0.75 s" in r.dom[1]
+    assert r.dom[1].startswith("forregling:"), r.dom
 
 
 def test_forreglingen_domer_inte_nar_planen_inte_bett_om_den():
@@ -525,9 +527,14 @@ def test_forreglingen_domer_inte_nar_planen_inte_bett_om_den():
 def test_sekvensbrottet_namner_vilket_steg_och_vilket_fonster():
     r, _rader, a = _doma("station_slapper_aldrig")
     d = a.harledt["station"]["sekvens"]
+    # Tva storheter (M-65 §4): stoppet SLAPPTE, men vid 3,4 s mot fonstret
+    # 1,5-2,5 - ett tidsbrott. Slappsignalen kom ALDRIG - ett sekvensbrott.
+    assert d["tidsbrott"], d
+    assert "plc:stopp FALL" in d["tidsbrott"][0]
+    assert "1.50-2.50" in d["tidsbrott"][0]
     assert d["brott"], d
-    assert "plc:stopp FALL" in d["brott"][0]
-    assert "1.50-2.50" in d["brott"][0]
+    assert "plc:slapp RISE" in d["brott"][0]
+    assert "1.50-2.80" in d["brott"][0]
 
 
 def test_en_avhuggen_sista_cykel_ar_oprovad_och_inte_ett_brott():
@@ -543,4 +550,27 @@ def test_en_avhuggen_sista_cykel_ar_oprovad_och_inte_ett_brott():
     d = a.harledt["station"]["sekvens"]
     assert d["avhuggna"] == 1, d
     assert d["domda"] == 2, d
+    assert r.dom[0] == "PASS", r.dom
+
+
+def test_en_station_som_gor_om_sitt_arbete_falls_av_RAKNINGEN_inte_ordningen():
+    """Ordningen haller varje varv - det ar antalet varv som ar felet.
+
+    MATT (M-50): en nivalasning dar en flank kravs stoppade samma produkt tre
+    till fyra ganger och passerade ordningsdomen pa fem cykler av sex. Utan
+    rakningen ar den felklassen osynlig for ogat.
+    """
+    r, _rader, a = _doma("station_gor_om_arbetet")
+    assert r.dom[0] == "FAIL", r.dom
+    d = a.harledt["station"]["sekvens"]
+    assert d["brott"], d
+    assert "gick hog 2 ganger" in d["brott"][0]
+    # ... och ordningen holl: inget steg saknades.
+    for cykel in d["cykler"]:
+        for steg in cykel.get("steg", []):
+            assert steg["status"] != "MISSING", steg
+
+
+def test_rakningen_domer_inte_nar_planen_inte_bett_om_den():
+    r, _rader, _ = _doma("station_forregling_utan_deklaration")
     assert r.dom[0] == "PASS", r.dom
