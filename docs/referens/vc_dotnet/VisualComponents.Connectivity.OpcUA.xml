@@ -1,0 +1,553 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VisualComponents.Connectivity.OpcUA</name>
+    </assembly>
+    <members>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ArrayTreeNode">
+            <summary>
+            Represents a Variable node that has an array value attribute.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ArrayTreeNode.GetDimensionsFromValue">
+            <summary>
+            Reads the Value attribute from server to find out the dimensions of the array.
+            </summary>
+            <returns>The array dimensions or null if the operation fails.</returns>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ArrayTreeNode.ArrayNodes">
+            <summary>
+            Enumerates a multi-dimensional array based on the arrayDimensions member.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ArrayMemberValueItem">
+            <summary>
+            Represents a single cell in in Array-valued Variable node. These array members don't have their own
+            OPC UA NodeIds so these depend on a parent item that represents the whole node (array).
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ArrayMemberValueItem.OPCValue">
+            <summary>
+            Separate cache for the value since even single values need to be wrapped in an array.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ArrayValueItem">
+            <summary>
+            Represents a variable node with and array as value.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ArrayValueItem.nodeAccess">
+            <summary>
+            Internally visible accessibility state for array member items.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ArrayValueTreeNode">
+            <summary>
+            Node that represents a single value in a Array. The array itself is Value attribute of a Variable node.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.BatchingHelper">
+            <summary>
+            Helper methods for reading data from OPC UA server in batches that respect e.g.
+            the "OperationLimits/MaxNodesPerRead" limitation of the particular server.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.BatchingHelper.BatchSizeLimitFallback">
+            <summary>
+            A relatively low fallback value to use for batch size if the actual limit is not known.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.BatchingHelper.ReadInBatches(UnifiedAutomation.UaClient.Session,System.Nullable{System.UInt32},System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId})">
+            <summary>
+            Performs a read operation in batches of <paramref name="readOperationLimit"/>.
+            The parameters are the same as <see cref="M:UnifiedAutomation.UaClient.Session.Read(System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId})"/>.
+            </summary>
+            <param name="session">The session to use for reading.</param>
+            <param name="readOperationLimit">Max batch size. 0 means no limit. 
+            Null means the limit is not known, use <see cref="F:VisualComponents.Connectivity.OpcUA.BatchingHelper.BatchSizeLimitFallback"/></param>
+            <param name="nodesToRead"></param>
+            <remarks>Exceptions from <see cref="M:UnifiedAutomation.UaClient.Session.Read(System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId})"/> are not caught.</remarks>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.BatchingHelper.ReadInBatches(UnifiedAutomation.UaClient.Session,System.Nullable{System.UInt32},System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId},System.UInt32,UnifiedAutomation.UaBase.TimestampsToReturn,UnifiedAutomation.UaClient.RequestSettings)">
+            <summary>
+            Performs a read operation in batches of <paramref name="readOperationLimit"/>.
+            The parameters are the same as <see cref="M:UnifiedAutomation.UaClient.Session.Read(System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId},System.UInt32,UnifiedAutomation.UaBase.TimestampsToReturn,UnifiedAutomation.UaClient.RequestSettings)"/>.
+            </summary>
+            <param name="session"></param>
+            <param name="readOperationLimit">Max batch size. 0 means no limit. 
+            Null means the limit is not known, use <see cref="F:VisualComponents.Connectivity.OpcUA.BatchingHelper.BatchSizeLimitFallback"/></param>
+            <param name="nodesToRead">The nodes to read.</param>
+            <param name="maxAge">Value max age.</param>
+            <param name="timestampsToReturn">Timestamps the server should return.</param>
+            <param name="settings">Request settings.</param>
+            <remarks>Exceptions from <see cref="M:UnifiedAutomation.UaClient.Session.Read(System.Collections.Generic.IList{UnifiedAutomation.UaBase.ReadValueId})"/> are not caught.</remarks>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.BatchingHelper.Batch``1(System.Collections.Generic.IEnumerable{``0},System.Int32)">
+            <summary>
+            Creates batches from enumerable.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.DefaultConfigResource">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.DefaultConfigResource.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.DefaultConfigResource.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.DefaultConfigResource.DefaultConfig">
+             <summary>
+               Looks up a localized string similar to &lt;?xml version=&quot;1.0&quot;?&gt;
+            &lt;!-- This is a simulation layout independent configuration file for the Visual Components Essentials OPC UA client. It follows the OPC UA SecuredApplication schema defined by OPC Foundation --&gt;
+            &lt;!-- %OpcUAClientConfigFolder% is a custom path variable that is expanded by the client and is not part of the schema. --&gt;
+            &lt;!-- The extension objects are defined by Unified Automation OPC UA SDK, see: http://documentation.unified-automation.com/uasdkdotnet/2.5.1/html/L2BaseLibConfigSchema.htm [rest of string was truncated]&quot;;.
+             </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.IOpcUAServer">
+            <summary>
+            Represents a server connection of the OPC UA plugin.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.IOpcUAServer.Session">
+            <summary>
+            OPC UA session used by this object.
+            </summary>
+            <remarks>Modifying the session state directly is not recommended as it can lead to 
+            unexpected state and behavior in the plugin, Connectivity core and Connectivity UI.</remarks>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.IOpcUAServer.ServerLimits">
+            <summary>
+            Server operation limits. Updated on successful connect.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings">
+            <summary>
+            Connection parameters specific to this Connection plugin.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.ContainsAllRequiredInfo">
+            <inheritdoc/>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.DisplayIdentifier">
+            <inheritdoc/>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod">
+            <summary>
+            Gets or sets the user authentication method to use.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.ServerUrl">
+            <summary>
+            Gets or sets URL of the server containing the protocol (opc.tcp or http or https), IP or DNS address, port and path on the server.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AutoReplaceHostInEndpointUrl">
+            <summary>
+            Gets or sets whether to replace the host and port in received endpoint descriptions if those differ from <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.ServerUrl"/>.
+            </summary>
+            <remarks>
+            <para>
+            When true, this replacement can automatically solve a connection issue where a server is reachable using one URL, but 
+            when the OPC UA endpoints are loaded from the server they contain different server addresses that are not reachable
+            by the client.
+            </para>
+            <para>
+            Such issue commonly occurs when the server is in another network from the client and the server reports 
+            the endpoint addresses using its local DNS name or IP address.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.UseSecureConnection">
+            <summary>
+            Gets or sets whether to only connect to an endpoint that uses encryption.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.UserPrivateKeyFilePassword">
+            <summary>
+            Gets or sets the password needed to access the cryptographic private key file.
+            Only relevant if <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod"/> is <see cref="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Certificate"/>.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.UserPrivateKeyFilePath">
+            <summary>
+            Gets or sets the file system path to cryptographic private key file used to identify the user. Should be in .pfx format.
+            Only relevant if <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod"/> is <see cref="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Certificate"/>.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.SaveUserPrivateKeyFilePassword">
+            <summary>
+            Whether to INSECURELY store the private key file password (not the key itself) in the simulation layout and exported Connectivity configuration files.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.SaveUsername">
+            <summary>
+            Whether to INSECURELY store the <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.Username"/> in the simulation layout and exported Connectivity configuration files.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.SavePassword">
+            <summary>
+            Whether to INSECURELY store the <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.Password"/> in the simulation layout and exported Connectivity configuration files.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.Username">
+            <summary>
+            Gets or sets the user account name to authenticate to the server.
+            </summary>
+            Only relevant if <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod"/> is <see cref="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Username"/>.
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.Password">
+            <summary>
+            Gets or sets the user account password to authenticate to the server.
+            </summary>
+            Only relevant if <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod"/> is <see cref="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Username"/>.
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.#ctor">
+            <summary>
+            Creates a new instance with default settings.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.Clone">
+            <summary>
+            Creates a copy of this object.
+            </summary>
+            <returns>The new copy.</returns>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.AuthenticationType">
+            <summary>
+            Authentication options enum for <see cref="P:VisualComponents.Connectivity.OpcUA.ServerConnectionSettings.AuthenticationMethod"/>.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.None">
+            <summary>
+            Anonymous i.e. no authentication.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Username">
+            <summary>
+            User name and password authentication.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.AuthenticationType.Certificate">
+            <summary>
+            Cryptographic key based authentication.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.UI.TrustCertificateView">
+            <summary>
+            Interaction logic for TrustCertificateView.xaml
+            </summary>
+            <exclude/>
+            <summary>
+            TrustCertificateView
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.TrustCertificateView.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:VisualComponents.Connectivity.OpcUA.UI.TrustCertificateView"/> class.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.TrustCertificateView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.UI.EditConnectionView">
+            <summary>
+            Interaction logic for EditConnectionView.xaml
+            </summary>
+            <exclude/>
+            <summary>
+            EditConnectionView
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.EditConnectionView.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:VisualComponents.Connectivity.OpcUA.UI.EditConnectionView"/> class.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.EditConnectionView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.UI.ServerPropertyPanel">
+            <summary>
+            Interaction logic for ServerPropertyPanel.xaml
+            </summary>
+            <exclude/>
+            <summary>
+            ServerPropertyPanel
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.ServerPropertyPanel.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:VisualComponents.Connectivity.OpcUA.UI.ServerPropertyPanel"/> class.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.ServerPropertyPanel.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.UI.VariableGroupPropertyPanel">
+            <summary>
+            Interaction logic for VariableGroupPropertyPanel.xaml
+            </summary>
+            <exclude/>
+            <summary>
+            VariableGroupPropertyPanel
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.VariableGroupPropertyPanel.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:VisualComponents.Connectivity.OpcUA.UI.VariableGroupPropertyPanel"/> class.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.VariableGroupPropertyPanel.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.UI.PluginPropertyPanel">
+            <summary>
+            Interaction logic for PluginPropertyPanel.xaml
+            </summary>
+            <exclude/>
+            <summary>
+            PluginPropertyPanel
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.PluginPropertyPanel.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:VisualComponents.Connectivity.OpcUA.UI.PluginPropertyPanel"/> class.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.UI.PluginPropertyPanel.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ServerSettings">
+            <summary>
+            Additional settings for <see cref="T:VisualComponents.Connectivity.Shared.IServer"/> implementations of this plugin.
+            Stored in <see cref="P:VisualComponents.Connectivity.Shared.IServer.ExtraSettings"/>.
+            </summary>
+            <remarks>Implements <see cref="T:System.ComponentModel.INotifyPropertyChanged"/> for UI binding.</remarks>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerSettings.BrowseRequestTimeout">
+            <summary>
+            Gets or sets timeout used for requests related to server address space browsing and some configuration actions.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerSettings.CyclicRequestTimeout">
+            <summary>
+            Gets or sets timeout used for <see cref="T:VisualComponents.Connectivity.Shared.IVariableGroup"/> variable read and write requests.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerSettings.SubscriptionRequestTimeout">
+            <summary>
+            Gets or sets timeout used for requests related to OPC UA subscriptions. 
+            This applies to variable groups with data flow <see cref="F:VisualComponents.Connectivity.Shared.VariableGroupDataDirection.ServerToSimulation"/> that use event-based update mode.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ServerSettings.NamespaceTable">
+            <summary>
+            Gets or sets the OPC UA namespace table for this server.
+            </summary>
+            <remarks>
+            The namespace table is used by the plugin to maintain simpler node IDs that don't need to store the full namespace URIs. 
+            <see cref="T:VisualComponents.Connectivity.OpcUA.ValueItemID"/>s and this stored table are updated when connecting to a server succeeds.
+            </remarks>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ValueItemID">
+            <summary>
+            Identifier for a OPC UA variable used by this plugin as <see cref="P:VisualComponents.Connectivity.Shared.IValueItem.ID"/>.
+            </summary>
+            <remarks>Supports referring to a single item within a OPC UA variable node which has an array-value.</remarks>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItemID.IsArrayMember">
+            <summary>
+            Gets whether this ID represents an item in an array.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItemID.NodeId">
+            <summary>
+            Gets the main OPC UA variable node identifier.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItemID.ArrayIndices">
+            <summary>
+            Gets the indices that define the position of this item in a multi-dimensional array.
+            Null if <see cref="P:VisualComponents.Connectivity.OpcUA.ValueItemID.IsArrayMember"/> is false.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItemID.IndexRange">
+            <summary>
+            Gets the array indices in a NumericRange format defined in the OPC UA standard part 4. 
+            Null if <see cref="P:VisualComponents.Connectivity.OpcUA.ValueItemID.ArrayIndices"/> is null.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItemID.DisplayName">
+            <summary>
+            Gets or sets a user-friendly display name for ID.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItemID.#ctor(UnifiedAutomation.UaBase.NodeId,System.UInt32[])">
+            <summary>
+            Creates a new instance.
+            </summary>
+            <param name="id">The main node identifier.</param>
+            <param name="indices">Array indices if this is an item within an array, null otherwise.</param>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItemID.TranslateNodeId(UnifiedAutomation.UaBase.NamespaceTable,UnifiedAutomation.UaBase.NamespaceTable)">
+            <summary>
+            Updates the NodeId's NamespaceIndex to match the new namespace table.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItemID.Equals(System.Object)">
+            <inheritdoc/>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItemID.GetHashCode">
+            <inheritdoc/>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItemID.ToString">
+            <summary>
+            Creates a basic string representation for display purposes.
+            </summary>
+            <returns>A display string.</returns>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.Server.ReadNodeAttributes(System.Collections.Generic.List{VisualComponents.Connectivity.OpcUA.ValueItemID},System.UInt32[])">
+            <summary>
+            Reads attributes of nodes as a batch operation.
+            </summary>
+            <param name="nodeIds">Nodes to read</param>
+            <param name="attributeIds">Attributes to read. Can be obtained from Attributes static class.</param>
+            <returns>Null if Session.Read throws an exception.</returns>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.Server.TranslateNodeIds(UnifiedAutomation.UaBase.NamespaceTable,UnifiedAutomation.UaBase.NamespaceTable)">
+            <summary>
+            Updates all ValueItem NodeId namespace indices if the namespaces have changed.
+            </summary>
+            <param name="currentNamespaces">Namespace table on which the namespace indices are currently based on.</param>
+            <param name="newNamespaces">Namespace table from a new server / session.</param>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.Server.FindServerEndpoint(System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Gets endpoints from the given server and selects one.
+            </summary>
+            <param name="discoveryUrl">Discovery address of the OPC UA server.</param>
+            <param name="useSecureEndpoint">Whether to select endpoint with best security or with none.</param>
+            <param name="replaceHost">Whether to replace the host and port in the endpoint description if those differ from the discovery url.</param>
+            <returns>The found enpoint. Throws an exception otherwise.</returns>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.Server.Session_InsecureCredentials(UnifiedAutomation.UaClient.Session,UnifiedAutomation.UaClient.InsecureCredentialsEventArgs)">
+            <summary>
+            Handler for the "allow transmit of user credentials over insecure connection" event.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.ServerLimits">
+            <summary>
+            Represents operation limits that have been read from the server.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ServerLimits.MinSupportedSampleRate">
+            <summary>
+            Minimum sample rate for variable monitoring.
+            Null if the value couldn't be found from the server address space.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ServerLimits.MaxNodesPerBrowse">
+            <summary>
+            Maximum number of nodes per a browse service call.
+            Null if the value couldn't be found from the server address space.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ServerLimits.MaxNodesPerRead">
+            <summary>
+            Maximum number of nodes per attribute read service call.
+            Null if the value couldn't be found from the server address space.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ServerLimits.MaxNodesPerWrite">
+            <summary>
+            Maximum number of nodes per attribute write service call.
+            Null if the value couldn't be found from the server address space.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.ServerLimits.MaxNodesPerRegisterNodes">
+            <summary>
+            Maximum number of nodes per register nodes service call.
+            Null if the value couldn't be found from the server address space.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItem.RegisteredNodeId">
+            <summary>
+            Special temporary NodeId for optimized access given by the server.
+            Only lasts the duration of the session.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.ValueItem.OPCValue">
+            <summary>
+            Value used internally with the UA library. 
+            May differ in semantics (object class, format) from the CachedValue used by the connectivity core.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.ValueItem.TranslateNodeId(UnifiedAutomation.UaBase.NamespaceTable,UnifiedAutomation.UaBase.NamespaceTable)">
+            <summary>
+            Updates the NodeId's NamespaceIndex to match the new namespace table.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Connectivity.OpcUA.VariableGroup.arrayParentItems">
+            <summary>
+            Array-valued nodes
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Connectivity.OpcUA.VariableGroup.ValidateValueItems">
+            <summary>
+            Batch validate all ValueItem NodeIds.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Connectivity.OpcUA.VariableGroupSettings">
+            <summary>
+            Additional settings for <see cref="T:VisualComponents.Connectivity.Shared.IVariableGroup"/> implementations of this plugin.
+            Stored in <see cref="P:VisualComponents.Connectivity.Shared.IVariableGroup.ExtraSettings"/>.
+            </summary>
+            <remarks>Implements <see cref="T:System.ComponentModel.INotifyPropertyChanged"/> for UI binding.</remarks>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.VariableGroupSettings.ReadMaxAge">
+            <summary>
+            Gets or sets the maximum age of a cached variable value on the server to return. 
+            Set to <see cref="F:System.TimeSpan.Zero"/> to force the server to always update the value from the source.
+            Relevant only when cyclic update mode is used with server-to-simulation direction.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.VariableGroupSettings.ServerMonitorSamplingInterval">
+            <summary>
+            Gets or sets OPC UA subscription monitored variable value change polling interval on the server. 
+            Setting to <see cref="F:System.TimeSpan.Zero"/> will yield the server's best effort.
+            Relevant only when event-based update mode is used with server-to-simulation direction.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.VariableGroupSettings.SubscriptionPublishInterval">
+            <summary>
+            Gets or sets the interval at which the server sends batched value change notifications to the client.
+            Relevant only when event-based update mode is used with server-to-simulation direction.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Connectivity.OpcUA.VariableGroupSettings.ServerMonitorQueueSize">
+            <summary>
+            Gets or sets the monitored variable value change notification queue size on the server. 
+            Each monitored variable has its own queue.
+            Relevant only when event-based update mode is used with server-to-simulation direction.
+            </summary>
+        </member>
+    </members>
+</doc>

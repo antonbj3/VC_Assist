@@ -1,0 +1,559 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VisualComponents.Core.Interfaces</name>
+    </assembly>
+    <members>
+        <member name="T:VisualComponents.Core.CallerFilePathHelper">
+            <summary>
+            helper functions
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.CallerFilePathHelper.SourceCodePath(System.String,System.Reflection.Assembly)">
+            <summary>
+            This function relies on fact that you're using SDK based project and Deterministic is configure to true
+            with root folder = solution folder name. [CallerFilePath] then receives relative path within a solution
+            (With "./" prefix)
+            </summary>
+            <param name="inPath">Relative or absolute file path.</param>
+            <param name="asm">Assembly</param>
+            <returns>Gets absolute file path based on assembly location and relative file path if any.</returns>
+        </member>
+        <member name="T:VisualComponents.Core.ClassLogLevel">
+            <summary>
+            Allows to use log level by class name (C# from C++)
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.ClassLogLevel.getLogLevelPtr(System.String)">
+            <summary>
+            Gets log level pointer from C++ code
+            </summary>
+            <param name="name">log class name including namespace</param>
+            <returns>int*</returns>
+        </member>
+        <member name="M:VisualComponents.Core.ClassLogLevel.setLogLevel(System.String,System.Int32)">
+            <summary>
+            Sets log level for specific class
+            </summary>
+            <param name="name">class name including namespace</param>
+            <param name="level">log level to set</param>
+        </member>
+        <member name="M:VisualComponents.Core.ClassLogLevel.#ctor(System.String)">
+            <summary>
+            Creates new read of log level on c++ side. (c++ log name must be initialized)
+            </summary>
+            <param name="name"></param>
+        </member>
+        <member name="M:VisualComponents.Core.ClassLogLevel.IsFlagSet(System.Int32)">
+            <summary>
+            Checks if specific flag is set
+            </summary>
+            <param name="flag">flag to check</param>
+            <returns>true if flag is set, false if not</returns>
+        </member>
+        <member name="P:VisualComponents.Core.ClassLogLevel.Value">
+            <summary>
+            Log level value
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.FileExtensionInfo">
+            <summary>
+            Provides information on each supported file extensions and their descriptions
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.FileExtensionInfo.FilterDescription">
+            <summary>
+            File extension description
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.FileExtensionInfo.ExtensionFilters">
+            <summary>
+            Specifies file filter, e.g. "*.dwg", "*.dxf"
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.FileExtensionInfo.FileExtensions">
+            <summary>
+            Specifies file extension, e.g. "dwg", "dxf" (Used when exporing specific file format)
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.FileExtensionInfo.Tag">
+            <summary>
+            Plugin defined value to identify specific file format
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.FileExtensionInfo.#ctor">
+            <summary>
+            Creates empty file extension
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.FileExtensionInfo.#ctor(System.String,System.String[])">
+            <summary>
+            Provides single filter description and supported file extensions
+            </summary>
+            <param name="filterDescription">Filter description</param>
+            <param name="fileExtensions">Supported file extensions</param>
+        </member>
+        <member name="F:VisualComponents.Core.FileExtensionInfo.writer">
+            <summary>
+            If file format can be exported - contains reference to writer interface, which can save this file format.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.ILayoutReader">
+            <summary>
+            Provides support for layout reading
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutReader.GetSupportedFileExtensionInfo">
+            <summary>
+            Gets supported file filter description and file extension filters.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutReader.CanHandle(System.String)">
+            <summary>
+            Checks whether plugin can handle specific file
+            </summary>
+            <param name="path">path to local file</param>
+            <returns>true if can be handled, false - not</returns>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutReader.ReadFile(VisualComponents.Create3D.ISimWorld,VisualComponents.Create3D.ISimNode,System.String,System.Nullable{VisualComponents.Create3D.Vector3})">
+            <summary>
+            Reads layout file
+            </summary>
+            <param name="toWorld">use null to import into default 3d word</param>
+            <param name="toNode">use non-null to import into specific node</param>
+            <param name="path">path to local file</param>
+            <param name="toPosition">import to position. If is null - imported to (0,0,0)</param>
+            <returns>node loaded</returns>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutReader.AnalyzeFile(System.String)">
+            <summary>
+            Analyses file and invokes back 
+            IoC.Get&lt;IEventAggregator>().Publish(new ImportSummaryMessage() .... )
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.ILayoutWriter">
+            <summary>
+            Provides support for being able to export to specific file format
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutWriter.SetWorld(VisualComponents.Create3D.ISimWorld)">
+            <summary>
+            Sets world from where export is performed
+            </summary>
+            <param name="world">world</param>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutWriter.GetSupportedExportFileExtensionInfo">
+            <summary>
+            Gets supported file filter description and file extension filters.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VisualComponents.Core.ILayoutWriter.WriteFile(System.String,System.Boolean,VisualComponents.Core.FileExtensionInfo,System.Int32)">
+            <summary>
+            Exports layout to file
+            </summary>
+            <param name="path">where to save</param>
+            <param name="selectedOnly">true to export only selected objects (IoC.Get&lt;IApplication>().SelectionManager.GetAllSelected()), false to export everything</param>
+            <param name="fileExtensionInfo">Specifies file format according to which file save should be performed</param>
+            <param name="filterIndex">index within FileExtensions</param>
+        </member>
+        <member name="T:VisualComponents.Core.IPackagePlugin">
+            <summary>
+            Marker interface for package managed plugins
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.IPackagePlugin.IsPluginCompatible(System.String)">
+            <summary>
+            Checks if plugin is compatible with specific application version.
+            </summary>
+            <returns>true if plugin is compatible, false if not</returns>
+        </member>
+        <member name="T:VisualComponents.Core.EModuleType">
+            <summary>
+            Must be in sync with EModuleType 'i\module\rmodule.h'
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.Dummy">
+            <summary>
+            No functionality anywhere.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.UriScheme">
+            <summary>
+            US : URI Scheme implementation (formerly known as StreamBuf).
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.PipeStreamBuf">
+            <summary>
+            PS : Streambuffer filtering functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.Archive">
+            <summary>
+            AR : File archive functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.CryptContext">
+            <summary>
+            CC : Encryption algorithms
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.GeoReader">
+            <summary>
+            GR : Geometry reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.MatReader">
+            <summary>
+            MR : Material reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.BitmapReader">
+            <summary>
+            BR : Bitmap reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.ResourceReader">
+            <summary>
+            RR : Resource reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.LayoutReader">
+            <summary>
+            LR : Layout reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.FeatureReader">
+            <summary>
+            FR : Feature Tree reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.SoundReader">
+            <summary>
+            SR : Sound reader functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.Renderer">
+            <summary>
+            RE : 3D Rendering functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.Functionality">
+            <summary>
+            FU : Simulation functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.RslStatement">
+            <summary>
+            RS :RSL Statement functionality
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.Feature">
+            <summary>
+            FE : Feature 
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.EModuleType.LAST_TYPE">
+             <summary>
+            -- : Last type tag
+             </summary>
+        </member>
+        <member name="T:VisualComponents.Core.IPluginAssemblyManager">
+            <summary>
+            Interface for managing plugins - query where is installed, query supported file format extensions and so on.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.IPluginAssemblyManager.PackageManagementDirectory">
+            <summary>
+            Where we store everything related to package management - tools, libs, temp, etc...
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.IPluginAssemblyManager.PackagesLocation">
+            <summary>
+            Where all packages are stored.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.GetLoadedPlugins``1">
+            <summary>
+            Gets all currently loaded plugins, which supports interface T.
+            </summary>
+            <returns>List of plugins supporting specific API</returns>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.GetPluginModules(System.String)">
+            <summary>
+            Gets all plugins from specific package.
+            </summary>
+            <param name="name">Determines package name</param>
+            <returns>multiple interfaces, empty array if plugin is not loaded</returns>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.GetPluginModule``1(System.String)">
+            <summary>
+            Queries for specific interface in all supported plugin modules
+            </summary>
+            <typeparam name="T">interface to request</typeparam>
+            <param name="name">Determines package name</param>
+            <returns>interface throws exception if not supported</returns>
+            <exception cref="T:System.ArgumentException">thrown if plugin or interface is not supported</exception>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.GetSupportedReadFileExtensionInfos">
+            <summary>
+            Gets list of supported filters for file open dialog
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.GetSupportedWriteFileExtensionInfos">
+            <summary>
+            Gets list of supported filters for file open dialog
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.CheckBaseModulesInstalled(System.Action)">
+            <summary>
+            Checks that all modules required by application are installed.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.IPluginAssemblyManager.LoadPlugins(System.String)">
+            <summary>
+            Loads C# based plugins
+            </summary>
+            <param name="nameFilter">additional filter if you someone wants to load based on plugin name</param>
+        </member>
+        <member name="T:VisualComponents.Core.PackageNames">
+            <summary>
+            Globally known package names
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.PackageNames.realdwg">
+            <summary>
+            realdwg package name
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.PluginAssemblyManagerHelpers">
+            <summary>
+            Helper functions for plugin calls.
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.PluginAssemblyManagerHelpers.PluginCall(System.Object,System.String,System.Func{System.Boolean})">
+            <summary>
+            Calls action, if exception is thrown - logs as error to console
+            </summary>
+            <param name="o">class object where call will be directed to</param>
+            <param name="call">method name to call (for diagnostic information)</param>
+            <param name="action"></param>
+            <returns>false if failed, action return value otherwise</returns>
+        </member>
+        <member name="M:VisualComponents.Core.PluginAssemblyManagerHelpers.CanHandleSafe(VisualComponents.Core.ILayoutReader,System.String)">
+            <summary>
+            Similar to CallHandle, logs error via console when plugin throws exception
+            </summary>
+            <param name="reader">reader</param>
+            <param name="path">path</param>
+            <returns></returns>
+        </member>
+        <member name="M:VisualComponents.Core.PluginAssemblyManagerHelpers.ReadFileSafe(VisualComponents.Core.ILayoutReader,VisualComponents.Create3D.ISimWorld,VisualComponents.Create3D.ISimNode,System.String,System.Nullable{VisualComponents.Create3D.Vector3})">
+            <summary>
+            Same as ReadFile, only with exception handling
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:VisualComponents.Core.PluginException">
+            <summary>
+            Special exception type which is was expected by plugin and need only to show exception error message, not more information about exception context
+            (Failing plugin, call method, etc...)
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.PluginException.#ctor">
+            <summary>
+            new exception
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.PluginException.#ctor(System.String)">
+            <summary>
+            new exception with a specified error message.
+            </summary>
+            <param name="message">The message that describes the error.</param>
+        </member>
+        <member name="M:VisualComponents.Core.PluginException.#ctor(System.String,System.Exception)">
+            <summary>
+            new exception with a specified error message and a reference to the inner exception that is the cause of this exception.
+            </summary>
+            <param name="message">The message that describes the error.</param>
+            <param name="innerException">The exception that is the cause of the current exception</param>
+        </member>
+        <member name="T:VisualComponents.Core.PluginInformation">
+            <summary>
+            Information about plugin.
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.PluginInformation.PluginFolderName">
+            <summary>
+            Plugin folder name
+            </summary>
+        </member>
+        <member name="P:VisualComponents.Core.PluginInformation.PluginPackageVersion">
+            <summary>
+            Plugin package version
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.spdlog">
+            <summary>
+            Logging utility functions for C#.
+            
+            Uses internally C++ spdlog logger. 
+            Text formatting however happens using C# function String.Format - so need to obey that standard.
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.logSourceLineAndPosition">
+            <summary>
+            This can be set to true when logging to output window, if you log to log file - most probably this is not needed and it's
+            only overhead to all function calls here.
+            </summary>
+        </member>
+        <member name="T:VisualComponents.Core.spdlog.SpdLogOptions">
+            <summary>
+            Log options
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.SpdLogOptions.None">
+            <summary>
+            No options
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.SpdLogOptions.optForceLog1">
+            <summary>
+            Force to log to first log file
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.SpdLogOptions.optForceLog2">
+            <summary>
+            Force to log to second log file
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.SpdLogOptions.optForceWrite">
+            <summary>
+            Force to write (if file exists and this flag is not on - then verification against existing log will be performed.)
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.setSpdLogLogger(System.String,VisualComponents.Core.spdlog.SpdLogOptions)">
+            <summary>
+            Starts logging to file if it's specified, to console (or output) window if not specified.
+            </summary>
+            <param name="filePath">file where to log</param>
+            <param name="logOption"></param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.setSpdLogToWinDebugSink">
+            <summary>
+            Switches to use windows debug sink
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.LogFileSuffix1">
+            <summary>
+            Log file suffix 1
+            </summary>
+        </member>
+        <member name="F:VisualComponents.Core.spdlog.LogFileSuffix2">
+            <summary>
+            Log file suffix 2
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.LogToFile(System.String,System.Nullable{System.Boolean})">
+            <summary>
+            Logs to file
+            </summary>
+            <param name="basePath">
+            Base path where to log, LogFileSuffix1 or LogFileSuffix2 will be appended automatically.
+            If null - switches to use windows debug sink
+            </param>
+            <param name="useFile1">true - use first file suffix for logging, false - use seconf file, null - auto switch whichever is older</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.translateNativeToManagedException(System.String)">
+            <summary>
+            Translates native c++ exception to managed one
+            </summary>
+            <param name="message">Exception message</param>
+        </member>
+        <member name="T:VisualComponents.Core.spdlog.ThrowNativeException">
+            <summary>
+            C++ callback function when exception is thrown
+            </summary>
+            <param name="message">Exception message</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.setSpdLogExceptionHandler(VisualComponents.Core.spdlog.ThrowNativeException)">
+            <summary>
+            Sets spdlog exception callback function
+            </summary>
+            <param name="nativeExceptionFunc"></param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.VerifyingLog(System.Boolean,System.String,System.String)">
+            <summary>
+            Records new log file if that one does not exists, or verifies against given log file if that one exists.
+            </summary>
+            <param name="forceWrite">forces to write file instead of read one</param>
+            <param name="basePath">Base path of filename for logging / verifying logging</param>
+            <param name="relativeSrcPath">source code path</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.trace(System.String,System.Object[])">
+            <summary>
+            logs line on trace level
+            </summary>
+            <param name="fmt">string format</param>
+            <param name="args">arguments</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.debug(System.String,System.Object[])">
+            <summary>
+            logs line on trace level
+            </summary>
+            <param name="fmt">string format</param>
+            <param name="args">arguments</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.info(System.String,System.Object[])">
+            <summary>
+            logs line on info level
+            </summary>
+            <param name="fmt">string format</param>
+            <param name="args">arguments</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.warn(System.String,System.Object[])">
+            <summary>
+            logs line on warning level
+            </summary>
+            <param name="fmt">string format</param>
+            <param name="args">arguments</param>
+        </member>
+        <member name="M:VisualComponents.Core.spdlog.error(System.String,System.Object[])">
+            <summary>
+            logs line on error level
+            </summary>
+            <param name="fmt">string format</param>
+            <param name="args">arguments</param>
+        </member>
+        <member name="T:VisualComponents.Core.VerifyingLogTest">
+            <summary>
+            Usage like this:
+            
+                    [Fact]
+                    void TestMethod()
+                    {
+                        using (new VerifyingLogTest())
+                        {
+                            spdlog.info("test method");
+                        }
+                    }
+            
+            </summary>
+        </member>
+        <member name="M:VisualComponents.Core.VerifyingLogTest.#ctor(System.String,System.Boolean,System.String,System.String)">
+            <summary>
+            Enables VerifyingLog testing.
+            </summary>
+            <param name="logLevelsToReset">comma separated log level names which needs to be resetted after test completion. Empty if not used.</param>
+            <param name="forceWrite">forces to write file instead of read one</param>
+            <param name="path">source code path</param>
+            <param name="func">source code function</param>
+        </member>
+        <member name="M:VisualComponents.Core.VerifyingLogTest.Dispose">
+            <summary>
+            Switches logging back to output window
+            </summary>
+        </member>
+    </members>
+</doc>

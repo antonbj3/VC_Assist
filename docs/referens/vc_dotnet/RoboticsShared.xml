@@ -1,0 +1,167 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RoboticsShared</name>
+    </assembly>
+    <members>
+        <member name="T:RoboticsShared.StmtScope">
+            <summary>
+            Defines a scope for statements
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.StmtScope.Program">
+            <summary>
+            All statements executed in the program
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.StmtScope.Sequence">
+            <summary>
+            Statements in the active sequence
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.StmtScope.Selected">
+            <summary>
+            Currently selected statements
+            </summary>
+        </member>
+        <member name="T:RoboticsShared.PathKind">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.PathKind.Process">
+            <summary>
+            Process path statement, e.g. Weld
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.PathKind.Search">
+            <summary>
+            Search path statement
+            </summary>
+        </member>
+        <member name="F:RoboticsShared.PathKind.Via">
+            <summary>
+            Via path statement
+            </summary>
+        </member>
+        <member name="T:RoboticsShared.RoPath">
+            <summary>
+            Robot path related operations
+            </summary>
+        </member>
+        <member name="M:RoboticsShared.RoPath.LoadXmlPath(VisualComponents.Create3D.IRobot,VisualComponents.Create3D.ISimComponent,System.String,VisualComponents.Create3D.IRoutine)">
+            <summary>
+            Load XML path to robot from a file
+            </summary>
+            <param name="robot"></param>
+            <param name="workpiece"></param>
+            <param name="filePath">Full path to the XML file.</param>
+            <param name="routine"></param>
+        </member>
+        <member name="M:RoboticsShared.RoPath.GenerateAutoSearches(RoboticsShared.StmtScope)">
+            <summary>
+            Generates searches to all welds in the specified statement scope
+            </summary>
+            <param name="searchGenScope">Statement scope</param>
+        </member>
+        <member name="M:RoboticsShared.RoPath.SolvePaths(VisualComponents.Create3D.IRobot,RoboticsShared.PathKind,RoboticsShared.StmtScope,VisualComponents.Create3D.IRoutine)">
+            <summary>
+            Solves process, search or via paths
+            </summary>
+            <param name="robot">Which robot's paths are solved</param>
+            <param name="pathKind">What kind of paths are solved</param>
+            <param name="solveScope">Scope of solving</param>
+            <param name="routine">Routine to solve</param>
+        </member>
+        <member name="M:RoboticsShared.RoPath.ActivateSolverPreset(VisualComponents.Create3D.IRobot,RoboticsShared.PathKind,System.String)">
+            <summary>
+            Set active solver preset to the robot
+            </summary>
+            <param name="robot">Robot, to which the preset is activated</param>
+            <param name="pathKind">Solver path type</param>
+            <param name="presetName">The name of the preset</param>
+            <returns>True, if the activation was successful</returns>
+        </member>
+        <member name="M:RoboticsShared.RoPath.RunPathCheck(RoboticsShared.StmtScope)">
+            <summary>
+            Runs the path checker for the active robot
+            </summary>
+            <param name="scope">Scope to check</param>
+            <returns>0.0 - 100.0: The percentage of interpolation steps that didn't have issues. -1: Unable to run the checker.</returns>
+        </member>
+        <member name="M:RoboticsShared.RoPath.RebuildPath(VisualComponents.Create3D.IPathStatement)">
+            <summary>
+            Rebuilds the path statement
+            </summary>
+            <param name="pathStatement">Path statement to rebuild</param>
+        </member>
+        <member name="T:RoboticsShared.RoUtils">
+            <summary>
+            Basic functions for C# add-on development
+            </summary>
+        </member>
+        <member name="P:RoboticsShared.RoUtils.Application">
+            <summary>
+            Provides access to the application instance
+            </summary>
+        </member>
+        <member name="P:RoboticsShared.RoUtils.TeachContext">
+            <summary>
+            The Teach context of the application
+            </summary>
+        </member>
+        <member name="P:RoboticsShared.RoUtils.MessageService">
+            <summary>
+            Application messaging service
+            </summary>
+        </member>
+        <member name="P:RoboticsShared.RoUtils.RenderService">
+            <summary>
+            3D window render service
+            </summary>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.PrintMsg(System.String)">
+            <summary>
+            Print message to Output panel.
+            </summary>
+            <param name="message">The message to print.</param>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.SetItemPropValue(VisualComponents.Create3D.IPropertyContainer,System.String,System.Object)">
+            <summary>
+            Set property value and create the property, if it doesn't exist.
+            </summary>
+            <param name="propCont">The property container object.</param>
+            <param name="propertyName">Name of the property.</param>
+            <param name="propertyValue">New value for the property.</param>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.GetActiveRoutine">
+            <summary>
+            Finds out the currently active routine
+            </summary>
+            <returns>Active routine.</returns>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.ActivateRoutine(VisualComponents.Create3D.IRoutine)">
+            <summary>
+            Activates the routine in program editor, if not yet active.
+            </summary>
+            <param name="routine">The routine to activate</param>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.GetActiveRobot">
+            <summary>
+            Finds out the currently active robot in program editor
+            </summary>
+            <returns>Active robot</returns>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.ActivateRobot(VisualComponents.Create3D.IRobot)">
+            <summary>
+            Activates the robot in program editor, if not yet active
+            </summary>
+            <param name="robot">The robot to activate</param>
+        </member>
+        <member name="M:RoboticsShared.RoUtils.DoEvents">
+            <summary>
+            Process events in queue
+            </summary>
+        </member>
+    </members>
+</doc>

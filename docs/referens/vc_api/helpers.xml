@@ -1,0 +1,2585 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<API>
+  <type>
+    <name>vcHelpers.Application1</name>
+    <methods>
+      <method>
+        <name>CurrentTab</name>
+        <type>String</type>
+        <description>Defines the active tab in the dialog. 
+		This property can be overridden by using 
+		 the showTabs() method.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>GeneralTabCaption</name>
+        <type>String</type>
+        <description>Defines the label for the first tab in the dialog.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Name</name>
+        <type>String</type>
+        <description>Defines the text displayed in the title bar of the dialog.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>addProperty</name>
+        <type>vcProperty</type>
+        <description>Adds a new property to the dialog. 
+		If a property with the given name 
+		 exists, that property is deleted and replaced with the new property.
+		The onchanged 
+		 argument can be used to call a function for handling property 
+		 value changes; otherwise give a None value.
+		A tab is added to the dialog when you add 
+		 a property using the following format for its name 
+		 argument.
+		[TabName]::[PropertyName]
+		See Property 
+		 Constants for more information on property types and constraints.</description>
+        <parameters>String name, Enumeration type, String onchanged, 
+		 Enumeration constraints</parameters>
+      </method>
+      <method>
+        <name>destroyWindow</name>
+        <type>None</type>
+        <description>Hides and destroys the dialog.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getProperty</name>
+        <type>vcProperty</type>
+        <description>Returns a property of the dialog matching the given name; 
+		 otherwise returns None.</description>
+        <parameters>String name</parameters>
+      </method>
+      <method>
+        <name>hide</name>
+        <type>None</type>
+        <description>Hides the dialog.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>show</name>
+        <type>None</type>
+        <description>Shows the dialog.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>showTabs</name>
+        <type>None</type>
+        <description>Shows the dialog and its tabs. 
+		An optional tabName 
+		 argument can be used to define which tab is listed first and active 
+		 in the dialog.
+		If there is no tab matching the given tabName or the method is called without 
+		 any argument, the first listed tab is used in the dialog. By default, 
+		 the first tab is named General.</description>
+        <parameters>[String tabName]</parameters>
+      </method>
+      <method>
+        <name>addLimitProperty</name>
+        <type>vcProperty</type>
+        <description>Adds a property with defined limits to the dialog's owner. 
+		 
+		If a property with the given name 
+		 exists, that property is deleted and replaced with the new property.
+		The onchanged 
+		 argument can be used to call a function for handling property 
+		 value changes; otherwise give a None value.
+		A tab is added to the dialog when you add 
+		 a property using the following format for its name 
+		 argument.
+		[TabName]::[PropertyName]
+		The rebuild 
+		 argument can be used to rebuild geometry referencing the property's 
+		 value; otherwise give a False value.
+		The update argument 
+		 can be used to update a simulation when changing the property's 
+		 value; otherwise give a False value.
+		The value argument 
+		 defines the initial value of the property, whereas the min 
+		 and max arguments define the property's 
+		 limits.
+		The units argument 
+		 can given as an empty string &amp;quot;&amp;quot; or a unit associated 
+		 with the property's type.
+		To show/hide the property in the dialog, 
+		 use the visible argument.
+		See Property 
+		 Constants for more information.</description>
+        <parameters>vcCommand owner, 
+		 Enumeration type, String name, 
+		 Boolean visible, Boolean rebuild, 
+		 Boolean update, var* value, 
+		 String onchanged, var* units, 
+		 var* min, var* max</parameters>
+      </method>
+      <method>
+        <name>addStepProperty</name>
+        <type>vcProperty</type>
+        <description>Adds a property with defined values to the dialog's owner. 
+		 
+		If a property with the given name 
+		 exists, that property is deleted and replaced with the new property.
+		The onchanged 
+		 argument can be used to call a function for handling property 
+		 value changes; otherwise give a None value.
+		A tab is added to the dialog when you add 
+		 a property using the following format for its name 
+		 argument.
+		[TabName]::[PropertyName]
+		The rebuild 
+		 argument can be used to rebuild geometry referencing the property's 
+		 value; otherwise give a False value.
+		The update argument 
+		 can be used to update a simulation when changing the property's 
+		 value; otherwise give a False value.
+		The value argument 
+		 defines the initial value of the property, whereas possible values 
+		 are given as optional values in a list.
+		The units argument 
+		 can given as an empty string &amp;quot;&amp;quot; or a unit associated 
+		 with the property's type.
+		To show/hide the property in the dialog, 
+		 use the visible argument.
+		See Property 
+		 Constants for more information.</description>
+        <parameters>vcCommand owner, 
+		 Enumeration type, String name, 
+		 Boolean visible, Boolean rebuild, 
+		 Boolean update, var* value, 
+		 String onchanged, var* units, 
+		 List* [value1, ...]</parameters>
+      </method>
+      <method>
+        <name>displayPropertyDialog</name>
+        <type>Boolean</type>
+        <description>Shows a modal property dialog bound to a command matching the 
+		 given cmdName. 
+		The cmdName 
+		 argument is used to find a command owning the dialog and its properties.
+		The title argument 
+		 defines the caption of the dialog's title bar.
+		The firstTabName 
+		 argument defines the first and active tab of the dialog. You can 
+		 given an empty string &amp;quot;&amp;quot; if no tabs are required in 
+		 the dialog.</description>
+        <parameters>String cmdName, String title, 
+		 String firstTabName</parameters>
+      </method>
+      <method>
+        <name>copyProperties</name>
+        <type>None</type>
+        <description>Copies the properties of a component to another component. 
+		 
+		The comp1 argument 
+		 defines the component whose properties are copied.
+		The comp2 argument 
+		 defines the component which gets the copied properties.</description>
+        <parameters>vcComponent comp1, 
+		 vcComponent comp2</parameters>
+      </method>
+      <method>
+        <name>endMessage</name>
+        <type>None</type>
+        <description>Prints a given message to the Output 
+		 panel and unblocks the application.</description>
+        <parameters>String message</parameters>
+      </method>
+      <method>
+        <name>findCommand</name>
+        <type>vcCommand</type>
+        <description>Returns a command in the application matching the given name; otherwise returns None.</description>
+        <parameters>String name</parameters>
+      </method>
+      <method>
+        <name>progressMessage</name>
+        <type>None</type>
+        <description>Prints a given message to the Output 
+		 panel and updates the value of the progress bar based on a given 
+		 fraction ranging from 0.0 to 1.0. 
+		 
+		Generally, this is used to provide feedback 
+		 to a user about the progress of one or actions.
+		This method does not unblock the application.</description>
+        <parameters>String message, Real fraction</parameters>
+      </method>
+      <method>
+        <name>progressStdMessage</name>
+        <type>None</type>
+        <description>Displays the status of an operation based on a given amount 
+		 of work completed in relation to the 
+		 total amount of work. 
+		This method does not unblock the application.</description>
+        <parameters>Real completed, Real total</parameters>
+      </method>
+      <method>
+        <name>startMessage</name>
+        <type>None</type>
+        <description>Prints a given message to the Output panel. 
+		Using this method, progressMessage() or 
+		 progressStdMessage() will block the application, thereby preventing 
+		 user interaction.
+		To unblock the application, use the endMessage() 
+		 method.</description>
+        <parameters>String message</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties>
+      <property>
+        <name>getDialog</name>
+        <type>vcHelpers.Application.DialogObject</type>
+        <description>Creates a new DialogObject object representing a non-modal 
+		 dialog box. 
+		An option caption 
+		 argument can be given to define the title caption of the dialog.</description>
+        <access>[String caption]</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Math</name>
+    <methods>
+      <method>
+        <name>sasa</name>
+        <type>Real angle1</type>
+        <description>Returns the value of alpha in radians.</description>
+        <parameters>Real side1, Real angle3, 
+		 Real side2</parameters>
+      </method>
+      <method>
+        <name>sass</name>
+        <type>Real side3</type>
+        <description>Returns the value of b.</description>
+        <parameters>Real side1, Real angle3, 
+		 Real side2</parameters>
+      </method>
+      <method>
+        <name>sssa</name>
+        <type>Real angle1</type>
+        <description>Returns the value of alpha in radians.</description>
+        <parameters>Real side1, Real side2, 
+		 Real side3</parameters>
+      </method>
+      <method>
+        <name>sasasa</name>
+        <type>Real angle3</type>
+        <description>Returns the value of c in radians.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real angle2, 
+		 Real side3</parameters>
+      </method>
+      <method>
+        <name>sasass</name>
+        <type>Real side4</type>
+        <description>Returns the value of D.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real angle2, 
+		 Real side3</parameters>
+      </method>
+      <method>
+        <name>sasssa1</name>
+        <type>Real angle2</type>
+        <description>Returns the value of b in radians.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real side3, 
+		 Real side4</parameters>
+      </method>
+      <method>
+        <name>sasssa2</name>
+        <type>Real angle3</type>
+        <description>Returns the value of c in radians.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real side3, 
+		 Real side4</parameters>
+      </method>
+      <method>
+        <name>sasasad</name>
+        <type>Real angle3</type>
+        <description>Returns the value of c in degrees.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real angle2, 
+		 Real side3</parameters>
+      </method>
+      <method>
+        <name>sasassd</name>
+        <type>Real side4</type>
+        <description>Returns the value of D.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real angle2, 
+		 Real side3</parameters>
+      </method>
+      <method>
+        <name>sasssa1d</name>
+        <type>Real angle2</type>
+        <description>Returns the value of b in degrees.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real side3, 
+		 Real side4</parameters>
+      </method>
+      <method>
+        <name>sasssa2d</name>
+        <type>Real angle3</type>
+        <description>Returns the value of c in degrees.</description>
+        <parameters>Real side1, Real angle1, 
+		 Real side2, Real side3, 
+		 Real side4</parameters>
+      </method>
+      <method>
+        <name>trapezoid</name>
+        <type>Real y</type>
+        <description>Return a value between 0-1 based on the x location on trapezoid 
+		 defined by a,b,c,d.</description>
+        <parameters>Real a, Real b, Real x, Real c, Real d</parameters>
+      </method>
+      <method>
+        <name>trapesine</name>
+        <type>Real y</type>
+        <description>Return a value between 0-1 based on the x location on trapezoid 
+		 defined by a,b,c,d with sinusoidal ramps.</description>
+        <parameters>Real a, Real b, Real x, Real c, Real d</parameters>
+      </method>
+      <method>
+        <name>matrixExpr</name>
+        <type>String</type>
+        <description>Converts a given vcMatrix object 
+		 to a string expression.</description>
+        <parameters>vcMatrix M, 
+		 [Real tolerance]</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties />
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Output</name>
+    <methods />
+    <events />
+    <properties>
+      <property>
+        <name>info()</name>
+        <type>None</type>
+        <description>Prints given positional arguments to output. To print simulation 
+		 time (as a prefix), set simtime key 
+		 argument to True, default is False.</description>
+        <access>List of arguments, [Boolean simtime]</access>
+      </property>
+      <property>
+        <name>warning()</name>
+        <type>None</type>
+        <description>Prints given positional arguments to output. To print simulation 
+		 time (as a prefix), set simtime key 
+		 argument to True, default is False.</description>
+        <access>List of arguments, [Boolean simtime]</access>
+      </property>
+      <property>
+        <name>error()</name>
+        <type>None</type>
+        <description>Prints given positional arguments to output. To print simulation 
+		 time (as a prefix), set simtime key 
+		 argument to True, default is False.</description>
+        <access>List of arguments, [Boolean simtime]</access>
+      </property>
+      <property>
+        <name>debug()</name>
+        <type>None</type>
+        <description>Prints given positional arguments to output. To print simulation 
+		 time (as a prefix), set simtime key 
+		 argument to True, default is False.</description>
+        <access>List of arguments, [Boolean simtime]</access>
+      </property>
+      <property>
+        <name>setInfo()</name>
+        <type>None</type>
+        <description>Enable (True) or disable (False) info messages.</description>
+        <access>Boolean Value</access>
+      </property>
+      <property>
+        <name>setWarnings()</name>
+        <type>None</type>
+        <description>Enable (True) or disable (False) warnings.</description>
+        <access>Boolean Value</access>
+      </property>
+      <property>
+        <name>setErrors()</name>
+        <type>None</type>
+        <description>Enable (True) or disable (False) errors.</description>
+        <access>Boolean Value</access>
+      </property>
+      <property>
+        <name>setDebug()</name>
+        <type>None</type>
+        <description>Enable (True) or disable (False) debug messages.</description>
+        <access>Boolean Value</access>
+      </property>
+      <property>
+        <name>bindInfoProperty()</name>
+        <type>Boolean</type>
+        <description>Bind a component/command property as a toggle to enable/disable 
+		 info messages. Use the name of the property or the property instance 
+		 as the argument.</description>
+        <access>String or vcProperty</access>
+      </property>
+      <property>
+        <name>bindErrorProperty()</name>
+        <type>Boolean</type>
+        <description>Bind a component/command property as a toggle to enable/disable 
+		 errors. Use the name of the property or the property instance 
+		 as the argument.</description>
+        <access>String or vcProperty</access>
+      </property>
+      <property>
+        <name>bindWarningProperty()</name>
+        <type>Boolean</type>
+        <description>Bind a component/command property as a toggle to enable/disable 
+		 warnings. Use the name of the property or the property instance 
+		 as the argument.</description>
+        <access>String or vcProperty</access>
+      </property>
+      <property>
+        <name>bindDebugProperty()</name>
+        <type>Boolean</type>
+        <description>Bind a component/command property as a toggle to enable/disable 
+		 debug messages. Use the name of the property or the property instance 
+		 as the argument.</description>
+        <access>String or vcProperty</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Robot</name>
+    <methods>
+      <method>
+        <name>Acc</name>
+        <type>Real</type>
+        <description>Defines the Cartesian acceleration of robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>ActiveTool</name>
+        <type>String/Integer</type>
+        <description>Defines the active tool frame of robot by referencing the name 
+		 or index of a tool frame in Tools property.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>AngularAcc</name>
+        <type>Real</type>
+        <description>Defines the angular acceleration of robot for linear 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>AngularSpeed</name>
+        <type>Real</type>
+        <description>Defines the angular speed of robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Bases</name>
+        <type>List of vcBaseFrame</type>
+        <description>Gets a list of all base frames available in robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Component</name>
+        <type>vcComponent</type>
+        <description>Gets the component of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Configuration</name>
+        <type>String/Integer</type>
+        <description>Defines the configuration of robot. 
+		Set this property to None to use the current 
+		 configuration of the robot.
+		Note: The default 
+		 configuration is -1/last configuration in ConfigurationsList.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>ConfigurationsList</name>
+        <type>List of String</type>
+        <description>Gets a list of robot's configurations by name.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Controller</name>
+        <type>vcRobotController</type>
+        <description>Gets the controller of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Executor</name>
+        <type>vcRslProgramExecutor</type>
+        <description>Gets the executor of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>GraspContainer</name>
+        <type>vcContainer</type>
+        <description>Defines the Component Container behavior in the robot's flange 
+		 node used to contain components grabbed by the robot.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Joints</name>
+        <type>List of vcJoint</type>
+        <description>Gets a list of joints used by robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>JointForce</name>
+        <type>Real</type>
+        <description>Defines the joint force (0-100%) used by robot for joint/point-to-point 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>JointSpeed</name>
+        <type>Real</type>
+        <description>Defines the joint speed (0-100%) used by robot for joint/point-to-point 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>MotionTime</name>
+        <type>Real</type>
+        <description>Defines a time used for scaling the acceleration and speed 
+		 of robot motions to match the given time. 
+		If zero value, a motion's acceleration and 
+		 speed determines its motion time. That is, this property has no 
+		 effect.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>RecordRoutine</name>
+        <type>String</type>
+        <description>Defines a sequence in the robot where new statements are added 
+		 when RecordRSL is set to True. 
+		This property must be defined before setting 
+		 RecordRSL to True. By default, new statements are added to the 
+		 MainRoutine of the robot.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>RecordRSL</name>
+        <type>Boolean</type>
+        <description>Defines if actions executed by the robot are recorded as statements 
+		 in the robot's program. 
+		If True, statements are added to a routine 
+		 defined by RecordRoutine.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>SignalMapIn</name>
+        <type>vcBooleanSignalMap</type>
+        <description>Gets the Boolean Signal Map behavior used for robot inputs.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>SignalMapOut</name>
+        <type>vcBooleanSignalMap</type>
+        <description>Gets the Boolean Signal Map behavior used for robot outputs.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Speed</name>
+        <type>Real</type>
+        <description>Defines the Cartesian speed used by the robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Tools</name>
+        <type>List of vcBaseFrame</type>
+        <description>Gets a list of the robot's tool frames.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>callSubRoutine</name>
+        <type>None</type>
+        <description>Calls a predefined routine by name in the robot's program.</description>
+        <parameters>String rName</parameters>
+      </method>
+      <method>
+        <name>comment</name>
+        <type>None</type>
+        <description>Prints a given comment to the Output 
+		 panel and records a Comment statement for this action in the robot's 
+		 program.</description>
+        <parameters>String comment</parameters>
+      </method>
+      <method>
+        <name>delay</name>
+        <type>None</type>
+        <description>Executes a timed delay (in seconds) 
+		 and records a Delay statement for this action in the robot's program. 
+		 </description>
+        <parameters>Real delay</parameters>
+      </method>
+      <method>
+        <name>driveJoints</name>
+        <type>None</type>
+        <description>Drives one or more joints in the robot to given target values. 
+		 
+		If no value is given for a joint, the current 
+		 value of the joint is used by the robot.
+		Optional arguments j1 
+		 to j6 are target values for joints 
+		 1 through 6 in a robot, with six joints being common in articulated 
+		 robots.
+		An optional motiontime 
+		 argument can be given to scale the acceleration and speed of the 
+		 robot's motion to match the given time. The default value is zero 
+		 in which scaling is disabled.
+		An optional relative 
+		 argument can be used to set target values as relative to the current 
+		 value of each joint. The default value is False in which target 
+		 values are absolute joint values.
+		An optional ExtraJoints argument can be 
+		 given as a list of joint values for additional joints in a robot, 
+		 for example external joints of a robot mounted on a track and 
+		 remotely connected to a workpiece positioner.
+		Tip: Joints 
+		 can be individually driven by controller; see methods in vcServoController.</description>
+        <parameters>[Real j1], [Real j2], 
+		 [Real j3], [Real j4], 
+		 [Real j5], [Real j6], 
+		 [Real motiontime], [Boolean relative], [Real ExtraJoints]</parameters>
+      </method>
+      <method>
+        <name>followNode</name>
+        <type>None</type>
+        <description>Defines a node in the 3D world to be followed by the robot 
+		 for a set amount of time. 
+		An optional FollowTime 
+		 argument can be given to set the amount of time the robot should 
+		 follow the target node. The default value is 1.0/one second.</description>
+        <parameters>vcNode Basenode, 
+		 [Real FollowTime]</parameters>
+      </method>
+      <method>
+        <name>getConfigNames</name>
+        <type>List of String</type>
+        <description>Returns a list of available configurations by name for the 
+		 robot.</description>
+        <parameters>vcRslProgramExecutor 
+		 executor, vcRobotController 
+		 controller</parameters>
+      </method>
+      <method>
+        <name>graspComponent</name>
+        <type>None</type>
+        <description>Grasps a given component using robot.</description>
+        <parameters>vcComponent graspthis</parameters>
+      </method>
+      <method>
+        <name>graspComponents</name>
+        <type>None</type>
+        <description>Grasps a given list of components using the robot.</description>
+        <parameters>List of vcComponent graspthese</parameters>
+      </method>
+      <method>
+        <name>jointMoveRel</name>
+        <type>None</type>
+        <description>Executes a joint movement relative to the current pose of robot 
+		 based in active tool's coordinate system. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are translation movements in the XYZ coordinate axes.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are rotation offsets for the XYZ coordinate axes.</description>
+        <parameters>[Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToComponent</name>
+        <type>None</type>
+        <description>Executes a joint movement to a given component, which by default 
+		 is the component's origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target position. The default value for translations 
+		 is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target orientation. The default value for rotations 
+		 is zero.
+		An optional ToFrame 
+		 argument can be used to set the target location to be a Frame 
+		 feature in a component. A Frame feature can be given as a vcFeature 
+		 object or referenced by name.
+		An optional OnFace 
+		 argument can be used to set the target location to be a face of 
+		 a component's bound box. A bound box face can be referenced by 
+		 using one of six recognized names (top, bottom, left, right, front, 
+		 back).
+		If ToFrame and 
+		 OnFace arguments are given, the method 
+		 will first try to use ToFrame.</description>
+        <parameters>vcNode ToComp, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [vcFeature/String ToFrame], 
+		 [String OnFace]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToMtx</name>
+        <type>None</type>
+        <description>Executes a joint movement to a given target matrix, otherwise 
+		 the 3D world origin. 
+		An optional ToMtx 
+		 argument defines the target matrix in the selected coordinate 
+		 system for this method. By default, the identity matrix is based 
+		 on World origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.
+		An optional CS 
+		 argument can be used to set the coordinate system used for target 
+		 calculation, which by default is the World coordinate system. 
+		 The argument can be either &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; 
+		 which is the robot's coordinate system.</description>
+        <parameters>[vcMatrix ToMtx], 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [String CS]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToPosition</name>
+        <type>None</type>
+        <description>Executes a joint movement to a target defined by given XYZ 
+		 coordinate values and roll, pitch and yaw values based in a given 
+		 coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 define the target's XYZ coordinate values.
+		The Rx, Ry and Rz arguments 
+		 define the target's orientation or ABC values.
+		Rx
+		C target value (Roll)
+		Ry
+		B target value (Pitch)
+		Rz
+		A target value (Yaw)
+		The CS argument 
+		 defines the coordinate system used for target calculation, which 
+		 default is World coordinate system. The argument can be either 
+		 &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; which is the robot's coordinate 
+		 system.
+		After the target is calculated, a point-to-point 
+		 motion statement is created in the robot's program which uses 
+		 the robot's first indexed tool frame. The orientation of that 
+		 tool frame can affect the TargetABC properties of the motion statement.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz, 
+		 String CS</parameters>
+      </method>
+      <method>
+        <name>linearMoveRel</name>
+        <type>None</type>
+        <description>Executes a linear movement relative to the current pose of 
+		 robot based in active tool's coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 are translation movements in XYZ coordinate axes.
+		The Rx, Ry and Rz arguments 
+		 are rotation offsets for XYZ coordinate axes.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz</parameters>
+      </method>
+      <method>
+        <name>linearMoveToComponent</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given component, which by default 
+		 is the component's origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target position. The default value for translations 
+		 is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target orientation. The default value for rotations 
+		 is zero.
+		An optional ToFrame 
+		 argument can be used to set the target location to be a Frame 
+		 feature in a component. A Frame feature can be given as a vcFeature 
+		 object or referenced by name.
+		An optional OnFace 
+		 argument can be used to set the target location to be a face of 
+		 a component's bound box. A bound box face can be referenced by 
+		 using one of six recognized names (top, bottom, left, right, front, 
+		 back).
+		If ToFrame and 
+		 OnFace arguments are given, the method 
+		 will first try to use ToFrame.</description>
+        <parameters>vcNode ToComp, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [vcFeature/String ToFrame], 
+		 [String OnFace]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToMtx</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given target matrix, otherwise 
+		 the 3D world origin. 
+		An optional ToMtx 
+		 argument defines the target matrix in the selected coordinate 
+		 system for this method. By default, the identity matrix is based 
+		 on World origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.
+		An optional CS 
+		 argument can be used to set the coordinate system used for target 
+		 calculation, which by default is the World coordinate system. 
+		 The argument can be either &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; 
+		 which is the robot's coordinate system.</description>
+        <parameters>[vcMatrix ToMtx], 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [String CS]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToMtx_ExternalBase</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given target matrix based in 
+		 given node's coordinate system. 
+		Generally, this method is used when a robot 
+		 needs to motion to a moving part, for example a pallet on a conveyor.
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.</description>
+        <parameters>vcNode Basenode, 
+		 vcMatrix ToMtx, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToPosition</name>
+        <type>None</type>
+        <description>Executes a linear movement to a target defined by given XYZ 
+		 coordinate values and roll, pitch and yaw values based in a given 
+		 coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 define the target's XYZ coordinate values.
+		The Rx, Ry and Rz arguments 
+		 define the target's orientation or ABC values.
+		Rx
+		C target value (Roll)
+		Ry
+		B target value (Pitch)
+		Rz
+		A target value (Yaw)
+		The CS argument 
+		 defines the coordinate system used for target calculation, which 
+		 default is World coordinate system. The argument can be either 
+		 &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; which is the robot's coordinate 
+		 system.
+		After the target is calculated, a linear 
+		 motion statement is created in the robot's program which uses 
+		 the robot's first indexed tool frame. The orientation of that 
+		 tool frame can affect the TargetABC properties of the motion statement.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz, 
+		 String CS</parameters>
+      </method>
+      <method>
+        <name>mountTool</name>
+        <type>None</type>
+        <description>Mounts a given component to flange node of robot.</description>
+        <parameters>vcComponent Tool</parameters>
+      </method>
+      <method>
+        <name>moveAway</name>
+        <type>None</type>
+        <description>Executes a linear retraction movement relative to current pose 
+		 of robot. 
+		An optional Tz 
+		 argument can be given to set retraction distance, which by default 
+		 is 200.</description>
+        <parameters>[Real Tz]</parameters>
+      </method>
+      <method>
+        <name>pick</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for robot to pick a 
+		 given component. 
+		Action 1
+		Robot executes a joint movement based on target component origin 
+		 and Approach, OnFace 
+		 and ApproachAxis values.
+		Action 2
+		Robot executes a linear movement to target component based on OnFace value.
+		Action 3
+		Target component is grabbed by robot.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 aligned to Z-axis in order to pick from the top 
+		 face of a given component's bound box.
+		The pick location can be offset using the 
+		 optional Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.
+		An optional OnFace 
+		 argument allows you to set which face of Part 
+		 bound box to use for Action 2.
+		An optional ApproachAxis 
+		 argument sets the axis of alignment.</description>
+        <parameters>vcComponent Part, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [String OnFace], [String ApproachAxis]</parameters>
+      </method>
+      <method>
+        <name>pickFromPallet</name>
+        <type>vcComponent</type>
+        <description>Executes a sequence of actions in order for the robot to pick 
+		 a component from a given Pallet. 
+		Action 1
+		Get a list of components attached to Pallet. 
+		 That is, a list of child components.
+		Action 2
+		Select child component to pick based on InversedOrder 
+		 and Index values.
+		Action 3
+		Robot executes a joint movement based on child component origin 
+		 and Approach value.
+		Action 4
+		Robot executes a linear movement to top face of child component.
+		Action 5
+		Child component is grabbed by robot.
+		Action 6
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 to pick the last component of a list of child 
+		 components for Pallet.
+		An optional Approach 
+		 argument can be used to change the approach and retract distance 
+		 used by robot.
+		An optional InversedOrder 
+		 argument can be used to reverse the list of child components acquired 
+		 in Action 1. A True value reverses the order, so last component 
+		 attached to Pallet is first in list. 
+		 The default value is False.
+		An optional Index 
+		 argument can be used to select which child component of Pallet is picked by robot. The default value 
+		 is -1, so last component in Action 1 child components list.</description>
+        <parameters>vcComponent Pallet, 
+		 [Real Approach], [Boolean InversedOrder], 
+		 [Integer Index]</parameters>
+      </method>
+      <method>
+        <name>pickMovingPart</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to pick 
+		 a given component that is not stationary. 
+		Action 1
+		Robot executes joint movement based on target component origin 
+		 and Approach value.
+		Action 2
+		Robot executes linear movement to top face of target component 
+		 bound box.
+		Action 3
+		Target component is grabbed by robot.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 and calculate motion targets based on speed of 
+		 Part.
+		The pick location can be offset using the 
+		 optional Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.</description>
+        <parameters>vcComponent Part, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>place</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to place 
+		 a grasped component at a given component. 
+		Action 1
+		Robot executes joint movement based on ToComp 
+		 origin, Approach and ApproachAxis 
+		 values.
+		Action 2
+		Robot executes linear movement to top face of ToComp.
+		Action 3
+		Grasped component is released by robot to ToComp.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, a robot will use an approach 
+		 distance of 200 and the bound box of grasped component to calculate 
+		 motion targets.
+		The place location can be offset using optional 
+		 Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.
+		An optional Part 
+		 argument can be used to define which component is placed to ToComp. The default is the first component 
+		 listed in robot's GraspContainer.
+		An optional ApproachAxis 
+		 argument can be used to define the axis of alignment.</description>
+        <parameters>vcComponent ToComp, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [vcComponent Part], 
+		 [String ApproachAxis]</parameters>
+      </method>
+      <method>
+        <name>placeInPattern</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to place 
+		 components in a given pattern. 
+		Action 1
+		Robot executes joint movement to ToComp.
+		Action 2
+		Robot executes linear movement to place location.
+		Action 3
+		Grasped component is released by robot to ToComp.
+		Action 4
+		Robot executes linear retraction movement away from place location.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, a robot will use an approach 
+		 distance of 200, the bound box of grasped component and the given 
+		 pattern to calculate motion targets.
+		The X_index, 
+		 Y_index and Z_index 
+		 arguments define the index position for placing a component based 
+		 on pattern size.
+		The PatternSize_X, 
+		 PatternSize_Y and PatternSize_Z 
+		 arguments define the pattern size.
+		An optional ApproachAxis 
+		 argument can be used to define the axis of alignment.
+		An optional Part 
+		 argument can be used to define which component is placed to ToComp. The default is the first component 
+		 listed in robot's GraspContainer.
+		Optional StepSizeX, 
+		 StepSizeY and StepSizeZ 
+		 arguments can be used to define the pattern step size for XYZ 
+		 axes. The default step size values are length, width and height 
+		 of Part.
+		An optional Rz 
+		 argument can be used to define a Z-axis rotation offset for place 
+		 location.</description>
+        <parameters>vcComponent ToComp, 
+		 Integer X_index, Integer Y_index, 
+		 Integer Z_index, Integer PatternSize_X, 
+		 PatternSize_Y, Integer PatternSize_Z, 
+		 [Real Approach], [vcComponent 
+		 Part], [Real StepSizeX], 
+		 [Real StepSizeY], [Real StepSizeZ], 
+		 [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>releaseAllComponents</name>
+        <type>None</type>
+        <description>Attaches all components of robot's GraspContainer to a given 
+		 node or container type behavior. 
+		If ToObject 
+		 is a component, a target container is searched for automatically 
+		 in the component. If not found, the components are directly attached 
+		 to the given node.</description>
+        <parameters>vcNode/vcContainer 
+		 ToObject</parameters>
+      </method>
+      <method>
+        <name>releaseComponent</name>
+        <type>None</type>
+        <description>Attaches a component to a given node or container type behavior. 
+		 
+		If ToObject 
+		 is a component, a target container is searched for automatically 
+		 in the component. If not found, the released component is directly 
+		 attached to the given node.
+		The ReleaseThis 
+		 argument is the component to be detached from robot; otherwise 
+		 the method will search the robot's GraspContainer.</description>
+        <parameters>vcNode/vcContainer 
+		 ToObject, vcNode 
+		 ReleaseThis</parameters>
+      </method>
+      <method>
+        <name>rsl_BinIn</name>
+        <type>None</type>
+        <description>Waits for a signal mapped to a given port to have the given 
+		 value. 
+		The Index argument 
+		 defines the port in the robot's inputs, Boolean Signal Map behavior. 
+		 The Value argument defines the value 
+		 that should be received at the port in order to complete execution.
+		If RecordRSL is set to True, this action 
+		 is recorded as a new input statement in the robot's program.</description>
+        <parameters>Integer Index, Boolean Value</parameters>
+      </method>
+      <method>
+        <name>rsl_BinOut</name>
+        <type>None</type>
+        <description>Sends a given value to a signal mapped to a given port. 
+		The Index argument 
+		 defines the port in the robot's outputs, Boolean Signal Map behavior. 
+		 The Value argument defines the value 
+		 that should be sent to the mapped signal.
+		If RecordRSL is set to True, this action 
+		 is recorded as a new output statement in the robot's program.</description>
+        <parameters>Integer Index, Boolean Value</parameters>
+      </method>
+      <method>
+        <name>traceOff</name>
+        <type>None</type>
+        <description>Turns off the tracing of the robot's motions at given tool 
+		 frame. 
+		The Index argument 
+		 defines the index position of a tool frame in the robot's Tools 
+		 which is mapped to a port used for tracing.</description>
+        <parameters>Integer Index</parameters>
+      </method>
+      <method>
+        <name>traceOn</name>
+        <type>None</type>
+        <description>Turns on the tracing of the robot's motions at given tool frame. 
+		 
+		The Index argument 
+		 defines the index position of a tool frame in the robot's Tools 
+		 which is mapped to a port used for tracing.</description>
+        <parameters>Integer Index</parameters>
+      </method>
+      <method>
+        <name>unmountTool</name>
+        <type>None</type>
+        <description>Dismounts a tool mounted on the robot to either a container 
+		 type behavior or component. 
+		The Tool argument 
+		 needs to be a tool component mounted on the robot.</description>
+        <parameters>vcComponent Tool, 
+		 vcContainer ToObject 
+		 
+		or
+		vcComponent 
+		 Tool, vcComponent 
+		 ToObject</parameters>
+      </method>
+      <method>
+        <name>getSelectedRobotsData</name>
+        <type>unknown</type>
+        <description>Returns a list of data for the currently selected robot component 
+		 in the 3D world. 
+		The list of data contains the following: 
+		 robot program, current routine, robot controller, name of active 
+		 base frame, name of active tool frame, list of names for all base 
+		 frames, list of names for all tool frames, index of current configuration, 
+		 and list of names for all configurations.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>printMatrix</name>
+        <type>None</type>
+        <description>Prints a given matrix in a clear, readable format to the Output 
+		 panel.</description>
+        <parameters>vcMatrix mtx</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties>
+      <property>
+        <name>getRobot</name>
+        <type>vcHelpers.Robot.vcRobot</type>
+        <description>Creates a new vcRobot object for a given component which must 
+		 have a robot executor. 
+		One option is to give the name of an interface 
+		 a robot is connected to in a component as an argument, for example 
+		 a robot mounted on a pedestal. If found, the robot connected at 
+		 the interface is used by the constructor.
+		A second option is to give the component 
+		 of a robot you want to program as an argument.
+		A third option is to not give any argument, 
+		 thereby a component owning the script is used by the constructor.</description>
+        <access>String interface_name 
+		or
+		vcComponent 
+		 robot_component
+		or
+		[no argument]</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Robot2</name>
+    <methods>
+      <method>
+        <name>Acc</name>
+        <type>Real</type>
+        <description>Defines the Cartesian acceleration of robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>ActiveTool</name>
+        <type>String/Integer</type>
+        <description>Defines the active tool frame of robot by referencing the name 
+		 or index of a tool frame in Tools property.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>AngularAcc</name>
+        <type>Real</type>
+        <description>Defines the angular acceleration of robot for linear 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>AngularSpeed</name>
+        <type>Real</type>
+        <description>Defines the angular speed of robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Bases</name>
+        <type>List of vcBaseFrame</type>
+        <description>Gets a list of all base frames available in robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Component</name>
+        <type>vcComponent</type>
+        <description>Gets the component of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Configuration</name>
+        <type>String/Integer</type>
+        <description>Defines the configuration of robot. 
+		Set this property to None to use the current 
+		 configuration of the robot.
+		Note: The default 
+		 configuration is -1/last configuration in ConfigurationsList.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>ConfigurationsList</name>
+        <type>List of String</type>
+        <description>Gets a list of robot's configurations by name.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Controller</name>
+        <type>vcRobotController</type>
+        <description>Gets the controller of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Executor</name>
+        <type>vcExecutor</type>
+        <description>Gets the executor of robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>GraspContainer</name>
+        <type>vcContainer</type>
+        <description>Defines the Component Container behavior in the robot's flange 
+		 node used to contain components grabbed by the robot.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Joints</name>
+        <type>List of vcJoint</type>
+        <description>Gets a list of joints used by robot.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>JointForce</name>
+        <type>Real</type>
+        <description>Defines the joint force (0-100%) used by robot for joint/point-to-point 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>JointSpeed</name>
+        <type>Real</type>
+        <description>Defines the joint speed (0-100%) used by robot for joint/point-to-point 
+		 movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>MotionTime</name>
+        <type>Real</type>
+        <description>Defines a time used for scaling the acceleration and speed 
+		 of robot motions to match the given time. 
+		If zero value, a motion's acceleration and 
+		 speed determines its motion time. That is, this property has no 
+		 effect.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>RecordRoutine</name>
+        <type>String</type>
+        <description>Defines a sequence in the robot where new statements are added 
+		 when RecordRSL is set to True. 
+		This property must be defined before setting 
+		 RecordRSL to True. You can refer to the main routine of robot 
+		 program as 'MainRoutine', the name of an existing subroutine, 
+		 or give a name for a new subroutine that will be created during 
+		 the recording.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>RecordRSL</name>
+        <type>Boolean</type>
+        <description>Defines if actions executed by the robot are recorded as statements 
+		 in the robot's program. 
+		If True, statements are added to a routine 
+		 defined by RecordRoutine.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>SignalMapIn</name>
+        <type>vcBooleanSignalMap</type>
+        <description>Gets the Boolean Signal Map behavior used for robot inputs.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>SignalMapOut</name>
+        <type>vcBooleanSignalMap</type>
+        <description>Gets the Boolean Signal Map behavior used for robot outputs.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Speed</name>
+        <type>Real</type>
+        <description>Defines the Cartesian speed used by the robot for linear movements.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Tools</name>
+        <type>List of vcBaseFrame</type>
+        <description>Gets a list of the robot's tool frames.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>callSubRoutine</name>
+        <type>None</type>
+        <description>Calls a predefined routine by name in the robot's program.</description>
+        <parameters>String rName</parameters>
+      </method>
+      <method>
+        <name>comment</name>
+        <type>None</type>
+        <description>Prints a given comment to the Output 
+		 panel and records a Comment statement for this action in the robot's 
+		 program.</description>
+        <parameters>String comment</parameters>
+      </method>
+      <method>
+        <name>delay</name>
+        <type>None</type>
+        <description>Executes a timed delay (in seconds) 
+		 and records a Delay statement for this action in the robot's program. 
+		 </description>
+        <parameters>Real delay</parameters>
+      </method>
+      <method>
+        <name>driveJoints</name>
+        <type>None</type>
+        <description>Drives one or more joints in the robot to given target values. 
+		 
+		If no value is given for a joint, the current 
+		 value of the joint is used by the robot.
+		Optional arguments j1 
+		 to j6 are target values for joints 
+		 1 through 6 in a robot, with six joints being common in articulated 
+		 robots.
+		An optional motiontime 
+		 argument can be given to scale the acceleration and speed of the 
+		 robot's motion to match the given time. The default value is zero 
+		 in which scaling is disabled.
+		An optional relative 
+		 argument can be used to set target values as relative to the current 
+		 value of each joint. The default value is False in which target 
+		 values are absolute joint values.
+		An optional ExtraJoints argument can be 
+		 given as a list of joint values for additional joints in a robot, 
+		 for example external joints of a robot mounted on a track and 
+		 remotely connected to a workpiece positioner.
+		Tip: Joints 
+		 can be individually driven by controller; see methods in vcServoController.</description>
+        <parameters>[Real j1], [Real j2], 
+		 [Real j3], [Real j4], 
+		 [Real j5], [Real j6], 
+		 [Real motiontime], [Boolean relative], [Real ExtraJoints]</parameters>
+      </method>
+      <method>
+        <name>followNode</name>
+        <type>None</type>
+        <description>Defines a node in the 3D world to be followed by the robot 
+		 for a set amount of time. 
+		An optional FollowTime 
+		 argument can be given to set the amount of time the robot should 
+		 follow the target node. The default value is 1.0/one second.</description>
+        <parameters>vcNode Basenode, 
+		 [Real FollowTime]</parameters>
+      </method>
+      <method>
+        <name>getConfigNames</name>
+        <type>List of String</type>
+        <description>Returns a list of available configurations by name for the 
+		 robot.</description>
+        <parameters>vcExecutor executor, 
+		 vcRobotController controller</parameters>
+      </method>
+      <method>
+        <name>graspComponent</name>
+        <type>None</type>
+        <description>Grasps a given component using robot.</description>
+        <parameters>vcComponent graspthis</parameters>
+      </method>
+      <method>
+        <name>graspComponents</name>
+        <type>None</type>
+        <description>Grasps a given list of components using the robot.</description>
+        <parameters>List of vcComponent graspthese</parameters>
+      </method>
+      <method>
+        <name>jointMoveRel</name>
+        <type>None</type>
+        <description>Executes a joint movement relative to the current pose of robot 
+		 based in active tool's coordinate system. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are translation movements in the XYZ coordinate axes.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are rotation offsets for the XYZ coordinate axes.</description>
+        <parameters>[Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToComponent</name>
+        <type>None</type>
+        <description>Executes a joint movement to a given component, which by default 
+		 is the component's origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target position. The default value for translations 
+		 is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target orientation. The default value for rotations 
+		 is zero.
+		An optional ToFrame 
+		 argument can be used to set the target location to be a Frame 
+		 feature in a component. A Frame feature can be given as a vcFeature 
+		 object or referenced by name.
+		An optional OnFace 
+		 argument can be used to set the target location to be a face of 
+		 a component's bound box. A bound box face can be referenced by 
+		 using one of six recognized names (top, bottom, left, right, front, 
+		 back).
+		If ToFrame and 
+		 OnFace arguments are given, the method 
+		 will first try to use ToFrame.</description>
+        <parameters>vcNode ToComp, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [vcFeature/String ToFrame], 
+		 [String OnFace]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToMtx</name>
+        <type>None</type>
+        <description>Executes a joint movement to a given target matrix, otherwise 
+		 the 3D world origin. 
+		An optional ToMtx 
+		 argument defines the target matrix in the selected coordinate 
+		 system for this method. By default, the identity matrix is based 
+		 on World origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.
+		An optional CS 
+		 argument can be used to set the coordinate system used for target 
+		 calculation, which by default is the World coordinate system. 
+		 The argument can be either &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; 
+		 which is the robot's coordinate system.</description>
+        <parameters>[vcMatrix ToMtx], 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [String CS]</parameters>
+      </method>
+      <method>
+        <name>jointMoveToPosition</name>
+        <type>None</type>
+        <description>Executes a joint movement to a target defined by given XYZ 
+		 coordinate values and roll, pitch and yaw values based in a given 
+		 coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 define the target's XYZ coordinate values.
+		The Rx, Ry and Rz arguments 
+		 define the target's orientation or ABC values.
+		Rx
+		C target value (Roll)
+		Ry
+		B target value (Pitch)
+		Rz
+		A target value (Yaw)
+		The CS argument 
+		 defines the coordinate system used for target calculation, which 
+		 default is World coordinate system. The argument can be either 
+		 &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; which is the robot's coordinate 
+		 system.
+		After the target is calculated, a point-to-point 
+		 motion statement is created in the robot's program which uses 
+		 the robot's first indexed tool frame. The orientation of that 
+		 tool frame can affect the TargetABC properties of the motion statement.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz, 
+		 String CS</parameters>
+      </method>
+      <method>
+        <name>linearMoveRel</name>
+        <type>None</type>
+        <description>Executes a linear movement relative to the current pose of 
+		 robot based in active tool's coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 are translation movements in XYZ coordinate axes.
+		The Rx, Ry and Rz arguments 
+		 are rotation offsets for XYZ coordinate axes.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz</parameters>
+      </method>
+      <method>
+        <name>linearMoveToComponent</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given component, which by default 
+		 is the component's origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target position. The default value for translations 
+		 is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target orientation. The default value for rotations 
+		 is zero.
+		An optional ToFrame 
+		 argument can be used to set the target location to be a Frame 
+		 feature in a component. A Frame feature can be given as a vcFeature 
+		 object or referenced by name.
+		An optional OnFace 
+		 argument can be used to set the target location to be a face of 
+		 a component's bound box. A bound box face can be referenced by 
+		 using one of six recognized names (top, bottom, left, right, front, 
+		 back).
+		If ToFrame and 
+		 OnFace arguments are given, the method 
+		 will first try to use ToFrame.</description>
+        <parameters>vcNode ToComp, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [vcFeature/String ToFrame], 
+		 [String OnFace]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToMtx</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given target matrix, otherwise 
+		 the 3D world origin. 
+		An optional ToMtx 
+		 argument defines the target matrix in the selected coordinate 
+		 system for this method. By default, the identity matrix is based 
+		 on World origin. 
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.
+		An optional CS 
+		 argument can be used to set the coordinate system used for target 
+		 calculation, which by default is the World coordinate system. 
+		 The argument can be either &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; 
+		 which is the robot's coordinate system.</description>
+        <parameters>[vcMatrix ToMtx], 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz], 
+		 [String CS]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToMtx_ExternalBase</name>
+        <type>None</type>
+        <description>Executes a linear movement to a given target matrix based in 
+		 given node's coordinate system. 
+		Generally, this method is used when a robot 
+		 needs to motion to a moving part, for example a pallet on a conveyor.
+		Optional arguments Tx, 
+		 Ty and Tz 
+		 are offsets for target matrix position. The default value for 
+		 translations is zero.
+		Optional arguments Rx, 
+		 Ry and Rz 
+		 are offsets for target matrix orientation. The default value for 
+		 rotations is zero.</description>
+        <parameters>vcNode Basenode, 
+		 vcMatrix ToMtx, 
+		 [Real Tx], [Real Ty], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>linearMoveToPosition</name>
+        <type>None</type>
+        <description>Executes a linear movement to a target defined by given XYZ 
+		 coordinate values and roll, pitch and yaw values based in a given 
+		 coordinate system. 
+		The Tx, Ty and Tz arguments 
+		 define the target's XYZ coordinate values.
+		The Rx, Ry and Rz arguments 
+		 define the target's orientation or ABC values.
+		Rx
+		C target value (Roll)
+		Ry
+		B target value (Pitch)
+		Rz
+		A target value (Yaw)
+		The CS argument 
+		 defines the coordinate system used for target calculation, which 
+		 default is World coordinate system. The argument can be either 
+		 &amp;quot;world&amp;quot; or &amp;quot;irobot&amp;quot; which is the robot's coordinate 
+		 system.
+		After the target is calculated, a linear 
+		 motion statement is created in the robot's program which uses 
+		 the robot's first indexed tool frame. The orientation of that 
+		 tool frame can affect the TargetABC properties of the motion statement.</description>
+        <parameters>Real Tx, Real Ty, 
+		 Real Tz, Real Rx, 
+		 Real Ry, Real Rz, 
+		 String CS</parameters>
+      </method>
+      <method>
+        <name>mountTool</name>
+        <type>None</type>
+        <description>Mounts a given component to flange node of robot.</description>
+        <parameters>vcComponent Tool</parameters>
+      </method>
+      <method>
+        <name>moveAway</name>
+        <type>None</type>
+        <description>Executes a linear retraction movement relative to current pose 
+		 of robot. 
+		An optional Tz 
+		 argument can be given to set retraction distance, which by default 
+		 is 200.</description>
+        <parameters>[Real Tz]</parameters>
+      </method>
+      <method>
+        <name>pick</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for robot to pick a 
+		 given component. 
+		Action 1
+		Robot executes a joint movement based on target component origin 
+		 and Approach, OnFace 
+		 and ApproachAxis values.
+		Action 2
+		Robot executes a linear movement to target component based on OnFace value.
+		Action 3
+		Target component is grabbed by robot.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 aligned to Z-axis in order to pick from the top 
+		 face of a given component's bound box.
+		The pick location can be offset using the 
+		 optional Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.
+		An optional OnFace 
+		 argument allows you to set which face of Part 
+		 bound box to use for Action 2.
+		An optional ApproachAxis 
+		 argument sets the axis of alignment.</description>
+        <parameters>vcComponent Part, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Rx], [Real Ry], 
+		 [Real Rz], [String OnFace], 
+		 [String ApproachAxis]</parameters>
+      </method>
+      <method>
+        <name>pickFromPallet</name>
+        <type>vcComponent</type>
+        <description>Executes a sequence of actions in order for the robot to pick 
+		 a component from a given Pallet. 
+		Action 1
+		Get a list of components attached to Pallet. 
+		 That is, a list of child components.
+		Action 2
+		Select child component to pick based on InversedOrder 
+		 and Index values.
+		Action 3
+		Robot executes a joint movement based on child component origin 
+		 and Approach value.
+		Action 4
+		Robot executes a linear movement to top face of child component.
+		Action 5
+		Child component is grabbed by robot.
+		Action 6
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 to pick the last component of a list of child 
+		 components for Pallet.
+		An optional Approach 
+		 argument can be used to change the approach and retract distance 
+		 used by robot.
+		An optional InversedOrder 
+		 argument can be used to reverse the list of child components acquired 
+		 in Action 1. A True value reverses the order, so last component 
+		 attached to Pallet is first in list. 
+		 The default value is False.
+		An optional Index 
+		 argument can be used to select which child component of Pallet is picked by robot. The default value 
+		 is -1, so last component in Action 1 child components list.</description>
+        <parameters>vcComponent Pallet, 
+		 [Real Approach], [Boolean InversedOrder], 
+		 [Integer Index]</parameters>
+      </method>
+      <method>
+        <name>pickMovingPart</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to pick 
+		 a given component that is not stationary. 
+		Action 1
+		Robot executes joint movement based on target component origin 
+		 and Approach value.
+		Action 2
+		Robot executes linear movement to top face of target component 
+		 bound box.
+		Action 3
+		Target component is grabbed by robot.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, the robot will use an approach 
+		 distance of 200 and calculate motion targets based on speed of 
+		 Part.
+		The pick location can be offset using the 
+		 optional Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.</description>
+        <parameters>vcComponent Part, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Tz], [Real Rx], 
+		 [Real Ry], [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>place</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to place 
+		 a grasped component at a given component. 
+		Action 1
+		Robot executes joint movement based on ToComp 
+		 origin, Approach and ApproachAxis 
+		 values.
+		Action 2
+		Robot executes linear movement to top face of ToComp.
+		Action 3
+		Grasped component is released by robot to ToComp.
+		Action 4
+		Robot executes a linear retraction movement based on Approach 
+		 value.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, a robot will use an approach 
+		 distance of 200 and the bound box of grasped component to calculate 
+		 motion targets.
+		The place location can be offset using optional 
+		 Tx, Ty, 
+		 Tz, Rx, 
+		 Ry, and Rz 
+		 arguments.
+		An optional Part 
+		 argument can be used to define which component is placed to ToComp. The default is the first component 
+		 listed in robot's GraspContainer.
+		An optional ApproachAxis 
+		 argument can be used to define the axis of alignment.</description>
+        <parameters>vcComponent ToComp, 
+		 [Real Approach], [Real Tx], 
+		 [Real Ty], [Real Tz], 
+		 [Real Rx], [Real Ry], 
+		 [Real Rz], [vcComponent 
+		 Part], [String ApproachAxis]</parameters>
+      </method>
+      <method>
+        <name>placeInPattern</name>
+        <type>None</type>
+        <description>Executes a sequence of actions in order for the robot to place 
+		 components in a given pattern. 
+		Action 1
+		Robot executes joint movement to ToComp.
+		Action 2
+		Robot executes linear movement to place location.
+		Action 3
+		Grasped component is released by robot to ToComp.
+		Action 4
+		Robot executes linear retraction movement away from place location.
+		All three motions executed by the robot 
+		 are created dynamically during a simulation.
+		By default, a robot will use an approach 
+		 distance of 200, the bound box of grasped component and the given 
+		 pattern to calculate motion targets.
+		The X_index, 
+		 Y_index and Z_index 
+		 arguments define the index position for placing a component based 
+		 on pattern size.
+		The PatternSize_X, 
+		 PatternSize_Y and PatternSize_Z 
+		 arguments define the pattern size.
+		An optional ApproachAxis 
+		 argument can be used to define the axis of alignment.
+		An optional Part 
+		 argument can be used to define which component is placed to ToComp. The default is the first component 
+		 listed in robot's GraspContainer.
+		Optional StepSizeX, 
+		 StepSizeY and StepSizeZ 
+		 arguments can be used to define the pattern step size for XYZ 
+		 axes. The default step size values are length, width and height 
+		 of Part.
+		An optional Rz 
+		 argument can be used to define a Z-axis rotation offset for place 
+		 location.</description>
+        <parameters>vcComponent ToComp, 
+		 Integer X_index, Integer Y_index, 
+		 Integer Z_index, Integer PatternSize_X, 
+		 PatternSize_Y, Integer PatternSize_Z, 
+		 [Real Approach], [vcComponent 
+		 Part], [Real StepSizeX], 
+		 [Real StepSizeY], [Real StepSizeZ], 
+		 [Real Rz]</parameters>
+      </method>
+      <method>
+        <name>releaseAllComponents</name>
+        <type>None</type>
+        <description>Attaches all components of robot's GraspContainer to a given 
+		 node or container type behavior. 
+		If ToObject 
+		 is a component, a target container is searched for automatically 
+		 in the component. If not found, the components are directly attached 
+		 to the given node.</description>
+        <parameters>vcNode/vcContainer 
+		 ToObject</parameters>
+      </method>
+      <method>
+        <name>releaseComponent</name>
+        <type>None</type>
+        <description>Attaches a component to a given node or container type behavior. 
+		 
+		If ToObject 
+		 is a component, a target container is searched for automatically 
+		 in the component. If not found, the released component is directly 
+		 attached to the given node.
+		The ReleaseThis 
+		 argument is the component to be detached from robot; otherwise 
+		 the method will search the robot's GraspContainer.</description>
+        <parameters>vcNode/vcContainer 
+		 ToObject, vcNode 
+		 ReleaseThis</parameters>
+      </method>
+      <method>
+        <name>rsl_BinIn</name>
+        <type>None</type>
+        <description>Waits for a signal mapped to a given port to have the given 
+		 value. 
+		The Index argument 
+		 defines the port in the robot's inputs, Boolean Signal Map behavior. 
+		 The Value argument defines the value 
+		 that should be received at the port in order to complete execution.
+		If RecordRSL is set to True, this action 
+		 is recorded as a new input statement in the robot's program.</description>
+        <parameters>Integer Index, Boolean Value</parameters>
+      </method>
+      <method>
+        <name>rsl_BinOut</name>
+        <type>None</type>
+        <description>Sends a given value to a signal mapped to a given port. 
+		The Index argument 
+		 defines the port in the robot's outputs, Boolean Signal Map behavior. 
+		 The Value argument defines the value 
+		 that should be sent to the mapped signal.
+		If RecordRSL is set to True, this action 
+		 is recorded as a new output statement in the robot's program.</description>
+        <parameters>Integer Index, Boolean Value</parameters>
+      </method>
+      <method>
+        <name>traceOff</name>
+        <type>None</type>
+        <description>Turns off the tracing of the robot's motions at given tool 
+		 frame. 
+		The Index argument 
+		 defines the index position of a tool frame in the robot's Tools 
+		 which is mapped to a port used for tracing.</description>
+        <parameters>Integer Index</parameters>
+      </method>
+      <method>
+        <name>traceOn</name>
+        <type>None</type>
+        <description>Turns on the tracing of the robot's motions at given tool frame. 
+		 
+		The Index argument 
+		 defines the index position of a tool frame in the robot's Tools 
+		 which is mapped to a port used for tracing.</description>
+        <parameters>Integer Index</parameters>
+      </method>
+      <method>
+        <name>unmountTool</name>
+        <type>None</type>
+        <description>Dismounts a tool mounted on the robot to either a container 
+		 type behavior or component. 
+		The Tool argument 
+		 needs to be a tool component mounted on the robot.</description>
+        <parameters>vcComponent Tool, 
+		 vcContainer ToObject 
+		 
+		or
+		vcComponent 
+		 Tool, vcComponent 
+		 ToObject</parameters>
+      </method>
+      <method>
+        <name>getSelectedRobotsData</name>
+        <type>unknown</type>
+        <description>Returns a list of data for the currently selected robot component 
+		 in the 3D world. 
+		The list of data contains the following: 
+		 robot program, current routine, robot controller, name of active 
+		 base frame, name of active tool frame, list of names for all base 
+		 frames, list of names for all tool frames, index of current configuration, 
+		 and list of names for all configurations.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>printMatrix</name>
+        <type>None</type>
+        <description>Prints a given matrix in a clear, readable format to the Output 
+		 panel.</description>
+        <parameters>vcMatrix mtx</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties>
+      <property>
+        <name>getRobot</name>
+        <type>vcHelpers.Robot.vcRobot</type>
+        <description>Creates a new vcRobot object for a given component which must 
+		 have a robot executor. 
+		One option is to give the name of an interface 
+		 a robot is connected to in a component as an argument, for example 
+		 a robot mounted on a pedestal. If found, the robot connected at 
+		 the interface is used by the constructor.
+		A second option is to give the component 
+		 of a robot you want to program as an argument.
+		A third option is to not give any argument, 
+		 thereby a component owning the script is used by the constructor.</description>
+        <access>String interface_name 
+		or
+		vcComponent 
+		 robot_component
+		or
+		[no argument]</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Selection</name>
+    <methods>
+      <method>
+        <name>getAllComponentsNodes</name>
+        <type>List of vcNode</type>
+        <description>Returns a list of nodes for all components in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsNodes</name>
+        <type>List of vcNode</type>
+        <description>Returns a list of nodes for a given component.</description>
+        <parameters>vcComponent component</parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsNodes</name>
+        <type>List of vcNode</type>
+        <description>Returns a list of nodes for selected components in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedNodes</name>
+        <type>List of vcNode</type>
+        <description>Returns a list of selected nodes in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getAllComponentsFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of features for all components in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of features for a given component.</description>
+        <parameters>vcComponent component</parameters>
+      </method>
+      <method>
+        <name>getGivenNodesFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of features for a given node.</description>
+        <parameters>vcNode node</parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of features for selected components in the 3D 
+		 world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of selected features in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedNodesFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of features for selected nodes in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getAllComponentsGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for all components in the 3D 
+		 world. 
+		Setting fromFeatureTree 
+		 to True will get the source geometry sets from geometry features 
+		 on feature tree instead of vcNode.Geometry. Use this if you want 
+		 to make changes to the geometry sets. The default value of fromFeatureTree is False.</description>
+        <parameters>[Boolean fromFeatureTree]</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for a given component. 
+		Setting fromFeatureTree 
+		 to True will get the source geometry sets from geometry features 
+		 on feature tree instead of vcNode.Geometry. Use this if you want 
+		 to make changes to the geometry sets. The default value of fromFeatureTree is False.</description>
+        <parameters>vcComponent component, 
+		 [Boolean fromFeatureTree]</parameters>
+      </method>
+      <method>
+        <name>getGivenFeaturesGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for a given feature.</description>
+        <parameters>vcFeature feature</parameters>
+      </method>
+      <method>
+        <name>getGivenNodesGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for a given node. 
+		Setting fromFeatureTree 
+		 to True will get the source geometry sets from geometry features 
+		 on feature tree instead of vcNode.Geometry. Use this if you want 
+		 to make changes to the geometry sets. The default value of fromFeatureTree is False.</description>
+        <parameters>vcNode node, 
+		 [Boolean fromFeatureTree]</parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for selected components in 
+		 the 3D world. 
+		Setting fromFeatureTree 
+		 to True will get the source geometry sets from geometry features 
+		 on feature tree instead of vcNode.Geometry. Use this if you want 
+		 to make changes to the geometry sets. The default value of fromFeatureTree is False.</description>
+        <parameters>[Boolean fromFeatureTree]</parameters>
+      </method>
+      <method>
+        <name>getSelectedFeaturesGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for selected features in the 
+		 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of selected geometry sets in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedNodesGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a list of geometry sets for selected nodes in the 3D 
+		 world.
+		Setting fromFeatureTree 
+		 to True will get the source geometry sets from geometry features 
+		 on feature tree instead of vcNode.Geometry. Use this if you want 
+		 to make changes to the geometry sets. The default value of fromFeatureTree is False.</description>
+        <parameters>[Boolean fromFeatureTree]</parameters>
+      </method>
+      <method>
+        <name>getAllComponentsBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a list of behaviors for all components in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a list of behaviors for a given component.</description>
+        <parameters>vcComponent component</parameters>
+      </method>
+      <method>
+        <name>getGivenNodesBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a list of behaviors for a given node.</description>
+        <parameters>vcNode node</parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a list of behaviors for selected components in the 
+		 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedNodesBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a list of behaviors for selected nodes in the 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>extendStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of statements 
+		 which is extended by a given statement 
+		 and all statements nested in it.</description>
+        <parameters>vcStatement statement, 
+		 List of vcStatement statements</parameters>
+      </method>
+      <method>
+        <name>getAllComponentsPrograms</name>
+        <type>List of vcProgram</type>
+        <description>Returns a list of all robot programs in 3D world.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getAllComponentsStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of all statements in all robot programs in 3D 
+		 world.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsProgram</name>
+        <type>List of vcProgram</type>
+        <description>Returns a list of robot programs in a given component.</description>
+        <parameters>vcComponent 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getGivenComponentsStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of all statements in the robot programs of a 
+		 given component.</description>
+        <parameters>vcComponent 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getGivenProgramsRoutines</name>
+        <type>unknown</type>
+        <description>Returns a list of routines in a given robot program.</description>
+        <parameters>vcProgram</parameters>
+      </method>
+      <method>
+        <name>getGivenProgramsStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of all statements in a given robot program.</description>
+        <parameters>vcProgram 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getGivenRoutinesStatements</name>
+        <type>unknown</type>
+        <description>Returns a list of all statements in a given routine.</description>
+        <parameters>vcRoutine </parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsPrograms</name>
+        <type>List of vcProgram</type>
+        <description>Returns a list of robot programs for currently selected components.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedComponentsStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of all statements in the robot programs of currently 
+		 selected components.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedProgram</name>
+        <type>vcProgram</type>
+        <description>Returns the active program of a robot.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedProgramsRoutines</name>
+        <type>unknown</type>
+        <description>Returns a list of routines in active program of robot.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedProgramsStatements</name>
+        <type>unknown</type>
+        <description>Returns a list of all statements in the active program of a 
+		 robot.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedRoutine</name>
+        <type>vcRoutine </type>
+        <description>Returns the active routine of a robot.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedRoutinesStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of all statements in the active routine of a 
+		 robot.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>getSelectedStatements</name>
+        <type>List of vcStatement</type>
+        <description>Returns a list of currently selected statements.</description>
+        <parameters>None 
+		&amp;#160;</parameters>
+      </method>
+      <method>
+        <name>filterTypes</name>
+        <type>List of items</type>
+        <description>Returns a filtered list of items 
+		 matching a given type. 
+		 
+		&amp;#160; 
+		See Constants for 
+		 more information of types.</description>
+        <parameters>List of items, List 
+		 of types</parameters>
+      </method>
+      <method>
+        <name>filterBehaviours</name>
+        <type>List of vcBehaviour</type>
+        <description>Returns a new list of behaviors matching a given behavior type. 
+		 
+		See Behavior 
+		 Constants for more information.</description>
+        <parameters>List of vcBehaviour behaviors, 
+		 Enumeration type</parameters>
+      </method>
+      <method>
+        <name>filterFeatures</name>
+        <type>List of vcFeature</type>
+        <description>Returns a new list of features matching a given feature type. 
+		 
+		See Feature 
+		 Constants for more information.</description>
+        <parameters>List of vcFeature 
+		 features, Enumeration type</parameters>
+      </method>
+      <method>
+        <name>filterGeosets</name>
+        <type>List of vcGeometrySet</type>
+        <description>Returns a new list of geometry sets matching a given geometry 
+		 set type. 
+		See Geometry 
+		 Constants for more information.</description>
+        <parameters>List of vcGeometrySet geosets, Enumeration type</parameters>
+      </method>
+      <method>
+        <name>traverseFeatureChildren</name>
+        <type>List of vcFeature</type>
+        <description>Returns a list of child features for a given feature by using 
+		 traversal.</description>
+        <parameters>vcFeature parent</parameters>
+      </method>
+      <method>
+        <name>traverseNodeChildren</name>
+        <type>List of vcNode</type>
+        <description>Returns a list of child nodes for a given node by using traversal.</description>
+        <parameters>vcNode parent</parameters>
+      </method>
+      <method>
+        <name>getCurrentSelectionType</name>
+        <type>String</type>
+        <description>Returns the active selection type in the 3D world. 
+		See Selection 
+		 Constants for more information.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>getSelectedNodeGeosetMap</name>
+        <type>unknown</type>
+        <description>Returns a 3-tuple detailing the geometry sets of a selected 
+		 node and any other node that may share the same geometry.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>rebuildSelectedGeosetNodes</name>
+        <type>None</type>
+        <description>Rebuilds selected geometry sets of a component and any other 
+		 component that shares the same geometry.</description>
+        <parameters>None</parameters>
+      </method>
+      <method>
+        <name>setCurrentSelectionType</name>
+        <type>None</type>
+        <description>Sets the active selection type in the 3D world. 
+		See Selection 
+		 Constants for more information.</description>
+        <parameters>Enumeration type</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties>
+      <property>
+        <name>getAllComponents</name>
+        <type>List of vcComponent</type>
+        <description>Returns a list of components in the 3D world.</description>
+        <access>None</access>
+      </property>
+      <property>
+        <name>getSelectedComponents</name>
+        <type>List of vcComponent</type>
+        <description>Returns a list of selected components in the 3D world.</description>
+        <access>None</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.Solver</name>
+    <methods />
+    <events />
+    <properties>
+      <property>
+        <name>findLocalMinimum</name>
+        <type>Real</type>
+        <description>Calls a given function and modifies a list of values until 
+		 the evaluator returns a minimum real value.</description>
+        <access>Function evaluator, List of Real 
+		 values</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+  <type>
+    <name>vcHelpers.VcmFile</name>
+    <methods>
+      <method>
+        <name>Author</name>
+        <type>String</type>
+        <description>Defines the author of file.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Description</name>
+        <type>String</type>
+        <description>Defines a short description about file and its use.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>DetailedRevision</name>
+        <type>String</type>
+        <description>Defines the version and change history of file, for example 
+		 Major.Minor.Batch.Revision numbering.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Email</name>
+        <type>String</type>
+        <description>Defines the contact email address of file.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Icon</name>
+        <type>String</type>
+        <description>Gets the URI of file's icon.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Logo</name>
+        <type>String</type>
+        <description>Gets the URI of file's logo.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Manufacturer</name>
+        <type>String</type>
+        <description>Defines the manufacturer of file's real-world model.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>MaxPayLoad</name>
+        <type>Integer</type>
+        <description>Defines the maximum payload (in kilograms) of the component, 
+		 for example a robot gripper.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Name</name>
+        <type>String</type>
+        <description>Defines the name of component.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>PreviewIcon</name>
+        <type>String</type>
+        <description>Gets the URI of the image displayed when a user previews file 
+		 in the eCatalog panel.</description>
+        <parameters>R</parameters>
+      </method>
+      <method>
+        <name>Revision</name>
+        <type>Integer</type>
+        <description>Defines the revision number of file.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Tags</name>
+        <type>List of Strings</type>
+        <description>Defines a list of tokens used to describe application, industry 
+		 and other information about the component.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Type</name>
+        <type>String</type>
+        <description>Classifies the component by type.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>Website</name>
+        <type>String</type>
+        <description>Defines a web address/link to associate with component. 
+		Note: This link 
+		 is included with the component in a recorded 3D PDF.</description>
+        <parameters>RW</parameters>
+      </method>
+      <method>
+        <name>write</name>
+        <type>None</type>
+        <description>Saves changes made to the file.</description>
+        <parameters>None</parameters>
+      </method>
+    </methods>
+    <events />
+    <properties>
+      <property>
+        <name>ComponentData</name>
+        <type>vcHelpers.VcmFile.ComponentData</type>
+        <description>Create a new ComponentData object for a given file.</description>
+        <access>String filepath</access>
+      </property>
+    </properties>
+    <parents />
+  </type>
+</API>
