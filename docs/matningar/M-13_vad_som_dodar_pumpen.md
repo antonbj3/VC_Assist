@@ -71,3 +71,27 @@ drivskript. Det behövs inget nytt skriptbeteende alls.
 * `Brygga.starta()` loggade tidigare **efter** bindningen. En upptagen port gav
   då ett undantag i `OnRun` som VC svalde, och bryggan såg ut att aldrig ha
   startat — noll rader någonstans. Loggen skrivs nu först.
+
+## Vad som INTE är mätt
+
+* **Listan över dödande anrop är uttryckligen ofullständig, och den är ofullständig
+  än.** Sex operationer prövades, en gång var. `app.save()` upptäcktes samma kväll,
+  `comp.save()` kom i M-32 och `sim.reset()` + `startSimulation()` i M-40. M-27 i
+  `RESERVERADE.md` är reserverat för det svep som skulle göra listan hel, och det
+  svepet är inte gjort.
+* Slutsatsen *"scenbygge i allmänhet är ofarligt"* vilar på fem gröna operationer
+  körda en gång var. M-15 skapade och rev 244 komponenter och bryggan dog i nästa
+  körning med omätt orsak — mängden scenändringar är alltså en möjlig dödsorsak
+  som fem enskilda anrop inte kan se.
+* Förklaringen till varför `VC_SCRIPT` dödar pumpen (*"VC måste kompilera om och
+  starta om skriptmiljön"*) är rimlig och omätt. Ingen mätning tittade på vad VC
+  faktiskt gör.
+* De tre omstartsvägarna är prövade en gång var i den här uppställningen.
+  *"`OnRun` återinträder inte"* är mätt för dem, inte för varje väg som finns.
+* Att varningen före körning räcker för anroparen är inte mätt mot en verklig
+  anropare. Mekanismen är byggd, inte prövad i bruk.
+* Att `wineserver` håller port 8901 kvar är mätt under Wine. Motsvarande fråga på
+  Windows, där ingen wineserver finns, är oprövad (M-44).
+* Punkt 2 i M-16 — att `skrivgrind.DODANDE_ANROP` behöver en **läsande** gren —
+  är inte genomförd. Konstanten är fortfarande `("save",)`, så grinden ser bara
+  ett av de mätta dödande anropen.

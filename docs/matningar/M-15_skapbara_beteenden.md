@@ -174,3 +174,26 @@ alltså **inte** att skapa direkt, trots att de heter som beteenden.
 Svepet skapade och rev 244 komponenter i följd. Bryggan dog under nästa körning.
 Orsaken är omätt, men mängden scenändringar är den rimliga misstanken, och den
 hör ihop med M-13: vissa scenoperationer stoppar simuleringen.
+
+## Vad som INTE är mätt
+
+* De 80 träffarna är mätta som *"`createBehaviour` returnerade ett objekt"*. Att
+  ett enda av de 80 beteendena **fungerar** i en simulering är inte prövat här.
+* De 164 som ger `None` är mätta som icke-skapbara **med ett argumentlöst anrop**
+  på en färsk komponent. Att någon av dem går att skapa på annat sätt är inte
+  uteslutet, och `VC_TRANSPORTCONTROLLER` hör till dem som därför avfärdades.
+* Urvalet är de `VC_*`-konstanter som fanns i **skriptets** scope. Konstanter som
+  bara finns i andra scope ingår inte, och M-01 mätte att scopen skiljer sig.
+  Talet 244 är alltså 244 av ett okänt totalantal.
+* Metodfelet är rättat för heltalsfiltret. Att det **nya** urvalet är komplett är
+  inte visat — samma fråga som fällde det första svepet är inte ställd om det
+  andra, och ett svep som ger noll träffar är oftare ett fel i urvalet.
+* Att svepet dödade bryggan i nästa körning står som omätt orsak. Mätningen
+  skiljer inte 244 skapade komponenter från 244 raderade, och inte heller något
+  av de 80 skapade beteendenas egna biverkningar, som ingen har mätt.
+* `VC_TRANSPORT` som kandidat till `Ref<ComponentProcessor>` är märkt oprövad i
+  texten. M-16 prövade den, och bindningen visade sig ogiltig (M-37) — kandidaten
+  var alltså fel, och det syntes inte förrän två mätningar senare.
+* Python-typen i högerkolumnen är läst av typnamnet på det returnerade objektet.
+  Att `vcBehaviour` för femton av träffarna betyder samma sak i alla femton fall
+  är inte mätt.

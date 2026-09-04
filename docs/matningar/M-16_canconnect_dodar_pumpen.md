@@ -82,3 +82,28 @@ håller alltså inte.
 * Är det bindningen som är fel, snarare än `canConnect`? Ett fält bundet till en
   processor som inte hör till samma komponentmodell kan mycket väl vara ogiltigt
   på ett sätt VC inte kontrollerar.
+
+## Vad som INTE är mätt
+
+* **Slutsatsen i rubriken är motbevisad i M-37.** Orsaken var inte anropet utan
+  en ogiltig bindning: `Transport`-fältets `Ref<ComponentProcessor>` var bunden
+  till en `vcTransport` som inte hörde till samma komponentmodell. Med ett
+  korrekt bundet flödesfält kraschar `canConnect` inte alls. Rubriken och
+  ingressen står kvar som de skrevs och pekar på fel storhet.
+* Fyndet vilar på **en** körning, ett par komponenter, en bindning. Ingen
+  upprepning och ingen variation av bindningen.
+* Vilket av de två möjliga sluten som inträffade — dödad tasklet eller ett anrop
+  som hänger för alltid i VC:s C-lager — står som omätt i texten och är det
+  fortfarande. Provet som skulle skilja dem åt är beskrivet men inte kört.
+* Den generella följdsatsen *"ett läsande verktyg kan döda bryggan"* är dragen ur
+  samma enda fall. Efter M-37 gäller den vid trasig bindning. Något svep över
+  läsande verktyg mot en levande pump finns inte — M-27 i `RESERVERADE.md` är
+  reserverat för det och är ogjort.
+* Punkt 2 i *Vad som ändras* är inte genomförd: `skrivgrind.DODANDE_ANROP` är
+  fortfarande `("save",)` och har ingen läsande gren.
+* Punkt 1 — att `can_connect` och `connect` inte får anropas mot ett gränssnitt
+  vars fält är bundna — är skriven som en regel. Att verktygen faktiskt bär den
+  varningen är inte kontrollerat av någon grind som den här mätningen byggde.
+* Byggkedjans sex gröna steg är mätta en gång var, i samma körning som slutade
+  med att bryggan dog. Att stegen är gröna säger inget om att uppställningen de
+  bygger är giltig — och den var den inte.

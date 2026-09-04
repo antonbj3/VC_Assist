@@ -77,3 +77,28 @@ markerat i koden med hänvisning hit.
   attributuppslagning, så introspektion via `getattr` fungerar inte.
 * `getAxisAngle()` returnerar en `vcVector` där `W` är vinkeln i **grader**
   enligt medföljande dokumentation.
+
+## Vad som INTE är mätt
+
+* **Kvaternionsordningen är mätt för ren gir kring Z, och bara för den.** I alla
+  fyra mätpunkterna är `q.Y` och `q.Z` noll — det är precis de två komponenter
+  omkastningen `(x, y, z, w) = (q.Y, q.Z, q.W, q.X)` flyttar. Datan visar att
+  `q.X` bär skalären och att Z-axelns komponent hamnar i `q.W`. Den visar
+  ingenting om vilken av `q.Y` och `q.Z` som är x respektive y. En ren nick och
+  en ren roll hade avgjort det på två rader, och de raderna finns inte.
+* Sammansatta vridningar är inte prövade alls. Tabellen har en axel i taget.
+* `WorldPositionMatrix`-eftersläpningen är mätt på **en** komponent på scenens
+  toppnivå. En komponent med en förälder som också rör sig är inte prövad, och
+  det är den uppställningen där en världsmatris betyder mest.
+* De fyra raderna om vad som hämtar hem världsmatrisen är mätta var för sig i
+  egna körningar, en körning var. `sim.update()` är alltså mätt som tillräcklig
+  en gång, inte som pålitlig.
+* Fallet ögat faktiskt möter — läsning **inne i** simuleringens steg, av något
+  som rör sig av egen kraft — står som omätt i texten och är det fortfarande.
+* `getAxisAngle()`:s vinkel i grader är **läst ur medföljande dokumentation**,
+  inte mätt. Samma dokumentation deklarerar `vcCollisionDetector.StopOnCollision`
+  som en egenskap som inte finns på objektet (M-35), så den källan har redan
+  visat sig ljuga en gång.
+* Sidofynden om `vcMatrix.identity()`, saknad `__getattribute__` och `vcMatrix`
+  som globalt namn är observationer ur en körning i ett exec-scope. Om de gäller
+  i skriptets scope är inte prövat — och M-01 mätte att de två scopen skiljer sig.

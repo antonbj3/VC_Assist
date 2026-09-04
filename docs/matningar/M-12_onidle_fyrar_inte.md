@@ -48,3 +48,25 @@ här.
 
 Ordningen `OnStart` före `OnAppInitialized`, med 13 sekunders mellanrum, är
 värd att komma ihåg för allt som ska ligga tidigt i uppstarten.
+
+## Vad som INTE är mätt
+
+* Frånvaron är mätt över **90 sekunder**, i en körning, headless. En `OnIdle` som
+  fyrar mer sällan än så hade gett exakt samma tomma logg. Mätningen kan inte
+  skilja "fyrar aldrig" från "fyrar sällan".
+* `OnRender` mättes bara headless. Texten säger själv att förklaringen — att
+  ingenting ritas — är omätt, och provet med gränssnittet öppet är inte gjort
+  (M-22 i `RESERVERADE.md`).
+* Raden för `OnComponentAdded` är ingen mätning av händelsen. Provet innehöll
+  inget som kunde fyra den, och det står i tabellen som en notering, inte som ett
+  resultat.
+* De 13 sekunderna mellan `OnStart` och `OnAppInitialized` kommer ur **en**
+  uppstart. Om ordningen och mellanrummet håller över flera starter, eller på en
+  annan maskin, är omätt — M-23 i `RESERVERADE.md` är reserverat för just
+  uppstartstider och är inte gjort.
+* Att kroken *"bevisligen laddades"* vilar på att två andra händelser kom fram.
+  Att bindningen av just `OnIdle` lyckades är inte kontrollerat separat; ett
+  namnfel i den bindningen hade gett samma logg.
+* Slutsatsen *"att en händelse står i dokumentationen betyder inte att den fyrar"*
+  är dragen ur ett fall. Hur många av `vc_python_api.json`:s händelser som är
+  döda är inte mätt.
