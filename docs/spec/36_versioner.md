@@ -72,6 +72,7 @@ inte en ambition.
 | Heltalstyper | `long` | `int` |
 | Sortering | `cmp=` | `key=` |
 | Import | implicit relativ | `from __future__ import absolute_import` |
+| **Text in i VC:s API** | `unicode`-literal direkt | **`_s(x)`-hjalpare, se M-05** |
 
 Varje fil som körs inne i VC inleds med:
 
@@ -84,6 +85,11 @@ varje fil under `ext/`. Fel i endera fäller bygget.
 
 *Rättelse:* sonderna i M-01 använde `except Exception, e` och hade alltså
 inte gått på 5.0. Rättat innan bryggan skrivs.
+
+**MÄTT M-05, kritiskt:** `unicode_literals` gör varje strängliteral till
+`unicode`, och VC 4.10:s bindning accepterar bara bytesträngar. Varje
+skrivning kastade `SystemError`. All text in i VC:s API måste gå genom
+`_s()`-hjälparen. På 5.0 är den en no-op.
 
 ## Vad som måste mätas per version
 
