@@ -22,17 +22,30 @@ Faktorn anger hur många **basenheter** enheten är. Millimeter har faktor 1,0.
 `findUnitFamily` gav `None` på alla prövade namn (`Length`, `Distance`,
 `Default`, …); familjens namn är okänt och lyckades inte gissas.
 
-## Vad som INTE är mätt
+## Bekräftat med en kropp av känd storlek
 
-Att `vcMatrix.P` uttrycks i **basenheten** är en stark slutledning, inte en
-mätning. Den vilar på att enhetssystemet har mm som bas.
+Den första versionen av den här mätningen kallade slutsatsen en **stark
+slutledning**, eftersom enhetstabellen inte säger vad `vcMatrix.P` använder.
+Det behövde inte förbli så.
 
-En direkt mätning kräver ett objekt med känd fysisk storlek — en katalogrobot
-eller en geometri med deklarerade mått. Den lokala katalogen är tom, och våra
-egna komponenter saknar geometri, så den mätningen kan inte göras än.
+`komponent.RootFeature.createFeature(VC_BLOCK, namn)` skapar en `vcFeature` med
+egenskaperna `Length`, `Width`, `Height`. Satta till en **EUR-pall** — 1200 ×
+800 × 144 — svarar VC:
 
-Dokumentationen hjälper inte: `vcMatrix.P` beskrivs som *"Defines Position
-vector"* utan enhet.
+```
+BoundCenter    [600.0, 400.0,  72.0]
+BoundDiagonal  [600.0, 400.0,  72.0]
+```
+
+Exakt hälften av varje mått, i samma enhet som sattes. Tillsammans med
+enhetstabellens `mm = 1.0` är världsenheten därmed **mätt**, inte härledd.
+
+Tredje oberoende korroboreringen: `vcMotionPath.Speed` är 200,0 som standard.
+I mm/s är det 12 m/min, en normal transportörshastighet. I m/s vore det
+720 km/h.
+
+Dokumentationen säger fortfarande ingenting: `vcMatrix.P` beskrivs som
+*"Defines Position vector"* utan enhet.
 
 ## Ett falskt spår som är värt att skriva ned
 
