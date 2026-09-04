@@ -28,7 +28,17 @@ _MATNINGAR = os.path.join(_ROT, "docs", "matningar")
 # modul lintern inte laser ar precis den skuld som var osynlig forut.
 TRAD = ("ext/vc_addon/vc_assist", "svc/vc_assist_svc", "bank")
 
-_KONSTANT = re.compile(r"^([A-Z][A-Z0-9_]*)\s*=\s*(-?\d+(?:\.\d+)?)\s*(#.*)?$")
+# Tre former lades till av M-46, efter en matning av vad lintern SLAPPTE:
+#   _NAMN      ett understreck framfor namnet gjorde troskeln osynlig. Det ar
+#              en enteckens vag ut ur hela sparren, och den vagen fanns.
+#   1e-9       exponentform matchade inte alls (verifiering._FLYTTALSMARGINAL
+#              var den enda verkliga traffen, men vagen ut var oppen for alla)
+#   indrag     en konstant i en klasskropp lag utanfor lintern
+# Matt 2026-09-04: de tre formerna tillsammans lade till EN verklig konstant,
+# sa skulden var inte storre an den sag ut. Halet var att den kunde bli det,
+# nar som helst, utan att nagot blev rott.
+_KONSTANT = re.compile(
+    r"^\s*(_?[A-Z][A-Z0-9_]*)\s*=\s*(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s*(#.*)?$")
 _MNUMMER = re.compile(r"\bM-(\d+)\b")
 # En konstant kan ha harkomst i SPECEN i stallet for i en matning. En
 # portnummer och en grammatikversion ar inte trosklar - de ar beslutade, och
@@ -96,6 +106,27 @@ ALLA = trosklar()
 
 def test_det_finns_trosklar_att_prova():
     assert len(ALLA) > 50, "hittade bara %d troskelkonstanter" % len(ALLA)
+
+
+@pytest.mark.parametrize("rad,namn", [
+    ("TROSKEL = 5", "TROSKEL"),
+    ("_TROSKEL = 5", "_TROSKEL"),
+    ("TROSKEL = 1e-9", "TROSKEL"),
+    ("TROSKEL = -0.5", "TROSKEL"),
+    ("    TROSKEL = 5", "TROSKEL"),
+    ("TROSKEL = 5  # Satt av M-46.", "TROSKEL"),
+])
+def test_lintern_ser_de_former_en_troskel_faktiskt_skrivs_i(rad, namn):
+    """Trasig fixtur for LINTERN sjalv (M-46).
+
+    Foll fore lagningen for _TROSKEL, 1e-9 och den indragna raden: lintern
+    sag dem inte, sa de kunde bara vilken troskel som helst utan harkomst
+    utan att nagot blev rott. En sparr som gar att kliva runt med ett
+    understreck mater inte sin egen storhet.
+    """
+    m = _KONSTANT.match(rad)
+    assert m is not None, rad
+    assert m.group(1) == namn
 
 
 def test_ingen_troskel_pekar_pa_en_matning_som_inte_finns():
