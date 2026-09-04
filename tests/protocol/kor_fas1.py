@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
 
 import protokoll as P                                  # noqa: E402
 from vc_assist_svc.klient import Klient, BryggFel      # noqa: E402
+from vc_assist_svc.tokenplats import tokenfil        # noqa: E402
 
 STEG = []
 
@@ -248,12 +249,16 @@ def s15(r):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8901)
-    ap.add_argument("--token", default=os.path.expanduser(
-        "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
+    # Ingen standardsokvag. Den gamla ("~/.wine-vc-test/drive_c/users/anton/
+    # vc_assist_token") bar tre antaganden som alla ar falska pa Windows: att
+    # det finns ett wine-prefix, vad det heter, och vad anvandaren heter.
+    ap.add_argument("--token", default=None,
+                    help="tokenfilen. Utan flaggan soks den upp; se "
+                         "vc_assist_svc.tokenplats")
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
 
-    r = Kor(a.port, a.token)
+    r = Kor(a.port, a.token or tokenfil())
     resultat = []
     fel = 0
     for nr, vad, fn in STEG:

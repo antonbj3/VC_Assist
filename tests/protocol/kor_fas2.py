@@ -26,6 +26,7 @@ import celler                                        # noqa: E402
 import oga_analys as A                               # noqa: E402
 from vc_assist_svc.guldgrind import Guldgrind, FORGRINDAR   # noqa: E402
 from vc_assist_svc.klient import Klient, BryggFel    # noqa: E402
+from vc_assist_svc.tokenplats import tokenfil        # noqa: E402
 
 DEL = "OgaDel"
 VERKTYG = "OgaVerktyg"
@@ -118,14 +119,18 @@ FACIT = {
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8901)
-    ap.add_argument("--token", default=os.path.expanduser(
-        "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
+    # Ingen standardsokvag. Den gamla ("~/.wine-vc-test/drive_c/users/anton/
+    # vc_assist_token") bar tre antaganden som alla ar falska pa Windows: att
+    # det finns ett wine-prefix, vad det heter, och vad anvandaren heter.
+    ap.add_argument("--token", default=None,
+                    help="tokenfilen. Utan flaggan soks den upp; se "
+                         "vc_assist_svc.tokenplats")
 
     ap.add_argument("--celler", default=",".join(sorted(FACIT)))
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
 
-    k = Klient(port=a.port, tokenfil=a.token, timeout=60.0).anslut()
+    k = Klient(port=a.port, tokenfil=a.token or tokenfil(), timeout=60.0).anslut()
     utfall = []
     fel = 0
     for namn in a.celler.split(","):

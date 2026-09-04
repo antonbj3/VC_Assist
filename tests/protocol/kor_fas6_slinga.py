@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(_ROT, "svc"))
 
 from asyncua.sync import Client as SyncClient        # noqa: E402
 from vc_assist_svc.klient import Klient              # noqa: E402
+from vc_assist_svc.tokenplats import tokenfil        # noqa: E402
 from vc_assist_svc.plc import matning                # noqa: E402
 from vc_assist_svc.plc.kopplare import Kopplare      # noqa: E402
 from vc_assist_svc.plc.signalkarta import TILL_PLC   # noqa: E402
@@ -110,8 +111,12 @@ print(json.dumps({'varde': b.Value}))
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8901)
-    ap.add_argument("--token", default=os.path.expanduser(
-        "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
+    # Ingen standardsokvag. Den gamla ("~/.wine-vc-test/drive_c/users/anton/
+    # vc_assist_token") bar tre antaganden som alla ar falska pa Windows: att
+    # det finns ett wine-prefix, vad det heter, och vad anvandaren heter.
+    ap.add_argument("--token", default=None,
+                    help="tokenfilen. Utan flaggan soks den upp; se "
+                         "vc_assist_svc.tokenplats")
     ap.add_argument("--endpoint", default="opc.tcp://127.0.0.1:14840/")
     ap.add_argument("--varv", type=int, default=40)
     ap.add_argument("--json", default=None)
@@ -124,7 +129,7 @@ def main():
           % (givare.tagg, givare.komponent, givare.scensignal,
              don.tagg, don.komponent, don.scensignal))
 
-    k = Klient(port=a.port, tokenfil=a.token, timeout=90.0).anslut()
+    k = Klient(port=a.port, tokenfil=a.token or tokenfil(), timeout=90.0).anslut()
     k.kor("print(1)")
 
     par = [(givare.komponent, givare.scensignal), (don.komponent, don.scensignal)]

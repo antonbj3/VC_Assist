@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(_ROT, "svc"))
 sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
 
 from vc_assist_svc.klient import Klient, BryggFel          # noqa: E402
+from vc_assist_svc.tokenplats import tokenfil        # noqa: E402
 from vc_assist_svc.layout import provscener as PS          # noqa: E402
 
 M_PER_VC = 1000.0          # meter -> VC:s varldsenhet. MATT i M-33.
@@ -198,13 +199,17 @@ def _kor(k, kod, desc, t=90):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8901)
-    ap.add_argument("--token", default=os.path.expanduser(
-        "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
+    # Ingen standardsokvag. Den gamla ("~/.wine-vc-test/drive_c/users/anton/
+    # vc_assist_token") bar tre antaganden som alla ar falska pa Windows: att
+    # det finns ett wine-prefix, vad det heter, och vad anvandaren heter.
+    ap.add_argument("--token", default=None,
+                    help="tokenfilen. Utan flaggan soks den upp; se "
+                         "vc_assist_svc.tokenplats")
     ap.add_argument("--scener", type=int, default=4)
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
 
-    k = Klient(port=a.port, tokenfil=a.token, timeout=120.0).anslut()
+    k = Klient(port=a.port, tokenfil=a.token or tokenfil(), timeout=120.0).anslut()
     k.kor("print(1)")          # lamnar degraded om bryggan star dar
 
     losta = []
