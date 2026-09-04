@@ -986,6 +986,23 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
                                      a.runtime_omstart)
     ua = UaKanal(a.endpoint).anslut([s.tagg for s in k.signaler])
     try:
+        # UPPVARMNING innan ogat startar. Fore slingan har anlaggningen aldrig
+        # kort: bandet gar fritt, fotocellen star pa FALSE och produkter hinner
+        # samlas i fotocellens fonster. Den forsta cykeln efter start ar darfor
+        # ingen cykel - den ar ett uppstartsforlopp, och att doma den vore att
+        # mata nagot annat an stationen. Riggen bringas i jamvikt FORST, och
+        # ogat far se en linje som redan gar.
+        varm = Stationskopplare(k, ua, brygga, oga=None)
+        t_varm = time.time()
+        while time.time() - t_varm < a.uppvarmning:
+            t0v = time.time()
+            varm.kor_varv()
+            kvar = a.varvtid - (time.time() - t0v)
+            if kvar > 0:
+                time.sleep(kvar)
+        varm.stang_av()
+        rad["uppvarmning"] = {"sekunder": a.uppvarmning, "varv": len(varm.varv)}
+
         simtid = brygga.simtid()
         plan = ogonplan(a.ogonrate, a.varvtid)
         start = brygga.oga_start(plan, simtid)
@@ -1080,6 +1097,9 @@ def main(argv=None):
                    default="opc.tcp://172.17.0.2:4840/openplc/opcua",
                    help="adressen servern binder till (containerns egen)")
     p.add_argument("--sekunder", type=float, default=60.0)
+    p.add_argument("--uppvarmning", type=float, default=25.0,
+                   help="sekunder slingan far ga INNAN ogat startar, sa att "
+                        "linjen ar i jamvikt nar matningen borjar")
     p.add_argument("--plc-inskott", action="store_true",
                    help="skjut in PLC:ns egna varden i ogats serie (M-42). "
                         "AV som standard: facit doms pa scenens signaler, som "

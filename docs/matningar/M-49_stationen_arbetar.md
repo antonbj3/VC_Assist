@@ -180,6 +180,42 @@ i mätvägen**: frågan "är du klar?" kostade mer än arbetet den väntade på,
 kostnaden växte med körningens längd. En körning som blir långsammare ju
 längre den går mäter till slut sin egen pollning.
 
+## PLC-värdena i ögats serie är en egen fråga, och den ställs inte längre
+
+M-42 byggde vägen som lägger kopplarens PLC-värden på ögats tidsaxel. Den
+första versionen av den här körningen använde den, och **varje körning blev
+INCONCLUSIVE** — även den där stationen gjorde allt rätt på elva cykler i rad.
+
+Åldrarna var goda: median **0,038 s**, p95 **0,083 s** över 1101 prov. Men
+fyra prov låg över `PLC_FARSK_S` = 0,25 s, och ögat kräver att **inget** prov
+gör det. Det största var 6,296 s, och mekanismen är värd att skriva ned:
+
+`Ogonkoppling.rtt_tak()` är en avsiktligt konservativ term — värdets ålder
+plus det längsta uppmätta tur-och-retur av de åtta senaste, därför att vägen
+ut inte går att tidta med två klockor. En **enstaka** bryggstall på 6,3 s
+höjer alltså taket, och det taket ligger sedan kvar över åtta inskott. Ett
+sällsynt hack blir därmed åtta gamla värden.
+
+Slutsatsen är inte att M-42 har fel — taket ska falla åt det hållet. Den är
+att **körningen ställde en fråga den inte behövde ställa**. Facit döms på
+scenens signaler, som ögat läser själv, i sin egen takt, utan någon transport
+mellan mätning och stämpel. PLC-värdena svarar på något annat: vad kopplaren
+fraktade och när. Att skjuta in dem ändå gjorde att en transporthicka fällde
+en stationsdom som inte vilade på dem.
+
+`--plc-inskott` är därför **av** som standard. Den som vill mäta transporten
+slår på den och får fasförhållandet — och får då också freskhetsgrinden, med
+rätta.
+
+Två mekaniska rättelser föll ut på vägen, båda mätta:
+
+* **Anläggningssteget blockerar inte längre.** Ett varv som väntade ut sin egen
+  köade scenskrivning stod still så länge pumpen var upptagen, och under tiden
+  skedde inga inskott alls. Steget är en ställdonsorder, inte en fråga: det
+  lämnas till kön och kontrolleras nästa varv.
+* **Ögat stoppas först.** Allt som görs efter slingan — vänta ut kvarvarande
+  skrivningar, stänga OPC UA — är tid då ögat provtar utan att få något nytt.
+
 ## Skärmen: ett ärvt `DISPLAY` är inte ett standardvärde
 
 Den första omstarten av VC använde `os.environ.get("DISPLAY", ":99")`. Miljön
@@ -205,9 +241,11 @@ pid 654662  WINEPREFIX=/home/anton/.wine-vc-test  DISPLAY=:99
 
 * **Nödstoppet.** Den skyddade ingången kan inte drivas från kopplaren och står
   konstant `FALSE`. Att ST-koden gör rätt när den går hög är oprövat.
-* **Att simuleringen kan gå i realtid med slingan sluten.** Kvoten mättes till
-  0,08–1,9 beroende på last. Ingen konfiguration hittades där den står stilla
-  på 1,0 medan slingan går.
+* **Fasförhållandet mellan PLC-taggen och scenens signal.** Det kräver
+  `--plc-inskott`, och med den fälls körningen på färskhetsgrinden. Vad
+  kopplaren fraktar och när är alltså **inte** mätt i den här körningen.
+* **Nödstoppet igen:** att ST-koden gör rätt när `nodstopp` går hög är oprövat,
+  eftersom taggen inte går att driva över OPC UA.
 * **Fler än en station.** Fas 8.
 * **Hur ofta det lyckas.** Ett grönt varv är inte en frekvens. Fas 9.
 * **Windows.**
