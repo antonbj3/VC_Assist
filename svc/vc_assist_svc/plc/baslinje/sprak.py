@@ -87,6 +87,7 @@ OKA = "oka"            # signal := signal + 1
 MINSKA = "minska"      # signal := signal - 1
 NOLLA = "nolla"        # signal := 0
 FOLJ = "folj"          # signal := kalla
+PULS = "puls"          # signal := TRUE nu, := FALSE i nästa steg
 
 
 @dataclass(frozen=True)
@@ -131,6 +132,10 @@ class Direktiv:
     lage: str = ""             # "auto", "hand" eller "" för båda
     tak: str = ""              # övre ändläge för D_FOLJ
     stam: str = ""             # vaktens egen ordstam, när den inte namnger en tagg
+    # "satt X hog och vanta pa Y" är ett steg vars VÄNTAN hör till nästa steg.
+    # Formen är lika vanlig i banken som "vanta pa Y och satt X hog", och en
+    # grammatik som bara känner den ena mäter vilken ordföljd skribenten valde.
+    vantar_pa: Villkor = field(default_factory=Villkor)
 
     def __str__(self):
         return "%s(%s -> %s)" % (self.sort, self.villkor,
@@ -323,11 +328,9 @@ def las_villkor(text: str, kanda) -> Villkor:
 # Verben i det kontrollerade språket, och den polaritet de betyder utan ett
 # eget nivåord. Listan är sluten med flit: ett verb som inte står här läses
 # inte, och raden hamnar i `olasta` i stället för att tolkas på en gissning.
-_VERB = (("satt", None), ("satter", None), ("nollstall", False),
-         ("nollstaller", False), ("oka", None), ("minska", None),
-         ("hall", None), ("haller", None))
 _VERBORD = re.compile(r"\b(satter|satt|nollstaller|nollstall|okar|oka|"
-                      r"minskar|minska|haller|hall)\b", re.I)
+                      r"minskar|minska|haller|hall|pulsar|pulsa|utloser|"
+                      r"utlos)\b", re.I)
 # Ord som avslutar ett verbs räckvidd inne i samma mening. `aldrig samtidigt
 # med ST310_RB_START` är ett FÖRBUD mot en signal, inte en order till den, och
 # utan brytorden hade båda robotarna startats i samma steg.
@@ -371,6 +374,14 @@ def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
                 ut.append(Handling(MINSKA, n))
                 tagna.add(n)
             continue
+        if verb.startswith("puls") or verb.startswith("utlos"):
+            # En puls är ett kommando som ska tas ner igen. Att skriva den som
+            # ett vanligt `:= TRUE` ger en utgång som står kvar hög för alltid,
+            # och det är felklass F15 skriven av generatorn själv.
+            for n in namn:
+                ut.append(Handling(PULS, n))
+                tagna.add(n)
+            continue
         niva = _NIVA.search(rest)
         hog = True if niva is None else niva.group(1).lower().startswith("hog")
         for n in namn:
@@ -401,6 +412,20 @@ _M_VANTA_OCH = re.compile(
     r"^vanta\s+pa\s+(?P<villkor>.+?)\s+och\s+(?P<handling>"
     r"(?:satt|nollstall|oka|minska).+)$", re.I)
 _M_VANTA = re.compile(r"^vanta\s+pa\s+(?P<villkor>.+)$", re.I)
+# "satt X hog och vanta pa Y": handlingen hör till DET HÄR steget, väntan till
+# nästa. Formen står 20 gånger i banken mot "vanta pa Y och satt X hog":s 9.
+_M_HANDLING_OCH_VANTA = re.compile(
+    r"^(?P<handling>(?:satt|satter|nollstall|oka|minska|pulsa|utlos)\b[^.]*?)"
+    r"\s+och\s+vanta[r]?\s+pa\s+(?P<villkor>.+)$", re.I)
+# "satt X hog och hall den i minst 0,90 s": handling plus ett uppehåll.
+_M_HANDLING_OCH_HALL = re.compile(
+    r"^(?P<handling>(?:satt|satter|pulsa|utlos)\b[^.]*?)\s+och\s+"
+    r"hall\s+(?:den|dem|pistolen|griparen)?\s*(?:sluten\s+)?"
+    r"(?:i\s+)?(?:minst\s+|ytterligare\s+)?(?P<tid>[\d.,]+)\s*s\b", re.I)
+# En rad som ENBART är handlingar är ett ovillkorat steg i kedjan.
+_M_BARA_HANDLING = re.compile(
+    r"^(?:satt|satter|nollstall|nollstaller|oka|okar|minska|minskar|pulsa|"
+    r"pulsar|utlos|utloser)\b", re.I)
 _M_SATT_NAR = re.compile(
     r"^(?P<handling>satt\s+.+?)\s+(?:nar|sa lange|om)\s+(?P<villkor>.+)$", re.I)
 _M_NOLLSTALL_NAR = re.compile(
@@ -512,6 +537,24 @@ def _las_rad(rad: str, kanda) -> List[Direktiv]:
                                  SATT, m.group("sig").upper(),
                                  m.group("niva").lower() == "hog"),)))
 
+    m = _M_HANDLING_OCH_HALL.match(text)
+    if m:
+        handlingar = las_handlingar(m.group("handling"), kanda)
+        if handlingar:
+            d = Direktiv(D_STEG, handlingar=handlingar)
+            d.lage, d.rad = lage, rad
+            paus = Direktiv(D_UPPEHALL, tid_s=_tal(m.group("tid")))
+            paus.lage, paus.rad = lage, rad
+            return [d, paus]
+
+    m = _M_HANDLING_OCH_VANTA.match(text)
+    if m:
+        handlingar = las_handlingar(m.group("handling"), kanda)
+        villkor = las_villkor(m.group("villkor"), kanda)
+        if handlingar and not villkor.tomt:
+            return klar(Direktiv(D_STEG, handlingar=handlingar,
+                                 vantar_pa=villkor))
+
     for regex in (_M_VID, _M_VANTA_OCH):
         m = regex.match(text)
         if m:
@@ -537,6 +580,11 @@ def _las_rad(rad: str, kanda) -> List[Direktiv]:
         villkor = las_villkor(m.group("villkor"), kanda)
         if not villkor.tomt:
             return klar(Direktiv(D_STEG, villkor=villkor))
+
+    if _M_BARA_HANDLING.match(text):
+        handlingar = las_handlingar(text, kanda)
+        if handlingar:
+            return klar(Direktiv(D_STEG, handlingar=handlingar))
 
     if _M_LARM.search(text):
         return klar(Direktiv(D_LARMLATCH))
@@ -636,6 +684,33 @@ def _las_forregling(rad: str, kanda) -> Optional[Forregling]:
     return None
 
 
+def _flytta_vantan(direktiv: List[Direktiv]) -> None:
+    """`vantar_pa` på ett steg blir NÄSTA stegs villkor.
+
+    En stegkedja har ett villkor per steg. Skriver specen "satt X hog och vanta
+    pa Y" är X handlingen i det här steget och Y villkoret för nästa. Flyttas
+    väntan inte hamnar den i ingenmansland och kedjan går vidare utan att vänta
+    — en kommandokedja som inte väntar på sina kvittenser är precis den
+    driftsättningsmiss banken finns för att hitta.
+    """
+    steg = [d for d in direktiv if d.sort == D_STEG]
+    for i, d in enumerate(steg):
+        if d.vantar_pa.tomt:
+            continue
+        if i + 1 < len(steg):
+            nasta = steg[i + 1]
+            termer = list(d.vantar_pa.termer)
+            for t in nasta.villkor.termer:
+                if t not in termer:
+                    termer.append(t)
+            nasta.villkor = Villkor(tuple(termer), nasta.villkor.op)
+        else:
+            # Sista steget: väntan blir dess EGET återgångsvillkor.
+            d.villkor = Villkor(tuple(d.villkor.termer)
+                                + tuple(d.vantar_pa.termer), d.villkor.op)
+        d.vantar_pa = Villkor()
+
+
 def las(sekvens: Sequence[str], forreglingar: Sequence[str],
         kanda) -> Lasning:
     """Hela specen till IR. `kanda` är taggnamnen som finns i kartan."""
@@ -647,6 +722,7 @@ def las(sekvens: Sequence[str], forreglingar: Sequence[str],
             ut.direktiv.extend(direktiv)
         else:
             ut.olasta.append(rad)
+    _flytta_vantan(ut.direktiv)
     for rad in forreglingar or ():
         f = _las_forregling(rad, kanda)
         if f is not None:

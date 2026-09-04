@@ -314,7 +314,7 @@ class _Bygge(object):
                 # givare, och tolken fäller den — men först efter att koden sett
                 # färdig ut. Direktivet stryks här i stället.
                 return "%s ar en insignal och kan inte skrivas" % h.signal
-            if tagg.typ != "bool" and h.sort == Sp.SATT and h.varde:
+            if tagg.typ != "bool" and h.sort in (Sp.SATT, Sp.PULS) and h.varde:
                 return ("%s ar %s och kan inte sattas hog" % (h.signal, tagg.typ))
         return ""
 
@@ -707,6 +707,8 @@ class _Bygge(object):
         return rader
 
     def _handlingstext(self, h: Sp.Handling) -> str:
+        if h.sort == Sp.PULS:
+            return "%s := TRUE;" % h.signal
         if h.sort == Sp.SATT:
             tagg = self.karta.get(h.signal)
             if tagg is not None and tagg.typ != "bool" and not h.varde:
@@ -736,6 +738,9 @@ class _Bygge(object):
         steg: List[Tuple[Sp.Villkor, Tuple, Optional[float]]] = []
         vantande_dwell: Optional[float] = None
         kommenderade: List[str] = []
+        # En puls tas ner i NÄSTA steg. Lämnas den uppe är kommandot en nivå,
+        # och en kamera som triggas på nivå tar en bild per scan.
+        att_nolla: List[Sp.Handling] = []
         for x in direktiv:
             if x.sort == Sp.D_UPPEHALL:
                 vantande_dwell = x.tid_s
@@ -743,15 +748,20 @@ class _Bygge(object):
             if x.sort != Sp.D_STEG or x.lage == "hand":
                 continue
             villkor = self._med_forvillkor(x)
+            handlingar = tuple(att_nolla) + tuple(x.handlingar)
+            att_nolla = [Sp.Handling(Sp.SATT, h.signal, False)
+                         for h in x.handlingar if h.sort == Sp.PULS]
             if vantande_dwell is not None:
                 steg.append((Sp.Villkor(), (), vantande_dwell))
                 vantande_dwell = None
-            steg.append((villkor, x.handlingar, None))
+            steg.append((villkor, handlingar, None))
             for h in x.handlingar:
                 if h.sort == Sp.SATT and h.varde:
                     kommenderade.append(h.signal)
         if not steg:
             return steg
+        if att_nolla:
+            steg.append((Sp.Villkor(), tuple(att_nolla), None))
         termer = []
         for namn in kommenderade:
             tagg = self.karta.get(namn)
