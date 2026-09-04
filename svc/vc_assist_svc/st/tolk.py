@@ -111,7 +111,37 @@ class Blockinstans(object):
 
     # -- anropet ----------------------------------------------------------
 
+    # De ingångar varje standardblock FAKTISKT har, enligt IEC 61131-3.
+    # Listan finns för att ett okänt argumentnamn ska AVVISAS i stället för att
+    # tyst falla bort. MÄTT i M-54: `c(CU := i, RESET := r, PV := 3)` gick rakt
+    # igenom tolken, som läser reset ur "R" och därför tyst räknade vidare utan
+    # nollställning. Samma kod översätts av STruC++ utan anmärkning men går
+    # INTE att bygga — `class strucpp::CTU has no member named RESET`.
+    #
+    # En bänkuppgift skriven så hade alltså dömts av tolken på en semantik som
+    # ingen runtime har. Ett argument som ingen läser är inte en detalj; det är
+    # ett tyst bortfall mitt i det facit ska mäta.
+    INGANGAR = {
+        "TON": ("IN", "PT"),
+        "TOF": ("IN", "PT"),
+        "TP": ("IN", "PT"),
+        "R_TRIG": ("CLK",),
+        "F_TRIG": ("CLK",),
+        "SR": ("S1", "R"),
+        "RS": ("S", "R1"),
+        "CTU": ("CU", "R", "PV"),
+        "CTD": ("CD", "LD", "PV"),
+        "CTUD": ("CU", "CD", "R", "LD", "PV"),
+    }
+
     def anropa(self, arg: Dict[str, object], dt_ms: float):
+        kanda = self.INGANGAR.get(self.sort, ())
+        okanda = [n for n in arg if n.upper() not in kanda]
+        if okanda:
+            raise Tolkfel(
+                "anropet till %s (%s) bar okanda ingangar: %s. %s tar %s"
+                % (self.namn, self.sort, ", ".join(sorted(okanda)),
+                   self.sort, ", ".join(kanda)))
         f = getattr(self, "_" + self.sort.lower())
         f(arg, dt_ms)
 

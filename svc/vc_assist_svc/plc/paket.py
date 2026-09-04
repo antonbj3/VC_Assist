@@ -181,7 +181,8 @@ class Kompileringsdom:
 
 
 def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
-                        tidsgrans: float = 300.0) -> Kompileringsdom:
+                        tidsgrans: float = 300.0,
+                        fullt_bygge: bool = True) -> Kompileringsdom:
     """Grind 1 med STruC++:s CLI: kompilerar koden, ja eller nej.
 
     **Detta är inte `kompilera`.** CLI:t i 0.6.6 skriver bara generated.cpp och
@@ -199,6 +200,25 @@ def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
     **MÄTT (M-48):** CLI:t returnerar 0 vid lyckad kompilering och 1 vid fel,
     och skriver ingen utdatafil när det faller. Utgångskoden är alltså läsbar,
     och texten behöver inte tolkas.
+
+    ## Varför `fullt_bygge` är sant som standard
+
+    **MÄTT (M-54).** Enbart översättning är en svagare grind än den ser ut. Ett
+    program med `c(CU := i, RESET := r, PV := 3)` översätts med utgångskod **0**
+    och texten "Compilation successful!" — men den C++ som skrevs går inte att
+    bygga: `class strucpp::CTU has no member named RESET`. Grinden hade alltså
+    sagt GODKÄND om kod som ingen PLC kan köra.
+
+    Med `--build` kompileras C++:en också, och samma program faller med kod 1.
+
+    Kostnaden är mätt över tre körningar vardera: **0,32–0,34 s** för enbart
+    översättning mot **1,97–2,02 s** för fullt bygge. Sex gånger dyrare, och
+    värt det: 1,7 sekunder är billigare än ett reparationsvarv mot en modell,
+    och oändligt mycket billigare än ett falskt godkänt program.
+
+    Sätt `fullt_bygge=False` bara när frågan verkligen är "går den att
+    översätta" och inte "går den att köra" — och skriv då ut vilken fråga som
+    ställdes.
     """
     if not os.path.exists(strucpp_cli):
         raise Byggfel("hittar inte STruC++-CLI:t på %s" % strucpp_cli)
@@ -206,10 +226,13 @@ def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
     stfil = os.path.join(utkatalog, "program.st")
     with open(stfil, "w", encoding="ascii", newline="\n") as f:
         f.write(for_kompilator(st_text))
+    argv = [strucpp_cli, stfil, "-o", os.path.join(utkatalog, "generated.cpp")]
+    if fullt_bygge:
+        argv.append("--build")
     try:
         korning = subprocess.run(
-            [strucpp_cli, stfil, "-o", os.path.join(utkatalog, "generated.cpp")],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=tidsgrans)
+            argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=tidsgrans)
     except OSError as fel:
         raise Byggfel("kunde inte starta %s: %s" % (strucpp_cli, fel))
     except subprocess.TimeoutExpired:
