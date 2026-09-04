@@ -478,3 +478,188 @@ _lagg(
     }, ["kategorier", "grupper", "stamplar", "antal_poster", "index", "notering"]),
     _catalog_categories,
 )
+
+
+# ---- det INSTALLERADE biblioteket ----------------------------------------
+#
+# De tre verktygen ovan soker i bank/katalog_index.json: 65 handskrivna poster
+# som bankens uppgifter binder mot. De tva nedan soker i det bibliotek som
+# faktiskt ligger pa maskinen - 3201 komponenter fran 149 tillverkare (M-57).
+#
+# Tva kallor och inte en, med flit. Bankens vokabular ar ett KONTRAKT: en
+# uppgift som pekar pa en URI dar maste fortsatta gora det, annars faller
+# lintkoden M4_UNKNOWN_URI och femtio uppgifter blir ogiltiga. Att sla ihop dem
+# hade varit att andra ett kontrakt for att slippa forklara en skillnad.
+#
+# Skillnaden forklaras i stallet, i bada verktygens beskrivning: banken bar det
+# uppgifterna handlar om, biblioteket bar det som gar att bygga med HAR.
+
+_BIBLIOTEK = {"katalog": None, "skal": None}
+
+
+def _bibliotek():
+    """Katalogen over det installerade biblioteket, byggd en gang.
+
+    Byggs lat: upptackten och genomgangen tar 1,8 sekunder (M-57), och det ska
+    inte betalas av en tjanst som kanske aldrig fragar. Misslyckas den lagras
+    SKALET, inte ett tomt resultat - ett tomt bibliotek och ett bibliotek som
+    inte hittades ar tva olika svar (I3).
+    """
+    if _BIBLIOTEK["katalog"] is not None or _BIBLIOTEK["skal"] is not None:
+        return _BIBLIOTEK["katalog"], _BIBLIOTEK["skal"]
+    try:
+        from .. import katalogindex, katalogsok
+    except ImportError as fel:
+        _BIBLIOTEK["skal"] = "katalogmodulerna gar inte att importera: %s" % fel
+        return None, _BIBLIOTEK["skal"]
+    fynd = katalogindex.hitta()
+    if not fynd:
+        provade = ", ".join(sokvag for sokvag, _hur in katalogindex.kandidatrotter())
+        _BIBLIOTEK["skal"] = ("inget installerat komponentbibliotek hittades. "
+                              "Provade: %s" % provade)
+        return None, _BIBLIOTEK["skal"]
+    try:
+        index = katalogindex.bygg(fynd[0].rot)
+    except Exception as fel:
+        _BIBLIOTEK["skal"] = "biblioteket gick inte att lasa: %s" % fel
+        return None, _BIBLIOTEK["skal"]
+    index["hittat_via"] = fynd[0].hur
+    _BIBLIOTEK["katalog"] = katalogsok.Katalog.fran_index(index)
+    _BIBLIOTEK["katalog"].hittat_via = fynd[0].hur
+    return _BIBLIOTEK["katalog"], None
+
+
+def _nollstall_bibliotek():
+    """Bara for proven. Drift bygger indexet en gang och behaller det."""
+    _BIBLIOTEK["katalog"] = None
+    _BIBLIOTEK["skal"] = None
+
+
+_BIBLIOTEKSTRAFF = {
+    "type": "object",
+    "description": "En komponent i det installerade biblioteket.",
+    "properties": {
+        "namn": {"type": "string", "description": "Komponentens namn ur dess metadata."},
+        "tillverkare": {"type": "string", "description": "Tillverkaren, ur katalogtradet."},
+        "kategori": {"type": "string",
+                     "description": ("Kategorin. I ett grunt index kommer den fran "
+                                     "KATALOGNAMNET och inte ur metadatans eget "
+                                     "Category-falt - tva olika storheter (M-58).")},
+        "fil": {"type": "string",
+                "description": "Sokvagen till .vcmx-filen. Det ar den som laddas."},
+        "granssnitt": {"type": ["integer", "null"],
+                       "description": ("Antal granssnittsforekomster i metadatan, eller "
+                                       "null nar indexet ar grunt och inte har rakmat dem.")},
+    },
+    "required": ["namn", "tillverkare", "kategori", "fil", "granssnitt"],
+    "additionalProperties": False,
+}
+
+
+def _traff_ut(t, djupt):
+    return {"namn": t.namn, "tillverkare": t.tillverkare or "",
+            "kategori": t.kategori or "", "fil": t.sokvag,
+            "granssnitt": (t.granssnitt if djupt else None)}
+
+
+def _search_installed_library(argument):
+    katalog, skal = _bibliotek()
+    if katalog is None:
+        return {"traffar": [], "antal": 0, "visade": 0, "sammandrag": None,
+                "kalla": "inget bibliotek", "notering": skal}
+    svar = katalog.sok(fraga=argument.get("query") or "",
+                       tillverkare=argument.get("manufacturer") or "",
+                       kategori=argument.get("category") or "",
+                       har_parameter=argument.get("has_parameter") or "",
+                       max_rader=int(argument.get("max_rows") or 10))
+    ut = {
+        "traffar": [_traff_ut(t, katalog.djupt) for t in svar.traffar],
+        "antal": svar.totalt,
+        "visade": svar.visade,
+        "sammandrag": svar.sammandrag,
+        "kalla": getattr(katalog, "hittat_via", "installerat bibliotek"),
+        "notering": None,
+    }
+    if svar.sammandrag is not None:
+        ut["notering"] = ("%d traffar ar for manga for en lista. Smalna av med "
+                          "manufacturer, category eller ett namnfragment; "
+                          "sammandrag visar fordelningen per tillverkare."
+                          % svar.totalt)
+    elif svar.visade < svar.totalt:
+        ut["notering"] = ("%d av %d traffar visas. Hoj max_rows eller smalna av."
+                          % (svar.visade, svar.totalt))
+    return ut
+
+
+_lagg(
+    "search_installed_library",
+    "Soker i det komponentbibliotek som FAKTISKT ar installerat pa maskinen "
+    "(3201 komponenter, 149 tillverkare, darav 2169 robotar och 163 "
+    "transportorer). Det ar det har du valjer ur nar du ska BYGGA en scen. "
+    "search_catalog soker i nagot annat: bankens 65 handskrivna poster, som "
+    "uppgifterna binder mot. En bred fraga ger ett sammandrag i stallet for en "
+    "lista - smalna av i stallet for att be om fler rader.",
+    params({
+        "query": {"type": "string",
+                  "description": ("Delstrang i komponentens namn, okansligt for "
+                                  "skiftlage. 'IRB 6700' traffar 'IRB 6700-150/3.20'.")},
+        "manufacturer": {"type": "string",
+                         "description": "Exakt tillverkarnamn, t.ex. ABB eller KUKA."},
+        "category": {"type": "string",
+                     "description": "Exakt kategori, t.ex. Robots eller Conveyors."},
+        "has_parameter": {"type": "string",
+                          "description": ("Bara komponenter vars metadata bar en "
+                                          "parameter vars namn innehaller detta. "
+                                          "Kraver ett djupt index.")},
+        "max_rows": {"type": "integer", "minimum": 1, "maximum": 50,
+                     "description": "Hogsta antal rader i listan. Standard 10."},
+    }),
+    returns({
+        "traffar": {"type": "array", "description": "Traffarna, kortast namn forst.",
+                    "items": _BIBLIOTEKSTRAFF},
+        "antal": {"type": "integer", "description": "Antal traffar totalt."},
+        "visade": {"type": "integer", "description": "Hur manga av dem som star i traffar."},
+        "sammandrag": {"type": ["object", "null"],
+                       "description": ("Antal per tillverkare nar fragan var for bred "
+                                       "for en lista. Null annars.")},
+        "kalla": {"type": "string", "description": "Var biblioteket hittades, eller att inget hittades."},
+        "notering": {"type": ["string", "null"],
+                     "description": "Varfor svaret inte ar uttommande, eller null."},
+    }, ["traffar", "antal", "visade", "sammandrag", "kalla", "notering"]),
+    _search_installed_library,
+)
+
+
+def _library_overview(argument):
+    katalog, skal = _bibliotek()
+    if katalog is None:
+        return {"antal": 0, "tillverkare": {}, "kategorier": {},
+                "kalla": "inget bibliotek", "notering": skal}
+    return {
+        "antal": len(katalog.poster),
+        "tillverkare": katalog.tillverkare(),
+        "kategorier": katalog.kategorier(),
+        "kalla": getattr(katalog, "hittat_via", "installerat bibliotek"),
+        "notering": (None if katalog.djupt else
+                     "Indexet ar grunt: kategorin kommer fran katalognamnet och "
+                     "inte ur metadatans eget Category-falt (M-58)."),
+    }
+
+
+_lagg(
+    "library_overview",
+    "Vad det installerade biblioteket innehaller i stora drag: antal per "
+    "tillverkare och per kategori. Fraga detta FORST nar du inte vet vad som "
+    "finns, i stallet for att soka brett och fa ett sammandrag anda.",
+    params({}),
+    returns({
+        "antal": {"type": "integer", "description": "Antal komponenter i biblioteket."},
+        "tillverkare": {"type": "object", "description": "Tillverkare -> antal.",
+                        "additionalProperties": {"type": "integer"}},
+        "kategorier": {"type": "object", "description": "Kategori -> antal.",
+                       "additionalProperties": {"type": "integer"}},
+        "kalla": {"type": "string", "description": "Var biblioteket hittades."},
+        "notering": {"type": ["string", "null"], "description": "Forbehall, eller null."},
+    }, ["antal", "tillverkare", "kategorier", "kalla", "notering"]),
+    _library_overview,
+)
