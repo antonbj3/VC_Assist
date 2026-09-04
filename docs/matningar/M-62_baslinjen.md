@@ -50,7 +50,7 @@ generator med de två grindtillfredsställande växlarna på (avsnitt 4).
 | nivå | grind 2 | grind 3 | grind 1 (STruC++) | spårfacit | påståenden |
 |---|---|---|---|---|---|
 | `mager` — bara I/O-listan | 37 av 37 | 0 av 37 | 37 av 37 | **0 av 4** | 277 av 349 |
-| `prosa` — I/O-listan + uppgiftstextens egna listor | 37 av 37 | 1 av 37 | 37 av 37 | **0 av 4** | 321 av 349 |
+| `prosa` — I/O-listan + uppgiftstextens egna listor | 37 av 37 | 1 av 37 | 37 av 37 | **0 av 4** | 324 av 349 |
 | `spec` — I/O-listan + `control.sequence` och `control.interlocks` | 37 av 37 | 4 av 37 | 37 av 37 | **4 av 4** | **349 av 349** |
 | `spec+driv+las` | 37 av 37 | 37 av 37 | 37 av 37 | 4 av 4 | 349 av 349 |
 | **golvet:** ett program som styr ingenting | 37 av 37 | 37 av 37 | 37 av 37 | **0 av 4** | **252 av 349** |
@@ -90,6 +90,21 @@ spårfacitkod till felklass som M-52 använder, och den är oförändrad här.
 `F6` och `F7` förekommer inte, och får inte göra det: sorteringsregel 5 i
 `docs/spec/82_felklasser.md` säger att en statisk grind aldrig får fälla på
 dem, och spårfacit ligger inte i ögat.
+
+Grind 2 och 3 har en egen felklasstabell, och den har en nämnare på 37 i
+stället för 4. Klassen är den **grinden själv** skriver i sin utdata
+(`[kod/Fklass]`); den härleds aldrig om (I1).
+
+| nivå | `F3` fel tagg |
+|---|---|
+| `mager` | 37 av 37 |
+| `prosa` | 36 av 37 |
+| `spec` | **33 av 37** |
+| `spec+driv+las` | 0 av 37 |
+
+Ingen annan klass förekommer: `F1`, `F2` och `F4` är noll på alla nivåer.
+Baslinjen skriver alltså aldrig ett syntaxfel, ett okänt namn eller en felaktig
+deklaration — den enda formfel den gör är att lämna en signal orörd.
 
 ### Kostnad
 
@@ -315,15 +330,23 @@ Bänken blir diskriminerande först när uppgifter slutar räkna upp sin egen
 sekvens — när sekvensen måste **härledas** ur målet, fysiken och standarden i
 stället för att stå i klartext. Det är inte en kritik av M-45:s fyra uppgifter;
 de byggdes för att göra facit dömbart, och det lyckades. Det är en beställning
-till nästa omgång uppgifter, och den bör bära:
+till nästa omgång uppgifter.
 
-* ett mål utan stegordning ("mata en detalj per formsprutcykel, aldrig två"),
-* ett fel som bara syns i en gränssituation som texten inte pekar ut,
-* ett krav som följer av en standard uppgiften inte citerar,
-* en datastruktur uppgiften inte namnger (ett skiftregister, en kö).
+Och beställningen behöver inte gissas: **de fyra klasser baslinjen inte kan
+läsa är precis de fyra en ny uppgift ska bära** (avsnitt 7.2), och de finns
+redan i banken — men bara i uppgifter utan spårfacit.
 
-Punkt fyra är den billigaste att lägga till och den som skiljer mest: se
-avsnitt 7.2.
+| Klass | Finns redan i | Vad den skulle skilja |
+|---|---|---|
+| flera aktörer i en kedja | `A-03`, `C-01`, `C-02`, `H-01`, `H-02` | kan modellen dela upp en lina i stegkedjor med handskakning emellan? |
+| en datastruktur uppgiften inte namnger | `S-01`, `S-02`, `S-04`, `P-02` | kan den inse att godset måste följas med en encoder, och bygga kön? |
+| grenar och slingor | `A-02`, `P-04`, `L-03` | kan den skriva ett `annars` som inte tappas? |
+| kapacitet | `C-01`, `C-03`, `C-05` | kan den härleda en takt ur ett kapacitetsmål? |
+
+Den billigaste vägen till en diskriminerande bänk är alltså inte nya uppgifter
+utan **spårfacit på de uppgifter som redan finns** — och de fyra raderna ovan
+säger vilka fem som är mest värda att börja med. Kostnaden per uppgift står i
+M-45: ungefär lika mycket som en av de fyra första.
 
 ---
 
@@ -339,8 +362,8 @@ Generatorns egen redovisning, med nämnare, över alla 37 genereringsuppgifter:
 | nivå | lästa sekvensrader | lästa förreglingar | bundna utgångar | rörda ingångar |
 |---|---|---|---|---|
 | `mager` | 82 av 83¹ | 0 av 0¹ | 69 av 157 | 143 av 227 |
-| `prosa` | 12 av 16² | 4 av 46² | 24 av 157 | 81 av 227 |
-| `spec` | **89 av 265** | **52 av 111** | **56 av 157** | 130 av 227 |
+| `prosa` | 13 av 16² | 4 av 46² | 24 av 157 | 81 av 227 |
+| `spec` | **134 av 266** | **52 av 111** | **94 av 157** | **146 av 227** |
 
 ¹ Nivån `mager` läser ingen text alls. Dess 83 "rader" är den stegkedja
 morfologin själv härleder ur kartan, och nämnaren mäter alltså generatorns egen
@@ -351,41 +374,79 @@ av 37 promptar bär en numrerad lista** (`T-07`, `H-04`, `L-05`), och de är tre
 av de fyra uppgifter som har spårfacit. Nivåns tal mäter alltså tre uppgifter
 och inte trettiosju.
 
+Talen är efter två omgångar utökad grammatik. Formerna valdes ur en
+**frekvensräkning** över de olästa raderna och inte ur en gissning, och varje
+tillagd form är en allmän satsform: *"satt X hog och vanta pa Y"* (väntan hör
+till nästa steg), *"satt X hog och hall den i N s"*, en rad som enbart är
+handlingar, verbet *pulsa*, räkneorden noll till tolv, avslutande verb som
+stoppar det föregående verbets räckvidd, *"satt X till N"*, och ett flankvillkor
+som står efter handlingen. Utbytet: lästa rader 89 → 134 av 266, bundna
+utgångar 56 → 94 av 157.
+
+En form lades medvetet **inte** till: `station N: ...`. Trettioen rader i banken
+beskriver två eller flera stationer som arbetar parallellt, och en generator med
+**en** stegkedja kan inte uttrycka dem. Att läsa in dem i samma kedja hade gett
+kod som kompilerar och är fel — och det är precis den sortens falska grönt
+resten av modulen är skriven emot.
+
 Per uppgiftsgrupp, nivå `spec`:
 
 | grupp | uppgifter | lästa rader | bundna utgångar | rörda ingångar |
 |---|---|---|---|---|
-| `T` transport | 7 | 27 av 48 | 16 av 23 | 27 av 37 |
-| `L` palletering | 5 | 17 av 35 | 11 av 24 | 22 av 34 |
-| `P` plock | 5 | 13 av 34 | 6 av 16 | 16 av 35 |
-| `H` överlämning | 4 | 11 av 31 | 8 av 19 | 20 av 32 |
-| `A` montering | 6 | 9 av 43 | 1 av 26 | 22 av 35 |
-| `S` sortering | 5 | 6 av 38 | 9 av 19 | 14 av 26 |
-| `C` cell | 5 | 6 av 36 | 5 av 30 | 9 av 28 |
+| `P` plock | 5 | 23 av 34 | 15 av 16 | 23 av 35 |
+| `L` palletering | 5 | 24 av 35 | 17 av 24 | 25 av 34 |
+| `T` transport | 7 | 34 av 49 | 20 av 23 | 27 av 37 |
+| `H` överlämning | 4 | 14 av 31 | 11 av 19 | 21 av 32 |
+| `A` montering | 6 | 21 av 43 | 12 av 26 | 25 av 35 |
+| `S` sortering | 5 | 10 av 38 | 13 av 19 | 15 av 26 |
+| `C` cell | 5 | **8 av 36** | 6 av 30 | 10 av 28 |
 
-`A` och `C` är sämst, och det är inte slumpen: monteringsuppgifterna beskriver
-arbetsmoment med en varaktighet ("arbeta 26,0 s") och cellerna beskriver
-kapacitet över en simulerad timme. Ingen av de två har en form i det
-kontrollerade språket, och ingen av dem går att härleda ur ett taggnamn.
+`C` och `S` är sämst, och det är inte slumpen. Cellerna beskriver **kapacitet**
+över en simulerad timme och **flera stationer i en lina**; sorteringsuppgifterna
+beskriver ett **skiftregister** som följer godset med en encoder. Ingen av de
+tre storheterna har en form i det kontrollerade språket, och ingen av dem går
+att härleda ur ett taggnamn.
 
-### 7.2 Fem klasser som ingen regel når
+### 7.2 De 132 olästa raderna, sorterade
 
-1. **Datastrukturer uppgiften inte namnger.** *"for skiftregistret framat med
-   ST190_ENC_POS, inte med tiden"*. Det beskriver en kö med lägesindex.
-   Baslinjen har ingen regel som bygger datastrukturer, och raden hamnar bland
-   de olästa. Samma sak för `P-02`:s kotade positionskö och `L-01`:s
-   mönsterberäkning.
-2. **Arbetsmoment med varaktighet.** *"satt ST250_STA_BUSY hog och arbeta
-   26,0 s"*. Tiden är läsbar, men "arbeta" är inget verb i grammatiken, och
-   generatorn vet inte att en `..._BUSY` ska stå hög under den.
-3. **Kapacitet.** `C`-gruppen mäter genomflöde över en simulerad timme
-   (felklass `F11`). Det finns ingen regel från ett kapacitetsmål till en kod.
-4. **Statusflaggor utan kvittens.** 71 av 140 booleska utgångar. `..._DONE`,
-   `..._FULL`, `..._STARVED`. Vad som ska driva dem står i prosan, ofta som ett
-   villkor över ett tillstånd generatorn inte har.
-5. **Allt som kräver en avvägning.** *"vakuumet far inte slappas over hojd,
-   bara nar kollit star an mot underlaget"* — regeln är entydig för en
-   människa och har ingen tagg att hänga på.
+Räknat över alla 37 genereringsuppgifter, nivå `spec`:
+
+| Klass | k av 132 | Exempel |
+|---|---|---|
+| **verb utan regel** | 33 | *"slapp ST230_CLP_CLOSE nar enheten ska ut"*, *"vanta ytterligare 0,10 s innan ST240_TRQ_VAL lases"* |
+| **parallella aktörer** | 31 | *"station 1: … station 2: …"*, *"roboten … bandet …"*, *"ST310 … ST320 …"* |
+| **grenar och slingor** | 19 | *"for varje position i ordningen 1, 3, 2, 4: …"*, *"vid uteblivet grepp: … hogst tre ganger"* |
+| **datastrukturer** | 14 | *"for skiftregistret framat med ST190_ENC_POS, inte med tiden"*, *"rakna fram nasta position i monstret"* |
+| **kapacitet och takt** | 7 | *"rakna genomflode forst efter 300 s uppvarmning"* |
+| **typgallrade, fail-closed** | 5 | rader där läsaren skulle ha skrivit till en insignal eller läst ett heltal som en bit |
+| **övrigt** | 23 | varav 10 är `S-05`:s PackML-rader, som mallen täcker i stället |
+
+De fyra första klasserna är den verkliga gränsen, och de är olika svåra:
+
+1. **Parallella aktörer** är en arkitekturgräns, inte en läsgräns. Generatorn har
+   en stegkedja. En lina med fyra stationer behöver fyra, med en handskakning
+   emellan. Det går att bygga klassiskt — men inte utan att uppgiften säger
+   vilka aktörerna är, och det gör den bara i prosa.
+2. **Datastrukturer** är den skarpaste. *"lagra ST190_HGT_HIGH och ST190_ENC_POS
+   for den burken"* beskriver en kö med lägesindex. Baslinjen har ingen regel
+   som bygger en datastruktur, och den kan inte få en: vilken struktur som
+   behövs följer av vad stationen gör, inte av något i namnen.
+3. **Grenar och slingor** kräver att kedjan förgrenar sig. Ett `om … annars`
+   läses medvetet inte alls: att läsa `om`-halvan och tappa `annars`-halvan ger
+   kod som kompilerar och saknar sitt andra fall.
+4. **Kapacitet** har ingen avbildning över huvud taget. Det finns ingen regel
+   från "720 detaljer i timmen" till en rad ST.
+
+Och två storheter som syns i utgångarna i stället för i raderna:
+
+* **63 utgångar av 157 har ingen drivande regel**, fördelade som 43
+  statusflaggor (`..._DONE`, `..._FULL`, `..._STARVED`), 14 kommandon vars
+  sekvensrad inte gick att läsa, 5 räknare och 1 börvärde.
+* **81 ingångar av 227 rörs aldrig**: 27 givare, 23 mätsignaler, 16 kvittenser
+  till kommandon som aldrig kommenderas, 13 antalssignaler och 2 systemsignaler.
+  De 23 mätsignalerna är den tydligaste: en analog ingång får ett
+  gränsvärdeslarm bara när uppgiftstexten skriver ut sitt arbetsområde, och det
+  gör den i 4 av 37 uppgifter.
 
 ### 7.3 Reparationen: en kod som pekar på en tid pekar inte på en rad
 
@@ -527,14 +588,21 @@ ligger, och den ligger högt:
 | uppgifter med utskriven sekvens (`T-07`, `H-04`, `L-05`) | 3 av 3, varv 1 | 3 av 3, varv 1 |
 | uppgift som är en publicerad standard (`S-05`) | 1 av 1, varv 1 | 1 av 1, varv 1 |
 | grind 1 kompilering över hela banken | 37 av 37 | 37 av 37 |
-| sekvensrader ur den strukturerade specen | 89 av 265 | **här finns luften** |
+| grind 2 statisk analys | 37 av 37 | 37 av 37 |
+| felklass `F1`, `F2`, `F4` över 37 uppgifter | 0 av 37 | 0 av 37 |
+| kostnad per uppgift | under 1 ms, noll tokens | — |
+| sekvensrader läsbara ur specen | 134 av 266 | **här finns luften** |
 | förreglingsrader | 52 av 111 | **här finns luften** |
-| utgångar med en drivande regel | 56 av 157 | **här finns luften** |
-| reparation ur en spårfacitdom | 0 regler | **här finns luften** |
+| utgångar med en drivande regel | 94 av 157 | **här finns luften** |
+| ingångar som rörs | 146 av 227 | **här finns luften** |
+| flera aktörer i en kedja | 0 av 31 rader | **här finns luften** |
+| reparation ur en spårfacitdom | 0 regler av 6 koder | **här finns luften** |
 
 Om fas 9 rapporterar 4 av 4 på spårfacituppgifterna är resultatet **oavgjort mot
-en mallkompilator**, och det ska rapporteras med de orden. De fyra sista raderna
-är de enda ställen där en modell i dag kan visa något en regel inte kan.
+en mallkompilator**, och det ska rapporteras med de orden. De sex sista raderna
+är de enda ställen där en modell i dag kan visa något en regel inte kan — och
+ingen av dem har ett facit som kan döma dem. Det är fas 11:s viktigaste besked
+till fas 9: **ribban ligger på en nivå bänken inte längre kan mäta över.**
 
 ---
 

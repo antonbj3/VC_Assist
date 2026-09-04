@@ -29,9 +29,9 @@ beskriver: svc/vc_assist_svc/plc/baslinje/__init__.py
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Sequence
 
-from ..reparation import klasser_ur, koder_ur
+from ..reparation import koder_ur
 from ...harness.modell import Meddelande, Modell, Modellsvar
 from .generator import (Baslinje, Baslinjefel, NIVAER, NIVA_MAGER, NIVA_PROSA,
                         NIVA_SPEC, Rapport, Resultat, Spec)

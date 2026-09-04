@@ -35,7 +35,7 @@ beskriver: svc/vc_assist_svc/plc/baslinje/packml.py
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 # Tillståndsnummer, PackTags v3.0. Namnen står med för att koden ska gå att
 # läsa; numren är det som skrivs på ST..._PML_STATE.

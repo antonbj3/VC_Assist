@@ -25,7 +25,6 @@ riktningen mater sin egen benagenhet att neka.
 
 beskriver: svc/vc_assist_svc/plc/baslinje/, bank/baslinjebank.py, bank/par.py
 """
-import json
 import os
 import re
 import sys
@@ -39,7 +38,6 @@ for _p in (os.path.join(_ROT, "bank"), os.path.join(_ROT, "svc")):
 
 import baslinjebank as B                                     # noqa: E402
 import par as Par                                            # noqa: E402
-import reparationsbank as RB                                 # noqa: E402
 from vc_assist_svc.plc import reparation as R                # noqa: E402
 from vc_assist_svc.plc.baslinje import (ATGARDER, Baslinje,  # noqa: E402
                                         Baslinjefel, BaslinjeModell,
@@ -49,7 +47,6 @@ from vc_assist_svc.plc.baslinje import (ATGARDER, Baslinje,  # noqa: E402
 from vc_assist_svc.plc.stationsgrind import (NAMN_DEKLARATION,  # noqa: E402
                                              NAMN_STATISK, Kandidat,
                                              granska_station)
-from vc_assist_svc.plc.skelett import Skelett                # noqa: E402
 
 _PAKET = os.path.join(_ROT, "svc", "vc_assist_svc", "plc", "baslinje")
 

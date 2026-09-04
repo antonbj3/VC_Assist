@@ -59,12 +59,11 @@ import par as Par                                            # noqa: E402
 import reparationsbank as RB                                 # noqa: E402
 from vc_assist_svc.plc import reparation as R                 # noqa: E402
 from vc_assist_svc.plc.baslinje import (BaslinjeModell, NIVAER,  # noqa: E402
-                                        NIVA_MAGER, NIVA_PROSA, NIVA_SPEC,
-                                        Spec)
+                                        NIVA_SPEC, Spec)
 from vc_assist_svc.plc.baslinje.generator import Baslinje     # noqa: E402
 from vc_assist_svc.plc.skelett import Skelett                 # noqa: E402
 from vc_assist_svc.plc.stationsgrind import (Kandidat,        # noqa: E402
-                                             NAMN_ANROP, NAMN_DEKLARATION,
+                                             NAMN_DEKLARATION,
                                              NAMN_KOMPILERING, NAMN_STATISK,
                                              granska_station)
 

@@ -332,8 +332,6 @@ class _Bygge(object):
         """
         ut: List[Sp.Direktiv] = []
         for kommando in self.karta.kommandon():
-            villkor = Sp.Villkor((Sp.Term(kommando.par),)) if kommando.par \
-                else Sp.Villkor()
             if not ut:
                 givare = [t for t in self.karta.med_roll(Mo.ROLL_GIVARE)]
                 start = Sp.Villkor((Sp.Term(givare[0].namn),)) if givare \

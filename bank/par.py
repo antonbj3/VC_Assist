@@ -43,7 +43,7 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 _HAR = os.path.dirname(os.path.abspath(__file__))
 _ROT = os.path.normpath(os.path.join(_HAR, ".."))
