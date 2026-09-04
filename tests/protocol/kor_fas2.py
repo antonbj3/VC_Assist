@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(_ROT, "tests"))
 
 import celler                                        # noqa: E402
 import oga_analys as A                               # noqa: E402
+from vc_assist_svc.guldgrind import Guldgrind, FORGRINDAR   # noqa: E402
 from vc_assist_svc.klient import Klient, BryggFel    # noqa: E402
 
 DEL = "OgaDel"
@@ -144,7 +145,8 @@ def main():
                 print("       orsak: %s" % rapport.dom[1])
             utfall.append({"cell": namn, "facit": vantat, "dom": dom, "ok": ok,
                            "prov": ut["samples"], "rate_hz": ut["rate_hz"],
-                           "saknade": ut["saknade"], "rader": rader})
+                           "saknade": ut["saknade"], "rader": rader,
+                           "eyes": text})
         except Exception as e:
             fel += 1
             print("  FEL  %-14s %s: %s" % (namn, type(e).__name__, e))
@@ -153,6 +155,28 @@ def main():
             utfall.append({"cell": namn, "fel": "%s: %s" % (type(e).__name__, e)})
 
     print("\n  %d av %d celler domdes enligt facit" % (len(utfall) - fel, len(utfall)))
+
+    # FAS 3: guldgrinden mot ogats VERKLIGA utdata, inte syntetiska rapporter.
+    grind = Guldgrind({"cell"})
+    grona = [c for c in utfall if c.get("eyes") and c.get("dom") == "PASS"]
+    alla = [c for c in utfall if c.get("eyes")]
+
+    def _grindcell(c):
+        return {"namn": c["cell"], "klass": "cell", "eyes": c["eyes"],
+                "forgrindar": dict((g, True) for g in FORGRINDAR)}
+
+    print("\n  guldgrinden mot ogats verkliga utdata:")
+    if grona:
+        b = grind.doma([_grindcell(c) for c in grona])
+        print("    bara de grona (%d st): %s" % (len(grona), b.text()))
+        if not b.guld:
+            fel += 1
+    if len(alla) > len(grona):
+        b = grind.doma([_grindcell(c) for c in alla])
+        print("    alla %d cellerna:        %s" % (len(alla), b.text()))
+        if b.guld:
+            print("    FEL: guld trots en fallen cell")
+            fel += 1
     if a.json:
         with open(a.json, "w") as f:
             json.dump(utfall, f, indent=2)
