@@ -276,7 +276,15 @@ class VcScen(Scen):
             try:
                 m = comp.WorldPositionMatrix
                 pkt = m.P
-                ut[namn] = {"p": [pkt.X, pkt.Y, pkt.Z],
+                # SAMMA enhet som pose(): kanonisk meter. Fore M-65 lag
+                # scenen kvar i VC:s millimeter medan rollerna delats med
+                # 1000, och analysen (som multiplicerar med 1000 for att fa
+                # mm) sag da varje bakgrundsobjekts driv tusen ganger for
+                # stort. Osynligt i varje syntetisk cell, for de skriver
+                # meter direkt. Matt i M-65 §2.
+                ut[namn] = {"p": [pkt.X / KANONISK_TILL_VC,
+                                  pkt.Y / KANONISK_TILL_VC,
+                                  pkt.Z / KANONISK_TILL_VC],
                             "q": kvat_fran_vc(m.getQuaternion())}
             except Exception as e:
                 self._saknas(namn, "kunde inte lasa posen: %s" % type(e).__name__)

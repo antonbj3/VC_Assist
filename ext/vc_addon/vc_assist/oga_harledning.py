@@ -260,7 +260,8 @@ def rorelseprofil(serie):
     n_olasta = len(serie) - len(lasta)
     profil = {"prov": len(serie), "olasta": n_olasta,
               "olast_andel": (n_olasta / len(serie)) if serie else 1.0,
-              "vaglangd_mm": 0.0, "maxfart_ms": 0.0, "maxvrid_deg_s": 0.0,
+              "vaglangd_mm": 0.0, "brus_mm": 0.0, "forflyttning_mm": 0.0,
+              "maxfart_ms": 0.0, "maxvrid_deg_s": 0.0,
               "intervall": [], "t_forsta": None, "t_sista": None,
               "z_min": None, "z_max": None, "riktningsbyten": 0}
     if not lasta:
@@ -269,18 +270,26 @@ def rorelseprofil(serie):
     for _t, p, _q in lasta:
         profil["z_min"] = p[2] if profil["z_min"] is None else min(profil["z_min"], p[2])
         profil["z_max"] = p[2] if profil["z_max"] is None else max(profil["z_max"], p[2])
+    # Nettoforflyttningen: forsta till sista laget. Brus integrerar till noll,
+    # rorelse gor det inte - det ar det som skiljer en langsam verklig drift
+    # (varje steg under golvet, men nettot vaxer) fran numeriskt jitter.
+    profil["forflyttning_mm"] = norm(diff(lasta[-1][1], lasta[0][1])) * 1000.0
     start = None
     forra_riktning = None
     for i in range(1, len(lasta)):
         dt = lasta[i][0] - lasta[i - 1][0]
         steg = diff(lasta[i][1], lasta[i - 1][1])
         d_mm = norm(steg) * 1000.0
-        profil["vaglangd_mm"] += d_mm
         if dt > 0:
             profil["maxfart_ms"] = max(profil["maxfart_ms"], d_mm / 1000.0 / dt)
             vrid = q_vinkel_deg(q_mult(q_konjugat(lasta[i - 1][2]), lasta[i][2]))
             profil["maxvrid_deg_s"] = max(profil["maxvrid_deg_s"], vrid / dt)
         if d_mm > ROR_SIG_MM:
+            # Bara steg OVER golvet ar vag. Fore M-65 summerades varje steg,
+            # och ett objekt som jittrade en halv millimeter fram och
+            # tillbaka fick 19,5 mm vag pa 40 prov - alltsa 'rorligt' och
+            # 'oombett' - utan att nagonsin ha flyttat sig. Matt i M-65 §2.
+            profil["vaglangd_mm"] += d_mm
             if start is None:
                 start = lasta[i - 1][0]
             if profil["t_forsta"] is None:
@@ -290,12 +299,23 @@ def rorelseprofil(serie):
             if forra_riktning is not None and riktning != forra_riktning:
                 profil["riktningsbyten"] += 1
             forra_riktning = riktning
-        elif start is not None:
-            profil["intervall"].append((start, lasta[i - 1][0]))
-            start = None
+        else:
+            profil["brus_mm"] += d_mm
+            if start is not None:
+                profil["intervall"].append((start, lasta[i - 1][0]))
+                start = None
     if start is not None:
         profil["intervall"].append((start, lasta[-1][0]))
-    profil["stilla"] = profil["vaglangd_mm"] <= STILLA_TOTAL_MM
+    # Stilla ar BADA: ingen vag over golvet, och inget netto. Ett objekt som
+    # kryper 0,1 mm per prov i en riktning har ingen vag over golvet men
+    # 20 mm netto pa 200 prov, och det ar en rorelse.
+    profil["stilla"] = (profil["vaglangd_mm"] <= STILLA_TOTAL_MM
+                        and profil["forflyttning_mm"] <= STILLA_TOTAL_MM)
+    if not profil["stilla"] and profil["t_forsta"] is None:
+        # Rorelse som bara syns i nettot: hela serien ar dess intervall.
+        profil["t_forsta"] = lasta[0][0]
+        profil["t_sista"] = lasta[-1][0]
+        profil["intervall"].append((lasta[0][0], lasta[-1][0]))
     return profil
 
 
@@ -489,8 +509,11 @@ class Scenoversikt(object):
             if namn in self.forvantat:
                 continue
             p = self.profiler[namn]
-            if p["vaglangd_mm"] > OOMBEDD_MM:
-                ut.append({"objekt": namn, "vaglangd_mm": round(p["vaglangd_mm"], 2),
+            # Vagen over golvet ELLER nettot: en langsam drift har ingen vag
+            # men ett netto, och den ar lika oombedd.
+            storst = max(p["vaglangd_mm"], p["forflyttning_mm"])
+            if storst > OOMBEDD_MM:
+                ut.append({"objekt": namn, "vaglangd_mm": round(storst, 2),
                            "t": p["t_forsta"]})
         ut.sort(key=lambda d: -d["vaglangd_mm"])
         return ut

@@ -645,7 +645,11 @@ def test_vcscen_laser_hela_komponentlistan_och_hoppar_over_rollerna():
     scen.konfigurera({"parts": ["Del"], "tools": ["Robot"]})
     poser = scen.poser_alla()
     assert set(poser) == {"Staket"}, "roller bär redan en egen serie"
-    assert poser["Staket"]["p"] == [3, 0, 0]
+    # VC:s 3 (millimeter, M-33) ar 0,003 i seriens kanoniska meter - SAMMA
+    # vag som pose() gar. Fore M-65 stod har [3, 0, 0], och provet laste in
+    # felet: scenen lag i mm medan rollerna lag i m.
+    assert poser["Staket"]["p"] == [0.003, 0.0, 0.0]
+    assert poser["Staket"]["p"] == scen.pose("Staket")["p"], "en enhet, inte tva"
     assert poser["Staket"]["q"] == [0.0, 0.0, 0.0, 1.0], "skalär-först, M-11"
 
 
