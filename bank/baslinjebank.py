@@ -285,6 +285,10 @@ class Nivakorning:
     driv_obundna: bool = False
     las_obundna: bool = False
     grind: Dict[str, Dict[str, object]] = field(default_factory=dict)
+    # Felklasserna som står i GRINDENS EGEN utdata, per uppgift. Läses med
+    # `reparation.klasser_ur`, alltså ur observatörens egna ord — att härleda
+    # klassen ur koden på nytt vore att implementera om måttet (I1).
+    grindklasser: Dict[str, Tuple[str, ...]] = field(default_factory=dict)
     spar: Dict[str, Utfall] = field(default_factory=dict)
     rapporter: Dict[str, object] = field(default_factory=dict)
     fel: Dict[str, str] = field(default_factory=dict)
@@ -318,6 +322,14 @@ def kor_niva(poster: Sequence[dict], niva: str, driv_obundna: bool = False,
         korning.rapporter[tid] = bygge.rapport
         dom = stationsdom(bygge, strucpp_cli, byggkatalog)
         korning.grind[tid] = dict(dom.forgrindar)
+        klasser: List[str] = []
+        for namn in (NAMN_STATISK, NAMN_DEKLARATION):
+            if dom.forgrindar.get(namn) is True:
+                continue
+            for klass in R.klasser_ur((dom.utdata or {}).get(namn) or ""):
+                if klass not in klasser:
+                    klasser.append(klass)
+        korning.grindklasser[tid] = tuple(klasser)
         if post.get("facit_spar"):
             korning.spar[tid] = spardom(post, bygge.st_kalla)
     return korning
@@ -479,6 +491,25 @@ def rapport(korningar: Sequence[Nivakorning], poster: Sequence[dict],
                      % (k.namn,
                         "  ".join("%-10s" % rakn.get(c, 0) for c in klasser),
                         len(k.spar)))
+
+    rader.append("")
+    rader.append("FEL PER KLASS UR GRIND 2 OCH 3, over alla %d "
+                 "genereringsuppgifter" % len(poster))
+    rader.append("Klassen ar den grinden SJALV skriver i sin utdata "
+                 "([kod/Fklass]); den harleds aldrig om.")
+    gklasser = sorted(set(k for korn in korningar
+                          for kl in korn.grindklasser.values() for k in kl))
+    rader.append("%-14s %s" % ("niva", "  ".join("%-10s" % c
+                                                 for c in gklasser)))
+    for k in korningar:
+        rakn: Dict[str, int] = {}
+        for kl in k.grindklasser.values():
+            for c in kl:
+                rakn[c] = rakn.get(c, 0) + 1
+        rader.append("%-14s %s"
+                     % (k.namn, "  ".join("%-10s" % _kav(rakn.get(c, 0),
+                                                         len(poster))
+                                          for c in gklasser)))
 
     rader.append("")
     rader.append("GRINDKODER SOM FALLDE, PER NIVA OCH KOD (alla uppgifter)")

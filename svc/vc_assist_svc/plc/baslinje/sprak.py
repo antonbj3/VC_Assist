@@ -88,13 +88,14 @@ MINSKA = "minska"      # signal := signal - 1
 NOLLA = "nolla"        # signal := 0
 FOLJ = "folj"          # signal := kalla
 PULS = "puls"          # signal := TRUE nu, := FALSE i nästa steg
+SATTVARDE = "sattvarde"  # signal := tal
 
 
 @dataclass(frozen=True)
 class Handling:
     sort: str
     signal: str
-    varde: bool = True
+    varde: object = True
     kalla: str = ""
 
     def __str__(self):
@@ -200,11 +201,24 @@ _HOGA = ("ar hog", "ar hoga", "ar hogt", "gatt hog", "gar hog", "kommer",
          "ar sluten", "bekraftar")
 
 
+# Räkneorden noll till tolv. Banken skriver "ar fyra" lika ofta som "ar 4",
+# och en läsare som bara ser siffror tappar villkoret tyst — vilket är värre än
+# att inte läsa raden alls, eftersom steget då blir kvar utan sin spärr.
+_TALORD = {"noll": 0.0, "en": 1.0, "ett": 1.0, "tva": 2.0, "tre": 3.0,
+           "fyra": 4.0, "fem": 5.0, "sex": 6.0, "sju": 7.0, "atta": 8.0,
+           "nio": 9.0, "tio": 10.0, "elva": 11.0, "tolv": 12.0}
+_TALORDRE = re.compile(r"\b(%s)\b" % "|".join(sorted(_TALORD, key=len,
+                                                      reverse=True)), re.I)
+
+
 def _tal(text: str, standard: float = 0.0) -> float:
     m = _TAL.search(text or "")
-    if not m:
-        return standard
-    return float(m.group(1).replace(",", "."))
+    if m:
+        return float(m.group(1).replace(",", "."))
+    m = _TALORDRE.search(text or "")
+    if m:
+        return _TALORD[m.group(1).lower()]
+    return standard
 
 
 def _signaler_i(text: str, kanda) -> List[str]:
@@ -244,7 +258,8 @@ _JAMFORELSER = (
     (re.compile(r"\beller mindre\b|\beller farre\b"), "<="),
     (re.compile(r"\bar under\b|\bunderstiger\b|\bar lagre an\b"), "<"),
     (re.compile(r"\bar over\b|\boverstiger\b|\bar hogre an\b"), ">"),
-    (re.compile(r"\bar lika med\b|\bar\s+\d"), "="),
+    (re.compile(r"\bar lika med\b|\bar\s+\d|\bar\s+(?:%s)\b"
+                % "|".join(_TALORD)), "="),
 )
 
 
@@ -257,7 +272,8 @@ def _jamforelse(bit_utan_namn: str) -> Tuple[str, float]:
     ett gränsvärde, och en generator som förreglar på stationsnumret ser ut att
     fungera tills stationen byter nummer.
     """
-    if not _TAL.search(bit_utan_namn or ""):
+    if not _TAL.search(bit_utan_namn or "") and \
+            not _TALORDRE.search(bit_utan_namn or ""):
         return "", 0.0
     for regex, tecken in _JAMFORELSER:
         if regex.search(" " + (bit_utan_namn or "").lower() + " "):
@@ -328,15 +344,27 @@ def las_villkor(text: str, kanda) -> Villkor:
 # Verben i det kontrollerade språket, och den polaritet de betyder utan ett
 # eget nivåord. Listan är sluten med flit: ett verb som inte står här läses
 # inte, och raden hamnar i `olasta` i stället för att tolkas på en gissning.
+# Verben som GER en handling, och verben som bara avslutar det föregående
+# verbets räckvidd. MÄTT under bygget: `pulsa ST290_CAM_TRIG och las
+# ST290_CAM_LEN` gjorde mätsignalen till ett skrivmål, därför att pulsens
+# räckvidd sträckte sig genom hela raden. Ett verb läsaren inte kan utföra är
+# ändå ett verb, och det ska stoppa det förra.
+_AVSLUTANDE = ("laser", "las", "kontrollerar", "kontrollera", "jamfor",
+               "lamnar", "lamna", "lagrar", "lagra", "slapper", "slapp",
+               "stoppar", "stoppa", "startar", "starta", "korar", "kor",
+               "hamtar", "hamta", "valjer", "valj", "avbryter", "avbryt",
+               "fortsatter", "fortsatt", "behaller", "behall", "kasserar",
+               "kassera", "upprepar", "upprepa", "vantar", "vanta")
 _VERBORD = re.compile(r"\b(satter|satt|nollstaller|nollstall|okar|oka|"
                       r"minskar|minska|haller|hall|pulsar|pulsa|utloser|"
-                      r"utlos)\b", re.I)
+                      r"utlos|%s)\b" % "|".join(_AVSLUTANDE), re.I)
 # Ord som avslutar ett verbs räckvidd inne i samma mening. `aldrig samtidigt
 # med ST310_RB_START` är ett FÖRBUD mot en signal, inte en order till den, och
 # utan brytorden hade båda robotarna startats i samma steg.
 _BRYT = re.compile(r"\b(aldrig|utan att|utan|i stallet|dock|men|sa att|"
-                   r"i samma scan som)\b", re.I)
+                   r"i samma scan som|med fast intervall|innan)\b", re.I)
 _NIVA = re.compile(r"\b(hog|hogt|hoga|lag|lagt|laga)\b", re.I)
+_TILL = re.compile(r"\btill\b", re.I)
 
 
 def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
@@ -351,6 +379,8 @@ def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
     traffar = list(_VERBORD.finditer(text or ""))
     for i, m in enumerate(traffar):
         verb = m.group(1).lower()
+        if verb in _AVSLUTANDE:
+            continue
         slut = traffar[i + 1].start() if i + 1 < len(traffar) else len(text)
         rest = text[m.end():slut]
         brott = _BRYT.search(rest)
@@ -382,6 +412,30 @@ def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
                 ut.append(Handling(PULS, n))
                 tagna.add(n)
             continue
+        m_till = _TILL.search(rest)
+        if m_till:
+            # "satt X till 1": målet är signalen FÖRE ordet `till`, värdet
+            # står efter. Står ingen känd signal före `till` är målet något
+            # raden kallar vid ett namn kartan inte har, och då blir det ingen
+            # handling alls — hellre en oläst rad än en skrivning till fel tagg.
+            fore = [n for n in _signaler_i(rest[:m_till.start()], kanda)
+                    if n not in tagna]
+            if not fore:
+                continue
+            ut.append(Handling(SATTVARDE, fore[0],
+                               varde=_tal(rest[m_till.end():])))
+            tagna.add(fore[0])
+            for n in _signaler_i(rest[m_till.end():], kanda):
+                tagna.add(n)
+            efter = _NIVA.search(rest[m_till.end():])
+            if efter:
+                for n in namn:
+                    if n not in tagna:
+                        ut.append(Handling(
+                            SATT, n,
+                            efter.group(1).lower().startswith("hog")))
+                        tagna.add(n)
+            continue
         niva = _NIVA.search(rest)
         hog = True if niva is None else niva.group(1).lower().startswith("hog")
         for n in namn:
@@ -409,8 +463,8 @@ _M_KVITTENS = re.compile(r"^efter\s+spanningspaslag", re.I)
 _M_VID = re.compile(r"^(?:forst\s+)?(?:vid|nar)\s+(?P<villkor>[^:]+?)\s*[:]\s*"
                     r"(?P<handling>.+)$", re.I)
 _M_VANTA_OCH = re.compile(
-    r"^vanta\s+pa\s+(?P<villkor>.+?)\s+och\s+(?P<handling>"
-    r"(?:satt|nollstall|oka|minska).+)$", re.I)
+    r"^vanta\s+pa\s+(?P<villkor>.+?)(?:\s+och|,)\s+(?P<handling>"
+    r"(?:satt|nollstall|oka|minska|pulsa).+)$", re.I)
 _M_VANTA = re.compile(r"^vanta\s+pa\s+(?P<villkor>.+)$", re.I)
 # "satt X hog och vanta pa Y": handlingen hör till DET HÄR steget, väntan till
 # nästa. Formen står 20 gånger i banken mot "vanta pa Y och satt X hog":s 9.
@@ -427,7 +481,16 @@ _M_BARA_HANDLING = re.compile(
     r"^(?:satt|satter|nollstall|nollstaller|oka|okar|minska|minskar|pulsa|"
     r"pulsar|utlos|utloser)\b", re.I)
 _M_SATT_NAR = re.compile(
-    r"^(?P<handling>satt\s+.+?)\s+(?:nar|sa lange|om)\s+(?P<villkor>.+)$", re.I)
+    r"^(?P<handling>(?:satt|satter|oka|okar|minska|minskar|pulsa|pulsar|"
+    r"utlos|utloser)\s+.+?)\s+(?:nar|sa lange|om)\s+(?P<villkor>.+)$", re.I)
+# "satt X hog forst pa fallande flank pa Y": villkoret är en FLANK och står
+# efter handlingen. Utan den här formen läses raden som ett ovillkorat steg och
+# spärren försvinner tyst — och en nivåläsning där en flank krävs är felklass
+# F15, alltså precis det banken finns för att hitta.
+_M_HANDLING_PA_FLANK = re.compile(
+    r"^(?P<handling>(?:satt|satter|nollstall|nollstaller|oka|okar|minska|"
+    r"minskar|pulsa|pulsar)\s+.+?)\s+(?:forst\s+)?pa\s+"
+    r"(?P<villkor>(?:stigande|fallande)\s+flank\s+pa\s+.+)$", re.I)
 _M_NOLLSTALL_NAR = re.compile(
     r"^(?P<handling>nollstall\s+.+?)\s+(?:nar|sa lange|i samma scan som)\s+"
     r"(?P<villkor>.+)$", re.I)
@@ -438,7 +501,7 @@ _M_FOLJ = re.compile(
     r"^lat\s+(?P<sig>[A-Za-z0-9_]+)\s+folja\s+(?P<kalla>[A-Za-z0-9_]+)"
     r".*?(?:upp till\s+(?P<tak>[A-Za-z0-9_]+))?$", re.I)
 _M_RAKNA = re.compile(
-    r"^(?P<verb>oka|minska)\s+(?P<sig>[A-Za-z0-9_]+)\s+pa\s+"
+    r"^(?P<verb>oka|minska)\s+(?P<sig>[A-Za-z0-9_]+)\s+(?:forst\s+)?pa\s+"
     r"(?P<flank>stigande|fallande)\s+flank\s+pa\s+(?P<kalla>[A-Za-z0-9_]+)",
     re.I)
 _M_LAGE = re.compile(r"^i\s+(?P<lage>automatlage|handlage)\s*[:,]\s*"
@@ -562,6 +625,14 @@ def _las_rad(rad: str, kanda) -> List[Direktiv]:
             handlingar = las_handlingar(m.group("handling"), kanda)
             if villkor.tomt and not handlingar:
                 break
+            return klar(Direktiv(D_STEG, villkor=villkor,
+                                 handlingar=handlingar))
+
+    m = _M_HANDLING_PA_FLANK.match(text)
+    if m:
+        villkor = las_villkor(m.group("villkor"), kanda)
+        handlingar = las_handlingar(m.group("handling"), kanda)
+        if handlingar and not villkor.tomt:
             return klar(Direktiv(D_STEG, villkor=villkor,
                                  handlingar=handlingar))
 
