@@ -306,7 +306,7 @@ Det finns två läsningar av "4 av 4", och bara den ena håller.
 
 **Läsning A: klassiska metoder räcker, och en språkmodell behövs inte.** Den
 faller på nivå `mager`: med bara I/O-listan klarar samma generator **0 av 4**.
-Den faller också på avsnitt 7: över hela banken läser generatorn 89 av 265
+Den faller också på avsnitt 7: över hela banken läser generatorn 134 av 266
 sekvensrader.
 
 **Läsning B: bankens fyra dömbara uppgifter specificerar sin egen lösning så
@@ -323,8 +323,8 @@ mellan 4 av 4 och 1 av 4 är alltså exakt vad `control.sequence` bär.
 Följden för fas 9 är rak och obekväm:
 
 > **Ett fas 9-tal på de här fyra uppgifterna måste läsas mot 4 av 4.** En modell
-> som får 4 av 4 har hunnit ifatt en mallkompilator som kostar 0,56 ms och noll
-> tokens. Den har inte visat att den kan något mer.
+> som får 4 av 4 har hunnit ifatt en mallkompilator som kostar under en
+> millisekund och noll tokens. Den har inte visat att den kan något mer.
 
 Bänken blir diskriminerande först när uppgifter slutar räkna upp sin egen
 sekvens — när sekvensen måste **härledas** ur målet, fysiken och standarden i
@@ -547,7 +547,7 @@ Ett tredje fynd är inte en bugg utan en observation som hör hemma i
 maskinöversättningsbart, och prompttexten är det nästan.** Bara 3 av 37
 promptar bär en numrerad lista (`T-07`, `H-04`, `L-05`), och det är just tre av
 de fyra uppgifter som har spårfacit. Nivån `prosa` mäter alltså tre uppgifter
-och inte trettiosju, och det står här så att ingen läser dess 321 av 349 som ett
+och inte trettiosju, och det står här så att ingen läser dess 324 av 349 som ett
 tal om banken.
 
 ---
