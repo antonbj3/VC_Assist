@@ -518,3 +518,84 @@ def test_varje_cell_gar_att_bygga_en_scenoversikt_av(namn):
     o.narhet()
     o.ledtider()
     assert isinstance(H.berattelse(o), list)
+
+
+# ---- stationens sekvens och forregling ----------------------------------
+
+def _flank(signal, flank, t):
+    return {"signal": signal, "flank": flank, "t": t}
+
+
+SPEC = {"start": {"signal": "plc:givare", "flank": "RISE"},
+        "steg": [{"signal": "plc:stopp", "flank": "RISE", "min_s": 0.0, "max_s": 0.5},
+                 {"signal": "plc:stopp", "flank": "FALL", "min_s": 1.5, "max_s": 2.5}],
+        "min_cykler": 1}
+
+
+def test_sekvensen_domer_varje_steg_mot_CYKELNS_start_inte_mot_foregaende():
+    """Ett tidigt fel far inte flytta facit med sig och dolja sig sjalvt."""
+    flanker = [_flank("plc:givare", "RISE", 0.0),
+               _flank("plc:stopp", "RISE", 0.4),
+               _flank("plc:stopp", "FALL", 3.0)]
+    d = H.sekvensdom(flanker, SPEC, 6.0)
+    assert d["domda"] == 1
+    assert d["brott"], d
+    assert "plc:stopp FALL" in d["brott"][0]
+
+
+def test_en_flank_ur_NASTA_cykel_far_inte_laga_den_har_cykelns_hal():
+    flanker = [_flank("plc:givare", "RISE", 0.0),
+               _flank("plc:givare", "RISE", 1.0),
+               _flank("plc:stopp", "RISE", 1.2),
+               _flank("plc:stopp", "FALL", 2.6)]
+    d = H.sekvensdom(flanker, SPEC, 8.0)
+    # cykel 0 (t0=0) far inte rakna stoppflanken vid 1.2, den ligger efter att
+    # cykel 1 borjat.
+    assert d["cykler"][0]["ok"] is False
+    assert "cykel 0" in d["brott"][0]
+
+
+def test_en_cykel_vars_fonster_inte_ryms_i_serien_ar_oprovad():
+    flanker = [_flank("plc:givare", "RISE", 5.0)]
+    d = H.sekvensdom(flanker, SPEC, 6.0)
+    assert d["avhuggna"] == 1
+    assert d["domda"] == 0
+    assert not d["brott"]
+    assert d["obestambar"]
+
+
+def test_utan_en_enda_startflank_ar_sekvensen_obestambar_inte_bruten():
+    d = H.sekvensdom([], SPEC, 6.0)
+    assert d["obestambar"]
+    assert not d["brott"]
+
+
+def _plcrad(t, **varden):
+    return {"t": t, "plc": dict(varden)}
+
+
+def test_ett_enda_prov_med_bada_hoga_ar_ett_provtagningsutslag():
+    """Tva flanker kan falla i samma prov. Ett prov racker alltsa inte."""
+    rader = [_plcrad(0.0, a=False, b=False),
+             _plcrad(0.05, a=True, b=True),
+             _plcrad(0.10, a=True, b=False)]
+    d = H.forreglingsbrott(rader, [["plc:a", "plc:b"]], 0.05)
+    assert d[0]["prov"] == 1
+    assert d[0]["brott"] is False
+
+
+def test_tva_prov_i_rad_med_bada_hoga_ar_ett_brott_och_bar_sin_varaktighet():
+    rader = [_plcrad(0.0, a=False, b=False),
+             _plcrad(0.05, a=True, b=True),
+             _plcrad(0.10, a=True, b=True),
+             _plcrad(0.15, a=False, b=False)]
+    d = H.forreglingsbrott(rader, [["plc:a", "plc:b"]], 0.05)
+    assert d[0]["brott"] is True
+    assert abs(d[0]["overlapp_s"] - 0.05) < 1e-6
+    assert d[0]["t_forst"] == 0.05
+
+
+def test_forreglingen_sager_ifran_nar_signalerna_aldrig_lastes_samtidigt():
+    d = H.forreglingsbrott([_plcrad(0.0, a=True)], [["plc:a", "plc:b"]], 0.05)
+    assert d[0]["obestambar"]
+    assert "brott" not in d[0]

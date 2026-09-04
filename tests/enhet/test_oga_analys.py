@@ -74,6 +74,13 @@ FACIT = {
     "rord_men_aldrig_gripen": ("FAIL", "NEVER_GRIPPED VIOLATION"),
     # trosklarnas granser
     "utan_placeringstolerans": ("FAIL", "PLACE OFF_TARGET"),
+    # stationen: en sekvens i tiden, inget grepp
+    "station_utan_stopp":       ("FAIL", None),
+    "station_slapper_aldrig":   ("FAIL", None),
+    "station_forsent":          ("FAIL", None),
+    "station_forregling_bruten": ("FAIL", None),
+    "station_bara_en_cykel":    ("INCONCLUSIVE", None),
+    "station_utan_deklaration": ("INCONCLUSIVE", None),
 }
 
 # Den ANDRA riktningen. En domare som faller allt klarar varje fallningsprov
@@ -83,7 +90,8 @@ GRONA = ("bra", "bakgrund_stilla", "scen_deltalagrad", "oombedd_men_deklarerad",
          "robot_omorientering", "robot_foljer", "robot_stopp_begransande",
          "mindist_nara", "station_svalt_utan_krav", "station_upptagen",
          "plc_i_fas", "plc_ur_fas", "pa_placeringsgransen",
-         "pa_barstrackans_grans")
+         "pa_barstrackans_grans",
+         "station_bra", "station_forregling_utan_deklaration")
 
 
 @pytest.mark.parametrize("namn", sorted(FACIT))
@@ -456,3 +464,75 @@ def test_bakgrundsobjekt_som_star_still_bytte_ingenting():
     _r, _rader, a = _doma("bakgrund_stilla")
     byten = a.harledt["scene"]["forandringar"]
     assert not (set(byten) & set(celler.BAKGRUND))
+
+
+# ---- stationen: sekvensen ar arbetet, greppet finns inte -----------------
+
+def test_stationen_utan_roller_kan_fa_PASS_men_bara_med_en_deklarerad_sekvens():
+    """Bada halvorna i ett prov, for de bar varandra.
+
+    Slapptes greppkravet utan att nagot annat kravdes i stallet hade vagen ut
+    ur greppgrinden varit att utelamna `tools` ur planen.
+    """
+    r, _rader, _ = _doma("station_bra")
+    assert r.dom[0] == "PASS", r.dom
+    r2, _r2, _ = _doma("station_utan_deklaration")
+    assert r2.dom[0] == "INCONCLUSIVE", r2.dom
+    assert "sekvens" in r2.dom[1]
+
+
+def test_stationen_far_inte_NEVER_GRIPPED_nar_inget_verktyg_deklarerats():
+    """Ett uteblivet grepp ar en overtradelse bara nar korningen pastod att
+    den skulle gripa."""
+    r, rader, _ = _doma("station_bra")
+    assert "NEVER_GRIPPED OK" in rader
+    assert r.overtradelser() == []
+    # ... och plockcellen far det fortfarande.
+    r2, rader2, _ = _doma("aldrig_gripen")
+    assert "NEVER_GRIPPED VIOLATION" in rader2
+
+
+def test_forreglingsbrottet_bar_sin_matta_overlapp_i_sekunder():
+    """Ett tal, inte en flagga.
+
+    Den andra stoppulsen ar 0,30 s lang och overlappar slappet i sex prov;
+    fem mellanrum a 0,05 s ger 0,25 s per cykel, tre cykler ger 0,75 s. Det
+    ar den matta varaktigheten, inte den palagda - de skiljer sig med ett
+    provintervall och det ar precis vad provtagningen kostar.
+    """
+    r, _rader, a = _doma("station_forregling_bruten")
+    post = a.harledt["station"]["forregling"][0]
+    assert post["brott"] is True
+    assert abs(post["overlapp_s"] - 0.75) < 1e-6, post
+    assert "0.75 s" in r.dom[1]
+
+
+def test_forreglingen_domer_inte_nar_planen_inte_bett_om_den():
+    """Samma serie, samma overlapp - men ingen fraga stalld."""
+    r, _rader, a = _doma("station_forregling_utan_deklaration")
+    assert r.dom[0] == "PASS", r.dom
+    assert a.harledt["station"]["forregling"] is None
+
+
+def test_sekvensbrottet_namner_vilket_steg_och_vilket_fonster():
+    r, _rader, a = _doma("station_slapper_aldrig")
+    d = a.harledt["station"]["sekvens"]
+    assert d["brott"], d
+    assert "plc:stopp FALL" in d["brott"][0]
+    assert "1.50-2.50" in d["brott"][0]
+
+
+def test_en_avhuggen_sista_cykel_ar_oprovad_och_inte_ett_brott():
+    """Serien slutar mitt i en cykel. Det far inte bli ett fel - men det far
+    heller inte rakas som en godkand cykel."""
+    b = celler.Stationsbygge()
+    for _ in range(2):
+        celler._stationscykel(b)
+    # halv cykel till: givaren stiger, sedan tar serien slut
+    for i in range(10):
+        b.steg({"givare": True, "stopp": i >= 2, "slapp": False})
+    text, r, a = A.doma(b.data(), celler.stationsplan())
+    d = a.harledt["station"]["sekvens"]
+    assert d["avhuggna"] == 1, d
+    assert d["domda"] == 2, d
+    assert r.dom[0] == "PASS", r.dom

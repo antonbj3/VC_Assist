@@ -719,6 +719,179 @@ def utan_placeringstolerans():
     return b, p
 
 
+# ---- stationen: en sekvens i tiden, inget grepp --------------------------
+#
+# En station som styrs av structured text har varken en DEL eller ett VERKTYG.
+# Dess arbete ar en ORDNING av flanker. Cellerna nedan provar den grinden, och
+# varje trasig cell bryter EN sak - annars gar en fallning inte att harleda.
+
+STATION_TEMPLATE = "station_sekvens"
+# Facit for cellerna: givaren stiger, stoppet gar hogt inom ett halvsekund,
+# slapper efter processtiden, och slappsignalen kommer efter stoppet.
+STATIONSSEKVENS = {
+    "start": {"signal": "plc:givare", "flank": "RISE"},
+    "steg": [{"signal": "plc:stopp", "flank": "RISE", "min_s": 0.0, "max_s": 0.5},
+             {"signal": "plc:stopp", "flank": "FALL", "min_s": 1.5, "max_s": 2.5},
+             {"signal": "plc:slapp", "flank": "RISE", "min_s": 1.5, "max_s": 2.8},
+             {"signal": "plc:slapp", "flank": "FALL", "min_s": 2.0, "max_s": 3.3}],
+    "min_cykler": 2,
+}
+
+
+def stationsplan(sekvens=True, forregling=True):
+    """Planen for en station: ingen del, inget verktyg, en deklarerad sekvens."""
+    p = {"floor_z": 0.0, "movers": {}, "stations": {}}
+    if sekvens:
+        p["sekvens"] = dict(STATIONSSEKVENS)
+    if forregling:
+        p["forregling"] = [["plc:stopp", "plc:slapp"]]
+    return p
+
+
+class Stationsbygge(object):
+    """En serie UTAN roller: bara scenen och PLC-varden pa samma tidsaxel.
+
+    Skild fran `Bygge`, som alltid lagger en del och ett verktyg i varje rad.
+    Att lana den och nolla rollerna hade gett en cell som pastar sig gripa och
+    inte gor det - alltsa en annan felklass an den som ska provas har.
+    """
+
+    def __init__(self, template=STATION_TEMPLATE):
+        self.template = template
+        self.rader = []
+        self.t = 0.0
+
+    def steg(self, plc, x_mm=0.0):
+        self.rader.append({
+            "t": round(self.t, 4),
+            "parts": {"broms": {"p": [0.0, 0.0, 0.5], "q": list(Q0)}},
+            "scene": {"produkt": {"p": [x_mm / 1000.0, 0.0, 0.5], "q": list(Q0)}},
+            "scenlast": True,
+            "plc": dict(plc),
+            "plc_alder_s": 0.05,
+        })
+        self.t += DT
+        return self
+
+    def data(self):
+        return {
+            "v": 1,
+            "template": self.template,
+            "run": {"started": "2026-09-04T21:00:00", "dur_s": round(self.t, 3),
+                    "samples": len(self.rader), "rate_hz": RATE},
+            "tracked": {"parts": ["broms"], "tools": [], "signals": [],
+                        "pairs": [], "joints": [], "stations": [],
+                        "scene": ["produkt"]},
+            "rows": self.rader,
+        }
+
+
+# Varje cykel inleds med ett tomt fonster sa att givaren har en STIGANDE
+# flank. Utan det borjar serien med givaren redan hog, och da finns ingen
+# cykelstart att raekna fran - vilket ar en annan felklass an de som provas.
+STATION_TOMT_S = 0.4
+
+
+def _stationscykel(b, t_stopp_s=2.0, slapp_s=0.5, givare_s=3.6,
+                   stopp_fordrojning_s=0.1, stopp_igen=False,
+                   stoppa_aldrig=False, slapp_aldrig=False, x0=0.0):
+    """En cykel: produkten kommer, stoppet gar pa, processtiden gar, den slapps.
+
+    Talen ar cellens egna och namnges - de ar facit, inte trosklar.
+
+    `stopp_igen` lagger en ANDRA stoppuls mitt i slappet. Den bryter
+    forreglingen utan att rubba ett enda av sekvensens steg, och det ar
+    avsikten: annars gar det inte att visa att forreglingsgrinden mater nagot
+    som sekvensgrinden inte redan mater.
+    """
+    n = int(round((STATION_TOMT_S + givare_s) * RATE))
+    for i in range(n):
+        t = i * DT - STATION_TOMT_S
+        givare = 0.0 <= t < givare_s - 0.4
+        stopp = (not stoppa_aldrig) and stopp_fordrojning_s <= t < t_stopp_s
+        if stopp_igen and t_stopp_s + 0.15 <= t < t_stopp_s + 0.45:
+            stopp = True
+        slapp = (not slapp_aldrig) and t_stopp_s <= t < t_stopp_s + slapp_s
+        x = x0 if stopp else x0 + (max(t, 0.0) * 250.0)
+        b.steg({"givare": givare, "stopp": stopp, "slapp": slapp}, x_mm=x)
+    return b
+
+
+def station_bra():
+    """Tva hela cykler i ratt ordning. Utan den ar varje fallning nedan
+    vardelos - en domare som faller allt klarar alla ovriga prov."""
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b)
+    return b, stationsplan()
+
+
+def station_utan_stopp():
+    """Stoppet gar aldrig hogt: stationen gjorde ingenting."""
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b, stoppa_aldrig=True)
+    return b, stationsplan()
+
+
+def station_slapper_aldrig():
+    """Stoppet gar pa och stannar dar. Produkten kommer aldrig vidare."""
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b, t_stopp_s=3.4, slapp_aldrig=True)
+    return b, stationsplan()
+
+
+def station_forsent():
+    """Ratt ordning, men processtiden ar dubbelt sa lang som facit tillater."""
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b, t_stopp_s=3.0, givare_s=4.6)
+    return b, stationsplan()
+
+
+def station_forregling_bruten():
+    """Stoppet och slappet hoga SAMTIDIGT - tva rorelser pa en gang.
+
+    Sekvensens fyra steg haller alla; det ENDA som brister ar forreglingen.
+    """
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b, stopp_igen=True)
+    return b, stationsplan()
+
+
+def station_forregling_utan_deklaration():
+    """Samma overlapp, men planen har inte bett om nagon forregling.
+
+    Den andra riktningen: en grind som faller aven nar ingen fraga stallts
+    mater sin egen asikt, inte korningen.
+    """
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b, stopp_igen=True)
+    return b, stationsplan(forregling=False)
+
+
+def station_bara_en_cykel():
+    """En enda cykel, men facit kraver tva. Oprovat, inte godkant."""
+    b = Stationsbygge()
+    _stationscykel(b)
+    return b, stationsplan()
+
+
+def station_utan_deklaration():
+    """Ingen sekvens, ingen forregling, inga greppande roller.
+
+    Ingen fraga stalld. Det far ALDRIG bli ett PASS - da vore vagen ut ur
+    greppgrinden att utelamna en rad ur planen.
+    """
+    b = Stationsbygge()
+    for _ in range(3):
+        _stationscykel(b)
+    return b, stationsplan(sekvens=False, forregling=False)
+
+
 ALLA = {
     "bra": bra,
     "teleport": teleport,
@@ -768,4 +941,13 @@ ALLA = {
     "pa_placeringsgransen": pa_placeringsgransen,
     "pa_barstrackans_grans": pa_barstrackans_grans,
     "utan_placeringstolerans": utan_placeringstolerans,
+    # stationen
+    "station_bra": station_bra,
+    "station_utan_stopp": station_utan_stopp,
+    "station_slapper_aldrig": station_slapper_aldrig,
+    "station_forsent": station_forsent,
+    "station_forregling_bruten": station_forregling_bruten,
+    "station_forregling_utan_deklaration": station_forregling_utan_deklaration,
+    "station_bara_en_cykel": station_bara_en_cykel,
+    "station_utan_deklaration": station_utan_deklaration,
 }

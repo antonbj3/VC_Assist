@@ -137,7 +137,8 @@ class Analys(object):
         h = {}
         delnamn, verktygsnamn = self._del_och_verktyg()
         if delnamn is None:
-            self.skal.append("ingen spårad del eller verktyg")
+            if self.vantar_grepp():
+                self.skal.append("ingen spårad del eller verktyg")
             return rader, h
 
         d = self._serie("parts", delnamn)
@@ -489,10 +490,17 @@ class Analys(object):
         else:
             rader.append("UNDERGROUND OK" + ("" if zmin is None else " zmin=%.3fm" % zmin))
 
-        if motion_h.get("grip") is None and not motion_h.get("for_fa_prov"):
+        if (self.vantar_grepp() and motion_h.get("grip") is None
+                and not motion_h.get("for_fa_prov")):
             rader.append("NEVER_GRIPPED VIOLATION")
             overtradelse = True
         else:
+            # Utan ett deklarerat verktyg pastod korningen aldrig att den skulle
+            # gripa, och da ar ett uteblivet grepp ingen overtradelse. Att anda
+            # kalla det ett brott hade gjort varje stationskorning rod av fel
+            # skal - men slappt tvartom hade greppgrinden kunnat forsvinna genom
+            # att man utelamnade en rad ur planen. Darfor kraever _dom i stallet
+            # en deklarerad SEKVENS av den som inte griper.
             rader.append("NEVER_GRIPPED OK")
 
         h["overtradelse"] = overtradelse
@@ -654,6 +662,58 @@ class Analys(object):
                         % (station, etikett, matt, float(tak)))
         return h
 
+    # -- stationens sekvens -------------------------------------------------
+
+    def _roller(self):
+        """(har_del, har_verktyg). Vad planen har DEKLARERAT, inte vad som hande."""
+        return (bool(self.tracked.get("parts")), bool(self.tracked.get("tools")))
+
+    def vantar_grepp(self):
+        """Ska korningen alls gripa nagot?
+
+        Greppgrinden ar skriven for en plockcell: en DEL och ett VERKTYG. En
+        station som styrs av structured text har ingen av delarna - dess arbete
+        ar en ORDNING i tiden. Att kraeva ett grepp av den vore att mata fel
+        storhet, och att slappa kravet for en plockcell vore att sluta mata.
+        Fragan avgors darfor av vad planen deklarerat, en gang, har.
+        """
+        del_, verktyg = self._roller()
+        return del_ and verktyg
+
+    def stationssekvens(self, th):
+        """Den deklarerade stegordningen och forreglingen, matta.
+
+        Ingen deklaration ger ingen dom - och det ar INTE ett godkannande.
+        `_dom` skiljer "ingen fraga stalld" fran "fragan stalld och besvarad".
+        """
+        h = {"sekvens": None, "forregling": None}
+        spec = self.plan.get("sekvens")
+        flanker = th.get("flanker") or []
+        t_slut = float(self.run.get("dur_s", 0.0)) or (
+            max([float(r.get("t", 0.0)) for r in self.rader]) if self.rader else 0.0)
+        if spec:
+            d = H.sekvensdom(flanker, spec, t_slut)
+            h["sekvens"] = d
+            for fel in d["brott"]:
+                self.skal.append(fel)
+            if d["obestambar"] and not d["brott"]:
+                self.skal.append("sekvensen gick inte att doma: %s" % d["obestambar"])
+        par = self.plan.get("forregling")
+        if par:
+            # Taket ar seriens eget provintervall. En overlapp kortare an sa
+            # gar inte att skilja fran tva flanker i samma prov.
+            rate = float(self.run.get("rate_hz", 0.0))
+            tak = (1.0 / rate) if rate > 0 else 0.0
+            d = H.forreglingsbrott(self.rader, par, tak)
+            h["forregling"] = d
+            for post in d:
+                if post.get("brott"):
+                    self.skal.append(
+                        "%s och %s var hoga samtidigt i %.2f s (fran t=%.2f s)"
+                        % (post["a"], post["b"], post["overlapp_s"],
+                           post["t_forst"]))
+        return h
+
     # -- scenforstaelse i ord ----------------------------------------------
 
     def berattelse(self):
@@ -693,9 +753,11 @@ class Analys(object):
         scen = self.scenanalys(th)
         robotar = self.robotanalys()
         stationer = self.stationsanalys()
+        sekvens = self.stationssekvens(th)
         self.harledt = {"motion": mh, "timing": th, "throughput": gh,
                         "safety": sh, "honesty": hh, "scene": scen,
-                        "robotar": robotar, "stationer": stationer}
+                        "robotar": robotar, "stationer": stationer,
+                        "station": sekvens}
         self.harledt["berattelse"] = self.berattelse()
 
         for namn, rader in (("MOTION", motion), ("TIMING", tid),
@@ -704,16 +766,19 @@ class Analys(object):
             for rad in rader:
                 r.rad(rad)
 
-        varde, orsak = self._dom(mh, th, sh, hh, scen, robotar, stationer)
+        varde, orsak = self._dom(mh, th, sh, hh, scen, robotar, stationer,
+                                 sekvens)
         r.satt_dom(varde, orsak)
         return r
 
-    def _dom(self, mh, th, sh, hh, scen=None, robotar=None, stationer=None):
+    def _dom(self, mh, th, sh, hh, scen=None, robotar=None, stationer=None,
+             sekvens=None):
         # Ordningen ar en rangordning: en overtradelse slar allt annat, och en
         # osakerhet far ALDRIG bli ett PASS.
         scen = scen or {}
         robotar = robotar or {}
         stationer = stationer or {}
+        sekvens = sekvens or {}
         if hh.get("overtradelse"):
             return "FAIL", self._orsak("hederlighetsgrind fälld")
         if mh.get("for_fa_prov"):
@@ -728,7 +793,7 @@ class Analys(object):
             # som fysiken, och hela poangen med PLC i serien var att de gor
             # det. Da ar fasforhallandet inget matt.
             return "INCONCLUSIVE", self._orsak("PLC-värdena var inte samtidiga")
-        if mh.get("grip") is None:
+        if self.vantar_grepp() and mh.get("grip") is None:
             return "FAIL", self._orsak("greppet bildades aldrig")
         if sh.get("kollision"):
             return "FAIL", self._orsak("kollision")
@@ -743,16 +808,40 @@ class Analys(object):
             return "FAIL", self._orsak(brott)
         if stationer.get("_brott"):
             return "FAIL", self._orsak("genomströmningskravet hölls inte")
-        carry = mh.get("carry") or {}
-        if carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S:
-            return "INCONCLUSIVE", self._orsak("bärsträckan för kort")
-        if carry.get("rot_deg", 0.0) > CARRY_RIGID_DEG:
-            return "FAIL", self._orsak("delen gled i greppet")
-        plac = mh.get("placering")
-        if plac is None:
-            return "INCONCLUSIVE", self._orsak("placeringen kunde inte dömas")
-        if plac["fel_mm"] > plac["tol_mm"]:
-            return "FAIL", self._orsak("delen hamnade fel")
+        # Stationens egna grindar. Forreglingen forst: den ar den enda av de
+        # tva som ar farlig, och den ar sann aven i en korning dar sekvensen
+        # for ovrigt holl.
+        for post in (sekvens.get("forregling") or []):
+            if post.get("brott"):
+                return "FAIL", self._orsak("förreglingen bröts")
+        seq = sekvens.get("sekvens")
+        if seq is not None:
+            if seq.get("brott"):
+                return "FAIL", self._orsak("stationens sekvens hölls inte")
+            if seq.get("obestambar"):
+                return "INCONCLUSIVE", self._orsak(
+                    "sekvensen gick inte att döma: %s" % seq["obestambar"])
+        elif not self.vantar_grepp():
+            # Varken greppande roller eller en deklarerad sekvens. Da har
+            # ingen fraga stallts, och ett PASS hade varit ett godkannande av
+            # ingenting (I3).
+            return "INCONCLUSIVE", self._orsak(
+                "planen deklarerar varken en del och ett verktyg att gripa med "
+                "eller en sekvens att följa; det finns ingenting att döma")
+        if self.vantar_grepp():
+            # Bar- och placeringsgrindarna mater greppet. En station som inte
+            # griper har ingen barstracka och inget mal, och att kraeva dem av
+            # den vore att falla pa en fraga ingen stallt.
+            carry = mh.get("carry") or {}
+            if carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S:
+                return "INCONCLUSIVE", self._orsak("bärsträckan för kort")
+            if carry.get("rot_deg", 0.0) > CARRY_RIGID_DEG:
+                return "FAIL", self._orsak("delen gled i greppet")
+            plac = mh.get("placering")
+            if plac is None:
+                return "INCONCLUSIVE", self._orsak("placeringen kunde inte dömas")
+            if plac["fel_mm"] > plac["tol_mm"]:
+                return "FAIL", self._orsak("delen hamnade fel")
         for d in th.get("dwell", []):
             if d["lage"] == "SHORT":
                 return "FAIL", self._orsak("uppehållet för kort")

@@ -921,6 +921,176 @@ def fasforhallande(flanker, par):
     return ut
 
 
+# ---- stationens sekvens --------------------------------------------------
+#
+# En station som styrs av structured text gor sitt arbete som en ORDNING av
+# flanker i tiden, inte som ett grepp. Rakningarna nedan mater den ordningen;
+# policyn - vilket brott som faller en korning - bor i oga_analys.py.
+#
+# Storheterna ar tva, och de blandas aldrig ihop:
+#   sekvensdom()      hande de deklarerade stegen, i ratt ordning, i tid?
+#   forreglingsbrott() var tva utgangar hoga SAMTIDIGT?
+# En sekvens kan halla medan forreglingen brister, och tvartom.
+
+
+def _flank_vid(flanker, signal, flank, fran, till):
+    """Forsta flanken av ratt sort i [fran, till]. None nar den uteblev."""
+    basta = None
+    for f in flanker:
+        if f["signal"] != signal or f["flank"] != flank:
+            continue
+        t = float(f["t"])
+        if t < fran - 1e-9 or t > till + 1e-9:
+            continue
+        if basta is None or t < basta:
+            basta = t
+    return basta
+
+
+def sekvensdom(flanker, spec, t_slut):
+    """Domer en deklarerad stegordning mot de MATTA flankerna.
+
+    `spec` ar planens `sekvens`:
+
+        {"start": {"signal": "plc:givare", "flank": "RISE"},
+         "steg": [{"signal": "plc:stopp", "flank": "RISE",
+                   "min_s": 0.0, "max_s": 0.5}, ...],
+         "min_cykler": 2}
+
+    Varje steg raknas fran CYKELNS start, inte fran foregaende steg. Skalet ar
+    att ett fel i ett tidigt steg annars skulle flytta hela facit med sig och
+    dolja sig sjalvt: mater man varje steg mot sin foregangare kan en for sen
+    stoppflank se ratt ut sa lange slappet ar lika sent.
+
+    En cykel doms bara om HELA dess fonster ryms i serien (`t_slut`). En
+    avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+    aldrig se likadana ut.
+
+    Returnerar {"cykler": [...], "domda": n, "brott": [...], "obestambar": ...}
+    """
+    ut = {"cykler": [], "domda": 0, "brott": [], "obestambar": None,
+          "avhuggna": 0}
+    if not spec:
+        ut["obestambar"] = "ingen sekvens deklarerad"
+        return ut
+    start = spec.get("start") or {}
+    steg = list(spec.get("steg") or [])
+    if not start.get("signal") or not steg:
+        ut["obestambar"] = "sekvensen saknar start eller steg"
+        return ut
+    fonster = max(float(s.get("max_s", 0.0)) for s in steg)
+    starter = sorted(float(f["t"]) for f in flanker
+                     if f["signal"] == start["signal"]
+                     and f["flank"] == start.get("flank", "RISE"))
+    if not starter:
+        ut["obestambar"] = ("ingen %s-flank pa %s: ingen cykel borjade ens"
+                            % (start.get("flank", "RISE"), start["signal"]))
+        return ut
+    for i, t0 in enumerate(starter):
+        # Cykeln slutar dar nasta borjar. En flank som hor till nasta produkt
+        # far inte laga den har cykelns hal.
+        nasta = starter[i + 1] if i + 1 < len(starter) else None
+        slut = t0 + fonster if nasta is None else min(t0 + fonster, nasta)
+        rad = {"nr": i, "t0": round(t0, 4), "steg": []}
+        if t0 + fonster > float(t_slut) + 1e-9:
+            rad["avhuggen"] = True
+            ut["avhuggna"] += 1
+            ut["cykler"].append(rad)
+            continue
+        golv = t0
+        felet = None
+        for s in steg:
+            fran = max(golv, t0 + float(s.get("min_s", 0.0)))
+            till = min(slut, t0 + float(s.get("max_s", 0.0)))
+            t = None if till < fran - 1e-9 else _flank_vid(
+                flanker, s["signal"], s["flank"], fran, till)
+            post = {"signal": s["signal"], "flank": s["flank"],
+                    "min_s": float(s.get("min_s", 0.0)),
+                    "max_s": float(s.get("max_s", 0.0)),
+                    "t": None if t is None else round(t, 4),
+                    "dt_s": None if t is None else round(t - t0, 4)}
+            rad["steg"].append(post)
+            if t is None:
+                felet = ("cykel %d: %s %s uteblev i fonstret %.2f-%.2f s efter "
+                         "starten" % (i, s["signal"], s["flank"],
+                                      float(s.get("min_s", 0.0)),
+                                      float(s.get("max_s", 0.0))))
+                break
+            golv = t
+        rad["ok"] = felet is None
+        if felet:
+            rad["fel"] = felet
+            ut["brott"].append(felet)
+        ut["domda"] += 1
+        ut["cykler"].append(rad)
+    krav = int(spec.get("min_cykler", 1))
+    if ut["domda"] < krav:
+        ut["obestambar"] = ("bara %d hel cykel gick att doma, kravet ar %d"
+                            % (ut["domda"], krav))
+    return ut
+
+
+def _varden_over_tid(rader, signal):
+    """[(t, bool)] for en signal, ur plc: eller ur sig. Hoppar over hal."""
+    ut = []
+    for r in rader:
+        if signal.startswith(PLC_PREFIX):
+            d = r.get("plc") or {}
+            nyckel = signal[len(PLC_PREFIX):]
+        else:
+            d = r.get("sig") or {}
+            nyckel = signal
+        if nyckel not in d or d[nyckel] is None:
+            continue
+        ut.append((float(r.get("t", 0.0)), bool(d[nyckel])))
+    return ut
+
+
+def forreglingsbrott(rader, par, tak_s):
+    """Hur lange tva signaler var hoga SAMTIDIGT, per deklarerat par.
+
+    `tak_s` ar seriens EGET provintervall och skickas in av anroparen - en
+    fast konstant hade beskrivit en annan takt an den som mattes.
+
+    Regeln: ett overlapp raknas som VERKLIGT nar det syns i minst tva prov i
+    rad, alltsa nar den matta varaktigheten nar ett helt provintervall. ETT
+    prov med bada hoga kan vara tva flanker som foll i samma prov, och det ar
+    ett provtagningsutslag, inte ett brott. Tva prov i rad kan det inte vara.
+
+    Overlappet summeras over prov, inte over flanker: en flankbaserad rakning
+    hade missat ett overlapp som redan pagick fore forsta provet.
+    """
+    ut = []
+    for a, b in (par or []):
+        sa = dict(_varden_over_tid(rader, a))
+        sb = dict(_varden_over_tid(rader, b))
+        gemensamma = sorted(t for t in sa if t in sb)
+        post = {"a": a, "b": b, "overlapp_s": 0.0, "prov": 0, "t_forst": None,
+                "tak_s": round(float(tak_s), 4)}
+        if not gemensamma:
+            post["obestambar"] = "ingen tidpunkt bar bada signalerna"
+            ut.append(post)
+            continue
+        forra = None
+        for t in gemensamma:
+            bada = sa[t] and sb[t]
+            if bada:
+                post["prov"] += 1
+                if post["t_forst"] is None:
+                    post["t_forst"] = round(t, 4)
+                # Bara mellanrummet mellan TVA prov som bada bar overlappet
+                # rakas. Mellanrummet fore det forsta hor till tiden innan, och
+                # att rakna det hade gjort ett enda prov till ett helt
+                # provintervall - alltsa till ett brott.
+                if forra is not None:
+                    post["overlapp_s"] += t - forra
+            forra = t if bada else None
+        post["overlapp_s"] = round(post["overlapp_s"], 4)
+        post["brott"] = post["overlapp_s"] >= float(tak_s) - 1e-9
+        ut.append(post)
+    return ut
+
+
 # ---- utslungad detalj ----------------------------------------------------
 
 def utslungad(serie):
