@@ -207,8 +207,14 @@ T5 = HEL.replace("""        2:
             stopp := FALSE;
             slapp := TRUE;""", """        2:
             (* stopp := FALSE; *)
-            slapp := TRUE;""")
+            slapp := TRUE;""").replace("""        3:
+            slapp := FALSE;""", """        3:
+            stopp := FALSE;
+            slapp := FALSE;""")
 assert T5 != HEL
+# Bromsen slapper fortfarande - en rad SENARE. Enda skillnaden mot HEL ar
+# alltsa att stoppet och utmatningen overlappar under utmatningspulsen.
+assert "(* stopp := FALSE; *)" in T5
 
 # T6: driftvaljaren aterstaller sekvensen till vila. Ratt forsta varvet.
 T6 = HEL.replace("""    IF NOT kor OR nodstopp THEN
@@ -239,31 +245,96 @@ FALL = [
 # Facit for stationen, deklarerat FORE losningarna. Talen ar stationens krav,
 # inte matta trosklar - och de star har, pa ett stalle, sa alla sex fallen
 # doms av exakt samma facit.
-def ogonplan():
+#
+# TVA KLOCKOR, och de gar inte lika. PLC:ns timers rakar i VAGGKLOCKA; ogats
+# serie ar stamplad i SIMULERINGSTID. Med bryggan obelastad ar kvoten 1,000
+# (M-08), men medan slingan gar stjal den pumpens tickbudget och kvoten faller.
+# MATT i M-49: samma 2-sekunderstimer syntes som 0,65 s till 2,60 s pa ogats
+# axel i samma korning. Fonstren nedan ar darfor breda med FLIT, och bredden
+# ar inte en asikt om stationen utan om kopplingen mellan klockorna.
+#
+# Snavheten som gar forlorad har finns kvar dar den gar att mata: cellen
+# `station_forsent` i tests/celler.py har ett snavt fonster och FALLS av det.
+# Braketten kommer ur MATNINGSKORNINGAR, inte ur de korningar den ska doma.
+# Tre separata korningar gav samma T#2s-timer som 0,30 s till 4,55 s pa ogats
+# axel, alltsa kvoter 0,15 till 2,28. Braketten ar de talen med marginal.
+KLOCKA_LAG = 0.15           # Satt av M-49 (langsammaste uppmatta kvot 0,15).
+KLOCKA_HOG = 2.5            # Satt av M-49 (snabbaste uppmatta kvot 2,28).
+# Vad transporten scen -> PLC -> scen kostar. Genomslaget tar ett till tva
+# kopplarvarv (M-39), och varvet ar en vaggklockstid som ocksa maste braketteras.
+TRANSPORTVARV = 3           # Satt av M-49 (genomslag 1-2 varv, ett till marginal).
+# Hur langt produkten har kvar till fotocellens bortre kant efter utmatningen,
+# raknat i banans fart. Den delen gar i SIMULERINGSTID och skalas inte.
+UTKORNING_S = (GIVARE_HALVBREDD_MM * 2.0 - (
+    float(UTMATNINGSTID.rstrip("ms").lstrip("T#")) / 1000.0
+    * UTMATNINGSFART_MM_S)) / BANDFART_MM_S
+
+
+def _fonster(nominell_s, extra_lag=0.0, extra_hog=0.0):
+    """PLC-sekunder -> ett fonster pa ogats axel, med klockbraketten."""
+    return (max(0.0, nominell_s * KLOCKA_LAG + extra_lag),
+            nominell_s * KLOCKA_HOG + extra_hog)
+
+
+def _transport(varvtid_s):
+    """Transporttiden scen -> PLC -> scen, pa ogats axel."""
+    return TRANSPORTVARV * max(varvtid_s, 0.1) * KLOCKA_HOG
+def ogonplan(rate_hz=20.0, varvtid_s=0.3):
     return {
         "template": "fas7_station",
-        "rate_hz": 20.0,
+        "rate_hz": float(rate_hz),
         "floor_z": 0.0,
         "scene": "all",
         # Bromsklacken ar det enda objekt PLC:n kommenderar. Utan `movers` kan
         # ogat inte fraga om ett kommenderat objekt verkligen rorde sig.
-        "movers": {"plc:stopp": "ST7_Broms"},
+        "movers": {"ST7_Don/Stopp": "ST7_Broms"},
+        # Fasforhallandet mellan PLC-taggen och scenens signal ar kopplarens
+        # egen transporttid, matt pa ogats axel.
         "plc_par": [("stopp", "ST7_Don/Stopp")],
+        # Cykeln borjar pa SCENENS fotocell, inte pa en PLC-tagg. Skalet ar
+        # mätt: kopplaren skjuter in PLC:ns UTGANGAR i ogats serie, inte dess
+        # ingangar, sa `plc:givare` finns aldrig dar - och en start som aldrig
+        # intraffar ger "ingen cykel borjade ens" oavsett vad stationen gjorde.
+        # Scenens signal ar dessutom den fysiska handelsen, last av ogat sjalvt
+        # utan kopplaren emellan.
+        # Sekvensen doms pa SCENENS signaler, inte pa PLC-taggarna. Bada bar
+        # samma handelse - kopplaren skriver PLC:ns utgang rakt in i scenen -
+        # men scenens signal laeses av ogat sjalvt, i ogats egen takt, utan en
+        # transporttid mellan matning och stampel. Det ar den av de tva som ar
+        # ett matt pa NAR stationens stalldon fick sin order.
         "sekvens": {
-            "start": {"signal": "plc:givare", "flank": "RISE"},
+            "start": {"signal": "ST7_Givare/Puls", "flank": "RISE"},
             "steg": [
-                {"signal": "plc:stopp", "flank": "RISE",
-                 "min_s": 0.0, "max_s": 1.0},
-                {"signal": "plc:stopp", "flank": "FALL",
-                 "min_s": 1.5, "max_s": 6.0},
-                {"signal": "plc:slapp", "flank": "RISE",
-                 "min_s": 1.5, "max_s": 6.5},
-                {"signal": "plc:slapp", "flank": "FALL",
-                 "min_s": 2.0, "max_s": 7.5},
+                # bromsen ut: bara transporten, ingen timer
+                {"signal": "ST7_Don/Stopp", "flank": "RISE",
+                 "min_s": 0.0, "max_s": _transport(varvtid_s)},
+                # bromsen slapper efter processtiden (+ ev. driftpaus)
+                {"signal": "ST7_Don/Stopp", "flank": "FALL",
+                 "min_s": _fonster(2.0)[0],
+                 "max_s": _fonster(2.0 + PAUS_LANGD_S,
+                                   extra_hog=_transport(varvtid_s))[1]},
+                {"signal": "ST7_Don/Slapp", "flank": "RISE",
+                 "min_s": _fonster(2.0)[0],
+                 "max_s": _fonster(2.0 + PAUS_LANGD_S,
+                                   extra_hog=_transport(varvtid_s))[1]},
+                {"signal": "ST7_Don/Slapp", "flank": "FALL",
+                 "min_s": _fonster(2.5)[0],
+                 "max_s": _fonster(2.5 + PAUS_LANGD_S,
+                                   extra_hog=_transport(varvtid_s))[1]},
+                # Produkten MASTE lamna stationen. Utan den har raden ar en
+                # station som stoppar allt for evigt bara "obestambar" - den
+                # gor ju en riktig cykel forst - och det ar for snallt.
+                # Utkorningen gar i banans fart, alltsa i SIMULERINGSTID, och
+                # skalas darfor inte med klockbraketten.
+                {"signal": "ST7_Givare/Puls", "flank": "FALL",
+                 "min_s": _fonster(2.5)[0] + UTKORNING_S,
+                 "max_s": _fonster(2.5 + PAUS_LANGD_S,
+                                   extra_hog=_transport(varvtid_s))[1]
+                          + UTKORNING_S},
             ],
             "min_cykler": 3,
         },
-        "forregling": [["plc:stopp", "plc:slapp"]],
+        "forregling": [["ST7_Don/Stopp", "ST7_Don/Slapp"]],
         "parts": ["ST7_Broms"],
         "tools": [],
         "signals": ["ST7_Givare/Puls", "ST7_Don/Stopp", "ST7_Don/Slapp"],
@@ -472,6 +543,15 @@ class Stationskopplare(Kopplare):
         Kopplare.__init__(self, *a, **kw)
         self.kor_signal = True
         self.anlaggning = []      # anlaggningens svar, ett per varv
+        # En SKYDDAD ingang gar inte att driva harifran, och det ar ratt.
+        # MATT: opcuakonfig.variabel ger en skyddad tagg lasrattigheter bara,
+        # och en WriteRequest mot den svarar BadInternalError - kopplaren foll
+        # efter tre raka fel (M-39:s sparr, som gjorde precis sitt jobb).
+        # Sakerhetskedjan hor inte till den genererade logiken (I15): den bor
+        # pa en certifierad sakerhets-PLC som logiken far ligga bredvid. Att
+        # lata kopplaren driva den hade varit att bygga just det systemet.
+        self.skyddade = [s for s in self.till_plc if s.skyddad]
+        self.till_plc = [s for s in self.till_plc if not s.skyddad]
 
     def skriv_scenen(self, varden):
         rader = []
@@ -580,7 +660,14 @@ class UaKanal:
         self.klient = None
         self._noder = {}
 
-    def anslut(self, tak_s=60.0):
+    def anslut(self, kravda_taggar=(), tak_s=60.0):
+        """Anslut och KRAV att adressrummet ar stationens.
+
+        `las` svarar None for en tagg den inte hittar, och kopplaren skriver da
+        inget - tyst. En korning mot forra programmets adressrum sag darfor ut
+        som en station som aldrig gjorde nagot. Namnen kontrolleras nu vid
+        anslutningen i stallet, dar felet gar att peka pa.
+        """
         from asyncua.sync import Client as SyncClient
         slut = time.time() + tak_s
         sista = None
@@ -598,6 +685,16 @@ class UaKanal:
         for barn in self.klient.nodes.objects.get_children():
             namn = barn.read_browse_name().Name
             self._noder[namn] = barn
+        saknade = [t for t in kravda_taggar if t not in self._noder]
+        if saknade:
+            # Stang FORST. asyncua:s synkrona klient haller en trad som inte
+            # ar daemon: kastar man med en oppen klient tar processen aldrig
+            # slut, och korningen ser ut att hanga i stallet for att falla.
+            self.stang()
+            raise RuntimeError(
+                "OPC UA-servern saknar %s. Adressrummet ar inte stationens: "
+                "den kanner %s" % (", ".join(saknade),
+                                   ", ".join(sorted(self._noder))))
         return self
 
     def stang(self):
@@ -634,9 +731,36 @@ def granska(namn, kropp, sk, k, byggrot, strucpp, index):
     return dom, kand
 
 
+def starta_om_runtimen(kommando, bas, anvandare, losenord, tak_s=180.0):
+    """Starta om HELA runtimeprocessen och vanta tills den svarar igen.
+
+    MATT: OPC UA-pluginet laser sin conf nar RUNTIMEPROCESSEN startar, inte
+    nar PLC:n startar. En uppladdning som bygger ratt program och kopierar
+    ratt conf/opcua.json ger anda det FORRA adressrummet - `matin`/`matut`
+    lag kvar over bade en programbyte och en stop/start av PLC:n. Bara en
+    omstart av processen bytte dem mot stationens egna noder.
+    """
+    if subprocess.call(kommando, shell=True) != 0:
+        raise RuntimeError("kunde inte starta om runtimen: %r" % kommando)
+    klient = OpenPlcV4(bas, anvandare, losenord, tillat_osignerat=True)
+    slut = time.time() + tak_s
+    while time.time() < slut:
+        try:
+            if klient.svarar():
+                break
+        except Exception:
+            pass
+        time.sleep(3.0)
+    else:
+        raise RuntimeError("runtimen kom aldrig tillbaka efter omstarten")
+    if klient.status() != "RUNNING":
+        klient.starta_och_vanta(60.0)
+    return klient.status()
+
+
 def driftsatt(kand, k, byggrot, namn, strucpp, runtime_include, bas,
-              anvandare, losenord, endpoint_server):
-    """Kompilera, bygg arkivet, ladda upp och starta. Returnerar tillstandet."""
+              anvandare, losenord, endpoint_server, omstartskommando):
+    """Kompilera, bygg arkivet, ladda upp, starta - och starta om runtimen."""
     kalla = kand.st_kalla + paket.konfigurationstext(STATION)
     ut = os.path.join(byggrot, namn, "drift")
     forbygge = paket.kompilera(kalla, os.path.join(ut, "forbygge"), strucpp)
@@ -646,21 +770,51 @@ def driftsatt(kand, k, byggrot, namn, strucpp, runtime_include, bas,
                                         opcua_konfig=konfig)
     klient = OpenPlcV4(bas, anvandare, losenord, tillat_osignerat=True)
     klient.skapa_forsta_anvandare()
-    return klient.ladda_och_starta(zipvag)
+    # STOPPA forst. MATT: `start-plc` mot en runtime som redan kor svarar
+    # START:OK och status stannar pa RUNNING - med det GAMLA programmet och det
+    # GAMLA adressrummet. Uppladdningen lyckas, bygget lyckas, konfigurationen
+    # kopieras, och slingan kor vidare mot forra korningens noder. Det ar samma
+    # felklass som M-20:s "START:OK betyder inte att PLC:n kor", men at andra
+    # hallet: RUNNING betyder inte att det ar DITT program som kor.
+    klient.stoppa()
+    klient.ladda_och_starta(zipvag)
+    # ... och sedan hela processen, annars star forra korningens adressrum kvar.
+    return starta_om_runtimen(omstartskommando, bas, anvandare, losenord)
 
 
-def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel):
+# Hur tatt PLC:ns utgangar laeses in i ogats serie MELLAN kopplarvarven.
+# Ogat raknar ett varde aldre an PLC_FARSK_S = 0,25 s (pa SIN axel) som icke
+# samtidigt med provet och domer INCONCLUSIVE (M-42). Vardets alder ar i
+# praktiken tiden sedan forra inskottet, sa inskotten maste ligga tatare an sa
+# med marginal for att simuleringstiden gar ojamnt under lasten. En OPC
+# UA-lasning kostar 0,4 ms (M-20), sa tatheten ar nastan gratis - det dyra ar
+# scenskrivningen, och den ligger kvar i kopplarvarvet.
+PLC_TATHET_S = 0.05         # Satt av M-49.
+
+
+def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel,
+                varvtid_s=0.0, plc_tathet_s=PLC_TATHET_S):
     """Sluter slingan tills tiden gatt. Returnerar en logg over varven."""
     logg = {"varv": 0, "paus": None, "konflikter": 0, "fel": []}
+    taggar = [x.tagg for x in kopplare.fran_plc]
     t_start = time.time()
     stoppflanker = 0
     forra_stopp = False
     paus_till = None
+    varvtider = []
     while time.time() - t_start < sekunder:
-        v = kopplare.kor_varv()
+        t_varv = time.time()
+        try:
+            v = kopplare.kor_varv()
+        except Exception as e:
+            # Kopplaren gav upp. Ogat far veta det ROP RAKT UT, sa serien far
+            # ett hal med skal i stallet for gamla tal (M-42).
+            ogonkoppling.bryt("kopplaren gav upp: %s" % str(e)[:120])
+            raise
         logg["varv"] += 1
         if v.fel:
             logg["fel"].append(v.fel)
+            ogonkoppling.bryt("kopplarvarv %d foll: %s" % (v.nr, v.fel))
         a = kopplare.anlaggning[-1] if kopplare.anlaggning else {}
         if a.get("konflikt"):
             logg["konflikter"] += 1
@@ -680,6 +834,35 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel):
                 kopplare.kor_signal = True
                 logg["paus"]["slut_s"] = round(time.time() - t_start, 3)
                 paus_till = None
+        varvtider.append((time.time() - t_varv) * 1000.0)
+        # Resten av varvet gar till rena PLC-avlasningar. Varvtiden hallas nere
+        # med FLIT: ett kopplarvarv sa fort det gar tar hela pumpens tickbudget,
+        # simuleringstiden faller efter och tas igen i skov. Men glesa varv gor
+        # PLC-vardena gamla pa ogats axel, och da domer ogat INCONCLUSIVE. De
+        # tva kraven drar at var sitt hall, sa de skiljs at: scenskrivningen
+        # glest, PLC-avlasningen tatt.
+        forsta = True
+        while forsta or time.time() - t_varv < varvtid_s:
+            forsta = False
+            t_las = time.time()
+            try:
+                varden = kopplare.ua.las(taggar)
+            except Exception as e:
+                ogonkoppling.bryt("PLC-avlasningen foll: %s"
+                                  % str(e)[:100])
+                logg["lasfel"] = logg.get("lasfel", 0) + 1
+                break
+            ogonkoppling.skjut_in(varden, t_las)
+            logg["plc_prov"] = logg.get("plc_prov", 0) + 1
+            sov = plc_tathet_s - (time.time() - t_las)
+            if sov > 0:
+                time.sleep(sov)
+    varvtider.sort()
+    if varvtider:
+        logg["varv_ms"] = {
+            "median": round(varvtider[len(varvtider) // 2], 1),
+            "p95": round(varvtider[int(0.95 * (len(varvtider) - 1))], 1),
+            "max": round(varvtider[-1], 1)}
     return logg
 
 
@@ -700,18 +883,25 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
 
     rad["plc_tillstand"] = driftsatt(kand, k, a.byggrot, namn, a.strucpp,
                                      a.runtime_include, a.bas, a.anvandare,
-                                     a.losenord, a.endpoint_server)
-    ua = UaKanal(a.endpoint).anslut()
+                                     a.losenord, a.endpoint_server,
+                                     a.runtime_omstart)
+    ua = UaKanal(a.endpoint).anslut([s.tagg for s in k.signaler])
     try:
         simtid = brygga.simtid()
-        plan = ogonplan()
+        plan = ogonplan(a.ogonrate, a.varvtid)
         start = brygga.oga_start(plan, simtid)
         rad["oga_start"] = start
         ogon = Ogonkoppling(brygga)
         ogon.synka()
-        kopplare = Stationskopplare(k, ua, brygga, oga=ogon)
+        # Kopplaren skjuter INTE sjalv in i ogat. MATT (M-49): dess inskott
+        # sker efter scenskrivningen, och en scenskrivning som fastnat i
+        # pumpen i sju sekunder gav ett PLC-varde som var sju sekunder gammalt
+        # nar det landade. Slingan laser och skjuter in i stallet, direkt efter
+        # varandra, och sager sjalv ifran nar kopplaren ger upp.
+        kopplare = Stationskopplare(k, ua, brygga, oga=None)
         rad["slinga"] = kor_slingan(brygga, kopplare, ogon, a.sekunder,
-                                    PAUS_EFTER_CYKEL)
+                                    PAUS_EFTER_CYKEL, a.varvtid,
+                                    a.plc_tathet)
         rad["kopplaren"] = kopplare.sammanfattning()
         rad["anlaggning"] = {
             "prov": len(kopplare.anlaggning),
@@ -729,7 +919,7 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
             "for_stor_for_svaret")
         rad["cell"] = dom.till_cell(namn, "station")
         return rad
-    text, rapport, analys = A.doma(data, ogonplan())
+    text, rapport, analys = A.doma(data, ogonplan(a.ogonrate, a.varvtid))
     rad["ogat"] = text
     rad["ogats_dom"] = list(rapport.dom)
     rad["harledt"] = {"station": analys.harledt.get("station"),
@@ -782,10 +972,20 @@ def main(argv=None):
     p.add_argument("--losenord", default="vcassist")
     p.add_argument("--endpoint", default="opc.tcp://127.0.0.1:14840/",
                    help="adressen KLIENTEN ansluter till")
+    p.add_argument("--runtime-omstart",
+                   default="docker restart vcassist-openplc-v4",
+                   help="kommandot som startar om HELA runtimeprocessen; "
+                        "OPC UA-adressrummet byts inte utan den")
     p.add_argument("--endpoint-server",
                    default="opc.tcp://172.17.0.2:4840/openplc/opcua",
                    help="adressen servern binder till (containerns egen)")
     p.add_argument("--sekunder", type=float, default=60.0)
+    p.add_argument("--ogonrate", type=float, default=20.0,
+                   help="ogats provtakt i Hz; varje prov kostar ett sim.update()")
+    p.add_argument("--plc-tathet", type=float, default=PLC_TATHET_S,
+                   help="sekunder mellan rena PLC-avlasningar")
+    p.add_argument("--varvtid", type=float, default=0.0,
+                   help="kortaste varvtid i sekunder; halller nere pumptrycket")
     p.add_argument("--fall", default=None, help="komma-lista, t.ex. HEL,T3")
     p.add_argument("--starta-om", action="store_true")
     p.add_argument("--bara-scen", action="store_true",
