@@ -120,7 +120,7 @@ transporten.
 
 | Storhet | Värde | Härkomst |
 |---|---|---|
-| `SCEN_FULL_MAX` | **60 komponenter** | *PRELIMINÄR, sätts av M-29.* Valt så att **ingen** bankuppgift någonsin sammanfattas: bankens största scen är 9 komponenter (MÄTT över 47 uppgifter). En bänk som mäter sammanfattaren i stället för modellen mäter fel sak |
+| `SCEN_FULL_MAX` | **60 komponenter** | *PRELIMINÄR, sätts av M-29.* Valt så att **ingen** bankuppgift någonsin sammanfattas: bankens största scen är 9 komponenter (MÄTT över 51 uppgifter, M-45; störst är L-05). En bänk som mäter sammanfattaren i stället för modellen mäter fel sak |
 | `EGENSKAPER_FULL_MAX` | **40 egenskaper per komponent** | *PRELIMINÄR, M-29* |
 
 Under gränsen: **hela listan går fram**, ordagrant som verktyget lämnade den.
@@ -163,7 +163,7 @@ och kvalitetsförlusten kommer ur samma steg, och bara det ena syns.
 
 ### Grinden
 
-1. Över bankens 47 uppgifter: **noll** fall där ett namn som turen använde
+1. Över bankens 51 uppgifter: **noll** fall där ett namn som turen använde
    saknades i den sammanfattade scenvyn. En miss ändrar regel 1; den är inte en
    ratt att skruva på.
 2. Trasig fixtur: en scen med 200 komponenter där planen namnger 3. Provet

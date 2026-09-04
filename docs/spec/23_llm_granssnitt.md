@@ -225,7 +225,7 @@ exakt namnuppslag och nyckelordssökning räcker och går att prova.
 
 ### Grinden mot urvalet
 
-Över bankens **47 uppgifter** (MÄTT: `bank/uppgifter/*.json`) mäts
+Över bankens **51 uppgifter** (MÄTT: `bank/uppgifter/*.json`, M-45) mäts
 **urvalsträff**: andelen turer där varje verktyg turen faktiskt behövde fanns i
 urvalet.
 

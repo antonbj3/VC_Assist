@@ -80,6 +80,76 @@ vars facit ligger på ögat är artefakten en fullständig ögonrapport, och den
 läses av kontraktet i testet. Facit för en variant får därför ha exakta tal:
 det är avläsningen av en fixtur, inte en förutsägelse om en okörd körning.
 
+## Spårfacit
+
+Tillagt av **M-45**. Ögonfacit i `expect` dömer *scenen* efter en körning i VC.
+Spårfacit i `facit_spar` dömer *styrlogiken* mot insignalerna över tid, och går
+att döma i dag — utan VC, utan OpenPLC, utan nät. De ligger bredvid varandra;
+ögat fäller domen om scenen (invariant I1), spåret om logiken.
+
+Fältet är **frivilligt**. De 47 uppgifter som fanns före M-45 saknar det och går
+igenom lintern oförändrade.
+
+```
+python3 bank/domare.py --uppgift T-07               # referens + alla motbevis
+python3 bank/domare.py --uppgift S-05 --st min.st   # döm en egen lösning
+python3 -m pytest tests/enhet/test_domare.py -q
+```
+
+### Formen
+
+| Fält | Vad det är |
+|---|---|
+| `harkomst` | mätningen som satte facit; ett `M-`nummer som går att slå upp |
+| `standard` | den publicerade tillståndsmodell eller standard facit lutar sig mot |
+| `scan_ms` | scanperioden spåret körs med. 20 ms, mätt i M-20 |
+| `referens` | en lösning som uppfyller facit; beviset att facit går att nå |
+| `sekvenser` | (t_ms, insignaler → förväntade utsignaler) i tidsordning |
+| `invarianter` | "närhelst X gäller ska Y gälla", prövat i varje scan |
+| `flanker` | antalet flanker på en utgång inom ett fönster |
+| `motbevis` | lösningar som ser riktiga ut och som domaren MÅSTE fälla |
+
+Tre sorters påstående, alla mekaniska: **punktkrav**, **invariant**,
+**flankräkning**. Flankräkningen är den enda mekaniska domen över felklass
+`F15`, flank och latch.
+
+### Marginalregeln
+
+Ett punktkrav måste ligga minst **två scan** efter den senaste ändringen av en
+insignal i samma sekvens. Talet är mätt i M-20: PLC:ns egen svarstid är exakt
+två scan. Under den marginalen skiljer facit inte längre på "implementationen
+svarar ett scan senare" och "implementationen gör fel", och bänken mäter kodstil
+i stället för styrlogik. Lintern avvisar på `M33_SPARFACIT`.
+
+Av samma skäl anges varje tidsövervakning som ett **fönster** i uppgiftstexten,
+och facit prövar båda ändarna. En för kort tidsvakt stoppar linjen på normal
+drift och är lika mycket ett fel som en vakt som saknas.
+
+### Referens och motbevis
+
+Ett facit ingen kan uppfylla fäller alla och ser ut som en svår bänk. Ett facit
+som inget fäller mäter ingenting. Därför krävs båda:
+
+* `referens` uppfyller facit. Provas av `test_referenslosningen_uppfyller_sitt_eget_facit`.
+* varje post i `motbevis` bär `faller_pa`: exakt de brister domaren ska fälla
+  den på. Ett motbevis som fälls av fel skäl är ingen fixtur, det är en slump.
+
+Referensen får aldrig hamna i `prompt`; lintern och ett prov jämför texterna.
+**Modellen skriver aldrig sitt eget facit** — Koziolek m.fl. (arXiv 2405.01874)
+mätte 0–50 % korrekta assertions när en modell fick generera dem, sämst på
+timers.
+
+### Motorn
+
+`svc/vc_assist_svc/st/tolk.py` kör ST-programmet scan för scan över repots egen
+ST-läsare. Den är **inte** OpenPLC och **inte** STruC++, och den ersätter ingen
+grind. Att jämföra samma spår genom tolken och genom OpenPLC v4 över OPC UA är
+en egen mätning som M-45 lämnar öppen.
+
+`bank/domare.py` bygger ingen egen grindkedja: den tar emot en `Stationsdom` ur
+`svc/vc_assist_svc/plc/stationsgrind.py` och citerar den fällande grindens egna
+ord ordagrant, utan att köra spåret.
+
 ## Numreringen
 
 `task_id` följer `^(T|P|L|S|A|H|C)-\d{2}$` ur specen. Löpnummer från 90 och
@@ -195,6 +265,7 @@ egna tillägg:
 | `M30_SCENARIER` | gränsscenarierna är ofullständiga |
 | `M31_KARNUTGANGAR` | kärnutgångarna för spårjämförelse saknas eller är inte utgångar |
 | `M32_STEGE` | svårighetsgraden stämmer inte med steget |
+| `M33_SPARFACIT` | spårfacit går inte att döma mekaniskt |
 
 Varje kod har en trasig fixtur i `tests/enhet/test_bank.py` som fäller den, och
 ett prov som visar att en giltig uppgift släpps igenom. En linter som avvisar
@@ -214,6 +285,8 @@ Måttet ligger **bredvid** ögondomen, aldrig i stället för den. Ögat fäller
 
 ## Vad som är tunt
 
+* **47 av 51 uppgifter saknar spårfacit.** De fyra som har det (`T-07`, `H-04`,
+  `S-05`, `L-05`) är ett mönster att växa på, inte en färdig bank. M-45 §8.
 * Ingen uppgift är körd. `verified_status` är `unverified` överallt och
   `last_run` är `null`. Svårighetsgraderna är därför deklarerade, inte mätta.
 * Tre felklasser har exakt en uppgift var: `F12` ohederlig, `F13` verktygsfel
