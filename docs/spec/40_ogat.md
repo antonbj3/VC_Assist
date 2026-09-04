@@ -91,3 +91,20 @@ den enda kända svagheten i källans `scene_eyes` — fyra tal där saknar motiv
 Vi upprepar inte det.
 
 Alla trösklar i första versionen märks `PRELIMINÄR` tills en mätning satt dem.
+
+
+---
+
+## Enheten var fel i hela scenserien (M-65)
+
+**MÄTT 2026-09-05.** Scenen provtogs i **millimeter** medan rollerna låg i
+**meter** — en faktor 1000. Ett stillage som drev 0,5 mm rapporterades som
+19 500 mm "oombedd rörelse", och provet hade läst in felet som facit.
+
+Två av `42_ogat_utbyggt.md`:s löften såg alltså uppfyllda ut och var byggda på
+fel. Det är samma felklass som M-34, M-57, M-66 och M-69: **ett tal som såg
+rimligt ut, från ett instrument ingen provat mot ett känt svar.**
+
+Regeln som följer: VC:s världsenhet är millimeter (M-33), och varje storhet som
+lämnar ögat ska bära sin enhet i namnet eller i utskriften. En serie utan
+utskriven enhet är en serie vars fel inte går att se.

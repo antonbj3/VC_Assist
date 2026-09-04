@@ -102,3 +102,102 @@ fyra tal utan motivering; det är dess enda kända svaghet och vi upprepar den i
 
 `EYES v1` är detta dokument. Varje ändring av grammatiken höjer versionen och
 kräver att grinden uppdateras i samma commit. De två får aldrig gå isär.
+
+
+---
+
+# EYES v2 — gällande grammatik
+
+Höjd 2026-09-05 av `M-65`. Grammatiken i koden är höjd i **samma commit** som
+grinden och varje läsare (`oga_kontrakt.py`, `guldgrind.py`, `bank/schema.py`,
+`harness/fallor.py`, `verktyg/ogonverktyg.py`), enligt kontraktets egen
+versionsregel. Avsnitten ovan beskriver v1 och står kvar som historik.
+
+**v1 är en delmängd av v2.** Ingen rad har ändrat form. Läsaren förstår båda.
+Men grinden **kräver** `LIMITS`, så en v1-rapport är aldrig guld — det finns
+ingen väg runt kravet genom att tala v1.
+
+## Nya och ändrade sektioner
+
+```
+SECTION TIMING
+  PHASE <tagg> -> <signal> dt=<f>ms tol=<f>ms res=<<f>ms|unknown> <OK|OUT_OF_TOL|INCONCLUSIVE>
+SECTION SEQUENCE                            # skrivs bara när en sekvens deklarerats
+  CYCLES judged=<i> broken=<i> late=<i> truncated=<i> req=<i>
+  STEP <cykel> <signal> <RISE|FALL> <OK|MISSING|TOO_LATE|TOO_EARLY> [t=<f>s] win=<f>s..<f>s
+  COUNT <cykel> <signal> n=<i> max=<i> <OK|EXCEEDED>
+  INTERLOCK <a>+<b> <OK|BROKEN|INCONCLUSIVE> overlap=<f>s
+SECTION THROUGHPUT
+  STARVED <station> <f>s req=<f>s <OK|EXCEEDED>
+  BLOCKED <station> <f>s req=<f>s <OK|EXCEEDED>
+  BOTTLENECK <none|<station> <starved|blocked> <f>%>
+SECTION SCENE                               # skrivs bara när scenen har objekt
+  OBJECTS total=<i> moving=<i> still=<i> unread=<i>
+  THINNED factor=<i> <OK|CEILING> budget=<f>ms median=<f>ms
+  UNCOMMANDED <none|<objekt> dist=<f>mm t=<f>s>
+  IDLE_COMMANDED <none|<signal> -> <objekt> t=<f>s>
+  FLUNG <none|<objekt> <f>m/s t=<f>s>
+SECTION LIMITS                              # GRINDEN KRÄVER DEN
+  NOT_SIMULATED sensor_bounce
+  NOT_SIMULATED actuator_dynamics
+  NOT_SIMULATED fieldbus_jitter
+  NOT_SIMULATED degraded_modes
+  NOT_SIMULATED real_hardware
+  RESOLUTION sample=<f>ms read=<<f>ms|unknown> join=<f>ms <RUN|PRIOR> phase=<<f>ms|unknown>
+  EXCLUDED plc_scan <f>ms
+```
+
+`STEP` skrivs bara för steg som inte var OK. `UNCOMMANDED`, `IDLE_COMMANDED`
+och `FLUNG` skrivs bara när frågan ställts — **ett `none` för en fråga ingen
+ställt vore ett påstående**, inte en tystnad.
+
+## LIMITS är obligatorisk, och varför
+
+`50_grindar.md` säger att ögat är felfinnande, aldrig bevis: sensorstuds,
+ställdonsdynamik, fältbussjitter, degraderade lägen och verklig hårdvara finns
+inte i simuleringen. Fram till v2 stod det i specen och ingenstans i rapporten.
+
+En räckviddsredovisning som bara finns i ett dokument gäller inte den enskilda
+körningen. Nu bär varje rapport sina egna gränser, och `guldgrind.py` kräver
+sektionen med `OBLIGATORISKA_SEKTIONER = MOTION, HONESTY, LIMITS`. Det är samma
+resonemang som gav `HONESTY` dess krav: en regel är **tom** om sektionen inte
+finns.
+
+`RESOLUTION` bär `RUN` när upplösningen är mätt i körningen och `PRIOR` när den
+är ett antagande. Skillnaden får inte gömmas.
+
+## Regel 5, utökad
+
+Ett `PASS` får inte stå bredvid: `VIOLATION`, `NEVER_FORMED`, `SLIPPING`,
+`OFF_TARGET`, `DROPPED`, `SHORT`, `MISSING`, `TOO_LATE`, `TOO_EARLY`,
+`EXCEEDED`, `BROKEN`, `OUT_OF_TOL`, eller `COLLISION` / `UNCOMMANDED` /
+`IDLE_COMMANDED` / `FLUNG` som inte är `none`. Dessutom tvingar
+`CARRY INCONCLUSIVE`, `THINNED CEILING`, `PHASE INCONCLUSIVE` och
+`INTERLOCK INCONCLUSIVE` bort från `PASS`.
+
+Skrivaren vägrar producera det, läsaren kastar om den ser det.
+
+**Orden matchas som hela ord.** `LATE` ligger inne i `LATENCY`, och en
+delsträngsmatchning hade fällt varje rapport som bär en latensrad. Det är
+precis den sortens fel som ser ut som stränghet och i själva verket är ett
+trasigt instrument.
+
+## Fem domare, en trasig cell var
+
+`Analys.DOMARE = sekvens, timing, grepp, kollision, genomflode`. Matrisen är
+mätt: 12 celler × 5 domare ger **exakt en domare FAIL per cell**, och släcks en
+domare blir exakt dess celler gröna. Ingen domare bär en annans cell.
+
+Sekvens och timing var tidigare **en** domare. De är delade nu: `MISSING` är
+sekvensens fel, `TOO_LATE` och `TOO_EARLY` är timingens.
+
+## Fasupplösningen är max, inte summa
+
+`max(L, S+J)` där L är låstiden, S provtagningssteget och J hopfogningen.
+Monte Carlo: summan var upp till **70 % för lös**, medan max aldrig
+överskreds och nåddes till 95–98 %.
+
+En fas som deklarerar ett krav finare än upplösningen döms `INCONCLUSIVE`,
+aldrig `PASS`. Mot en riktig kopplare (89 ms varv, `M-39`) är fasupplösningen
+**≈ 89 ms** — och det är det viktigaste talet i hela mätningen, för det säger
+vilka krav som över huvud taget går att döma.
