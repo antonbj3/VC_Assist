@@ -30,7 +30,7 @@ slarv"*, *"missa ingenting"* — bor där, inte i uppstartsstegen.
 | 6 | **PLC-bandet** | OpenPLC v4, OPC UA, genererad signalkarta och deklarationer | Handskriven ST styr scenen genom OPC UA. Tur och retur mätt i ms | **stängd** (M-39) |
 | 7 | **ST för en station** | skelett + deklarationer genererade, modellen skriver sekvensen | Grind 1–5 gröna. Ögat säger PASS. **L1-guld** | **STÄNGD** (M-49, M-50): grind 1–5 gröna, ögat PASS, L1-guld; fem trasiga fall fällda av ögat |
 | 8 | **Komposition** | flera stationer | Guld per station, sedan guld för linan. **L2** | öppen |
-| 9 | **Bänken** | scenariosamling med facit | Tre tal rapporterade: första försöket, efter k varv, fel per klass. **Kräver fas 11** | öppen |
+| 9 | **Bänken** | scenariosamling med facit | Tre tal rapporterade: första försöket, efter k varv, fel per klass. **Kräver fas 11** — och baslinjen är nu mätt, se nedan | öppen |
 | 10 | **Paketering** | nedladdningsbart tillägg | Ren maskin: klona, installera, kör. Fungerar utan handpåläggning. **Kräver fas 12** | byggd, oprövad på ren maskin |
 
 ## Fas 0 är inte valfri
@@ -54,7 +54,7 @@ behövdes. Ingen av dem är en idé; varje rad pekar på talet som föranledde d
 
 | # | Fas | Varför den finns | Grind som stänger fasen |
 |---|---|---|---|
-| 11 | **Klassisk baslinje** | `R-01`: ingen har publicerat vår loop, ingen leverantör publicerar ett korrekthetstal, och varje akademiskt tal är kompileringsgrad på en annan uppgiftsmängd. Att ställa vårt tal mot LLM4PLC:s 72 % vore samma kategorifel operatören redan fångat en gång | En regelbaserad generator utan språkmodell körd över **samma** bank med **samma** domare. Fas 9:s tal rapporteras alltid som par: vårt mot baslinjens. Ett tal utan baslinje publiceras inte |
+| 11 | **Klassisk baslinje** (PASSERAD, M-62) | `R-01`: ingen har publicerat vår loop, ingen leverantör publicerar ett korrekthetstal, och varje akademiskt tal är kompileringsgrad på en annan uppgiftsmängd. Att ställa vårt tal mot LLM4PLC:s 72 % vore samma kategorifel operatören redan fångat en gång | En regelbaserad generator utan språkmodell körd över **samma** bank med **samma** domare. Fas 9:s tal rapporteras alltid som par: vårt mot baslinjens. Ett tal utan baslinje publiceras inte |
 | 12 | **Verktygskedjan i repot** (Linux passerad, M-56) | `M-48`: STruC++ ligger i en sessionskatalog, och npm-paketet som `paket.kompilera` kräver finns inte längre på maskinen. Grind 1 går att köra här och nu, men **inte på en ren maskin utifrån repots egna instruktioner** | Ett skript i repot hämtar STruC++, OpenPLC v4 och node, med **fastspikad version och kontrollerad hash**, och grind 1 kör efteråt. Trasigt fall: en manipulerad nedladdning måste avvisas på hashen |
 | 13 | **Windows** | `M-44`: nio fynd med fil och rad, varav ett tyst och totalt — tilläggsmappen hittas inte när Dokument ligger i OneDrive, och hela systemet dör efter en lograd. Allt är byggt och mätt under Wine | M-44:s **16 numrerade protokollpunkter** körda på en riktig Windows-maskin, var och en med sitt förutbestämda gröna svar. Ingen punkt får besvaras med "borde fungera" |
 | 14 | **Harnessens hårdhet** (PASSERAD, M-53) | `M-46`: **17 av 46 regler är mekaniserade, 29 är bara bedda**. Blocket om mätta fällor är sämst, 2 av 8 — och det är fällor som ger tal som *ser rimliga ut* | Kvoten mekaniserat/bett mätt om vid varje körning, med ett **golv som bara får gå uppåt** (samma spärr som tröskelskulden). Varje mekanism har en trasig fixtur som föll före den fanns. En regel som ärligt inte går att mekanisera står som `EJ_MEKANISK` med skäl |
@@ -62,6 +62,34 @@ behövdes. Ingen av dem är en idé; varje rad pekar på talet som föranledde d
 | 16 | **Planeringslagret** | Operatörens krav, ordagrant: *"Man ska kunna sätta upp instruktioner, bygga denna scen, med dessa, med villkor och ordning av processer osv, där spec ska kunna detaljeras från grundrequest"*. `22_planeringslagret.md` är 384 rader spec utan en fas som bygger den | En grundbeställning i fritext blir en detaljerad, körbar byggplan med villkor och processordning — och planen **avvisas** när den är omöjlig, i stället för att byggas halvt. Trasigt fall: en beställning som motsäger sig själv måste fällas med vilket villkor som krockar |
 | 18 | **Befintlig anläggning in** | Operatörens fråga, och ett verkligt driftproblem: originalkoden är ofta borttappad. Två vägar in, och den ena är nästan gratis — ett **inspelat I/O-spår** från en riktig linje har redan bänkens facitform | Ett spår från en befintlig anläggning blir ett facit, en modell skriver ST som återger det, och domaren dömer med samma mekanik som i fas 9. Trasigt fall: ett spår som aldrig visat ett läge får **inte** ge ett facit som påstår något om det läget |
 | 17 | **Vad användaren ser** | Operatörens krav: *"användaren vill förmodligen också gärna kunna veta vad som händer också när saker arbetar"*. Hela systemet rapporterar i dag till loggar och mätfiler, alltså till oss, inte till användaren | Medan en körning pågår kan användaren se vad som händer, vilken grind som fällde och varför, och vad systemet **inte** vet. Trasigt fall: ett fällt läge får aldrig se ut som ett arbetande |
+
+## Vad baslinjen mätte, och varför det ändrar hur fas 9 måste läsas
+
+`M-62` byggde den regelbaserade baslinjen och mätte tre saker som gör fas 9:s
+tal svårare att tolka än de såg ut att vara.
+
+**Golvet är högt.** Ett program som **styr ingenting** passerar grind 1, 2 och 3
+på **37 av 37** uppgifter och uppfyller **252 av 349** mekaniska påståenden. De
+arton människoskrivna motbeviseni — vart och ett ett verkligt
+driftsättningsfel — får **94,8 %**.
+
+Följden är en regel: **ett procenttal ur en påståenderäkning får aldrig bli
+huvudtalet.** Det mäter till största delen att programmet är ett program.
+
+**Baslinjen löser 4 av 4 spårfacituppgifter** på sin bästa nivå, i **varv 1**,
+med noll `F1`, `F2` och `F4`. Ribban ligger alltså där. Rapporterar fas 9 fyra
+av fyra är det **oavgjort mot en mallkompilator**, och det ska stå med de orden.
+
+**Talet är inte vår egen tolks åsikt.** Baslinjens kod kördes genom STruC++:s
+byggda binär, scan för scan: 33 sekvenser, 3060 scan, 15 354 signalavläsningar,
+**noll avvikelser**. Det betalar halva `M-45`:s öppna punkt; OpenPLC-halvan står
+kvar.
+
+**Där en modell kan visa något en regel inte kan** — flera parallella aktörer,
+datastrukturer, grenar, kapacitet — finns i dag **inget facit som kan döma
+det**. Bänken är alltså inte diskriminerande på just de ställen som skulle
+avgöra frågan, och `M-62 §6` pekar ut de fem billigaste uppgifterna att ge
+spårfacit.
 
 ## Varför djupstegen ligger i den ordningen
 
