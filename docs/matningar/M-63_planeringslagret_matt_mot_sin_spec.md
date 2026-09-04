@@ -463,6 +463,32 @@ Alla fyra hade passerat 141 gröna prov. Ingen av dem hade hittats av ett prov
 till, eftersom jag skrev proven mot det jag byggt. Den enda som hittade dem var
 att skriva som en människa skriver.
 
+## 6.7 Fasordningen sa att 14 skulle före 16. Höll skälet?
+
+`70_faser.md` motiverar ordningen så här:
+
+> **14 före 16.** Planeringslagret låter en språkmodell fatta fler beslut. Att
+> utöka modellens frihet innan reglerna är mekaniserade är att lita på prosa i
+> precis det läge där prosa är svagast.
+
+Skälet är rätt i sak, men **lagret som det nu är byggt gör tvärtom**: det
+innehåller ingen språkmodell alls. `bestall()` är deterministisk från text till
+plan — samma beställning ger samma plan, byte för byte, och det är mätt
+(`K22`). Det som förr var modellens omdöme är nu sex grindar.
+
+Den fara fasordningen pekar på finns däremot kvar, och den har **flyttat**: den
+dag en modell fyller specen i stället för `lasning.py` är det `Harkomst` som
+avgör om den hittar på. `HK2_FALSK_BEGARAN` är precis den grinden — ett krav som
+säger sig komma ur operatörens ord prövas mot orden, med en delsträngsmatchning
+och inte med en bedömning. Den är byggd **för** en modell som ännu inte är
+inkopplad, och den är den enda mekanism i lagret som fungerar lika bra oavsett
+vem som skrev kravet.
+
+Till saken hör också att `M-46`s tal har rört sig sedan det skrevs: korpusen i
+`instruktioner/` bär i dag **37 `block` mot 9 `regel`** (mätt 2026-09-05, i en
+annan agents arbete). Fas 14 är alltså närmare stängd än när fasordningen
+skrevs.
+
 ## 7. En krock jag hittade och lämnade
 
 Specens grindnamn `P1`–`P8` och `byggplan.LINTKODER`s `P1_`–`P8_` är två olika
