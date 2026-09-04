@@ -35,7 +35,12 @@ MUTERANDE_PREFIX = (
 
 # Namn som gor syntaktisk analys omojlig. Konservativt: de raknas som skrivande.
 OGENOMSKINLIGA = ("eval", "exec", "execfile", "compile", "__import__",
-                  "setattr", "delattr", "getattr", "globals", "locals", "vars")
+                  "setattr", "delattr", "getattr", "globals", "locals", "vars",
+                  # Dunder-vagarna runt en vanlig tilldelning. Funna av
+                  # motbevisningen 2026-09-04: c.__setattr__("Name", "x") gor
+                  # exakt vad c.Name = "x" gor, men domdes som LASANDE.
+                  "__setattr__", "__delattr__", "__getattr__", "__setitem__",
+                  "__delitem__", "__getattribute__", "__dict__")
 
 SKRIVLAGEN = ("w", "a", "x", "+")
 
@@ -234,21 +239,86 @@ def dodar_pumpen(kod):
     return skal
 
 
+def _konstantbindningar(trad):
+    """Namn som binds till en VC_-konstant, ett led djupt.
+
+    Funnet av motbevisningen 2026-09-04: `t = VC_SCRIPT` foljt av
+    `createBehaviour(t, "x")` slapp forbi, eftersom grinden bara sag efter
+    konstanten DIREKT i anropet. Ett mellanled racker for att komma runt en
+    grind som domer stavning.
+    """
+    bindningar = {}
+    smutsiga = set()
+    for nod in ast.walk(trad):
+        if not isinstance(nod, ast.Assign):
+            continue
+        for m in nod.targets:
+            if not isinstance(m, ast.Name):
+                continue
+            if isinstance(nod.value, ast.Name) and nod.value.id.startswith("VC_"):
+                bindningar[m.id] = nod.value.id
+            else:
+                smutsiga.add(m.id)
+    for namn in smutsiga:
+        bindningar.pop(namn, None)
+    return bindningar
+
+
+def _ar_strangliteral(nod, varde):
+    for attr in ("value", "s"):
+        v = getattr(nod, attr, None)
+        if isinstance(v, _STRANGAR) and v == varde:
+            return True
+    return False
+
+
 def skapar_skriptbeteende(kod):
-    """Returnerar en lista skal, tom om koden inte ror skriptbeteenden."""
+    """Returnerar en lista skal, tom om koden inte ror skriptbeteenden.
+
+    Fail-closed: gar det inte att avgora VILKEN beteendetyp som skapas raknas
+    det som ett skriptbeteende. Det ar den enda operation som dodar bryggan
+    utan vag tillbaka (M-13), och en gissning at fel hall kostar hela sessionen.
+    """
     skal = []
     try:
         trad = ast.parse(kod)
     except SyntaxError:
         return skal          # otolkbar kod fangas redan av granska()
+    bindningar = _konstantbindningar(trad)
+
     for nod in ast.walk(trad):
         rad = getattr(nod, "lineno", None)
+
         if isinstance(nod, ast.Call) and _sista_namnet(nod.func) == "createBehaviour":
-            for a in nod.args:
-                if isinstance(a, ast.Name) and a.id in SKRIPTTYPER:
-                    skal.append("rad %s: createBehaviour(%s, ...)" % (rad, a.id))
+            if not nod.args:
+                skal.append("rad %s: createBehaviour utan argument" % rad)
+                continue
+            a = nod.args[0]
+            if isinstance(a, ast.Name):
+                namn = bindningar.get(a.id, a.id)
+                if namn in SKRIPTTYPER:
+                    skal.append("rad %s: createBehaviour(%s, ...)" % (rad, namn))
+                elif not namn.startswith("VC_"):
+                    skal.append("rad %s: createBehaviour med en berakad typ (%s); "
+                                "vilket beteende som skapas gar inte att avgora"
+                                % (rad, a.id))
+            else:
+                skal.append("rad %s: createBehaviour med ett uttryck som typ; "
+                            "vilket beteende som skapas gar inte att avgora" % rad)
+
         if isinstance(nod, ast.Assign):
             for m in nod.targets:
                 if isinstance(m, ast.Attribute) and m.attr == "Script":
                     skal.append("rad %s: tilldelning till .Script" % rad)
+
+        # setattr(obj, "Script", ...) och varje setattr med berakat namn
+        if isinstance(nod, ast.Call) and _sista_namnet(nod.func) in (
+                "setattr", "__setattr__"):
+            if len(nod.args) >= 2:
+                namnnod = nod.args[-2]
+                if _ar_strangliteral(namnnod, "Script"):
+                    skal.append("rad %s: setattr(..., 'Script', ...)" % rad)
+                elif not isinstance(namnnod, (ast.Str, ast.Constant)):
+                    skal.append("rad %s: setattr med ett berakat attributnamn; "
+                                "det kan vara Script" % rad)
     return skal

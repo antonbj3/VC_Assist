@@ -152,3 +152,53 @@ def test_vanligt_scenbygge_dodar_inte_pumpen():
     for kod in ("app.createComponent()", "app.deleteComponent(c)",
                 "c.PositionMatrix = m", "print(c.Name)"):
         assert S.dodar_pumpen(kod) == [], kod
+
+
+# ---- hal funna av motbevisningen 2026-09-04 -----------------------------
+
+DUNDERVAGAR = [
+    'c.__setattr__("Name", "x")',
+    'setattr(c, "Name", "x")',
+    'c.__setitem__(0, 1)',
+    'c.__delattr__("Name")',
+]
+
+
+@pytest.mark.parametrize("kod", DUNDERVAGAR)
+def test_dundervagen_runt_en_tilldelning_ar_skrivande(kod):
+    """c.__setattr__("Name","x") gor exakt vad c.Name = "x" gor. Grinden
+    domde det som LASANDE, alltsa kordes det utan ko."""
+    assert S.granska(kod).skriver is True, kod
+
+
+SKRIPT_VIA_OMVAG = [
+    't = VC_SCRIPT\nc.createBehaviour(t, "x")',
+    'typ = VC_PYTHONSCRIPT\nb = c.createBehaviour(typ, "s")',
+    'k = "Script"\nsetattr(b, k, "x")',
+    'setattr(b, "Script", "x")',
+    'c.createBehaviour(valj_typ(), "x")',
+    'c.createBehaviour()',
+]
+
+
+@pytest.mark.parametrize("kod", SKRIPT_VIA_OMVAG)
+def test_skriptbeteende_via_omvag_upptacks(kod):
+    """Ett mellanled racker for att komma runt en grind som domer stavning.
+    Att skapa ett skriptbeteende dodar bryggan utan vag tillbaka (M-13), sa
+    grinden ar fail-closed: gar typen inte att avgora raknas den som skript."""
+    assert S.skapar_skriptbeteende(kod), kod
+
+
+VANLIGT_BETEENDE = [
+    'c.createBehaviour(VC_BOOLEANSIGNAL, "Sig")',
+    't = VC_ONEWAYPATH\nc.createBehaviour(t, "Path")',
+    'c.createBehaviour(VC_TRANSPORT, "Tr")',
+    'setattr(c, "Name", "x")',
+]
+
+
+@pytest.mark.parametrize("kod", VANLIGT_BETEENDE)
+def test_vanliga_beteenden_flaggas_inte_som_skript(kod):
+    """Fail-closed far inte bli fail-allt. Ett bundet VC_-namn som INTE ar en
+    skripttyp ska ga igenom."""
+    assert S.skapar_skriptbeteende(kod) == [], kod

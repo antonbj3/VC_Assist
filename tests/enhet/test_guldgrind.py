@@ -142,6 +142,8 @@ def test_PASS_med_en_dalig_rad_ar_inte_guld():
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
     r.sektion("MOTION")
     r.rad("PLACE OFF_TARGET err=812.0mm z=0.750m")
+    r.sektion("HONESTY")
+    r.rad("NEVER_GRIPPED OK")
     r.satt_dom("PASS", "ser bra ut")
     b = _grind().doma([_cell(eyes=r.text())])
     assert b.guld is False and "motsaga" not in b.skal
@@ -150,8 +152,12 @@ def test_PASS_med_en_dalig_rad_ar_inte_guld():
 
 def test_PASS_med_kollision_ar_inte_guld():
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
+    r.sektion("MOTION")
+    r.rad("GRIP FORMED t=1.0s dist=0.0mm")
     r.sektion("SAFETY")
     r.rad("COLLISION gripare x fixtur t=3.100s")
+    r.sektion("HONESTY")
+    r.rad("NEVER_GRIPPED OK")
     r.satt_dom("PASS", "ser bra ut")
     b = _grind().doma([_cell(eyes=r.text())])
     assert b.guld is False and "COLLISION" in b.skal
@@ -174,5 +180,57 @@ def test_grinden_laser_inte_ut_nagra_tal():
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
     r.sektion("MOTION")
     r.rad("PLACE IN_TARGET err=999.0mm z=0.750m")   # ogat kallade det ratt
+    r.sektion("HONESTY")
+    r.rad("NEVER_GRIPPED OK")
     r.satt_dom("PASS", "inom den har cellens tolerans")
     assert _grind().doma([_cell(eyes=r.text())]).guld is True
+
+
+# ---- hal funna av motbevisningen 2026-09-04 -----------------------------
+
+def test_en_rapport_som_inte_matt_nagot_ar_inte_guld():
+    """Noll sektioner, SAMPLES 0, DUR 0.000s + VERDICT PASS gav GOLD.
+
+    Sista grinden fore leverans slappte igenom en rapport som inte hade matt
+    en enda sak. Rakt emot I3: tystnad ar aldrig ett godkannande.
+    """
+    r = K.Rapport("tom", "2026-09-04T00:00:00", 0.0, 0, 0.0)
+    r.satt_dom("PASS", "inget att invanda mot")
+    b = _grind().doma([_cell(eyes=r.text())])
+    assert b.guld is False
+    assert "noll prov" in b.skal
+
+
+def test_en_rapport_utan_varaktighet_ar_inte_guld():
+    r = K.Rapport("kort", "2026-09-04T00:00:00", 0.0, 200, 20.0)
+    r.sektion("MOTION"); r.rad("GRIP FORMED t=1.0s dist=0.0mm")
+    r.sektion("HONESTY"); r.rad("NEVER_GRIPPED OK")
+    r.satt_dom("PASS", "gick fort")
+    b = _grind().doma([_cell(eyes=r.text())])
+    assert b.guld is False and "varaktighet" in b.skal
+
+
+def test_en_rapport_utan_HONESTY_ar_inte_guld():
+    """Kontraktets regel 5 sager att en overtradelse tvingar FAIL - men regeln
+    ar TOM om sektionen inte finns. Utan HONESTY finns ingen arlighetsgrind."""
+    r = K.Rapport("utan", "2026-09-04T00:00:00", 9.0, 180, 20.0)
+    r.sektion("MOTION")
+    r.rad("GRIP FORMED t=1.0s dist=0.0mm")
+    r.rad("CARRY RIGID rot=0.0deg span=4.0s")
+    r.rad("PLACE IN_TARGET err=1.0mm z=0.7m")
+    r.satt_dom("PASS", "ser bra ut")
+    b = _grind().doma([_cell(eyes=r.text())])
+    assert b.guld is False and "HONESTY" in b.skal
+
+
+def test_en_rapport_utan_MOTION_ar_inte_guld():
+    r = K.Rapport("utan", "2026-09-04T00:00:00", 9.0, 180, 20.0)
+    r.sektion("HONESTY"); r.rad("NEVER_GRIPPED OK")
+    r.satt_dom("PASS", "ser bra ut")
+    b = _grind().doma([_cell(eyes=r.text())])
+    assert b.guld is False and "MOTION" in b.skal
+
+
+def test_en_fullstandig_rapport_ar_fortfarande_guld():
+    """Grinden far inte bli sa bred att den faller det riktiga."""
+    assert _grind().doma([_cell()]).guld is True

@@ -36,6 +36,14 @@ DALIGA_ORD = (
     "VIOLATION", "SHORT",
 )
 
+# Sektioner som MASTE finnas for att domen ska betyda nagot.
+#
+# HONESTY ar den barande: kontraktets regel 5 sager att en overtradelse tvingar
+# FAIL, men regeln ar TOM om sektionen inte finns. En rapport utan HONESTY har
+# alltsa ingen arlighetsgrind alls, och den sag ut som guld.
+# MOTION ar med for att en dom utan en enda rorelserad inte har domt nagot.
+OBLIGATORISKA_SEKTIONER = ("MOTION", "HONESTY")
+
 # Grindarna 1-4 i kedjan. Ogat ar grind 5 och domer sig sjalvt.
 FORGRINDAR = ("kompilering", "statisk_analys", "deklarationsmatchning",
               "anropsvalidering")
@@ -92,6 +100,19 @@ class Guldgrind(object):
             rapport = K.las(text)
         except K.Kontraktsfel as e:
             return False, "%s: %s" % (namn, e.grinddom)
+
+        # En rapport som inte MATT nagot ar inte ett godkannande. Funnen av
+        # motbevisningen 2026-09-04: noll sektioner, SAMPLES 0 och DUR 0.000s
+        # tillsammans med VERDICT PASS gav GOLD. Rakt emot I3.
+        if rapport.samples <= 0:
+            return False, "%s: rapporten bar noll prov" % namn
+        if rapport.dur_s <= 0.0:
+            return False, "%s: rapporten bar noll varaktighet" % namn
+        funna = set(n for n, _r in rapport.sektioner)
+        saknade = [x for x in OBLIGATORISKA_SEKTIONER if x not in funna]
+        if saknade:
+            return False, ("%s: rapporten saknar sektionen %s, sa den grinden "
+                           "har aldrig kort" % (namn, ", ".join(saknade)))
 
         if not rapport.godkand():
             varde = rapport.dom[0] if rapport.dom else "?"

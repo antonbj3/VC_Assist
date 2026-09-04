@@ -256,6 +256,41 @@ def _tillampa_uppskjutet(app, pump):
         pass
 
 
+STARTLAYOUT = os.path.join(os.path.expanduser("~"), "vc_assist_startlayout.txt")
+
+
+def _ladda_startlayout(app):
+    """Laddar en layout FORE simuleringen startar, om en sadan ar utpekad.
+
+    Skalet ar matt: ett beteende som laggs till i en REDAN korande simulering
+    initieras aldrig. En matare byggd sa haller sin Part-URI men producerar
+    ingenting. Allt som ska leva maste finnas nar simuleringen startar.
+
+    Sokvagen lases ur en fil i anvandarmappen sa den kan sattas utifran utan
+    att rora tillaggets kod.
+    """
+    if not os.path.exists(STARTLAYOUT):
+        return
+    try:
+        f = open(STARTLAYOUT)
+        try:
+            uri = f.read().strip()
+        finally:
+            f.close()
+    except Exception:
+        _log("kunde inte lasa %s" % STARTLAYOUT)
+        return
+    if not uri:
+        return
+    _log("laddar startlayout: %s" % uri)
+    try:
+        app.load(_s(uri))
+        _log("startlayouten laddad, scenen har %d komponenter"
+             % len(list(app.Components)))
+    except Exception:
+        _log("startlayouten gick inte att ladda\n" + traceback.format_exc())
+
+
 def _starta():
     _log("=== uppstart %s ===" % time.strftime("%Y-%m-%d %H:%M:%S"))
     d = _tillaggsmapp()
@@ -265,6 +300,7 @@ def _starta():
     _log("tillaggsmapp: %s" % d)
     try:
         _tillampa_uppskjutet(app, None)
+        _ladda_startlayout(app)
         comp = app.createComponent()
         comp.Name = _s("VcAssistBridge")
         kalla = SKRIPT % {"dir": d.replace("\\", "\\\\"), "port": PORT}
