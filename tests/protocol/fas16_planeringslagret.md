@@ -6,12 +6,16 @@
 **körs av:** `tests/enhet/test_bestallning.py` (L1 — ingen VC, ingen OpenPLC,
 ingen kompilator)
 
-## Status 2026-09-04: **grön i L1**
+## Status 2026-09-05: **grön i L1**
 
-153 prov i `tests/enhet/test_bestallning.py`, plus nio i `test_plan.py` för
-efterkontrollerna. Alla trasiga fall nedan fälls. Vad protokollet **inte**
-bevisar står i avsnitt F, och det som kräver VC (`P5`, `P8`) hör till fas 5a
-och fas 7–8.
+**180 prov** i `tests/enhet/test_bestallning.py`, plus nio i `test_plan.py` för
+efterkontrollerna. Alla trasiga fall nedan fälls, och varje grind i
+`bestallning.GRINDAR` har en fixtur som faller på just den.
+
+Kör: `python3 -m pytest tests/enhet/test_bestallning.py -q`
+
+Vad protokollet **inte** bevisar står i avsnitt F, och det som kräver VC
+(`P5`, `P8`) hör till fas 5a och fas 7–8.
 
 ## Grinden, ordagrant
 
@@ -67,7 +71,7 @@ och en grind som står där utan att köra är ett fel i sig.
 | `B1_HARKOMST` | ett krav vars härkomst inte går att slå upp | **T3** nedan |
 | `B2_PROCESSORDNING` | cykel, okänd process, självordning | **T2** nedan |
 | `B3_MOTSAGELSE` | villkor som inte kan gälla samtidigt | **T1** nedan |
-| `B4_FRAGOR` | en blockerande fråga är obesvarad | T5 |
+| `B4_FRAGOR` | en blockerande fråga är obesvarad, eller en fråga som inte säger vad den behövs till | T5, T11 |
 | `B5_LAYOUT` | ingen placering uppfyller alla relationer | **T4** nedan |
 | `B6_PLANEN` | stegen håller inte verktygsregistret | T6 |
 
@@ -197,6 +201,19 @@ den tysta nedgradering lagret finns för att undvika.
 
 **Krav på svaret:** `Planfel`. Utan den formen kan en avvisad beställning ändå
 byggas, och då är hela grinden en rekommendation.
+
+### T11. En fråga som inte säger vad den behövs till
+
+En `Fraga` med ett id som ingen rad i `BEHOVS_FOR` täcker läggs i specen.
+
+**Krav på svaret:** status `AVVISAD`, koden `S1_SLOT_UTAN_BEHOV`.
+Det är `K1`: ett fält utan `needed_for` får inte finnas i schemat. Felet ligger
+i **vår** kod — någon har lagt till ett slot utan att säga vad det behövs till —
+och det ska fällas innan beställningen når operatören.
+
+**Svepet hör till fixturen:** samma prov kör hela banken och sju
+fritextbeställningar och kräver att *varje* fråga som faktiskt ställs har en
+rad. En tabell som bara täcker det man kom ihåg mäter ingenting.
 
 ### T10. En tredje frågerunda
 
