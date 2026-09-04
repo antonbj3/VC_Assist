@@ -48,8 +48,8 @@ from __future__ import annotations
 
 from .fria_ytor import (RASTER_M, Rasterkarta, far_plats, ledig_area_m2,
                         storsta_lediga_rektangel)
-from .komponent import (Bindning, Bounds, Koppling, Matt, Saknasfel,
-                        komponentnamn_karta, kopplingsbara,
+from .komponent import (Bindning, Bounds, Flode, Koppling, Matt, Saknasfel,
+                        flode_ur_fakta, komponentnamn_karta, kopplingsbara,
                         objekt_ur_komponent, rackvidd_ur_fakta, saknade_matt)
 from .kollision import (Granskning, Hojdbrott, Overlapp, Passagebrott,
                         Provsvar, Utanfor, Zonbrott, avstand_m, fri_bredd_m,
@@ -90,9 +90,9 @@ __all__ = [
     # losare
     "NODBUDGET", "Losning", "Status", "Steg", "losa",
     # riktiga komponenter
-    "Bindning", "Bounds", "Koppling", "Matt", "Saknasfel",
-    "komponentnamn_karta", "kopplingsbara", "objekt_ur_komponent",
-    "rackvidd_ur_fakta", "saknade_matt",
+    "Bindning", "Bounds", "Flode", "Koppling", "Matt", "Saknasfel",
+    "flode_ur_fakta", "komponentnamn_karta", "kopplingsbara",
+    "objekt_ur_komponent", "rackvidd_ur_fakta", "saknade_matt",
     # utdata mot VC
     "Ankarfel", "Anrop", "till_verktygsanrop", "validera_mot_registret",
 ]

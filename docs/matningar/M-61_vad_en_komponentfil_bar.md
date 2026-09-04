@@ -233,6 +233,45 @@ pumpen en gång (M-16). Frågan ligger därför i
 `tests/protocol/fas5_riktiga_komponenter.md` steg 8, med tre par som regeln
 **avvisar** och som måste svara falskt — annars mäter grinden ingenting.
 
+## Transportörens längd och riktning
+
+Uppdraget nämner dem särskilt, och svaret är delat på samma sätt som resten.
+
+**Ordningen går att läsa.** Av 163 transportörer bär **122** både ett
+flödesfält med port 0 och ett med port 1 — alltså en ingång och en utgång, med
+namn och med den ram de sitter på. 41 bär inget flödesfält alls.
+
+**Riktningen som en vektor gör det nästan aldrig.** Av de 324 ramar som
+flödesfälten pekar på går **21** att läsa och **303** inte. Ekobals
+`Roller Conveyor DPN` säger varför, ordagrant ur filen:
+
+    Start  ->  Tx(-FrontExtension)
+    End    ->  Tx(BaseLength-200+BackExtension-4)
+
+In- och utpunkten sitter där komponentens parametrar sätter dem. Utan att
+värdefästa uttrycken finns ingen vektor, och att peka riktningen längs
+komponentens X vore en gissning som ser komplett ut.
+
+**Längden är inte heller ett fält.** 139 av 163 transportörer har minst en
+rotvariabel med `Quantity "Distance"`, men namnen är inte ett schema:
+
+| Rotvariabel med `Quantity "Distance"` | antal av 163 |
+|---|---:|
+| `ConveyorHeight` | 109 |
+| `ConveyorWidth` | 108 |
+| `ConveyorLength` | **60** |
+| `Advanced::SegmentSize` | 44 |
+| `ConveyorRadius` | 21 |
+| `Length_iWT`, `UnitLength`, `PalletLength` … | 10–14 var |
+
+`ConveyorLength` finns i 60 av 163. `PalletLength` finns också, och den är
+pallens längd, inte bandets. En regel som letar efter "något som heter Length"
+hade tagit fel på dem. Rotvariablerna hör till `datablad.py` (M-59), som läser
+just rotens variabelrymd och inget annat; den här modulen rör dem inte.
+
+`layout/komponent.flode_ur_fakta()` lämnar därför **ordningen** som ett läst
+värde och **riktningen** som `None` med uttrycket som skäl.
+
 ## Ramarnas läge, och ett övertramp jag fångade i mitt eget svep
 
 Ramarnas **namn** går att läsa: 9824 av 9824. Deras **läge** är en annan sak.
@@ -325,14 +364,14 @@ bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
 | Nivå | Fil | Antal |
 |---|---|---:|
 | L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 39 |
-| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 17 |
+| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 21 |
 | L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 6 |
 
-Trasiga fixturer, åtta stycken: en komponent vars mått saknas, en avhuggen
+Trasiga fixturer, nio stycken: en komponent vars mått saknas, en avhuggen
 3DS-blobb, en triangel som pekar utanför sin hörnlista, en profil som inte går
 att avkoda, en profilnyttolast som inte går jämnt ut, en ram under en nod utan
-`Offset`, ett tomt uttryck utan matris — och en layout som lådorna löser och
-de riktiga måtten inte löser.
+`Offset`, ett tomt uttryck utan matris, ett band med bara en ingång — och en
+layout som lådorna löser och de riktiga måtten inte löser.
 
 Till dem kommer tre par som `kopplingsbara` ska **avvisa**: två robotar som
 båda vill monteras på något, två transportöringångar mot varandra, och en

@@ -40,13 +40,15 @@ godkannande), uppdragets punkt 2.
 """
 from __future__ import annotations
 
+import math
+
 from ..komponentfil import Harkomst, Komponentfakta
 from .matt import Langd, krav
 from .rum import Ankare, Layoutfel, Objekt, VRIDNINGAR_RATA
 
-__all__ = ["Saknasfel", "Bounds", "Matt", "Koppling", "Bindning",
+__all__ = ["Saknasfel", "Bounds", "Matt", "Koppling", "Flode", "Bindning",
            "rackvidd_ur_fakta", "objekt_ur_komponent", "saknade_matt",
-           "kopplingsbara", "komponentnamn_karta"]
+           "kopplingsbara", "flode_ur_fakta", "komponentnamn_karta"]
 
 
 class Saknasfel(Layoutfel):
@@ -281,6 +283,95 @@ def kopplingsbara(fakta_a, fakta_b):
                 ut.append(Koppling(ga.namn, gb.namn, "montering pa ramen %s"
                                    % (ga.ramar[0] if ga.ramar else "okand")))
     return tuple(ut)
+
+
+class Flode(object):
+    """Transportorens riktning, sa langt filen bar den.
+
+    Filen ger ORDNINGEN: vilket granssnitt som tar emot och vilket som lamnar
+    ifran sig, och vilka ramar de sitter pa. Den ger sallan LAGET: ramarnas
+    lage ar parametriskt i 303 av 324 flodesramar bland bibliotekets
+    transportorer (M-61), sa riktningen som en VEKTOR kan inte raknas fram.
+
+    Darfor tva falt och inte ett. `ordning` ar last; `riktning_mm` ar None
+    med ett skal nar ramlagena inte gar att lasa. Att lamna vektorn
+    outraknad ar ratt svar - att peka den langs komponentens X vore en
+    gissning som ser komplett ut.
+    """
+
+    __slots__ = ("in_granssnitt", "ut_granssnitt", "in_ram", "ut_ram",
+                 "in_lage_mm", "ut_lage_mm", "skal")
+
+    def __init__(self, in_granssnitt, ut_granssnitt, in_ram=None, ut_ram=None,
+                 in_lage_mm=None, ut_lage_mm=None, skal=""):
+        self.in_granssnitt = tuple(in_granssnitt)
+        self.ut_granssnitt = tuple(ut_granssnitt)
+        self.in_ram = in_ram
+        self.ut_ram = ut_ram
+        self.in_lage_mm = in_lage_mm
+        self.ut_lage_mm = ut_lage_mm
+        self.skal = skal
+
+    @property
+    def ordning(self):
+        """Bar komponenten bade en ingang och en utgang?"""
+        return bool(self.in_granssnitt) and bool(self.ut_granssnitt)
+
+    @property
+    def riktning_mm(self):
+        """Vektorn fran ingangens ram till utgangens, eller None."""
+        if self.in_lage_mm is None or self.ut_lage_mm is None:
+            return None
+        return tuple(self.ut_lage_mm[i] - self.in_lage_mm[i] for i in range(3))
+
+    @property
+    def langd_mm(self):
+        """Avstandet mellan ramarna, eller None. Aldrig komponentens langd."""
+        v = self.riktning_mm
+        if v is None:
+            return None
+        return math.sqrt(sum(x * x for x in v))
+
+    def __repr__(self):
+        return ("Flode(%r -> %r, riktning %s)"
+                % (self.in_granssnitt, self.ut_granssnitt,
+                   self.riktning_mm if self.riktning_mm is not None
+                   else Harkomst.SAKNAS))
+
+
+def flode_ur_fakta(fakta):
+    """Transportorens flodesordning och, om den gar att lasa, dess riktning.
+
+    Ger None nar komponenten inte bar nagot flodesfalt alls - 41 av
+    bibliotekets 163 transportorer gor inte det (M-61), och det ar ett svar
+    och inte ett fel.
+    """
+    if not isinstance(fakta, Komponentfakta):
+        raise Layoutfel("flode_ur_fakta tar en Komponentfakta")
+    inn = [g for g in fakta.granssnitt if _PORT_IN in _flodesportar(g)]
+    ut = [g for g in fakta.granssnitt if _PORT_UT in _flodesportar(g)]
+    if not inn and not ut:
+        return None
+    ramar = {r.namn: r for r in fakta.ramar}
+
+    def lage(granssnitt):
+        for g in granssnitt:
+            for sektion in g.sektioner:
+                r = ramar.get(sektion.ram)
+                if r is not None and r.lage_mm is not None:
+                    return sektion.ram, r.lage_mm, ""
+                if r is not None:
+                    return sektion.ram, None, r.uttryck or "ramens lage saknas"
+        return None, None, "inget flodesfalt med en ram"
+
+    in_ram, in_lage, in_skal = lage(inn)
+    ut_ram, ut_lage, ut_skal = lage(ut)
+    skal = ""
+    if in_lage is None or ut_lage is None:
+        skal = ("riktningen gar inte att rakna: %s"
+                % "; ".join(x for x in (in_skal, ut_skal) if x))
+    return Flode([g.namn for g in inn], [g.namn for g in ut],
+                 in_ram, ut_ram, in_lage, ut_lage, skal)
 
 
 class Bindning(object):

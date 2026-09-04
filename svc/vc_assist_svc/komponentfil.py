@@ -382,12 +382,18 @@ class Rackviddsprofil(object):
     __slots__ = ("segment",)
 
     def __init__(self, segment):
-        self.segment = tuple(segment)
+        segment = tuple(tuple(s) for s in segment)
+        if not segment or not any(s for s in segment):
+            # En tom profil skulle ge radien 0,0 - alltsa en robot som pastas
+            # na noll millimeter. Det ser ut som en matning och ar ett
+            # avkodningsfel. Ingen profil ar ett battre svar an en tom.
+            raise Filfel("en rackviddsprofil utan punkter ar ingen profil")
+        self.segment = segment
 
     @property
     def radie_mm(self):
         """Storsta avstand fran robotens egen axel. Rackvidden."""
-        return max((abs(p[0]) for s in self.segment for p in s), default=0.0)
+        return max(abs(p[0]) for s in self.segment for p in s)
 
     @property
     def z_mm(self):
@@ -882,7 +888,9 @@ def _nodkedja(nod, kedja):
         return kedja.med(okand_nod=True)
     txt = _uttryckstext(nod, "Offset")
     if txt:
-        return kedja.med(uttryck=kedja.uttryck or txt)
+        # NARMASTE uttrycket vinner, inte det yttersta. Skalet ska peka pa
+        # det som star narmast ramen, annars far tva olika ramar samma svar.
+        return kedja.med(uttryck=txt)
     m = _matris(o)
     if m is None:
         return kedja.med(okand_nod=True)
@@ -911,7 +919,7 @@ def _trad_ur(rot):
             elif b.nyckel == "Feature" and b.arg1 == "rTransformFeature":
                 txt = _uttryckstext(b)
                 if txt:
-                    k = kedja.med(uttryck=kedja.uttryck or txt)
+                    k = kedja.med(uttryck=txt)
                 m = _matris(b)
                 if m is not None:
                     k = k.med(matriser=k.matriser + (m,))

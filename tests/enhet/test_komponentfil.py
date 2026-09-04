@@ -288,6 +288,15 @@ def test_en_profil_som_inte_gar_att_avkoda_ger_none(tmp_path):
     assert K.las(sokvag, djupt=True, geometri=True).profil is None
 
 
+def test_en_tom_profil_gar_inte_att_bygga():
+    """TRASIG FIXTUR: noll punkter skulle ge radien 0,0 - en robot som pastas
+    na noll millimeter. Ingen profil ar ett battre svar an en tom."""
+    with pytest.raises(K.Filfel):
+        K.Rackviddsprofil([])
+    with pytest.raises(K.Filfel):
+        K.Rackviddsprofil([()])
+
+
 def test_textprofilen_provas_inte_pa_binart_innehall():
     assert K.text_profil(A.tds_envelope([((1.0, 0.0, 2.0), (3.0, 0.0, 4.0))])) is None
 

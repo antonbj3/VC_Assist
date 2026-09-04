@@ -258,6 +258,67 @@ def test_ett_bands_INGANG_kopplas_inte_till_ett_annat_bands_INGANG(tmp_path):
     assert KO.kopplingsbara(a, b) == ()
 
 
+# ---------------------------------------------------------------------------
+# transportorens riktning: ordningen gar att lasa, vektorn nastan aldrig
+# ---------------------------------------------------------------------------
+
+def band_med_ramar(tmp_path, namn, ramar):
+    kropp = (A.GRANSSNITT_FLODE % {"namn": "InInterface", "ram": "Start",
+                                   "faltnamn": "FlowIn", "port": 0}
+             + A.GRANSSNITT_FLODE % {"namn": "OutInterface", "ram": "End",
+                                     "faltnamn": "FlowOut", "port": 1}
+             + ramar)
+    return A.skriv(tmp_path / (namn + ".vcmx"),
+                   A.modelxml(Name=namn, Type="Conveyors", Manufacturer="A"),
+                   A.rsc(namn, kropp))
+
+
+def test_ordningen_lases_men_riktningen_saknas_nar_ramarna_ar_parametriska(tmp_path):
+    ramar = (A.RAM_UTTRYCK % {"namn": "Start", "uttryck": "-FrontExtension"}
+             + A.RAM_UTTRYCK % {"namn": "End", "uttryck": "BaseLength"})
+    f = K.las(band_med_ramar(tmp_path, "B", ramar), djupt=True)
+    flode = KO.flode_ur_fakta(f)
+    assert flode.ordning is True
+    assert (flode.in_granssnitt, flode.ut_granssnitt) == (("InInterface",),
+                                                          ("OutInterface",))
+    assert (flode.in_ram, flode.ut_ram) == ("Start", "End")
+    assert flode.riktning_mm is None
+    assert flode.langd_mm is None
+    assert "BaseLength" in flode.skal, "skalet ska namna uttrycket som band"
+
+
+def test_riktningen_raknas_nar_bada_ramarna_gar_att_lasa(tmp_path):
+    ramar = (A.RAM_MATRIS % {"namn": "Start", "x": 0.0, "y": 0.0, "z": 900.0}
+             + A.RAM_MATRIS % {"namn": "End", "x": 2000.0, "y": 0.0, "z": 900.0})
+    f = K.las(band_med_ramar(tmp_path, "B", ramar), djupt=True)
+    flode = KO.flode_ur_fakta(f)
+    assert flode.riktning_mm == (2000.0, 0.0, 0.0)
+    assert flode.langd_mm == 2000.0
+    assert flode.skal == ""
+
+
+def test_ett_band_med_bara_en_ingang_har_ingen_ordning(tmp_path):
+    """TRASIG FIXTUR: 41 av bibliotekets 163 transportorer bar inget
+    flodesfalt alls, och ett band med bara en ingang har ingen riktning.
+    Att svara "framat" hade varit en gissning som ser komplett ut."""
+    kropp = (A.GRANSSNITT_FLODE % {"namn": "InInterface", "ram": "Start",
+                                   "faltnamn": "FlowIn", "port": 0}
+             + A.RAM_MATRIS % {"namn": "Start", "x": 0.0, "y": 0.0, "z": 0.0})
+    sokvag = A.skriv(tmp_path / "halvband.vcmx",
+                     A.modelxml(Name="Halvband", Type="Conveyors",
+                                Manufacturer="A"),
+                     A.rsc("Halvband", kropp))
+    flode = KO.flode_ur_fakta(K.las(sokvag, djupt=True))
+    assert flode is not None
+    assert flode.ordning is False
+    assert flode.riktning_mm is None
+
+
+def test_en_komponent_utan_flodesfalt_ger_inget_flode(tmp_path):
+    f = K.las(robot(tmp_path), djupt=True)
+    assert KO.flode_ur_fakta(f) is None
+
+
 def test_bryggan_avvisar_nagot_som_inte_ar_komponentfakta():
     with pytest.raises(Exception):
         KO.objekt_ur_komponent({"namn": "inte fakta"})
