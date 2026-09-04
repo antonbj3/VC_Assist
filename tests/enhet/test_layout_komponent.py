@@ -90,6 +90,21 @@ def test_saknade_matt_ar_en_LISTA_inte_tystnad(tmp_path):
     assert any("omslutande volym" in s for s in saknas)
 
 
+def test_listan_over_saknade_matt_kortas_men_sager_hur_mycket_den_kortade(tmp_path):
+    """En lista pa hundra rader lases inte - den scrollas forbi. Men en lista
+    som kortas utan att saga det har ljugit tyst (M-60:s regel)."""
+    ramar = "".join(A.RAM_UTTRYCK % {"namn": "R%d" % i, "uttryck": "P%d" % i}
+                    for i in range(12))
+    sokvag = A.skriv(tmp_path / "manga.vcmx",
+                     A.modelxml(Name="Manga", Type="Machines",
+                                Manufacturer="A"),
+                     A.rsc("Manga", ramar))
+    rader = KO.saknade_matt(K.las(sokvag, djupt=True))
+    ramrader = [r for r in rader if r.startswith("ramen ")]
+    assert len(ramrader) == KO.MAX_RAMRADER
+    assert any("och 7 ramar till utan lage, av 12" in r for r in rader)
+
+
 def test_en_lada_med_noll_utstrackning_avvisas():
     with pytest.raises(KO.Saknasfel):
         KO.Bounds([0.0, 0.0, 0.0], [500.0, 0.0, 500.0])

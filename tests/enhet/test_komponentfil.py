@@ -305,6 +305,25 @@ def test_en_profil_i_YZ_planet_ger_samma_radie_som_en_i_XZ():
     assert (xz.snittplan, yz.snittplan) == ("XZ", "YZ")
 
 
+def test_en_profil_med_orimligt_liten_radie_ger_ingen_rackvidd(tmp_path):
+    """TRASIG FIXTUR i produkten, inte bara i provet.
+
+    En profil som avkodas till en halv millimeter ar ingen rackvidd. Den ska
+    ge SAKNAS med talet i skalet, sa att felet gar att se - inte en HARLEDD
+    rackvidd pa 0,5 mm som ser ut som en matning.
+    """
+    punkter = [(0.0, 0.0, 10.0), (0.5, 0.0, 5.0), (0.0, 0.0, 0.0)]
+    sokvag = A.skriv(tmp_path / "r.vcmx",
+                     A.modelxml(Name="R", Type="Robots", Manufacturer="A",
+                                Reach="0"),
+                     A.rsc("R"), {"envelopeprofile": A.text_envelope(punkter)})
+    f = K.las(sokvag, djupt=True, geometri=True)
+    assert f.profil is not None and f.profil.radie_mm == 0.5
+    mm, harkomst, kalla = f.rackvidd()
+    assert (mm, harkomst) == (None, K.Harkomst.SAKNAS)
+    assert "0.5" in kalla
+
+
 def test_en_profil_som_ligger_snett_sags_ligga_snett():
     p = K.Rackviddsprofil([((100.0, 100.0, 0.0), (200.0, 200.0, 10.0))])
     assert p.snittplan == "annat"

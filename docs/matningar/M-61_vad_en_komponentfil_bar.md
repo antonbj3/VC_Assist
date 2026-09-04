@@ -475,6 +475,16 @@ nodhänvisning inne i ett gränssnitt som inte får räknas som en nod.
 * **Om VC:s gränssnittsnamn är samma som filens.** Läsningen här är oprövad mot
   `list_interfaces`.
 * **De 75 flödesfälten med port 2–6.**
+* **De 36 profiler som inte är snitt utan 3D-höljen.** Radien är största
+  avståndet från axeln även för dem, men om VC kallar det talet räckvidd är
+  inte prövat.
+* **Vad en `Custom`-led är.** Den är den vanligaste ledtypen, 13 806 av
+  29 405, och den här mätningen läser bara dess namn och gränser.
+* **Den sammansatta lådan för de 140 komponenter vars geometri har en helt
+  konstant kedja.** Den *går* att räkna fram — men den går inte att pröva mot
+  något utan VC, och en oprövad låda som ser ut som en mätt är precis den
+  falska green fas 5 stängdes på. Den erbjuds därför inte. Talet 140 av 3201
+  står här så att den som vill lyfta frågan vet hur stor den är.
 * **Om `Name` någonsin ligger efter byte 181** — M-58:s öppna rad står kvar,
   men den spelar mindre roll nu: namnet läses ur `model.xml`.
 * **Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med

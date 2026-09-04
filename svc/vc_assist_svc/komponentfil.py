@@ -65,7 +65,7 @@ __all__ = ["Filfel", "Harkomst", "Post", "tolka_rsc",
            "Lada", "Rackviddsprofil", "Komponentfakta",
            "las", "las_ur_zip", "svep",
            "las_profil", "tds_profil", "text_profil", "tds_lada",
-           "tds_kontroll", "POSTER_UTAN_GEOMETRI"]
+           "tds_kontroll", "POSTER_UTAN_GEOMETRI", "MINSTA_RADIE_MM"]
 
 
 class Filfel(Exception):
@@ -379,6 +379,12 @@ def tds_kontroll(data):
 # eller OVER 3,1 mm (36 profiler, upp till 1099,8 mm - verkliga 3D-holjen).
 # Gapet mellan de tva ar en faktor fem, och en millimeter ligger mitt i det.
 _PLANTOLERANS_MM = 1.0          # Satt av M-61.
+
+# Under sa manga millimeter ar en avkodad "rackvidd" inte en rackvidd utan ett
+# avkodningsfel. MATT: den minsta radien i hela biblioteket ar 180 mm. Innan
+# radien raknades fran den lodrata axeln gav fjorton Kawasaki-profiler 1e-13,
+# och det talet hade blivit en HARLEDD rackvidd om ingenting stoppat det.
+MINSTA_RADIE_MM = 1.0           # Satt av M-61.
 
 
 class Rackviddsprofil(object):
@@ -1113,10 +1119,17 @@ class Komponentfakta(object):
         if self.rackvidd_mm and self.rackvidd_mm > 0.0:
             return (self.rackvidd_mm, Harkomst.LAST,
                     "model.xml, egenskapen Reach")
-        if self.profil is not None and self.profil.radie_mm > 0.0:
-            return (self.profil.radie_mm, Harkomst.HARLEDD,
-                    "storsta |x| i envelopeprofile, %d segment"
-                    % len(self.profil))
+        if self.profil is not None:
+            radie = self.profil.radie_mm
+            if radie >= MINSTA_RADIE_MM:
+                return (radie, Harkomst.HARLEDD,
+                        "storsta avstand fran axeln i envelopeprofile, "
+                        "%d segment i %s-planet"
+                        % (len(self.profil), self.profil.snittplan))
+            return (None, Harkomst.SAKNAS,
+                    "profilen avkodades men ger radien %.3g mm, vilket ar "
+                    "under %.0f mm och alltsa inget matt" % (radie,
+                                                             MINSTA_RADIE_MM))
         if not self.geometri_last:
             return (None, Harkomst.SAKNAS,
                     "Reach saknas eller ar noll, och rackviddsprofilen ar "

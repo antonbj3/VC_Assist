@@ -52,8 +52,9 @@ from .matt import Langd, krav
 from .rum import Ankare, Layoutfel, Objekt, VRIDNINGAR_RATA
 
 __all__ = ["Saknasfel", "Bounds", "Matt", "Koppling", "Flode", "Bindning",
-           "rackvidd_ur_fakta", "objekt_ur_komponent", "saknade_matt",
-           "kopplingsbara", "flode_ur_fakta", "komponentnamn_karta"]
+           "MAX_RAMRADER", "rackvidd_ur_fakta", "objekt_ur_komponent",
+           "saknade_matt", "kopplingsbara", "flode_ur_fakta",
+           "komponentnamn_karta"]
 
 
 class Saknasfel(Layoutfel):
@@ -139,20 +140,39 @@ def rackvidd_ur_fakta(fakta):
     return Matt(None if mm is None else Langd.mm(mm), harkomst, kalla)
 
 
+#: Sa manga ramar `saknade_matt` radar upp innan den sammanfattar. En
+#: komponent kan bara hundratals ramar, och en lista pa hundra rader lases
+#: inte - den scrollas forbi, och da har svaret sagt lika lite som tystnad.
+#: Talet ar valt i samma anda som katalogsokets MAX_RADER = 10 (M-60).
+MAX_RAMRADER = 5                # Satt av M-61.
+
+
 def saknade_matt(fakta, bounds=None):
-    """Vad som fattas innan komponenten gar att placera. En lista, inte tystnad."""
+    """Vad som fattas innan komponenten gar att placera.
+
+    En LISTA, aldrig tystnad, och aldrig langre an den gar att lasa: ramarna
+    sammanfattas efter `MAX_RAMRADER` rader med hur manga som aterstar.
+    """
+    if not isinstance(fakta, Komponentfakta):
+        raise Layoutfel("saknade_matt tar en Komponentfakta")
     ut = []
     if bounds is None:
         ut.append("omslutande volym: %s" % fakta.lada_skal)
     if not fakta.namn:
         ut.append("namn: model.xml bar inget Name")
-    if fakta.kategori == "Robots" and not rackvidd_ur_fakta(fakta):
-        ut.append("rackvidd: %s" % rackvidd_ur_fakta(fakta).kalla)
-    for r in fakta.ramar:
-        if r.harkomst != Harkomst.LAST:
-            ut.append("ramen %r: lage %s%s"
-                      % (r.namn, r.harkomst,
-                         " (uttryck %r)" % r.uttryck if r.uttryck else ""))
+    if not fakta.kategori:
+        ut.append("kategori: model.xml bar inget Type")
+    rackvidd = rackvidd_ur_fakta(fakta)
+    if fakta.kategori == "Robots" and not rackvidd:
+        ut.append("rackvidd: %s" % rackvidd.kalla)
+    utan_lage = [r for r in fakta.ramar if r.harkomst == Harkomst.SAKNAS]
+    for r in utan_lage[:MAX_RAMRADER]:
+        ut.append("ramen %r: lage %s%s"
+                  % (r.namn, r.harkomst,
+                     " (%s)" % r.uttryck if r.uttryck else ""))
+    if len(utan_lage) > MAX_RAMRADER:
+        ut.append("... och %d ramar till utan lage, av %d"
+                  % (len(utan_lage) - MAX_RAMRADER, len(fakta.ramar)))
     return tuple(ut)
 
 
