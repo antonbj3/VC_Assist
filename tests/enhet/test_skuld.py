@@ -22,7 +22,7 @@ _MATNINGAR = os.path.join(_ROT, "docs", "matningar")
 #
 # Talet far BARA ga nedat. Att hoja det ar att skriva en ny matning som inte
 # sager vad den inte visar, och det ar precis den skuld registret finns for.
-UTAN_ARLIGHETSAVSNITT = 16   # sankt 2026-09-04 av M-65: verkligheten var 16
+UTAN_ARLIGHETSAVSNITT = 11   # sankt 2026-09-04 av M-65: verkligheten var 11
 
 
 def test_sparren_bara_krymper():

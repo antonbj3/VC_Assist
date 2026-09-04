@@ -4,15 +4,10 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 16
+## Mätningar utan ärlighetsavsnitt: 11
 
 En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
 
-* `M-11_kvaternion_och_varldsmatris.md`
-* `M-12_onidle_fyrar_inte.md`
-* `M-13_vad_som_dodar_pumpen.md`
-* `M-15_skapbara_beteenden.md`
-* `M-16_canconnect_dodar_pumpen.md`
 * `M-31_lintern_var_sjalv_en_falsk_gron.md`
 * `M-32_mataren_och_komponentidentiteten.md`
 * `M-33_varldsenheten_ar_millimeter.md`
@@ -25,7 +20,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * `M-47_verktygstackning_runda_1.md`
 * `M-50_de_trasiga_fallen.md`
 
-## Vad mätningarna säger att de inte vet: 171 punkter
+## Vad mätningarna säger att de inte vet: 206 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -110,6 +105,56 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Kostnaden *"0,05 s"* är en körning på den här maskinen.
 * "Tre gånger nu har VC svalt ett fel tyst"* är en räkning av tre observerade
 * Slutsatsen att felet *"måste fångas på disk, före start"* är rätt för det här
+
+### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
+
+* Kvaternionsordningen är mätt för ren gir kring Z, och bara för den.** I alla
+* Sammansatta vridningar är inte prövade alls. Tabellen har en axel i taget.
+* `WorldPositionMatrix`-eftersläpningen är mätt på **en** komponent på scenens
+* De fyra raderna om vad som hämtar hem världsmatrisen är mätta var för sig i
+* Fallet ögat faktiskt möter — läsning **inne i** simuleringens steg, av något
+* `getAxisAngle()`:s vinkel i grader är **läst ur medföljande dokumentation**,
+* Sidofynden om `vcMatrix.identity()`, saknad `__getattribute__` och `vcMatrix`
+
+### M-12_onidle_fyrar_inte.md — Vad som INTE är mätt
+
+* Frånvaron är mätt över **90 sekunder**, i en körning, headless. En `OnIdle` som
+* `OnRender` mättes bara headless. Texten säger själv att förklaringen — att
+* Raden för `OnComponentAdded` är ingen mätning av händelsen. Provet innehöll
+* De 13 sekunderna mellan `OnStart` och `OnAppInitialized` kommer ur **en**
+* Att kroken *"bevisligen laddades"* vilar på att två andra händelser kom fram.
+* Slutsatsen *"att en händelse står i dokumentationen betyder inte att den fyrar"*
+
+### M-13_vad_som_dodar_pumpen.md — Vad som INTE är mätt
+
+* Listan över dödande anrop är uttryckligen ofullständig, och den är ofullständig
+* Slutsatsen *"scenbygge i allmänhet är ofarligt"* vilar på fem gröna operationer
+* Förklaringen till varför `VC_SCRIPT` dödar pumpen (*"VC måste kompilera om och
+* De tre omstartsvägarna är prövade en gång var i den här uppställningen.
+* "`OnRun` återinträder inte"* är mätt för dem, inte för varje väg som finns.
+* Att varningen före körning räcker för anroparen är inte mätt mot en verklig
+* Att `wineserver` håller port 8901 kvar är mätt under Wine. Motsvarande fråga på
+* Punkt 2 i M-16 — att `skrivgrind.DODANDE_ANROP` behöver en **läsande** gren —
+
+### M-15_skapbara_beteenden.md — Vad som INTE är mätt
+
+* De 80 träffarna är mätta som *"`createBehaviour` returnerade ett objekt"*. Att
+* De 164 som ger `None` är mätta som icke-skapbara **med ett argumentlöst anrop**
+* Urvalet är de `VC_*`-konstanter som fanns i **skriptets** scope. Konstanter som
+* Metodfelet är rättat för heltalsfiltret. Att det **nya** urvalet är komplett är
+* Att svepet dödade bryggan i nästa körning står som omätt orsak. Mätningen
+* `VC_TRANSPORT` som kandidat till `Ref<ComponentProcessor>` är märkt oprövad i
+* Python-typen i högerkolumnen är läst av typnamnet på det returnerade objektet.
+
+### M-16_canconnect_dodar_pumpen.md — Vad som INTE är mätt
+
+* Slutsatsen i rubriken är motbevisad i M-37.** Orsaken var inte anropet utan
+* Fyndet vilar på **en** körning, ett par komponenter, en bindning. Ingen
+* Vilket av de två möjliga sluten som inträffade — dödad tasklet eller ett anrop
+* Den generella följdsatsen *"ett läsande verktyg kan döda bryggan"* är dragen ur
+* Punkt 2 i *Vad som ändras* är inte genomförd: `skrivgrind.DODANDE_ANROP` är
+* Punkt 1 — att `can_connect` och `connect` inte får anropas mot ett gränssnitt
+* Byggkedjans sex gröna steg är mätta en gång var, i samma körning som slutade
 
 ### M-20_plcbandet.md — 9. Vad som inte är mätt
 
