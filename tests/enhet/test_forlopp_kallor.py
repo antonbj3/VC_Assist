@@ -293,6 +293,36 @@ class FalskBrygga(object):
                 "svar": {"ok": True, "result": {"result": {}}}}
 
 
+def test_ett_kopplarvarv_ar_en_handelse_inte_ett_plansteg():
+    """Tusen varv far inte gora planen tusen rader lang. Rakningen
+    'N av M klara' skulle da sluta betyda nagot."""
+    k = Klocka()
+    f = forlopp(k)
+    f.plan(["kor_plc"])
+    kopplare = Kopplare(matning.provkarta("ST010"), FalskUa({"matut": True}),
+                        FalskBrygga({"matin": True}))
+    for _ in range(4):
+        k.tick(0.05)
+        fran_kopplarvarv(f, kopplare.kor_varv())
+    assert [s.namn for s in f.steg] == ["kor_plc"]
+    assert sum(1 for h in f.handelser if h.steg.startswith("kopplarvarv")) == 4
+    assert granska(f).ok
+
+
+def test_en_godkand_grind_skriver_inte_ut_sina_egna_ord():
+    """Doktrinen galler domen som FALLDE. Stationsdom.text() gor samma val:
+    en anvandare som drunknar i gront laser inte det roda."""
+    dom = S.granska_station(
+        S.Kandidat(STATION, st_kalla("    don := givare;\n")),
+        stationskarta(), stanna_vid_forsta=False)
+    f = forlopp()
+    fran_stationsdom(f, dom)
+    for h in f.grindar():
+        if h.text == "GODKÄND":
+            assert h.ordagrant == "", h.steg
+    assert granska(f).ok
+
+
 def test_ytan_gar_att_lasa_mellan_tva_varv():
     """Det ar hela fasen i ett prov: forloppet finns MEDAN korningen pagar,
     inte forst nar den ar over."""
@@ -309,6 +339,7 @@ def test_ytan_gar_att_lasa_mellan_tva_varv():
         lasningar.append(text)
         assert granska(f, text).ok
     assert len(set(lasningar)) == 5, "visningen ändrade sig inte mellan varven"
+    assert all("kopplarvarv" in t for t in lasningar[1:])
     assert f.lage == ARBETAR
     assert PAGAR_MARKOR not in lasningar[-1] or f.lage == ARBETAR
 
@@ -469,3 +500,116 @@ def test_TRASIG_en_okand_planstatus_avvisas_i_stallet_for_att_bli_osynlig():
     f = forlopp()
     with pytest.raises(Forloppsfel):
         fran_planprotokoll(f, [Planpost("x", "nastan_klar", "hm")])
+
+
+# ===================================================================
+#  Hela vägen: operatörens mening -> PLC -> grindar -> ögat -> guld
+# ===================================================================
+
+OGONDOM = "\n".join([
+    "EYES v2",
+    "TEMPLATE plockstation",
+    "RUN 2026-09-04T12:00:00 DUR 12.500s SAMPLES 250 RATE 20.0Hz",
+    "SECTION MOTION",
+    "GRIP FORMED t=0.950s dist=12.0mm",
+    "PLACE IN_TARGET err=1.5mm z=0.900m",
+    "SECTION HONESTY",
+    "TELEPORT_TRANSFER OK",
+    "SECTION LIMITS",
+    "NOT_SIMULATED sensor_bounce",
+    "NOT_SIMULATED actuator_dynamics",
+    "NOT_SIMULATED fieldbus_jitter",
+    "NOT_SIMULATED degraded_modes",
+    "NOT_SIMULATED real_hardware",
+    "RESOLUTION sample=50.0ms read=9.9ms join=1.7ms RUN phase=2.0ms",
+    "EYES VERDICT PASS allt inom tolerans",
+])
+
+
+def test_hela_vagen_fran_operatorens_mening_till_guld():
+    """Fasens egentliga fråga: hänger allt ihop, och syns det under tiden?
+
+    Turen går genom PLC-kopplaren, stationsgrinden, godkännandekön, ögat och
+    guldgrinden — och ytan läses vid varje skifte. Ingen av avläsningarna får
+    falla, och ingen av dem får säga ARBETAR när den inte gör det.
+    """
+    k = Klocka()
+    f = Forlopp("o-64", "Bygg en plockstation som klarar 400 detaljer i "
+                        "timmen, med ett inmatningsband och en robot.",
+                klocka=k)
+    avlasningar = []
+
+    def las(vantat_lage):
+        k.tick(0.05)
+        text = rendera(f)
+        dom = granska(f, text)
+        assert dom.ok, dom.text()
+        assert f.lage == vantat_lage, "%s, inte %s" % (f.lage, vantat_lage)
+        avlasningar.append(text)
+        return text
+
+    f.plan(["bygg_scenen", "godkann_skrivning", "kor_plc", "grinda_st",
+            "kor_simulering"])
+    from vc_assist_svc.forlopp import ARBETAR as A, KLART, VANTAR
+
+    # 1. bygget
+    k.tick(0.1)
+    f.steg_borjar("bygg_scenen")
+    las(A)
+    k.tick(0.2)
+    f.steg_klart("bygg_scenen", 41.0)
+
+    # 2. en skrivande post: operatören, inte systemet, bestämmer
+    f.steg_borjar("godkann_skrivning")
+    f.ko_vantar("q7", "load_component('inmatningsband')")
+    las(VANTAR)
+    k.tick(0.1)
+    f.ko_godkand("q7")
+    f.steg_klart("godkann_skrivning", 12.0)
+
+    # 3. PLC-varven, med ytan läst mellan dem
+    f.steg_borjar("kor_plc")
+    kopplare = Kopplare(matning.provkarta("ST010"), FalskUa({"matut": True}),
+                        FalskBrygga({"matin": True}))
+    for _ in range(3):
+        k.tick(0.05)
+        fran_kopplarvarv(f, kopplare.kor_varv())
+        las(A)
+    fran_ogonkoppling(f, {"skjutna": 3, "brutna": 0, "lagrade": 3,
+                          "utan_axel": 1, "oga_stangt": 0, "klockbakat": 0})
+    f.steg_klart("kor_plc", 18.0)
+
+    # 4. grind 1-4
+    f.steg_borjar("grinda_st")
+    dom = S.granska_station(
+        S.Kandidat(STATION, st_kalla("    don := givare;\n")),
+        stationskarta(), index=None, stanna_vid_forsta=False)
+    fran_stationsdom(f, dom)
+    f.steg_klart("grinda_st", 7.0)
+    las(A)
+
+    # 5. ögat och guldgrinden
+    f.steg_borjar("kor_simulering")
+    k.tick(0.3)
+    f.ogat_provtar(250)
+    f.dom(OGONDOM)
+    grind = G.Guldgrind({"plockstation"})
+    beslut = grind.doma([{"namn": "ST010", "klass": "plockstation",
+                          "forgrindar": dict((g, True) for g in G.FORGRINDAR),
+                          "eyes": OGONDOM}])
+    fran_guldbeslut(f, beslut)
+    f.steg_klart("kor_simulering", 12500.0)
+    f.svar("Stationen är byggd. Ögat sa PASS. %s" % beslut.text())
+    slut = las(KLART)
+
+    # Vad slutytan MÅSTE bära
+    assert beslut.text() in slut, "guldbeslutet nådde inte ut ordagrant"
+    assert OGONDOM in slut, "ögats dom nådde inte ut ordagrant"
+    assert "q7" in slut, "kön syns inte i efterhand"
+    assert "utan_axel" not in slut and "PLC-värdenas tid" in slut
+    assert "sensorstuds" in slut, "räckvidden saknas i en körning som gick igenom"
+    assert "kompilering" in slut, "den grind som inte kunde köras syns inte"
+    # sju avläsningar under körningen, alla gröna, och ingen av dem sa fel
+    # läge. Det är fasens krav i ett tal: ytan fanns HELA vägen, inte bara
+    # efteråt.
+    assert len(avlasningar) == 7

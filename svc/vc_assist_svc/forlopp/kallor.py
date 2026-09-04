@@ -40,7 +40,12 @@ def fran_stationsdom(f: Forlopp, dom, korordning: Sequence[str] = ()) -> None:
             continue
         utfall = dom.forgrindar[namn]
         if utfall is True:
-            f.grind(namn, True, dom.utdata.get(namn) or "")
+            # En GODKÄND grinds egna ord skrivs INTE ut. Doktrinen i
+            # `50_grindar.md` handlar om domen som FÄLLDE: den får inte
+            # skrivas om på vägen. `Stationsdom.text()` gör samma val, och
+            # skälet är att en användare som drunknar i grönt inte läser det
+            # röda.
+            f.grind(namn, True)
             continue
         egen = dom.utdata.get(namn) or ""
         if egen.strip():
@@ -100,10 +105,16 @@ def fran_kopplarvarv(f: Forlopp, varv) -> None:
     visningen får inte blanda ihop dem: läget FALLET är absorberande, och att
     sätta det på en hicka vore att låsa en körning som lever.
     """
+    namn = "kopplarvarv %d" % varv.nr
+    # Ett varv är en HÄNDELSE, inte ett steg i planen. Lades det som ett steg
+    # skulle tusen varv göra planen tusen rader lång och räkningen "N av M
+    # klara" meningslös.
     if varv.fel:
-        f.steg_foll("kopplarvarv %d" % varv.nr, varv.fel)
+        f.lagg("VERKTYG_FEL", varv.fel, steg=namn, ordagrant=varv.fel)
     else:
-        f.steg_klart("kopplarvarv %d" % varv.nr, varv.totalt_ms)
+        f.lagg("VERKTYG_KLART",
+               "ok" if varv.totalt_ms is None else "%.1f ms" % varv.totalt_ms,
+               steg=namn)
     if varv.oga_fel:
         f.vet_inte("inskott varv %d" % varv.nr,
                    "värdena nådde inte ögats tidsaxel: %s" % varv.oga_fel)

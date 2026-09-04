@@ -92,7 +92,7 @@ rapportytor — och de rapporterar till oss.
 
 ## 2. Vad som byggdes
 
-`svc/vc_assist_svc/forlopp/`, fyra moduler och 78 prov.
+`svc/vc_assist_svc/forlopp/`, fyra moduler och 82 prov.
 
 | Modul | Äger |
 |---|---|
@@ -116,7 +116,22 @@ Därför byggs ingen webbsida här. Det är inte försiktighet: ett fönster nu
 låser ett beslut `26_appen.md` §7 uttryckligen lämnar öppet, och grinden
 binder ändå ytan den dagen fönstret byggs.
 
-### 2.2 Lägena är härledda, och FALLET är absorberande
+### 2.2 Hela vägen, i ett prov
+
+`test_hela_vagen_fran_operatorens_mening_till_guld` är fasens fråga i ett
+enda prov. Turen går från operatörens mening genom PLC-kopplaren, genom
+godkännandekön, genom grind 1–4, genom ögat och guldgrinden till ett
+levererat svar — och ytan läses **sju gånger under tiden**. Varje avläsning
+granskas, och varje avläsning måste bära rätt läge.
+
+Slutytan kontrolleras på sex saker: guldbeslutet ordagrant, ögats dom
+ordagrant, kön (`q7`) synlig i efterhand, PLC-värdet som lagrades utan
+tidsaxel, räckvidden trots att körningen gick igenom, och den grind som
+aldrig kunde köras.
+
+Sju avläsningar, alla gröna. Det är hela skillnaden mot noll av sju.
+
+### 2.3 Lägena är härledda, och FALLET är absorberande
 
 Ett läge som går att **sätta** går att sätta fel. `Forlopp.lage` räknas fram
 ur händelserna varje gång den läses, i den här ordningen:
