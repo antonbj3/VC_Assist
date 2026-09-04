@@ -1264,3 +1264,130 @@ def test_en_koppling_utan_harkomst_faller_i_harkomstgrinden():
     besked = B.doma(spec, blad)
     assert besked.grind == "B1_HARKOMST"
     assert "HK1_UTAN_HARKOMST" in [k for k, _t in besked.problem]
+
+
+# ======================================================================
+# HELA BANKEN GENOM GRINDKEDJAN
+# ======================================================================
+#
+# 51 uppgifter ur bank/uppgifter/ ar det narmaste verkliga bestallningar vi
+# har. Att kora dem alla svarar pa den fraga en handplockad fixtur aldrig kan
+# svara pa: ar grindarna for TRANGA? En grind som faller pa riktig data den
+# borde slappa igenom ar lika trasig som en som slapper igenom allt.
+
+def _bankuppgifter():
+    import glob
+    import json
+    for sokvag in sorted(glob.glob(os.path.join(_ROT, "bank", "uppgifter",
+                                                "*.json"))):
+        with open(sokvag, encoding="utf-8") as f:
+            yield json.load(f)
+
+
+def _bankindex():
+    import json
+    with open(os.path.join(_ROT, "bank", "katalog_index.json"),
+              encoding="utf-8") as f:
+        kat = json.load(f)
+    index = dict((p["uri"], p) for p in kat["poster"])
+    # bank:// ar bankens egen vokabular och pekar inte pa nagon fil VC kan
+    # ladda. Kartan finns for MATNING och far aldrig koras: en uppfunnen URI
+    # ar ett hart fel (I9). provplaner.py gor samma sak, av samma skal.
+    karta = dict((u, "file:///demonstration/%s.vcm" % u.split("/")[-1])
+                 for u in index)
+    return index, karta
+
+
+def _banksvep():
+    index, karta = _bankindex()
+    ut = []
+    for data in _bankuppgifter():
+        forfinare = Forfinare(index, karta)
+        spec = forfinare.ur_bankuppgift(data)
+        ut.append((data["task_id"], spec,
+                   B.doma(spec, forfinare.datablad)))
+    return ut
+
+
+def test_hela_banken_gar_genom_grindkedjan_utan_falska_roda():
+    """46 av 51 uppgifter blir BYGGBARA. De fem som inte blir det ar de som
+    banken sjalv faller FORE ogat (grind 1-4) och som darfor inte bar en enda
+    rad ogat kan skriva - de har inget facit att stalla planen mot."""
+    svep = _banksvep()
+    byggbara = [t for t, _s, b in svep if b.status == B.BYGGBAR]
+    ofullstandiga = [t for t, _s, b in svep if b.status == B.OFULLSTANDIG]
+    assert len(svep) == 51
+    assert len(byggbara) == 46, sorted(set(t for t, _s, _b in svep)
+                                       - set(byggbara))
+    assert sorted(ofullstandiga) == ["A-90", "P-90", "S-90", "S-91", "T-90"]
+
+
+def test_ingen_bankuppgift_faller_pa_de_tre_nya_grindarna():
+    """Harkomst, processordning och motsagelse far inte fyra pa riktig data.
+
+    Det ar den enda matningen som visar om en ny grind ar for trang, och den
+    gar bara att gora over en samling man inte skrev sjalv."""
+    for task_id, _spec, besked in _banksvep():
+        assert besked.grind not in ("B1_HARKOMST", "B2_PROCESSORDNING",
+                                    "B3_MOTSAGELSE"), \
+            "%s foll pa %s: %s" % (task_id, besked.grind, besked.problem[:1])
+
+
+def test_bankens_villkor_ar_typade_och_forreglingarna_bar_konsument():
+    """Fore M-63 var alla 301 kraven prosa i ett falt ingen laste."""
+    typade = 0
+    prosa = 0
+    for _t, spec, _b in _banksvep():
+        typade += len(spec.villkor)
+        prosa += len(spec.prosakrav)
+    assert typade >= 170, typade
+    assert prosa >= 120, prosa
+
+
+def test_rackviddskravet_har_ett_kant_varde_i_varje_uppgift_som_bar_det():
+    """En grind vars storhet alltid ar OKAND mater ingenting."""
+    krav = 0
+    kanda = 0
+    for _t, spec, besked in _banksvep():
+        faktarum = ST.Faktarum(spec, besked.datablad)
+        for v in spec.villkor:
+            if v.storhet.endswith("rackvidd_mm"):
+                krav += 1
+                kanda += 1 if faktarum.las(v.storhet).kant else 0
+    assert krav >= 25, krav
+    assert kanda == krav, "%d av %d rackviddskrav saknade varde" % (
+        krav - kanda, krav)
+
+
+def test_en_planterad_for_stor_arbetsradie_falls_i_en_riktig_bankuppgift():
+    """Facitlacka, planterad i riktig data.
+
+    Uppgiften ar gron som den star. Hojs arbetsradien over robotens publicerade
+    rackvidd ska den falla - och falla som ett fallt VAL, inte som en omojlig
+    bestallning. Skillnaden ar botemedlet: byt robot, inte krav.
+    """
+    import copy
+    import json
+    index, karta = _bankindex()
+    data = next(d for d in _bankuppgifter() if d["task_id"] == "A-01")
+    frisk = Forfinare(index, karta)
+    assert B.doma(frisk.ur_bankuppgift(data), frisk.datablad).status == B.BYGGBAR
+
+    trasig = copy.deepcopy(data)
+    trasig["fysik"]["arbetsradie_mm"] = 9000.0
+    forfinare = Forfinare(index, karta)
+    besked = B.doma(forfinare.ur_bankuppgift(trasig), forfinare.datablad)
+    assert besked.status == B.AVVISAD
+    assert besked.grind == "B3_MOTSAGELSE"
+    assert besked.motsagelsedom.dom == MO.VALET_FALLER
+    text = "\n".join(t for _k, t in besked.problem)
+    assert "9000" in text and "1650" in text
+    assert "Byt komponent" in text
+
+
+def test_de_matta_kraven_skjuts_upp_till_efter_bygget_i_varje_uppgift():
+    """scen.kollisioner och scen.min_avstand_mm ar okanda av KONSTRUKTION
+    fore bygget. De far inte blockera, och de far inte forsvinna."""
+    for task_id, _spec, besked in _banksvep():
+        storheter = [s for s, _i in besked.motsagelsedom.att_mata]
+        assert "scen.kollisioner" in storheter, task_id

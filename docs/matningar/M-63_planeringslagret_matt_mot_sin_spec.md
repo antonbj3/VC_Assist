@@ -289,6 +289,59 @@ ett sannare svar.
 Det omvända gäller också, och står i protokollet: håller de härledda villkoren
 säger de **ingenting** om huruvida en layout finns.
 
+## 6.5 Hela banken genom grindkedjan: är grindarna för trånga?
+
+En handplockad fixtur kan visa att en grind **faller**. Den kan inte visa att
+grinden faller på **rätt** saker. Därför kördes alla 51 uppgifter i
+`bank/uppgifter/` genom samma sex grindar.
+
+| | Utan URI-karta | Med URI-karta |
+|---|---:|---:|
+| `BYGGBAR` | 0 | **46** |
+| `OFULLSTANDIG` | 51 | 5 |
+| `AVVISAD` | 0 | **0** |
+
+Utan karta blir varje `bank://`-URI en blockerande fråga, och det är rätt svar:
+vokabulären pekar inte på någon fil VC kan ladda, och en uppfunnen URI är ett
+hårt fel (`I9`). Kartan finns för mätning och får aldrig köras.
+
+De fem som inte blir byggbara är `A-90`, `P-90`, `S-90`, `S-91` och `T-90` — de
+uppgifter banken själv fäller **före** ögat (grind 1–4). De bär därför ingen rad
+ögat kan skriva, och en plan utan facit är en kandidat, aldrig en leverans. Det
+är ett riktigt svar, inte en miss.
+
+**Noll uppgifter föll på de tre nya grindarna** (härkomst, processordning,
+motsägelse). Det är den mätning som visar att de inte är för trånga.
+
+Vad banken gav grindarna att arbeta med:
+
+```
+typade villkor:                    176   (före: 0 — allt var prosa)
+prosakrav med namngiven konsument: 125   (bankens förreglingar)
+räckviddskrav:                      28   varav 28 med känt värde
+mätta krav uppskjutna till efter bygget: 102  (2 per uppgift)
+```
+
+**Och en planterad läcka.** Uppgiften `A-01` är grön som den står. Höjs
+`fysik.arbetsradie_mm` från 1 500 till 9 000 mm faller den:
+
+```
+BESKED AVVISAD · GRIND B3_MOTSAGELSE · MOTSAGELSE VALET_FALLER
+MK2_VARDE_MOT_VILLKOR: del.robot.rackvidd_mm = 1650 mm (databladet for robot),
+                       kravet var ge 9000 mm
+    rackvidd: del.robot.rackvidd_mm ge 9000.0  [ur bank: A-01#fysik.arbetsradie_mm]
+    atgard: kravet gar att uppfylla, men inte med den har komponenten.
+            Byt komponent - eller mjuka upp kravet
+```
+
+Domen är `VALET_FALLER`, inte `OMOJLIG`, och det är hela poängen: en 9 000 mm
+arbetsradie är fullt möjlig — bara inte med en IRB 2600. Botemedlet är en annan
+robot, inte ett annat krav.
+
+Samma kontroll finns sedan tidigare i `bank/schema.py` som lintkoden
+`M23_ROBOT_KAPACITET`. Att två oberoende vägar ger samma svar på samma data är
+ett svagt men äkta belägg för att ingen av dem räknar fel.
+
 ## 7. En krock jag hittade och lämnade
 
 Specens grindnamn `P1`–`P8` och `byggplan.LINTKODER`s `P1_`–`P8_` är två olika
@@ -380,9 +433,11 @@ scenfamilj (robot + band + pall + fixtur, kvadratiska hallar). Ett fjärde,
 finare steg kan ändra svaret, och en avlång hall är inte prövad.
 
 **Att bankvägen och fritextvägen ger samma detaljering.** De döms av samma
-grindar (det är provat), men bankens uppgifter bär inga cellmått, inga
-relationer och ingen processordning — så tre av sex grindar har ingenting att
-pröva där. Hur mycket av banken som blir `BYGGBAR` är **inte mätt**.
+grindar, och hela banken är körd (§6.5): 46 av 51 blir `BYGGBAR`. Men bankens
+uppgifter bär **inga cellmått, inga relationer och ingen processordning**, så
+`B2` och den geometriska halvan av `B3` har ingenting att pröva där. De 46 gröna
+säger alltså ingenting om de två grindarna. Det som saknas är en samling
+beställningar som bär cellmått — och den finns inte.
 
 **Att felen jag inte letade efter inte finns.** Mätningen jämförde spec mot kod.
 Den letade inte efter fel i den kod som redan fanns, utöver det som föll ut på
