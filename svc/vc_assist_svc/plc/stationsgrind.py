@@ -43,6 +43,7 @@ from typing import Dict, Optional, Tuple
 from ..api_index import Granskning
 from .deklarationsgrind import granska as granska_deklarationer
 from .signalkarta import Signalkarta
+from .skelett import Skelett, Skelettfel
 
 # Guldgrindens namn på förgrindarna. Importeras inte därifrån: guldgrinden är
 # py2-giltig och ska inte dras in i tjänstelagret. Provet nedan håller ihop dem.
@@ -70,6 +71,18 @@ class Kandidat:
     station: str
     st_kalla: str
     scenkod: Optional[str] = None
+
+    @staticmethod
+    def fran_modellsvar(skelett: Skelett, svar: str,
+                        scenkod: Optional[str] = None) -> "Kandidat":
+        """Kandidaten ur ett rått modellsvar, efter skelettets ramgrind.
+
+        Skelettfel bubblar med flit. En kandidat vars ram är ändrad ska aldrig
+        bli en kandidat: den är inte en kropp med ett fel, den är ett annat
+        program, och att låta den nå grind 2 hade gett en anmärkning om logik
+        där felet var att deklarationerna byttes ut.
+        """
+        return Kandidat(skelett.station, skelett.las_svar(svar), scenkod)
 
 
 @dataclass

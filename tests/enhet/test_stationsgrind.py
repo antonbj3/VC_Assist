@@ -201,3 +201,23 @@ def test_fel_station_ar_ett_fel_inte_ett_underkannande():
     with pytest.raises(S.Stationsfel):
         S.granska_station(S.Kandidat("Annan", kalla(HEL_KROPP), SCENKOD),
                           karta(), index=FalsktIndex())
+
+
+# ---- vagen fran ett ratt modellsvar ----------------------------------------
+
+def test_ett_modellsvar_med_bara_kroppen_blir_en_kandidat():
+    from vc_assist_svc.plc.skelett import Skelett
+    k = karta()
+    kand = S.Kandidat.fran_modellsvar(Skelett.av_karta(k), HEL_KROPP, SCENKOD)
+    dom = S.granska_station(kand, k, index=FalsktIndex())
+    assert dom.forgrindar[S.NAMN_DEKLARATION] is True
+
+
+def test_ett_modellsvar_med_andrad_ram_blir_aldrig_en_kandidat():
+    """Den ar inte en kropp med ett fel, den ar ett annat program."""
+    from vc_assist_svc.plc.skelett import Skelett, Skelettfel
+    k = karta()
+    sk = Skelett.av_karta(k)
+    manipulerat = sk.satt_in(HEL_KROPP).replace("%IX0.0", "%IX0.7")
+    with pytest.raises(Skelettfel):
+        S.Kandidat.fran_modellsvar(sk, manipulerat, SCENKOD)
