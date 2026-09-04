@@ -35,7 +35,6 @@ from vc_assist_svc.forlopp import (ARBETAR, AVBRUTET, EJ_STARTAT,  # noqa: E402
                                    TILLAGDA_SORTER, TYST, VANTAR, granska,
                                    granska_eller_kasta, rendera,
                                    saknade_sektioner)
-from vc_assist_svc.forlopp.handelser import Handelse, Ovisshet     # noqa: E402
 
 
 class Klocka(object):
@@ -65,6 +64,13 @@ OGONDOM = "\n".join([
     "BLOWUP OK",
     "UNDERGROUND OK",
     "NEVER_GRIPPED OK",
+    "SECTION LIMITS",
+    "NOT_SIMULATED sensor_bounce",
+    "NOT_SIMULATED actuator_dynamics",
+    "NOT_SIMULATED fieldbus_jitter",
+    "NOT_SIMULATED degraded_modes",
+    "NOT_SIMULATED real_hardware",
+    "RESOLUTION sample=50.0ms read=9.9ms join=1.7ms RUN phase=2.0ms",
     "EYES VERDICT PASS allt inom tolerans",
 ])
 
@@ -362,9 +368,65 @@ def test_en_uppgift_som_saknas_sags_saknas():
     assert "uppdrag o-1: %s" % SAKNAS in rendera(f)
 
 
+# Ingen egen rad i visningen far vara bredare an sa har. MATT i M-64: 100
+# tecken ryms i ett normalt terminalfonster utan radbrytning, och en visning
+# som bryter rader sjalv blir olaslig i den yta som faktiskt visar den. Nagon
+# ANNANS ord raknas inte: de skrivs ordagrant och far vara hur breda som helst.
+MAX_RADBREDD = 100
+
+
+@pytest.mark.parametrize("byggare", [arbetande, fallen, klar])
+def test_ingen_egen_rad_ar_bredare_an_ett_terminalfonster(byggare):
+    f, _k = byggare()
+    text = rendera(f)
+    for ord_ in f.ordagranna():
+        text = text.replace(ord_, "")
+    breda = [(len(r), r) for r in text.splitlines() if len(r) > MAX_RADBREDD]
+    assert not breda, "\n".join("%d tecken: %s" % b for b in breda)
+
+
 def test_visningen_ar_rader_inte_json():
     text = rendera(fallen()[0])
     assert "{" not in text and "}" not in text
+
+
+class Raknande(Forlopp):
+    """Ett forlopp som raknar hur ofta nagon fragar efter dess lage."""
+
+    def __init__(self, *a, **kw):
+        Forlopp.__init__(self, *a, **kw)
+        self.lasningar = 0
+
+    @property
+    def lage(self):
+        self.lasningar += 1
+        return Forlopp.lage.fget(self)
+
+
+def test_visningen_raknar_sitt_lage_exakt_en_gang():
+    """En visning som raknar sitt eget tillstand tva ganger kan motsaga sig
+    sjalv: klockan hinner ga mellan avlasningarna, och huvudet sager ARBETAR
+    medan kroppen sager TYST. Laget lases en gang och skickas ned."""
+    k = Klocka()
+    f = Raknande("o-1", "x", klocka=k)
+    f.plan(["a", "b"])
+    k.tick(0.2)
+    f.steg_borjar("a")
+    f.lasningar = 0
+    rendera(f)
+    assert f.lasningar == 1, "rendera() lasta laget %d ganger" % f.lasningar
+
+
+def test_grinden_raknar_sitt_lage_exakt_en_gang():
+    k = Klocka()
+    f = Raknande("o-1", "x", klocka=k)
+    f.plan(["a", "b"])
+    k.tick(0.2)
+    f.steg_borjar("a")
+    text = rendera(f)
+    f.lasningar = 0
+    granska(f, text)
+    assert f.lasningar == 1, "granska() lasta laget %d ganger" % f.lasningar
 
 
 # ===================================================================
@@ -376,8 +438,26 @@ def test_rackvidden_star_i_varje_visning_ocksa_en_som_gick_igenom():
     provat sensorstuds ska saga det, inte tiga."""
     for f, _k in (arbetande(), fallen(), klar()):
         text = rendera(f)
-        for namn, _skal in RACKVIDDEN:
+        for _nyckel, namn, _skal in RACKVIDDEN:
             assert namn in text, "%s saknas i läget %s" % (namn, f.lage)
+
+
+def test_rackvidden_ar_ogats_egen_lista():
+    """Ogats kontrakt kraver sedan v2 en NOT_SIMULATED-rad per post i
+    EJ_SIMULERAT, och det ar samma fem saker ur samma stycke i
+    50_grindar.md. Tva listor som ska vara samma lista gar isar tyst."""
+    sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
+    import oga_kontrakt as K
+    assert tuple(n for n, _namn, _skal in RACKVIDDEN) == K.EJ_SIMULERAT
+
+
+def test_rackviddens_skal_namner_ogats_eget_ord():
+    """Den som laser ogats rapport bredvid visningen ska se att
+    NOT_SIMULATED sensor_bounce och raden 'sensorstuds' ar samma sak."""
+    f, _k = arbetande()
+    text = rendera(f)
+    for nyckel, _namn, _skal in RACKVIDDEN:
+        assert nyckel in text, "%s namns inte i visningen" % nyckel
 
 
 def test_avsnittet_om_ovisshet_ar_aldrig_tomt():
@@ -414,7 +494,7 @@ def test_sektionslistan_ar_guldgrindens():
 
 def test_en_dom_utan_honesty_upptacks():
     assert saknade_sektioner(OGONDOM) == ()
-    assert saknade_sektioner(OGONDOM_UTAN_ARLIGHET) == ("HONESTY",)
+    assert saknade_sektioner(OGONDOM_UTAN_ARLIGHET) == ("HONESTY", "LIMITS")
 
 
 # ===================================================================
@@ -492,6 +572,7 @@ def test_TRASIG_en_korning_utan_arlighetsavsnitt_falls():
     dom = granska(f, text)
     assert not dom.ok, "en dom utan ärlighetsgrind visades som en dom"
     assert "Y6" in dom.brutna, dom.text()
+    assert any("HONESTY" in b.vad for b in dom.brott), dom.text()
     # Ogats egna ord ar OFORANDRADE i den har renderaren. Felet ar inte en
     # omskrivning utan en utelamning, och den maste falla for sig.
     assert OGONDOM_UTAN_ARLIGHET in text

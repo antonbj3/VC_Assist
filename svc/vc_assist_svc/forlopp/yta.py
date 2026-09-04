@@ -32,14 +32,13 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
-from .handelser import (ABSORBERANDE, ARBETAR, AVBRUTET, EJ_PROVAT,
-                        EJ_STARTAT, FALLET, Forloppsfel, Handelse, KLART,
-                        LAGEN, Ovisshet, PAGAR_MARKOR, RACKVIDDEN, SORTER,
-                        STEG_FOLL, STEG_HOPPAT, STEG_KLART, STEG_PAGAR,
-                        STEG_VANTAR, STILLA, Steg, TYST, UTANFOR_RACKVIDD,
-                        VANTAR)
+from .handelser import (ARBETAR, AVBRUTET, EJ_PROVAT, EJ_STARTAT, FALLET,
+                        Forloppsfel, Handelse, KLART, Ovisshet, PAGAR_MARKOR,
+                        RACKVIDDEN, STEG_FOLL, STEG_HOPPAT, STEG_KLART,
+                        STEG_PAGAR, STEG_VANTAR, Steg, TYST,
+                        UTANFOR_RACKVIDD, VANTAR)
 
 # Hur många händelserader visningen skriver ut. MÄTT i M-64: en händelserad
 # är 40-90 tecken, så tolv rader är under 1 100 tecken och hela ytan ryms
@@ -66,7 +65,10 @@ SAKNAS = "saknas"
 # överträdelse tvingar FAIL, men regeln är TOM om sektionen inte finns. En
 # rapport utan HONESTY har alltså ingen ärlighetsgrind alls — och den såg ut
 # som guld.
-OBLIGATORISKA_SEKTIONER = ("MOTION", "HONESTY")
+# LIMITS kom med v2 (M-65) och är den som hör den här fasen till: en rapport
+# som inte säger vad ögat INTE ser har inte sagt allt. Samma krav som
+# visningens eget avsnitt "VET INTE", en våning ned.
+OBLIGATORISKA_SEKTIONER = ("MOTION", "HONESTY", "LIMITS")
 
 # Vad visningen skriver när en obligatorisk sektion saknas. Grinden letar
 # efter exakt den här inledningen i en främmande renderares text.
@@ -117,7 +119,8 @@ class Forlopp(object):
         self.handelser: List[Handelse] = []
         self.steg: List[Steg] = []
         self.ovissheter: List[Ovisshet] = [
-            Ovisshet(namn, skal, UTANFOR_RACKVIDD) for namn, skal in RACKVIDDEN]
+            Ovisshet(namn, "%-19s %s" % (nyckel, skal), UTANFOR_RACKVIDD)
+            for nyckel, namn, skal in RACKVIDDEN]
 
     # ---- att föra protokollet -------------------------------------------
 
@@ -346,7 +349,7 @@ def _block(vem: str, text: str) -> List[str]:
     return [_MARKOR_START % vem, text, _MARKOR_SLUT]
 
 
-def okorda_steg(f: "Forlopp") -> Tuple[Steg, ...]:
+def okorda_steg(f: "Forlopp", lage: Optional[str] = None) -> Tuple[Steg, ...]:
     """Steg utan utfall, i en körning som är slut.
 
     Ett levererat svar över en halvkörd plan är den klassiska falska grönen:
@@ -359,21 +362,21 @@ def okorda_steg(f: "Forlopp") -> Tuple[Steg, ...]:
     körningen dog, och en omkörning skulle kunna ladda in en komponent två
     gånger (`24_samtalsloopen.md` §5). De två får inte se likadana ut.
     """
-    if f.lage not in (KLART, FALLET, AVBRUTET):
+    if (f.lage if lage is None else lage) not in (KLART, FALLET, AVBRUTET):
         return ()
     return tuple(s for s in f.steg if s.status in (STEG_VANTAR, STEG_PAGAR))
 
 
-def _okort_skal(f: "Forlopp", steg: Steg) -> str:
+def _okort_skal(lage: str, steg: Steg) -> str:
     if steg.status == STEG_PAGAR:
-        return ("steget påbörjades men fick aldrig ett utfall; det kan ha "
-                "hunnit ha verkan (24_samtalsloopen.md §5)")
-    return "steget kördes aldrig; körningen slutade som %s" % f.lage
+        return ("påbörjat, utan utfall; kan ha hunnit ha verkan "
+                "(24_samtalsloopen.md §5)")
+    return "steget kördes aldrig; körningen slutade som %s" % lage
 
 
 def _stegrader(f: Forlopp, lage: str, nu: float) -> List[str]:
     klara = sum(1 for s in f.steg if s.status == STEG_KLART)
-    okorda = okorda_steg(f)
+    okorda = okorda_steg(f, lage)
     aldrig = [s for s in okorda if s.status != STEG_PAGAR]
     avbrutna = [s for s in okorda if s.status == STEG_PAGAR]
     extra = []
@@ -415,8 +418,8 @@ def _grindrader(f: Forlopp) -> List[str]:
 def _domrader(f: Forlopp) -> List[str]:
     domar = f.domar()
     if not domar:
-        rader = ["ÖGATS DOM (grind 5): %s — ögat har inte kört, och en "
-                 "körning utan ögondom är kandidat, aldrig guld" % SAKNAS]
+        rader = ["ÖGATS DOM (grind 5): %s — ögat har inte kört." % SAKNAS,
+                 "  En körning utan ögondom är kandidat, aldrig guld."]
     else:
         rader = ["ÖGATS DOM (grind 5), som ögat skrev den:"]
         for h in domar:
@@ -453,7 +456,7 @@ def _handelserader(f: Forlopp) -> List[str]:
     return rader
 
 
-def _ovissrader(f: Forlopp) -> List[str]:
+def _ovissrader(f: Forlopp, lage: str) -> List[str]:
     rackvidd = [o for o in f.ovissheter if o.klass == UTANFOR_RACKVIDD]
     korning = [o for o in f.ovissheter if o.klass == EJ_PROVAT]
     # En saknad sektion i ögats rapport är en grind som aldrig kört. Den
@@ -463,14 +466,13 @@ def _ovissrader(f: Forlopp) -> List[str]:
                  "ögats rapport bär ingen SECTION %s; den grinden har aldrig "
                  "kört" % namn)
                 for namn, _rad in _saknade_i_domarna(f)]
-    harledda += [("steg " + s.namn, _okort_skal(f, s))
-                 for s in okorda_steg(f)]
+    harledda += [("steg " + s.namn, _okort_skal(lage, s))
+                 for s in okorda_steg(f, lage)]
     rader = ["%s %d poster" % (RUBRIK_VET_INTE,
                                len(f.ovissheter) + len(harledda)),
-             "  utanför räckvidd — ingen körning betar av dem "
-             "(50_grindar.md):"]
+             "  utanför räckvidd (50_grindar.md). Ögats eget namn i mitten:"]
     for o in rackvidd:
-        rader.append("    %-24s %s" % (o.namn, o.skal))
+        rader.append("    %-18s %s" % (o.namn, o.skal))
     rader.append("  ej prövat i den här körningen:")
     if not korning and not harledda:
         rader.append("    (inget utöver räckvidden)")
@@ -499,7 +501,8 @@ def rendera(f: Forlopp) -> str:
         rader.append(skal)
     if lage == TYST:
         rader.append("ingenting har hänt på %.1f s. Systemet vet inte om "
-                     "något arbetar." % f.tyst_sedan())
+                     "något arbetar."
+                     % (nu - (sista.t if sista else f.t0)))
     rader.append("")
     rader.extend(_stegrader(f, lage, nu))
     rader.append("")
@@ -509,5 +512,5 @@ def rendera(f: Forlopp) -> str:
     rader.append("")
     rader.extend(_handelserader(f))
     rader.append("")
-    rader.extend(_ovissrader(f))
+    rader.extend(_ovissrader(f, lage))
     return "\n".join(rader)

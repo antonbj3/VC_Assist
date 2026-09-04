@@ -15,9 +15,9 @@ Varje funktion nedan tar `Forlopp` först, som en utskrift tar sin ström först
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Sequence
+from typing import Any, Dict, Sequence
 
-from .handelser import EJ_PROVAT, Forloppsfel
+from .handelser import Forloppsfel
 from .yta import Forlopp
 
 

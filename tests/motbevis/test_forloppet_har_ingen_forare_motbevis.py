@@ -20,8 +20,6 @@ import os
 import re
 import sys
 
-import pytest
-
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 

@@ -42,8 +42,8 @@ tillägget syns i stället för att glida in. Förslaget till spec ligger i M-64
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, Optional
 
 # ---------------------------------------------------------------- lägena
 
@@ -150,16 +150,23 @@ OVISSHETSKLASSER = (UTANFOR_RACKVIDD, EJ_PROVAT)
 # verklig hårdvara finns inte i simuleringen. Ögat är felfinnande, aldrig
 # bevis." Listan är permanent. En körning kan inte beta av den, och därför
 # står den i VARJE visning — också en som gick igenom.
+#
+# Första fältet är ÖGATS EGET NAMN på saken. Ögats kontrakt kräver sedan v2
+# (M-65) en `NOT_SIMULATED`-rad per post i `oga_kontrakt.EJ_SIMULERAT`, och
+# det är samma fem saker ur samma stycke i `50_grindar.md`. De två listorna
+# får inte glida isär, och `test_forlopp.py::test_rackvidden_ar_ogats_egen_lista`
+# håller ihop dem. Namnet står också i skälet, så att den som läser ögats
+# rapport bredvid visningen ser att det är samma sak.
 RACKVIDDEN = (
-    ("sensorstuds",
-     "simuleringen har ingen sensormodell; en givare studsar inte här"),
-    ("ställdonsdynamik",
-     "don rör sig efter scenens kinematik, inte efter tryck och tröghet"),
-    ("fältbussjitter",
-     "kopplaren går över loopback; ingen Profinet, ingen EtherNet/IP"),
-    ("degraderade lägen",
-     "brutna givare, halvöppna ventiler och nödstopp finns inte i scenen"),
-    ("verklig hårdvara",
+    ("sensor_bounce", "sensorstuds",
+     "ingen sensormodell; en givare studsar inte här"),
+    ("actuator_dynamics", "ställdonsdynamik",
+     "don rör sig efter kinematik, inte efter tryck och tröghet"),
+    ("fieldbus_jitter", "fältbussjitter",
+     "kopplaren går över loopback; ingen fältbuss"),
+    ("degraded_modes", "degraderade lägen",
+     "brutna givare och nödstopp finns inte i scenen"),
+    ("real_hardware", "verklig hårdvara",
      "ingen rad har körts mot en fysisk maskin"),
 )
 

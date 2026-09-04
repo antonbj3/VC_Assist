@@ -92,7 +92,7 @@ rapportytor — och de rapporterar till oss.
 
 ## 2. Vad som byggdes
 
-`svc/vc_assist_svc/forlopp/`, fyra moduler och 71 prov.
+`svc/vc_assist_svc/forlopp/`, fyra moduler och 78 prov.
 
 | Modul | Äger |
 |---|---|
@@ -155,18 +155,24 @@ svarar på frågan *hur säger man något utan att se mer uttömmande ut än man
 
 | Läge | tecken | rader | andel om ovisshet | andel andras ord |
 |---|---:|---:|---:|---:|
-| `ARBETAR` | **1 360** | 30 | 44 % | 0 % |
-| `FALLET` | **2 346** | 46 | 39 % | 12 % |
-| `KLART` | **2 229** | 58 | 27 % | 18 % |
-| `ARBETAR`, 204 händelser | **1 606** | 39 | — | — |
+| `ARBETAR` | **1 362** | 31 | 44 % | 0 % |
+| `FALLET` | **2 321** | 47 | 39 % | 12 % |
+| `KLART` | **2 457** | 65 | 24 % | 26 % |
+| `ARBETAR`, 204 händelser | **1 608** | 40 | — | — |
 
-Sista raden är trimningen. Otrimmad hade samma körning kostat **8 479
-tecken**; med taket `MAX_HANDELSERADER = 12` kostar den 1 606, och visningen
+Sista raden är trimningen. Otrimmad hade samma körning kostat **8 481
+tecken**; med taket `MAX_HANDELSERADER = 12` kostar den 1 608, och visningen
 skriver ut att den dolde 192 rader.
 
 Att mellan en fjärdedel och nästan halva ytan handlar om vad vi **inte** vet
 är avsikten, inte ett mätfel. `50_grindar.md`: ögat är felfinnande, aldrig
 bevis.
+
+Ingen egen rad är bredare än **100 tecken**, så visningen ryms i ett normalt
+terminalfönster utan att bryta rader själv. Någon annans ord räknas inte —
+de skrivs ordagrant och får vara hur breda som helst. Provet
+`test_ingen_egen_rad_ar_bredare_an_ett_terminalfonster` håller gränsen, och
+den fällde tre rader när den skrevs.
 
 ### 3.2 Grindens ord trimmas aldrig
 
@@ -270,6 +276,11 @@ på en regel utan en.
 | `Y10` | ett arbetande läge namnger vad som pågår, och hur länge |
 | `Y11` | en avslutad körning räknar stegen som aldrig kördes |
 
+`Y6` kräver nu tre sektioner, inte två: `MOTION`, `HONESTY` och — sedan
+`M-65` — `LIMITS`. Det är samma krav som visningens eget avsnitt *VET INTE*,
+en våning ned: en rapport som inte säger vad ögat inte ser har inte sagt
+allt.
+
 `Y2` har en egen trasig fixtur åt andra hållet: en kompilatorrad som råkar
 innehålla frasen `pågår sedan` får **inte** fälla visningen. En grinds egna
 ord är inte visningens påstående, så grinden tar bort främmande ord innan den
@@ -286,6 +297,20 @@ den andra gör det aldrig.
 sensorstuds, ställdonsdynamik, fältbussjitter, degraderade lägen och verklig
 hårdvara. De står i **varje** visning, också en som gick igenom. En körning
 kan inte beta av dem.
+
+Här hände något värt att skriva ned. Samma dygn, i en annan cell, lade `M-65`
+till sektionen `LIMITS` i ögats kontrakt med kravet att rapporten ska bära en
+`NOT_SIMULATED`-rad per post i `oga_kontrakt.EJ_SIMULERAT`. Den listan är
+`sensor_bounce`, `actuator_dynamics`, `fieldbus_jitter`, `degraded_modes`,
+`real_hardware` — **samma fem saker, i samma ordning**, härledda oberoende ur
+samma stycke i `50_grindar.md`.
+
+Två listor som ska vara samma lista går isär tyst, så de är nu bundna:
+ögats eget namn står som andra kolumn i visningen, och
+`test_rackvidden_ar_ogats_egen_lista` jämför tupeln mot `K.EJ_SIMULERAT`.
+Bindningen visade sig direkt: `guldgrind.OBLIGATORISKA_SEKTIONER` växte från
+två till tre sektioner mitt under arbetet, och provet
+`test_sektionslistan_ar_guldgrindens` föll i samma minut.
 
 **Ej prövat i den här körningen**, hämtat ur källornas egna skäl:
 

@@ -57,11 +57,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
-from .handelser import (ARBETAR, Forloppsfel, PAGAR_MARKOR, STILLA)
-from .yta import (Forlopp, RUBRIK_VET_INTE, SEKTION_SAKNAS,
-                  _saknade_i_domarna, okorda_steg, rendera)
+from .handelser import (ARBETAR, Forloppsfel, PAGAR_MARKOR, STILLA,
+                        UTANFOR_RACKVIDD)
+from .yta import (Forlopp, RUBRIK_VET_INTE, _saknade_i_domarna, okorda_steg,
+                  rendera)
 
 _RAKNING = re.compile(r"HÄNDELSER: (\d+) totalt, visar (\d+)")
 _DOLDA = re.compile(r"\.\.\. (\d+) till, ej visade\.")
@@ -232,7 +233,7 @@ def granska(f: Forlopp, text: Optional[str] = None) -> Forloppsdom:
                     "Y10", "läget är ARBETAR men visningen säger inte hur "
                            "länge sedan något hände"))
     # Y11 -- en avslutad körning räknar stegen som aldrig kördes
-    for steg in okorda_steg(f):
+    for steg in okorda_steg(f, lage):
         if ("steg " + steg.namn) not in text:
             brott.append(Brott(
                 "Y11", "steget %s kördes aldrig, och visningen säger det "
@@ -242,7 +243,6 @@ def granska(f: Forlopp, text: Optional[str] = None) -> Forloppsdom:
 
 
 def _rackvidden(f: Forlopp):
-    from .handelser import UTANFOR_RACKVIDD
     return [(o.namn, o.skal) for o in f.ovissheter
             if o.klass == UTANFOR_RACKVIDD]
 
