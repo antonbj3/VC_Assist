@@ -633,11 +633,15 @@ def test_varje_publikt_namn_har_en_konsument():
     användas någon annanstans i paketet eller prövas i testerna."""
     import importlib
 
+    # Listan over provfiler LASES, den skrivs inte. En handskriven lista
+    # faller efter sa fort en ny modul far ett eget prov, och da flaggar
+    # grinden namn som ar provade - alltsa en falsk rod som lockar till att
+    # ta bort riktig kod. (M-61: test_layout_komponent.py var den forsta.)
+    provmapp = os.path.join(_ROT, "tests", "enhet")
     testkalla = ""
-    for fil in ("test_layout.py", "test_layout_placering.py"):
-        stig = os.path.join(_ROT, "tests", "enhet", fil)
-        if os.path.exists(stig):
-            with io.open(stig, encoding="utf-8") as f:
+    for fil in sorted(os.listdir(provmapp)):
+        if fil.startswith("test_layout") and fil.endswith(".py"):
+            with io.open(os.path.join(provmapp, fil), encoding="utf-8") as f:
                 testkalla += f.read()
     foraldralosa = []
     for fil in _MODULER:

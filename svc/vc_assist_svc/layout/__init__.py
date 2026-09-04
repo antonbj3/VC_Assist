@@ -14,6 +14,7 @@ Components startas. Den anropar aldrig VC; den lämnar ifrån sig en sekvens
     fria_ytor.py    vad som är ledigt, och var något får plats
     relationer.py   placeringsspråket: bredvid, framför, mot väggen, på ...
     losare.py       sökningen, konfliktkärnan och de fyra svaren
+    komponent.py    bryggan från en RIKTIG komponentfil till ett Objekt
     vc_utdata.py    layouten som anrop mot det befintliga verktygsregistret
     provscener.py   24 scener ur bänken, med verkliga mått, och mätningen
 
@@ -41,12 +42,15 @@ Tre regler bär hela motorn:
 3. DETERMINISM. Samma indata ger samma utdata, alltid. Varje ordning i
    sökningen är fastlagd och provas mekaniskt.
 
-Prov: tests/enhet/test_layout.py och tests/enhet/test_layout_placering.py.
+Prov: tests/enhet/test_layout*.py.
 """
 from __future__ import annotations
 
 from .fria_ytor import (RASTER_M, Rasterkarta, far_plats, ledig_area_m2,
                         storsta_lediga_rektangel)
+from .komponent import (Bindning, Bounds, Koppling, Matt, Saknasfel,
+                        komponentnamn_karta, kopplingsbara,
+                        objekt_ur_komponent, rackvidd_ur_fakta, saknade_matt)
 from .kollision import (Granskning, Hojdbrott, Overlapp, Passagebrott,
                         Provsvar, Utanfor, Zonbrott, avstand_m, fri_bredd_m,
                         granska, kravd_separation_m, provplacera, radie_langs,
@@ -85,6 +89,10 @@ __all__ = [
     "Utfall",
     # losare
     "NODBUDGET", "Losning", "Status", "Steg", "losa",
+    # riktiga komponenter
+    "Bindning", "Bounds", "Koppling", "Matt", "Saknasfel",
+    "komponentnamn_karta", "kopplingsbara", "objekt_ur_komponent",
+    "rackvidd_ur_fakta", "saknade_matt",
     # utdata mot VC
     "Ankarfel", "Anrop", "till_verktygsanrop", "validera_mot_registret",
 ]
