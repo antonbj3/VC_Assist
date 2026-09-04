@@ -73,7 +73,13 @@ VC:s py2-bindning svarar `SystemError` på unicode (M-05).
 Det förklarar också varför varje köad kodsnutt har behövt `str()` runt varenda
 sträng. Alla tre `exec`-ställen kompilerar nu med `dont_inherit=True`.
 
-### 6. Och ändå: mataren matar inte
+### 6. Och ändå: mataren matar inte — **RÄTTAD, se M-34**
+
+> **Rättelse 2026-09-04.** Slutsatsen nedan är **fel**. Mataren skapar mycket
+> väl produkter; de hamnar i beteendets egen behållare, inte bland scenens
+> toppnivåkomponenter. Jag mätte `len(app.Components)` — fel lista, tolv
+> gånger i rad. Se [M-34](M-34_produkten_finns_men_flodar_inte.md).
+
 
 Med allt ovan rätt — mataren finns när simuleringen startar, `Enabled=True`,
 `Interval=1.0`, `Limit=5`, och `Part` bär en URI som **bevisligen går att ladda**:
