@@ -179,7 +179,11 @@ def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
     os.makedirs(utkatalog, exist_ok=True)
     kompilatortext = for_kompilator(st_text)
     stfil = os.path.join(utkatalog, "program.st")
-    with open(stfil, "w", encoding="ascii") as f:
+    # newline="\n" ar inte kosmetik. Utan den oversatter Python textlaget varje
+    # \n till \r\n pa Windows, och da ar filen kompilatorn laser INTE de bytes
+    # md5:n raknas over pa raden efter. PROGRAM_MD5 skulle beskriva en text som
+    # aldrig funnits pa disk. Satt av M-44.
+    with open(stfil, "w", encoding="ascii", newline="\n") as f:
         f.write(kompilatortext)
     md5 = hashlib.md5(kompilatortext.encode("ascii")).hexdigest()
     omslag = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -199,7 +203,8 @@ def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
     # PROGRAM_MD5 ska vara programmets hash. Den räknas här och inte i omslaget
     # så att samma tal går in i defines.h och i debugkartan; två hashar med
     # samma namn hade varit en tyst avvikelse att felsöka senare.
-    with open(os.path.join(utkatalog, DEFINES), "w", encoding="ascii") as f:
+    with open(os.path.join(utkatalog, DEFINES), "w", encoding="ascii",
+              newline="\n") as f:
         f.write("#ifndef DEFINES_H\n#define DEFINES_H\n"
                 "#define PROGRAM_MD5 \"%s\"\n#endif\n" % md5)
     return Debugkarta.las_fil(os.path.join(utkatalog, DEBUGKARTA))
@@ -239,11 +244,37 @@ def bygg_projekt(st_text: str, utkatalog: str, strucpp_paket: str,
         confkatalog = os.path.join(utkatalog, CONF_UNDERKATALOG)
         os.makedirs(confkatalog, exist_ok=True)
         with open(os.path.join(confkatalog, "opcua.json"), "w",
-                  encoding="ascii") as f:
+                  encoding="ascii", newline="\n") as f:
             json.dump(opcua_konfig, f, indent=2, sort_keys=True)
     zipvag = os.path.join(utkatalog, "projekt.zip")
     skriv_arkiv(utkatalog, zipvag)
     return zipvag, debugkarta
+
+
+def arkivnamn(rel: str, sep: Optional[str] = None,
+              altsep: Optional[str] = None) -> str:
+    """En relativ sökväg som ZIP-postnamn: alltid `/`, aldrig `os.sep`.
+
+    ZIP-formatet skriver ut det (APPNOTE 4.4.17.1: "forward slashes"), och
+    `zipfile.ZipInfo.from_file` gör INTE översättningen åt oss — den kör
+    `normpath` och kapar inledande separatorer, ingenting mer. På Windows ger
+    `os.path.relpath` `strucpp_runtime\\include\\foo.h`, och det hamnar som ett
+    postnamn med bakstreck i arkivet. Uppackat i runtimens Linux-container blir
+    det EN fil vars namn innehåller bakstreck, i arkivets rot — inte en katalog.
+    `scripts/compile.sh` hittar då inga headers och bygget faller på
+    "Missing required source files".
+
+    Separatorerna är argument så att Windows-grenen går att pröva från Linux.
+    Satt av M-44.
+    """
+    if sep is None:
+        sep = os.sep
+    if altsep is None:
+        altsep = os.altsep
+    ut = rel.replace(sep, "/")
+    if altsep:
+        ut = ut.replace(altsep, "/")
+    return ut
 
 
 def skriv_arkiv(katalog: str, zipvag: str) -> List[str]:
@@ -251,6 +282,8 @@ def skriv_arkiv(katalog: str, zipvag: str) -> List[str]:
 
     Källfilen program.st och debug-map.json följer inte med — de hör till
     bygget, inte till runtimen.
+
+    Posterna namnges med `/` oavsett värdplattform; se `arkivnamn`.
     """
     utelamna = set(EJ_I_ARKIVET) | {"program.st", os.path.basename(zipvag)}
     poster: List[str] = []
@@ -261,7 +294,7 @@ def skriv_arkiv(katalog: str, zipvag: str) -> List[str]:
             rel = os.path.relpath(full, katalog)
             if rel in utelamna:
                 continue
-            poster.append(rel)
+            poster.append(arkivnamn(rel))
     if GENERERAD_HPP not in poster:
         raise Byggfel("arkivet saknar %s; runtimen avvisar det" % GENERERAD_HPP)
     if DEBUGTABELL not in poster:
@@ -270,6 +303,6 @@ def skriv_arkiv(katalog: str, zipvag: str) -> List[str]:
     if DEFINES not in poster:
         raise Byggfel("arkivet saknar %s; make hittar inget mål" % DEFINES)
     with zipfile.ZipFile(zipvag, "w", zipfile.ZIP_DEFLATED) as z:
-        for rel in poster:
-            z.write(os.path.join(katalog, rel), rel)
+        for post in poster:
+            z.write(os.path.join(katalog, *post.split("/")), post)
     return poster

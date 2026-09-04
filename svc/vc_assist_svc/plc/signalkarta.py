@@ -411,7 +411,10 @@ class Signalkarta:
             return Signalkarta.las_text(f.read())
 
     def skriv_fil(self, sokvag: str) -> None:
-        with open(sokvag, "w", encoding="ascii") as f:
+        # newline="\n": kartan gar in i ett arkiv som packas upp i en
+        # Linux-container. Radsluten ska inte bero pa vilken maskin som
+        # skrev den. Satt av M-44.
+        with open(sokvag, "w", encoding="ascii", newline="\n") as f:
             f.write(self.text())
 
 

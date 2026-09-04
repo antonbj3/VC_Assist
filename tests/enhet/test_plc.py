@@ -503,7 +503,48 @@ def test_arkivet_utelamnar_byggets_egna_filer(tmp_path):
     poster = skriv_arkiv(katalog, os.path.join(katalog, "projekt.zip"))
     assert "debug-map.json" not in poster
     assert "program.st" not in poster
-    assert os.path.join("conf", "opcua.json") in poster
+    # "/" och inte os.path.join: postnamnen i ett arkiv ar inte vardmaskinens
+    # sokvagar, de ar ZIP-namn. Se P.arkivnamn och M-44.
+    assert "conf/opcua.json" in poster
+
+
+def test_arkivnamn_oversatter_windows_separatorn():
+    """Windows-grenen, kord pa Linux med separatorn injicerad."""
+    assert P.arkivnamn(r"strucpp_runtime\include\foo.h", sep="\\",
+                       altsep="/") == "strucpp_runtime/include/foo.h"
+    assert P.arkivnamn("defines.h", sep="\\", altsep="/") == "defines.h"
+    assert P.arkivnamn("conf/opcua.json", sep="/", altsep=None) == "conf/opcua.json"
+
+
+def test_zipfile_gor_INTE_oversattningen_at_oss():
+    """Skalet till att arkivnamn() finns alls.
+
+    En trasig fixtur i biblioteket, inte i var kod: ZipInfo.from_file kor
+    normpath och kapar inledande separatorer - den byter inte ut os.sep. Ett
+    postnamn med bakstreck blir i runtimens Linux-container EN fil vars namn
+    innehaller bakstreck, i arkivets rot, och compile.sh hittar inga headers.
+    """
+    import zipfile
+    info = zipfile.ZipInfo("strucpp_runtime\\include\\foo.h")
+    assert "\\" in info.filename
+    assert "/" not in info.filename
+
+
+def test_arkivets_postnamn_bar_aldrig_bakstreck(tmp_path):
+    katalog = str(tmp_path)
+    for namn in ("generated.cpp", "generated.hpp", "generated_debug.cpp",
+                 "defines.h"):
+        _lagg(katalog, namn)
+    _lagg(katalog, os.path.join("strucpp_runtime", "include", "runtime.h"))
+    _lagg(katalog, os.path.join("conf", "opcua.json"), "[]")
+    zipvag = os.path.join(katalog, "projekt.zip")
+    poster = skriv_arkiv(katalog, zipvag)
+    import zipfile
+    with zipfile.ZipFile(zipvag) as z:
+        namn = z.namelist()
+    assert "strucpp_runtime/include/runtime.h" in namn
+    assert not any("\\" in n for n in namn), namn
+    assert sorted(namn) == sorted(poster)
 
 
 def test_kompilera_utan_strucpp_paket_falls(tmp_path):
