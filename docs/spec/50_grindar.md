@@ -53,3 +53,24 @@ allt under IEC 61508 eller ISO 13849 ligger på certifierad säkerhets-PLC,
 skrivet i begränsat variabelt språk, av människa. Genererad logik får ligga
 bredvid och vara förreglad av den. Detta är inte förhandlingsbart och
 implementeras som en grind: taggar märkta säkerhet är skrivskyddade för agenten.
+
+## Varför ingen modellkontroll
+
+Kedjan har ingen formell verifiering, och det är ett val, inte en lucka.
+
+Formell verifiering av ST går blind precis där PLC-felen bor:
+
+* PLCverif översätter ungefär **40 % av SCL och 25 % av ST** som språk
+  (CERN, arXiv 2203.17253 — talet är språktäckning, inte korrekthet).
+* SemaPLC rapporterar **noll avgörbara utfall** för uppgifter som bär en
+  TON-timer (arXiv 2608.18565).
+
+Timers och tid är inte en utkant av PLC-logik, de är dess mitt. En grind som
+inte kan avgöra tidsberoende beteende men som ändå svarar skulle ge sitt
+starkaste gröna på just de uppgifter den inte kan döma.
+
+Vår väg är i stället att **köra koden och jämföra spår**, vilket är samma val
+som SemaPLC gjorde. Grind 5 är ögat, och ett spår är facit (`61_st_generering.md`).
+
+Talen ovan är hämtade ur artiklarna, inte ur sökträffar; härkomsten står i
+`docs/research/R-01_llm_st_och_softplc.md`.
