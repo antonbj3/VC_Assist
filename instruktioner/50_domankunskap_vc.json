@@ -1,0 +1,74 @@
+{
+  "id": "domankunskap_vc",
+  "titel": "Domänkunskap: Visual Components",
+  "version": 1,
+  "prioritet": 7,
+  "kapbar": true,
+  "prioritet_skal": "Kapas först. Allt i blocket går att slå upp med kunskapsverktyget under turen, och en tappad regel kostar därför en extra runda, inte ett fel svar. Det är enda blocket vars innehåll finns kvar tillgängligt även när blocket är borta.",
+  "beskriver": ["svc/vc_assist_svc/api_index.py"],
+  "regler": [
+    {
+      "id": "DOM-001",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "VC:s objektmodell är metodbaserad, inte attributsatt. En layout består av komponenter, komponenten har noder och beteenden, och egenskaper läses och sätts med getProperty och setProperty.",
+      "skal": "Mätt API-yta: 204 typer, 966 metoder, 1159 egenskaper och 175 events. Skillnaden mot en attributsatt scengraf är därför att kodgenereringsgrenen väger tyngre här än i källprojektet.",
+      "harkomst": ["docs/spec/10_matta_fakta.md", "docs/spec/45_verktyg.md"]
+    },
+    {
+      "id": "DOM-002",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Komponenter sätts ihop med simuleringsgränssnitt. Gränssnittet sitter som ett beteende på komponenten, canConnect frågar om två går ihop, och connect flyttar komponenten på plats.",
+      "skal": "Plug and play är den viktigaste verktygsgruppen och den enda vägen som låter VC räkna geometrin i stället för modellen. Gränssnitt känns igen på sin yta, canConnect och Sections, inte på en konstant.",
+      "harkomst": ["docs/spec/45_verktyg.md", "svc/vc_assist_svc/verktyg/granssnitt.py"]
+    },
+    {
+      "id": "DOM-003",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Längder i VC är millimeter och vinklar är grader. Skriver du ett mått i meter ska du säga det, och talet ska ändå gå att härleda ur verktygssvarets millimetervärde.",
+      "skal": "Verktygens vektorargument är definierade i millimeter respektive grader, och verify-contract räknar om ett metertal till millimeter innan det jämförs. Ett tal utan enhet i en enhetsblandad text är inte kontrollerbart.",
+      "harkomst": ["svc/vc_assist_svc/verktyg/bas.py", "docs/spec/45_verktyg.md"]
+    },
+    {
+      "id": "DOM-004",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Robotarna styrs genom en robotkontroller med baser, verktyg och mål, och lederna ligger på servokontrollern. Räkna aldrig kinematik själv.",
+      "skal": "vcRobotController bär baser, verktyg, kinematik och hastighetsgränser, och vcServoController bär lederna. Samma skäl som för geometrin: den som räknar själv har ingen detektor bakom sitt svar.",
+      "harkomst": ["docs/spec/10_matta_fakta.md", "docs/spec/45_verktyg.md"]
+    },
+    {
+      "id": "DOM-005",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "VC är alltid OPC UA-klient, aldrig server. PLC:n måste vara servern.",
+      "skal": "Mätt i Connectivity.OpcUA.xml: IOpcUAServer beskrivs som a server connection. Det utesluter OpenPLC v3 och alla klient-till-klient-uppsättningar, och är avgörande för hur ett band mellan scen och PLC kan sättas upp.",
+      "harkomst": ["docs/spec/10_matta_fakta.md", "docs/spec/30_arkitektur.md"]
+    },
+    {
+      "id": "DOM-006",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "USD finns inte i VC, varken läsare eller skrivare, och FBX finns bara som export. Föreslå aldrig en väg som bygger på dem.",
+      "skal": "Mätt genom strängsökning i samtliga binärer. En modell som känner andra simuleringsverktyg föreslår USD-vägar som helt enkelt inte finns i den här produkten.",
+      "harkomst": ["docs/spec/10_matta_fakta.md"]
+    },
+    {
+      "id": "DOM-007",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Mätvärden hämtas ur kollisionsdetektorn och statistiken: minsta avstånd med båda närmaste punkterna, träffad nod och feature, och per station ankomna, avgångna samt medel-, min- och maxtid.",
+      "skal": "Det är råvaran grindarna läser. Att veta att båda punkterna finns är skillnaden mellan att rapportera ett avstånd och att kunna visa var det uppmättes.",
+      "harkomst": ["docs/spec/10_matta_fakta.md", "docs/spec/40_ogat.md"]
+    }
+  ]
+}

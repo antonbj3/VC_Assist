@@ -33,9 +33,8 @@ from dataclasses import dataclass, field
 
 WINDOWSPLATTFORMAR = ("win32", "cygwin", "msys")
 
-# Foretags- och versionsniva under dokumentmappen. VC:s egen config har bada
-# som variabler, sa monstret soks - namnet skrivs aldrig i koden.
-DJUP_TILL_MY_COMMANDS = 2
+# Foretags- och versionsniva under dokumentmappen soks som ett MONSTER: VC:s
+# egen config har bada som variabler, sa namnen skrivs aldrig i koden.
 MY_COMMANDS = "My Commands"
 
 _VERSION_RE = re.compile(r"^(\d+(?:\.\d+)*)")
@@ -110,9 +109,6 @@ class Dokumentrot:
     sokvag: str
     kallor: tuple = ()
 
-    def __str__(self):
-        return "%s  <- %s" % (self.sokvag, ", ".join(self.kallor))
-
 
 @dataclass(frozen=True)
 class VcMapp:
@@ -129,12 +125,6 @@ class VcMapp:
     def nyckel(self):
         return versionsnyckel(self.version)
 
-    @property
-    def huvudversion(self):
-        return huvudversion(self.version)
-
-    def __str__(self):
-        return "%s %s  (%s)" % (self.foretag, self.version, self.my_commands)
 
 
 @dataclass(frozen=True)
@@ -206,6 +196,16 @@ def sokvagen_ar_matt(version, pythonniva):
 # --------------------------------------------------------------------------
 # Wine-prefix
 # --------------------------------------------------------------------------
+
+def pythonnivanamn(namn):
+    """"Python 3" om namnet ar en Python-niva, annars None.
+
+    Publik sa att kommandoraden slipper rora regexet. Namnet normaliseras,
+    sa "python3" och "Python_3" ger samma svar som "Python 3".
+    """
+    m = _PYNIVA_RE.match((namn or "").strip())
+    return "Python %s" % m.group(1) if m else None
+
 
 def wineprefix(miljo):
     """Kandidatprefix, i ordning: WINEPREFIX, uttryckliga, ~/.wine, ~/.wine*.
@@ -496,10 +496,9 @@ def valj_pythonniva(vcmapp, onskad=None):
     forvantad = forvantad_pythonniva(vcmapp.version)
 
     if onskad:
-        m = _PYNIVA_RE.match(onskad.strip())
-        if not m:
+        namn = pythonnivanamn(onskad)
+        if namn is None:
             raise IngenNiva("nivanamnet %r ser inte ut som 'Python N'" % (onskad,))
-        namn = "Python %s" % m.group(1)
         return Nivaval(
             namn=namn,
             kalla="vald",

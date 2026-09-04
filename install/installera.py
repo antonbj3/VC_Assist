@@ -39,12 +39,11 @@ class Mal(object):
     """En plats att installera i, med allt som behovs for att beratta om den."""
 
     def __init__(self, malmapp, pythonniva="", nivakalla="", vc_version="",
-                 vcmapp=None, motivering=""):
+                 motivering=""):
         self.malmapp = os.path.abspath(malmapp)
         self.pythonniva = pythonniva
         self.nivakalla = nivakalla
         self.vc_version = vc_version
-        self.vcmapp = vcmapp
         self.motivering = motivering
 
     @property
@@ -69,7 +68,7 @@ def _harled_ur_malsokvag(malmapp):
     delar = os.path.abspath(malmapp).replace("\\", "/").split("/")
     niva = ""
     version = ""
-    if len(delar) >= 2 and upptackt._PYNIVA_RE.match(delar[-2]):
+    if len(delar) >= 2 and upptackt.pythonnivanamn(delar[-2]):
         niva = delar[-2]
     if len(delar) >= 4 and delar[-3] == upptackt.MY_COMMANDS:
         version = delar[-4]
@@ -105,7 +104,7 @@ def mal_ur_argument(args, miljo):
         val = upptackt.valj_pythonniva(m, getattr(args, "python_niva", None))
         ut.append(Mal(os.path.join(m.my_commands, val.namn, paket.PAKETNAMN),
                       pythonniva=val.namn, nivakalla=val.kalla,
-                      vc_version=m.version, vcmapp=m, motivering=val.motivering))
+                      vc_version=m.version, motivering=val.motivering))
     return ut, mappar
 
 

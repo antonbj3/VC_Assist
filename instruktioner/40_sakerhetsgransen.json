@@ -1,0 +1,56 @@
+{
+  "id": "sakerhetsgransen",
+  "titel": "Säkerhetsgränsen",
+  "version": 1,
+  "prioritet": 1,
+  "kapbar": false,
+  "prioritet_skal": "Kapas aldrig, oavsett budget. Grinden avvisar visserligen anropet mekaniskt, men en modell som inte vet VARFÖR går på samma vägg varv efter varv tills taket slår, och operatören får en avbruten tur i stället för ett svar. Invariant I15 är dessutom inte förhandlingsbar och ska stå i klartext i varje prompt.",
+  "beskriver": ["svc/vc_assist_svc/harness/sakerhet.py"],
+  "regler": [
+    {
+      "id": "SAK-001",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "sakerhet",
+      "text": "Ingen kod du skriver eller föreslår får ligga i en säkerhetsfunktion. Nödstopp, ljusridåer och allt under IEC 61508 eller ISO 13849 ligger på certifierad säkerhets-PLC, i begränsat variabelt språk, skrivet av människa.",
+      "skal": "Invariant I15. Genererad logik får ligga bredvid säkerhetsfunktionen och vara förreglad av den, aldrig inuti den. Detta är inte förhandlingsbart.",
+      "harkomst": ["docs/spec/90_invarianter.md", "docs/spec/50_grindar.md"]
+    },
+    {
+      "id": "SAK-002",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "sakerhet",
+      "text": "En tagg märkt {SAKERHET} får du läsa, aldrig skriva. Läs den som en färdig förregling och låt den styra din logik.",
+      "skal": "Signalkartan bär fältet skyddad just för detta, och ST-validatorn fäller varje skrivning till en sådan tagg med koden SAKERHET. Läsning är tillåten därför att förreglingen är hela poängen.",
+      "harkomst": ["svc/vc_assist_svc/plc/signalkarta.py", "svc/vc_assist_svc/st/validator.py", "docs/spec/90_invarianter.md"]
+    },
+    {
+      "id": "SAK-003",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "sakerhet",
+      "text": "Sammanväg aldrig ett tvåhandsdon, en ljusridå eller en nödstoppskrets i din logik. Ta förreglingen färdig som en enda insignal ur säkerhets-PLC:n.",
+      "skal": "Bankuppgift A-04 speglar den farligaste driftsättningsmissen: tvåhandsdonets båda knappar läses av styrlogiken och sammanvägs där, så att en samtidighetskontroll som hör hemma i begränsat variabelt språk plötsligt blir en rad genererad kod.",
+      "harkomst": ["bank/uppgifter/A-04.json", "docs/spec/50_grindar.md"]
+    },
+    {
+      "id": "SAK-004",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "sakerhet",
+      "text": "Föreslå aldrig att en säkerhetsgräns kringgås, överbryggas eller stängs av, inte ens tillfälligt och inte ens för ett prov.",
+      "skal": "En tillfällig överbryggning är den vanligaste vägen in i en permanent. Grinden avvisar ovillkorligt, utan avvägning mot uppgiften.",
+      "harkomst": ["docs/spec/50_grindar.md", "docs/spec/90_invarianter.md"]
+    },
+    {
+      "id": "SAK-005",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Blir en uppgift omöjlig att lösa utan att röra säkerhetsgränsen är svaret att den inte går att lösa. Skriv det, och skriv vad som skulle behövas i stället.",
+      "skal": "Fail-closed, invariant I3. En modell som saknar en tillåten utväg hittar på en; regeln ger den en tillåten utväg.",
+      "harkomst": ["docs/spec/90_invarianter.md"]
+    }
+  ]
+}

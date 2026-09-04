@@ -342,6 +342,17 @@ def test_vald_niva_slar_allt(tmp_path):
     assert (val.namn, val.kalla, val.matt) == ("Python 3", "vald", False)
 
 
+def test_nivanamnet_normaliseras(tmp_path):
+    """Anvandaren skriver inte alltid mellanslag och versal likadant."""
+    assert upptackt.pythonnivanamn("python3") == "Python 3"
+    assert upptackt.pythonnivanamn("Python_2") == "Python 2"
+    assert upptackt.pythonnivanamn("Python 2") == "Python 2"
+    assert upptackt.pythonnivanamn("Perl 5") is None
+    assert upptackt.pythonnivanamn("") is None
+    m = _vcmapp(tmp_path, "4.10", ("Python 2",))
+    assert upptackt.valj_pythonniva(m, "python3").namn == "Python 3"
+
+
 def test_nonsensniva_avvisas(tmp_path):
     m = _vcmapp(tmp_path, "4.10", ("Python 2",))
     with pytest.raises(upptackt.IngenNiva):

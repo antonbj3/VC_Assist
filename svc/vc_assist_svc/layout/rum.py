@@ -161,11 +161,26 @@ class Rektangel:
 
 
 class Zon:
-    """Ett namngivet område på golvet med en regel knuten till sig."""
+    """Ett namngivet område på golvet med en regel knuten till sig.
 
-    __slots__ = ("namn", "typ", "yta", "fri_hojd_m", "minsta_bredd_m")
+    Två höjdmått, och de är AVSIKTLIGT skilda fält. Ett enda "höjd" hade
+    burit två storheter och dolt felet i det vanliga fallet, där de råkar
+    vara lika:
 
-    def __init__(self, namn, typ, yta, fri_hojd=None, minsta_bredd=None):
+    * ``fri_hojd`` - hur högt upp zonen ska HÅLLAS FRI. Gäller bara en
+      frihållen zon (gång, utrymningsväg, förbjudet område). En transportör
+      som korsar över en gång på 2,6 m höjd är tillåten om gången kräver
+      2,2 m fritt.
+    * ``takhojd`` - hur högt det ÄR i zonen, alltså ett hinder ovanför:
+      travers, mezzanin, ventilationstrumma. Gäller alla zontyper och
+      begränsar hur högt ett objekt får vara där det står.
+    """
+
+    __slots__ = ("namn", "typ", "yta", "fri_hojd_m", "takhojd_m",
+                 "minsta_bredd_m")
+
+    def __init__(self, namn, typ, yta, fri_hojd=None, takhojd=None,
+                 minsta_bredd=None):
         if not isinstance(typ, Zontyp):
             raise Layoutfel("zontyp måste vara ett Zontyp-värde, fick %r" % (typ,))
         if not isinstance(yta, Rektangel):
@@ -173,9 +188,15 @@ class Zon:
         self.namn = str(namn)
         self.typ = typ
         self.yta = yta
+        if fri_hojd is not None and typ is Zontyp.ARBETSYTA:
+            raise Layoutfel("fri_hojd hör till en frihållen zon; %s är en "
+                            "arbetsyta och begränsas av takhojd i stället"
+                            % namn)
         # None betyder "hela hallens höjd" och fylls i av Hall vid inläggning.
         self.fri_hojd_m = None if fri_hojd is None else krav(
             fri_hojd, "fri_hojd").som_m
+        self.takhojd_m = None if takhojd is None else krav(
+            takhojd, "takhojd").som_m
         if minsta_bredd is None:
             self.minsta_bredd_m = None
         else:
@@ -434,6 +455,11 @@ class Hall:
                 z.fri_hojd_m = self.hojd.som_m
             if z.fri_hojd_m > self.hojd.som_m + LAGE_TOL_M:
                 raise Layoutfel("zonen %r kräver högre fri höjd än hallen har"
+                                % z.namn)
+            if z.takhojd_m is None:
+                z.takhojd_m = self.hojd.som_m
+            if z.takhojd_m > self.hojd.som_m + LAGE_TOL_M:
+                raise Layoutfel("zonen %r påstår högre tak än hallen har"
                                 % z.namn)
             if z.minsta_bredd_m is not None:
                 smalast = min(z.yta.bredd_m, z.yta.djup_m)

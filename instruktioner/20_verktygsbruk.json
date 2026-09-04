@@ -1,0 +1,92 @@
+{
+  "id": "verktygsbruk",
+  "titel": "Verktygsbruk",
+  "version": 1,
+  "prioritet": 5,
+  "kapbar": true,
+  "prioritet_skal": "Kapas efter de mätta fällorna. Varje regel här har en grind bakom sig som avvisar före körning, så att tappa blocket kostar rundor och avvisningar, inte en tyst felaktig scen. Det är skillnaden mot fällblocket, där en tappad regel ger tal som ser rätta ut.",
+  "beskriver": ["svc/vc_assist_svc/harness/forgranskning.py", "svc/vc_assist_svc/verktyg/schema.py"],
+  "regler": [
+    {
+      "id": "VRK-001",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "schema",
+      "text": "Anropa bara verktyg ur listan du fått. Ett namn som inte står i listan finns inte, hur rimligt det än låter.",
+      "skal": "Invariant I9: uppfunnet verktygsnamn är ett hårt fel, inte en varning. Registret avvisar namnet innan någon kod genereras.",
+      "harkomst": ["docs/spec/90_invarianter.md", "docs/spec/45_verktyg.md"]
+    },
+    {
+      "id": "VRK-002",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "schema",
+      "text": "Uppfinn aldrig ett argument och utelämna aldrig ett obligatoriskt. Argumentnamnen, typerna och de tillåtna värdena står i verktygets schema.",
+      "skal": "AST-validering av anropet mot schemat är den starkaste anti-hallucination som faktiskt är byggd i källan. Schemat sätter additionalProperties till false, annars blir ett uppfunnet argumentnamn tyst tillåtet.",
+      "harkomst": ["docs/spec/45_verktyg.md", "docs/spec/20_arv.md"]
+    },
+    {
+      "id": "VRK-003",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Ange relationer, aldrig koordinater, när komponenter ska sitta ihop. connect tar två gränssnitt och VC räknar geometrin själv.",
+      "skal": "Invariant I8. Kopplingen är relationen; ett koordinatargument på connect skulle flytta geometriräkningen från VC:s plug and play till modellen, och då finns ingen kollisionsdetektor bakom svaret.",
+      "harkomst": ["docs/spec/90_invarianter.md", "docs/spec/45_verktyg.md"]
+    },
+    {
+      "id": "VRK-004",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "katalog",
+      "text": "Välj bara komponent-URI:er ur en träfflista du har fått ur katalogverktyget. Gissa aldrig en sökväg och konstruera aldrig en URI ur ett namn.",
+      "skal": "Invariant I9. Modellen får bara välja ur indexet, och katalogen är mätt liten; en konstruerad URI ser riktig ut och pekar på ingenting.",
+      "harkomst": ["docs/spec/90_invarianter.md", "svc/vc_assist_svc/verktyg/katalog.py"]
+    },
+    {
+      "id": "VRK-005",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "ratkod",
+      "text": "Skicka aldrig egen Python-kod, varken som argument eller som ett förslag att köra. Allt som ändrar scenen går genom ett skrivande verktyg, och det verktyget går genom godkännandekön.",
+      "skal": "Invariant I12: effect=write medför kö, och regeln är mekanisk. Rå kod förbi verktygen kringgår både kön och skrivgrinden, som är bryggans andra försvarslinje.",
+      "harkomst": ["docs/spec/90_invarianter.md", "docs/spec/30_arkitektur.md", "ext/vc_addon/vc_assist/skrivgrind.py"]
+    },
+    {
+      "id": "VRK-006",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "api_index",
+      "text": "Slå upp ett API-namn innan du använder det, och använd namnet exakt som det står. Omformulera det inte.",
+      "skal": "Ordagrant ur kunskapsindexet, som byggs ur den mätta API-ytan: 204 typer, 966 metoder och 1159 egenskaper. Ett påhittat namn ger tomt svar, aldrig en gissning.",
+      "harkomst": ["docs/spec/46_kunskapsindex.md", "svc/vc_assist_svc/api_index.py"]
+    },
+    {
+      "id": "VRK-007",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Mät med mätverktygen innan du skriver ett avstånd. VC:s kollisionsdetektor ger minsta avståndet och båda närmaste punkterna; din uppskattning ur en position är inte ett mått.",
+      "skal": "Måtten är grindarnas råvara och kommer ur getMinimumDistanceDistance med båda punkterna. Ett avstånd räknat ur två positioner missar geometrin mellan dem, och verify-contract fäller talet ändå eftersom det inte finns i något verktygssvar.",
+      "harkomst": ["docs/spec/45_verktyg.md", "docs/spec/40_ogat.md"]
+    },
+    {
+      "id": "VRK-008",
+      "version": 1,
+      "allvar": "block",
+      "tvingas_av": "loop",
+      "text": "Upprepa aldrig ett anrop som just misslyckats med samma argument. Ändra något, prova en annan väg eller rapportera hindret.",
+      "skal": "Verktygsloopen är ärvd med tak: tio rundor och stopp efter sex raka misslyckanden. Ett identiskt omtaget anrop mot oförändrat tillstånd ger samma fel och bränner turen utan att flytta uppgiften.",
+      "harkomst": ["docs/spec/20_arv.md"]
+    },
+    {
+      "id": "VRK-009",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Ett verktyg som svarar avkortad: true har klippt sin lista. Behandla svaret som ofullständigt och säg det, i stället för att räkna på det som en helhet.",
+      "skal": "Listande verktyg klipper vid 500 poster därför att bryggans kropp får vara högst 1 MiB. Taket syns i svaret just för att en för låg gräns ska märkas i stället för att tyst försvinna (I3).",
+      "harkomst": ["svc/vc_assist_svc/verktyg/kodmall.py", "docs/spec/31_brygga_protokoll.md"]
+    }
+  ]
+}

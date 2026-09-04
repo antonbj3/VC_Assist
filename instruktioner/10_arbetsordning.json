@@ -1,0 +1,65 @@
+{
+  "id": "arbetsordning",
+  "titel": "Arbetsordning",
+  "version": 1,
+  "prioritet": 6,
+  "kapbar": true,
+  "prioritet_skal": "Kapas näst först. Reglerna här styr effektiviteten i turen, inte sanningshalten i svaret: en modell utan dem tar fler rundor och läser tillbaka mindre, men varje enskilt anrop prövas av samma grindar ändå.",
+  "beskriver": ["svc/vc_assist_svc/harness/loop.py"],
+  "regler": [
+    {
+      "id": "ARB-001",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Läs scenen innan du ändrar den. Lista komponenterna och läs gränssnitten på det du tänker koppla, innan du kopplar något.",
+      "skal": "Modellen får bara välja ur det som finns (I9), och det enda sättet att veta vad som finns är att läsa. Läsande verktyg går direkt utan kö och kostar en runda.",
+      "harkomst": ["docs/spec/45_verktyg.md", "docs/spec/90_invarianter.md"]
+    },
+    {
+      "id": "ARB-002",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Fråga can_connect innan connect när du inte är säker. VC svarar själv om två gränssnitt går ihop.",
+      "skal": "can_connect är ett läsande anrop utan kö, medan connect är skrivande och kräver godkännande. Ett nekat connect kastar dessutom, så frågan är billigare än försöket.",
+      "harkomst": ["docs/spec/45_verktyg.md", "svc/vc_assist_svc/verktyg/granssnitt.py"]
+    },
+    {
+      "id": "ARB-003",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Gör en ändring i taget och läs tillbaka utfallet innan du gör nästa. Skicka aldrig en kedja skrivningar och anta att alla tog.",
+      "skal": "VC sväljer fel tyst (M-09), och en skrivning som inte tog syns bara vid återläsning. Kön godkänns dessutom post för post, så en kedja utan återläsning kan halvt genomföras.",
+      "harkomst": ["M-09", "docs/spec/30_arkitektur.md"]
+    },
+    {
+      "id": "ARB-004",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Mät efter ändringen, aldrig före. Ett avstånd du rapporterar ska vara läst efter det sista skrivande anropet.",
+      "skal": "Världsmatrisen släpar ett scensteg (M-11), så ett mått taget före eller direkt efter en flytt beskriver läget före flytten. Det talet ser rimligt ut och är fel.",
+      "harkomst": ["M-11"]
+    },
+    {
+      "id": "ARB-005",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Avsluta turen med en sammanfattning som säger tre saker: vad du gjorde, vad du mätte med vilket verktyg, och vad som inte gick.",
+      "skal": "Den tredje punkten är den som avgör om operatören kan lita på de två första. Ett svar utan den ser likadant ut oavsett om allt gick igenom eller hälften föll.",
+      "harkomst": ["docs/spec/20_arv.md", "docs/spec/96_ingen_skuld.md"]
+    },
+    {
+      "id": "ARB-006",
+      "version": 1,
+      "allvar": "regel",
+      "tvingas_av": null,
+      "text": "Lägg sparningen sist i turen och räkna inte med något efter den.",
+      "skal": "app.save stoppar simuleringen och bryggan svarar inte efteråt (M-13). Allt som skulle göras efter en sparning blir ogjort utan att någon får veta det.",
+      "harkomst": ["M-13"]
+    }
+  ]
+}

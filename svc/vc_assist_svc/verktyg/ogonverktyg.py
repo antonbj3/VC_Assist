@@ -310,7 +310,8 @@ _lagg(
                                     "items": _FACITRAD},
                 "must_pass": {"type": "array", "description": "Sektioner som maste halla.",
                               "items": {"type": "string", "description": "En sektion."}},
-                "max_kollisioner": {"type": "integer", "description": "Hogsta tillatna antal kollisioner."},
+                "max_kollisioner": {"type": "integer",
+                                    "description": "Hogsta tillatna antal kollisioner."},
                 "min_frigang_mm": {"type": ["number", "null"],
                                    "description": "Minsta frigang i millimeter."},
                 "takt_per_h": {"type": ["number", "null"],
@@ -336,7 +337,8 @@ _lagg(
                               "required": ["roll", "uri", "antal"]}},
                 "kopplingar": {
                     "type": "array",
-                    "description": "Relationerna mellan rollerna. Modellen anger relationer, aldrig koordinater (I8).",
+                    "description": ("Relationerna mellan rollerna. Modellen "
+                                    "anger relationer, aldrig koordinater (I8)."),
                     "items": {"type": "object", "description": "En koppling.",
                               "properties": {
                                   "fran": {"type": "string", "description": "Rollen kopplingen gar fran."},
