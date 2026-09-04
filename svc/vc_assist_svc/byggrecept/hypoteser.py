@@ -116,8 +116,8 @@ HYPOTESER: Tuple[Hypotes, ...] = (
             "(CapacityAvailable, Connectors), lagrar (Capacity, Components) "
             "och for komponenter langs Path, en ordnad lista Frame-features. "
             "Ramar ar 'limmet' mellan geometri och simulering.",
-            _PY + ": vcMotionPath <parents>vcBehaviour, vcFlow, vcContainer"
-            "</parents>, Path; " + _NET + ": IFrameFeature 'Frames are used "
+            _PY + ": vcMotionPath <parents>vcBehaviour vcFlow vcContainer"
+            "</parents> (rad 7894), Path; " + _NET + ": IFrameFeature 'Frames are used "
             "as glue ... to outline conveyor paths'"),
     Hypotes("C1", "C", 1, HYPOTES,
             "En nyskapad VC_ONEWAYPATH bar fardiga kontakter, en med Type "

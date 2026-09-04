@@ -139,8 +139,10 @@ def test_namn_till_vc_gar_genom_s(namn, arg):
 
 @pytest.mark.parametrize("namn,arg", ANROP, ids=ANROP_ID)
 def test_inga_dynamiska_uppslag(namn, arg):
-    """getattr/setattr/hasattr/eval gor bade api_index-validatorn och
-    skrivgrinden blinda. Recepten ska vara helt statiskt domda."""
+    """getattr/setattr/eval gor bade api_index-validatorn och skrivgrinden
+    blinda. Recepten ska vara helt statiskt domda. hasattr med ett konstant
+    namn (kodmallens _ar_grans) doms statiskt av validatorn och ar inte i
+    OGENOMSKINLIGA; den ar tillaten."""
     trad = ast.parse(B.generera(namn, arg))
     for nod in ast.walk(trad):
         if isinstance(nod, ast.Call) and isinstance(nod.func, ast.Name):
