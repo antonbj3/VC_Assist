@@ -1,6 +1,6 @@
 # M-20 — PLC-bandet: vad som faktiskt går att köra, och hur snabbt
 
-**Datum:** 2026-09-04 · Ubuntu, kärna 6.8, 13600K · docker 0 · nätverk uppe
+**Datum:** 2026-09-04 · Ubuntu, kärna 6.8, 13600K · Docker version 29.1.3 · nätverk uppe
 **beskriver:** `svc/vc_assist_svc/plc/`, `tests/enhet/test_plc.py`,
 `tests/protocol/fas6_plcbandet.md`
 **Kört av:** `python3 -m vc_assist_svc.plc.matning` samt de curl-anrop som citeras nedan.

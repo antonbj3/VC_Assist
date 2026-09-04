@@ -66,7 +66,7 @@ TAK_S = 1.0
 
 
 class MatFel(Exception):
-    pass
+    """Mätningen vägrar rapportera ett tal den inte kan stå för."""
 
 
 def _asyncua():

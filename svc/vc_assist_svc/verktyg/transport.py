@@ -1425,14 +1425,21 @@ def _kod_product_type_info(argument):
         "if t is None:",
         '    _svara({"found": False, "component": k.Name, "product_type": %s,'
         % typ,
-        '            "properties": [], "bom": []})',
+        '            "properties": [], "bom": [], "avkortad": False})',
         "else:",
         "    egenskaper = []",
+        "    avkortad = False",
         "    for p in t.ProductProperties:",
+    ]
+    rader += tak("egenskaper", "    ")
+    rader += [
         '        egenskaper.append({"name": p.Name, "value": _enkelt(p.Value)})',
         "    stycklista = []",
         '    if bool(t.IsAssembly) and hasattr(t, "AssemblySteps"):',
         "        for s in t.AssemblySteps:",
+    ]
+    rader += tak("stycklista", "        ")
+    rader += [
         '            steg = {"step": s.Name, "parent": None,',
         '                    "children": len(s.ChildSteps)}',
         "            if s.ParentStep is not None:",
@@ -1441,7 +1448,8 @@ def _kod_product_type_info(argument):
         '    _svara({"found": True, "component": k.Name,',
         '            "product_type": t.Name, "uri": t.ComponentUri,',
         '            "is_assembly": bool(t.IsAssembly),',
-        '            "properties": egenskaper, "bom": stycklista})',
+        '            "properties": egenskaper, "bom": stycklista,',
+        '            "avkortad": avkortad})',
     ]
     return bygg(["_enkelt", "_svara"], _lokala(["_slag"]) + rader)
 
@@ -1474,8 +1482,10 @@ _lagg(
                                "properties": {
                                    "step": {"type": "string", "description": "Stegets namn."},
                                    "parent": {"type": ["string", "null"], "description": "Foraldrastegets namn."},
-                                   "children": {"type": "integer", "description": "Antal understeg."}}}}},
-            ["found", "component", "product_type", "properties", "bom"]),
+                                   "children": {"type": "integer", "description": "Antal understeg."}}}},
+             "avkortad": RET_AVKORTAD},
+            ["found", "component", "product_type", "properties", "bom",
+             "avkortad"]),
     _Y_BETLISTA,
     _kod_product_type_info,
 )
@@ -1734,7 +1744,11 @@ def _kod_station_state_times(argument):
         # avgora ur kallan, sa de lamnas som VC:s egen text och tolkas inte.
         # Det ar upptackten; matningen sker sedan med de namn anroparen valjer.
         "raa = []",
+        "avkortad = False",
         "for st in b.States:",
+    ]
+    rader += tak("raa")
+    rader += [
         "    raa.append(repr(st))",
         "rader = []",
     ]
@@ -1747,7 +1761,8 @@ def _kod_station_state_times(argument):
         ]
     rader += [
         '_svara({"component": k.Name, "behaviour": b.Name,',
-        '        "states_raw": raa, "times": rader, "antal": len(rader)})',
+        '        "states_raw": raa, "times": rader, "antal": len(rader),',
+        '        "avkortad": avkortad})',
     ]
     return bygg(["_svara"], _lokala(["_slag"]) + rader)
 
@@ -1786,8 +1801,12 @@ _lagg(
                                      "state": {"type": "string", "description": "Tillstandets namn."},
                                      "percentage": {"type": "number", "description": "Andel av total tid, i procent som VC raknar den."},
                                      "seconds": {"type": "number", "description": "Ackumulerad tid i sekunder."}}}},
-             "antal": RET_ANTAL},
-            ["component", "behaviour", "states_raw", "times", "antal"]),
+             "antal": RET_ANTAL,
+             "avkortad": dict(RET_AVKORTAD, description=(
+                 "True om states_raw klipptes vid taket. Da ar listan over "
+                 "stationens tillstand ofullstandig."))},
+            ["component", "behaviour", "states_raw", "times", "antal",
+             "avkortad"]),
     _Y_BET,
     _kod_station_state_times,
 )

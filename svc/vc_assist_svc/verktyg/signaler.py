@@ -629,6 +629,27 @@ def _konstanttabell(namn, poster):
     return rader
 
 
+def _krav_yta(objekt, attribut, vad):
+    """Rader som kraver EN namngiven yta pa ETT objekt, med literalt namn.
+
+    36_versioner.md: ytan provas per objekt, eftersom formaga.py:s YTOR-lista
+    inte bar nagon signalyta (se modulens docstring). Saknas ytan kastar
+    mallen med ett namngivet skal i stallet for att falla med AttributeError
+    langt inne i VC.
+
+    Attributnamnet skrivs som LITERAL och inte som en variabel, och det ar
+    ett matt val: svc/vc_assist_svc/api_index.py:s validator kan folja
+    hasattr(x, "Namn") men inte hasattr(x, namn) - den senare blir
+    OBESTAMBAR, och en obestambarhet ar inget godkannande (I3). Samma form
+    som granssnitt.py redan anvander for canConnect och Sections.
+    """
+    return [
+        'if not hasattr(%s, "%s"):' % (objekt, attribut),
+        "    raise ValueError(%s)" % _txt(
+            "%s kraver %s som den har VC saknar" % (vad, attribut)),
+    ]
+
+
 _SAKMARK_RADER = (
     ["# Samma tabell som tjanstens SAKERHETSMARKORER (verktyg/signaler.py).",
      "# Skrivs in ur den, sa de tva kan inte drifta isar.",
@@ -716,14 +737,6 @@ _EGNA = {
         '        raise ValueError(komp.Name + " har inget beteende som heter " + namn)',
         "    return b",
     ]),
-    "_kravs": ((), [
-        "def _kravs(objekt, namn, vad):",
-        "    # 36_versioner.md: ytan provas per objekt eftersom formaga.py:s",
-        "    # YTOR-lista inte bar nagon signalyta. Saknas den kastar mallen",
-        "    # med ett namngivet skal i stallet for AttributeError.",
-        "    if not hasattr(objekt, namn):",
-        '        raise ValueError(vad + " kraver " + namn + " som den har VC saknar")',
-    ]),
     "_anslutna_bet": ((), [
         "def _anslutna_bet(sig):",
         "    ut = []",
@@ -796,7 +809,7 @@ _EGNA = {
 # Fast ordning: en hjalpare far bara bero pa nagon som redan skrivits ut.
 _EGEN_ORDNING = (
     "_sakerhet", "_ar_signal", "_ar_karta", "_signaltyper", "_karttyper",
-    "_riktningstyper", "_typnamn", "_riktnamn", "_kravs", "_sig", "_karta",
+    "_riktningstyper", "_typnamn", "_riktnamn", "_sig", "_karta",
     "_bet", "_anslutna_bet", "_riktningar", "_signalpost", "_kartpost",
     "_egenskaper",
 )
@@ -1598,7 +1611,7 @@ def _kod_create_signal(argument):
     namn = lit(argument["name"])
     rader = [
         "k = _komp(%s)" % lit(argument["component"]),
-        '_kravs(k, "createBehaviour", %s)' % _txt("create_signal"),
+    ] + _krav_yta("k", "createBehaviour", "create_signal") + [
         "if k.findBehaviour(%s) is not None:" % namn,
         '    raise ValueError(k.Name + " har redan ett beteende som heter "'
         ' + %s)' % namn,
@@ -1614,7 +1627,7 @@ def _kod_create_signal(argument):
         '_svara({"created": True, "component": k.Name, "name": b.Name,',
         '        "type": %s, "type_id": _enkelt(b.Type)})' % _txt(konstant),
     ]
-    return _mall(["_komp", "_enkelt", "_svara"], ["_kravs"], rader)
+    return _mall(["_komp", "_enkelt", "_svara"], [], rader)
 
 
 _lagg(
@@ -1643,10 +1656,10 @@ _lagg(
 def _kod_delete_signal(argument):
     _sparra("delete_signal", argument)
     namn = lit(argument["signal"])
-    return _mall(["_komp", "_svara"], ["_sig", "_kravs"], [
+    return _mall(["_komp", "_svara"], ["_sig"], [
         "k = _komp(%s)" % lit(argument["component"]),
         "b = _sig(k, %s)" % namn,
-        '_kravs(b, "delete", %s)' % _txt("delete_signal"),
+    ] + _krav_yta("b", "delete", "delete_signal") + [
         "b.delete()",
         '_svara({"deleted": True, "component": k.Name, "name": %s})' % namn,
     ])
@@ -1773,7 +1786,7 @@ def _kod_create_signal_map(argument):
     namn = lit(argument["name"])
     rader = [
         "k = _komp(%s)" % lit(argument["component"]),
-        '_kravs(k, "createBehaviour", %s)' % _txt("create_signal_map"),
+    ] + _krav_yta("k", "createBehaviour", "create_signal_map") + [
         "if k.findBehaviour(%s) is not None:" % namn,
         '    raise ValueError(k.Name + " har redan ett beteende som heter "'
         ' + %s)' % namn,
@@ -1788,16 +1801,14 @@ def _kod_create_signal_map(argument):
         '    raise ValueError("VC skapade ingen signalkarta som heter " + %s)' % namn,
     ]
     if "port_count" in argument:
-        rader += [
-            '_kravs(m, "PortCount", %s)' % _txt("create_signal_map med port_count"),
-            "m.PortCount = %d" % argument["port_count"],
-        ]
+        rader += (_krav_yta("m", "PortCount", "create_signal_map med port_count")
+                  + ["m.PortCount = %d" % argument["port_count"]])
     rader += [
         '_svara({"created": True, "component": k.Name, "name": m.Name,',
         '        "type": %s, "type_id": _enkelt(m.Type),' % _txt(konstant),
         '        "ports": int(m.PortCount) if hasattr(m, "PortCount") else 0})',
     ]
-    return _mall(["_komp", "_enkelt", "_svara"], ["_kravs"], rader)
+    return _mall(["_komp", "_enkelt", "_svara"], [], rader)
 
 
 _lagg(
@@ -1837,7 +1848,7 @@ def _kod_signal_map_set_port(argument):
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
         "s = _sig(k, %s)" % lit(argument["signal"]),
-        '_kravs(m, "setPortSignal", %s)' % _txt("signal_map_set_port"),
+    ] + _krav_yta("m", "setPortSignal", "signal_map_set_port") + [
         "if %d >= int(m.PortCount):" % argument["port"],
         '    raise ValueError("porten finns inte; kartan har " '
         '+ str(int(m.PortCount)) + " portar")',
@@ -1845,17 +1856,17 @@ def _kod_signal_map_set_port(argument):
     ]
     if "port_name" in argument:
         rader += [
-            '_kravs(m, "setPortName", %s)' % _txt("signal_map_set_port med port_name"),
+        ] + _krav_yta("m", "setPortName", "signal_map_set_port med port_name") + [
             "m.setPortName(%d, %s)" % (argument["port"], lit(argument["port_name"])),
         ]
     rader += [
-        "namn = m.getPortName(%d) if hasattr(m, \"getPortName\") else None"
+        'namn = m.getPortName(%d) if hasattr(m, "getPortName") else None'
         % argument["port"],
         '_svara({"set": True, "component": k.Name, "map": m.Name,',
         '        "port": %d, "signal": s.Name, "port_name": namn})'
         % argument["port"],
     ]
-    return _mall(["_komp", "_svara"], ["_karta", "_sig", "_kravs"], rader)
+    return _mall(["_komp", "_svara"], ["_karta", "_sig"], rader)
 
 
 _lagg(
@@ -1890,11 +1901,11 @@ def _kod_signal_map_clear_port(argument):
     _sparra("signal_map_clear_port", argument)
     _krav_ickenegativ("signal_map_clear_port", argument, "port")
     port = argument["port"]
-    return _mall(["_komp", "_svara"], ["_karta", "_kravs"], [
+    return _mall(["_komp", "_svara"], ["_karta"], [
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
-        '_kravs(m, "disconnect", %s)' % _txt("signal_map_clear_port"),
-        '_kravs(m, "setPortSignal", %s)' % _txt("signal_map_clear_port"),
+    ] + _krav_yta("m", "disconnect", "signal_map_clear_port")
+      + _krav_yta("m", "setPortSignal", "signal_map_clear_port") + [
         "if %d >= int(m.PortCount):" % port,
         '    raise ValueError("porten finns inte; kartan har " '
         '+ str(int(m.PortCount)) + " portar")',
@@ -1903,8 +1914,8 @@ def _kod_signal_map_clear_port(argument):
         # forsta hade lamnat en port som fortfarande bar en signal.
         "m.disconnect(%d)" % port,
         "m.setPortSignal(%d)" % port,
-        "kvar = m.getInternalPortSignal(%d) if hasattr(m, \"getInternalPortSignal\") else None"
-        % port,
+        'kvar = m.getInternalPortSignal(%d) '
+        'if hasattr(m, "getInternalPortSignal") else None' % port,
         '_svara({"cleared": True, "component": k.Name, "map": m.Name,',
         '        "port": %d,' % port,
         '        "signal": kvar.Name if kvar is not None else None})',
@@ -1937,10 +1948,10 @@ def _kod_set_signal_map_direction(argument):
     _sparra("set_signal_map_direction", argument)
     etikett = argument["direction"]
     konstant = dict(RIKTNINGAR)[etikett]
-    return _mall(["_komp", "_svara"], ["_karta", "_kravs", "_riktnamn"], [
+    return _mall(["_komp", "_svara"], ["_karta", "_riktnamn"], [
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
-        '_kravs(m, "Direction", %s)' % _txt("set_signal_map_direction"),
+    ] + _krav_yta("m", "Direction", "set_signal_map_direction") + [
         "try:",
         "    onskad = %s" % konstant,
         "except NameError:",
@@ -1954,8 +1965,9 @@ def _kod_set_signal_map_direction(argument):
         # neka riktningen, sa den lases tillbaka och jamfors.
         "m.Direction = onskad",
         "if m.Direction != onskad:",
-        '    raise ValueError("VC godtog inte den nya riktningen; kartan kunde inte '
-        'sattas till " + %s)' % _txt(etikett),
+        "    raise ValueError(%s)" % _txt(
+            "VC godtog inte den nya riktningen; kartan kunde inte sattas "
+            "till " + etikett),
         '_svara({"set": True, "component": k.Name, "map": m.Name,',
         '        "direction": _riktnamn(m.Direction)})',
     ])
@@ -1990,7 +2002,7 @@ def _kod_create_property_adapter(argument):
     namn = lit(argument["name"])
     rader = [
         "k = _komp(%s)" % lit(argument["component"]),
-        '_kravs(k, "createBehaviour", %s)' % _txt("create_property_adapter"),
+    ] + _krav_yta("k", "createBehaviour", "create_property_adapter") + [
         "if k.findBehaviour(%s) is not None:" % namn,
         '    raise ValueError(k.Name + " har redan ett beteende som heter "'
         ' + %s)' % namn,
@@ -2012,7 +2024,7 @@ def _kod_create_property_adapter(argument):
             "ser ut nu. Bind signal och komponentegenskap genom att satta dem "
             "med set_behaviour_property, med namnen ur den listan."),
     ]
-    return _mall(["_komp", "_enkelt", "_svara"], ["_kravs", "_egenskaper"], rader)
+    return _mall(["_komp", "_enkelt", "_svara"], ["_egenskaper"], rader)
 
 
 _lagg(

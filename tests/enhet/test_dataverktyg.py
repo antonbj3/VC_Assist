@@ -16,15 +16,10 @@ Fem saker provas, och den tredje ar den viktigaste:
 5. FAIL-CLOSED. En ogonrapport som inte gar att lasa ar aldrig ett
    godkannande, och utan formagerapport ar aven data-verktygen avslagna.
 
-ISOLERINGEN, och varfor den finns. Domanmodulerna registrerar sig vid import,
-precis som scen.py och granssnitt.py gor. Men de importeras INTE av
-vc_assist_svc/verktyg/__init__.py: paketet fyller bara scene och composition,
-och tests/enhet/test_verktyg.py mater det registret exakt (21 verktyg,
-DATA_HANDLERS tomt). Skulle den har filen fylla samma globala register vid
-insamlingen skulle den mata sonder grannens matning. Darfor byts registren ut
-mot tomma ordbocker RUNT importen: modulerna registrerar sig i vara egna
-ordbocker, och paketets ligger orort kvar. Testet
-test_paketets_eget_register_ar_orort haller pa att det stammer.
+URVALET. Domanmodulerna registrerar sig vid import, och verktyg/__init__.py
+importerar dem. Den har filen laser darfor ur PAKETETS register och filtrerar
+pa de tre domanerna - inte ur ett eget. Det ar samma register som tjansten
+anvander, vilket gor provet sannare an en kopia.
 """
 import copy
 import inspect
@@ -41,19 +36,26 @@ from vc_assist_svc import verktyg as V                      # noqa: E402
 from vc_assist_svc.verktyg import register as _register     # noqa: E402
 
 
+DOMANER = ("catalog", "knowledge", "eyes")
+
+
 def _ladda_domanerna():
-    """Importerar domanmodulerna in i EGNA register. Se filens docstring."""
-    gamla = (_register.REGISTER, _register.DATA_HANDLERS,
-             _register.CODE_GEN_HANDLERS)
-    _register.REGISTER, _register.DATA_HANDLERS = {}, {}
-    _register.CODE_GEN_HANDLERS = {}
-    try:
-        from vc_assist_svc.verktyg import katalog, kunskap, ogonverktyg
-        return (_register.REGISTER, _register.DATA_HANDLERS,
-                _register.CODE_GEN_HANDLERS, katalog, kunskap, ogonverktyg)
-    finally:
-        (_register.REGISTER, _register.DATA_HANDLERS,
-         _register.CODE_GEN_HANDLERS) = gamla
+    """Plockar ut de tre data-domanerna ur PAKETETS eget register.
+
+    Tidigare byttes registren ut mot tomma ordbocker runt importen, for att
+    verktyg/__init__.py da INTE importerade domanmodulerna och grannens test
+    matte ett register pa exakt 21. Nu importerar paketet dem, sa en andra
+    import registrerar ingenting - modulen ar redan laddad. Isoleringen blev
+    darmed inte bara onodig utan direkt fel: den gav tomma register.
+
+    Att lasa ur paketets register ar dessutom sannare. Det ar det register
+    tjansten faktiskt anvander.
+    """
+    from vc_assist_svc.verktyg import katalog, kunskap, ogonverktyg
+    reg = dict((n, v) for n, v in _register.REGISTER.items() if v.doman in DOMANER)
+    data = dict((n, h) for n, h in _register.DATA_HANDLERS.items() if n in reg)
+    kodgen = dict((n, h) for n, h in _register.CODE_GEN_HANDLERS.items() if n in reg)
+    return reg, data, kodgen, katalog, kunskap, ogonverktyg
 
 
 REGISTER, DATA_HANDLERS, KODGEN, katalog, kunskap, ogonverktyg = _ladda_domanerna()
@@ -185,10 +187,17 @@ def test_allt_ligger_i_data_registret():
     assert KODGEN == {}
 
 
-def test_paketets_eget_register_ar_orort():
-    """Isoleringen haller: grannens matning i test_verktyg.py star kvar."""
-    assert V.DATA_HANDLERS == {}
-    assert len(V.REGISTER) == 21
+def test_de_tre_domanerna_ligger_i_paketets_register():
+    """Domanerna ska vara inkopplade i paketet, inte bara i den har filen.
+
+    Tidigare provade det har testet motsatsen - att paketets register var
+    OROT - eftersom modulerna da inte importerades av verktyg/__init__.py.
+    De ar inkopplade nu, och da ar det inkopplingen som ska provas.
+    """
+    for namn in REGISTER:
+        assert namn in V.REGISTER, "%s ar inte inkopplat i paketet" % namn
+        assert namn in V.DATA_HANDLERS, "%s ligger inte i DATA_HANDLERS" % namn
+    assert len(REGISTER) == 10, "catalog 3, knowledge 4, eyes 3"
 
 
 @pytest.mark.parametrize("namn", sorted(REGISTER))
@@ -225,7 +234,14 @@ def test_exempellistan_tacker_hela_registret():
 
 def test_en_handlare_med_bryggparameter_avvisas_vid_registrering():
     """Den trasiga fixturen: registret MASTE falla den."""
-    v = REGISTER["catalog_categories"]
+    # En KOPIA med eget namn: originalet ar redan registrerat i paketet, och
+    # registret avvisar dubbletter fore det hinner titta pa signaturen.
+    original = REGISTER["catalog_categories"]
+    v = V.Verktyg(namn="prov_bryggparameter", beskrivning=original.beskrivning,
+                  mode="data", effect="read", parameters=original.parameters,
+                  returns=original.returns, since=original.since,
+                  kraver=original.kraver, doman="prov",
+                  timeout_ms=original.timeout_ms)
     with pytest.raises(V.Schemafel) as e:
         _register.registrera(v, lambda argument, klient: {})
     assert "ska ta exakt en" in str(e.value)

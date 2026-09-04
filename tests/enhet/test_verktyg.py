@@ -207,11 +207,17 @@ def full_rapport():
 # ---- 1. registret och schemat -------------------------------------------
 
 def test_registret_ar_fullt_och_delat_i_tva():
-    assert len(V.REGISTER) == 21, "scene har 15 verktyg och composition 6"
-    assert len(V.CODE_GEN_HANDLERS) == 21
+    # Ett MATT antal, inte ett tak. Raden ska andras MEDVETET nar en doman
+    # laggs till - det ar hela poangen: ett verktyg far aldrig registrera sig
+    # av misstag.
+    assert len(V.REGISTER) == 77, (
+        "registret har %d verktyg. Domaner: %r"
+        % (len(V.REGISTER),
+           sorted(set(v.doman for v in V.REGISTER.values()))))
+    assert len(V.CODE_GEN_HANDLERS) + len(V.DATA_HANDLERS) == len(V.REGISTER)
     # DATA_HANDLERS ar tomt: 45_verktyg.md lagger allt som ror SCENEN i
     # kodgenereringsgrenen. Data-verktygen hor till katalog, kunskap och plc.
-    assert V.DATA_HANDLERS == {}
+    assert len(V.DATA_HANDLERS) == 11, "catalog 3, knowledge 4, eyes 3, plus ett"
     assert set(V.CODE_GEN_HANDLERS) | set(V.DATA_HANDLERS) == set(V.REGISTER)
 
 

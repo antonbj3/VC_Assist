@@ -5,8 +5,15 @@ Provtagaren rors av pumpen (M-08) och laser scenen. Domen fals inte har - den
 fals i oga_analys.py, utanfor VC, pa den tidsserie som skrivs har. Uppdelningen
 ar avsiktlig: domaren gar da att prova utan VC.
 
-Kalla: docs/spec/40_ogat.md, docs/spec/41_ogat_kontrakt.md
-Matt: M-11 (kvaternionens ordning och varldsmatrisens eftersläpning)
+HELA SCENEN PROVTAS. Planens `parts` och `tools` ar en ROLLTILLDELNING - vilka
+objekt som ska tolkas som detalj och verktyg i greppanalysen - inte ett filter
+for vad som lases. Varje komponent i scenen far sin pose i varje prov, sa ett
+objekt som ingen tankte pa anda finns i serien nar man i efterhand fragar
+varfor nagot gick fel.
+
+Kalla: docs/spec/40_ogat.md, docs/spec/41_ogat_kontrakt.md, 42_ogat_utbyggt.md
+Matt: M-11 (kvaternionens ordning och varldsmatrisens eftersläpning),
+      M-03 (pumpens takt), M-13 (vad som dodar pumpen)
 """
 from __future__ import absolute_import, division, print_function
 
@@ -14,9 +21,32 @@ import json
 import os
 import time
 
+import oga_harledning as H
+
 # Hur ofta serien skrivs till disk. Kontraktet kraver inkrementell skrivning
 # sa en avbruten korning anda gar att lasa.
 SKRIV_VAR_N_RAD = 100       # PRELIMINAR. Satts av matning M-10.
+
+# VC:s varldsenhet mot millimeter. Ligger HAR for att det ar vid avlasningen
+# enheten kommer in i systemet, och den ar OMATT: ogats syntetiska celler
+# rakar i meter medan VC:s 3D-varld normalt rakar i millimeter. Talet ar
+# skrivet pa ett stalle sa en matning kan rata det pa ett stalle.
+LANGDENHET_TILL_MM = 1000.0  # PRELIMINAR. Satts av matning M-17.
+
+# Fullscenprovtagningens kostnadsstyrning. Pumpens tick har en budget pa
+# 25 ms (pump.TICK_BUDGET_S, satt av M-03:s taktmatning). Ogat far en femtedel
+# av den; over det glesas SCENEN ut - aldrig rollerna, aldrig tyst.
+SCEN_BUDGET_MS = 5.0        # PRELIMINAR. Satts av matning M-16.
+# Hur manga scenavlasningar som mats innan glesningen andras. En enda dyr
+# avlasning ar ett utslag, inte en takt.
+GLES_FONSTER = 8            # PRELIMINAR. Satts av matning M-16.
+# Hogsta glesningsfaktor. Over den ar serien sa gles att den inte langre ar
+# ett underlag, och ogat sager det i stallet for att glesa vidare.
+GLES_TAK = 64               # PRELIMINAR. Satts av matning M-16.
+# Hur ofta komponentlistan hamtas om, sa nya och borttagna objekt syns.
+KOMPONENTLISTA_VAR_N_RAD = 20   # PRELIMINAR. Satts av matning M-16.
+# Hur gammalt ett PLC-varde far vara och anda raknas som samtidigt med provet.
+PLC_FARSK_S = 0.25          # PRELIMINAR. Satts av matning M-19.
 
 
 def kvat_fran_vc(vcvektor):
@@ -31,7 +61,16 @@ def kvat_fran_vc(vcvektor):
 
 
 class Scen(object):
-    """Vad provtagaren behover av en scen. Finns for att kunna bytas ut i test."""
+    """Vad provtagaren behover av en scen. Finns for att kunna bytas ut i test.
+
+    Allt utom pose() och signal() har ett tomt standardsvar. Ett tomt svar ar
+    INTE ett godkannande: analysen skiljer "ingen frag stalld" fran "fragan
+    stalld och obesvarad" och domer INCONCLUSIVE i det senare fallet.
+    """
+
+    def konfigurera(self, plan):
+        """Anropas en gang, fore forsta provet. Har byggs det som ar dyrt."""
+        return self
 
     def uppdatera(self):
         pass
@@ -39,8 +78,18 @@ class Scen(object):
     def pose(self, spec):
         raise NotImplementedError
 
+    def poser_alla(self):
+        """{namn: pose} for HELA scenen, rollerna undantagna. None = ej stodd."""
+        return None
+
     def signal(self, spec):
         raise NotImplementedError
+
+    def leder(self, spec):
+        return None
+
+    def ledmal(self, spec):
+        return None
 
     def mindist(self, spec):
         return None

@@ -17,12 +17,9 @@ Domanmodulerna importeras HAR, sa att registren alltid ar fulla nar nagon
 rort paketet. Python kor __init__ fore varje undermodul, sa aven
 "import vc_assist_svc.verktyg.register" ger ett fullt register.
 
-DATA_HANDLERS ar tomt an sa lange, och det ar ingen lucka utan foljden av
-45_verktyg.md: "allt som ror scenen ar kodgenerering; allt som ror index,
-katalog och kunskap ar data". Domanerna catalog, knowledge, plc och eyes
-bar data-verktygen, och de byggs i egna celler. Vagen for dem ar fardig och
-provad har (utforare.utfor grenar pa mode), sa den cell som bygger dem
-behover bara anropa registrera().
+Uppdelningen foljer 45_verktyg.md: allt som ror SCENEN ar kodgenerering och gar
+till bryggan, allt som ror index, katalog och kunskap ar DATA och kors i
+tjansten. Domanerna catalog, knowledge och eyes bar data-verktygen.
 """
 from __future__ import annotations
 
@@ -35,8 +32,15 @@ from .register import (CODE_GEN_HANDLERS, DATA_HANDLERS, REGISTER, domaner,
 from .schema import Verktyg, validera_argument, validera_resultat
 from .utforare import OP_FOR_EFFECT, Resultat, Utforare, op_for_effect
 
-from . import granssnitt  # noqa: F401,E402  - fyller registret vid import
-from . import scen        # noqa: F401,E402  - fyller registret vid import
+# Domanmodulerna importeras HAR sa registret alltid ar fullt. Ordningen ar
+# alfabetisk och utan betydelse - registrera() avvisar dubbletter.
+from . import granssnitt    # noqa: F401,E402
+from . import katalog       # noqa: F401,E402
+from . import kunskap       # noqa: F401,E402
+from . import ogonverktyg   # noqa: F401,E402
+from . import scen          # noqa: F401,E402
+from . import signaler      # noqa: F401,E402
+from . import transport     # noqa: F401,E402
 
 __all__ = [
     "Argumentfel", "Avstangt", "OkantVerktyg", "Schemafel", "Svarsfel",
