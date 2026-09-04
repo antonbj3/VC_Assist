@@ -23,3 +23,10 @@ märkt **ANTAGET**. Inga tal utan härkomst.
 | `81_mallschema.md` | Mallens fält, typer och lintregler | klar |
 | `82_felklasser.md` | Fjorton felklasser med sorteringsregler | klar |
 | `83_scenarier.md` | Tjugo scenarier, var och en isolerar en felklass | klar |
+| `46_kunskapsindex.md` | Fyra index, exakt namnuppslag, fällindex | klar |
+| `90_invarianter.md` | Sjutton regler som aldrig bryts | klar |
+| `95_testprotokoll.md` | Fem nivåer, trasiga fixturer, fasacceptans | klar |
+| `96_ingen_skuld.md` | Tio skuldregler med mekanisk kontroll | klar |
+
+Systemdokumentet ligger i repots rot: `SYSTEM.md`.
+
