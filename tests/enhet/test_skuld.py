@@ -22,7 +22,7 @@ _MATNINGAR = os.path.join(_ROT, "docs", "matningar")
 # MATT 2026-09-04 (M-70): 1. Det talet ar resultatet av tva saker som gjordes i
 # samma svep, och de far inte blandas ihop:
 #
-#   * 23 matningar fick ett arlighetsavsnitt skrivet at sig (M-01 till M-40).
+#   * 22 matningar fick ett arlighetsavsnitt skrivet at sig (M-01 till M-40).
 #   * M-44 och M-47 BAR redan ett, under rubriker monstret inte sag. Monstret
 #     var skrivet i ASCII och matningarna i svenska, sa atta av elva grenar
 #     kunde aldrig fyra. Lagat i skuld.py, inte genom att duplicera text.

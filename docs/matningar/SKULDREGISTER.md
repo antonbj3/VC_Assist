@@ -10,7 +10,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 
 * `M-50_de_trasiga_fallen.md`
 
-## Vad mätningarna säger att de inte vet: 289 punkter
+## Vad mätningarna säger att de inte vet: 319 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -318,7 +318,8 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 ### M-49_stationen_arbetar.md — Vad som INTE är visat
 
 * Nödstoppet.** Den skyddade ingången kan inte drivas från kopplaren och står
-* Att simuleringen kan gå i realtid med slingan sluten.** Kvoten mättes till
+* Fasförhållandet mellan PLC-taggen och scenens signal.** Det kräver
+* Nödstoppet igen:** att ST-koden gör rätt när `nodstopp` går hög är oprövat,
 * Fler än en station.** Fas 8.
 * Hur ofta det lyckas.** Ett grönt varv är inte en frekvens. Fas 9.
 * Windows.**
@@ -393,6 +394,33 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * De 75 flödesfälten med port 2–6.**
 * Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
 
+### M-62_baslinjen.md — 12. Vad som INTE är prövat
+
+* Ingen språkmodell kördes.** Paret i avsnitt 1 är baslinjen mot sig själv på
+* 33 av 37 genereringsuppgifter har inget spårfacit.** För dem säger
+* Ingen uppgift är körd i VC.** Ögat har inte sett en enda av de 37
+* Ingen uppgift är körd i OpenPLC.** Tolken och runtimen är fortfarande inte
+* Grind 4 är inte körd, 0 av 37.** Baslinjen skriver ingen scenkod. En
+* Grammatiken är skriven av mig, mot bankens egna rader.** Att den läser 89 av
+* `mager` och `prosa` är svagare än de behöver vara.** En bättre I/O-listnivå
+* Ablationen prövar fyra varianter, inte alla.** Att `S-05` klarar sig utan
+* Reparationstabellen har två poster därför att bara två grindkoder pekar ut
+* Tidsmätningen är en enda körning per nivå** på en maskin som samtidigt kör
+* Ingen mätning av vad baslinjen gör med en uppgift utanför banken.**
+* 
+
+### M-63_planeringslagret_matt_mot_sin_spec.md — 9. Vad den här mätningen INTE visar
+
+* Att planen bygger rätt cell.** Grinden mäter att planen håller
+* Att koordinaterna går att köra.** Layoutmotorn lämnar ut koordinater bara när
+* Att textläsningen förstår svenska.** `lasning.py` läser slutna mönster.
+* Att processlistan täcker en verklig cell.** `PROCESSORD` är 28 ord. En process
+* Att `INGEN_MOTSAGELSE_FUNNEN` betyder att layouten går.** Det betyder att just
+* Att rasterstegen är rätt.** Tre steg är mätta över 81 körningar i **en**
+* Att bankvägen och fritextvägen ger samma detaljering.** De döms av samma
+* Att felen jag inte letade efter inte finns.** Mätningen jämförde spec mot kod.
+* 
+
 ### M-64_vad_anvandaren_ser_medan_det_arbetar.md — 6. Vad systemet inte vet, i två klasser
 
 * Utanför räckvidd**, fem poster, ordagrant efter `50_grindar.md`:
@@ -444,6 +472,17 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Om markörlistan är fullständig.** Sju markörer, tagna ur M-59. En komponent
 * Ordningen mellan markörerna är oprövad.** Noll av 3201 bär både en
 * Om `Category`-fältet någonsin är sannare än strukturen.** Antaget nej, inte
+
+### M-70_arlighetsskulden_betald.md — Vad som INTE är mätt
+
+* Om punkterna jag skrev är sanna.** 150 påståenden om vad 22 mätningar inte
+* Om listan är komplett.** Jag skrev de hål jag såg. En mätning kan bära fler,
+* De två mönstren jämförs på ett träd, inte på en mängd rubriker med känt
+* Fyra ord är en gissning.** Grenen `vad ... inte` tillåter upp till fyra ord
+* M-50 är kvar och är inte min.** Den är en halvskriven mätning
+* Taket är satt i ett rörligt repo.** `UTAN_ARLIGHETSAVSNITT = 1` är exakt lika
+* Ingenting är mätt i VC.** Hela det här arbetet är textarbete på disk. Ingen
+* Två prov i sviten är röda och är inte mina:**
 
 ### M-71_ren_maskin_utan_vc.md — Vad som fortfarande INTE är prövat
 
