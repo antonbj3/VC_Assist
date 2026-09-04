@@ -40,6 +40,48 @@ from .spec import (Antagande, Del, DetaljeradSpec, Fraga, Grundbegaran,
 from .verifiering import Krav, Uppskjutet, Verifieringskrav
 from .villkorssprak import Prosakrav, Relation, Typvillkor
 
+# K1: "Slotlistan ar harledd, inte gissad. Varje spec-falt bar `needed_for`:
+# vilken grind eller vilket losarsteg som inte kan koras utan det. Ett falt
+# utan `needed_for` far inte finnas i schemat."
+#
+# Har star det for FRAGORNA, som ar de tomma slotsen i praktiken. Tabellen ar
+# sluten och matchas pa id:ts borjan. En fraga vars id inte star har ar ett
+# fel i VAR kod, inte i bestallningen: nagon har lagt till ett slot utan att
+# saga vad det behovs till, och da kan operatoren inte veta om det ar vart att
+# svara pa. Grinden heter S1_SLOT_UTAN_BEHOV.
+BEHOVS_FOR = (
+    ("cellyta", "ytbeviset MK3_YTA, passformen MK4_PASSAR_EJ och hallen i "
+                "layoutmotorn"),
+    ("gangstrak", "MK3_YTA:s uppblasning och kollision.kravd_separation_m i "
+                  "layouten"),
+    ("kopplingar", "kopplingsstegen list_interfaces -> can_connect -> connect"),
+    ("okant_ord:", "katalogforankringen: en komponent utan URI gar inte att "
+                   "ladda"),
+    ("val:", "katalogforankringen: URI:n i load_component"),
+    ("saknas:", "katalogforankringen: URI:n i load_component"),
+    ("uri:", "load_component; bank://-vokabularen pekar inte pa nagon fil"),
+    ("takt", "verifieringens genomflodeskrav och THROUGHPUT-raderna"),
+    ("tolerans", "TIMING-raderna i ogats dom; ett tidskrav utan tolerans gar "
+                 "inte att prova"),
+    ("signalriktning", "grind 3, deklarationsmatchningen mot signalkartan"),
+    ("rackvidd", "InomRackvidd i layoutmotorn och rackviddsvillkoret"),
+    ("arbetsradie", "rackviddsvillkoret del.<roll>.rackvidd_mm"),
+    ("verifiering", "ogats dom; en plan utan verifiering ar en kandidat"),
+    ("frigang", "layoutmotorns underhallsmarginal"),
+    ("delar", "hela planen; en scen utan delar gar inte att bygga"),
+    ("processordning", "processordningen och ST-sekvensen i fas 7"),
+    ("layout:", "layoutmotorn"),
+)
+
+
+def behovs_for(fraga_id):
+    """Vad fragan behovs till, eller None om ingen rad tacker den."""
+    for prefix, behov in BEHOVS_FOR:
+        if fraga_id == prefix or fraga_id.startswith(prefix):
+            return behov
+    return None
+
+
 # Vem som provar ett krav vi inte kan typa. Ett prosakrav utan konsument ar
 # samma dodkott som det gamla Villkor.text var (M-63), sa konsumenten ar ett
 # formkrav i villkorssprak.Prosakrav och inte en artighet.

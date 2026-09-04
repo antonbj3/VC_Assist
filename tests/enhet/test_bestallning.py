@@ -1815,3 +1815,51 @@ def test_fragerundan_star_i_specen_och_i_artefakten(tmp_path):
     filer = A.skriv(besked, str(tmp_path))
     with open(filer["spec"], encoding="utf-8") as f:
         assert _json.load(f)["fragerunda"] == 1
+
+
+# ======================================================================
+# K1: VARJE FRAGA SAGER VAD DEN BEHOVS TILL
+# ======================================================================
+
+def test_varje_fraga_lagret_stallar_sager_vad_den_behovs_till():
+    """K1: ett falt utan `needed_for` far inte finnas i schemat.
+
+    Fragorna ar de tomma slotsen i praktiken. Svepet gar over hela banken och
+    over fritextvagen, sa en fraga som lagts till utan en rad i BEHOVS_FOR
+    upptacks har och inte hos operatoren.
+    """
+    from vc_assist_svc.plan.forfining import behovs_for
+    sedda = set()
+    for text in (BESTALLNING, MOTSAGELSE, CYKEL, TVA_FRAGOR,
+                 OPERATORENS_EXEMPEL, MONTERINGSCELL,
+                 "Bygg en cell med ett band och en robot. Cellen ar 3x3 meter. "
+                 "Gangstrak minst 200 mm. Bandet matar roboten. Roboten ska na "
+                 "bandet. Roboten har rackvidd 900 mm."):
+        besked = B.bestall(text, _stor_katalog(), motor=_motor())
+        for fraga in besked.spec.fragor:
+            sedda.add(fraga.id)
+            assert behovs_for(fraga.id), fraga.id
+    for _t, spec, _b in _banksvep():
+        for fraga in spec.fragor:
+            sedda.add(fraga.id)
+            assert behovs_for(fraga.id), fraga.id
+    assert len(sedda) >= 6, sedda
+
+
+def test_en_fraga_utan_rad_i_tabellen_avvisar_planen():
+    """Trasig fixtur for K1 sjalv. En fraga vars id ingen rad tacker ar ett
+    fel i VAR kod, och den ska falla har och inte hos operatoren."""
+    from vc_assist_svc.plan.spec import Fraga
+    spec, blad = _spec("Bygg en cell med ett band.")
+    spec.fragor.append(Fraga(
+        "nytt_slot_utan_behov", "vad ska det vara?",
+        "ett skal som ar langt nog for kravet pa fyrtio tecken i motivet"))
+    besked = B.doma(spec, blad)
+    assert besked.status == B.AVVISAD
+    assert "S1_SLOT_UTAN_BEHOV" in [k for k, _t in besked.problem]
+
+
+def test_den_blockerande_fragan_skriver_ut_vad_den_behovs_till():
+    besked = _besked("Bygg en cell med ett band, en robot och en pall.")
+    assert besked.status == B.OFULLSTANDIG
+    assert any("behovs for" in t for _k, t in besked.problem)

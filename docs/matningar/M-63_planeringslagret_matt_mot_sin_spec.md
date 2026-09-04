@@ -51,9 +51,9 @@ varje rad pekar på fil och funktion.
 
 | | Före | Efter |
 |---|---:|---:|
-| **uppfyllt** | 9 | **23** |
+| **uppfyllt** | 9 | **24** |
 | **delvis** | 8 | 4 |
-| **saknas** | 13 | 2 |
+| **saknas** | 13 | 1 |
 | ej tillämpligt | 0 | 1 |
 
 ### 2.1 Det som redan fanns, och som är bra
@@ -116,7 +116,6 @@ de fanns inte som begrepp.
 
 | Krav | Vad som saknas | Varför det inte gjordes nu |
 |---|---|---|
-| `K1` | `needed_for` per spec-fält, lintkod `S1_SLOT_WITHOUT_NEED` | kräver att varje grind namnger sina indata; hör ihop med P1–P2 och är en egen runda |
 | `K10` | taket på fyra rättningsvarv | lösaren har i stället en **mätt** nodbudget och en rasterstege; se §5 och förslag F4 |
 
 Fyra är delvis: `K11` (gångstråket är ett hårt slot och mäts av lösarens
@@ -145,6 +144,15 @@ fram ur körningen är inget facit (`EK4`, och det är källans
 `interface_info` efter `connect`. **8 av 8 skrivande steg** i den planen har nu
 en efterkontroll som kan falla.
 
+**`K1` och `S1` — varje fråga säger vad den behövs till.** Frågorna är de tomma
+slotsen i praktiken, och `BEHOVS_FOR` är en sluten tabell som binder varje
+fråge-id till den grind eller det lösarsteg som inte kan köras utan svaret.
+En fråga vars id ingen rad täcker är ett fel i **vår** kod — någon har lagt
+till ett slot utan att säga vad det behövs till — och den fälls med
+`S1_SLOT_UTAN_BEHOV` innan beställningen ens når operatören. Svepet i provet
+går över hela banken och över sju fritextbeställningar, så en ny fråga utan
+rad upptäcks där och inte hos honom.
+
 **Artefakterna på disk.** *"Alla fyra är JSON på disk under
 `bank/plans/<plan_id>/`"* — ingen av dem skrevs. `artefakter.py` skriver alla
 fyra, och anropssekvensen bär en sha256 över sin egen kanoniska JSON. Tre
@@ -158,7 +166,7 @@ grinden är lösarens **egen oberoende** efterhandsgranskning.
 | Grind | Läge | Vad som gjordes |
 |---|---|---|
 | P1 Specfullständighet | **grön** | blockerande frågor stoppar planen, och `fragerunda` bärs i artefakten med taket två |
-| P2 Specformslint | delvis | `VS1`–`VS7` mekaniserar S2; S1 kräver `needed_for` |
+| P2 Specformslint | **grön** | `VS1`–`VS7` mekaniserar S2, och `S1_SLOT_UTAN_BEHOV` mekaniserar S1: varje fråga säger vilken grind som inte kan köras utan svaret |
 | P3 Katalogförankring | delvis | URI:er kommer ur indexet eller blir en fråga; databladet som artefakt saknas |
 | P4 Layoutdom, statisk | **grön** | `layoutmotor.py` → `layout/losare.losa`, fail-closed |
 | P5 Layoutdom, mätt i VC | saknas | kräver VC; hör till fas 5a |

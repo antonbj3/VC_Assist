@@ -42,7 +42,7 @@ from __future__ import annotations
 
 from . import motsagelse as MO
 from .fel import Planfel
-from .forfining import Forfinare
+from .forfining import Forfinare, behovs_for
 from .harkomst import granska_alla
 from .layoutport import Layoutport
 from .layoutmotor import harled_fotavtryck
@@ -216,12 +216,27 @@ def doma(spec, datablad=None, motor=None, geometri=True):
                       motsagelsedom=dom, processordning=ordning,
                       datablad=datablad)
 
-    # -- 4. de blockerande fragorna ---------------------------------------
+    # -- 4. fragorna ------------------------------------------------------
+    # K1 forst: varje fraga ska saga VAD den behovs till. En fraga vars id
+    # ingen rad i BEHOVS_FOR tacker ar ett fel i VAR kod - nagon har lagt till
+    # ett slot utan att saga vad det behovs till, och da kan operatoren inte
+    # veta om det ar vart att svara pa.
+    utan_behov = [f for f in spec.fragor if behovs_for(f.id) is None]
+    if utan_behov:
+        return Besked(AVVISAD, spec, grind="B4_FRAGOR",
+                      problem=[("S1_SLOT_UTAN_BEHOV",
+                                "fragan %s sager inte vilken grind eller "
+                                "vilket losarsteg som inte kan koras utan "
+                                "svaret (K1)" % f.id) for f in utan_behov],
+                      motsagelsedom=dom, processordning=ordning,
+                      datablad=datablad)
     blockerande = spec.blockerande_fragor()
     if blockerande:
         return Besked(OFULLSTANDIG, spec, grind="B4_FRAGOR",
                       problem=[("B4_OBESVARAD_FRAGA",
-                                "%s: %s" % (f.id, f.vad)) for f in blockerande],
+                                "%s: %s (behovs for %s)"
+                                % (f.id, f.vad, behovs_for(f.id)))
+                               for f in blockerande],
                       motsagelsedom=dom, processordning=ordning,
                       datablad=datablad)
 
