@@ -1,0 +1,1266 @@
+# -*- coding: utf-8 -*-
+"""L1 for planeringslagrets BESTALLNINGSVAG (fas 16).
+
+Acceptansprotokollet star i tests/protocol/fas16_planeringslagret.md och varje
+avsnitt har nedan svarar mot ett avsnitt dar. Grinden som stanger fasen, ur
+docs/spec/70_faser.md:
+
+    "En grundbestallning i fritext blir en detaljerad, korbar byggplan med
+     villkor och processordning - och planen AVVISAS nar den ar omojlig, i
+     stallet for att byggas halvt. Trasigt fall: en bestallning som motsager
+     sig sjalv maste fallas med vilket villkor som krockar."
+
+Varje kontroll provas at BADA hallen: att den faller pa ett verkligt fel OCH
+slapper igenom det korrekta. En grind som bara provats at ena hallet ar oprovad
+(docs/spec/95_testprotokoll.md).
+
+Kors utan VC, utan OpenPLC och utan kompilator.
+"""
+import os
+import sys
+
+import pytest
+
+_ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+for _p in (os.path.join(_ROT, "svc"), os.path.join(_ROT, "bank"),
+           os.path.join(_ROT, "ext", "vc_addon", "vc_assist")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from vc_assist_svc.plan import bestallning as B              # noqa: E402
+from vc_assist_svc.plan import lasning as L                  # noqa: E402
+from vc_assist_svc.plan import motsagelse as MO              # noqa: E402
+from vc_assist_svc.plan import ordning as ORD                # noqa: E402
+from vc_assist_svc.plan import storheter as ST               # noqa: E402
+from vc_assist_svc.plan import villkorssprak as VS           # noqa: E402
+from vc_assist_svc.plan.fel import Planfel, Specfel          # noqa: E402
+from vc_assist_svc.plan.forfining import Forfinare           # noqa: E402
+from vc_assist_svc.plan.harkomst import (Harkomst,           # noqa: E402
+                                         granska_alla, normalisera)
+from vc_assist_svc.plan.layoutmotor import Layoutmotor       # noqa: E402
+from vc_assist_svc.plan.layoutport import (Layoutfel,        # noqa: E402
+                                           Layoutport, begaran_ur_spec)
+from vc_assist_svc.plan.processer import (Ordningskrav,      # noqa: E402
+                                          Process, Processordning)
+from vc_assist_svc.plan.spec import (Del, DetaljeradSpec,    # noqa: E402
+                                     Grundbegaran, Koppling, Omrade)
+
+
+# ---- gemensamt ----------------------------------------------------------
+
+# En liten katalog dar varje ord i begaran traffar EXAKT en post. Bankens
+# riktiga index har 15 robotar, och da blir varje "robot" en fraga i stallet -
+# vilket ar ratt beteende, men gor att den positiva vagen inte gar att prova.
+KATALOG = {
+    "file:///band.vcm": {"uri": "file:///band.vcm",
+                         "namn": "Bandtransportor 400", "kategori": "transport",
+                         "l_mm": 2000.0, "b_mm": 400.0, "h_mm": 900.0,
+                         "massa_kg": 120.0},
+    "file:///robot.vcm": {"uri": "file:///robot.vcm", "namn": "IRB 2600",
+                          "kategori": "robot", "rackvidd_mm": 1650.0,
+                          "massa_kg": 272.0},
+    "file:///pall.vcm": {"uri": "file:///pall.vcm", "namn": "EUR-pall",
+                         "kategori": "lastbarare", "l_mm": 1200.0,
+                         "b_mm": 800.0, "h_mm": 150.0, "massa_kg": 25.0},
+}
+
+# Operatorens bestallning, ordagrant. Den ar avsiktligt skriven som en
+# manniska skriver, inte som ett schema.
+BESTALLNING = (
+    "Bygg en plockcell med ett band, en robot och en pall. "
+    "Cellen ar 6x6 meter. Gangstrak minst 200 mm. "
+    "Bandet matar roboten och roboten kopplas till pallen. "
+    "Roboten ska na bandet och pallen. "
+    "Forst plockning, sedan packning. "
+    "Cellen ska klara 400 detaljer i timmen.")
+
+
+def _motor():
+    """Layoutmotorn i provlage: ankaret ar antaget, sa koordinaterna far
+    lasas men aldrig koras mot en riktig scen (se protokollets avsnitt F)."""
+    return Layoutmotor(strikt_ankare=False)
+
+
+def _besked(text=BESTALLNING, motor=True, **kv):
+    return B.bestall(text, KATALOG,
+                     motor=_motor() if motor else None, **kv)
+
+
+def _spec(text=BESTALLNING):
+    f = Forfinare(KATALOG)
+    return f.ur_fritext(Grundbegaran("prov", text, "operator")), f.datablad
+
+
+def _villkor(id, storhet, operator, varde, belagg, sort="geometri"):
+    return VS.Typvillkor(id, sort, storhet, operator, varde,
+                         Harkomst("begaran", belagg))
+
+
+# ======================================================================
+# A. DEN POSITIVA RIKTNINGEN - fri text blir en korbar plan
+# ======================================================================
+
+def test_A1_en_bestallning_i_fritext_blir_en_byggbar_plan():
+    besked = _besked()
+    assert besked.status == B.BYGGBAR, besked.text()
+    assert besked.plan is not None
+
+
+def test_A2_planen_bar_steg_och_skrivande_steg():
+    plan = _besked().plan
+    sammanfattning = plan.sammanfattning()
+    assert sammanfattning["steg"] >= 20, sammanfattning
+    assert sammanfattning["skrivande_steg"] >= 8, sammanfattning
+
+
+def test_A3_planen_haller_verktygsregistret():
+    assert _besked().plan.granska() == []
+
+
+def test_A4_ordningen_ar_deterministisk_over_tre_sekvenseringar():
+    """K20/K22: samma spec ska ge samma sekvens, korning efter korning."""
+    plan = _besked().plan
+    ordningar = [plan.ordning() for _ in range(3)]
+    assert ordningar[0] == ordningar[1] == ordningar[2]
+
+
+def test_A4b_tre_skilda_bestallningar_av_samma_text_ger_samma_ordning():
+    """Determinismen far inte bero pa att objektet ar detsamma."""
+    ordningar = [B.bestall(BESTALLNING, KATALOG,
+                           motor=_motor()).plan.ordning() for _ in range(3)]
+    assert ordningar[0] == ordningar[1] == ordningar[2]
+
+
+def test_A5_processordningen_ar_utskriven_och_ordnad():
+    besked = _besked()
+    assert besked.processordning == ["plockning", "packning"]
+
+
+def test_A6_koordinaterna_kommer_ur_layoutmotorn():
+    plan = _besked().plan
+    placeringar = [s for s in plan.graf
+                   if s.sort == "verktyg" and s.verktyg == "set_transform"]
+    assert placeringar, "ingen placering planerades trots layoutmotor"
+    for steg in placeringar:
+        assert len(steg.argument["position"]) == 3
+        assert "layoutmotorn" in steg.motiv
+
+
+def test_A6b_utan_motor_planeras_inga_koordinater_och_det_star_utskrivet():
+    """En grind som inte kordes far aldrig se ut som en grind som gick."""
+    besked = _besked(motor=False)
+    placeringar = [s for s in besked.plan.graf
+                   if s.sort == "verktyg" and s.verktyg == "set_transform"]
+    assert placeringar == []
+    motiv = " ".join(a.motiv for a in besked.spec.antaganden)
+    assert "plug and play" in motiv
+
+
+def test_A7_varje_antagande_bar_sitt_motiv():
+    besked = _besked()
+    assert len(besked.spec.antaganden) >= 10
+    for a in besked.spec.antaganden:
+        assert len(a.motiv.strip()) >= 40, a
+
+
+def test_A8_inga_oppna_blockerande_fragor_i_en_byggbar_plan():
+    besked = _besked()
+    assert besked.spec.blockerande_fragor() == []
+
+
+def test_A9_beskedet_gar_att_lasa_som_rader():
+    rader = _besked().rader()
+    assert rader[0] == "BESKED BYGGBAR"
+    assert any(r.startswith("PROCESSORDNING") for r in rader)
+    assert any(r.startswith("PLAN ") for r in rader)
+
+
+# ======================================================================
+# C. DE TRASIGA FALLEN
+# ======================================================================
+
+# ---- T1. bestallningen motsager sig sjalv -------------------------------
+
+MOTSAGELSE = ("Bygg en cell. Cellen far vara hogst 2x2 meter och minst "
+              "3 meter bred.")
+
+
+def test_T1_en_sjalvmotsagande_bestallning_avvisas():
+    besked = _besked(MOTSAGELSE)
+    assert besked.status == B.AVVISAD
+    assert besked.grind == "B3_MOTSAGELSE"
+
+
+def test_T1b_fallningen_namner_VILKET_VILLKOR_som_krockar():
+    """Kravet i grinden: fallas med VILKET villkor som krockar.
+
+    'Planen ar ogiltig' ar inget svar - operatoren kan inte ratta nagot pa
+    det. Bada raderna ska sta dar, med hans EGNA ord.
+    """
+    besked = _besked(MOTSAGELSE)
+    text = "\n".join(t for _kod, t in besked.problem)
+    assert "MK1_INTERVALL_TOMT" in [k for k, _t in besked.problem]
+    assert "hogst 2x2 meter" in text
+    assert "minst 3 meter bred" in text
+    assert "cell.bredd_mm" in text
+
+
+def test_T1c_fallningen_bar_en_atgard():
+    besked = _besked(MOTSAGELSE)
+    krock = besked.motsagelsedom.krockar[0]
+    assert krock.atgard
+    assert len(krock.ids()) >= 2
+
+
+def test_T1d_samma_bestallning_utan_motsagelsen_gar_igenom_grinden():
+    """Motprovet. En grind som faller pa allt mater ingenting."""
+    besked = _besked("Bygg en cell. Cellen far vara hogst 4x4 meter och minst "
+                     "3 meter bred.")
+    assert besked.grind != "B3_MOTSAGELSE", besked.text()
+
+
+# ---- T2. cyklisk processordning -----------------------------------------
+
+CYKEL = ("Bygg en cell. Forst svetsning, sedan malning. "
+         "Malning fore svetsning.")
+
+
+def test_T2_en_cyklisk_processordning_avvisas():
+    besked = _besked(CYKEL)
+    assert besked.status == B.AVVISAD
+    assert besked.grind == "B2_PROCESSORDNING"
+    assert "PO1_CYKEL" in [k for k, _t in besked.problem]
+
+
+def test_T2b_fallningen_namner_VILKA_STEG_som_bildar_cykeln():
+    besked = _besked(CYKEL)
+    text = "\n".join(t for _kod, t in besked.problem)
+    assert "malning" in text and "svetsning" in text
+    assert "malning -> svetsning -> malning" in text
+
+
+def test_T2c_samma_processer_utan_ringen_gar_igenom():
+    besked = _besked("Bygg en cell. Forst svetsning, sedan malning.")
+    assert besked.grind != "B2_PROCESSORDNING", besked.text()
+    assert besked.processordning == ["svetsning", "malning"]
+
+
+def test_T2d_en_cykel_blir_ett_fel_med_stegen_i_sig_inte_en_oandlig_loop():
+    """Direkt mot processordningen, utan vagen genom fritexten."""
+    h = Harkomst("begaran", "forst a sedan b")
+    ordning = Processordning(
+        [Process("a", "gora a", None, h), Process("b", "gora b", None, h)],
+        [Ordningskrav("a", "b", h), Ordningskrav("b", "a", h)])
+    assert ordning.cykler() == [["a", "b"]]
+    with pytest.raises(Exception) as fel:
+        ordning.ordning()
+    assert fel.value.cykler == [["a", "b"]]
+
+
+# ---- T3. ett antaget krav som inte ar markt som antaget -------------------
+
+def test_T3_ett_uppfunnet_krav_som_pastar_sig_komma_ur_begaran_avvisas():
+    """Skyddet mot att detaljeringen hittar pa krav operatoren aldrig stallde.
+
+    Villkoret sager sig komma ur begaran med orden 'hogst 1200 mm'. De orden
+    star inte i begaran. Kontrollen ar en delstrangsmatchning pa normaliserad
+    text - inte en asikt, och inte en modell som bedomer sig sjalv.
+    """
+    spec, blad = _spec("Bygg en cell med ett band.")
+    spec.villkor.append(_villkor("uppfunnet", "cell.bredd_mm", "le", 1200.0,
+                                 "hogst 1200 mm"))
+    besked = B.doma(spec, blad)
+    assert besked.status == B.AVVISAD
+    assert besked.grind == "B1_HARKOMST"
+    assert "HK2_FALSK_BEGARAN" in [k for k, _t in besked.problem]
+
+
+def test_T3b_fallningen_namner_bade_kravet_och_de_pastadda_orden():
+    spec, blad = _spec("Bygg en cell med ett band.")
+    spec.villkor.append(_villkor("uppfunnet", "cell.bredd_mm", "le", 1200.0,
+                                 "hogst 1200 mm"))
+    text = "\n".join(t for _kod, t in B.doma(spec, blad).problem)
+    assert "uppfunnet" in text
+    assert "hogst 1200 mm" in text
+
+
+def test_T3c_samma_krav_med_ett_belagg_som_STAR_i_begaran_slapps_igenom():
+    """Motprovet. En harkomstgrind som faller pa allt mater ingenting."""
+    spec, blad = _spec("Bygg en cell med ett band. Hogst 1200 mm bred.")
+    spec.villkor.append(_villkor("verkligt", "cell.bredd_mm", "le", 1200.0,
+                                 "Hogst 1200 mm"))
+    besked = B.doma(spec, blad)
+    assert besked.grind != "B1_HARKOMST", besked.text()
+
+
+def test_T3d_ett_krav_som_pekar_pa_ett_antagande_som_inte_finns_avvisas():
+    spec, blad = _spec("Bygg en cell med ett band.")
+    spec.villkor.append(VS.Typvillkor(
+        "peker_fel", "geometri", "cell.bredd_mm", "le", 1200.0,
+        Harkomst("antagande", "ett antagande ingen skrev")))
+    besked = B.doma(spec, blad)
+    assert "HK3_OKANT_ANTAGANDE" in [k for k, _t in besked.problem]
+
+
+def test_T3e_ett_krav_som_pekar_pa_ett_antagande_som_FINNS_slapps_igenom():
+    spec, blad = _spec("Bygg en cell med ett band.")
+    vad = spec.antaganden[0].vad
+    spec.villkor.append(VS.Typvillkor(
+        "peker_ratt", "geometri", "cell.bredd_mm", "le", 1200.0,
+        Harkomst("antagande", vad)))
+    besked = B.doma(spec, blad)
+    assert besked.grind != "B1_HARKOMST", besked.text()
+
+
+def test_T3f_ett_krav_utan_harkomst_alls_gar_inte_ens_att_konstruera():
+    with pytest.raises(Specfel) as fel:
+        VS.Typvillkor("utan", "geometri", "cell.bredd_mm", "le", 1200.0, None)
+    assert "harkomst" in str(fel.value)
+
+
+def test_T3g_granska_alla_ger_HK1_for_ett_krav_vars_harkomst_ar_None():
+    problem = granska_alla([("kravet X", None)], "en begaran")
+    assert problem[0][0] == "HK1_UTAN_HARKOMST"
+
+
+# ---- T4. geometrin gor kravet omojligt ----------------------------------
+
+def _rackviddsbegaran(rackvidd_mm, golv=(3000.0, 3000.0)):
+    return {
+        "v": 1, "plan_id": "prov", "frigang_mm": 200.0,
+        "golv_mm": list(golv), "hojd_mm": 4000.0,
+        "delar": [
+            {"roll": "robot", "uri": "u:r", "kategori": "robot", "antal": 1,
+             "matt_mm": None, "massa_kg": None},
+            {"roll": "band", "uri": "u:b", "kategori": "transport", "antal": 1,
+             "matt_mm": [2000.0, 400.0, 900.0], "massa_kg": None}],
+        "kopplingar": [],
+        "relationer": [{"sort": "nar", "fran_roll": "robot",
+                        "till_roll": "band", "hard": True}],
+        "datablad": {"robot": {"rackvidd_mm": rackvidd_mm}},
+    }
+
+
+def test_T4_en_for_kort_rackvidd_gor_layouten_overbestamd():
+    svar = _motor().placera(_rackviddsbegaran(900.0))
+    assert svar["status"] == "OVERBESTAMD"
+    assert svar["placeringar"] == []
+
+
+def test_T4b_konflikten_namner_den_bindande_relationen():
+    svar = _motor().placera(_rackviddsbegaran(900.0))
+    koder = [k["kod"] for k in svar["konflikt"]]
+    assert "INOM_RACKVIDD" in koder
+    roller = [r for k in svar["konflikt"] for r in k["roller"]]
+    assert "band" in roller and "robot" in roller
+
+
+def test_T4c_skalet_namner_sokrastret():
+    """Ett rastersvar far aldrig lata som en matematisk omojlighet."""
+    svar = _motor().placera(_rackviddsbegaran(900.0))
+    skal = [k["text"] for k in svar["konflikt"] if k["kod"] == "SKAL"][0]
+    assert "sokraster" in skal
+
+
+def test_T4d_en_tillracklig_rackvidd_ger_en_losning():
+    """Motprovet at andra hallet."""
+    svar = _motor().placera(_rackviddsbegaran(2600.0))
+    assert svar["status"] == "LOST"
+    assert len(svar["placeringar"]) == 2
+
+
+def test_T4e_bestallningen_avvisas_pa_layoutgrinden():
+    spec, blad = _spec(
+        "Bygg en cell med ett band och en robot. Cellen ar 3x3 meter. "
+        "Gangstrak minst 200 mm. Bandet matar roboten. "
+        "Roboten ska na bandet. Roboten har rackvidd 900 mm.")
+    besked = B.doma(spec, blad, _motor())
+    assert besked.status == B.AVVISAD, besked.text()
+    assert besked.grind == "B5_LAYOUT"
+    assert any("INOM_RACKVIDD" in t for _k, t in besked.problem)
+
+
+# ---- T5. ett hart slot ar tomt ------------------------------------------
+
+def test_T5_en_bestallning_utan_topologi_blir_ofullstandig():
+    besked = _besked("Bygg en cell med ett band, en robot och en pall. "
+                     "Cellen ar 6x6 meter.")
+    assert besked.status == B.OFULLSTANDIG
+    assert besked.plan is None
+
+
+def test_T5b_fragan_namner_rollerna_som_saknar_koppling():
+    besked = _besked("Bygg en cell med ett band, en robot och en pall. "
+                     "Cellen ar 6x6 meter.")
+    text = "\n".join(t for _k, t in besked.problem)
+    assert "band" in text and "robot" in text and "pall" in text
+
+
+def test_T5c_topologin_gissas_aldrig_ur_ordningen_orden_stod_i():
+    spec, _blad = _spec("Bygg en cell med ett band, en robot och en pall.")
+    assert spec.kopplingar == []
+
+
+# ---- T6. en storhet som inte gar att sla upp ----------------------------
+
+def test_T6_ett_krav_pa_en_okand_statisk_storhet_ger_OFULLSTANDIG():
+    """Kallprojektets stubbar svarade `pass` nar argumentet saknades. Det
+    arvs inte: en kontroll utan sitt argument ar OKANT, aldrig godkant."""
+    spec, blad = _spec("Bygg en cell med en robot. "
+                       "Roboten behover arbetsradie 2500 mm.")
+    blad.pop("robot", None)     # rackvidden finns inte nagonstans
+    besked = B.doma(spec, blad)
+    assert besked.status == B.OFULLSTANDIG, besked.text()
+    assert "B3_OKAND_STORHET" in [k for k, _t in besked.problem]
+
+
+def test_T6b_samma_krav_med_rackvidden_kand_domes_pa_riktigt():
+    spec, blad = _spec("Bygg en cell med en robot. "
+                       "Roboten behover arbetsradie 2500 mm.")
+    blad["robot"] = {"rackvidd_mm": 1650.0}
+    besked = B.doma(spec, blad)
+    assert besked.status == B.AVVISAD
+    assert besked.grind == "B3_MOTSAGELSE"
+    assert "MK2_VARDE_MOT_VILLKOR" in [k for k, _t in besked.problem]
+
+
+def test_T6c_en_rackvidd_som_racker_slapps_igenom():
+    spec, blad = _spec("Bygg en cell med en robot. "
+                       "Roboten behover arbetsradie 1200 mm.")
+    blad["robot"] = {"rackvidd_mm": 1650.0}
+    besked = B.doma(spec, blad)
+    assert besked.grind != "B3_MOTSAGELSE", besked.text()
+
+
+def test_T6d_ett_falt_ur_katalogen_som_faller_ar_ett_VAL_som_faller():
+    """Skillnaden ar botemedlet: byt komponent, inte krav."""
+    spec, blad = _spec("Bygg en cell med en robot. "
+                       "Roboten behover arbetsradie 2500 mm.")
+    blad["robot"] = {"rackvidd_mm": 1650.0}
+    dom = MO.granska(spec.villkor, ST.Faktarum(spec, blad), spec)
+    assert dom.dom == MO.VALET_FALLER
+    assert "Byt komponent" in dom.krockar[0].atgard
+
+
+# ---- T7-T9. formkraven --------------------------------------------------
+
+def test_T7_prosa_i_ett_villkor_ar_ett_lintfel_inte_en_varning():
+    with pytest.raises(Specfel) as fel:
+        VS.Typvillkor("prosa", "geometri", "roboten ska vara snabb", "eq",
+                      True, Harkomst("begaran", "roboten ska vara snabb"))
+    assert "VS2_OKAND_STORHET" in str(fel.value)
+
+
+def test_T7b_en_storhet_ur_den_slutna_listan_gar_bra():
+    v = _villkor("ok", "cell.bredd_mm", "le", 2000.0, "hogst 2 meter")
+    assert v.storhet == "cell.bredd_mm"
+
+
+def test_T8_ett_prosakrav_utan_konsument_avvisas():
+    """PL5 - efterkontroll utan konsument - fanns i vart EGET lager: den gamla
+    spec.Villkor.text lastes av noll rader kod i hela repot (M-63)."""
+    with pytest.raises(Specfel) as fel:
+        VS.Prosakrav("f1", "forregling", "ingen rorelse nar EMG_OK ar lag", "",
+                     Harkomst("bank", "A-01#control.interlocks[0]"))
+    assert "VS5_PROSAKRAV_UTAN_KONSUMENT" in str(fel.value)
+
+
+def test_T8b_ett_prosakrav_med_konsument_gar_bra():
+    krav = VS.Prosakrav("f1", "forregling", "ingen rorelse nar EMG_OK ar lag",
+                        "grind 3 och ST-lagret, docs/spec/50_grindar.md",
+                        Harkomst("bank", "A-01#control.interlocks[0]"))
+    assert "grind 3" in krav.rad()
+
+
+def test_T9_ett_nej_far_aldrig_lamna_ut_en_plan():
+    besked = _besked()
+    with pytest.raises(Planfel):
+        B.Besked(B.AVVISAD, besked.spec, besked.plan)
+
+
+def test_T9b_ett_ja_far_lamna_ut_en_plan():
+    besked = _besked()
+    assert B.Besked(B.BYGGBAR, besked.spec, besked.plan).plan is not None
+
+
+# ======================================================================
+# D. MOTSAGELSEGRINDENS FYRA DOMAR
+# ======================================================================
+
+def _fakta(**kv):
+    spec = DetaljeradSpec(
+        "f", Grundbegaran("f", "en begaran med hogst 2000 mm", "prov"),
+        [Del("band", "file:///band.vcm", 1, "transport",
+             [2000.0, 400.0, 900.0])],
+        omrade=kv.pop("omrade", None))
+    return spec, ST.Faktarum(spec, kv.pop("datablad", None))
+
+
+def test_D1_tva_villkor_som_inte_kan_galla_samtidigt_ger_OMOJLIG():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "ge", 3000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "le", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+    assert dom.krockar[0].kod == "MK1_INTERVALL_TOMT"
+
+
+def test_D1b_samma_tva_villkor_som_gar_ihop_ger_ingen_krock():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "ge", 1000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "le", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.krockar == []
+
+
+def test_D1c_en_strikt_grans_pa_samma_tal_ar_ocksa_tomt():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "gt", 2000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "le", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+
+
+def test_D1d_tva_olika_eq_pa_samma_storhet_krockar():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "eq", 2000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "eq", 3000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+
+
+def test_D1e_eq_mot_en_grans_som_utesluter_det_krockar():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "eq", 1000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "ge", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+
+
+def test_D1f_eq_och_ne_pa_samma_varde_krockar():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "eq", 2000.0,
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "ne", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+
+
+def test_D1g_en_in_lista_utan_ett_enda_tillatet_varde_krockar():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("a", "cell.bredd_mm", "in", [1000.0, 1500.0],
+                               "en begaran"),
+                      _villkor("b", "cell.bredd_mm", "ge", 2000.0,
+                               "hogst 2000 mm")], faktarum, spec)
+    assert dom.dom == MO.OMOJLIG
+
+
+def test_D2_en_matt_storhet_ar_okand_men_blockerar_inte():
+    """scen.kollisioner finns forst nar scenen ar byggd. Det ar planens
+    verifiering, inte ett hal i datan."""
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("k", "scen.kollisioner", "le", 0.0,
+                               "en begaran")], faktarum, spec)
+    assert dom.okanda == []
+    assert dom.att_mata == [("scen.kollisioner", "k")]
+
+
+def test_D2b_en_statisk_storhet_utan_varde_ar_OKANT():
+    spec, faktarum = _fakta()
+    dom = MO.granska([_villkor("r", "del.band.rackvidd_mm", "ge", 1000.0,
+                               "en begaran")], faktarum, spec)
+    assert dom.dom == MO.OKANT
+    assert dom.okanda
+
+
+def test_D3_ingen_motsagelse_funnen_ar_inget_godkannande_av_geometrin():
+    spec, faktarum = _fakta()
+    dom = MO.granska([], faktarum, spec)
+    assert dom.dom in (MO.INGEN_FUNNEN, MO.OKANT)
+    assert dom.dom != "MOJLIG"
+
+
+# ======================================================================
+# E. DE HARLEDDA VILLKOREN AR NODVANDIGA, ALDRIG TILLRACKLIGA
+# ======================================================================
+
+def _cellspec(bredd, djup, gang, delar):
+    h = Harkomst("begaran", "en cell")
+    return DetaljeradSpec(
+        "c", Grundbegaran("c", "en cell med matt", "prov"), delar,
+        omrade=Omrade(bredd, djup, None, gang, h))
+
+
+def test_E1_en_komponent_som_inte_ryms_i_nagot_ratvinkligt_lage_ar_omojlig():
+    spec = _cellspec(1000.0, 1000.0, 0.0,
+                     [Del("band", "u:b", 1, "transport",
+                          [2000.0, 400.0, 900.0])])
+    dom = MO.granska([], ST.Faktarum(spec), spec)
+    assert dom.dom == MO.OMOJLIG
+    assert dom.krockar[0].kod == "MK4_PASSAR_EJ"
+
+
+def test_E1b_samma_komponent_vriden_ett_kvarts_varv_ryms():
+    """(l<=D och b<=B) racker. En grind som glomde vridningen hade fallt har."""
+    spec = _cellspec(500.0, 2500.0, 0.0,
+                     [Del("band", "u:b", 1, "transport",
+                          [2000.0, 400.0, 900.0])])
+    dom = MO.granska([], ST.Faktarum(spec), spec)
+    assert [k.kod for k in dom.krockar] == []
+
+
+def test_E2_ytbeviset_faller_nar_fotavtrycken_inte_far_plats():
+    spec = _cellspec(2000.0, 2000.0, 800.0,
+                     [Del("band", "u:b", 1, "transport",
+                          [2000.0, 400.0, 900.0]),
+                      Del("pall", "u:p", 1, "lastbarare",
+                          [1200.0, 800.0, 150.0]),
+                      Del("fixtur", "u:f", 1, "station",
+                          [1200.0, 900.0, 1000.0])])
+    dom = MO.granska([], ST.Faktarum(spec), spec)
+    assert dom.dom == MO.OMOJLIG
+    assert "MK3_YTA" in [k.kod for k in dom.krockar]
+
+
+def test_E2b_samma_delar_pa_en_storre_yta_faller_inte():
+    spec = _cellspec(8000.0, 8000.0, 800.0,
+                     [Del("band", "u:b", 1, "transport",
+                          [2000.0, 400.0, 900.0]),
+                      Del("pall", "u:p", 1, "lastbarare",
+                          [1200.0, 800.0, 150.0]),
+                      Del("fixtur", "u:f", 1, "station",
+                          [1200.0, 900.0, 1000.0])])
+    dom = MO.granska([], ST.Faktarum(spec), spec)
+    assert [k.kod for k in dom.krockar] == []
+
+
+def test_E2c_antalet_raknas_in_i_ytan():
+    """Sex band tar sex ganger sa mycket golv som ett. En grind som laste
+    antal som ett hade sluppit igenom halva bestallningen.
+
+    Cellen ar 2,1 x 2,1 m = 4,41 m2. Ett band ar 0,8 m2 och sex ar 4,8 m2.
+    Passformen haller i bada fallen (2000 mm ryms i 2100 mm), sa det ar
+    ENBART antalet som avgor."""
+    def spec(antal):
+        return _cellspec(2100.0, 2100.0, 0.0,
+                         [Del("band", "u:b", antal, "transport",
+                              [2000.0, 400.0, 900.0])])
+    trang = MO.granska([], ST.Faktarum(spec(6)), spec(6))
+    rymligt = MO.granska([], ST.Faktarum(spec(1)), spec(1))
+    assert "MK3_YTA" in [k.kod for k in trang.krockar]
+    assert [k.kod for k in rymligt.krockar] == []
+
+
+def test_E3_ett_saknat_matt_gor_ytbeviset_EJ_PROVAT_aldrig_gront():
+    spec = _cellspec(2000.0, 2000.0, 0.0,
+                     [Del("robot", "u:r", 1, "robot", None)])
+    dom = MO.granska([], ST.Faktarum(spec), spec)
+    assert dom.dom == MO.OKANT
+    assert any(kod == "MK3_YTA" for kod, _skal in dom.hoppade)
+
+
+def test_E4_avstangd_geometri_rapporteras_som_EJ_PROVAD():
+    """En avstangd kontroll far aldrig se ut som en kontroll som gick."""
+    spec = _cellspec(2000.0, 2000.0, 0.0,
+                     [Del("band", "u:b", 1, "transport",
+                          [2000.0, 400.0, 900.0])])
+    dom = MO.granska([], ST.Faktarum(spec), spec, geometri=False)
+    assert dom.hoppade
+    assert dom.dom == MO.OKANT
+
+
+# ======================================================================
+# HARKOMSTEN I DETALJ
+# ======================================================================
+
+def test_harkomst_normaliserar_a_ring_och_radbrytningar():
+    assert normalisera("Högst 2x2   meter\n") == "hogst 2x2 meter"
+
+
+def test_harkomst_ur_begaran_haller_nar_orden_star_dar():
+    h = Harkomst("begaran", "hogst 2x2 meter")
+    assert h.granska("villkoret v", "Cellen far vara Högst 2x2 meter.") == []
+
+
+def test_harkomst_ur_begaran_faller_nar_orden_inte_star_dar():
+    h = Harkomst("begaran", "hogst 1x1 meter")
+    problem = h.granska("villkoret v", "Cellen far vara hogst 2x2 meter.")
+    assert problem[0][0] == "HK2_FALSK_BEGARAN"
+
+
+def test_ett_for_kort_belagg_gar_inte_att_konstruera():
+    """Ett belagg pa ett tecken matchar nastan vilken text som helst och hade
+    gjort HK2 trivialt sann - samma falla som en facitmall utan tal."""
+    with pytest.raises(Specfel):
+        Harkomst("begaran", "a")
+
+
+def test_en_katalogharkomst_maste_peka_ut_bade_post_och_falt():
+    with pytest.raises(Specfel):
+        Harkomst("katalog", "en robot")
+    assert Harkomst("katalog", "file:///robot.vcm#rackvidd_mm").belagg
+
+
+def test_det_finns_ingen_kalla_som_betyder_att_vi_tyckte_sa():
+    """Vill planeringen valja ett varde at operatoren far den skriva ett
+    Antagande med motiv och peka pa det. Det finns ingen genvag."""
+    with pytest.raises(Specfel):
+        Harkomst("standard", "vi tyckte sa")
+
+
+def test_harkomsten_gar_att_rundgangas_genom_json():
+    h = Harkomst("bank", "A-01#expect.max_collisions")
+    assert Harkomst.fran_json(h.till_json()).belagg == h.belagg
+
+
+# ======================================================================
+# STORHETERNA
+# ======================================================================
+
+def test_storhetslistan_ar_sluten():
+    assert ST.granska_namn("cell.bredd_mm") is None
+    assert ST.granska_namn("del.robot.rackvidd_mm") is None
+    assert ST.granska_namn("kaffe.styrka") is not None
+
+
+def test_en_okand_storhet_far_ett_fel_som_listar_formerna():
+    fel = ST.granska_namn("kaffe.styrka")
+    assert "cell.bredd_mm" in fel
+
+
+def test_lagena_skiljer_statiskt_fran_matt():
+    assert ST.lage("cell.bredd_mm") == ST.STATISK
+    assert ST.lage("scen.kollisioner") == ST.MATT
+    assert ST.lage("oga.SAFETY") == ST.DOM
+
+
+def test_faktarummet_laser_ett_matt_ur_specen_med_sin_kalla():
+    spec, faktarum = _fakta()
+    varde = faktarum.las("del.band.langd_mm")
+    assert varde.kant and varde.tal == 2000.0
+    assert "katalogposten" in varde.kalla
+
+
+def test_faktarummet_svarar_OKANT_med_skal_i_stallet_for_noll():
+    spec, faktarum = _fakta()
+    varde = faktarum.las("del.band.rackvidd_mm")
+    assert not varde.kant
+    assert "component.rsc" in varde.skal
+
+
+def test_databladet_gar_fore_specens_matt():
+    spec, faktarum = _fakta(datablad={"band": {"langd_mm": 1500.0}})
+    assert faktarum.las("del.band.langd_mm").tal == 1500.0
+
+
+def test_fotavtrycket_kraver_bade_langd_och_bredd():
+    spec = DetaljeradSpec("f", Grundbegaran("f", "text", "prov"),
+                          [Del("robot", "u:r", 1, "robot", None)])
+    assert not ST.Faktarum(spec).las("del.robot.yta_mm2").kant
+
+
+# ======================================================================
+# VILLKORSSPRAKET
+# ======================================================================
+
+def test_en_okand_operator_finns_inte():
+    with pytest.raises(Specfel) as fel:
+        VS.Typvillkor("v", "geometri", "cell.bredd_mm", "ungefar", 2000.0,
+                      Harkomst("begaran", "ungefar 2 meter"))
+    assert "VS3_OKAND_OPERATOR" in str(fel.value)
+
+
+def test_en_storleksjamforelse_utan_tal_avvisas():
+    with pytest.raises(Specfel) as fel:
+        VS.Typvillkor("v", "geometri", "cell.bredd_mm", "le", "brett",
+                      Harkomst("begaran", "brett"))
+    assert "VS4_VARDE_UTAN_TAL" in str(fel.value)
+
+
+def test_exists_tar_inget_varde():
+    with pytest.raises(Specfel):
+        VS.Typvillkor("v", "geometri", "cell.bredd_mm", "exists", 1.0,
+                      Harkomst("begaran", "en bredd"))
+
+
+def test_villkoret_provas_at_bada_hallen():
+    spec, faktarum = _fakta(datablad={"band": {"langd_mm": 1500.0}})
+    haller = _villkor("a", "del.band.langd_mm", "le", 2000.0, "en begaran")
+    faller = _villkor("b", "del.band.langd_mm", "le", 1000.0, "en begaran")
+    assert haller.prova(faktarum)[0] == VS.UPPFYLLT
+    assert faller.prova(faktarum)[0] == VS.BRUTET
+
+
+def test_ett_villkor_pa_en_okand_storhet_ar_OKANT_aldrig_uppfyllt():
+    spec, faktarum = _fakta()
+    v = _villkor("a", "del.band.rackvidd_mm", "ge", 100.0, "en begaran")
+    assert v.prova(faktarum)[0] == VS.OKANT
+
+
+def test_villkoret_kastar_aldrig_vid_provning():
+    v = _villkor("a", "cell.bredd_mm", "le", 1.0, "en begaran")
+    assert v.prova(None)[0] == VS.OKANT
+
+
+def test_villkoret_gar_att_rundgangas_genom_json():
+    v = _villkor("a", "cell.bredd_mm", "le", 2000.0, "hogst 2 meter")
+    ny = VS.Typvillkor.fran_json(v.till_json())
+    assert ny.till_json() == v.till_json()
+
+
+def test_relationen_har_en_sluten_sortlista():
+    with pytest.raises(Specfel) as fel:
+        VS.Relation("nara", "a", "b", Harkomst("begaran", "a nara b"))
+    assert "VS7_OKAND_RELATION" in str(fel.value)
+
+
+def test_semantiska_relationer_ar_markta_som_semantiska():
+    r = VS.Relation("feeds", "a", "b", Harkomst("begaran", "a matar b"))
+    assert r.semantisk
+    assert not VS.Relation("nar", "a", "b",
+                           Harkomst("begaran", "a nar b")).semantisk
+
+
+def test_relationen_gar_att_rundgangas_genom_json():
+    r = VS.Relation("nar", "robot", "band", Harkomst("begaran", "ska na"))
+    assert VS.Relation.fran_json(r.till_json()).till_json() == r.till_json()
+
+
+def test_prosakravet_gar_att_rundgangas_genom_json():
+    k = VS.Prosakrav("f", "forregling", "ingen rorelse", "grind 3, 50_grindar",
+                     Harkomst("bank", "A-01#control.interlocks[0]"))
+    assert VS.Prosakrav.fran_json(k.till_json()).till_json() == k.till_json()
+
+
+def test_ett_villkor_som_pekar_pa_en_roll_som_inte_finns_avvisas():
+    with pytest.raises(Specfel) as fel:
+        DetaljeradSpec("s", Grundbegaran("s", "text", "prov"),
+                       [Del("band", "u:b")],
+                       villkor=[_villkor("v", "del.robot.langd_mm", "le",
+                                         100.0, "en begaran")])
+    assert "VS6_OKAND_ROLL" in str(fel.value)
+
+
+# ======================================================================
+# PROCESSORDNINGEN
+# ======================================================================
+
+def _p(id):
+    return Process(id, "gora %s" % id, None, Harkomst("begaran", "gor %s" % id))
+
+
+def _o(a, b):
+    return Ordningskrav(a, b, Harkomst("begaran", "%s fore %s" % (a, b)))
+
+
+def test_ordningen_ar_kanonisk_och_deterministisk():
+    ordning = Processordning([_p("c"), _p("a"), _p("b")],
+                             [_o("a", "b"), _o("b", "c")])
+    assert ordning.ordning() == ["a", "b", "c"]
+
+
+def test_samma_processer_i_annan_insattningsordning_ger_samma_svar():
+    a = Processordning([_p("a"), _p("b"), _p("c")], [_o("a", "c")]).ordning()
+    b = Processordning([_p("c"), _p("b"), _p("a")], [_o("a", "c")]).ordning()
+    assert a == b
+
+
+def test_ett_ordningskrav_pa_en_okand_process_rapporteras():
+    ordning = Processordning([_p("a")], [_o("a", "saknas")])
+    assert "PO2_OKAND_PROCESS" in [k for k, _t in ordning.problem()]
+
+
+def test_en_process_fore_sig_sjalv_rapporteras():
+    ordning = Processordning([_p("a")], [_o("a", "a")])
+    assert "PO4_SJALVORDNING" in [k for k, _t in ordning.problem()]
+
+
+def test_tva_processer_med_samma_id_rapporteras():
+    ordning = Processordning([_p("a"), _p("a")], [])
+    assert "PO3_DUBBEL_PROCESS" in [k for k, _t in ordning.problem()]
+
+
+def test_en_process_pa_en_roll_som_inte_finns_rapporteras():
+    process = Process("a", "gora a", "robot", Harkomst("begaran", "gor a"))
+    ordning = Processordning([process], [])
+    assert "PO5_OKAND_ROLL" in [k for k, _t in ordning.problem(["band"])]
+    assert ordning.problem(["robot"]) == []
+
+
+def test_ett_dubblerat_ordningskrav_rapporteras():
+    ordning = Processordning([_p("a"), _p("b")], [_o("a", "b"), _o("a", "b")])
+    assert "PO6_DUBBELT_ORDNINGSKRAV" in [k for k, _t in ordning.problem()]
+
+
+def test_en_hel_processordning_utan_brister_ger_tom_lista():
+    assert Processordning([_p("a"), _p("b")], [_o("a", "b")]).problem() == []
+
+
+def test_processordningen_gar_att_rundgangas_genom_json():
+    ordning = Processordning([_p("a"), _p("b")], [_o("a", "b")])
+    ny = Processordning.fran_json(ordning.till_json())
+    assert ny.till_json() == ordning.till_json()
+
+
+# ======================================================================
+# ORDNINGEN (den delade rakningen)
+# ======================================================================
+
+def test_cykler_hittar_ringen_och_dess_medlemmar():
+    assert ORD.cykler({"a": ["b"], "b": ["a"], "c": []}) == [["a", "b"]]
+
+
+def test_cykler_hittar_en_nod_som_beror_pa_sig_sjalv():
+    assert ORD.cykler({"a": ["a"]}) == [["a"]]
+
+
+def test_en_djup_kedja_slar_inte_i_rekursionstaket():
+    kanter = dict(("n%04d" % i, ["n%04d" % (i - 1)] if i else [])
+                  for i in range(3000))
+    assert ORD.cykler(kanter) == []
+    ordnade, kvar = ORD.kanonisk_ordning(kanter)
+    assert kvar == [] and len(ordnade) == 3000
+
+
+def test_kanonisk_ordning_valjer_minsta_namnet_forst():
+    ordnade, kvar = ORD.kanonisk_ordning({"b": [], "a": [], "c": []})
+    assert ordnade == ["a", "b", "c"] and kvar == []
+
+
+def test_kanonisk_ordning_lamnar_cykeln_i_kvarvarande():
+    ordnade, kvar = ORD.kanonisk_ordning({"a": ["b"], "b": ["a"], "c": []})
+    assert ordnade == ["c"] and kvar == ["a", "b"]
+
+
+def test_okanda_kanter_rapporteras_med_bade_nod_och_mal():
+    assert ORD.okanda_kanter({"a": ["saknas"]}) == [("a", "saknas")]
+
+
+def test_lagren_ar_den_ovre_gransen_for_samtidighet():
+    assert ORD.lager({"a": [], "b": [], "c": ["a", "b"]}) == [["a", "b"], ["c"]]
+
+
+# ======================================================================
+# TEXTLASNINGEN
+# ======================================================================
+
+def test_ett_tak_och_ett_golv_lases_som_olika_krav():
+    tak = L.cellmatt("Cellen far vara hogst 2x2 meter.")
+    golv = L.cellmatt("Cellen ska vara minst 3 meter bred.")
+    assert ("bredd_mm", "le", 2000.0) == tak[0][:3]
+    assert ("bredd_mm", "ge", 3000.0) == golv[0][:3]
+
+
+def test_ett_konstaterande_ar_varken_tak_eller_golv():
+    assert L.cellmatt("Cellen ar 6x6 meter.")[0][1] == "eq"
+
+
+def test_varje_utlast_varde_bar_sin_ordagranna_textbit():
+    for _falt, _op, _mm, belagg in L.cellmatt("Cellen far vara hogst 2x2 meter."):
+        assert belagg in "Cellen far vara hogst 2x2 meter."
+
+
+def test_enheter_raknas_till_millimeter():
+    assert L.gangstrak("Gangstrak minst 1,2 meter").varde == 1200.0
+    assert L.gangstrak("Gangstrak minst 800 mm").varde == 800.0
+
+
+def test_rackvidd_och_arbetsradie_ar_olika_krav():
+    egenskap = L.rackvidd("Roboten har rackvidd 1650 mm")[0]
+    krav = L.rackvidd("Uppgiften kraver arbetsradie 1500 mm")[0]
+    assert egenskap.vad == "egenskap" and egenskap.varde == 1650.0
+    assert krav.vad == "krav" and krav.varde == 1500.0
+
+
+def test_processer_och_ordning_lases_ur_meningen():
+    processer, ordningar = L.processer("Forst plockning, sedan packning.")
+    assert ("plockning", "packning") == ordningar[0][:2]
+    assert sorted(p[0] for p in processer) == ["packning", "plockning"]
+
+
+def test_en_process_som_inte_star_i_den_slutna_listan_blir_ingen_process():
+    processer, _o = L.processer("Forst kalibrering, sedan justering.")
+    assert processer == []
+
+
+def test_kopplingar_lases_bara_mellan_KANDA_roller():
+    assert L.kopplingar("Bandet matar roboten", ["band", "robot"]) \
+        == [("band", "robot", "Bandet matar roboten")]
+    assert L.kopplingar("Bandet matar traktorn", ["band", "robot"]) == []
+
+
+def test_nakrav_binder_till_meningens_subjekt():
+    krav = L.nakrav("Roboten ska na bandet och pallen.",
+                    ["robot", "band", "pall"])
+    assert sorted((a, b) for a, b, _c in krav) == [("robot", "band"),
+                                                   ("robot", "pall")]
+
+
+# ======================================================================
+# LAYOUTPORTEN OCH LAYOUTMOTORN
+# ======================================================================
+
+class Trasigmotor(object):
+    """En motor som svarar fel pa ett bestamt satt."""
+
+    def __init__(self, svar):
+        self.svar = svar
+
+    def placera(self, begaran):
+        return self.svar
+
+
+def _spec_for_port():
+    return DetaljeradSpec("s", Grundbegaran("s", "text", "prov"),
+                          [Del("band", "u:b", 1, "transport",
+                               [2000.0, 400.0, 900.0])])
+
+
+def _tomt_svar(**kv):
+    svar = {"v": 1, "placeringar": [], "antaganden": [], "fragor": []}
+    svar.update(kv)
+    return svar
+
+
+def test_porten_avvisar_en_placering_pa_en_roll_som_inte_finns():
+    motor = Trasigmotor(_tomt_svar(placeringar=[
+        {"roll": "spoke", "position_mm": [0, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": "hittade pa"}]))
+    with pytest.raises(Layoutfel):
+        Layoutport(motor).placera(_spec_for_port(), 100.0)
+
+
+def test_porten_avvisar_en_placering_utan_motiv():
+    motor = Trasigmotor(_tomt_svar(placeringar=[
+        {"roll": "band", "position_mm": [0, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": ""}]))
+    with pytest.raises(Layoutfel):
+        Layoutport(motor).placera(_spec_for_port(), 100.0)
+
+
+def test_porten_slapper_igenom_tva_instanser_av_samma_roll():
+    motor = Trasigmotor(_tomt_svar(placeringar=[
+        {"roll": "band", "position_mm": [0, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": "instans ett", "instans": 1},
+        {"roll": "band", "position_mm": [1, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": "instans tva", "instans": 2}]))
+    svar = Layoutport(motor).placera(_spec_for_port(), 100.0)
+    assert [p.instans for p in svar.placeringar] == [1, 2]
+
+
+def test_porten_avvisar_samma_instans_tva_ganger():
+    motor = Trasigmotor(_tomt_svar(placeringar=[
+        {"roll": "band", "position_mm": [0, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": "ett", "instans": 1},
+        {"roll": "band", "position_mm": [1, 0, 0], "wpr_deg": [0, 0, 0],
+         "motiv": "tva", "instans": 1}]))
+    with pytest.raises(Layoutfel):
+        Layoutport(motor).placera(_spec_for_port(), 100.0)
+
+
+def test_porten_avvisar_ett_svar_med_bade_placeringar_och_konflikt():
+    """En halv layout ar farligare an ingen: den ser korbar ut."""
+    motor = Trasigmotor(_tomt_svar(
+        placeringar=[{"roll": "band", "position_mm": [0, 0, 0],
+                      "wpr_deg": [0, 0, 0], "motiv": "nagot"}],
+        konflikt=[{"kod": "X", "text": "gick inte", "roller": []}]))
+    with pytest.raises(Layoutfel):
+        Layoutport(motor).placera(_spec_for_port(), 100.0)
+
+
+def test_porten_bar_motorns_egen_status_vidare():
+    motor = Trasigmotor(_tomt_svar(status="RYMS_INTE"))
+    svar = Layoutport(motor).placera(_spec_for_port(), 100.0)
+    assert svar.status == "RYMS_INTE"
+    assert "LAYOUT RYMS_INTE" in svar.rader()
+
+
+def test_begaran_bar_relationer_datablad_och_omrade():
+    spec = DetaljeradSpec(
+        "s", Grundbegaran("s", "text", "prov"),
+        [Del("robot", "u:r"), Del("band", "u:b")],
+        relationer=[VS.Relation("nar", "robot", "band",
+                                Harkomst("begaran", "ska na"))],
+        omrade=Omrade(3000.0, 3000.0, 4000.0, 200.0,
+                      Harkomst("begaran", "3x3 meter")))
+    begaran = begaran_ur_spec(spec, 200.0, None, {"robot": {"rackvidd_mm": 1.0}})
+    assert begaran["golv_mm"] == [3000.0, 3000.0]
+    assert begaran["hojd_mm"] == 4000.0
+    assert begaran["relationer"][0]["sort"] == "nar"
+    assert begaran["datablad"]["robot"]["rackvidd_mm"] == 1.0
+
+
+def test_motorn_vagrar_lamna_koordinater_ur_ett_antaget_ankare():
+    """set_transform satter komponentens ORIGO, och var origo sitter vet bara
+    VC. Ett antaget ankare flyttar komponenten fel, tyst."""
+    svar = Layoutmotor(strikt_ankare=True).placera(_rackviddsbegaran(2600.0))
+    assert svar["status"] == "LOST"
+    assert svar["placeringar"] == []
+    assert any(f["id"] == "layout:ankare" for f in svar["fragor"])
+
+
+def test_motorn_fragar_om_matt_i_stallet_for_att_satta_dem_till_noll():
+    begaran = _rackviddsbegaran(2600.0)
+    begaran["delar"][1]["matt_mm"] = None
+    svar = _motor().placera(begaran)
+    assert any(f["id"] == "layout:matt:band" for f in svar["fragor"])
+    assert svar["placeringar"] == []
+
+
+def test_motorn_fragar_om_rackvidden_i_stallet_for_att_gissa_den():
+    begaran = _rackviddsbegaran(2600.0)
+    begaran["datablad"] = {}
+    begaran["delar"][0]["matt_mm"] = [500.0, 500.0, 1400.0]
+    svar = _motor().placera(begaran)
+    assert any(f["id"] == "layout:rackvidd:robot" for f in svar["fragor"])
+
+
+def test_motorn_skriver_ut_vilket_raster_svaret_galler():
+    svar = _motor().placera(_rackviddsbegaran(2600.0))
+    vad = [a["vad"] for a in svar["antaganden"]]
+    assert "sokrastret" in vad
+
+
+def test_motorn_hoppar_over_semantiska_relationer_med_skal():
+    """K8: feeds, handoff och sequence domes inte av geometrin."""
+    begaran = _rackviddsbegaran(2600.0)
+    begaran["relationer"].append({"sort": "feeds", "fran_roll": "band",
+                                  "till_roll": "robot", "hard": True})
+    svar = _motor().placera(begaran)
+    assert any("feeds" in a["vad"] for a in svar["antaganden"])
+
+
+def test_motorn_utan_golv_fragar_i_stallet_for_att_valja_en_yta():
+    begaran = _rackviddsbegaran(2600.0)
+    begaran["golv_mm"] = None
+    svar = _motor().placera(begaran)
+    assert any(f["id"] == "layout:yta" for f in svar["fragor"])
+
+
+# ======================================================================
+# GRINDKEDJAN SOM HELHET
+# ======================================================================
+
+def test_grindarna_kors_i_den_ordning_listan_sager():
+    """En bestallning som ar trasig i BADE processordning och villkor ska
+    falla pa den TIDIGARE grinden. Ordningen ar inte kosmetisk: den billiga
+    och exakta grinden ska svara fore den dyra och sokande."""
+    besked = _besked("Bygg en cell. Forst svetsning, sedan malning. "
+                     "Malning fore svetsning. Cellen far vara hogst 2x2 meter "
+                     "och minst 3 meter bred.")
+    assert besked.grind == "B2_PROCESSORDNING"
+
+
+def test_varje_grind_i_listan_har_ett_prov_som_faller_pa_den():
+    """Ingen grind utan trasig fixtur.
+
+    Star en grind i GRINDAR men ingen bestallning faller pa den, ar den
+    oprovad - och en oprovad grind ar en forhoppning som har fatt ett namn.
+    """
+    fall = {
+        "B1_HARKOMST": test_T3_ett_uppfunnet_krav_som_pastar_sig_komma_ur_begaran_avvisas,
+        "B2_PROCESSORDNING": test_T2_en_cyklisk_processordning_avvisas,
+        "B3_MOTSAGELSE": test_T1_en_sjalvmotsagande_bestallning_avvisas,
+        "B4_FRAGOR": test_T5_en_bestallning_utan_topologi_blir_ofullstandig,
+        "B5_LAYOUT": test_T4e_bestallningen_avvisas_pa_layoutgrinden,
+        "B6_PLANEN": None,
+    }
+    saknade = [g for g in B.GRINDAR if g not in fall]
+    assert not saknade, "grindar utan trasig fixtur: %s" % saknade
+
+
+def test_B6_faller_pa_ett_verktyg_som_inte_finns():
+    """Den sjatte grinden, provad direkt: ett steg vars verktyg inte finns i
+    registret avvisas VID PLANERINGEN."""
+    from vc_assist_svc.plan.byggplan import Byggplan
+    from vc_assist_svc.plan.graf import Uppgiftsgraf
+    from vc_assist_svc.plan.steg import Steg
+    spec, _blad = _spec("Bygg en cell med ett band.")
+    plan = Byggplan("p", spec, Uppgiftsgraf([
+        Steg.verktygssteg("x", "finns_inte_i_registret", {}, "provsteg")]))
+    assert "P1_OKANT_VERKTYG" in [k for k, _t in plan.granska()]
+
+
+def test_en_bankuppgift_domes_av_samma_grindar_som_en_bestallning():
+    """Bankvagen och fritextvagen far inte ha var sin mattstock."""
+    import json
+    import glob
+    sokvag = sorted(glob.glob(os.path.join(_ROT, "bank", "uppgifter",
+                                           "*.json")))[0]
+    with open(sokvag, encoding="utf-8") as f:
+        data = json.load(f)
+    forfinare = Forfinare()
+    spec = forfinare.ur_bankuppgift(data)
+    besked = B.doma(spec, forfinare.datablad)
+    # Uppgiften bar bank://-URI:er som inte gar att ladda, sa den ar
+    # ofullstandig - men den ska falla pa en FRAGA, aldrig pa harkomsten.
+    assert besked.status in (B.OFULLSTANDIG, B.AVVISAD)
+    assert besked.grind != "B1_HARKOMST", besked.text()
+
+
+def test_bankens_forreglingar_blir_prosakrav_med_konsument():
+    """125 forreglingar i 51 uppgifter ar akta krav som K6:s trippelsprak inte
+    kan uttrycka. De far darfor en egen form - men aldrig utan en konsument."""
+    import json
+    import glob
+    for sokvag in sorted(glob.glob(os.path.join(_ROT, "bank", "uppgifter",
+                                                "*.json")))[:6]:
+        with open(sokvag, encoding="utf-8") as f:
+            data = json.load(f)
+        spec = Forfinare().ur_bankuppgift(data)
+        for krav in spec.prosakrav:
+            assert krav.konsument
+            assert krav.harkomst.kalla == "bank"
+
+
+def test_bankens_expect_blir_typade_villkor_med_harkomst():
+    import json
+    import glob
+    sokvag = sorted(glob.glob(os.path.join(_ROT, "bank", "uppgifter",
+                                           "*.json")))[0]
+    with open(sokvag, encoding="utf-8") as f:
+        data = json.load(f)
+    spec = Forfinare().ur_bankuppgift(data)
+    storheter = [v.storhet for v in spec.villkor]
+    assert "scen.kollisioner" in storheter
+    for v in spec.villkor:
+        assert v.harkomst.kalla == "bank"
+        assert "#" in v.harkomst.belagg
+
+
+def test_specen_gar_att_rundgangas_genom_json_med_alla_nya_falt():
+    spec, _blad = _spec()
+    ut = spec.till_json()
+    assert DetaljeradSpec.fran_json(ut).till_json() == ut
+    assert ut["v"] == 2
+    assert ut["processordning"]["processer"]
+    assert ut["villkor"] and ut["relationer"] and ut["omrade"]
+
+
+def test_en_gammal_spec_i_version_1_faller_pa_versionen():
+    spec, _blad = _spec()
+    ut = spec.till_json()
+    ut["v"] = 1
+    with pytest.raises(Specfel):
+        DetaljeradSpec.fran_json(ut)
+
+
+def test_kopplingen_bar_sin_harkomst_ur_begaran():
+    spec, _blad = _spec()
+    assert spec.kopplingar
+    for k in spec.kopplingar:
+        assert k.harkomst.kalla == "begaran"
+        assert normalisera(k.harkomst.belagg) in normalisera(BESTALLNING)
+
+
+def test_en_koppling_utan_harkomst_faller_i_harkomstgrinden():
+    spec, blad = _spec()
+    spec.kopplingar.append(Koppling("band", "pall"))
+    besked = B.doma(spec, blad)
+    assert besked.grind == "B1_HARKOMST"
+    assert "HK1_UTAN_HARKOMST" in [k for k, _t in besked.problem]
