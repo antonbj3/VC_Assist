@@ -539,8 +539,14 @@ def test_sekvensen_domer_varje_steg_mot_CYKELNS_start_inte_mot_foregaende():
                _flank("plc:stopp", "FALL", 3.0)]
     d = H.sekvensdom(flanker, SPEC, 6.0)
     assert d["domda"] == 1
-    assert d["brott"], d
-    assert "plc:stopp FALL" in d["brott"][0]
+    # Stoppet slappte vid 3,0 mot fonstret 1,5-2,5 efter STARTEN. Det kom,
+    # i ratt ordning, men for sent: ett tidsbrott, inte ett sekvensbrott
+    # (M-65 §4). Mats det mot foregaende steg (0,4) ar det 2,6 s och ser ut
+    # att ligga i fonstret - det ar felet provet finns for.
+    assert not d["brott"], d
+    assert d["tidsbrott"], d
+    assert "plc:stopp FALL" in d["tidsbrott"][0]
+    assert d["cykler"][0]["steg"][1]["status"] == "TOO_LATE"
 
 
 def test_en_flank_ur_NASTA_cykel_far_inte_laga_den_har_cykelns_hal():

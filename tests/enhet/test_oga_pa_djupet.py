@@ -294,3 +294,178 @@ def test_upplosningen_mats_ur_serien_och_sager_var_hopfogningen_kom_ifran():
     assert u["hopfogning_kalla"] == "RUN" and u["hopfogning_s"] == 0.0053
     assert H.upplosning(rader[:1], 20.0, 0.01345)["fas_s"] is None, \
         "en enda lasning ger inget lasintervall, och da ingen upplosning"
+
+
+# ---- 4. fem domare, fem trasiga celler - och osynliga for varandra ---------
+#
+# Fasens grind: domar som faller pa sekvens, timing, grepp, kollision och
+# genomflode, var och en med en trasig cell som MASTE fallas. Och den cellen
+# ska vara osynlig for de andra fyra domarna - annars provar man inte det man
+# tror. Matrisen nedan ar hela provet: rad = cell, kolumn = domare.
+
+def _domar(namn):
+    b, plan = celler.ALLA[namn]()
+    _text, rapport, a = A.doma(b.data(), plan)
+    return rapport, a.harledt["domar"]
+
+
+# (cell, domaren som ska falla den). Flera celler per domare ar tillatet;
+# minst en per domare ar kravet.
+TRASIGA = [
+    ("station_utan_stopp", "sekvens"),        # ett steg uteblev
+    ("station_forregling_bruten", "sekvens"), # tva utgangar hoga samtidigt
+    ("station_forsent", "timing"),            # ratt ordning, for sent
+    ("fas_utanfor_tolerans", "timing"),       # PLC-fasen over kravet
+    ("kort_uppehall", "timing"),              # uppehallet for kort
+    ("aldrig_gripen", "grepp"),               # greppet bildades aldrig
+    ("glider", "grepp"),                      # delen gled i greppet
+    ("fel_placerad", "grepp"),                # delen hamnade fel
+    ("kontakt", "kollision"),                 # minsta avstandet 0
+    ("kollision", "kollision"),               # detektortraff
+    ("station_svalt", "genomflode"),          # svalt over kravet
+    ("station_blockerad", "genomflode"),      # blockerad over kravet
+]
+
+# Celler dar kontraktets regel 5 (en VIOLATION i HONESTY tvingar FAIL) faller
+# FORE domaren. De faller av grepp-domaren OCKSA, men slacks den star regeln
+# kvar - det ar 42_ogat_utbyggt.md §13:s "hal som star kvar", och det doljs
+# inte: mutationsprovet nedan kraver att de fortsatter falla.
+TVINGADE_AV_HONESTY = ("aldrig_gripen",)
+
+
+def test_varje_domare_har_minst_en_trasig_cell_som_bara_den_bar():
+    """Minst en cell per domare som INTE ar tvingad av kontraktet - annars
+    kan domaren vara dod utan att nagot marker det."""
+    egna = set(d for c, d in TRASIGA if c not in TVINGADE_AV_HONESTY)
+    assert egna == set(A.Analys.DOMARE)
+
+
+@pytest.mark.parametrize("namn,domare", TRASIGA, ids=[c for c, _d in TRASIGA])
+def test_en_trasig_cell_falls_av_RATT_domare_och_av_ingen_annan(namn, domare):
+    """Matrisen. Cellen ska falla, domen ska namna domaren, domaren ska saga
+    FAIL - och de fyra andra far INTE saga FAIL. En cell som tva domare
+    faller provar ingen av dem: slacks den ena faller den andra anda."""
+    rapport, d = _domar(namn)
+    assert rapport.dom[0] == "FAIL", (namn, rapport.dom)
+    assert d[domare]["utfall"] == "FAIL", (namn, domare, d[domare])
+    andra = dict((k, v["utfall"]) for k, v in d.items()
+                 if k != domare and v["utfall"] == "FAIL")
+    assert not andra, ("%s falls ocksa av %s - cellen ar inte osynlig for de "
+                       "andra domarna" % (namn, andra))
+    ord_ = {"sekvens": ("sekvens", "forregling"), "timing": ("timing", "kapplopning"),
+            "grepp": ("grepp",), "kollision": ("kollision",),
+            "genomflode": ("genomflode",)}[domare]
+    assert any(rapport.dom[1].startswith(o + ":") for o in ord_), \
+        "domsraden namner inte domaren: %r" % rapport.dom[1]
+
+
+@pytest.mark.parametrize("domare", A.Analys.DOMARE)
+def test_slacks_en_domare_blir_exakt_dess_celler_grona(domare, monkeypatch):
+    """Mutation: EN domare svarar 'ingen fraga stalld'. Da ska varje cell som
+    hor till den sluta falla, och varje cell som hor till en annan falla
+    precis som forut. Det ar beviset for att domaren bar sina egna celler
+    och inte lutar sig mot en granne."""
+    fore = dict((namn, _domar(namn)[0].dom[0]) for namn, _d in TRASIGA)
+    monkeypatch.setattr(A.Analys, "_doma_" + domare,
+                        lambda self, h: (None, [], {}))
+    for namn, egen in TRASIGA:
+        dom = _domar(namn)[0].dom[0]
+        if egen == domare and namn not in TVINGADE_AV_HONESTY:
+            assert dom != "FAIL", ("%s foll fastan domaren %s ar slackt: nagon "
+                                   "annan faller den" % (namn, domare))
+        else:
+            assert dom == fore[namn] == "FAIL", (
+                "%s andrade dom nar %s slacktes" % (namn, domare))
+
+
+@pytest.mark.parametrize("namn", sorted(celler.ALLA))
+def test_domsraden_och_domartabellen_sager_samma_sak(namn):
+    """Invarianten over HELA banken: ett PASS bar ingen domare som sagt FAIL
+    eller INCONCLUSIVE, och en dom utan hederlighets-, scen- eller robotfel
+    som ar FAIL bar minst en domare som sagt FAIL."""
+    b, plan = celler.ALLA[namn]()
+    _text, rapport, a = A.doma(b.data(), plan)
+    d = a.harledt["domar"]
+    utfall = set(v["utfall"] for v in d.values())
+    if rapport.dom[0] == "PASS":
+        assert "FAIL" not in utfall and "INCONCLUSIVE" not in utfall, (namn, d)
+    ovriga = (a.harledt["honesty"].get("overtradelse")
+              or a.harledt["scene"].get("oombedd")
+              or a.harledt["scene"].get("utslungad")
+              or a.harledt["scene"].get("orort")
+              or A.Analys._robotbrott(a.harledt["robotar"]))
+    if rapport.dom[0] == "FAIL" and not ovriga:
+        assert "FAIL" in utfall, (namn, rapport.dom, d)
+
+
+# ---- 5. kollisionsmattet ar measureDistance, inte detektorn (M-36) ---------
+
+class _Matnod(_Nod):
+    """En nod som kan mata avstand som VC:s vcNode gor: (d, p1, p2, v), i
+    VC:s millimeter, och 0,0 vid nudd eller overlapp (M-36)."""
+
+    def __init__(self, namn, p, storlek=1000.0):
+        _Nod.__init__(self, namn, p)
+        self.storlek = storlek
+        self.n_update = 0
+
+    def update(self):
+        self.n_update += 1
+
+    def measureDistance(self, annan):
+        a, b = self.WorldPositionMatrix.P, annan.WorldPositionMatrix.P
+        glapp = abs(b.X - a.X) - (self.storlek + annan.storlek) / 2.0
+        d = max(0.0, glapp)
+        return (d, _V(a.X + self.storlek / 2.0, 0.0, 0.0),
+                _V(b.X - annan.storlek / 2.0, 0.0, 0.0), _V(d, 0.0, 0.0))
+
+
+def _parscen(dx_mm):
+    a = _Matnod("A", (0.0, 0.0, 0.0))
+    b = _Matnod("B", (dx_mm, 0.0, 0.0))
+    scen = P.VcScen(_App([a, b]), _Sim())
+    scen.konfigurera({"mind": [{"namn": "A+B", "a": ["A"], "b": ["B"]}]})
+    return scen, a, b
+
+
+@pytest.mark.parametrize("dx_mm,vantat_mm", [(0.0, 0.0), (100.0, 0.0),
+                                             (1000.0, 0.0), (1500.0, 500.0),
+                                             (5000.0, 4000.0)])
+def test_minsta_avstandet_mats_med_measureDistance_i_M36s_tabell(dx_mm, vantat_mm):
+    """M-36:s fem punkter, genom provtagaren: tva kuber om 1000 mm."""
+    scen, a, b = _parscen(dx_mm)
+    d = scen.mindist({"namn": "A+B"})
+    assert d["metod"] == "measureDistance"
+    assert d["d_mm"] == pytest.approx(vantat_mm)
+    assert d["kontakt"] is (vantat_mm <= 0.0)
+    assert a.n_update == 1 and b.n_update == 1, "M-36: update() fore matningen"
+
+
+def test_detektorn_ar_inte_standardvagen_langre():
+    """TRASIG FIXTUR (M-36). En detektor som svarar noll traffar vid 900 mm
+    overlapp far inte vara det ogat litar pa av sig sjalvt."""
+    scen, _a, _b = _parscen(100.0)
+    assert scen._detektorer == {} and "A+B" in scen._par
+    assert scen.mindist({"namn": "A+B"})["kontakt"] is True
+
+
+def test_kontakten_gar_hela_vagen_till_en_kollisionsdom():
+    """Provtagare -> serie -> analys: ett par som nuddar faller kollisions-
+    domaren utan att nagon detektor har fyrat."""
+    scen, _a, b = _parscen(1500.0)
+    # Bara en del, inget verktyg: da vantar ingen ett grepp, och det enda
+    # ogat ar ombett att doma ar paret.
+    plan = {"parts": ["A"], "rate_hz": 20.0,
+            "mind": [{"namn": "A+B", "a": ["A"], "b": ["B"]}]}
+    p = P.Provtagare(scen, plan).starta(0.0)
+    for i in range(40):
+        if 20 <= i < 24:
+            b.WorldPositionMatrix = _M((900.0, 0.0, 0.0))     # 100 mm overlapp
+        else:
+            b.WorldPositionMatrix = _M((1500.0, 0.0, 0.0))
+        p.kanske_prov(i * 0.05)
+    _text, rapport, a = A.doma(p.data(), plan)
+    assert a.harledt["domar"]["kollision"]["utfall"] == "FAIL"
+    assert a.harledt["safety"]["kollision"]["kalla"] == "mind"
+    assert a.harledt["safety"]["kollision"]["t"] == pytest.approx(1.0)
+    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("kollision:")

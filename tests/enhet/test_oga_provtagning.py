@@ -660,7 +660,8 @@ def test_kollisionsdetektorn_skapas_ur_planen_och_matar_avstandet():
     komp = FalskKomponent("Cell", noder=noder)
     scen = P.VcScen(FalskApp([komp]), FalskSim(det))
     scen.konfigurera({"mind": [{"namn": "gripper+fixtur", "a": ["Cell/Finger"],
-                                "b": ["Cell/Vagg"], "tolerans_mm": 100.0}]})
+                                "b": ["Cell/Vagg"], "tolerans_mm": 100.0}],
+                      "mind_metod": "detektor"})
     assert det.Active is True
     assert det.StopOnCollision is False, \
         "ett stopp river simuleringen och med den pumpen (M-13)"
@@ -677,7 +678,8 @@ def test_traffen_bar_bade_nod_och_yta():
     det.traffar = True
     komp = FalskKomponent("Cell", noder={"A": FalskNod("A"), "B": FalskNod("B")})
     scen = P.VcScen(FalskApp([komp]), FalskSim(det))
-    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}]})
+    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}],
+                      "mind_metod": "detektor"})
     assert scen.traff() == ["finger", "vagg", "Face_12", "Face_3"]
 
 
@@ -685,7 +687,8 @@ def test_en_detektor_som_inte_gar_att_skapa_blir_ett_saknat_underlag():
     """Fail-closed: ingen detektor ger ingen MINDIST-rad, aldrig ett tyst OK."""
     komp = FalskKomponent("Cell", noder={"A": FalskNod("A"), "B": FalskNod("B")})
     scen = P.VcScen(FalskApp([komp]), FalskSim(kastar=True))
-    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}]})
+    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}],
+                      "mind_metod": "detektor"})
     assert scen.mindist("par") is None
     assert any("newCollisionDetector" in s["varfor"] for s in scen.saknade)
 

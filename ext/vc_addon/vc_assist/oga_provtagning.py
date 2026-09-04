@@ -134,7 +134,8 @@ class VcScen(Scen):
         self.roller = set()
         self._komponenter = None      # cachad lista, hamtas om med jamna mellanrum
         self._servo = {}              # robotspec -> vcServoController
-        self._detektorer = {}         # parnamn -> vcCollisionDetector
+        self._detektorer = {}         # parnamn -> vcCollisionDetector (opt-in)
+        self._par = {}                # parnamn -> (noder_a, noder_b) for measureDistance
         self._statistik = {}          # stationsspec -> vcStatistics
         self.ledgranser = {}          # robotspec -> [[lag, hog], ...]
         self.ledtyper = {}            # robotspec -> ["deg" | "mm" | None, ...]
@@ -238,7 +239,10 @@ class VcScen(Scen):
         for spec in (plan.get("joints") or []):
             self._servostyrning(spec, plan)
         for post in (plan.get("mind") or []):
-            self._detektor(post, plan)
+            if plan.get("mind_metod") == "detektor":
+                self._detektor(post, plan)
+            else:
+                self._parnoder(post)
         for spec in (plan.get("stat") or []):
             self._statistikbeteende(spec)
         return self
@@ -461,8 +465,37 @@ class VcScen(Scen):
         self._detektorer[namn] = det
         return det
 
+    def _parnoder(self, post):
+        """Nodlistorna for ett bevakat par, for measureDistance.
+
+        MATT i M-36: vcCollisionDetector.NodeListA tar emot en lista och
+        TOMMER den; detektorn svarade noll traffar vid 900 mm overlapp. Det
+        som fungerar ar vcNode.measureDistance(annan): exakt ratt avstand i
+        millimeter, och 0,0 vid nudd eller overlapp. Detektorn ar darfor
+        inte standardvagen langre - den finns kvar bara som ett uttalat val
+        (plan["mind_metod"] = "detektor"), for den dag M-36 mats om.
+        """
+        if not isinstance(post, dict):
+            self._saknas(str(post), "paret saknar nodlistor; ett avstand kraver "
+                                    "a och b")
+            return None
+        namn = post.get("namn") or "%s+%s" % (post.get("a"), post.get("b"))
+        if namn in self._par:
+            return self._par[namn]
+        noder_a = [self._nod(x) for x in (post.get("a") or [])]
+        noder_b = [self._nod(x) for x in (post.get("b") or [])]
+        noder_a = [n for n in noder_a if n is not None]
+        noder_b = [n for n in noder_b if n is not None]
+        if not noder_a or not noder_b:
+            self._saknas(namn, "en av nodlistorna blev tom")
+            return None
+        self._par[namn] = (noder_a, noder_b)
+        return self._par[namn]
+
     def mindist(self, spec):
         namn = spec.get("namn") if isinstance(spec, dict) else spec
+        if namn in self._par:
+            return self._mindist_matt(namn)
         det = self._detektorer.get(namn)
         if det is None:
             return None
@@ -479,7 +512,41 @@ class VcScen(Scen):
             return None
         return {"d_mm": float(d) * VC_TILL_MM,
                 "p1": self._punkt(p1), "p2": self._punkt(p2),
-                "inom_tolerans": traffade}
+                "inom_tolerans": traffade, "metod": "detektor"}
+
+    def _mindist_matt(self, namn):
+        """Minsta avstandet over alla nodpar a x b, med measureDistance.
+
+        M-36 kravde nod.update() + sim.update() fore matningen, annars
+        svarade geometrin med ett gammalt tal. sim.update() gors redan i
+        uppdatera() (M-11); nodernas update() gors har, nar den finns.
+        Vad det kostar per prov ar OMATT och star i fas 15:s protokoll.
+        """
+        noder_a, noder_b = self._par[namn]
+        basta = None
+        try:
+            for nod in noder_a + noder_b:
+                uppdatera = getattr(nod, "update", None)
+                if callable(uppdatera):
+                    uppdatera()
+            for a in noder_a:
+                for b in noder_b:
+                    svar = a.measureDistance(b)
+                    d = float(svar[0])
+                    if basta is None or d < basta[0]:
+                        basta = (d, svar[1] if len(svar) > 1 else None,
+                                 svar[2] if len(svar) > 2 else None)
+        except Exception as e:
+            self._saknas(namn, "kunde inte mata avstandet: %s" % type(e).__name__)
+            return None
+        if basta is None:
+            return None
+        d_mm = basta[0] * VC_TILL_MM
+        return {"d_mm": d_mm, "p1": self._punkt(basta[1]),
+                "p2": self._punkt(basta[2]),
+                # 0,0 betyder nuddar ELLER overlappar - mattet skiljer inte
+                # de tva (M-36). Ett bevakat par far inte gora nagotdera.
+                "kontakt": d_mm <= 0.0, "metod": "measureDistance"}
 
     @staticmethod
     def _punkt(v):

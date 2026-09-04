@@ -261,6 +261,7 @@ class Analys(object):
         fel_mm = _norm(_diff(slut_p, tuple(mal["p"]))) * 1000.0
         h["placering"] = {"fel_mm": fel_mm, "tol_mm": tol}
         if slut_p[2] < golv + UNDERGROUND_MARGINAL_M:
+            h["placering"]["tappad"] = True
             self.skal.append("delen hamnade på golvnivå, z=%.3f m" % slut_p[2])
             return ["PLACE DROPPED err=%.1fmm z=%.3fm" % (fel_mm, slut_p[2])]
         if fel_mm > tol:
@@ -333,7 +334,9 @@ class Analys(object):
                          % (self._rent(station), faktisk, req, lage))
             h["dwell"].append({"station": station, "s": faktisk, "req_s": req, "lage": lage})
 
-        rader.append(self._kapplopning(h))
+        rad = self._kapplopning(h)
+        h["race"] = None if rad == "RACE none" else rad
+        rader.append(rad)
         return rader, h
 
     def _latens(self, signal, mover):
@@ -462,7 +465,7 @@ class Analys(object):
                 t = float(r.get("t", 0.0))
                 rader.append("COLLISION %s x %s t=%.3fs"
                              % (self._rent(hit[0]), self._rent(hit[1]), t))
-                h["kollision"] = {"a": hit[0], "b": hit[1], "t": t}
+                h["kollision"] = {"a": hit[0], "b": hit[1], "t": t, "kalla": "hit"}
                 if len(hit) >= 4:
                     # getHitFeatureA/B: VILKEN yta som trafffade vilken. Ryms
                     # inte i v1:s COLLISION-rad, sa den ligger i underlaget.
@@ -472,8 +475,51 @@ class Analys(object):
                                  % (hit[0], hit[1], t))
                 break
         else:
-            rader.append("COLLISION none")
+            # Ingen traff ur en detektor. Da ar KONTAKTEN i minsta avstandet
+            # kollisionsmattet: measureDistance ger 0,0 vid nudd OCH vid
+            # overlapp (M-36, 900 mm overlapp gav 0,0), och detektorn som
+            # skulle ha gett traffen tommer tyst sina nodlistor. Ett par
+            # som bevakas ar ett par som inte far rora varandra.
+            kontakt = self._kontakt()
+            if kontakt:
+                rader.append("COLLISION %s x %s t=%.3fs"
+                             % (self._rent(kontakt["a"]), self._rent(kontakt["b"]),
+                                kontakt["t"]))
+                h["kollision"] = kontakt
+                self.skal.append("kontakt mellan %s och %s vid t=%.2f s "
+                                 "(minsta avstand %.1f mm)"
+                                 % (kontakt["a"], kontakt["b"], kontakt["t"],
+                                    kontakt["d_mm"]))
+            else:
+                rader.append("COLLISION none")
         return rader, h
+
+    def _parnamn(self, namn):
+        """(a, b) for ett bevakat par: ur planens nodlistor nar de finns,
+        annars ur parnamnet 'a+b'. Grammatikens COLLISION-rad kraver tva namn."""
+        for post in (self.tracked.get("pairs") or []):
+            if isinstance(post, dict) and post.get("namn") == namn:
+                a = (post.get("a") or [namn])[0]
+                b = (post.get("b") or [namn])[0]
+                return str(a), str(b)
+        if "+" in namn:
+            a, b = namn.split("+", 1)
+            return a, b
+        return namn, namn
+
+    def _kontakt(self):
+        """Forsta provet dar ett bevakat par har minsta avstandet 0."""
+        for r in self.rader:
+            for namn in sorted(r.get("mind") or {}):
+                d = r["mind"][namn]
+                if d is None or d.get("d_mm") is None:
+                    continue
+                if float(d["d_mm"]) <= 0.0:
+                    a, b = self._parnamn(namn)
+                    return {"a": a, "b": b, "par": namn,
+                            "t": float(r.get("t", 0.0)),
+                            "d_mm": float(d["d_mm"]), "kalla": "mind"}
+        return None
 
     # -- hederlighet --
 
@@ -722,7 +768,9 @@ class Analys(object):
             h["sekvens"] = d
             for fel in d["brott"]:
                 self.skal.append(fel)
-            if d["obestambar"] and not d["brott"]:
+            for fel in d.get("tidsbrott") or []:
+                self.skal.append(fel)
+            if d["obestambar"] and not d["brott"] and not d.get("tidsbrott"):
                 self.skal.append("sekvensen gick inte att doma: %s" % d["obestambar"])
         par = self.plan.get("forregling")
         if par:
@@ -797,16 +845,176 @@ class Analys(object):
         r.satt_dom(varde, orsak)
         return r
 
+    # -- de fem domarna -----------------------------------------------------
+    #
+    # Fas 15 (70_faser.md): domar som faller pa SEKVENS, TIMING, GREPP,
+    # KOLLISION och GENOMFLODE - var och en med en trasig cell som maste
+    # fallas, och som ar osynlig for de andra fyra. Varje domare laser bara
+    # sitt eget underlag och svarar med ett utfall och sina fynd; _dom
+    # rangordnar utfallen. Domarna ar metoder i DOMARE sa ett prov kan slacka
+    # EN av dem och se att exakt dess celler blir grona (M-65 §4).
+
+    DOMARE = ("sekvens", "timing", "grepp", "kollision", "genomflode")
+
+    def _doma_sekvens(self, h):
+        """Kom stegen, i ratt ordning, och holl forreglingen?"""
+        sekvens = h.get("station") or {}
+        seq = sekvens.get("sekvens")
+        forregling = sekvens.get("forregling")
+        if seq is None and forregling is None:
+            return None, [], {}
+        fynd = {"forregling": False, "uteblivet": False, "obestambar": None}
+        skal = []
+        for post in (forregling or []):
+            if post.get("brott"):
+                fynd["forregling"] = True
+                skal.append("förreglingen bröts")
+        if seq is not None:
+            if seq.get("brott"):
+                fynd["uteblivet"] = True
+                skal.append("stationens sekvens hölls inte")
+            elif seq.get("obestambar"):
+                fynd["obestambar"] = seq["obestambar"]
+        if fynd["forregling"] or fynd["uteblivet"]:
+            return "FAIL", skal, fynd
+        if fynd["obestambar"]:
+            return "INCONCLUSIVE", ["sekvensen gick inte att dömas: %s"
+                                    % fynd["obestambar"]], fynd
+        return "PASS", [], fynd
+
+    def _doma_timing(self, h):
+        """Kom det som kom i TID: stegens fonster, PLC-fasen, uppehallet,
+        och tva utgangar som inte far ga hoga inom samma fonster."""
+        th = h.get("timing") or {}
+        seq = (h.get("station") or {}).get("sekvens")
+        fynd = {"for_sent": False, "fas_ut": False, "fas_okand": None,
+                "uppehall": False, "kapplopning": False}
+        skal = []
+        fragad = False
+        if seq is not None:
+            fragad = True
+            if seq.get("tidsbrott"):
+                fynd["for_sent"] = True
+                skal.append("stationens tider hölls inte")
+        for f in (th.get("fas") or []):
+            if f.get("max_ms") is None:
+                continue
+            fragad = True
+            if f.get("status") == "OUT_OF_TOL":
+                fynd["fas_ut"] = True
+                skal.append("fasen mellan PLC och scen överskrider kravet")
+            elif f.get("status") == "INCONCLUSIVE" and fynd["fas_okand"] is None:
+                fynd["fas_okand"] = f.get("skal") or f.get("obestambar") or "okänd orsak"
+        for d in th.get("dwell", []):
+            fragad = True
+            if d["lage"] == "SHORT":
+                fynd["uppehall"] = True
+                skal.append("uppehållet för kort")
+        if th.get("race"):
+            fragad = True
+            fynd["kapplopning"] = True
+            skal.append("två utgångar gick höga inom samma fönster")
+        if not fragad:
+            return None, [], fynd
+        if fynd["for_sent"] or fynd["fas_ut"] or fynd["uppehall"] or fynd["kapplopning"]:
+            return "FAIL", skal, fynd
+        if fynd["fas_okand"]:
+            return "INCONCLUSIVE", ["fasen kan inte dömas: %s" % fynd["fas_okand"]], fynd
+        return "PASS", [], fynd
+
+    def _doma_grepp(self, h):
+        """Bildades greppet, holl det, och hamnade delen ratt? Bara for en
+        plan som deklarerat en del och ett verktyg."""
+        if not self.vantar_grepp():
+            return None, [], {}
+        mh = h.get("motion") or {}
+        hh = h.get("honesty") or {}
+        fynd = {"aldrig": False, "teleport": False, "glid": False,
+                "kort": False, "plac_okand": False, "fel": False, "tappad": False}
+        skal = []
+        if mh.get("for_fa_prov"):
+            return "INCONCLUSIVE", ["för få prov"], fynd
+        if mh.get("grip") is None:
+            fynd["aldrig"] = True
+            return "FAIL", ["greppet bildades aldrig"], fynd
+        if hh.get("teleport"):
+            fynd["teleport"] = True
+            skal.append("greppet bildades på avstånd")
+        carry = mh.get("carry") or {}
+        plac = mh.get("placering")
+        if carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S:
+            fynd["kort"] = True
+        elif carry.get("rot_deg", 0.0) > CARRY_RIGID_DEG:
+            fynd["glid"] = True
+            skal.append("delen gled i greppet")
+        if plac is None:
+            fynd["plac_okand"] = True
+        elif plac.get("tappad"):
+            fynd["tappad"] = True
+            skal.append("delen tappades")
+        elif plac["fel_mm"] > plac["tol_mm"]:
+            fynd["fel"] = True
+            skal.append("delen hamnade fel")
+        if fynd["teleport"] or fynd["glid"] or fynd["fel"] or fynd["tappad"]:
+            return "FAIL", skal, fynd
+        if fynd["kort"]:
+            return "INCONCLUSIVE", ["bärsträckan för kort"], fynd
+        if fynd["plac_okand"]:
+            return "INCONCLUSIVE", ["placeringen kunde inte dömas"], fynd
+        return "PASS", [], fynd
+
+    def _doma_kollision(self, h):
+        """Rorde tva bevakade kroppar varandra? Bara nar nagot bevakats."""
+        sh = h.get("safety") or {}
+        bevakat = any(("mind" in r or "hit" in r) for r in self.rader)
+        if not bevakat and not sh.get("kollision"):
+            return None, [], {}
+        if sh.get("kollision"):
+            k = sh["kollision"]
+            return "FAIL", ["kollision mellan %s och %s" % (k["a"], k["b"])], \
+                {"kollision": True}
+        return "PASS", [], {"kollision": False}
+
+    def _doma_genomflode(self, h):
+        """Holl stationerna det deklarerade genomflodeskravet?"""
+        stationer = h.get("stationer") or {}
+        if not stationer.get("_krav"):
+            return None, [], {}
+        if stationer.get("_brott"):
+            return "FAIL", ["genomströmningskravet hölls inte"], \
+                {"brott": list(stationer["_brott"])}
+        return "PASS", [], {"brott": []}
+
+    def domar(self, harledt=None):
+        """{domare: {"utfall": PASS|FAIL|INCONCLUSIVE|None, "skal": [...],
+        "fynd": {...}}}. None = ingen fraga stalld, och det ar INTE ett PASS."""
+        h = harledt if harledt is not None else self.harledt
+        ut = {}
+        for namn in self.DOMARE:
+            utfall, skal, fynd = getattr(self, "_doma_" + namn)(h)
+            ut[namn] = {"utfall": utfall, "skal": skal, "fynd": fynd}
+        return ut
+
     def _dom(self, mh, th, sh, hh, scen=None, robotar=None, stationer=None,
              sekvens=None):
         # Ordningen ar en rangordning: en overtradelse slar allt annat, och en
-        # osakerhet far ALDRIG bli ett PASS.
+        # osakerhet far ALDRIG bli ett PASS. De fem domarna svarar var for
+        # sig (domar()); har bestams vem som far saga sitt forst.
         scen = scen or {}
         robotar = robotar or {}
         stationer = stationer or {}
         sekvens = sekvens or {}
+        d = self.domar({"motion": mh, "timing": th, "safety": sh, "honesty": hh,
+                        "stationer": stationer, "station": sekvens})
+        self.harledt["domar"] = d
         if hh.get("overtradelse"):
-            return "FAIL", self._orsak("hederlighetsgrind fälld")
+            # Tva av de fyra hederlighetsraderna handlar om GREPPET
+            # (TELEPORT_TRANSFER, NEVER_GRIPPED), och domsraden ska namna den
+            # domare som ager fragan - inte bara regeln som tvingade domen.
+            if hh.get("teleport") or (self.vantar_grepp() and mh.get("grip") is None
+                                      and not mh.get("for_fa_prov")):
+                return "FAIL", self._orsak("grepp: hederlighetsgrind fälld")
+            return "FAIL", self._orsak("hederlighet: hederlighetsgrind fälld")
         if mh.get("for_fa_prov"):
             return "INCONCLUSIVE", self._orsak("för få prov")
         if scen.get("obestambar"):
@@ -819,67 +1027,67 @@ class Analys(object):
             # som fysiken, och hela poangen med PLC i serien var att de gor
             # det. Da ar fasforhallandet inget matt.
             return "INCONCLUSIVE", self._orsak("PLC-värdena var inte samtidiga")
-        if self.vantar_grepp() and mh.get("grip") is None:
-            return "FAIL", self._orsak("greppet bildades aldrig")
-        if sh.get("kollision"):
-            return "FAIL", self._orsak("kollision")
+        grepp, timing = d["grepp"], d["timing"]
+        if grepp["fynd"].get("aldrig"):
+            return "FAIL", self._orsak("grepp: greppet bildades aldrig")
+        if d["kollision"]["utfall"] == "FAIL":
+            return "FAIL", self._orsak("kollision: " + d["kollision"]["skal"][0])
         if scen.get("oombedd"):
-            return "FAIL", self._orsak("något i scenen rörde sig oombett")
+            return "FAIL", self._orsak("scen: något i scenen rörde sig oombett")
         if scen.get("utslungad"):
-            return "FAIL", self._orsak("delen slungades iväg")
+            return "FAIL", self._orsak("scen: delen slungades iväg")
         for post in (scen.get("orort") or []):
-            return "FAIL", self._orsak("ett kommenderat objekt rörde sig aldrig")
+            return "FAIL", self._orsak("scen: ett kommenderat objekt rörde sig aldrig")
         brott = self._robotbrott(robotar)
         if brott:
-            return "FAIL", self._orsak(brott)
-        if stationer.get("_brott"):
-            return "FAIL", self._orsak("genomströmningskravet hölls inte")
-        for f in (th.get("fas") or []):
-            if f.get("status") == "OUT_OF_TOL":
-                return "FAIL", self._orsak("timing: fasen mellan PLC och scen "
-                                           "överskrider kravet")
+            return "FAIL", self._orsak("robot: " + brott)
+        if d["genomflode"]["utfall"] == "FAIL":
+            return "FAIL", self._orsak("genomflode: genomströmningskravet hölls inte")
         # Stationens egna grindar. Forreglingen forst: den ar den enda av de
         # tva som ar farlig, och den ar sann aven i en korning dar sekvensen
         # for ovrigt holl.
-        for post in (sekvens.get("forregling") or []):
-            if post.get("brott"):
-                return "FAIL", self._orsak("förreglingen bröts")
-        seq = sekvens.get("sekvens")
-        if seq is not None:
-            if seq.get("brott"):
-                return "FAIL", self._orsak("stationens sekvens hölls inte")
-            if seq.get("obestambar"):
-                return "INCONCLUSIVE", self._orsak(
-                    "sekvensen gick inte att döma: %s" % seq["obestambar"])
-        elif not self.vantar_grepp():
-            # Varken greppande roller eller en deklarerad sekvens. Da har
-            # ingen fraga stallts, och ett PASS hade varit ett godkannande av
-            # ingenting (I3).
+        if d["sekvens"]["fynd"].get("forregling"):
+            return "FAIL", self._orsak("forregling: förreglingen bröts")
+        if d["sekvens"]["fynd"].get("uteblivet"):
+            return "FAIL", self._orsak("sekvens: stationens sekvens hölls inte")
+        if timing["fynd"].get("for_sent"):
+            return "FAIL", self._orsak("timing: stationens tider hölls inte")
+        if timing["fynd"].get("fas_ut"):
+            return "FAIL", self._orsak("timing: fasen mellan PLC och scen "
+                                       "överskrider kravet")
+        if d["sekvens"]["utfall"] == "INCONCLUSIVE":
+            return "INCONCLUSIVE", self._orsak(
+                "sekvensen gick inte att döma: %s" % d["sekvens"]["fynd"]["obestambar"])
+        if all(v["utfall"] is None for v in d.values()):
+            # Ingen av de fem domarna fick en fraga: varken greppande roller,
+            # en deklarerad sekvens, ett tidskrav, ett bevakat par eller ett
+            # genomflodeskrav. Da har ingen fraga stallts, och ett PASS hade
+            # varit ett godkannande av ingenting (I3).
             return "INCONCLUSIVE", self._orsak(
                 "planen deklarerar varken en del och ett verktyg att gripa med "
                 "eller en sekvens att följa; det finns ingenting att döma")
-        if self.vantar_grepp():
+        if grepp["utfall"] is not None:
             # Bar- och placeringsgrindarna mater greppet. En station som inte
             # griper har ingen barstracka och inget mal, och att kraeva dem av
             # den vore att falla pa en fraga ingen stallt.
-            carry = mh.get("carry") or {}
-            if carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S:
+            if grepp["fynd"].get("kort"):
                 return "INCONCLUSIVE", self._orsak("bärsträckan för kort")
-            if carry.get("rot_deg", 0.0) > CARRY_RIGID_DEG:
-                return "FAIL", self._orsak("delen gled i greppet")
-            plac = mh.get("placering")
-            if plac is None:
+            if grepp["fynd"].get("glid"):
+                return "FAIL", self._orsak("grepp: delen gled i greppet")
+            if grepp["fynd"].get("plac_okand"):
                 return "INCONCLUSIVE", self._orsak("placeringen kunde inte dömas")
-            if plac["fel_mm"] > plac["tol_mm"]:
-                return "FAIL", self._orsak("delen hamnade fel")
-        for d in th.get("dwell", []):
-            if d["lage"] == "SHORT":
-                return "FAIL", self._orsak("uppehållet för kort")
-        for f in (th.get("fas") or []):
-            if f.get("status") == "INCONCLUSIVE":
-                return "INCONCLUSIVE", self._orsak(
-                    "timing: fasen kan inte dömas: %s"
-                    % (f.get("skal") or f.get("obestambar") or "okänd orsak"))
+            if grepp["fynd"].get("tappad"):
+                return "FAIL", self._orsak("grepp: delen tappades")
+            if grepp["fynd"].get("fel"):
+                return "FAIL", self._orsak("grepp: delen hamnade fel")
+        if timing["fynd"].get("uppehall"):
+            return "FAIL", self._orsak("timing: uppehållet för kort")
+        if timing["fynd"].get("kapplopning"):
+            return "FAIL", self._orsak("kapplopning: två utgångar gick höga inom "
+                                       "samma fönster")
+        if timing["fynd"].get("fas_okand"):
+            return "INCONCLUSIVE", self._orsak(
+                "timing: fasen kan inte dömas: %s" % timing["fynd"]["fas_okand"])
         return "PASS", "allt inom marginal"
 
     @staticmethod
