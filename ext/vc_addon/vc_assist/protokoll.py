@@ -11,8 +11,8 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-PROTOKOLL_VERSION = 1
-MAX_KROPP = 1048576
+PROTOKOLL_VERSION = 1      # Protokollets version, 31_brygga_protokoll.md.
+MAX_KROPP = 1048576        # Maxlangd kropp, 31_brygga_protokoll.md.
 
 # Felkoder, 31_brygga_protokoll.md
 E_VERSION = "E_VERSION"

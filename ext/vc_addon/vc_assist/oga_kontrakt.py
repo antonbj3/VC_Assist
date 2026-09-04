@@ -13,7 +13,7 @@ from __future__ import absolute_import, division, print_function
 
 import re
 
-EYES_VERSION = 1
+EYES_VERSION = 1    # Grammatikens version, 41_ogat_kontrakt.md.
 
 SEKTIONER = ("MOTION", "TIMING", "THROUGHPUT", "SAFETY", "HONESTY")
 DOMAR = ("PASS", "FAIL", "INCONCLUSIVE")

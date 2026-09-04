@@ -34,20 +34,20 @@ try:
 except ImportError:                        # py3, for L1-testerna
     from io import StringIO
 
-STANDARDPORT = 8901
-MAX_KO = 256
+STANDARDPORT = 8901        # Beslutad i 31_brygga_protokoll.md.
+MAX_KO = 256               # Beslutad i 31_brygga_protokoll.md.
 # Hur lange tick() far arbeta innan den lamnar tillbaka till simuleringen.
 # Pumpen slar var 50 ms; halften av det ar taket.
-TICK_BUDGET_S = 0.025
+TICK_BUDGET_S = 0.025      # Halva pumpens tysta period, matt i M-03.
 
 # Pumpens paus, i SIMULERAD tid - som med startSimulation() ar samma sak som
 # vaggklockstid (M-08). Tom pump slar 20 Hz; det racker for att uppdaga en
 # begaran men gor tur och retur till en hel period, eftersom klienten skickar
 # direkt efter forra svaret och alltsa alltid landar strax EFTER ett slag.
 # Darfor slar pumpen tatt en stund efter varje trafik.
-PAUS_TOM = 0.05
-PAUS_AKTIV = 0.005
-AKTIV_FONSTER_S = 2.0
+PAUS_TOM = 0.05            # M-03: ger 17,2 Hz matt, 20 Hz installt.
+PAUS_AKTIV = 0.005         # M-03: ger 224,7 Hz matt.
+AKTIV_FONSTER_S = 2.0      # PRELIMINAR. Satts av matning M-26.
 
 # Omstart av simuleringen efter en scenandring. sim.reset() stoppar
 # simuleringen och utloser DARFOR ett nytt OnStop - utan sparr blir det en
