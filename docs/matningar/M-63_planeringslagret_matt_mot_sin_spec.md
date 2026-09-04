@@ -2,7 +2,7 @@
 
 **Datum:** 2026-09-04 · körs utan VC · fas 16 i `docs/spec/70_faser.md`
 **Mäter:** `docs/spec/22_planeringslagret.md` (384 rader) mot
-`svc/vc_assist_svc/plan/` (3 868 rader före, 7 013 efter)
+`svc/vc_assist_svc/plan/` (3 868 rader före, 7 490 efter)
 **Stänger:** fas 16. Protokollet står i
 `tests/protocol/fas16_planeringslagret.md`, proven i
 `tests/enhet/test_bestallning.py`.
@@ -40,7 +40,7 @@ lintkodlista som råkar heta `P1`–`P10`, och den betyder något helt annat:
 `PL11` — *"två halvor av samma begrepp som inte möts"* — och den fanns i vårt
 eget planeringslager, i samma paket som beskrev regeln.
 
-Efter det här arbetet: **8 av 30 kravkoder** och **4 av 12 felklasser** nämns i
+Efter det här arbetet: **12 av 30 kravkoder** och **4 av 12 felklasser** nämns i
 kod eller prov. Talet är fortfarande lågt, och det ska det vara: en kod ska
 skrivas in i koden när kravet faktiskt är mekaniserat, inte som en etikett.
 
@@ -51,9 +51,9 @@ varje rad pekar på fil och funktion.
 
 | | Före | Efter |
 |---|---:|---:|
-| **uppfyllt** | 9 | **17** |
-| **delvis** | 8 | 6 |
-| **saknas** | 13 | 6 |
+| **uppfyllt** | 9 | **22** |
+| **delvis** | 8 | 4 |
+| **saknas** | 13 | 3 |
 | ej tillämpligt | 0 | 1 |
 
 ### 2.1 Det som redan fanns, och som är bra
@@ -119,12 +119,40 @@ de fanns inte som begrepp.
 | `K1` | `needed_for` per spec-fält, lintkod `S1_SLOT_WITHOUT_NEED` | kräver att varje grind namnger sina indata; hör ihop med P1–P2 och är en egen runda |
 | `K4` | `spec.clarify_round`, högst två frågerundor | det finns ingen samtalsloop att räkna rundor i (`24_samtalsloopen.md` är inte byggd) |
 | `K10` | taket på fyra rättningsvarv | lösaren har i stället en **mätt** nodbudget och en rasterstege; se §5 och förslag F4 |
-| `K12` | `work_area_mm` som osynlig kropp, `WORK_AREA_UNKNOWN` | kräver celldatabladet på disk (fas 4b), som inte finns |
-| `K16` | `post` per steg: `{tool, args, op, expect}` | planen har en ögonkontroll i slutet, inte efterkontroller per steg. Det är `P7` och nästa runda |
-| `K23` | läsande anrop före skrivande i kön | planens ordning är beroendeordning, inte effektordning |
+
+Fyra är delvis: `K11` (gångstråket är ett hårt slot och mäts av lösarens
+`kollision.separation` — men inte ännu i en byggd VC-scen), `K12`
+(`work_area` skrivs ut som `UNKNOWN` i layoutartefakten, men zonen som osynlig
+kropp kräver celldatabladet, fas 4b), `K13` (kollisionsdomen är hård statiskt;
+`collision_count` i VC kräver VC) och `K26` (grindordningen ÄR
+`REJECT_FIX`-doktrinen — bygg aldrig en geometri som redan är fälld — men de
+fyra namngivna routningslägena är inte modellerade).
 
 `K27` (`SKIP_GATE` avstängd) är **ej tillämpligt**: det finns inget hopp att
 stänga av, eftersom ingen grind hoppas över.
+
+### 2.3.1 De två som stängdes sist, och som var specens egna huvudpunkter
+
+**`K16` och `P7` — efterkontrollerna.** Specen skriver själv att källans
+`post_condition` har *"noll konsumenter i hela repot"* och kallar det
+*"den viktigaste luckan att stänga"*. `steg.Efterkontroll` är nu
+`{verktyg, argument, vag, operator, forvantat}`: verktyget måste finnas och
+vara **läsande** (`EK3`), vägen måste finnas i verktygets returns (`EK2`),
+jämförelsen görs av `predikat.py` — samma kod som förvillkoren — och det
+förväntade värdet får **aldrig** vara en bindning, för ett facit som räknas
+fram ur körningen är inget facit (`EK4`, och det är källans
+`L-SC-01_REJECT_SELF_REF`). Planeraren skriver dem själv:
+`find_component` efter `load_component`, `get_transform` efter `set_transform`,
+`interface_info` efter `connect`. **8 av 8 skrivande steg** i den planen har nu
+en efterkontroll som kan falla.
+
+**Artefakterna på disk.** *"Alla fyra är JSON på disk under
+`bank/plans/<plan_id>/`"* — ingen av dem skrevs. `artefakter.py` skriver alla
+fyra, och anropssekvensen bär en sha256 över sin egen kanoniska JSON. Tre
+körningar av samma beställning ger **en** hash (`K22`), och `las_sekvens`
+vägrar lämna ut en artefakt vars innehåll inte stämmer med hashen. Det stänger
+också `K9`: varje tal i layoutartefakten bär `{value, method, gate}`, där
+grinden är lösarens **egen oberoende** efterhandsgranskning.
 
 ### 2.4 Grindarna P1–P8, som de faktiskt står
 
@@ -135,32 +163,32 @@ stänga av, eftersom ingen grind hoppas över.
 | P3 Katalogförankring | delvis | URI:er kommer ur indexet eller blir en fråga; databladet som artefakt saknas |
 | P4 Layoutdom, statisk | **grön** | `layoutmotor.py` → `layout/losare.losa`, fail-closed |
 | P5 Layoutdom, mätt i VC | saknas | kräver VC; hör till fas 5a |
-| P6 Plangraf | delvis | graf + register + determinism prövad över tre körningar; hashen i artefakten saknas |
-| P7 Efterkontrollstäckning | saknas | se `K16` |
+| P6 Plangraf | **grön** | graf + register + determinism över tre körningar, med hashen i artefakten |
+| P7 Efterkontrollstäckning | **grön** för de planer planeraren skriver | 8 av 8 skrivande steg har en post som kan falla; `EK1` fäller den som saknar |
 | P8 Planens dom | saknas | kräver VC och ögat |
 
 ### 2.5 Felklasserna PL1–PL12
 
-Åtta av tolv fälls nu mekaniskt: `PL1` (tyst förval), `PL2` (uppfunnen URI
-eller uppfunnet verktygsnamn), `PL3` (prosavillkor), `PL5` (efterkontroll utan
-konsument), `PL6` (implicit ordning), `PL7` (överlapp som byggdes ändå,
-statiskt), `PL9` (kontroll som svarade `pass` utan sitt argument), `PL12`
-(koordinat i en koppling).
+Nio av tolv fälls nu mekaniskt: `PL1` (tyst förval), `PL2` (uppfunnen URI
+eller uppfunnet verktygsnamn), `PL3` (prosavillkor), `PL4` (efterkontroll som
+inte kan falla — `EK4`), `PL5` (efterkontroll utan konsument), `PL6` (implicit
+ordning), `PL7` (överlapp som byggdes ändå, statiskt), `PL9` (kontroll som
+svarade `pass` utan sitt argument), `PL12` (koordinat i en koppling).
 
 Tre är delvis: `PL8` (klassen läses ur katalogposten — men i **grunt** läge
 kommer kategorin från katalognamnet, M-58), `PL10` (gångstråket mäts av
 lösarens `kollision.separation`, inte ännu i VC) och `PL11` (jag hittade en och
 lämnade den, se §7).
 
-En fälls inte alls: `PL4` (efterkontroll som inte kan falla), eftersom `K16`
-inte är byggt.
+Ingen är kvar helt ofångad.
 
 ---
 
 ## 3. Vad som byggdes
 
-Nio nya moduler i `svc/vc_assist_svc/plan/`, 2 863 rader, plus ändringar i sex
-gamla.
+Tio nya moduler i `svc/vc_assist_svc/plan/`, 3 016 rader, plus ändringar i sju
+gamla (`steg.py` fick `Efterkontroll`, `byggplan.py` fyra `EK`-lintkoder,
+`planering.py` skriver posterna).
 
 | Modul | Rader | Vad den gör |
 |---|---:|---|
@@ -172,9 +200,11 @@ gamla.
 | `lasning.py` | 387 | fri text → krav, varje värde med sin ordagranna textbit |
 | `layoutmotor.py` | 392 | adaptern till den lösare som redan fanns |
 | `bestallning.py` | 234 | sex grindar i ordning; ett nej lämnar aldrig ut en plan |
+| `artefakter.py` | 203 | de fyra artefakterna på disk, och hashen som binder sekvensen |
 | `ordning.py` | 165 | cykler och kanonisk ordning, delad av graf och processer |
 
-`tests/enhet/test_bestallning.py` (1 172 rader, **135 prov**) och
+`tests/enhet/test_bestallning.py` (**153 prov**), nio nya prov i
+`tests/enhet/test_plan.py` för efterkontrollerna, och
 `tests/protocol/fas16_planeringslagret.md`.
 
 ### 3.1 Härkomsten är den bärande nyheten
@@ -392,6 +422,14 @@ alltid säger okänt har slutat mäta. Koden gör skillnaden;
 inte gälla samtidigt"* och *"kraven går, men inte med den här komponenten"* är
 **botemedlet**. Den ena rättas genom att ändra ett krav, den andra genom att
 byta komponent. Ett svar som inte skiljer dem lämnar operatören att gissa.
+
+**F8. `K23` har två halvor, och bara den ena är en ordningsregel.** *"Alla
+`post`-anrop och all mätning som L3 behöver är `read` och får aldrig ligga i
+kön"* är mekaniserat (`EK3`, plus att routingen ägs av utföraren, `I12`).
+*"Läsande förfrågningar före skrivande"* som en **omsortering** av sekvensen
+går däremot inte ihop med beroendeordningen: en efterkontroll efter ett
+skrivande steg måste per definition komma efter det. Specen bör säga vilken av
+de två den menar.
 
 **F7. Databladet (K0, fas 4b) behöver en källa som faktiskt bär fälten.**
 `footprint_mm` ur `BoundCenter` + `BoundDiagonal` finns **inte** i någon

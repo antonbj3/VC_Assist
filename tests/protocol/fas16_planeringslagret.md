@@ -6,7 +6,12 @@
 **körs av:** `tests/enhet/test_bestallning.py` (L1 — ingen VC, ingen OpenPLC,
 ingen kompilator)
 
-## Status: se dokumentets egen text — fasen byggs just nu
+## Status 2026-09-04: **grön i L1**
+
+153 prov i `tests/enhet/test_bestallning.py`, plus nio i `test_plan.py` för
+efterkontrollerna. Alla trasiga fall nedan fälls. Vad protokollet **inte**
+bevisar står i avsnitt F, och det som kräver VC (`P5`, `P8`) hör till fas 5a
+och fas 7–8.
 
 ## Grinden, ordagrant
 
@@ -44,6 +49,9 @@ halv plan ser körbar ut, och det är farligare än inget svar (I3).
 | A6 | koordinaterna kommer ur layoutmotorn | ≥ 1 `set_transform`-steg |
 | A7 | varje antagande är märkt | `spec.antaganden` ≥ 10, alla med motiv |
 | A8 | inga öppna blockerande frågor | `blockerande_fragor() == []` |
+| A10 | varje skrivande steg har en efterkontroll som kan falla | 8 av 8 |
+| A11 | de fyra artefakterna skrivs på disk | `spec/layout/plan/anropssekvens.json` |
+| A12 | sekvensen är densamma byte för byte | en hash över tre körningar |
 
 Beställningstexten är operatörens, ordagrant, och står i provfilen.
 
@@ -157,6 +165,29 @@ slutet (K6): fri text i ett villkor är ett lintfel, inte en varning.
 Detta är felklassen `PL5` — efterkontroll utan konsument — och den fanns i vårt
 eget planeringslager innan M-63: `spec.Villkor.text` lästes av **noll** rader
 kod i hela repot.
+
+### T9b. En efterkontroll som inte kan falla
+
+Fyra former prövas, var och en med sin egen fixtur i `test_plan.py`:
+
+| Kod | Trasig fixtur |
+|---|---|
+| `EK1_WRITE_UTAN_POST` | ett `load_component` utan efterkontroll |
+| `EK2_POST_HALLER_INTE` | en post som läser en väg verktyget aldrig svarar med |
+| `EK3_POST_SKRIVER` | en post som anropar `delete_component` |
+| `EK4_POST_KAN_INTE_FALLA` | `finns` på ett fält som står i verktygets `required` |
+
+Plus: ett förväntat värde som är en **bindning** går inte ens att konstruera —
+ett facit som räknas fram ur körningen är inget facit
+(`L-SC-01_REJECT_SELF_REF`).
+
+### T9c. En artefakt som ändrats efter att den skrevs
+
+En byte ändras i `anropssekvens.json` efter skrivningen.
+
+**Krav på svaret:** `Planfel` på hashen. En artefakt som ändrats är inte den
+artefakt planen godkändes som, och att läsa den som om den vore det är precis
+den tysta nedgradering lagret finns för att undvika.
 
 ### T9. Ett nej som lämnar ut en plan
 
