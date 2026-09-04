@@ -39,8 +39,27 @@ gånger i rad. Ett tal som inte rör sig är inte ett bevis på att ingenting h�
 | Kan en egenbyggd komponent bli en produkt? | **Ja.** Bygg → spara → ladda → `Part`-URI → `create()` |
 | Skapar `create()` något? | **Ja**, en `vcComponent` med rätt VCID |
 | Var hamnar den? | i skaparens egen behållare |
-| Fyrar den automatiska matningen (`Interval`)? | **Nej.** Behållaren är tom över 160 simulerade sekunder |
-| Flödar produkten vidare till banan? | **Nej.** Banans behållare är tom |
+| Fyrar den automatiska matningen (`Interval`)? | ~~**Nej.** Behållaren är tom över 160 simulerade sekunder~~ **RÄTTAD, se nedan** |
+| Flödar produkten vidare till banan? | ~~**Nej.** Banans behållare är tom~~ **RÄTTAD, se nedan** |
+
+> **RÄTTELSE 2026-09-05.** De två sista raderna är falska som allmänna svar.
+>
+> `M-40` mätte att en matare fyrar när **båda** dessa håller: beteendena finns
+> när simuleringen startar, och nedströms bana har en verklig längd
+> (`PathLength > 0`, vilket kräver `bana.update()`). Båda är tysta — ingendera
+> ger fel, undantag eller falskt returvärde någonstans.
+>
+> Den här mätningens matare byggdes i en **körande** simulering, alltså precis
+> det villkor som gör att en matare aldrig fyrar. Raderna mätte
+> **uppställningen**, inte mataren.
+>
+> `M-41` visade sedan flödet i tal: nio produkter, exakt 4,000 s isär, åtta
+> mellanrum i rad, hastighet 250,0000 mm/s med spridning 0,0000 över 25
+> differenskvoter.
+>
+> Rättelsen stod sedan tidigare i filens ärlighetsavsnitt längst ned. Den står
+> nu **vid påståendet**, eftersom en läsare som stannar vid tabellen annars får
+> fel svar — samma fel som fas 6:s rubrik gjorde i ett dygn.
 
 ## Kringliggande mätningar från samma svep
 
