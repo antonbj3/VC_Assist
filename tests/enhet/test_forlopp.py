@@ -355,6 +355,28 @@ def test_en_handelse_med_nagon_annans_ord_trimmas_aldrig_bort():
     assert granska(f, text).ok
 
 
+def test_en_flerradig_felnyckel_nar_anvandaren_hel():
+    """Trasig fixtur for RADFORMEN: ett verktygsfel med en stackspårning far
+    inte klippas till sin forsta rad pa vagen ut. Radlistan kortar den till
+    en rad, och da MASTE hela texten sta i ett eget block."""
+    spar = ("BryggFel: E_EXEC\n"
+            "  Traceback (most recent call last):\n"
+            '    File "<exec>", line 3, in <module>\n'
+            "  AttributeError: 'NoneType' object has no attribute 'Value'")
+    f, k = arbetande()
+    k.tick(0.1)
+    f.steg_foll("ladda_robot", spar)
+    text = rendera(f)
+    assert spar in text, "felnyckeln nadde inte anvandaren hel"
+    assert granska(f, text).ok
+    # och radlistan bar fortfarande EN rad per handelse
+    handelserader = [r for r in text.splitlines()
+                     if r.startswith("  t+") and "VERKTYG_FEL" in r]
+    assert len(handelserader) == 1, handelserader
+    assert "\n" not in handelserader[0]
+    assert handelserader[0].endswith("...")
+
+
 def test_en_dom_som_saknas_sags_saknas_aldrig_tomt():
     f, _k = arbetande()
     text = rendera(f)

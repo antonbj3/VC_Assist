@@ -96,6 +96,11 @@ SLUTLIGA: Dict[str, str] = {
 # att grinden ska kunna leta efter den i en FRÄMMANDE renderares text.
 PAGAR_MARKOR = "pågår sedan"
 
+# Sorter som har ett EGET avsnitt i visningen, där deras `ordagrant` skrivs ut
+# helt. Övriga sorter måste få sitt block i händelselistan i stället — annars
+# kan en flerradig felnyckel inte nå användaren hel.
+MED_EGEN_SEKTION = ("GRIND", "DOM", "GULD", "FALLET", "AVBRUTEN")
+
 
 class Forloppsfel(Exception):
     """Förloppet går inte att föra, eller doktrinen bröts på vägen ut."""
@@ -129,12 +134,18 @@ class Handelse:
         return self.sort not in EJ_FRAMSTEG
 
     def rad(self, t0: float) -> str:
+        """En rad, ett fast antal fält. Flerradig text kortas till första
+        raden — och då MÅSTE hela texten stå i ett eget block någon
+        annanstans i visningen, annars fälls den av grindens regel Y4."""
         namn = self.steg or ""
         if namn == self.text:
             namn = ""
+        text = self.text
+        if "\n" in text:
+            text = text.splitlines()[0] + " ..."
         return "t+%-7.1f %-14s %s%s" % (
             self.t - t0, self.sort, ("%s: " % namn) if namn else "",
-            self.text)
+            text)
 
 
 # -------------------------------------------------------------- ovissheten

@@ -35,7 +35,8 @@ import time
 from typing import List, Optional, Sequence, Tuple
 
 from .handelser import (ARBETAR, AVBRUTET, EJ_PROVAT, EJ_STARTAT, FALLET,
-                        Forloppsfel, Handelse, KLART, Ovisshet, PAGAR_MARKOR,
+                        Forloppsfel, Handelse, KLART, MED_EGEN_SEKTION,
+                        Ovisshet, PAGAR_MARKOR,
                         RACKVIDDEN, STEG_FOLL, STEG_HOPPAT, STEG_KLART,
                         STEG_PAGAR, STEG_VANTAR, Steg, TYST,
                         UTANFOR_RACKVIDD, VANTAR)
@@ -449,7 +450,15 @@ def _handelserader(f: Forlopp) -> List[str]:
     visade = set(id(h) for h in maste) | set(id(h) for h in ovriga[-plats:])
     valda = [h for h in alla if id(h) in visade]
     rader = ["HÄNDELSER: %d totalt, visar %d" % (len(alla), len(valda))]
-    rader.extend("  " + h.rad(f.t0) for h in valda)
+    for h in valda:
+        rad = h.rad(f.t0)
+        rader.append("  " + rad)
+        # En flerradig felnyckel ryms inte i en rad. Den som inte har ett eget
+        # avsnitt får sitt block här, så att den når användaren HEL.
+        if (h.ordagrant and h.sort not in MED_EGEN_SEKTION
+                and h.ordagrant not in rad):
+            rader.extend(_block("%s, källans egna ord" % h.sort,
+                                h.ordagrant))
     dolda = len(alla) - len(valda)
     if dolda:
         rader.append("  ... %d till, ej visade." % dolda)
