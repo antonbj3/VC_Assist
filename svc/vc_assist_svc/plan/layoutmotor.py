@@ -40,7 +40,8 @@ from __future__ import annotations
 
 from ..layout.losare import Status, losa
 from ..layout.matt import Langd
-from ..layout.provscener import (MARGINAL_LASTBARARE_MM, ROBOT_FRI_HOJD_MM,
+from ..layout.provscener import (MARGINAL_LASTBARARE_MM, ROBOTFOT_ANDEL,
+                                 ROBOTHOJD_ANDEL, ROBOT_FRI_HOJD_MM,
                                  _robotmatt_mm)
 from ..layout.relationer import Bredvid, InomRackvidd, Pa
 from ..layout.rum import Ankare, Hall, Layoutfel as Rumsfel, Objekt, Scen
@@ -126,6 +127,10 @@ class Layoutmotor(object):
         fragor += rel_fragor
 
         losning, raster, provade = self._stege(scen, relationer)
+        if losning.status is not Status.LOST:
+            mjuk = self._mjuk_lasning(scen, relationer)
+            if mjuk is not None:
+                fragor.append(mjuk)
         antaganden.append(_antagande(
             "sokrastret", "%g mm" % raster,
             "layoutmotorn soker i ett RASTER av lagen, inte i planet. Provade "
@@ -140,6 +145,49 @@ class Layoutmotor(object):
         placeringar, ankarfragor = self._placeringar(losning, begaran)
         return self._svar(placeringar, antaganden, fragor + ankarfragor,
                           losning.status.value, [])
+
+    def _mjuk_lasning(self, scen, relationer):
+        """Gar layouten om roboten bara behover na EN DEL av malet?
+
+        Rackviddsrelationen har tva lasningar, och layout/relationer.py sager
+        sjalv vilken som ar vilken: `helt=True` kraver att hela fotavtrycket
+        ligger inom radien - den harda lasningen, och den enda som haller nar
+        greppunkten inte ar kand. `helt=False` racker for ett langt band dar
+        bara plocklaget behover nas.
+
+        MATT nar jag korde en helt vanlig bestallning (M-63): med den harda
+        lasningen kan en robot pa 1650 mm INTE na ett 2 m langt band, och
+        varenda cell med en transportor blev avvisad. Det ar ett falskt rott -
+        den varsta sorten, for det ser ut som ett svar.
+
+        Att i stallet tyst valja den mjuka lasningen vore lika fel: da skulle
+        planen lova att roboten nar nagot den kanske inte nar. Darfor RAKNAS
+        bada, och skillnaden blir en FRAGA med bada svaren i sig. Det ar det
+        enda arliga: valet ar operatorens, och vi kan saga vad det kostar.
+        """
+        harda = [r for r in relationer
+                 if isinstance(r, InomRackvidd) and r.helt]
+        if not harda:
+            return None
+        mjuka = []
+        for r in relationer:
+            if isinstance(r, InomRackvidd) and r.helt:
+                mjuka.append(InomRackvidd(r.mal, r.robot, helt=False))
+            else:
+                mjuka.append(r)
+        losning, raster, _provade = self._stege(scen, mjuka)
+        if losning.status is not Status.LOST:
+            return None
+        par = ", ".join("%s -> %s" % (r.robot, r.mal) for r in harda)
+        return _fraga(
+            "layout:rackviddens_lasning",
+            "ska roboten na HELA %s, eller racker det att den nar en del av "
+            "det?" % par,
+            "med den harda lasningen - hela malets fotavtryck inom radien - "
+            "finns ingen layout. Med den mjuka - nagon del av malet inom "
+            "radien - finns en (sokraster %g mm). Skillnaden ar var "
+            "greppunkten sitter, och det vet bara du. Att valja at dig vore "
+            "att lova att roboten nar nagot den kanske inte nar" % raster)
 
     def _stege(self, scen, relationer):
         """(losning, raster_mm, provade raster). Grovt forst, sedan finare.
@@ -214,6 +262,13 @@ class Layoutmotor(object):
             roll = del_["roll"]
             blad = datablad.get(roll) or {}
             matt = del_.get("matt_mm")
+            if not matt and all(blad.get(n) for n in ("langd_mm", "bredd_mm",
+                                                      "hojd_mm")):
+                # Databladet gar fore. Harleds fotavtrycket redan i
+                # bestallningens grindkedja (harled_fotavtryck) star talet dar,
+                # och motorn ska anvanda SAMMA tal - inte rakna om det och
+                # lamna tva antaganden om samma sak.
+                matt = [blad["langd_mm"], blad["bredd_mm"], blad["hojd_mm"]]
             rackvidd = blad.get("rackvidd_mm")
             if not matt and del_.get("kategori") == "robot" and rackvidd:
                 l, b, h = _robotmatt_mm(float(rackvidd))
@@ -353,6 +408,46 @@ class Layoutmotor(object):
         return {"v": KONTRAKTSVERSION, "placeringar": list(placeringar),
                 "antaganden": list(antaganden), "fragor": list(fragor),
                 "status": status, "konflikt": list(konflikt)}
+
+
+def harled_fotavtryck(spec, datablad):
+    """(nytt datablad, [antaganden]) med robotarnas fotavtryck harlett.
+
+    En robot i katalogen bar sallan langd och bredd - den bar en RACKVIDD.
+    Utan fotavtrycket gar varken ytbeviset eller passformen att kora, och
+    domen blir OKANT for varenda bestallning som innehaller en robot.
+
+    Harledningen ags av layout/provscener.py:_robotmatt_mm, dar andelarna star
+    markta ANTAGNA ur tva verkliga robotar (IRB 2600 och IRB 660). Talen ar
+    alltsa harledda och inte lasta, och skillnaden ar ett falt: varje
+    harledning lamnar ett Antagande med formeln i motivet.
+
+    Ingenting skrivs over. Bar databladet redan ett matt star det kvar - ett
+    matt tal slar alltid ett harlett.
+    """
+    ut = dict((roll, dict(falt)) for roll, falt in (datablad or {}).items())
+    antaganden = []
+    for del_ in spec.delar:
+        if del_.kategori != "robot" or del_.matt_mm:
+            continue
+        blad = ut.setdefault(del_.roll, {})
+        if all(blad.get(n) for n in ("langd_mm", "bredd_mm", "hojd_mm")):
+            continue
+        rackvidd = blad.get("rackvidd_mm")
+        if not rackvidd:
+            continue
+        l, b, h = _robotmatt_mm(float(rackvidd))
+        blad.update({"langd_mm": l, "bredd_mm": b, "hojd_mm": h})
+        antaganden.append((
+            "fotavtryck for %s" % del_.roll,
+            "%g x %g x %g mm" % (l, b, h),
+            "katalogposten bar ingen langd och ingen bredd, men en rackvidd "
+            "pa %g mm. Fotavtrycket ar harlett med "
+            "layout/provscener.py:_robotmatt_mm - sidan ar %g av rackvidden "
+            "och hojden %g, bada markta ANTAGNA ur tva verkliga robotar. "
+            "Talen ar alltsa raknade och inte lasta"
+            % (float(rackvidd), ROBOTFOT_ANDEL, ROBOTHOJD_ANDEL)))
+    return ut, antaganden
 
 
 def _budget():

@@ -45,8 +45,9 @@ from .fel import Planfel
 from .forfining import Forfinare
 from .harkomst import granska_alla
 from .layoutport import Layoutport
+from .layoutmotor import harled_fotavtryck
 from .planering import Planerare
-from .spec import Grundbegaran
+from .spec import Antagande, Grundbegaran
 from .storheter import Faktarum
 
 BYGGBAR = "BYGGBAR"
@@ -167,6 +168,13 @@ def doma(spec, datablad=None, motor=None, geometri=True):
     ordning = spec.processordning.ordning()
 
     # -- 3. motsagelsen ---------------------------------------------------
+    # Robotarnas fotavtryck harleds ur rackvidden INNAN domen, sa att
+    # ytbeviset och passformen gar att kora. Utan det blir svaret OKANT for
+    # varenda bestallning som innehaller en robot, och en grind som alltid
+    # sager okant har slutat mata. Varje harledning lamnar ett markt antagande.
+    datablad, harledda = harled_fotavtryck(spec, datablad)
+    for vad, varde, motiv in harledda:
+        spec.antaganden.append(Antagande(vad, varde, motiv, "katalog"))
     faktarum = Faktarum(spec, datablad)
     dom = MO.granska(spec.villkor, faktarum, spec, geometri)
     if dom.dom in (MO.OMOJLIG, MO.VALET_FALLER):
@@ -211,10 +219,20 @@ def doma(spec, datablad=None, motor=None, geometri=True):
 
     svar = planerare.layoutsvar
     if svar is not None and svar.konflikt:
-        return Besked(AVVISAD, spec, grind="B5_LAYOUT",
-                      problem=[("B5_LAYOUT_%s" % svar.status,
-                                "%s %s" % (k.get("kod"), k.get("text")))
-                               for k in svar.konflikt],
+        # OMOJLIGT eller OBESTAMT? Skillnaden ar botemedlet. Bar motorn en
+        # BLOCKERANDE fraga vars svar skulle andra utfallet - till exempel
+        # vilken lasning rackvidden har - da ar ingenting bevisat omojligt;
+        # nagot ar obestamt, och det rattas av ett svar och inte av en ny
+        # bestallning. Att kalla det avvisat vore ett falskt rott.
+        oppen = [f for f in svar.fragor if f.get("blockerar")]
+        problem = [("B5_LAYOUT_%s" % svar.status,
+                    "%s %s" % (k.get("kod"), k.get("text")))
+                   for k in svar.konflikt]
+        problem += [("B5_OBESVARAD_FRAGA", "%s: %s" % (f.get("id"),
+                                                       f.get("vad")))
+                    for f in oppen]
+        return Besked(OFULLSTANDIG if oppen else AVVISAD, spec,
+                      grind="B5_LAYOUT", problem=problem,
                       motsagelsedom=dom, processordning=ordning,
                       layoutsvar=svar, datablad=datablad)
 

@@ -369,14 +369,21 @@ def test_T4d_en_tillracklig_rackvidd_ger_en_losning():
     assert len(svar["placeringar"]) == 2
 
 
-def test_T4e_bestallningen_avvisas_pa_layoutgrinden():
+def test_T4e_bestallningen_stoppas_pa_layoutgrinden():
+    """Layouten gar inte, och beskedet namner den bindande relationen.
+
+    Att svaret blir OFULLSTANDIG och inte AVVISAD ar meningen: motorn raknade
+    ocksa den MJUKA lasningen av rackvidden, och den gar. Da ar ingenting
+    bevisat omojligt - nagot ar obestamt, och det rattas av ett svar.
+    """
     spec, blad = _spec(
         "Bygg en cell med ett band och en robot. Cellen ar 3x3 meter. "
         "Gangstrak minst 200 mm. Bandet matar roboten. "
         "Roboten ska na bandet. Roboten har rackvidd 900 mm.")
     besked = B.doma(spec, blad, _motor())
-    assert besked.status == B.AVVISAD, besked.text()
+    assert besked.status in (B.AVVISAD, B.OFULLSTANDIG), besked.text()
     assert besked.grind == "B5_LAYOUT"
+    assert besked.plan is None
     assert any("INOM_RACKVIDD" in t for _k, t in besked.problem)
 
 
@@ -1167,7 +1174,7 @@ def test_varje_grind_i_listan_har_ett_prov_som_faller_pa_den():
         "B2_PROCESSORDNING": test_T2_en_cyklisk_processordning_avvisas,
         "B3_MOTSAGELSE": test_T1_en_sjalvmotsagande_bestallning_avvisas,
         "B4_FRAGOR": test_T5_en_bestallning_utan_topologi_blir_ofullstandig,
-        "B5_LAYOUT": test_T4e_bestallningen_avvisas_pa_layoutgrinden,
+        "B5_LAYOUT": test_T4e_bestallningen_stoppas_pa_layoutgrinden,
         "B6_PLANEN": None,
     }
     saknade = [g for g in B.GRINDAR if g not in fall]
@@ -1586,3 +1593,124 @@ def test_ett_processord_lases_inte_ur_mitten_av_ett_annat_ord():
 def test_samma_processord_som_eget_ord_lases_fortfarande():
     processer, _o = L.processer("Cellen ska klara inmatning och packning.")
     assert sorted(p[0] for p in processer) == ["inmatning", "packning"]
+
+
+# ======================================================================
+# RACKVIDDENS TVA LASNINGAR
+# ======================================================================
+#
+# layout/relationer.py sager sjalv att InomRackvidd har tva lasningar:
+# helt=True (hela fotavtrycket inom radien, den harda) och helt=False (nagon
+# del inom radien, ratt for ett langt band dar bara plocklaget behover nas).
+# MATT i M-63: med den harda lasningen kan en robot pa 1650 mm inte na ett
+# 2 m langt band, och varenda cell med en transportor blev avvisad. Ett
+# falskt rott ar den varsta sorten, for det ser ut som ett svar.
+
+MONTERINGSCELL = (
+    "Bygg en monteringscell med ett band, en robot, en fixtur och en pall. "
+    "Cellen är 8x8 meter. Gångstråk minst 800 mm. "
+    "Bandet matar roboten, roboten kopplas till fixturen och fixturen matar "
+    "pallen. Roboten ska nå bandet och fixturen. "
+    "Först inmatning, sedan montering, sedan utmatning.")
+
+
+def _stor_katalog():
+    katalog = dict(KATALOG)
+    katalog["file:///fixtur.vcm"] = {
+        "uri": "file:///fixtur.vcm", "namn": "Fixtur", "kategori": "station",
+        "l_mm": 1200.0, "b_mm": 900.0, "h_mm": 1000.0}
+    return katalog
+
+
+def test_nar_bara_den_mjuka_lasningen_gar_blir_svaret_en_FRAGA_inte_ett_nej():
+    """Ingenting ar bevisat omojligt - nagot ar obestamt. Skillnaden ar
+    botemedlet: ett svar, inte en ny bestallning."""
+    besked = B.bestall(MONTERINGSCELL, _stor_katalog(), motor=_motor())
+    assert besked.status == B.OFULLSTANDIG, besked.text()
+    assert besked.grind == "B5_LAYOUT"
+    assert besked.plan is None
+
+
+def test_fragan_bar_BADA_svaren_raknade():
+    """Ett val vi inte far gora at operatoren ska atminstone komma med vad de
+    tva alternativen kostar."""
+    besked = B.bestall(MONTERINGSCELL, _stor_katalog(), motor=_motor())
+    fragor = [f for f in besked.spec.oppna_fragor()
+              if f.id == "layout:rackviddens_lasning"]
+    assert fragor, [f.id for f in besked.spec.oppna_fragor()]
+    varfor = fragor[0].varfor
+    assert "harda" in varfor and "mjuka" in varfor
+    assert "sokraster" in varfor
+
+
+def test_valet_gors_aldrig_at_operatoren():
+    """Planen far inte tyst byta till den mjuka lasningen: da skulle den lova
+    att roboten nar nagot den kanske inte nar."""
+    besked = B.bestall(MONTERINGSCELL, _stor_katalog(), motor=_motor())
+    assert besked.plan is None
+    varden = [str(a.varde) for a in besked.spec.antaganden]
+    assert "hela malets fotavtryck" in varden
+
+
+def test_nar_INGEN_lasning_gar_ar_det_ett_akta_nej():
+    """Motprovet: en robot som inte nar ens en del av malet ger AVVISAD, utan
+    fragan om lasningen."""
+    svar = _motor().placera(_rackviddsbegaran(400.0, golv=(3000.0, 3000.0)))
+    assert svar["status"] in ("OVERBESTAMD", "RYMS_INTE")
+    assert not [f for f in svar["fragor"]
+                if f["id"] == "layout:rackviddens_lasning"]
+
+
+# ======================================================================
+# ROBOTENS FOTAVTRYCK HARLEDS UR RACKVIDDEN
+# ======================================================================
+
+def test_robotens_fotavtryck_harleds_sa_att_ytbeviset_gar_att_kora():
+    """En robot i katalogen bar sallan langd och bredd - den bar en rackvidd.
+    Utan fotavtrycket blir domen OKANT for varenda bestallning med en robot,
+    och en grind som alltid sager okant har slutat mata."""
+    from vc_assist_svc.plan.layoutmotor import harled_fotavtryck
+    spec, blad = _spec()
+    nytt, harledda = harled_fotavtryck(spec, blad)
+    assert nytt["robot"]["langd_mm"] > 0
+    assert harledda and "rackvidd" in harledda[0][2]
+
+
+def test_ett_matt_tal_skrivs_aldrig_over_av_ett_harlett():
+    from vc_assist_svc.plan.layoutmotor import harled_fotavtryck
+    spec, blad = _spec()
+    blad["robot"].update({"langd_mm": 1.0, "bredd_mm": 2.0, "hojd_mm": 3.0})
+    nytt, harledda = harled_fotavtryck(spec, blad)
+    assert nytt["robot"]["langd_mm"] == 1.0
+    assert harledda == []
+
+
+def test_harledningen_ar_ett_MARKT_antagande_i_specen():
+    besked = _besked()
+    vad = [a.vad for a in besked.spec.antaganden]
+    assert "fotavtryck for robot" in vad
+    motiv = [a.motiv for a in besked.spec.antaganden
+             if a.vad == "fotavtryck for robot"][0]
+    assert "harlett" in motiv and "ANTAGNA" in motiv
+
+
+def test_ytbeviset_faller_pa_en_for_liten_cell_i_en_riktig_bestallning():
+    """Fas 16:s namngivna fall, hela vagen fran fri text."""
+    besked = _besked(
+        "Bygg en plockcell med ett band, en robot och en pall. "
+        "Cellen får vara högst 2x2 meter. Gångstråk minst 800 mm. "
+        "Bandet matar roboten och roboten kopplas till pallen. "
+        "Roboten ska nå bandet och pallen.")
+    assert besked.status == B.AVVISAD, besked.text()
+    assert besked.grind == "B3_MOTSAGELSE"
+    text = "\n".join(t for _k, t in besked.problem)
+    assert "MK3_YTA" in [k for k, _t in besked.problem]
+    assert "m2" in text and "800 mm gang" in text
+
+
+def test_samma_fotavtryck_raknas_bara_EN_gang():
+    """Tva antaganden om samma sak ar tva halvor av samma begrepp som inte
+    mots. Motorn ska anvanda databladets tal, inte rakna om det."""
+    besked = _besked()
+    vad = [a.vad for a in besked.spec.antaganden]
+    assert vad.count("fotavtryck for robot") == 1, vad
