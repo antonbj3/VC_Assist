@@ -137,3 +137,33 @@ Linux ☑ *(sökning, installation, verifiering, avinstallation — mot attrappt
 och mot maskinens verkliga mappstruktur i läsläge)*
 Windows ☐ **oprövad**
 VC 4.10 ☑ *(sökvägen är den mätta i M-01)*   VC 5.0 ☐ **oprövad**
+
+
+---
+
+## Tillägg 2026-09-05: verktygskedjan hör till löftet
+
+Protokollet ovan skrevs innan fas 12 fanns. Löftet *"klona, installera, kör"*
+täcker sedan dess ett steg till: en maskin som klonar repot har varken STruC++
+eller dess beroenden, och utan dem kan grind 1 inte köras.
+
+`M-71` körde hela kedjan ur en `git clone` av HEAD:
+
+| Steg | Utfall |
+|---|---|
+| hela enhetssviten ur klonen | 5751 gröna (7 röda, kända och namngivna) |
+| **verktygskedjan från noll**, tom cache | **5,00 s** |
+| fullt bygge med debugkarta | 0,5 s, alla fyra artefakterna |
+| grind 1–4 skarpt | alla fall stämde |
+| ST-svepet mot riktiga kompilatorn | 190 gröna, 25,4 s |
+| installationens sökning | 0,07 s |
+| bara `install/` + `ext/` i tom mapp | fungerar |
+
+### Godkänt när — tillägg
+
+- [x] En ren klon kan hämta hela verktygskedjan utan handpåläggning
+- [x] Grind 1 kör efteråt, med alla fyra artefakterna
+- [ ] **VC startar med det installationen lade dit** — oförändrat öppet
+- [ ] **Node är inte fastspikat.** Kedjan använder maskinens `node`. En
+      maskin utan node faller, och det är inte prövat vad felet säger
+- [ ] **Inget offlineläge.** Hämtningen kräver GitHub och npm
