@@ -640,11 +640,14 @@ Det här avsnittet är längre än det bekväma, med flit.
   samma sak med den.
 * **Grind 4 är inte körd, 0 av 37.** Baslinjen skriver ingen scenkod. En
   jämförelse mot en modell som gör det jämför inte samma sak.
-* **Grammatiken är skriven av mig, mot bankens egna rader.** Att den läser 89 av
-  265 rader är ett mått på just den grammatikens räckvidd, och en annan läsare
-  hade fått ett annat tal. Vad talet däremot inte kan vara är för högt: varje
-  oläst rad är räknad, och `tests/enhet/test_baslinje.py` provar att en oläsbar
-  rad hamnar i listan i stället för att försvinna.
+* **Grammatiken är skriven av mig, mot bankens egna rader.** Att den läser 134
+  av 266 rader är ett mått på just den grammatikens räckvidd, och en annan
+  läsare hade fått ett annat tal. Vad talet däremot inte kan vara är för högt:
+  varje oläst rad är räknad, och `tests/enhet/test_baslinje.py` provar att en
+  oläsbar rad hamnar i listan i stället för att försvinna. Formerna valdes
+  dessutom ur en frekvensräkning över de olästa raderna och inte ur de fyra
+  dömbara uppgifterna — men frekvensräkningen är gjord på samma bank, och en
+  annan bank hade gett andra former.
 * **`mager` och `prosa` är svagare än de behöver vara.** En bättre I/O-listnivå
   skulle kunna läsa signalernas kommentarer, och en bättre prosanivå skulle
   kunna läsa löptext och inte bara listor. Talen 0 av 4 för de två nivåerna är
@@ -656,10 +659,17 @@ Det här avsnittet är längre än det bekväma, med flit.
 * **Reparationstabellen har två poster därför att bara två grindkoder pekar ut
   en form.** Att en tredje inte finns är ett påstående om de grindar som körs i
   dag, inte om alla möjliga grindar.
-* **Tidsmätningen är en enda körning per nivå** på en maskin som samtidigt kör
-  ett skrivbord. 0,56 ms per uppgift är en storleksordning, inte ett
-  precisionstal, och den behöver ingen precision: den ska jämföras med ett
-  modellanrop som tar sekunder.
+* **Tidsmätningen är tre körningar per nivå** på en maskin som samtidigt kör
+  ett skrivbord, och spannet är 0,56 till 0,95 ms. Talet är en storleksordning
+  och inget precisionstal, och det behöver ingen precision: det ska ställas mot
+  ett modellanrop som tar sekunder.
+* **Orakeljämförelsen är mot STruC++, inte mot OpenPLC.** Noll avvikelser över
+  15 354 avläsningar säger att vår tolk och STruC++:s byggda binär är överens om
+  ST-semantiken. Runtimen, scancykelns kanter i drift och fältbussen är
+  fortfarande oprövade, och det är den andra halvan av M-45:s öppna punkt.
+* **Ablationen och kalibreringen körs bara på de fyra uppgifter som har
+  spårfacit.** Båda sätter skalan för just de fyra. Vad de betyder för de 33
+  andra vet ingen, därför att de 33 inte går att döma.
 * **Ingen mätning av vad baslinjen gör med en uppgift utanför banken.**
   Morfologin är avläst ur den här bankens namnkonvention. En verklig anläggning
   med ett annat taggformat kan ge noll parade don, och då faller hela
@@ -670,13 +680,15 @@ Det här avsnittet är längre än det bekväma, med flit.
 ## 13. Hur man kör det
 
 ```
-python3 -m pytest tests/enhet/test_baslinje.py -q     # L1, 66 prov
+python3 -m pytest tests/enhet/test_baslinje.py -q     # L1, 71 prov
 python3 bank/baslinjebank.py                          # talen, utan grind 1
 python3 bank/baslinjebank.py --strucpp <cli>          # med grind 1
 python3 bank/baslinjebank.py --kalibrering            # skalan i avsnitt 2
 python3 bank/baslinjebank.py --ablation               # avsnitt 5
 python3 bank/baslinjebank.py --slinga --par --tid     # avsnitt 7.3, 9 och 1
 python3 bank/baslinjebank.py --uppgift T-07 --niva spec
+
+python3 tests/protocol/kor_m62_baslinjen_mot_strucpp.py --strucpp-cli <cli>
 ```
 
 Hela mätningen utom grind 1 kör på under fem sekunder, utan VC, utan OpenPLC
@@ -684,4 +696,5 @@ och utan nät. Grind 1 kräver STruC++ 0.6.6, som `python3 install/verktygskedja
 hämtar med fastspikad version och kontrollerad hash.
 
 **beskriver:** `svc/vc_assist_svc/plc/baslinje/`, `bank/baslinjebank.py`,
-`bank/par.py`, `tests/enhet/test_baslinje.py`
+`bank/par.py`, `tests/enhet/test_baslinje.py`,
+`tests/protocol/kor_m62_baslinjen_mot_strucpp.py`
