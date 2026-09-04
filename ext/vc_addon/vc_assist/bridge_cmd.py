@@ -18,6 +18,9 @@ _OUT = os.path.join(os.path.expanduser("~"), "vc_assist_m05.log")
 _HB = os.path.join(os.path.expanduser("~"), "vc_assist_m05_hb.log")
 
 SCRIPT_SRC = "\n".join([
+    # MATT M-06: utan denna rad finns varken delay() eller getSimulation()
+    # i skriptets scope. OnRun kastar da NameError och VC slukar felet tyst.
+    "from vcScript import *",
     "import os, time",
     "HB = r'" + _HB + "'",
     "",
@@ -30,12 +33,16 @@ SCRIPT_SRC = "\n".join([
     "        pass",
     "",
     "def OnRun():",
+    "    app = getApplication()",
     "    sim = getSimulation()",
     "    t0 = time.time()",
     "    _w('ONRUN START simtime=' + str(sim.SimTime))",
     "    n = 0",
-    "    while n < 600:",
-    "        delay(0.05)",
+    "    while n < 100:",
+    "        try:",
+    "            app.delayRealTime(0.05)",
+    "        except Exception as e:",
+    "            _w('delayRealTime FEL: ' + type(e).__name__); delay(0.05)",
     "        n = n + 1",
     "        if n % 40 == 0:",
     "            wall = time.time() - t0",
@@ -47,6 +54,12 @@ SCRIPT_SRC = "\n".join([
     "",
     "def OnStop():",
     "    _w('ONSTOP')",
+    "",
+    "def OnStart():",
+    "    _w('ONSTART')",
+    "",
+    "def OnReset():",
+    "    _w('ONRESET')",
 ])
 
 
@@ -130,8 +143,16 @@ try:
         _w("sim.reset() OK, SimTime=%s" % sim.SimTime)
     except Exception as e:
         _w("reset FEL: %s" % type(e).__name__)
+    # MATT M-06: run() kor i maxfart, 30 simulerade sekunder pa 0.01s vaggklocka.
+    # For bryggan behovs realtid. Provar SimSpeed.
+    try:
+        _w("SimSpeed fore: %s" % sim.SimSpeed)
+        sim.SimSpeed = 1.0
+        _w("SimSpeed satt till %s" % sim.SimSpeed)
+    except Exception as e:
+        _w("SimSpeed FEL: %s %s" % (type(e).__name__, str(e)[:60]))
     w0 = time.time()
-    sim.run(30.0)
+    sim.run(20.0)
     _w("efter run(30): vaggklocka=%.2fs SimTime=%s IsRunning=%s"
        % (time.time() - w0, sim.SimTime, sim.IsRunning))
 except Exception as e:
