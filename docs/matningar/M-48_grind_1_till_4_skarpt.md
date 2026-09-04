@@ -89,6 +89,14 @@ den lösa.
 **Detta är inte lagat i den här mätningen.** Det är mätt, avgränsat och
 namngivet, och lagningen hör till ST-lagret.
 
+*Efterskrift (M-51):* fjorton var ett stickprov. Svepet över 185
+konstruktioner hittade **55 avvikelser**, och de två riktiga felen här visade
+sig vara klasser: `END_IF` utan semikolon var sju fall, `TIME()` var
+trettiotvå saknade standardfunktioner. 36 är lagade. Det ensamma `;` står
+kvar strängt, men av ett annat skäl än raden ovan ger — IEC 61131-3:s
+satslista tillåter läst bokstavligt en tom sats. Se
+`docs/matningar/M-51_svepet_over_st_lagret.md`.
+
 ## Grind 4 och regeln om noll namn
 
 Första körningen rapporterade `granskningen kontrollerade noll namn` för
