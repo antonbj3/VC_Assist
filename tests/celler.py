@@ -621,6 +621,41 @@ def plc_gammal():
     return b, plan(plc_par=[("Start", "grip_out")])
 
 
+# ---- timing: fasen DOMS mot ett krav, och mot ogats egen upplosning -------
+#
+# Fyra celler, samma serie som plc_i_fas/plc_ur_fas, med EN rad i planen
+# andrad: max_ms. Upplosningen i de har serierna ar max(L, S+J) =
+# max(50, 50 + 13,45) = 63,45 ms - provintervallet 50 ms, lasintervallet 50 ms
+# (en lasning per prov) och priorn for hopfogningen. Talen ar cellernas facit.
+
+def fas_utanfor_tolerans():
+    """Taggen gar hog 510 ms fore signalen, kravet ar 100 ms. Domaren
+    'timing' faller: 510 > 100 + 63. TRASIG CELL for timing-domen."""
+    b = _plccell("fas_utanfor_tolerans", lambda i: i >= 10)
+    return b, plan(plc_par=[{"plc": "Start", "signal": "grip_out", "max_ms": 100.0}])
+
+
+def fas_inom_tolerans():
+    """110 ms fas, kravet 300 ms. GRON."""
+    b = _plccell("fas_inom_tolerans", lambda i: i >= 18)
+    return b, plan(plc_par=[{"plc": "Start", "signal": "grip_out", "max_ms": 300.0}])
+
+
+def fas_inom_upplosningen():
+    """110 ms fas, kravet 100 ms: over kravet men inom ogats upplosning
+    (63 ms). Da vet ogat inte - INCONCLUSIVE, aldrig PASS, aldrig FAIL."""
+    b = _plccell("fas_inom_upplosningen", lambda i: i >= 18)
+    return b, plan(plc_par=[{"plc": "Start", "signal": "grip_out", "max_ms": 100.0}])
+
+
+def fas_finare_an_upplosningen():
+    """Kravet ar 20 ms i en serie som bara kan skilja 63 ms. Fasen ar 0 - och
+    anda INCONCLUSIVE: ogat kan inte se ett 20 ms-fel i den har takten, och
+    ett PASS hade varit ett pastaende om nagot ogat inte kan se."""
+    b = _plccell("fas_finare_an_upplosningen", lambda i: i >= 20)
+    return b, plan(plc_par=[{"plc": "Start", "signal": "grip_out", "max_ms": 20.0}])
+
+
 # ---- utslungad och aldrig tagen -----------------------------------------
 
 def utslungad():
@@ -934,6 +969,10 @@ ALLA = {
     "plc_i_fas": plc_i_fas,
     "plc_ur_fas": plc_ur_fas,
     "plc_gammal": plc_gammal,
+    "fas_utanfor_tolerans": fas_utanfor_tolerans,
+    "fas_inom_tolerans": fas_inom_tolerans,
+    "fas_inom_upplosningen": fas_inom_upplosningen,
+    "fas_finare_an_upplosningen": fas_finare_an_upplosningen,
     # rorelse
     "utslungad": utslungad,
     "rord_men_aldrig_gripen": rord_men_aldrig_gripen,

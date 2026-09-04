@@ -69,6 +69,10 @@ FACIT = {
     "station_blockerad": ("FAIL", None),
     # PLC
     "plc_gammal":        ("INCONCLUSIVE", None),
+    # timing: fasen mot ett krav, och mot ogats egen upplosning (M-65)
+    "fas_utanfor_tolerans":      ("FAIL", None),
+    "fas_inom_upplosningen":     ("INCONCLUSIVE", None),
+    "fas_finare_an_upplosningen": ("INCONCLUSIVE", None),
     # rorelse
     "utslungad":         ("FAIL", None),
     "rord_men_aldrig_gripen": ("FAIL", "NEVER_GRIPPED VIOLATION"),
@@ -89,7 +93,7 @@ GRONA = ("bra", "bakgrund_stilla", "scen_deltalagrad", "oombedd_men_deklarerad",
          "tva_produkter", "band_ror_sig", "robot_ren", "robot_gransnara",
          "robot_omorientering", "robot_foljer", "robot_stopp_begransande",
          "mindist_nara", "station_svalt_utan_krav", "station_upptagen",
-         "plc_i_fas", "plc_ur_fas", "pa_placeringsgransen",
+         "plc_i_fas", "plc_ur_fas", "fas_inom_tolerans", "pa_placeringsgransen",
          "pa_barstrackans_grans",
          "station_bra", "station_forregling_utan_deklaration")
 
@@ -332,13 +336,17 @@ def test_plctaggar_ligger_pa_samma_tidsaxel_som_fysiken():
     assert any(x.startswith("EDGE plc:Start RISE") for x in rader), rader
     fas = a.harledt["timing"]["fas"]
     assert fas[0]["forst"] == "plc"
-    assert abs(fas[0]["dt_ms"] - 100.0) < 1e-6
+    # 110, inte 100: taggen sags hog i provet vid t=0,90 med aldern 0,01 s,
+    # alltsa lastes den hog vid 0,89. Flanken hor till lasningen, inte till
+    # provet (M-65 §3). Fore det stod har 100,0 - provet laste in att en
+    # PLC-flank lag pa provets tid, vilket ar upp till PLC_FARSK_S for sent.
+    assert abs(fas[0]["dt_ms"] - 110.0) < 1e-6
     assert r.dom[0] == "PASS"
 
 
 def test_ett_stort_fasfel_mats_men_domes_inte_utan_krav():
     _r, _rader, a = _doma("plc_ur_fas")
-    assert abs(a.harledt["timing"]["fas"][0]["dt_ms"] - 500.0) < 1e-6
+    assert abs(a.harledt["timing"]["fas"][0]["dt_ms"] - 510.0) < 1e-6
 
 
 def test_gamla_plcvarden_blir_inconclusive_inte_pass():

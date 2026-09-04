@@ -726,11 +726,19 @@ class Brygga(object):
         # utan simuleringstid eller utan matt takt finns ingen axel att lagga
         # vardet pa, och da ar ett hal ratt svar.
         t = None
+        hop = None
         if self.simtid is not None and takt is not None and alder_s is not None:
             t = self.simtid - max(0.0, float(alder_s)) * takt
-        kalla.skjut_in(varden, t)
+            # Kopplarens matta tak for tur och retur, i SAMMA klocka som
+            # aldern: vaggsekunder in, simuleringssekunder ut. Det ar
+            # hopfogningens egen osakerhet, och den foljer med varje varde
+            # sa analysen kan rakna med den i stallet for att anta den.
+            if args.get("hopfogning_s") is not None:
+                hop = max(0.0, float(args.get("hopfogning_s"))) * takt
+        kalla.skjut_in(varden, t, hopfogning_s=hop)
         svar["lagrat"] = True
         svar["pa"] = t
+        svar["hopfogning_s"] = hop
         svar["taggar"] = len(kalla.varden)
         return P.svar_ok(id_, svar)
 

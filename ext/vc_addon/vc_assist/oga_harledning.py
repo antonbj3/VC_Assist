@@ -894,12 +894,32 @@ def _flaskhals(stationer):
 PLC_PREFIX = "plc:"
 
 
+def _lastid(rad):
+    """Simuleringstiden da PLC-vardet i raden LASTES: t - plc_alder_s.
+
+    Raden bar vardet vid provets tid t, men vardet ar alder_s gammalt da.
+    Flanken hor till lasningen, inte till provet. Fore M-65 lades varje
+    PLC-flank pa provets tid, alltsa upp till PLC_FARSK_S (250 ms) for sent,
+    och fasen mot en VC-signal lutade systematiskt at ett hall. Matt i
+    M-65 §3. Utan alder (None) star provets tid kvar - och raden ar da
+    redan markt plc_gammal, sa analysen domer INCONCLUSIVE.
+    """
+    t = float(rad.get("t", 0.0))
+    alder = rad.get("plc_alder_s")
+    if alder is None:
+        return t, None
+    return t - float(alder), float(alder)
+
+
 def plcflanker(rader):
     """Flanker i PLC-variablerna, i samma form som signalflankerna.
 
     Namnen bar prefixet plc: sa en PLC-tagg och en VC-signal aldrig kan
     forvaxlas i domstexten. Domskontraktets <signal> ar ett namn utan
     blanksteg, sa prefixet ryms i grammatiken utan att den behover andras.
+
+    Flankens tid ar LASNINGENS tid (se _lastid), och flanken bar ocksa
+    provets tid och aldern, sa underlaget visar bada.
     """
     ut = []
     taggar = sorted(set(t for r in rader for t in (r.get("plc") or {})))
@@ -910,38 +930,156 @@ def plcflanker(rader):
             if v is None:
                 continue
             if forra is not None and bool(v) != bool(forra):
+                t_las, alder = _lastid(rad)
                 ut.append({"signal": PLC_PREFIX + tagg,
                            "flank": "RISE" if v else "FALL",
-                           "t": float(rad.get("t", 0.0))})
+                           "t": round(t_las, 6),
+                           "t_prov": float(rad.get("t", 0.0)),
+                           "alder_s": alder})
             forra = v
     ut.sort(key=lambda f: (f["t"], f["signal"]))
     return ut
 
 
-def fasforhallande(flanker, par):
+def plc_lastider(rader):
+    """De DISTINKTA tidpunkter PLC-varden lastes vid, ur serien sjalv."""
+    tider = set()
+    for rad in rader:
+        if rad.get("plc") is None or rad.get("plc_alder_s") is None:
+            continue
+        tider.add(round(_lastid(rad)[0], 4))
+    return sorted(tider)
+
+
+def plc_lasintervall(rader):
+    """Medianavstandet mellan tva lasningar, MATT ur serien. None = okant.
+
+    En PLC-flank kan ha intraffat nar som helst mellan tva lasningar. Det
+    intervallet ar darfor halva osakerheten i varje PLC-flank, och det antas
+    inte: det raknas ur de lastider serien sjalv bar. Ser ogat bara en
+    lasning per prov ar intervallet provintervallet - konservativt, for den
+    verkliga kopplaren kan ha last oftare an ogat provtog.
+    """
+    tider = plc_lastider(rader)
+    if len(tider) < 2:
+        return None
+    gap = sorted(tider[i] - tider[i - 1] for i in range(1, len(tider)))
+    return gap[len(gap) // 2]
+
+
+def upplosning(rader, rate_hz, hopfogning_prior_s):
+    """Hur fint ogat kan skilja tva tidpunkter at, i sekunder. MATT per serie.
+
+    Tre delar, och de ar tre skilda storheter:
+      prov_s        provintervallet: en VC-signals flank ses forst i nasta prov
+      las_s         lasintervallet: en PLC-flank kan ligga var som helst
+                    mellan tva lasningar (plc_lasintervall)
+      hopfogning_s  hopfogningens egen osakerhet: RUN nar serien bar den
+                    (plc_hopfogning_s, kopplarens matta tur-och-retur-tak),
+                    annars PRIOR ur M-42
+    fas_s ar den ovre gransen for felet i en fasskillnad PLC-flank mot
+    VC-flank. Felet ar e_prov - e_las + j med e_prov i [0, prov_s),
+    e_las i [0, las_s) och j i [0, hopfogning_s], alltsa inom
+    (-las_s, prov_s + hopfogning_s), och gransen ar
+
+        fas_s = max(las_s, prov_s + hopfogning_s)
+
+    INTE summan av de tre: summan ar ocksa en grans men en los, och en los
+    grans gor varje fasdom mer INCONCLUSIVE an den behover vara. Matt i
+    M-65 §3 med Monte Carlo over 20 000 slumpade flanker: felet overskred
+    aldrig max(L, S+J) och nadde 95 % av den. Gransen galler ett par
+    PLC-tagg mot VC-signal; tva PLC-taggar ur samma lasning skiljer sig
+    hogst las_s.
+    """
+    prov_s = None
+    if rate_hz and float(rate_hz) > 0:
+        prov_s = 1.0 / float(rate_hz)
+    else:
+        tider = sorted(set(float(r.get("t", 0.0)) for r in rader))
+        if len(tider) >= 2:
+            gap = sorted(tider[i] - tider[i - 1] for i in range(1, len(tider)))
+            prov_s = gap[len(gap) // 2]
+    las_s = plc_lasintervall(rader)
+    hop = [float(r["plc_hopfogning_s"]) for r in rader
+           if r.get("plc_hopfogning_s") is not None]
+    if hop:
+        hopfogning_s, kalla = max(hop), "RUN"
+    else:
+        hopfogning_s, kalla = float(hopfogning_prior_s), "PRIOR"
+    fas_s = None
+    if prov_s is not None and las_s is not None:
+        fas_s = max(las_s, prov_s + hopfogning_s)
+    return {"prov_s": prov_s, "las_s": las_s, "hopfogning_s": hopfogning_s,
+            "hopfogning_kalla": kalla, "fas_s": fas_s}
+
+
+def _parpost(post):
+    """(tagg, signal, max_ms) ur planens plc_par, i bada formerna."""
+    if isinstance(post, dict):
+        return post.get("plc"), post.get("signal"), post.get("max_ms")
+    return post[0], post[1], None
+
+
+def fasforhallande(flanker, par, upplosning=None):
     """dt mellan en PLC-tagg och en VC-signal. Ett tidsfel blir lasbart.
 
-    `par` ar [(plc_tagg, vc_signal)]. For varje stigande PLC-flank tas den
-    narmaste stigande VC-flanken; tecknet sager vem som kom forst.
+    `par` ar [(plc_tagg, vc_signal)] eller [{"plc":..., "signal":...,
+    "max_ms":...}]. For varje stigande PLC-flank tas den narmaste stigande
+    VC-flanken; tecknet sager vem som kom forst.
+
+    Med `max_ms` DOMS fasen, och da mot upplosningen:
+      |dt| <= max                     OK
+      max < |dt| <= max + fas_s       INCONCLUSIVE - inom ogats egen osakerhet
+      |dt| > max + fas_s              OUT_OF_TOL
+      max < fas_s                     INCONCLUSIVE - kravet ar finare an ogat
+    En fasdom utan upplosning vore ett tal utan storhet: ett fasfel pa 60 ms
+    i en serie som provtar var 50:e ms ar inte ett fel, det ar ett prov.
     """
     ut = []
-    for tagg, signal in (par or []):
+    fas_s = (upplosning or {}).get("fas_s")
+    for post in (par or []):
+        tagg, signal, max_ms = _parpost(post)
         a = [f["t"] for f in flanker
              if f["signal"] == PLC_PREFIX + tagg and f["flank"] == "RISE"]
         b = [f["t"] for f in flanker
              if f["signal"] == signal and f["flank"] == "RISE"]
         if not a or not b:
-            ut.append({"plc": tagg, "signal": signal, "obestambar":
-                       "saknar stigande flank pa %s"
-                       % ("PLC-taggen" if not a else "signalen")})
+            d = {"plc": tagg, "signal": signal, "obestambar":
+                 "saknar stigande flank pa %s"
+                 % ("PLC-taggen" if not a else "signalen")}
+            if max_ms is not None:
+                d["max_ms"] = float(max_ms)
+                d["status"] = "INCONCLUSIVE"
+            ut.append(d)
             continue
         for t in a:
             narmast = min(b, key=lambda x: abs(x - t))
-            ut.append({"plc": tagg, "signal": signal, "t_plc": t,
-                       "t_signal": narmast,
-                       "dt_ms": round((narmast - t) * 1000.0, 3),
-                       "forst": "plc" if t <= narmast else "signal"})
+            d = {"plc": tagg, "signal": signal, "t_plc": t,
+                 "t_signal": narmast,
+                 "dt_ms": round((narmast - t) * 1000.0, 3),
+                 "forst": "plc" if t <= narmast else "signal"}
+            if max_ms is not None:
+                d["max_ms"] = float(max_ms)
+                d["res_ms"] = None if fas_s is None else round(fas_s * 1000.0, 3)
+                d["status"], d["skal"] = _fasdom(abs(d["dt_ms"]), float(max_ms),
+                                                 d["res_ms"])
+            ut.append(d)
     return ut
+
+
+def _fasdom(dt_ms, max_ms, res_ms):
+    if res_ms is None:
+        return "INCONCLUSIVE", "upplosningen ar okand: for fa PLC-lasningar"
+    if max_ms < res_ms:
+        return "INCONCLUSIVE", ("kravet %.0f ms ar finare an ogats upplosning "
+                                "%.0f ms i den har takten" % (max_ms, res_ms))
+    if dt_ms <= max_ms:
+        return "OK", ""
+    if dt_ms <= max_ms + res_ms:
+        return "INCONCLUSIVE", ("fasen %.0f ms ligger over kravet %.0f ms men "
+                                "inom upplosningen %.0f ms" % (dt_ms, max_ms, res_ms))
+    return "OUT_OF_TOL", ("fasen %.0f ms overskrider kravet %.0f ms med mer an "
+                          "upplosningen %.0f ms" % (dt_ms, max_ms, res_ms))
 
 
 # ---- stationens sekvens --------------------------------------------------

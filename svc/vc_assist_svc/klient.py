@@ -171,7 +171,7 @@ class Klient(object):
     def oga_stopp(self):
         return self.anrop("eyes_stop")["result"]
 
-    def plc_in(self, varden=None, alder_s=None, avbrott=None):
+    def plc_in(self, varden=None, alder_s=None, avbrott=None, hopfogning_s=None):
         """Skjuter in PLC-varden i ogats tidsserie, eller bryter kontakten.
 
         `alder_s` ar vardets alder i ANROPARENS klocka - en varaktighet, inte
@@ -183,6 +183,10 @@ class Klient(object):
             args["varden"] = varden
         if alder_s is not None:
             args["alder_s"] = float(alder_s)
+        if hopfogning_s is not None:
+            # Kopplarens tak for tur och retur - hopfogningens egen
+            # osakerhet, matt, sa ogat kan bara den i serien (M-65).
+            args["hopfogning_s"] = float(hopfogning_s)
         if avbrott is not None:
             args["avbrott"] = avbrott
         return self.anrop("plc_in", args)["result"]

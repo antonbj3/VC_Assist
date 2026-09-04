@@ -594,10 +594,16 @@ class Plckalla(object):
         self.avbrott = None
         self.n_inskott = 0
         self.n_avbrott = 0
+        # Hopfogningens egen osakerhet, MATT av den som skot in: kopplarens
+        # tak for tur och retur, omraknat till simuleringssekunder. None nar
+        # ingen matning foljde med - da faller analysen tillbaka pa M-42:s
+        # tal och SAGER att den gjort det (M-65 §3).
+        self.hopfogning_s = None
 
-    def skjut_in(self, varden, t=None):
+    def skjut_in(self, varden, t=None, hopfogning_s=None):
         self.varden = dict(varden or {})
         self.t = None if t is None else float(t)
+        self.hopfogning_s = None if hopfogning_s is None else float(hopfogning_s)
         self.avbrott = None
         self.n_inskott += 1
         return self
@@ -802,6 +808,8 @@ class Provtagare(object):
             return
         rad["plc"] = dict(varden)
         rad["plc_alder_s"] = round(alder, 4)
+        if self.plckalla.hopfogning_s is not None:
+            rad["plc_hopfogning_s"] = round(self.plckalla.hopfogning_s, 4)
         if alder > PLC_FARSK_S:
             rad["plc_gammal"] = True
 

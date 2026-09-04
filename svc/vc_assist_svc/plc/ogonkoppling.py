@@ -113,8 +113,14 @@ class Ogonkoppling:
         """
         alder = 0.0 if t_last is None else max(0.0, self.klocka() - float(t_last))
         self.n_skjutna += 1
+        tak = self.rtt_tak()
+        # Taket skickas OCKSA for sig: det ar hopfogningens egen osakerhet,
+        # och ogat ska bara det i serien som ett MATT tal i stallet for att
+        # anta M-42:s (M-65 §3). Ett tak pa noll (ingen synkning gjord) ar
+        # ingen matning och skickas inte.
         return self._anrop(varden=dict(varden or {}),
-                           alder_s=alder + self.rtt_tak())
+                           alder_s=alder + tak,
+                           hopfogning_s=(tak if tak > 0.0 else None))
 
     def synka(self, n=KOMPENSATIONSFONSTER):
         """Mäter tur och retur utan att skjuta in något värde.

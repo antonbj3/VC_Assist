@@ -51,6 +51,21 @@ SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-10.
 # krav faller den inte alls - da finns inget facit att fella mot.
 GENOMSTROMNING_MARGINAL_S = 0.0  # PRELIMINAR. Satts av matning M-19.
 
+# ---- vad ogat inte ser: upplosning och rackvidd ---------------------------
+#
+# Hopfogningens egen osakerhet nar serien INTE bar en matt (plc_hopfogning_s
+# saknas). M-65 §3 matte att kopplarens tak for tur och retur (rtt_tak) bar
+# hopfogningsfelet d i 400 av 400 varv, vid bade 5 och 10 ms tur och retur.
+# Priorn ar darfor det varsta taket VC:s brygga kan ge: 13,45 ms, den langsta
+# tur och retur M-03 matte mot VC. En serie som bar sitt eget tak anvander
+# det i stallet, och rapporten sager vilket (RUN eller PRIOR).
+HOPFOGNING_PRIOR_S = 0.01345     # Satt av M-65 §3 ur M-03:s varsta tur och retur.
+# PLC:ns egen skanfordrojning ligger FORE kopplarens lasning och ingar inte i
+# plc_alder_s. Serien sager hur gammalt ett varde ar raknat fran lasningen,
+# inte fran insignalens flank i PLC:n. M-20: exakt tva skan, 40,0 ms vid
+# 20 ms skanperiod. Rapporteras som UTESLUTET, aldrig som inraknat.
+PLC_SKAN_S = 0.040               # Satt av M-20.
+
 
 # ---- kvaternion- och vektormatematik ------------------------------------
 #
@@ -285,7 +300,18 @@ class Analys(object):
         if h["plc_gammal"]:
             self.skal.append(
                 "%d PLC-prov var aldre an sitt eget prov" % len(h["plc_gammal"]))
-        h["fas"] = H.fasforhallande(h["flanker"], self.plan.get("plc_par"))
+        # Upplosningen MATS ur serien: provintervall, lasintervall och
+        # hopfogningens tak. En fasdom utan den vore ett tal utan storhet.
+        h["upplosning"] = H.upplosning(self.rader, self.run.get("rate_hz"),
+                                       HOPFOGNING_PRIOR_S)
+        h["fas"] = H.fasforhallande(h["flanker"], self.plan.get("plc_par"),
+                                    h["upplosning"])
+        for f in h["fas"]:
+            if f.get("status") == "OUT_OF_TOL":
+                self.skal.append("fasen %s -> %s var %.0f ms, kravet ar %.0f ms "
+                                 "(upplosning %.0f ms)"
+                                 % (f["plc"], f["signal"], abs(f["dt_ms"]),
+                                    f["max_ms"], f["res_ms"]))
 
         for signal, mover in (self.plan.get("movers") or {}).items():
             ms = self._latens(signal, mover)
@@ -808,6 +834,10 @@ class Analys(object):
             return "FAIL", self._orsak(brott)
         if stationer.get("_brott"):
             return "FAIL", self._orsak("genomströmningskravet hölls inte")
+        for f in (th.get("fas") or []):
+            if f.get("status") == "OUT_OF_TOL":
+                return "FAIL", self._orsak("timing: fasen mellan PLC och scen "
+                                           "överskrider kravet")
         # Stationens egna grindar. Forreglingen forst: den ar den enda av de
         # tva som ar farlig, och den ar sann aven i en korning dar sekvensen
         # for ovrigt holl.
@@ -845,6 +875,11 @@ class Analys(object):
         for d in th.get("dwell", []):
             if d["lage"] == "SHORT":
                 return "FAIL", self._orsak("uppehållet för kort")
+        for f in (th.get("fas") or []):
+            if f.get("status") == "INCONCLUSIVE":
+                return "INCONCLUSIVE", self._orsak(
+                    "timing: fasen kan inte dömas: %s"
+                    % (f.get("skal") or f.get("obestambar") or "okänd orsak"))
         return "PASS", "allt inom marginal"
 
     @staticmethod
