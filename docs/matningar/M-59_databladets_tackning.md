@@ -8,6 +8,13 @@ M-58 (var fälten ligger)
 Mätningen kördes över hela biblioteket, inte ett stickprov. Varje tal nedan har
 nämnaren skriven bredvid sig.
 
+Tabellerna i avsnitt 2 och 8 byggs av den kod som levereras, och går att köra om:
+
+    cd svc && python3 -m vc_assist_svc.datablad
+
+Ett enskilt datablad: `python3 -m vc_assist_svc.datablad --visa "IRB 6700"`,
+med `--fullt` för den fulla formen.
+
 ---
 
 ## 1. Vad ett datablad är

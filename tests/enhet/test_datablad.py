@@ -714,3 +714,46 @@ def test_geometrifeatures_hoppas_over_men_strukturen_halls_hel():
                       '\nFunctionality "rSimInterface"\n{\nName "X"\n}\n}\n')
     assert D.funktionsnamn(trad) == ["rSimInterface"]
     assert trad.alla("Feature") == []
+
+
+# ---------------------------------------------------------------------------
+# Matningen ska ga att kora om
+# ---------------------------------------------------------------------------
+
+def test_tackningstabellen_skriver_ut_namnaren(tmp_path):
+    """Aldrig bara procent. En procent utan namnare gar inte att prova om."""
+    rot = tmp_path / "bib"
+    skriv_vcmx(str(rot / "ABB" / "r.vcmx"), robot_rsc())
+    blad, _ = D.bygg(str(rot))
+    tabell = D.tackningstabell(blad)
+    assert "tillamplig" in tabell
+    for storhet in D.STORHETER:
+        assert storhet in tabell
+
+
+def test_kommandoraden_bygger_tabellen_ur_den_levererade_koden(tmp_path, capsys):
+    rot = tmp_path / "bib"
+    skriv_vcmx(str(rot / "ABB" / "r.vcmx"), robot_rsc(maxload="20000"))
+    skriv_vcmx(str(rot / "Item" / "b.vcmx"), transportor_rsc())
+    assert D.main(["--rot", str(rot)]) == 0
+    ut = capsys.readouterr().out
+    assert "2 datablad, 0 olasliga" in ut
+    assert "robot 1" in ut and "transportor 1" in ut
+    assert "kort text" in ut and "full JSON" in ut
+
+
+def test_kommandoraden_pa_en_rot_som_inte_finns_faller(tmp_path):
+    with pytest.raises(D.Databladsfel):
+        D.main(["--rot", str(tmp_path / "finns-inte")])
+
+
+def test_kommandoraden_visar_ett_enskilt_datablad(tmp_path, capsys):
+    rot = tmp_path / "bib"
+    skriv_vcmx(str(rot / "ABB" / "r.vcmx"), robot_rsc(namn="IRB 6700"))
+    assert D.main(["--rot", str(rot), "--visa", "6700"]) == 0
+    ut = capsys.readouterr().out
+    assert "IRB 6700" in ut and "rackvidd" in ut
+    assert "ledgranser" not in ut          # kort ar standard
+    capsys.readouterr()
+    assert D.main(["--rot", str(rot), "--visa", "6700", "--fullt"]) == 0
+    assert "ledgranser" in capsys.readouterr().out

@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import zipfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -1098,3 +1099,89 @@ def tackning(blad: Sequence[Datablad]) -> Dict[str, Dict[str, int]]:
             rad["tillamplig"] += 1
             rad[v.harkomst] += 1
     return ut
+
+
+def tackningstabell(blad: Sequence[Datablad]) -> str:
+    """Tackningen som en tabell med NAMNAREN utskriven pa varje rad.
+
+    Aldrig bara procent. Ett tal utan namnare gar inte att prova mot nasta
+    korning, och det ar hela poangen med raden.
+    """
+    t = tackning(blad)
+    rader = ["%-22s %10s %8s %9s %9s" % ("storhet", "tillamplig", "last",
+                                         "harledd", "saknas")]
+    for s in STORHETER:
+        r = t[s]
+        rader.append("%-22s %10d %8d %9d %9d"
+                     % (s, r["tillamplig"], r["last"], r["harledd"],
+                        r["saknas"]))
+    return "\n".join(rader)
+
+
+def _teckenstat(blad: Sequence[Datablad]) -> str:
+    import json as _json
+
+    def stat(x):
+        x = sorted(x)
+        n = len(x)
+        return x[0], x[n // 2], x[int(n * 0.95)], x[-1]
+
+    rader = ["%-12s %7s %8s %6s %6s" % ("form", "min", "median", "p95", "max")]
+    for namn, matt in (
+            ("kort text", [len(b.kort_text()) for b in blad]),
+            ("kort JSON", [len(_json.dumps(b.kort(), ensure_ascii=False))
+                           for b in blad]),
+            ("full text", [len(b.full_text()) for b in blad]),
+            ("full JSON", [len(_json.dumps(b.fullt(), ensure_ascii=False))
+                           for b in blad])):
+        rader.append("%-12s %7d %8d %6d %6d" % ((namn,) + stat(matt)))
+    return "\n".join(rader)
+
+
+def main(argv=None):
+    """Bygger tackningstabellen i M-59 ur den kod som levereras.
+
+    Matningen ska ga att kora om. En tabell som bara finns i ett skript nagon
+    kastade ar ett pastaende, inte ett matt.
+    """
+    import argparse
+    p = argparse.ArgumentParser(description="datablad ur komponentbiblioteket")
+    p.add_argument("--rot", help="biblioteksrot; annars soks den upp")
+    p.add_argument("--visa", help="skriv ut databladet for komponenter vars "
+                                  "namn innehaller den har texten")
+    p.add_argument("--fullt", action="store_true",
+                   help="full form i stallet for kort")
+    a = p.parse_args(argv)
+
+    rot = a.rot
+    if not rot:
+        fynd = katalogindex.hitta()
+        if not fynd:
+            print("hittade inget bibliotek. Provade:")
+            for sokvag, hur in katalogindex.kandidatrotter():
+                print("  %-60s %s" % (sokvag, hur))
+            return 1
+        rot = fynd[0].rot
+        print("bibliotek: %s\n  hittat via: %s" % (fynd[0].rot, fynd[0].hur))
+    blad, olasliga = bygg(rot)
+    print("%d datablad, %d olasliga" % (len(blad), len(olasliga)))
+    if a.visa:
+        for b in blad:
+            if a.visa.lower() in b.namn.lower():
+                print()
+                print(b.full_text() if a.fullt else b.kort_text())
+        return 0
+    familjer: Dict[str, int] = {}
+    for b in blad:
+        familjer[b.familj] = familjer.get(b.familj, 0) + 1
+    print("familjer: " + ", ".join("%s %d" % (k, v)
+                                   for k, v in sorted(familjer.items())))
+    print()
+    print(tackningstabell(blad))
+    print()
+    print(_teckenstat(blad))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
