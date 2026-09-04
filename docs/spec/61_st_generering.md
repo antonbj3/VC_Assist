@@ -116,9 +116,36 @@ och skrivs som en konstant med härkomst på samma rad.
 Benchen ska innehålla uppgifter som fäller på var och en av dessa, annars mäter
 den om modellen kan skriva en if-sats.
 
+## Skelettet bärs av markörer, och ramen kontrolleras
+
+Avgjort och byggt: `svc/vc_assist_svc/plc/skelett.py`.
+
+```
+PROGRAM Press
+VAR ... END_VAR                          <- ramen, genererad ur kartan
+(* VC_ASSIST KROPP BORJAR *)
+    modellens rader                      <- facket
+(* VC_ASSIST KROPP SLUTAR *)
+END_PROGRAM
+```
+
+Ramen jämförs **tecken för tecken** mot den genererade, utan normalisering. Ett
+borttaget indrag i en deklaration är en ändrad deklaration, och grinden ska inte
+ha en åsikt om vilka ändringar som är oskyldiga.
+
+Båda svarsformerna tas emot — bara kroppen, eller hela filen. Att kräva den ena
+hade gjort grinden till en formgrind i stället för en innehållsgrind.
+
+Två flyktvägar är stängda: en kropp som själv skriver markörerna skulle sluta
+facket för tidigt, och avvisas; ett svar som ser ut som en hel POU men saknar
+markörerna avvisas i stället för att gissa var kroppen börjar. Att gissa vore att
+uppfinna en gräns modellen inte respekterade.
+
+Gränsen mellan lagren: **skelettet vaktar ramen, grind 3 vaktar innehållet.** Ett
+grönt skelett är inte ett grönt program.
+
 ## Vad som inte är avgjort
 
-* Hur skelettet ska bäras mellan tjänsten och modellen — format och identitet.
 * Om reparationsslingan ska få se tidigare försök eller starta rent varje varv.
   Båda har kända nackdelar och valet ska mätas, inte tyckas.
 * Hur en uppgift med flera giltiga lösningar poängsätts när facit är ett spår.
