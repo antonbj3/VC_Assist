@@ -408,3 +408,104 @@ def test_genererad_sekvens_passerar_alla_kontroller():
                    uppehall="T#1s")))
     r = validera(bygg_text(spec))
     assert r.ok is True, str(r)
+
+
+# ---- M-51: standardbiblioteket och de två typreglerna som var fel --------
+
+def test_sel_lamnar_typen_hos_det_valda_inte_hos_valjaren():
+    """SEL(G, IN0, IN1) valdes med en BOOL och lamnade INT. Resultattypen
+    raknades over ALLA argument, sa BOOL och INT skulle hitta en gemensam
+    typ — och `SEL(bA, iB, iC)` fick 'ingen gemensam typ' fastan bada de
+    valda var INT. MATT i M-51: STruC++ bygger den utan anmarkning."""
+    dekl = " g : BOOL;\n a : INT;\n b : INT;\n ut : INT;\n"
+    assert validera(_pou(dekl, " ut := SEL(g, a, b);\n")).ok is True
+    # ... och valjaren maste fortfarande vara BOOL
+    assert "TYP" in validera(_pou(dekl, " ut := SEL(a, a, b);\n")).koder()
+
+
+def test_mux_valjer_med_ett_heltal_och_lamnar_de_valdas_typ():
+    dekl = " k : INT;\n ut : BOOL;\n"
+    assert validera(_pou(dekl, " ut := MUX(k, TRUE, FALSE);\n")).ok is True
+    dekl2 = " k : INT;\n a : INT;\n b : INT;\n c : INT;\n ut : INT;\n"
+    assert validera(_pou(dekl2, " ut := MUX(k, a, b, c);\n")).ok is True
+
+
+def test_variadisk_styrs_av_signaturen_och_inte_av_namnet():
+    """Argumentkontrollen slog upp namnen "MIN" och "MAX" for att veta om
+    fler argument var tillatna. Varje ny variadisk funktion blev da ett tyst
+    argumentfel tills nagon kom ihag att fylla pa listan — MUX och CONCAT var
+    precis sadana."""
+    dekl = " a : INT;\n b : INT;\n c : INT;\n ut : INT;\n"
+    assert validera(_pou(dekl, " ut := MIN(a, b, c);\n")).ok is True
+    assert validera(_pou(dekl, " ut := ADD(a, b, c);\n")).ok is True
+    # en ICKE-variadisk funktion far fortfarande inte fler argument
+    assert "ARGUMENT" in validera(_pou(dekl, " ut := ABS(a, b);\n")).koder()
+
+
+NYA_ANROP = [
+    (" r : REAL;\n", " r := SQRT(r) + LN(r) + EXP(r) + SIN(r) + COS(r);\n"),
+    (" r : REAL;\n", " r := ATAN2(r, 1.0);\n"),
+    (" r : REAL;\n", " r := EXPT(r, 2.0);\n"),
+    (" a : INT;\n", " a := EXPT(a, 2);\n"),
+    (" a : INT;\n b : INT;\n", " a := DIV(SUB(b, 1), 2);\n"),
+    (" a : INT;\n b : BOOL;\n", " b := GT(a, 3);\n"),
+    (" a : INT;\n", " a := MOVE(a);\n"),
+    (" s : STRING;\n", " s := CONCAT(LEFT(s, 2), RIGHT(s, 2));\n"),
+    (" s : STRING;\n a : INT;\n", " a := FIND(s, 'x');\n"),
+    (" s : STRING;\n", " s := MID(s, 2, 1);\n"),
+    (" t : TIME;\n b : BOOL;\n", " b := t > TIME();\n"),
+]
+
+
+@pytest.mark.parametrize("dekl,kropp", NYA_ANROP,
+                         ids=[k.strip() for _d, k in NYA_ANROP])
+def test_standardfunktionerna_som_var_okanda_namn_slapps_igenom(dekl, kropp):
+    """Var och en av dem svarade OKANT_NAMN forut, och OKANT_NAMN ar F2 —
+    samma dom som ett uppfunnet API-namn. Modellen fick alltsa hora att en
+    standardfunktion inte fanns.
+
+    Namnen ar inte valda ur en lista utan MATTA: test_st_svep_mot_strucpp
+    bygger ett program som anropar varenda post i biblioteket och kraver att
+    g++ lankar det. STruC++:s framande racker inte som facit — den slapper
+    igenom HITTEPA(x) utan anmarkning."""
+    r = validera(_pou(dekl, kropp))
+    assert r.ok is True, str(r)
+
+
+def test_ett_uppfunnet_namn_ar_fortfarande_ett_hart_fel():
+    """Biblioteket vaxte; I9 gjorde det inte. Utan den har raden hade
+    utvidgningen kunnat vara en oppning i stallet for en lagning."""
+    r = validera(_pou(" a : INT;\n", " a := HITTEPA(a);\n"))
+    assert r.koder() == ("OKANT_NAMN",)
+
+
+def test_exponentoperatorn_har_basens_typ_och_kraver_tal():
+    assert validera(_pou(" r : REAL;\n", " r := 2.0 ** 2;\n")).ok is True
+    assert validera(_pou(" a : INT;\n", " a := a ** 2;\n")).ok is True
+    r = validera(_pou(" a : INT;\n b : BOOL;\n", " a := b ** 2;\n"))
+    assert "TYP" in r.koder()
+
+
+def test_baserad_literal_med_typprefix_kontrolleras_mot_typen():
+    """Formen gick inte att lasa alls forut. Nu lases den — och da maste den
+    ocksa kontrolleras, annars vore lagningen en oppning."""
+    assert validera(_pou(" w : WORD;\n", " w := WORD#16#FF;\n")).ok is True
+    assert "TYP" in validera(_pou(" a : INT;\n",
+                                  " a := INT#16#FFFF;\n")).koder()
+
+
+def test_tolken_kan_rakna_exponentoperatorn_validatorn_slapper_igenom():
+    """De tva motorerna far inte glida isar pa en NY operator.
+
+    `**` lades till i lasaren och validatorn av M-51. En operator som
+    validatorn slapper igenom men tolken kastar Tolkfel pa ar ett hal i den
+    andra motorn: banken skulle godkanna koden och sedan inte kunna doma den.
+    """
+    from vc_assist_svc.st import tolk as tolkmodul
+    kalla = ("PROGRAM P\nVAR\n a : INT;\n r : REAL;\nEND_VAR\n"
+             " a := 2 ** 5;\n r := 2.0 ** 0.5;\nEND_PROGRAM\n")
+    assert validera(kalla).ok is True, str(validera(kalla))
+    t = tolkmodul.Tolk(kalla)
+    t.scan()
+    assert t.las("a") == 32
+    assert abs(t.las("r") - 1.4142135623730951) < 1e-12

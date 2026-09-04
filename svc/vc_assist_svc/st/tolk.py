@@ -578,6 +578,16 @@ class Tolk(object):
             # IEC 61131-3: MOD har tecknet hos täljaren, python har det hos
             # nämnaren. Skillnaden syns bara på negativa tal, och den syns.
             return int(v) - int(h) * int(v / h)
+        if op == "**":
+            # Exponentoperatorn, tillagd av M-51 samtidigt som läsaren och
+            # validatorn fick den. En operator som validatorn SLÄPPER IGENOM
+            # men tolken inte kan räkna är ett hål i den andra motorn, inte
+            # ett omfångsbeslut: banken skulle godkänna koden och sedan inte
+            # kunna döma den. Heltalsbas med heltalsexponent ger heltal, som
+            # IEC:s EXPT.
+            if isinstance(h, float) or isinstance(v, float) or h < 0:
+                return float(v) ** float(h)
+            return int(v) ** int(h)
         raise Tolkfel("okänd operator %r på rad %d" % (op, u.rad))
 
     # -- anrop ------------------------------------------------------------

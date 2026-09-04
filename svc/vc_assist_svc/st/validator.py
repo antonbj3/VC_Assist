@@ -65,6 +65,12 @@ class Signatur:
     utgangar: Tuple[Tuple[str, object], ...]
     ar_block: bool
     resultat: object = None
+    variadisk: bool = False
+    # Ingangar som VALJER men inte BIDRAR till resultattypen: SEL:s G och
+    # MUX:s K. Utan den har listan rakande gemensamma typen ihop valjaren
+    # med de valda, och SEL(bA, iB, iC) fick "ingen gemensam typ" fastan
+    # bada de valda var INT. MATT i M-51.
+    styrande: Tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -91,7 +97,8 @@ def _signatur_av_block(b: SB.Blockdef) -> Signatur:
 def _signatur_av_funktion(f: SB.Funktionsdef) -> Signatur:
     return Signatur(f.namn,
                     tuple((p.namn, p.klass, p.obligatorisk) for p in f.parametrar),
-                    (), False, f.resultat)
+                    (), False, f.resultat, f.variadisk,
+                    tuple(p.namn for p in f.parametrar if p.styrande))
 
 
 class Granskning(object):
@@ -477,6 +484,14 @@ class Granskning(object):
                          % (a.st(), b.st()))
                 return None
             return T.BOOL
+        if u.op == "**":
+            # IEC 61131-3: samma regel som EXPT. Resultatet har BASENS typ,
+            # inte den gemensamma: 2.0 ** 2 ar REAL, inte heltal.
+            if not (T.ar_numerisk(a) and T.ar_numerisk(b)):
+                self.fel("TYP", u.rad, "** kräver tal, inte %s och %s"
+                         % (a.st(), b.st()))
+                return None
+            return a
         if u.op in ARITMETIK:
             if T.ar_tid(a) or T.ar_tid(b):
                 # Tid har egna regler och far inte falla igenom till
@@ -560,8 +575,12 @@ class Granskning(object):
         bundna = {}
         for i, arg in enumerate(positionella):
             if i >= len(sig.ingangar):
-                if sig.namn in ("MIN", "MAX") and sig.ingangar:
-                    bundna["IN%d" % (i + 1)] = (sig.ingangar[0][1], arg)
+                # Variadisk styrs av signaturens egen flagga. Att doma per
+                # namn ("MIN", "MAX") gjorde varje ny variadisk funktion till
+                # ett tyst argumentfel tills nagon kom ihag att fylla pa
+                # listan; MUX och CONCAT var precis sadana. MATT i M-51.
+                if sig.variadisk and sig.ingangar:
+                    bundna["IN%d" % (i + 1)] = (sig.ingangar[-1][1], arg)
                     continue
                 self.fel("ARGUMENT", arg.rad,
                          "%s tar %d argument, inte %d"
@@ -627,13 +646,17 @@ class Granskning(object):
             return argtyper.get(r[1:])
         if r == "GEM":
             gem = None
-            for t in argtyper.values():
+            for namn, t in argtyper.items():
+                if namn in sig.styrande:
+                    continue
                 gem = t if gem is None else T.gemensam_typ(gem, t)
                 if gem is None:
                     self.fel("TYP", rad,
                              "argumenten till %s har ingen gemensam typ" % sig.namn)
                     return None
             return gem
+        if r == "STRING":
+            return T.Strang(None)
         return T.Elementar(r) if r in T.ELEMENTARA else None
 
     # ---- oåtkomlig kod --------------------------------------------------
