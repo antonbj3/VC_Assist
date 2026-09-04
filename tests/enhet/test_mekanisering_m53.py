@@ -27,6 +27,7 @@ from vc_assist_svc.harness import fallor as Fa            # noqa: E402
 from vc_assist_svc.harness import forgranskning as Fg     # noqa: E402
 from vc_assist_svc.harness import instruktioner as I      # noqa: E402
 from vc_assist_svc.harness import kanal as Kn             # noqa: E402
+from vc_assist_svc.harness import kodfallor as Kf         # noqa: E402
 from vc_assist_svc.harness import loop as L               # noqa: E402
 from vc_assist_svc.harness import modell as Mo            # noqa: E402
 from vc_assist_svc.harness import turordning as T         # noqa: E402
@@ -286,3 +287,145 @@ def test_ett_dataverktygs_svar_ar_ingen_lasning_av_scenen():
     lage.lagg("search_catalog", "", True,
               {"traffar": [{"namn": "IRB1200", "uri": "bank://robot/x"}]})
     assert "irb1200" not in lage.lasta_namn
+
+
+# ---- 6. FAL-001: kvaternionen ar skalar-forst ---------------------------
+
+def _svarsblock(kod, sprak="python"):
+    return "Sa har:\n```%s\n%s```" % (sprak, kod)
+
+
+@pytest.mark.parametrize("kod", [
+    "q = m.getQuaternion()\nx, y, z, w = q.X, q.Y, q.Z, q.W\n",
+    "q = m.getQuaternion()\nx = q.X\n",
+    "q = m.getQuaternion()\nw = q.W\n",
+    "q = m.getQuaternion()\nvridning = [q.X, q.Y, q.Z, q.W]\n",
+    "vridning = (m.getQuaternion().X, m.getQuaternion().Y,\n"
+    "            m.getQuaternion().Z, m.getQuaternion().W)\n",
+])
+def test_kvaternionen_last_i_namnordning_fangas(kod):
+    """MATT M-11: q.X ar skalaren. Alla fem formerna ar samma miss."""
+    skal = Kf.kvaternion_i_namnordning(kod)
+    assert skal, kod
+    assert "M-11" in skal[-1]
+
+
+@pytest.mark.parametrize("kod", [
+    "q = m.getQuaternion()\nskalar = q.X\nvektor = [q.Y, q.Z, q.W]\n",
+    "q = m.getQuaternion()\nw = q.X\nx, y, z = q.Y, q.Z, q.W\n",
+    "p = m.P\nx, y, z = p.X, p.Y, p.Z\n",
+    "k = getApplication().findComponent('IRB1200')\nprint(k.Name)\n",
+])
+def test_ratt_avlasning_och_vanlig_kod_anklagas_inte(kod):
+    """En vcVector som INTE ar en kvaternion far lasas i namnordning: det ar
+    bara getQuaternion() som ar skalar-forst."""
+    assert not Kf.kvaternion_i_namnordning(kod), kod
+
+
+def test_kvaternionblocket_avvisas_av_hela_forgranskningen(forgranskare):
+    dom = forgranskare.granska_svarstext(
+        _svarsblock(Fa.KOD_KVATERNION_NAMNORDNING))
+    assert not dom.slapps
+    assert dom.avvisning.grind == "kvaternion"
+
+
+def test_ratt_kvaternionblock_slapps_igenom(forgranskare):
+    dom = forgranskare.granska_svarstext(_svarsblock(Fa.KOD_KVATERNION_RATT))
+    assert dom.slapps
+
+
+# ---- 7. FAL-006: all text in i VC ar bytestrangar -----------------------
+
+def test_unicode_literals_fangas():
+    skal = Kf.unicodetext("from __future__ import unicode_literals\nx = 1\n")
+    assert skal
+    assert "M-05" in skal[-1]
+
+
+def test_u_prefixad_strang_fangas():
+    assert Kf.unicodetext('k.Name = u"Robot"\n')
+
+
+def test_verktygsmallarnas_egen_u_strang_anklagas_inte():
+    """Var EGEN genererade kod skriver _s(u"..."), och det ar ratt gjort:
+    _s lagger strangen i bytes innan den nar VC. En grind som anklagade den
+    hade anklagat kodmallen."""
+    assert not Kf.unicodetext('k = _komp(_s(u"IRB1200"))\n')
+
+
+def test_hela_verktygsregistrets_mallar_passerar_bytestranggrinden():
+    """Mattes om vid varje korning i stallet for att lita pa ett tal: alla
+    kodgenererande mallar skriver _s(u"...") och ingen av dem far falla."""
+    kollade = fallda = 0
+    for namn, verktyg in sorted(V.REGISTER.items()):
+        if verktyg.mode != "codegen":
+            continue
+        try:
+            kod = _kod(namn, _standardargument(verktyg))
+        except Exception:
+            continue
+        kollade += 1
+        if Kf.unicodetext(kod):
+            fallda += 1
+    assert kollade >= 20
+    assert fallda == 0
+
+
+def _standardargument(verktyg):
+    """Minsta giltiga argumentuppsattning ur schemat."""
+    ut = {}
+    for arg in verktyg.parameters.get("required", []):
+        schema = verktyg.parameters["properties"][arg]
+        typ = schema.get("type")
+        if "enum" in schema:
+            ut[arg] = schema["enum"][0]
+        elif typ == "string":
+            ut[arg] = "IRB1200"
+        elif typ == "number":
+            ut[arg] = 1.0
+        elif typ == "integer":
+            ut[arg] = 1
+        elif typ == "boolean":
+            ut[arg] = True
+        elif typ == "array":
+            ut[arg] = [0.0, 0.0, 0.0]
+        else:
+            ut[arg] = "IRB1200"
+    return ut
+
+
+# ---- 8. FAL-008: Python 2.7 inne i VC -----------------------------------
+
+@pytest.mark.parametrize("kod", [
+    'print(f"{k.Name}")\n',
+    "if (n := 1) > 0:\n    pass\n",
+    "x: int = 1\n",
+    "def f(a, *, b):\n    return a\n",
+    "def f(a: int) -> int:\n    return a\n",
+    "def g():\n    yield from [1]\n",
+])
+def test_py3syntax_i_ett_vcblock_fangas(kod):
+    skal = Kf.inte_python27(kod)
+    assert skal, kod
+    assert "Python 2.7" in skal[-1]
+
+
+@pytest.mark.parametrize("kod", [
+    'k = getApplication().findComponent("IRB1200")\nprint(k.Name)\n',
+    "try:\n    x = 1\nexcept ValueError as e:\n    x = 0\n",
+    'print("%s" % 1)\n',
+])
+def test_kod_som_gar_i_bade_2_och_3_anklagas_inte(kod):
+    """except ... as e star med MED FLIT. FAL-008:s text sade fram till M-53
+    att formen inte far finnas i tvasprakig kod; den ar giltig sedan Python
+    2.6, och det ar den gamla formen except X, e som bara gar i tvaan."""
+    assert not Kf.inte_python27(kod), kod
+
+
+def test_kodfallsgrindarna_domer_i_dokumenterad_ordning():
+    """Ett block som bar BADA felen klassas som kvaternion: det ger ett tal
+    som ser rimligt ut, medan f-strangen bara vagrar kora."""
+    kod = ('q = m.getQuaternion()\nx = q.X\nprint(f"{x}")\n')
+    grind, skal = Kf.granska(kod)
+    assert grind == "kvaternion"
+    assert Kf.GRINDAR.index("kvaternion") < Kf.GRINDAR.index("py27")

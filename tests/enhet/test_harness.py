@@ -39,6 +39,7 @@ from vc_assist_svc.harness import (arlighet as A, fel as Fel,               # no
                                    oversattning as Ov, sakerhet as Sa,
                                    sammansattning as Sam, verifiering as Vf)
 from vc_assist_svc.harness import fallor as Fa         # noqa: E402
+from vc_assist_svc.harness import kodfallor as Kf      # noqa: E402
 
 HARNESSKATALOG = os.path.join(_ROT, "svc", "vc_assist_svc", "harness")
 
@@ -554,7 +555,11 @@ def test_varje_uriargument_ar_klassat_som_kalla_mal_eller_fraga():
 def test_grindordningen_ar_den_dokumenterade():
     assert Fg.GRINDAR[0] == "tomt_anrop"
     assert Fg.GRINDAR[1] == "sakerhet"      # ovillkorlig, före allt annat
-    assert Fg.GRINDAR[-1] == "skrivgrind"
+    # skrivgrind är sista grinden på ett ANROP. Efter den kommer M-53:s
+    # kodfällsgrindar, som bara dömer modellens egna kodblock i slutsvaret.
+    kedjan = Fg.GRINDAR[:len(Fg.GRINDAR) - len(Kf.GRINDAR)]
+    assert kedjan[-1] == "skrivgrind"
+    assert Fg.GRINDAR[len(kedjan):] == Kf.GRINDAR
 
 
 def test_sakerhetsgrinden_domer_fore_registret(forgranskare):

@@ -53,12 +53,18 @@ from .instruktioner import Korpus
 OKAPBARA = frozenset(("sakerhetsgransen", "arlighet", "systemroll"))
 
 # Inledningen. Kort med flit: varje tecken har konkurrerar med en regel.
+# Sista meningen sade fram till M-53 att bara sakerhetsgransen och arligheten
+# tvingas mekaniskt. Det stammer inte langre: 26 av korpusens 46 regler har en
+# grind bakom sig, i sex av sju block. En prompt som underdriver sina egna
+# grindar ar samma sorts osanning som en som overdriver dem - modellen
+# planerar efter det den far veta.
 HUVUD = (
     "Du arbetar under reglerna nedan. De ar numrerade och far citeras med sitt "
     "id.\nEn regel gar fore din egen bedomning. Star tva regler mot varandra "
-    "vinner den som star hogst upp.\nRegler markta med id ur "
-    "sakerhetsgransen och arligheten tvingas dessutom mekaniskt: bryter du "
-    "mot dem avvisas anropet eller svaret, och du far skriva om det."
+    "vinner den som star hogst upp.\nMANGA av reglerna tvingas dessutom "
+    "mekaniskt, i alla block: bryter du mot en sadan avvisas anropet eller "
+    "svaret innan nagot kors, och du far skriva om det. Du far inte veta "
+    "vilka - anta att var och en av dem har en grind bakom sig."
 )
 
 # ANTAGET, inte matt: tecken per token for svensk text i en modern BPE-

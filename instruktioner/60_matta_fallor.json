@@ -1,17 +1,17 @@
 {
   "id": "matta_fallor",
   "titel": "Mätta fällor i Visual Components",
-  "version": 2,
+  "version": 3,
   "prioritet": 4,
   "kapbar": true,
-  "prioritet_skal": "Kapas sist av de kapbara. Var och en av de här fällorna är MÄTT och ingen av dem fångas av någon annan mekanism: kvaternionens ordning och världsmatrisens eftersläpning ger tal som ser rimliga ut, och VC som sväljer ett fel tyst ger ett anrop som rapporterar framgång. Ett block som är den enda spärren mot en osynlig fälla kapas efter block vars regler dessutom har en grind bakom sig.",
+  "prioritet_skal": "Kapas sist av de kapbara. Var och en av de här fällorna är MÄTT, och sedan M-53 har alla åtta en grind bakom sig — men grinden AVVISAR, den förklarar inte. En modell som inte vet att världsmatrisen släpar eller att kvaternionen är skalär-först går på samma vägg varv efter varv tills loopens tak slår, och operatören får ett stopp i stället för ett svar. Blocket kapas därför fortfarande sist av de kapbara.",
   "beskriver": ["svc/vc_assist_svc/harness/sammansattning.py"],
   "regler": [
     {
       "id": "FAL-001",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "kodfallor",
       "text": "VC:s kvaternion är skalär-först. getQuaternion() ger en vcVector där q.X är skalären och vektordelen ligger i (q.Y, q.Z, q.W). Läs aldrig av fälten i namnordning.",
       "skal": "Mätt M-11: vid 0 graders vridning ger fälten (1, 0, 0, 0), vilket avläst som (x, y, z, w) är en 180-gradersvridning. En helt orörd detalj ser då ut att ha vänt sig upp och ned, och varje bärning skulle dömas som glidande.",
       "harkomst": ["M-11", "ext/vc_addon/vc_assist/oga_provtagning.py"]
@@ -54,9 +54,9 @@
     },
     {
       "id": "FAL-006",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "kodfallor",
       "text": "All text som går in i VC:s API måste vara bytesträngar. VC 4.10:s py2-bindning kastar SystemError på unicode.",
       "skal": "Mätt M-05: varje strängskrivning kastade SystemError: error return without exception set, orsakat av unicode_literals. Verktygens kodmallar skickar därför all text genom _s(), som bryggan lägger i exec-globalerna.",
       "harkomst": ["M-05", "svc/vc_assist_svc/verktyg/kodmall.py"]
@@ -72,11 +72,11 @@
     },
     {
       "id": "FAL-008",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
-      "text": "Koden som körs inne i VC 4.10 är Python 2.7. Inga f-strängar, ingen except ... as e i tvåspråkig kod, och inga bibliotek utöver det som följer med.",
-      "skal": "Mätt: inbäddad python27.dll i VC 4.10, medan VC 5.0 kör Python 3. Kodmallarna måste vara giltiga i båda, och VC-sidan ska vara plattformsneutral (I16).",
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "kodfallor",
+      "text": "Koden som körs inne i VC 4.10 är Python 2.7. Inga f-strängar, inget walrusuttryck, inga typannoteringar och inga bibliotek utöver det som följer med.",
+      "skal": "Mätt: inbäddad python27.dll i VC 4.10, medan VC 5.0 kör Python 3. Kodmallarna måste vara giltiga i båda, och VC-sidan ska vara plattformsneutral (I16). Regeln sade tidigare att except ... as e inte får finnas i tvåspråkig kod; M-53 mätte att den formen är giltig sedan Python 2.6 och att det är den gamla formen except X, e som bara går i tvåan.",
       "harkomst": ["docs/spec/36_versioner.md", "docs/spec/10_matta_fakta.md"]
     }
   ]

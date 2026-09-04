@@ -60,6 +60,11 @@ MEKANISMER = MappingProxyType({
         "verktygsloopens tak och stoppregler: rundtak, raka misslyckanden, "
         "upprepat identiskt anrop och tystnad",
         "harness/loop.py"),
+    "kodfallor": (
+        "kodfallsgrindarna: ett kodblock i slutsvaret som laser kvaternionen "
+        "i namnordning, skickar unicode in i VC:s API eller inte gar att kora "
+        "i Python 2.7 avvisas",
+        "harness/kodfallor.py via harness/forgranskning.py"),
     "turordning": (
         "turordningsgrindarna: ett anrop efter en sparning, en varldsmatris "
         "last efter en flytt utan uppdatering, ett scenandrande anrop mot en "

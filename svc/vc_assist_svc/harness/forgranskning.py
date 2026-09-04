@@ -31,6 +31,12 @@ GRINDORDNINGEN, och varfor den ar som den ar:
   8 api_namn        AST-validering av den genererade koden
   9 skrivgrind      lasande verktyg vars kod skriver, och skriptbeteenden
 
+De tre sista grindarna (kvaternion, bytestrangar, py27) ligger i
+kodfallor.py och domer BARA modellens egna kodblock i slutsvaret. De star
+sist darfor att de fragar om ett block som redan ar riktig, skrivfri VC-kod:
+en kvaternion last i namnordning ar fel i ett block som i ovrigt gar att
+kora.
+
 82_felklasser.md, sorteringsregel 1: forsta grinden som faller bestammer
 klassen. Ordningen ar alltsa inte en smakfraga utan en klassningsregel, och
 den ar darfor skriven en gang, har.
@@ -46,6 +52,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from .. import api_index
 from .. import verktyg as V
 from ..verktyg.fel import Argumentfel, Avstangt
+from . import kodfallor
 from .sakerhet import ROT, Sakerhetsgrind
 
 _EXT = os.path.join(ROT, "ext", "vc_addon", "vc_assist")
@@ -55,7 +62,8 @@ if _EXT not in sys.path:
 import skrivgrind  # noqa: E402
 
 GRINDAR = ("tomt_anrop", "sakerhet", "ratkod", "okant_verktyg", "avstangt",
-           "argument", "katalog_uri", "api_namn", "skrivgrind")
+           "argument", "katalog_uri", "api_namn", "skrivgrind") + \
+          kodfallor.GRINDAR
 
 # Bryggan lagger _s i exec-globalerna vid varje korning (pump.py:_kor), sa
 # mallarna kallar en funktion som inte star i deras egen kod. Validatorn ser
@@ -308,6 +316,9 @@ class Forgranskare(object):
                     skriv + ["kod som andrar scenen gar genom ett skrivande "
                              "verktyg och darmed genom godkannandekon (I12); "
                              "den klistras aldrig in i VC forbi kon"])
+            grind, skal = kodfallor.granska(block)
+            if grind:
+                return self._nej(grind, "kodblocket i slutsvaret", skal)
         return Forgranskningsdom()
 
     # ---- delgrindar ------------------------------------------------------
