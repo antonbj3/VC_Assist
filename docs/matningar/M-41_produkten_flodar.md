@@ -97,6 +97,35 @@ Sju hela intervall utan en enda produkt i B och C, medan A matade i takt.
 Grinden skiljer alltså det som flödar från det som inte gör det, och den gör
 det på två olika sätt att vara trasig.
 
+## Grinden som håller det på plats
+
+`tests/protocol/kor_m41_flode.py` gör hela vägen om, från början, varje gång:
+skriver startskriptet ur receptet, startar om VC, provtar och dömer. Grönt
+kräver **båda** halvorna — att A matar i takt och rör sig, och att B och C
+tiger. En körning:
+
+```
+  startskript skrivet: .../vc_assist_startskript.py (46662 tecken)
+  simtid 0.47 -> 26.90 (26.4 s)
+  M41A skapelsetider: [0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 24.0]
+  M41A hastighet ur 24 par: 250.0000 - 250.0000 mm/s
+  M41B PathLength 0.0, 0 observationer
+  M41C PathLength 2500.0, 0 observationer
+  OK   en produkt matas fram av sig sjalv och aker; bada trasiga fixturerna tiger
+```
+
+**Grinden föll först, och det var rätt av den.** Första versionen bröt M41C
+genom att nollställa en `kan`-flagga — men `koppla_ihop()` gör sin egen
+`canConnect`, så linjen kopplades ändå och flödade: `M41C FLODADE (33
+observationer) - den trasiga fixturen faller inte, alltsa ar grinden ingen
+grind`. Fixturen bryter nu själva kopplingssteget, och koden vägrar bygga om
+raden bytt form i stället för att tyst bli hel igen.
+
+Startskriptet ligger kvar i testprefixet (`~/.wine-vc-test/drive_c/users/anton/
+vc_assist_startskript.py`) och bygger alltså de tre linjerna vid varje VC-start.
+Det är avsiktligt — det är fas 7:s utgångsläge — men det är dold scen för den
+som inte vet om det, och därför står det här.
+
 ## Vad som inte är visat
 
 * **Produkten lämnar aldrig banan till något annat.** Banans utgångs­gränssnitt
