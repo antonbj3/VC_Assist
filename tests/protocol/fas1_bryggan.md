@@ -30,11 +30,19 @@ ext/vc_addon/vc_assist/
 11. **Mät provtagningstakten**: pump som räknar varv under 10 s
 
 ## Mätning
-| Storhet | Enhet | Krav |
-|---|---|---|
-| tur och retur `ping` | ms | under 50 |
-| provtagningstakt | Hz | **mäts och skrivs ned**, inget krav satt än |
-| VC:s gränssnitt under last | subjektiv + fps | ingen märkbar frysning |
+
+**Utförd 2026-09-04**, VC Premium 4.10 under Wine 11.16, headless `:99`.
+Körs av `tests/protocol/kor_fas1.py`. Detaljer i
+[M-03](../../docs/matningar/M-03_takt.md).
+
+| Storhet | Enhet | Krav | **Mätt** |
+|---|---|---|---|
+| tur och retur `ping`, median | ms | under 50 | **9,91** ✅ |
+| tur och retur `ping`, värsta av 20 | ms | under 50 | **13,45** ✅ |
+| provtagningstakt, tyst | Hz | mäts och skrivs ned | **17,2** |
+| provtagningstakt, under trafik | Hz | mäts och skrivs ned | **224,7** |
+| API-ytor som finns | antal | listas | **45 av 45**, inga saknas |
+| VC:s gränssnitt under last | subjektiv + fps | ingen märkbar frysning | ⬜ **oprövad — mätt endast headless** |
 
 ## Godkänt när
 - Alla elva stegen ger förväntat svar
@@ -54,6 +62,33 @@ ext/vc_addon/vc_assist/
 | kropp över 1 MB | `E_TOO_LARGE` |
 | `exec` av skrivande kod | avvisas, ska gå via kö |
 
+## Utfall 2026-09-04
+
+**13 av 13 steg gick igenom**, och körningen är upprepningsbar mot en VC som
+redan kört den en gång: kö och scen bär spår av tidigare körningar, så steget
+prövar sin egen post och sitt eget körunika komponentnamn, och städar efter sig.
+
+Samtliga sex trasiga fall faller rätt: `E_EXEC`, `E_TIMEOUT`, `E_PARSE`,
+`E_AUTH`, `E_TOO_LARGE`, och skrivande kod i `exec` avvisas med
+`E_NOT_APPROVED` som hänvisar till kön. Bryggan lever efter vart och ett.
+
+Två avvikelser från dokumentet ovan, båda avsiktliga och skrivna:
+
+* Strukturen blev `pump.py` + `protokoll.py` + `skrivgrind.py` + `formaga.py`
+  i stället för allt i `bridge_cmd.py`. Skälet är att `protokoll.py` och
+  `skrivgrind.py` då kan köras av Python 3 på Linux **utan VC** — 68 av de 80
+  enhetstesterna kräver ingen VC alls.
+* `capability.py` heter `formaga.py`.
+
 ## Plattform
-Linux ☐   Windows ☐
-Python 2.7 ☐   Python 3.x ☐ *(kräver 5.0; syntaxkontroll räcker tills licens finns)*
+Linux ☑ *(Wine 11.16, VC Premium 4.10, headless)*   Windows ☐ **oprövad**
+Python 2.7 ☑   Python 3.x ☐ *(kräver 5.0; syntaxkontroll räcker tills licens finns)*
+
+## Vad som ÄR kvar innan fas 1 är stängd
+
+* **Gränssnittet under last** är oprövat. Allt är mätt headless. Att pumpen
+  aldrig blockerar är visat mekaniskt (`tick()` har en budget på 25 ms och
+  select med noll timeout, och ett eget test på att en tyst anslutning inte
+  står i vägen), men *"ingen märkbar frysning"* är en syn, inte en slutsats.
+* **Windows** är oprövat. Ingenting i bryggan är Wine-specifikt — det är en
+  förväntan, inte en mätning.

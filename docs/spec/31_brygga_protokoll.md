@@ -199,3 +199,15 @@ simuleringstid/väggtid **1,000** över 155 sekunder och 3 100 varv. Se
 
 Allt som rör VC sker på huvudtråden inne i `OnRun`. Begäran köas, pumpen betar
 av kön. Ingen tråd, ingen timer, ingen .NET.
+
+## Rättelse: var `E_BUSY` ligger (2026-09-04)
+
+Ordagrant följd blev spärren ett låst läge. `degraded` lämnas bara av en
+**lyckad körning**, så en spärr på `exec` kan aldrig öppnas igen.
+
+Rättelse: `exec` spärras **inte** av `degraded` — den är vägen ut. Spärren
+ligger på `queue_approve`, alltså på det som ändrar något. Betydelsen är
+kvar: bryggan gör inget följdriktigt medan dess tillstånd är okänt, men
+operatören har alltid en läsande körning som återställer den.
+
+`ping` bär `degraded` i sitt svar så tjänsten kan visa läget.

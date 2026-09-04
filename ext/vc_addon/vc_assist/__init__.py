@@ -26,6 +26,12 @@ def _log(msg):
 def OnAppInitialized():
     _log("OnAppInitialized")
     try:
+        import os
+        # I ett tilläggs vcApplication-scope ar getApplicationPath() tillaggets
+        # EGEN mapp. Kommandot kors i ett annat scope dar samma namn betyder
+        # nagot annat, sa sokvagen skickas vidare i miljon i stallet for att
+        # gissas om.
+        os.environ["VC_ASSIST_DIR"] = getApplicationPath()
         uri = getApplicationPath() + "bridge_cmd.py"
         _log("loadCommand uri=%s" % uri)
         cmd = loadCommand("vcAssistBridge", uri)
