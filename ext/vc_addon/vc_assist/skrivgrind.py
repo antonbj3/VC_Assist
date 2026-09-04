@@ -31,6 +31,15 @@ MUTERANDE_PREFIX = (
     # samma klass av namn som inte borjar pa nagot av prefixen ovan.
     "clone", "duplicate", "makeunique", "transfer", "attach", "detach",
     "grab", "drop", "paste", "cut", "undo", "redo", "restore", "halt",
+    # Funnet av simuleringsdomanens korsprov (M-47): sim.autoHalt() STOPPAR
+    # simuleringen men domdes som LASANDE - "halt" ar ett prefix och autoHalt
+    # borjar inte pa det. Ett verktyg pa den metoden hade darfor kunnat ga
+    # genom exec, utan godkannande, och ta ned en pagaende korning. Prefixet
+    # star som helt ord och inte som "auto", som skulle doma varje autoScale
+    # och autoSize som skrivande. Samma korsprov faller sim.continueRun():
+    # den startar en stoppad simulering igen, och "run" ar ett prefix som
+    # continueRun inte borjar pa.
+    "autohalt", "continuerun",
 )
 
 # Namn som gor syntaktisk analys omojlig. Konservativt: de raknas som skrivande.

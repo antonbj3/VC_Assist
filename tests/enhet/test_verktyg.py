@@ -210,7 +210,7 @@ def test_registret_ar_fullt_och_delat_i_tva():
     # Ett MATT antal, inte ett tak. Raden ska andras MEDVETET nar en doman
     # laggs till - det ar hela poangen: ett verktyg far aldrig registrera sig
     # av misstag.
-    assert len(V.REGISTER) == 77, (
+    assert len(V.REGISTER) == 95, (
         "registret har %d verktyg. Domaner: %r"
         % (len(V.REGISTER),
            sorted(set(v.doman for v in V.REGISTER.values()))))
