@@ -17,3 +17,9 @@
 
 Varje påstående är antingen **MÄTT** (med kommando eller filreferens) eller
 märkt **ANTAGET**. Inga tal utan härkomst.
+| `31_brygga_protokoll.md` | Bryggans trådmodell, ramning, operationer, felkoder | klar |
+| `41_ogat_kontrakt.md` | Ögats grammatik, byte för byte, versionerad | klar |
+| `45_verktyg.md` | Verktygskatalogen, två register, effect styr läge | klar |
+| `81_mallschema.md` | Mallens fält, typer och lintregler | klar |
+| `82_felklasser.md` | Fjorton felklasser med sorteringsregler | klar |
+| `83_scenarier.md` | Tjugo scenarier, var och en isolerar en felklass | klar |
