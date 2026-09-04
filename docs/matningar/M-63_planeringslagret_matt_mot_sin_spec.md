@@ -2,7 +2,7 @@
 
 **Datum:** 2026-09-04 · körs utan VC · fas 16 i `docs/spec/70_faser.md`
 **Mäter:** `docs/spec/22_planeringslagret.md` (384 rader) mot
-`svc/vc_assist_svc/plan/` (3 868 rader före, 7 490 efter)
+`svc/vc_assist_svc/plan/` (3 868 rader före, 7 847 efter)
 **Stänger:** fas 16. Protokollet står i
 `tests/protocol/fas16_planeringslagret.md`, proven i
 `tests/enhet/test_bestallning.py`.
@@ -40,7 +40,7 @@ lintkodlista som råkar heta `P1`–`P10`, och den betyder något helt annat:
 `PL11` — *"två halvor av samma begrepp som inte möts"* — och den fanns i vårt
 eget planeringslager, i samma paket som beskrev regeln.
 
-Efter det här arbetet: **12 av 30 kravkoder** och **4 av 12 felklasser** nämns i
+Efter det här arbetet: **14 av 30 kravkoder** och **4 av 12 felklasser** nämns i
 kod eller prov. Talet är fortfarande lågt, och det ska det vara: en kod ska
 skrivas in i koden när kravet faktiskt är mekaniserat, inte som en etikett.
 
@@ -193,9 +193,10 @@ Ingen är kvar helt ofångad.
 
 ## 3. Vad som byggdes
 
-Tio nya moduler i `svc/vc_assist_svc/plan/`, 3 016 rader, plus ändringar i sju
+Tio nya moduler i `svc/vc_assist_svc/plan/`, 3 221 rader, plus ändringar i sju
 gamla (`steg.py` fick `Efterkontroll`, `byggplan.py` fyra `EK`-lintkoder,
-`planering.py` skriver posterna).
+`planering.py` skriver posterna, `forfining.py` läser fri text och tar emot
+svar).
 
 | Modul | Rader | Vad den gör |
 |---|---:|---|
@@ -204,13 +205,13 @@ gamla (`steg.py` fick `Efterkontroll`, `byggplan.py` fyra `EK`-lintkoder,
 | `villkorssprak.py` | 379 | `Typvillkor`, `Relation`, `Prosakrav` med namngiven konsument |
 | `processer.py` | 287 | processordningen, med samma cykelkrav som uppgiftsgrafen |
 | `motsagelse.py` | 449 | fyra domar, och ingen av dem heter `MOJLIG` |
-| `lasning.py` | 387 | fri text → krav, varje värde med sin ordagranna textbit |
-| `layoutmotor.py` | 392 | adaptern till den lösare som redan fanns |
-| `bestallning.py` | 234 | sex grindar i ordning; ett nej lämnar aldrig ut en plan |
-| `artefakter.py` | 203 | de fyra artefakterna på disk, och hashen som binder sekvensen |
+| `lasning.py` | 442 | fri text → krav, varje värde med sin ordagranna textbit |
+| `layoutmotor.py` | 487 | adaptern till den lösare som redan fanns |
+| `bestallning.py` | 290 | sju grindar i ordning; ett nej lämnar aldrig ut en plan |
+| `artefakter.py` | 202 | de fyra artefakterna på disk, och hashen som binder sekvensen |
 | `ordning.py` | 165 | cykler och kanonisk ordning, delad av graf och processer |
 
-`tests/enhet/test_bestallning.py` (**153 prov**), nio nya prov i
+`tests/enhet/test_bestallning.py` (**180 prov**), nio nya prov i
 `tests/enhet/test_plan.py` för efterkontrollerna, och
 `tests/protocol/fas16_planeringslagret.md`.
 
@@ -326,11 +327,11 @@ ett sannare svar.
 Det omvända gäller också, och står i protokollet: håller de härledda villkoren
 säger de **ingenting** om huruvida en layout finns.
 
-## 6.5 Hela banken genom grindkedjan: är grindarna för trånga?
+## 6.1 Hela banken genom grindkedjan: är grindarna för trånga?
 
 En handplockad fixtur kan visa att en grind **faller**. Den kan inte visa att
 grinden faller på **rätt** saker. Därför kördes alla 51 uppgifter i
-`bank/uppgifter/` genom samma sex grindar.
+`bank/uppgifter/` genom samma sju grindar.
 
 | | Utan URI-karta | Med URI-karta |
 |---|---:|---:|
@@ -379,39 +380,7 @@ Samma kontroll finns sedan tidigare i `bank/schema.py` som lintkoden
 `M23_ROBOT_KAPACITET`. Att två oberoende vägar ger samma svar på samma data är
 ett svagt men äkta belägg för att ingen av dem räknar fel.
 
-## 6.55 Samtalet: fråga, svar, plan
-
-Efter §6.6:s rättelser gav operatörens exempeltext **två precisa frågor och
-ingen plan**. Det är rätt svar, men utan ett sätt att **svara** är det en
-återvändsgränd: han hade fått skriva om hela beställningen.
-
-Mekaniken är en rad: `svar` är `{fraga_id: text}`, och svaren blir en del av
-**begäran**, ordagrant. Det är hans ord lika mycket som den första meningen —
-och det är också det enda som gör dem läsbara: samma mönster som läser
-meningen läser svaret, och härkomsten pekar på text som faktiskt står där.
-
-```
-TUR 1  OFULLSTANDIG · B4_FRAGOR
-       okant_ord:utlastningslada: vilken komponent i katalogen ar 'en utlastningslåda'?
-       kopplingar: hur ska band, robot kopplas ihop med resten?
-
-TUR 2  svar = {"okant_ord:utlastningslada": "en kassationslada",
-               "kopplingar": "bandet matar roboten och roboten matar kassationsladan",
-               "cellyta": "cellen ar 8x8 meter, gangstrak minst 800 mm"}
-       BYGGBAR · 22 steg
-```
-
-**En fråga som ställs OM är en fråga som inte blev besvarad.** Löste svaret den
-ställs den inte alls — den försvinner för att extraktorn hittade det den
-behövde. Kommer den tillbaka gick svaret inte att läsa, och att då märka den
-som besvarad hade gjort ett obrukbart svar till ett tyst ja. Regeln har ett eget
-prov åt båda hållen.
-
-`K4`s tak är två rundor, och `spec.fragerunda` bärs i artefakten. Källans
-loopspärr läste den föregående turens **text** och matchade på en
-svensk-engelsk fras (`orchestrator.py:783`); det ärvs inte.
-
-## 6.6 Att spela som operatören hittade fyra tysta bortfall
+## 6.2 Att spela som operatören hittade fyra tysta bortfall
 
 Alla proven var gröna. Sedan körde jag operatörens **egen** exempeltext ur
 `27_operatorsflodet.md` genom lagret:
@@ -471,7 +440,39 @@ Alla fyra hade passerat 141 gröna prov. Ingen av dem hade hittats av ett prov
 till, eftersom jag skrev proven mot det jag byggt. Den enda som hittade dem var
 att skriva som en människa skriver.
 
-## 6.7 Fasordningen sa att 14 skulle före 16. Höll skälet?
+## 6.3 Samtalet: fråga, svar, plan
+
+Efter §6.2:s rättelser gav operatörens exempeltext **två precisa frågor och
+ingen plan**. Det är rätt svar, men utan ett sätt att **svara** är det en
+återvändsgränd: han hade fått skriva om hela beställningen.
+
+Mekaniken är en rad: `svar` är `{fraga_id: text}`, och svaren blir en del av
+**begäran**, ordagrant. Det är hans ord lika mycket som den första meningen —
+och det är också det enda som gör dem läsbara: samma mönster som läser
+meningen läser svaret, och härkomsten pekar på text som faktiskt står där.
+
+```
+TUR 1  OFULLSTANDIG · B4_FRAGOR
+       okant_ord:utlastningslada: vilken komponent i katalogen ar 'en utlastningslåda'?
+       kopplingar: hur ska band, robot kopplas ihop med resten?
+
+TUR 2  svar = {"okant_ord:utlastningslada": "en kassationslada",
+               "kopplingar": "bandet matar roboten och roboten matar kassationsladan",
+               "cellyta": "cellen ar 8x8 meter, gangstrak minst 800 mm"}
+       BYGGBAR · 22 steg
+```
+
+**En fråga som ställs OM är en fråga som inte blev besvarad.** Löste svaret den
+ställs den inte alls — den försvinner för att extraktorn hittade det den
+behövde. Kommer den tillbaka gick svaret inte att läsa, och att då märka den
+som besvarad hade gjort ett obrukbart svar till ett tyst ja. Regeln har ett eget
+prov åt båda hållen.
+
+`K4`s tak är två rundor, och `spec.fragerunda` bärs i artefakten. Källans
+loopspärr läste den föregående turens **text** och matchade på en
+svensk-engelsk fras (`orchestrator.py:783`); det ärvs inte.
+
+## 6.4 Fasordningen sa att 14 skulle före 16. Höll skälet?
 
 `70_faser.md` motiverar ordningen så här:
 
@@ -482,7 +483,7 @@ att skriva som en människa skriver.
 Skälet är rätt i sak, men **lagret som det nu är byggt gör tvärtom**: det
 innehåller ingen språkmodell alls. `bestall()` är deterministisk från text till
 plan — samma beställning ger samma plan, byte för byte, och det är mätt
-(`K22`). Det som förr var modellens omdöme är nu sex grindar.
+(`K22`). Det som förr var modellens omdöme är nu sju grindar.
 
 Den fara fasordningen pekar på finns däremot kvar, och den har **flyttat**: den
 dag en modell fyller specen i stället för `lasning.py` är det `Harkomst` som
@@ -552,7 +553,7 @@ byta komponent. Ett svar som inte skiljer dem lämnar operatören att gissa.
 `InomRackvidd` har två läsningar och specen nämner ingen av dem. Mätt: med den
 hårda kan en robot på 1 650 mm inte nå ett 2 m långt band, så varje cell med en
 transportör blev röd. Vi räknar nu båda och gör skillnaden till en fråga
-(§6.6, F4). Specen bör säga att en relation får ha en **parameter som
+(§6.2, F4). Specen bör säga att en relation får ha en **parameter som
 operatören äger**, och att båda utfallen ska räknas innan frågan ställs.
 
 **F8. `K23` har två halvor, och bara den ena är en ordningsregel.** *"Alla
@@ -586,10 +587,10 @@ fel, tyst. Det är fas 5a:s arbete (`P5`), inte det här protokollets.
 **Att textläsningen förstår svenska.** `lasning.py` läser slutna mönster.
 Beställningar formulerade utanför dem ger **färre** krav, inte fel krav — det
 som inte lästes blir en fråga, och ett ord i komponentuppräkningen som ingen rad
-känner igen blir en **blockerande** fråga (§6.6). **Hur ofta det händer är inte
+känner igen blir en **blockerande** fråga (§6.2). **Hur ofta det händer är inte
 mätt.** En sådan mätning kräver en samling verkliga beställningar, och den finns
 inte: jag har prövat operatörens ena exempel och mina egna. Det är den största
-oprövade ytan i det här arbetet, och §6.6 visar precis hur den ytan ser ut när
+oprövade ytan i det här arbetet, och §6.2 visar precis hur den ytan ser ut när
 den brister.
 
 **Att processlistan täcker en verklig cell.** `PROCESSORD` är 28 ord. En process
@@ -606,7 +607,7 @@ scenfamilj (robot + band + pall + fixtur, kvadratiska hallar). Ett fjärde,
 finare steg kan ändra svaret, och en avlång hall är inte prövad.
 
 **Att bankvägen och fritextvägen ger samma detaljering.** De döms av samma
-grindar, och hela banken är körd (§6.5): 46 av 51 blir `BYGGBAR`. Men bankens
+grindar, och hela banken är körd (§6.1): 46 av 51 blir `BYGGBAR`. Men bankens
 uppgifter bär **inga cellmått, inga relationer och ingen processordning**, så
 `B2` och den geometriska halvan av `B3` har ingenting att pröva där. De 46 gröna
 säger alltså ingenting om de två grindarna. Det som saknas är en samling
@@ -624,7 +625,7 @@ De tre trasiga fall uppgiften krävde, körda:
 
 ```
 $ python3 -m pytest tests/enhet/test_bestallning.py -q
-135 passed
+180 passed
 ```
 
 **En självmotsägande beställning:**
