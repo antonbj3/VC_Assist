@@ -17,12 +17,21 @@ from vc_assist_svc import skuld as S                              # noqa: E402
 
 _MATNINGAR = os.path.join(_ROT, "docs", "matningar")
 
-# Sa manga matningar som saknar ett arlighetsavsnitt. MATT 2026-09-05: 24 av
-# 44, och alla utom tva ar skrivna fore M-44 - disciplinen satte sig senare.
+# Sa manga matningar som saknar ett arlighetsavsnitt.
+#
+# MATT 2026-09-04 (M-70): 1. Det talet ar resultatet av tva saker som gjordes i
+# samma svep, och de far inte blandas ihop:
+#
+#   * 23 matningar fick ett arlighetsavsnitt skrivet at sig (M-01 till M-40).
+#   * M-44 och M-47 BAR redan ett, under rubriker monstret inte sag. Monstret
+#     var skrivet i ASCII och matningarna i svenska, sa atta av elva grenar
+#     kunde aldrig fyra. Lagat i skuld.py, inte genom att duplicera text.
+#
+# Kvar: M-50, som ar en halvskriven matning i nagon annans hand.
 #
 # Talet far BARA ga nedat. Att hoja det ar att skriva en ny matning som inte
 # sager vad den inte visar, och det ar precis den skuld registret finns for.
-UTAN_ARLIGHETSAVSNITT = 11   # sankt 2026-09-04 av M-65: verkligheten var 11
+UTAN_ARLIGHETSAVSNITT = 1
 
 
 def test_sparren_bara_krymper():
@@ -81,6 +90,58 @@ def test_ett_numrerat_avsnitt_raknas_ocksa(tmp_path):
     slarvig.
     """
     f = skriv(tmp_path, "M-98_prov.md", "# M-98\n\n## 9. Vad som inte är mätt\n\n* En sak.\n")
+    assert S.ur_matning(f)[0].rader == ["En sak."]
+
+
+@pytest.mark.parametrize("rubrik,punkt", [
+    # MATT 2026-09-04 (M-70): var och en av de har fanns i repot och foll.
+    ("## Räckvidd", "M-44"),
+    ("### Vad rättelserna medvetet INTE gör", "M-44"),
+    ("### Vad de här måtten INTE säger", "M-47"),
+    ("## Öppen fråga, blockerande för fas 1", "M-04"),
+    ("## Trolig orsak, omätt", "M-35"),
+    ("## Vad som troligen krävs, och som är OMÄTT", "M-14"),
+    ("## Begränsningar", "form"),
+    ("## Förbehåll", "form"),
+    ("## Oprövat", "form"),
+    ("## Öppna frågor", "form"),
+])
+def test_monstret_ser_rubriker_skrivna_i_riktig_svenska(rubrik, punkt):
+    """Trasig fixtur for MONSTRET sjalvt (M-70).
+
+    Foll for alla tio fore lagningen. Monstret var skrivet i ASCII - samma
+    translitterering som all kod i repot - medan matningarna ar skrivna med
+    a, a och o. Atta av elva grenar kunde darfor aldrig matcha nagonting, och
+    tva av dem var tillagda just for att fanga M-44 och M-47.
+
+    En matning som SA vad den inte visade raknades alltsa som en matning som
+    inte sa nagot. Samma felklass som M-66 sjalv rattade en gang: ett monster
+    som ser ut att matcha, aldrig provat mot texten det ska lasa.
+    """
+    assert S.ar_arlighetsrubrik(rubrik), "%s (%s)" % (rubrik, punkt)
+
+
+@pytest.mark.parametrize("rubrik", [
+    "## Öppet",
+    "## Utfall",
+    "## Vad som fungerar",
+    "## Talen",
+    "## Metod",
+])
+def test_monstret_godkanner_inte_vilken_rubrik_som_helst(rubrik):
+    """Andra halvan av fixturen: en gren som fyrar pa allt mater ingenting.
+
+    "Oppet" star med FLIT pa fel sida. Ett avsnitt som bara heter sa namner
+    inte vad som ar oppet, och "Oppet API" ar en lika rimlig rubrik. Se
+    gransen i skuld.py.
+    """
+    assert not S.ar_arlighetsrubrik(rubrik)
+
+
+def test_avdiakritiken_ror_inte_rubriker_som_redan_ar_ascii(tmp_path):
+    """Lagningen far inte andra det som redan fungerade."""
+    f = skriv(tmp_path, "M-95_prov.md",
+              "# M-95\n\n## Vad som INTE ar matt\n\n* En sak.\n")
     assert S.ur_matning(f)[0].rader == ["En sak."]
 
 

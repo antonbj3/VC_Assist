@@ -34,13 +34,41 @@ from __future__ import annotations
 
 import os
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
-# Rubrikerna som markerar ett arlighetsavsnitt. Listan ar MATT ur de 43
-# matningarna som fanns 2026-09-04, inte paahittad - se M-66. Den ar medvetet
-# bred: en matning som skriver "Vad som fortfarande inte fungerar" har gjort
-# ratt sak, och ska inte falla pa att den valde ett annat ord.
+
+def _avdiakritik(text):
+    """Rubriken utan sina prickar: "Rackvidd" ur "Räckvidd".
+
+    VARFOR: monstret nedan ar skrivet i ASCII, som all kod i det har repot.
+    Matningarna ar skrivna i riktig svenska. MATT 2026-09-04 (M-70): av elva
+    grenar i det gamla monstret fyrade TRE nagonsin i repot. De atta ovriga bar
+    ett translittererat a, a eller o - "rackvidd", "oppna fragor",
+    "begransningar", "forbehall", "oprovat", "rattelserna", "de har" - och kunde
+    darfor aldrig matcha en verklig rubrik. Tva av dem var tillagda just for att
+    fanga M-44 ("Rackvidd", "Vad rattelserna medvetet INTE gor") och M-47
+    ("Vad de har matten INTE sager"), och fangade ingen av dem.
+
+    Det ar samma felklass som M-66 sjalv rattade en gang: ett monster som ser ut
+    att matcha, aldrig provat mot den text det ska lasa.
+    """
+    return "".join(t for t in unicodedata.normalize("NFKD", text)
+                   if not unicodedata.combining(t))
+
+
+# Rubrikerna som markerar ett arlighetsavsnitt. Provas mot rubriken UTAN
+# diakritik (se _avdiakritik), sa "Rackvidd" och "Rackvidd" ar samma sak for
+# monstret. Listan ar MATT ur matningarna i repot, inte paahittad - se M-66 och
+# M-70. Den ar medvetet bred: en matning som skriver "Vad som fortfarande inte
+# fungerar" har gjort ratt sak, och ska inte falla pa att den valde ett annat
+# ord.
+#
+# GRANSEN: en bar rubrik "Oppet" raknas INTE. "Oppet API" och "Oppet lage" ar
+# lika rimliga rubriker, och en gren som fyrar pa dem mater fel storhet. Ett
+# arlighetsavsnitt som heter "Oppet" maste namna vad som ar oppet - "Oppen
+# fraga", "Oppna punkter" - eller bara heta "Vad som INTE ar matt".
 _ARLIGHET = re.compile(
     r"^#{2,4}\s+"
     # Rubriken kan bara ett nummer eller en fallkod forst: "## 9. Vad som ..."
@@ -48,20 +76,30 @@ _ARLIGHET = re.compile(
     # regex som kraver att rubriken borjar med ordet missar dem tyst.
     r"(?:[0-9]+\.|[A-ZF][0-9]+\.|\d+\.\d+)?\s*"
     r"(?:"
-    r"vad\s+(?:som\s+)?(?:detta\s+|de\s+har\s+|lintern\s+|tolken\s+|"
-    r"rattelserna\s+|jag\s+)?(?:medvetet\s+)?(?:inte|INTE)\b.*"
-    r"|vad\s+som\s+(?:fortfarande\s+)?inte\b.*"
+    # "Vad ... inte ...", med upp till fyra ord emellan. Det ersatter en
+    # handskriven ordlista (detta|de har|lintern|tolken|rattelserna|jag) som
+    # var byggd ur de rubriker nagon rakade minnas. MATT: den missade "Vad de
+    # har matten INTE sager" aven translittererad, for att ordet "matten" stod
+    # mellan listan och "INTE".
+    r"vad\s+(?:\S+\s+){0,4}?(?:inte|INTE)\b.*"
     r"|vad\s+som\s+ligger\s+utanfor\b.*"
     r"|fynd\s+jag\s+(?:inte|INTE)\b.*"
-    r"|.*\boprovat?\b.*"
+    r"|.*\boprovad?t?e?\b.*"
+    r"|.*\bomatt[ae]?\b.*"
     r"|.*\bobevisad[et]?\b.*"
-    r"|.*\boppna?\s+(?:punkter|fraga|fragor)\b.*"
+    r"|.*\bopp(?:en|et|na)\s+(?:punkt|punkter|fraga|fragor)\b.*"
     r"|.*\bkvar\s+att\s+gora\b.*"
     r"|rackvidd(?:en)?\s*$"
     r"|.*\bforbehall\b.*"
     r"|.*\bbegransningar?\b.*"
     r")$",
     re.I | re.M)
+
+
+def ar_arlighetsrubrik(rad):
+    """Sant om raden ar en rubrik som annonserar granser."""
+    return _ARLIGHET.match(_avdiakritik(rad)) is not None
+
 
 # Markorer i kod och dokument som betyder "det har ar inte fardigt".
 _KODMARKOR = re.compile(
@@ -103,7 +141,7 @@ def ur_matning(sokvag: str) -> List[Post]:
     i = 0
     while i < len(rader):
         rad = rader[i]
-        if _ARLIGHET.match(rad):
+        if ar_arlighetsrubrik(rad):
             niva = len(rad) - len(rad.lstrip("#"))
             punkter: List[str] = []
             j = i + 1
