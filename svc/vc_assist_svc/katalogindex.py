@@ -40,7 +40,7 @@ import zipfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-FORMAT = 1
+FORMAT = 1                      # Satt av M-58.
 
 # Namnet pa metadataposten inne i en .vcmx. Ar den borta ar filen inte en
 # komponent vi kan lasa, och den raknas som oläsbar i stallet for att tigas bort.
@@ -91,10 +91,16 @@ def _parametrar(text):
         ut.setdefault(namn, varde[:80])
     return ut
 
-# Sa manga byte av metadatan som lases nar bara namnet behovs. Hela filen ar
-# 200-300 kB per komponent och 3000 komponenter blir da narmare en gigabyte
-# text. Talet ar en buffertstorlek, ingen troskel: det paverkar ingen dom.
-_HUVUD = 4096
+# Sa manga byte av metadatan som lases nar bara namnet behovs.
+#
+# MATT i M-58 over 300 slumpade komponenter: Name ligger som mest vid byte 181.
+# 4096 ger tjugo gangers marginal och kostar under tva procent av filen.
+#
+# VARNING som hor till samma matning: Category ligger vid MEDIAN 142 724 byte
+# och nas darfor ALDRIG i grunt lage. Kategorin i ett grunt index kommer fran
+# KATALOGNAMNET, inte ur metadatan. De tva sammanfaller ofta, och det ar precis
+# darfor skillnaden ar farlig att glomma.
+_HUVUD = 4096                   # Satt av M-58.
 
 
 class Katalogfel(Exception):
@@ -213,8 +219,13 @@ def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
     """Ga igenom biblioteket och lamna indexet.
 
     `djupt=False` laser bara metadatans huvud: namnet racker for att veta VAD
-    som finns. `djupt=True` laser hela och kan da rakna granssnitt, till priset
-    av att lasa narmare en gigabyte text.
+    som finns. `djupt=True` laser hela och kan da rakna granssnitt och plocka
+    parametrar, till priset av att lasa narmare en gigabyte text.
+
+    SKILLNADEN AR INTE BARA HASTIGHET (M-58). I grunt lage kommer `kategori`
+    fran katalognamnet, i djupt lage ur metadatans eget Category-falt. De tva
+    sammanfaller ofta men ar tva olika storheter, och den som jamfor dem
+    jamfor apple med paron.
     """
     if not os.path.isdir(rot):
         raise Katalogfel("ingen biblioteksrot pa %s" % rot)
