@@ -500,10 +500,23 @@ _BIBLIOTEK = {"katalog": None, "skal": None}
 def _bibliotek():
     """Katalogen over det installerade biblioteket, byggd en gang.
 
-    Byggs lat: upptackten och genomgangen tar 1,8 sekunder (M-57), och det ska
-    inte betalas av en tjanst som kanske aldrig fragar. Misslyckas den lagras
-    SKALET, inte ett tomt resultat - ett tomt bibliotek och ett bibliotek som
-    inte hittades ar tva olika svar (I3).
+    Byggs LAT och DJUPT.
+
+    Lat, darfor att upptackten och genomgangen kostar, och det ska inte betalas
+    av en tjanst som kanske aldrig fragar.
+
+    Djupt, darfor att familjen bara finns dar. MATT (M-69): familjemarkoren
+    ligger vid median 14 215 byte och p95 81 593, sa en huvudlasning pa 4096
+    byte hittar den i tva procent av fallen. Utan familj filtrerar verktyget pa
+    katalognamn, och da missar det var fjarde robot och fyra av fem
+    transportorer - vilket ar precis felet M-59 hittade i den forsta versionen.
+
+    Priset ar mätt: 1,8 sekunder grunt mot 12,8 djupt over 3201 komponenter,
+    en gang per process. Tolv sekunder for att sluta missa 164 transportorer ar
+    en bra affar.
+
+    Misslyckas bygget lagras SKALET, inte ett tomt resultat - ett tomt
+    bibliotek och ett bibliotek som inte hittades ar tva olika svar (I3).
     """
     if _BIBLIOTEK["katalog"] is not None or _BIBLIOTEK["skal"] is not None:
         return _BIBLIOTEK["katalog"], _BIBLIOTEK["skal"]
@@ -519,7 +532,7 @@ def _bibliotek():
                               "Provade: %s" % provade)
         return None, _BIBLIOTEK["skal"]
     try:
-        index = katalogindex.bygg(fynd[0].rot)
+        index = katalogindex.bygg(fynd[0].rot, djupt=True)
     except Exception as fel:
         _BIBLIOTEK["skal"] = "biblioteket gick inte att lasa: %s" % fel
         return None, _BIBLIOTEK["skal"]
@@ -541,23 +554,32 @@ _BIBLIOTEKSTRAFF = {
     "properties": {
         "namn": {"type": "string", "description": "Komponentens namn ur dess metadata."},
         "tillverkare": {"type": "string", "description": "Tillverkaren, ur katalogtradet."},
+        "familj": {"type": ["string", "null"],
+                   "description": ("Vad komponenten ar, last ur dess STRUKTUR: "
+                                   "robot, transportor eller verktyg. Null nar "
+                                   "indexet ar grunt eller ingen markor fanns. "
+                                   "Det har ar det sanna mattet - kategorin ar "
+                                   "det inte (M-69).")},
         "kategori": {"type": "string",
                      "description": ("Kategorin. I ett grunt index kommer den fran "
                                      "KATALOGNAMNET och inte ur metadatans eget "
-                                     "Category-falt - tva olika storheter (M-58).")},
+                                     "Category-falt - tva olika storheter (M-58). "
+                                     "Ingendera ar samma sak som familj.")},
         "fil": {"type": "string",
                 "description": "Sokvagen till .vcmx-filen. Det ar den som laddas."},
         "granssnitt": {"type": ["integer", "null"],
                        "description": ("Antal granssnittsforekomster i metadatan, eller "
                                        "null nar indexet ar grunt och inte har rakmat dem.")},
     },
-    "required": ["namn", "tillverkare", "kategori", "fil", "granssnitt"],
+    "required": ["namn", "tillverkare", "familj", "kategori", "fil",
+                 "granssnitt"],
     "additionalProperties": False,
 }
 
 
 def _traff_ut(t, djupt):
     return {"namn": t.namn, "tillverkare": t.tillverkare or "",
+            "familj": (t.familj or None) if djupt else None,
             "kategori": t.kategori or "", "fil": t.sokvag,
             "granssnitt": (t.granssnitt if djupt else None)}
 
@@ -571,6 +593,7 @@ def _search_installed_library(argument):
                        tillverkare=argument.get("manufacturer") or "",
                        kategori=argument.get("category") or "",
                        har_parameter=argument.get("has_parameter") or "",
+                       familj=argument.get("family") or "",
                        max_rader=int(argument.get("max_rows") or 10))
     ut = {
         "traffar": [_traff_ut(t, katalog.djupt) for t in svar.traffar],
@@ -605,12 +628,24 @@ _lagg(
                                   "skiftlage. 'IRB 6700' traffar 'IRB 6700-150/3.20'.")},
         "manufacturer": {"type": "string",
                          "description": "Exakt tillverkarnamn, t.ex. ABB eller KUKA."},
+        "family": {"type": "string", "enum": ["robot", "transportor", "verktyg"],
+                   "description": ("Vad komponenten AR, last ur dess struktur. "
+                                   "ANVAND DEN HAR och inte category: strukturen "
+                                   "ger 2202 robotar och 227 transportorer, "
+                                   "katalognamnet bara 1736 och 58 (M-69). Kraver "
+                                   "ett djupt index.")},
         "category": {"type": "string",
-                     "description": "Exakt kategori, t.ex. Robots eller Conveyors."},
+                     "description": ("Exakt kategori, t.ex. Robots eller Conveyors. "
+                                     "OBS: kategorin kommer ur katalognamnet eller "
+                                     "ett falt och missar var fjarde robot och fyra "
+                                     "av fem transportorer. Foredra family.")},
         "has_parameter": {"type": "string",
-                          "description": ("Bara komponenter vars metadata bar en "
-                                          "parameter vars namn innehaller detta. "
-                                          "Kraver ett djupt index.")},
+                          "description": ("Bara komponenter vars metadata namner en "
+                                          "parameter med det har i namnet - VAR SOM "
+                                          "HELST i komponenten, ocksa inne i en "
+                                          "geometrilada. Det ar en namnlista, inte "
+                                          "komponentens egenskaper (M-59). Kraver "
+                                          "ett djupt index.")},
         "max_rows": {"type": "integer", "minimum": 1, "maximum": 50,
                      "description": "Hogsta antal rader i listan. Standard 10."},
     }),
@@ -633,10 +668,11 @@ _lagg(
 def _library_overview(argument):
     katalog, skal = _bibliotek()
     if katalog is None:
-        return {"antal": 0, "tillverkare": {}, "kategorier": {},
+        return {"antal": 0, "familjer": {}, "tillverkare": {}, "kategorier": {},
                 "kalla": "inget bibliotek", "notering": skal}
     return {
         "antal": len(katalog.poster),
+        "familjer": katalog.familjer(),
         "tillverkare": katalog.tillverkare(),
         "kategorier": katalog.kategorier(),
         "kalla": getattr(katalog, "hittat_via", "installerat bibliotek"),
@@ -654,12 +690,17 @@ _lagg(
     params({}),
     returns({
         "antal": {"type": "integer", "description": "Antal komponenter i biblioteket."},
+        "familjer": {"type": "object",
+                     "description": ("Familj -> antal, last ur strukturen. Tom "
+                                     "nyckel betyder att ingen markor fanns. Det "
+                                     "har ar det sanna mattet (M-69)."),
+                     "additionalProperties": {"type": "integer"}},
         "tillverkare": {"type": "object", "description": "Tillverkare -> antal.",
                         "additionalProperties": {"type": "integer"}},
         "kategorier": {"type": "object", "description": "Kategori -> antal.",
                        "additionalProperties": {"type": "integer"}},
         "kalla": {"type": "string", "description": "Var biblioteket hittades."},
         "notering": {"type": ["string", "null"], "description": "Forbehall, eller null."},
-    }, ["antal", "tillverkare", "kategorier", "kalla", "notering"]),
+    }, ["antal", "familjer", "tillverkare", "kategorier", "kalla", "notering"]),
     _library_overview,
 )

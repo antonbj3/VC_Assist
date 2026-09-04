@@ -20,10 +20,12 @@ from vc_assist_svc.verktyg import katalog as KT                    # noqa: E402
 def poster(n_robotar=3):
     ut = [{"namn": "IRB %d" % (100 + i), "tillverkare": "ABB",
            "kategori": "Robots", "sokvag": "/x/%d.vcmx" % i,
-           "granssnitt": 2, "parametrar": {"MaxSpeed": "180"}}
+           "granssnitt": 2, "familj": "robot",
+           "parametrar": {"MaxSpeed": "180"}}
           for i in range(n_robotar)]
     ut.append({"namn": "mk1", "tillverkare": "Qimarox", "kategori": "Conveyors",
-               "sokvag": "/x/mk1.vcmx", "granssnitt": 4, "parametrar": {}})
+               "sokvag": "/x/mk1.vcmx", "granssnitt": 4,
+               "familj": "transportor", "parametrar": {}})
     return ut
 
 
@@ -145,3 +147,49 @@ def test_bankens_katalog_ar_ororda(bibliotek):
     bibliotek()
     r = V.DATA_HANDLERS["search_catalog"]({})
     assert r["antal"] == 65
+
+
+# ---- familjen ar det sanna mattet (M-69) -----------------------------------
+
+def test_verktyget_filtrerar_pa_familj_och_inte_bara_pa_kategori(bibliotek,
+                                                                 monkeypatch):
+    """MATT: strukturen ger 227 transportorer, katalognamnet 58.
+
+    Trasig fixtur for verktyget: en transportor i katalogen 'Legacy'. Ett
+    filter pa kategori missar den; ett pa familj gor det inte.
+    """
+    KT._nollstall_bibliotek()
+    monkeypatch.setattr(KI, "hitta",
+                        lambda *a, **k: [KI.Fynd("/x", "provrot, version 4.10")])
+    monkeypatch.setattr(KI, "bygg", lambda rot, **k: {
+        "format": 1, "rot": rot, "djupt": True, "poster": [
+            {"namn": "synlig", "tillverkare": "Q", "kategori": "Conveyors",
+             "sokvag": "/x/a.vcmx", "granssnitt": 2, "familj": "transportor"},
+            {"namn": "gomd", "tillverkare": "Q", "kategori": "Legacy",
+             "sokvag": "/x/b.vcmx", "granssnitt": 2, "familj": "transportor"}]})
+    try:
+        assert sok(category="Conveyors")["antal"] == 1
+        assert sok(family="transportor")["antal"] == 2
+    finally:
+        KT._nollstall_bibliotek()
+
+
+def test_oversikten_bar_familjerna(bibliotek):
+    bibliotek()
+    r = V.DATA_HANDLERS["library_overview"]({})
+    assert r["familjer"] == {"robot": 3, "transportor": 1}
+
+
+def test_beskrivningen_sager_att_family_ska_foredras_framfor_category():
+    """En modell som valjer category missar var fjarde robot."""
+    v = V.REGISTER["search_installed_library"]
+    fam = v.parameters["properties"]["family"]["description"]
+    kat = v.parameters["properties"]["category"]["description"]
+    assert "2202" in fam and "1736" in fam
+    assert "Foredra family" in kat
+
+
+def test_has_parameter_sager_att_det_ar_en_namnlista():
+    """M-59: parameternamnen ar oscopeade och kommer ocksa ur geometrilador."""
+    b = V.REGISTER["search_installed_library"].parameters
+    assert "geometrilada" in b["properties"]["has_parameter"]["description"]

@@ -67,12 +67,18 @@ class Traff:
     kategori: str
     sokvag: str
     granssnitt: int = 0
+    familj: str = ""
     parametrar: Dict[str, str] = field(default_factory=dict)
 
     def rad(self) -> str:
-        """En rad, fasta falt, ingen JSON."""
-        return "%s | %s | %s | granssnitt %s" % (
-            self.tillverkare or SAKNAS, self.namn, self.kategori or SAKNAS,
+        """En rad, fasta falt, ingen JSON.
+
+        Familjen star FORE kategorin, for den ar den sanna: kategorin kommer
+        ur katalognamnet eller ur ett falt, familjen ur komponentens struktur.
+        """
+        return "%s | %s | %s | %s | granssnitt %s" % (
+            self.tillverkare or SAKNAS, self.namn, self.familj or SAKNAS,
+            self.kategori or SAKNAS,
             self.granssnitt if self.granssnitt else SAKNAS)
 
     def fullt(self, max_parametrar: int = 25) -> str:
@@ -158,6 +164,7 @@ class Katalog(object):
                         kategori=_text(p.get("kategori")),
                         sokvag=_text(p.get("sokvag")),
                         granssnitt=int(p.get("granssnitt") or 0),
+                        familj=_text(p.get("familj")),
                         parametrar=dict(p.get("parametrar") or {}))
                    for p in index["poster"]]
         return Katalog(poster, _text(index.get("rot")),
@@ -173,15 +180,17 @@ class Katalog(object):
     # ---- sokningen -----------------------------------------------------
 
     def sok(self, fraga: str = "", tillverkare: str = "", kategori: str = "",
-            har_parameter: str = "", max_rader: int = MAX_RADER) -> Svar:
+            har_parameter: str = "", familj: str = "",
+            max_rader: int = MAX_RADER) -> Svar:
         """Filtrera och lamna ett svar som bar sin egen arlighet.
 
         `fraga` matchas mot namnet, skiftlagesokansligt och som delstrang -
         en modell skriver "IRB 6700" nar filen heter "IRB 6700-150_3_20".
         """
-        traffar = self._filtrera(fraga, tillverkare, kategori, har_parameter)
+        traffar = self._filtrera(fraga, tillverkare, kategori, har_parameter,
+                                 familj)
         beskrivning = self._beskriv_fraga(fraga, tillverkare, kategori,
-                                          har_parameter)
+                                          har_parameter, familj)
         if len(traffar) > BRED_FRAGA:
             fordelning: Dict[str, int] = {}
             for t in traffar:
@@ -190,13 +199,17 @@ class Katalog(object):
         return Svar(len(traffar), traffar[:max(int(max_rader), 1)],
                     None, beskrivning)
 
-    def _filtrera(self, fraga, tillverkare, kategori, har_parameter) -> List[Traff]:
+    def _filtrera(self, fraga, tillverkare, kategori, har_parameter,
+                  familj="") -> List[Traff]:
         f = (fraga or "").strip().lower()
         tv = (tillverkare or "").strip().lower()
         kt = (kategori or "").strip().lower()
         hp = (har_parameter or "").strip().lower()
+        fm = (familj or "").strip().lower()
         ut = []
         for t in self.poster:
+            if fm and fm != t.familj.lower():
+                continue
             if f and f not in t.namn.lower():
                 continue
             if tv and tv != t.tillverkare.lower():
@@ -212,8 +225,11 @@ class Katalog(object):
         return ut
 
     @staticmethod
-    def _beskriv_fraga(fraga, tillverkare, kategori, har_parameter) -> str:
+    def _beskriv_fraga(fraga, tillverkare, kategori, har_parameter,
+                       familj="") -> str:
         delar = []
+        if familj:
+            delar.append("familj = %s" % familj)
         if fraga:
             delar.append('namn ~ "%s"' % fraga)
         if tillverkare:
@@ -232,6 +248,13 @@ class Katalog(object):
             ut[t.tillverkare] = ut.get(t.tillverkare, 0) + 1
         return ut
 
+    def familjer(self) -> Dict[str, int]:
+        """Antal per familj, ur strukturen. Tom nyckel = ingen markor fanns."""
+        ut: Dict[str, int] = {}
+        for t in self.poster:
+            ut[t.familj] = ut.get(t.familj, 0) + 1
+        return ut
+
     def kategorier(self) -> Dict[str, int]:
         ut: Dict[str, int] = {}
         for t in self.poster:
@@ -242,12 +265,20 @@ class Katalog(object):
         """Det forsta en agent bor se: vad finns det HAR, i stora drag."""
         k = self.kategorier()
         tv = self.tillverkare()
+        fm = self.familjer()
         rader = ["%d komponenter, %d tillverkare, %d kategorier."
                  % (len(self.poster), len(tv), len(k)),
-                 "Indexet ar %s." % ("djupt (parametrar ingar)" if self.djupt
+                 "Indexet ar %s." % ("djupt (parametrar och familj ingar)"
+                                     if self.djupt
                                      else "grunt (kategori kommer fran "
-                                          "katalognamnet, se M-58)"),
-                 "Storsta kategorierna:"]
+                                          "katalognamnet och familjen saknas "
+                                          "helt, se M-58 och M-69)")]
+        if self.djupt:
+            rader.append("Familj ur STRUKTUREN (det sanna mattet, M-69):")
+            for namn, n in sorted(fm.items(), key=lambda p: (-p[1], p[0])):
+                rader.append("  %-32s %5d" % (namn or "(ingen markor)", n))
+        rader.append("Storsta kategorierna (ur katalognamn eller falt - INTE "
+                     "samma sak som familj):")
         for namn, n in sorted(k.items(), key=lambda p: (-p[1], p[0]))[:max_rader]:
             rader.append("  %-32s %5d" % (namn or SAKNAS, n))
         return "\n".join(rader)

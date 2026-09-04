@@ -50,6 +50,40 @@ _NAMN = re.compile(r'^\s*Name\s+"([^"]*)"', re.M)
 _KATEGORI = re.compile(r'^\s*Category\s+"([^"]*)"', re.M)
 _GRANSSNITT = re.compile(r'rSimInterface')
 
+# Familjen lases ur STRUKTUREN, inte ur katalognamnet. Markorerna ar samma som
+# datablad.FAMILJEMARKORER och star bara pa ett stalle i sak - de dubbleras har
+# for att katalogindexet inte ska bero pa databladslagret, och ett prov binder
+# ihop de tva listorna sa att de inte kan glida isar.
+#
+# MATT (M-69): katalognamnet "Robots" har 1736 komponenter, men 466 robotar TILL
+# ligger i kataloger som heter Archiv, Legacy, extra och ultra. For
+# transportorer ar det varre: 45 i "Conveyors" och 182 utanfor. Ett sokskikt
+# som filtrerar pa katalognamn missar alltsa var fjarde robot och fyra av fem
+# transportorer.
+#
+# MATT (M-69) ocksa varfor detta bara finns i DJUPT lage: markoren ligger vid
+# median 14 215 byte, p95 81 593 och max 1 151 329. En huvudlasning pa 4096
+# byte hittar den i 2 procent av fallen.
+_FAMILJEMARKORER = (
+    ("robot", ("rSimRobotController", "rSimRrsRobotController")),
+    ("transportor", ("rOneWayPath", "rTwoWayPath", "rSimCapacityBlock",
+                     "rTransportNode")),
+    ("verktyg", ("rToolContainer",)),
+)
+
+
+def _familj(text):
+    """Familjen ur metadatans egen struktur, eller "" nar ingen markor finns.
+
+    Tom strang och inte "ovrig": den som far tomt vet att fragan inte gick att
+    besvara, medan "ovrig" later som ett svar.
+    """
+    for namn, markorer in _FAMILJEMARKORER:
+        for m in markorer:
+            if m in text:
+                return namn
+    return ""
+
 # En parameter i metadatan. VC skriver dem som
 #     Variable "rTVariable<rDouble>"
 #     {
@@ -124,12 +158,15 @@ class Post:
     sokvag: str
     storlek: int
     granssnitt: int = 0
+    familj: str = ""
     parametrar: Dict[str, str] = field(default_factory=dict)
 
     def till_json(self):
         d = {"namn": self.namn, "tillverkare": self.tillverkare,
              "kategori": self.kategori, "sokvag": self.sokvag,
              "storlek": self.storlek, "granssnitt": self.granssnitt}
+        if self.familj:
+            d["familj"] = self.familj
         if self.parametrar:
             d["parametrar"] = self.parametrar
         return d
@@ -221,6 +258,7 @@ def _las(vcmx: str, djupt: bool) -> Optional[Post]:
                 sokvag=vcmx,
                 storlek=os.path.getsize(vcmx),
                 granssnitt=(len(_GRANSSNITT.findall(text)) if djupt else 0),
+                familj=(_familj(text) if djupt else ""),
                 parametrar=(_parametrar(text) if djupt else {}))
 
 
@@ -268,6 +306,7 @@ def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
         "antal": len(poster),
         "olasliga": olasliga,
         "tillverkare": sorted(set(p.tillverkare for p in poster if p.tillverkare)),
+        "familjer": sorted(set(p.familj for p in poster if p.familj)),
         "poster": [p.till_json() for p in poster],
     }
 
