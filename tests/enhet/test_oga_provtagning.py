@@ -207,3 +207,52 @@ def test_provtagare_och_analys_hanger_ihop_hela_vagen(tmp_path):
     assert provtaget["run"]["samples"] == len(kalla["rows"])
     text, rapport, _a = A.doma(provtaget, plan)
     assert rapport.dom[0] == "PASS", rapport.dom
+
+
+# ---- bandrivaren --------------------------------------------------------
+
+class SkrivbarScen(FalskScen):
+    def __init__(self):
+        FalskScen.__init__(self, {})
+        self.satta = []
+
+    def satt_pose(self, spec, punkt):
+        self.satta.append((spec, list(punkt)))
+        self.bana[spec] = {"p": list(punkt), "q": [0, 0, 0, 1]}
+        return True
+
+
+def test_bandrivaren_flyttar_ett_steg_per_intervall():
+    scen = SkrivbarScen()
+    d = P.Bandrivare(scen, {"objekt": ["a", "b"], "dt": 0.05,
+                            "punkter": [[[0, 0, 0], [0, 0, 1]],
+                                        [[1, 0, 0], [1, 0, 1]],
+                                        [[2, 0, 0], [2, 0, 1]]]}).starta(0.0)
+    assert d.kanske_flytta(0.0) is True
+    assert d.kanske_flytta(0.01) is False, "far inte flytta tva ganger i samma steg"
+    assert d.kanske_flytta(0.05) is True
+    assert [s for s, _ in scen.satta] == ["a", "b", "a", "b"]
+    assert scen.satta[2][1] == [1, 0, 0]
+
+
+def test_bandrivaren_stannar_pa_sista_punkten():
+    scen = SkrivbarScen()
+    d = P.Bandrivare(scen, {"objekt": ["a"], "dt": 0.05,
+                            "punkter": [[[0, 0, 0]], [[1, 0, 0]]]}).starta(0.0)
+    d.kanske_flytta(0.0)
+    d.kanske_flytta(0.05)
+    d.kanske_flytta(5.0)
+    assert d.klar is True
+    assert scen.satta[-1][1] == [1, 0, 0], "ska sta kvar pa sista punkten"
+    assert d.kanske_flytta(9.0) is False
+
+
+def test_bandrivaren_hoppar_over_missade_steg_utan_att_skena():
+    """Ett langt uppehall ska ge ETT hopp till ratt punkt, inte en skur."""
+    scen = SkrivbarScen()
+    punkter = [[[i, 0, 0]] for i in range(20)]
+    d = P.Bandrivare(scen, {"objekt": ["a"], "dt": 0.05, "punkter": punkter}).starta(0.0)
+    d.kanske_flytta(0.0)
+    d.kanske_flytta(0.5)          # tio steg pa en gang
+    assert len(scen.satta) == 2
+    assert scen.satta[-1][1] == [10, 0, 0]

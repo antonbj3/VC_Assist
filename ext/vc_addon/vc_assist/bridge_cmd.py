@@ -191,6 +191,30 @@ def _koppla_startstopp(app, sim, pump):
         _log("OnStartStop-handlare registrerad")
 
 
+class _Apphamtare(object):
+    """Ger uppskjuten kod ett getApplication().
+
+    En lambda hade varit naturligare, men i Python 2 ar exec FORBJUDET i en
+    funktion som innehaller en nastlad funktion med fria variabler. Just det
+    felet gjorde hela modulen okompilerbar, och VC svalde det HELT (M-09) -
+    en py3-syntaxkontroll kan omojligt se det.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self):
+        return self.app
+
+
+def _uppskjutet_scope(app):
+    g = {"getApplication": _Apphamtare(app), "__name__": "__uppskjutet__"}
+    for namn in dir(vcCommand_modul):
+        if namn.startswith("VC_"):
+            g[namn] = getattr(vcCommand_modul, namn)
+    return g
+
+
 def _tillampa_uppskjutet(app, pump):
     """Kor det som kots upp for att det inte gick medan simuleringen ledde.
 
@@ -213,10 +237,7 @@ def _tillampa_uppskjutet(app, pump):
     kvar = []
     for post in poster:
         try:
-            g = {"getApplication": lambda: app, "__name__": "__uppskjutet__"}
-            for namn in dir(vcCommand_modul):
-                if namn.startswith("VC_"):
-                    g[namn] = getattr(vcCommand_modul, namn)
+            g = _uppskjutet_scope(app)
             exec(post.get("code", ""), g)
             _log("  tillampad: %s" % post.get("desc"))
         except Exception:

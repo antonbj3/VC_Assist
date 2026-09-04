@@ -12,6 +12,7 @@ alltsa samma vag som en riktig cell skulle ge.
 """
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -31,101 +32,68 @@ DRIVARE = "OgaDrivare"
 
 
 def _bana(cellnamn):
-    """Vagpunkter ur den syntetiska cellen, sa facit ar kant i forvag."""
+    """Vagpunkter ur den syntetiska cellen, sa facit ar kant i forvag.
+
+    Varje punkt ar [x, y, z, gir_i_grader] per objekt.
+    """
     b, plan = celler.ALLA[cellnamn]()
     rader = b.data()["rows"]
-    ut = []
+    punkter = []
     for r in rader:
-        d = r["parts"]["del"]["p"]
-        v = r["tools"]["gripper"]["p"]
-        ut.append([round(x, 5) for x in (d[0], d[1], d[2], v[0], v[1], v[2])])
-    return ut, plan
+        d = r["parts"]["del"]
+        v = r["tools"]["gripper"]
+        punkter.append([_punkt(d), _punkt(v)])
+    return punkter, plan
 
 
-DRIVSKRIPT = """from vcScript import *
-
-BANA = %(bana)s
-
-def satt(c, x, y, z):
-    # translateAbs ar RELATIV i absoluta axlar (matt M-11), sa en absolut
-    # position satts som skillnaden mot nuvarande lage.
-    m = c.PositionMatrix
-    m.translateAbs(x - m.P.X, y - m.P.Y, z - m.P.Z)
-    c.PositionMatrix = m
-
-def OnRun():
-    app = getApplication()
-    d = app.findComponent('%(del)s')
-    v = app.findComponent('%(verktyg)s')
-    if d is None or v is None:
-        return
-    for rad in BANA:
-        satt(d, rad[0], rad[1], rad[2])
-        satt(v, rad[3], rad[4], rad[5])
-        delay(0.05)
-"""
+def _punkt(pose):
+    """[x, y, z, gir] ur en pose. Giren tas ur kvaternionens z-komponent."""
+    p = pose["p"]
+    q = pose["q"]
+    gir = math.degrees(2.0 * math.atan2(q[2], q[3]))
+    return [round(p[0], 5), round(p[1], 5), round(p[2], 5), round(gir, 4)]
 
 
 def _bygg(k, cellnamn):
-    """Bygger cellen i VC. Gar via kon - allt detta skriver."""
-    bana, plan = _bana(cellnamn)
+    """Bygger cellen i VC. Bara komponenter - INGA skriptbeteenden.
+
+    M-13: createBehaviour(VC_SCRIPT) ar den enda operation som stoppar
+    simuleringen och dodar pumpen. Rorelsen drivs darfor av pumpen sjalv
+    genom en bana, inte av ett eget drivskript.
+    """
+    punkter, plan = _bana(cellnamn)
     kod = (
         "import json\n"
         "app = getApplication()\n"
-        "for namn in (%r, %r, %r):\n"
-        "    for c in list(app.Components):\n"
-        "        if c.Name == namn:\n"
-        "            app.deleteComponent(c)\n"
-        "d = app.createComponent()\n"
-        "d.Name = %r\n"
-        "v = app.createComponent()\n"
-        "v.Name = %r\n"
-        "dr = app.createComponent()\n"
-        "dr.Name = %r\n"
-        "beh = dr.createBehaviour(VC_SCRIPT, 'bana')\n"
-        "beh.Script = SRC\n"
+        "namn = [%r, %r]\n"
+        "for c in list(app.Components):\n"
+        "    if c.Name in namn:\n"
+        "        app.deleteComponent(c)\n"
+        "for n in namn:\n"
+        "    c = app.createComponent()\n"
+        "    c.Name = n\n"
         "print(json.dumps({'byggd': True}))\n"
-    ) % (str(DEL), str(VERKTYG), str(DRIVARE),
-         str(DEL), str(VERKTYG), str(DRIVARE))
-    src = DRIVSKRIPT % {"bana": json.dumps(bana), "del": DEL, "verktyg": VERKTYG}
-    # SRC skickas som en egen rad sa den inte behover flykttecknas in i koden
-    kod = "SRC = %r\n" % str(src) + kod
+    ) % (str(DEL), str(VERKTYG))
     post = k.koa(kod, desc="bygg cellen %s" % cellnamn)
-    k.godkann(post["qid"])
-    return bana, plan
+    ut = k.godkann_och_vanta(post["qid"], timeout=30)
+    if ut["state"] != "done":
+        raise RuntimeError("cellbygget gav %s: %r" % (ut["state"], ut.get("svar")))
+    return punkter, plan
 
 
-def _starta_om_simuleringen(k):
-    post = k.koa("app = getApplication()\n"
-                 "app.getSimulation().reset()\n"
-                 "app.startSimulation()\n", desc="starta om simuleringen")
-    k.godkann(post["qid"])
-    # Bryggan overlever omstarten (sockeln lamnas oppen), men pumpen behover
-    # nagra varv innan den ar igang igen.
-    for _ in range(60):
-        try:
-            if k.ping()["tick"] > 0:
-                return True
-        except Exception:
-            pass
-        time.sleep(0.25)
-    return False
-
-
-def kor_cell(k, cellnamn, langd_s):
-    bana, plan = _bygg(k, cellnamn)
-    if not _starta_om_simuleringen(k):
-        raise RuntimeError("pumpen kom aldrig igang efter omstarten")
-
+def kor_cell(k, cellnamn, marginal_s=3.0):
+    punkter, plan = _bygg(k, cellnamn)
     t0 = k.simtid()
     k.oga_start({"template": cellnamn, "parts": [DEL], "tools": [VERKTYG],
-                 "rate_hz": 20.0}, simtid=t0)
-    time.sleep(langd_s)
+                 "rate_hz": 20.0}, simtid=t0,
+                bana={"objekt": [DEL, VERKTYG], "dt": 0.05, "punkter": punkter})
+    langd = len(punkter) * 0.05 + marginal_s
+    time.sleep(langd)
     ut = k.oga_stopp()
     if "data" not in ut:
         raise RuntimeError("serien kom inte med i svaret: %r" % ut)
     data = ut["data"]
-    # Ogats analys forvantar sig namnen i planen; kartlagg fran VC:s namn.
+    # Ogats analys forvantar sig planens namn; kartlagg fran VC:s namn.
     for rad in data["rows"]:
         if DEL in rad.get("parts", {}):
             rad["parts"]["del"] = rad["parts"].pop(DEL)
@@ -142,6 +110,7 @@ FACIT = {
     "teleport": "FAIL",
     "glider": "FAIL",
     "fel_placerad": "FAIL",
+    "tappad": "FAIL",
 }
 
 
@@ -150,7 +119,7 @@ def main():
     ap.add_argument("--port", type=int, default=8901)
     ap.add_argument("--token", default=os.path.expanduser(
         "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
-    ap.add_argument("--langd", type=float, default=8.0)
+
     ap.add_argument("--celler", default=",".join(sorted(FACIT)))
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
@@ -161,7 +130,7 @@ def main():
     for namn in a.celler.split(","):
         vantat = FACIT[namn]
         try:
-            ut, rapport, text = kor_cell(k, namn, a.langd)
+            ut, rapport, text = kor_cell(k, namn)
             dom = rapport.dom[0]
             ok = (dom == vantat)
             rader = [r for _s, rr in rapport.sektioner for r in rr]

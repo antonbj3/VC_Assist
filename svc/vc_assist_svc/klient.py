@@ -159,8 +159,11 @@ class Klient(object):
 
     # ---- ogat -----------------------------------------------------------
 
-    def oga_start(self, plan, simtid):
-        return self.anrop("eyes_start", {"plan": plan, "simtid": simtid})["result"]
+    def oga_start(self, plan, simtid, bana=None):
+        args = {"plan": plan, "simtid": simtid}
+        if bana:
+            args["bana"] = bana
+        return self.anrop("eyes_start", args)["result"]
 
     def oga_status(self):
         return self.anrop("eyes_status")["result"]

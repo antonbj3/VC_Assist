@@ -103,6 +103,24 @@ class VcScen(Scen):
             self._saknas(spec, "kunde inte lasa posen: %s" % type(e).__name__)
             return None
 
+    def satt_pose(self, spec, punkt):
+        """Satter ett objekts lage. Anvands av bandrivaren, inte av provtagningen."""
+        nod = self._nod(spec)
+        if nod is None:
+            return False
+        # translateAbs ar RELATIV i absoluta axlar (matt M-11), sa en absolut
+        # position satts som skillnaden mot nuvarande lage.
+        m = nod.PositionMatrix
+        if len(punkt) >= 4:
+            # Fjarde talet ar gir i grader. setWPR nollstaller vridningen, sa
+            # den maste satts FORE forflyttningen.
+            m.setWPR(0.0, 0.0, float(punkt[3]))
+            nod.PositionMatrix = m
+            m = nod.PositionMatrix
+        m.translateAbs(punkt[0] - m.P.X, punkt[1] - m.P.Y, punkt[2] - m.P.Z)
+        nod.PositionMatrix = m
+        return True
+
     def signal(self, spec):
         delar = spec.split("/", 1)
         if len(delar) != 2:
@@ -241,3 +259,41 @@ class Provtagare(object):
             f.close()
         self.n_skrivna = len(self.rader)
         return self.sokvag
+
+
+class Bandrivare(object):
+    """Flyttar objekt langs en fardig bana, driven av pumpen.
+
+    Finns for att fas 2:s celler ska ga att bygga UTAN ett eget drivskript:
+    att skapa ett skriptbeteende stoppar simuleringen och dodar pumpen (M-13).
+    Rorelsen drivs darfor av samma varv som provtar den.
+    """
+
+    def __init__(self, scen, bana):
+        self.scen = scen
+        self.objekt = list(bana.get("objekt") or [])
+        self.punkter = list(bana.get("punkter") or [])
+        self.dt = float(bana.get("dt", 0.05))
+        self.t0 = None
+        self.i = -1
+        self.klar = False
+
+    def starta(self, t):
+        self.t0 = float(t)
+        self.i = -1
+        self.klar = False
+        return self
+
+    def kanske_flytta(self, t):
+        if self.t0 is None or self.klar or not self.punkter:
+            return False
+        n = int((float(t) - self.t0) / self.dt)
+        if n <= self.i:
+            return False
+        if n >= len(self.punkter):
+            self.klar = True
+            n = len(self.punkter) - 1
+        self.i = n
+        for spec, punkt in zip(self.objekt, self.punkter[n]):
+            self.scen.satt_pose(spec, punkt)
+        return True

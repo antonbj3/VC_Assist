@@ -120,3 +120,45 @@ def test_grinden_faller_verkligen_en_mall_med_bruten_strangliteral():
     for nod in ast.walk(trad):
         if isinstance(nod, ast.Assign) and getattr(nod.targets[0], "id", None) == "SKRIPT":
             compile(ast.literal_eval(nod.value), "<hel>", "exec")
+
+
+# ---- Python 2-fallor som en py3-kontroll inte kan se --------------------
+
+def _funktioner(sokvag):
+    with open(sokvag) as f:
+        trad = ast.parse(f.read(), filename=sokvag)
+    for nod in ast.walk(trad):
+        if isinstance(nod, (ast.FunctionDef,)):
+            yield nod
+
+
+@pytest.mark.parametrize("sokvag", _FILER, ids=[os.path.basename(f) for f in _FILER])
+def test_ingen_funktion_blandar_exec_med_en_nastlad_funktion(sokvag):
+    """VC kor Python 2.7, dar exec ar FORBJUDET i en funktion som innehaller
+    en nastlad funktion med fria variabler.
+
+    Det gjorde hela bridge_cmd.py okompilerbar och VC svalde det utan ett ord
+    (M-09). En py3-syntaxkontroll ser ingenting - den maste leta efter monstret.
+    """
+    for fn in _funktioner(sokvag):
+        har_exec = any(
+            isinstance(n, ast.Call) and getattr(n.func, "id", None) == "exec"
+            for n in ast.walk(fn))
+        if not har_exec:
+            continue
+        nastlade = [n for n in ast.walk(fn)
+                    if isinstance(n, (ast.Lambda, ast.FunctionDef)) and n is not fn]
+        assert not nastlade, (
+            "%s: %s() blandar exec med en nastlad funktion - olagligt i py2"
+            % (os.path.basename(sokvag), fn.name))
+
+
+@pytest.mark.parametrize("sokvag", _FILER, ids=[os.path.basename(f) for f in _FILER])
+def test_inga_f_strangar_i_tillagget(sokvag):
+    """f-strangar finns inte i Python 2.7."""
+    with open(sokvag) as f:
+        trad = ast.parse(f.read(), filename=sokvag)
+    for nod in ast.walk(trad):
+        assert not isinstance(nod, ast.JoinedStr), \
+            "%s rad %s: f-strang, finns inte i py2" % (
+                os.path.basename(sokvag), getattr(nod, "lineno", "?"))

@@ -131,6 +131,7 @@ class Brygga(object):
         self._exec_globals = exec_globals or {}
         self._senaste_trafik = 0.0
         self.provtagare = None
+        self.bandrivare = None
         # MATT: att skapa en komponent med ett skriptbeteende STOPPAR den
         # korande simuleringen. Pumpen bor i simuleringen (M-08), sa bryggan
         # blir stum mitt i sitt eget svar. Darfor startas den om.
@@ -277,6 +278,10 @@ class Brygga(object):
         self._n_tick += 1
         if self.provtagare is not None and simtid is not None:
             try:
+                if self.bandrivare is not None:
+                    # Flytta FORE provtagningen: provtagaren gor sim.update()
+                    # och laser darfor det nya laget, inte det forra (M-11).
+                    self.bandrivare.kanske_flytta(simtid)
                 self.provtagare.kanske_prov(simtid)
             except Exception:
                 self.logg("PROVTAGNINGSFEL\n" + traceback.format_exc())
@@ -501,6 +506,9 @@ class Brygga(object):
         scen = OP.VcScen(app(), sim())
         self.provtagare = OP.Provtagare(scen, plan)
         self.provtagare.starta(float(simtid))
+        bana = args.get("bana")
+        self.bandrivare = (OP.Bandrivare(scen, bana).starta(float(simtid))
+                           if bana else None)
         self.logg("ogat startat: %r" % (plan,))
         return P.svar_ok(id_, {"startad": self.provtagare.startad,
                                "rate_hz": self.provtagare.rate_hz,
@@ -523,6 +531,7 @@ class Brygga(object):
         else:
             svar["for_stor_for_svaret"] = len(kropp)
         self.provtagare = None
+        self.bandrivare = None
         # MATT: att skapa en komponent med ett skriptbeteende STOPPAR den
         # korande simuleringen. Pumpen bor i simuleringen (M-08), sa bryggan
         # blir stum mitt i sitt eget svar. Darfor startas den om.
