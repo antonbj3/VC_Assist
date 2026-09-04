@@ -1558,7 +1558,6 @@ def test_ett_okant_ord_i_upprakningen_blir_en_BLOCKERANDE_fraga():
     """
     besked = _besked(OPERATORENS_EXEMPEL)
     assert besked.status == B.OFULLSTANDIG, besked.text()
-    ids = [t.split(":")[0] for _k, t in besked.problem]
     assert any("okant_ord" in t for _k, t in besked.problem), besked.problem
 
 
