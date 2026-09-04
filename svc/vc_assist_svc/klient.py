@@ -171,6 +171,22 @@ class Klient(object):
     def oga_stopp(self):
         return self.anrop("eyes_stop")["result"]
 
+    def plc_in(self, varden=None, alder_s=None, avbrott=None):
+        """Skjuter in PLC-varden i ogats tidsserie, eller bryter kontakten.
+
+        `alder_s` ar vardets alder i ANROPARENS klocka - en varaktighet, inte
+        en tidpunkt. Bryggan raknar om den till simuleringstid med pumpens
+        matta takt. Se docs/matningar/M-42.
+        """
+        args = {}
+        if varden is not None:
+            args["varden"] = varden
+        if alder_s is not None:
+            args["alder_s"] = float(alder_s)
+        if avbrott is not None:
+            args["avbrott"] = avbrott
+        return self.anrop("plc_in", args)["result"]
+
     def simtid(self):
         """Simuleringstiden last i skriptets scope, dar den ar aktuell (M-08)."""
         return self.kor("import json\n"

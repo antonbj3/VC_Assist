@@ -46,11 +46,18 @@ class Varv:
     """Vad ett varv gjorde och hur lang tid varje led tog."""
 
     __slots__ = ("nr", "t0", "las_vc_ms", "skriv_plc_ms", "las_plc_ms",
-                 "skriv_vc_ms", "totalt_ms", "till_plc", "fran_plc", "fel")
+                 "skriv_vc_ms", "totalt_ms", "till_plc", "fran_plc", "fel",
+                 "t_fran_plc", "oga", "oga_fel")
 
     def __init__(self, nr):
         self.nr = nr
         self.t0 = time.time()
+        # Vaggklockan da OPC UA-lasningen PABORJADES. Vardet ar minst sa
+        # gammalt; stamplar man i stallet nar lasningen atervande blir varje
+        # varde yngre an det ar, och det ar fel hall att gissa at.
+        self.t_fran_plc = None
+        self.oga = None          # ogats svar pa inskottet
+        self.oga_fel = None      # inskottet gick inte fram, och det tigs inte
         self.las_vc_ms = None
         self.skriv_plc_ms = None
         self.las_plc_ms = None
@@ -67,7 +74,7 @@ class Varv:
             "las_plc_ms": self.las_plc_ms, "skriv_vc_ms": self.skriv_vc_ms,
             "totalt_ms": self.totalt_ms,
             "till_plc": dict(self.till_plc), "fran_plc": dict(self.fran_plc),
-            "fel": self.fel,
+            "fel": self.fel, "oga": self.oga, "oga_fel": self.oga_fel,
         }
 
 
@@ -83,7 +90,7 @@ class Kopplare:
     attrapper i ett prov utan att kopplaren vet om det.
     """
 
-    def __init__(self, karta, ua, brygga, max_raka_fel=MAX_RAKA_FEL):
+    def __init__(self, karta, ua, brygga, max_raka_fel=MAX_RAKA_FEL, oga=None):
         if not isinstance(karta, Signalkarta):
             raise Kopplarfel("kopplaren tar en Signalkarta, inte %s"
                              % type(karta).__name__)
@@ -91,6 +98,12 @@ class Kopplare:
         self.ua = ua
         self.brygga = brygga
         self.max_raka_fel = int(max_raka_fel)
+        # Ogonkopplingen (plc/ogonkoppling.py) eller None. Kopplaren vet inget
+        # om simuleringstid eller brygga har - den lamnar over VARDET och den
+        # vaggklocka det lastes vid, och ogonkopplingen gor om det till ogats
+        # axel. Det ar darfor bada gar att prova var for sig.
+        self.oga = oga
+        self.n_ogafel = 0
         self.varv = []
         self._raka_fel = 0
         # Riktningen kommer ur kartan. En signal utan komponent eller
@@ -173,6 +186,7 @@ class Kopplare:
             v.till_plc = fran_scenen
 
             t = time.time()
+            v.t_fran_plc = t
             fran_plc = self.ua.las([s.tagg for s in self.fran_plc])
             v.las_plc_ms = (time.time() - t) * 1000.0
             v.fran_plc = fran_plc
@@ -185,12 +199,46 @@ class Kopplare:
             v.fel = "%s: %s" % (type(e).__name__, str(e)[:120])
             self._raka_fel += 1
         v.totalt_ms = (time.time() - v.t0) * 1000.0
+        self._till_ogat(v)
         self.varv.append(v)
         if self._raka_fel >= self.max_raka_fel:
-            raise Kopplarfel(
-                "kopplaren gav upp efter %d raka fel; sista: %s"
-                % (self._raka_fel, v.fel))
+            skal = ("kopplaren gav upp efter %d raka fel; sista: %s"
+                    % (self._raka_fel, v.fel))
+            # Sista ordet till ogat INNAN slingan faller. Efter det kommer
+            # inga fler inskott alls, och en serie som inte far veta det
+            # skulle fortsatta visa varden fran ett band som inte finns.
+            self._ogonanrop(v, "bryt", skal)
+            raise Kopplarfel(skal)
         return v
+
+    # ---- ut till ogats tidsserie ----------------------------------------
+
+    def _till_ogat(self, v):
+        """Varje varv sager sitt till ogat - aven ett fallet.
+
+        Ett fallet varv har INGA farska varden. Att da tiga ar inte neutralt:
+        tystnad gar inte att skilja fran "inget nytt har hant", och serien
+        skulle bara de gamla talen vidare som om de vore samtidiga.
+        """
+        if self.oga is None:
+            return
+        if v.fel is not None:
+            self._ogonanrop(v, "bryt",
+                            "kopplarvarv %d foll: %s" % (v.nr, v.fel))
+        elif v.fran_plc:
+            self._ogonanrop(v, "skjut_in", v.fran_plc, v.t_fran_plc)
+
+    def _ogonanrop(self, v, metod, *a):
+        if self.oga is None:
+            return
+        try:
+            v.oga = getattr(self.oga, metod)(*a)
+        except Exception as e:
+            # Ogat far aldrig falla kopplarens varv - men felet gar inte att
+            # tiga ihjal heller. Kommer inskotten inte fram lamnas serien at
+            # sitt eget tystnadstak, och DET ska synas har.
+            v.oga_fel = "%s: %s" % (type(e).__name__, str(e)[:120])
+            self.n_ogafel += 1
 
     # ---- sammanfattning -------------------------------------------------
 
@@ -211,4 +259,6 @@ class Kopplare:
             "max_ms": round(tider[-1], 2) if tider else None,
             "till_plc": [s.tagg for s in self.till_plc],
             "fran_plc": [s.tagg for s in self.fran_plc],
+            "ogafel": self.n_ogafel,
+            "oga": None if self.oga is None else self.oga.sammanfattning(),
         }
