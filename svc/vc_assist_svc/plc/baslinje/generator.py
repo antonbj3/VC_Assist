@@ -120,6 +120,12 @@ class Rapport:
     steg: int = 0
     vakter: int = 0
     intervall: int = 0
+    # Nämnarna. En lista över olästa rader utan sitt antal rader är ett tal
+    # utan nämnare, och den regeln gäller generatorns egen redovisning också.
+    rader_totalt: int = 0
+    forreglingar_totalt: int = 0
+    utgangar_totalt: int = 0
+    ingangar_totalt: int = 0
 
     def text(self) -> str:
         rader = ["BASLINJE %s, mall %s, %d steg, %d vakter, %d intervall"
@@ -253,6 +259,12 @@ class _Bygge(object):
             lasning.direktiv = self._kedja_ur_kartan()
             intervall, trosklar = [], []
         self.rapport.intervall = len(intervall)
+        self.rapport.rader_totalt = len(lasning.direktiv) + len(lasning.olasta)
+        self.rapport.forreglingar_totalt = (len(lasning.forreglingar)
+                                            + len(lasning.olasta_forreglingar)
+                                            + len(lasning.ramtackta))
+        self.rapport.utgangar_totalt = len(k.utgangar())
+        self.rapport.ingangar_totalt = len(k.alla_ingangar())
         self.lasning = lasning
         self.intervall = intervall
         self.trosklar = trosklar
@@ -743,10 +755,22 @@ class _Bygge(object):
         termer = []
         for namn in kommenderade:
             tagg = self.karta.get(namn)
-            if tagg is not None and tagg.par:
-                t = Sp.Term(tagg.par, sant=False)
-                if t not in termer:
-                    termer.append(t)
+            if tagg is None or not tagg.par:
+                continue
+            kvittens = self.karta.get(tagg.par)
+            if kvittens is not None and kvittens.typ != "bool":
+                # MÄTT: `ST200_SCN_DEST` är destinationsnumret ur en skanner,
+                # inte en klarsignal. `NOT <INT>` gick igenom generatorn och
+                # fälldes först av STruC++ — återgångsvillkoret byggs efter
+                # typgallringen och slapp därför förbi den. En kvittens som
+                # inte är boolesk kan inte betyda "donet har slappt".
+                self.rapport.antaganden.append(
+                    "%s ar %s och kan inte bara ett atergangsvillkor"
+                    % (kvittens.namn, kvittens.typ))
+                continue
+            t = Sp.Term(tagg.par, sant=False)
+            if t not in termer:
+                termer.append(t)
         steg.append((Sp.Villkor(tuple(termer)), (), None))
         return steg
 
@@ -803,7 +827,7 @@ class _Bygge(object):
     def _diagnosrad(self) -> List[str]:
         """Ingångar ingen regel läser. Redovisas alltid, läses bara på begäran."""
         orord = []
-        for t in self.karta.ingangar():
+        for t in self.karta.alla_ingangar():
             if t.namn in self.lasta:
                 continue
             orord.append(t.namn)

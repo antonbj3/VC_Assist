@@ -265,6 +265,17 @@ class Karta(object):
         return tuple(t for t in self.taggar
                      if not t.ar_utgang and t.namn not in SYSTEMSIGNALER)
 
+    def alla_ingangar(self) -> Tuple[Tagg, ...]:
+        """Varje ingång i kartan, systemsignalerna inräknade.
+
+        Grind 3 skiljer inte på en systemsignal och en stationssignal: båda
+        ligger i kartan och båda måste röras. MÄTT under bygget: `SYS_RESET`
+        föll ur redovisningen därför att den räknades som system, och en
+        uppgift utan kvittenskrav fälldes på ORORD_SIGNAL utan att generatorn
+        hade sagt ett ord om det. Talet står i M-62.
+        """
+        return tuple(t for t in self.taggar if not t.ar_utgang)
+
     def har(self, namn: str) -> bool:
         return str(namn).upper() in self._per_namn
 

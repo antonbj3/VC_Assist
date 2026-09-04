@@ -325,8 +325,21 @@ def kor_niva(poster: Sequence[dict], niva: str, driv_obundna: bool = False,
 
 # ---------------------------------------------------------------- slingan
 
+# Skelettets VAR-block är låst när slingan startar, och det är en egenskap hos
+# PRODUKTEN och inte hos baslinjen: `61_st_generering.md` säger att modellen
+# aldrig skriver deklarationer. Följden mättes här: en reparation som behöver en
+# NY arbetsvariabel — en timer, en flankdetektor, en diagnosbit — går inte att
+# göra inifrån slingan, och grind 2 fäller nästa varv på ODEKLARERAD. Det
+# gäller en språkmodell precis lika hårt.
+#
+# De två ramlägena mäter de två storheterna var för sig:
+RAM_MINIMAL = "minimal"   # ramen ur FÖRSTA svaret: slingans verkliga villkor
+RAM_MAXIMAL = "maximal"   # ramen ur generatorns hela arbetsuppsättning
+RAMLAGEN = (RAM_MINIMAL, RAM_MAXIMAL)
+
+
 def kor_slinga(post: dict, niva: str, lage: str = R.LAGE_RENT,
-               max_varv: int = R.MAX_VARV):
+               max_varv: int = R.MAX_VARV, ram: str = RAM_MINIMAL):
     """Reparationsslingan med baslinjen som modell. SAMMA slinga som modellen.
 
     Grindstegen är reparationsbankens egna: `Stationssteg` för grind 2 och 3
@@ -337,6 +350,15 @@ def kor_slinga(post: dict, niva: str, lage: str = R.LAGE_RENT,
     modell = BaslinjeModell(spec, niva=niva)
     forsta = modell.generator().generera(spec)
     karta = RB.karta_ur_uppgift(post, forsta.station)
+    if ram == RAM_MAXIMAL:
+        # Ramen byggs ur en körning med varje växel på, så att den bär varje
+        # arbetsvariabel generatorn kan komma att behöva. Då mäter slingan
+        # metodens reparationsförmåga och inte ramens styvhet.
+        forsta = Baslinje(niva=niva, driv_obundna=True,
+                          las_obundna=True).generera(spec)
+    elif ram != RAM_MINIMAL:
+        raise ValueError("okänt ramläge %r; lägena är %s"
+                         % (ram, ", ".join(RAMLAGEN)))
     skelett = Skelett.av_karta(karta, forsta.deklarationer)
     grindar = [R.Stationssteg(karta), RB.Sparfacitsteg(post)]
     slinga = R.Reparationsslinga(skelett, grindar, lage=lage,
@@ -475,19 +497,28 @@ def rapport(korningar: Sequence[Nivakorning], poster: Sequence[dict],
                                                for c in sorted(rakn)) or "inga"))
 
     rader.append("")
-    rader.append("VAR BASLINJEN GER UPP (generatorns egen redovisning)")
+    rader.append("VAR BASLINJEN GER UPP (generatorns egen redovisning, med namnare)")
     rader.append("%-14s %-16s %-16s %-16s %-16s"
-                 % ("niva", "olasta rader", "olasta forregl", "obundna utg",
-                    "ororda ing"))
+                 % ("niva", "lasta rader", "lasta forregl", "bundna utg",
+                    "rorda ing"))
     for k in korningar:
-        olasta = sum(len(r.olasta_rader) for r in k.rapporter.values())
-        olastaf = sum(len(r.olasta_forreglingar) for r in k.rapporter.values())
-        obundna = sum(len(r.obundna_utgangar) for r in k.rapporter.values())
-        ororda = sum(len(r.ororda_ingangar) for r in k.rapporter.values())
-        radtot = sum(r.steg for r in k.rapporter.values())
+        rap = list(k.rapporter.values())
+        olasta = sum(len(r.olasta_rader) for r in rap)
+        radtot = sum(r.rader_totalt for r in rap)
+        olastaf = sum(len(r.olasta_forreglingar) for r in rap)
+        ftot = sum(r.forreglingar_totalt for r in rap)
+        obundna = sum(len(r.obundna_utgangar) for r in rap)
+        uttot = sum(r.utgangar_totalt for r in rap)
+        ororda = sum(len(r.ororda_ingangar) for r in rap)
+        intot = sum(r.ingangar_totalt for r in rap)
         rader.append("%-14s %-16s %-16s %-16s %-16s"
-                     % (k.namn, olasta, olastaf, obundna, ororda))
-        del radtot
+                     % (k.namn, _kav(radtot - olasta, radtot),
+                        _kav(ftot - olastaf, ftot),
+                        _kav(uttot - obundna, uttot),
+                        _kav(intot - ororda, intot)))
+    rader.append("")
+    rader.append("KOSTNAD: baslinjen anvander noll tokens och noll natanrop.")
+    rader.append("Genereringstid mats med --tid.")
     return "\n".join(rader)
 
 
@@ -511,6 +542,8 @@ def main(argv=None):
                                       "grind 1 inte alls")
     ap.add_argument("--slinga", action="store_true",
                     help="kor ocksa reparationsslingan over sparfacituppgifterna")
+    ap.add_argument("--tid", action="store_true",
+                    help="mat genereringstiden och determinismen over banken")
     ap.add_argument("--par", action="store_true",
                     help="skriv en parrapport mager mot spec")
     a = ap.parse_args(argv)
@@ -555,19 +588,52 @@ def main(argv=None):
                       GRINDAR_UTAN_KOMPILATOR)
         print(Par.para(vanster, hoger).text())
 
+    if a.tid:
+        import time
+        print("")
+        print("GENERERINGSTID OCH DETERMINISM")
+        for niva in nivaer:
+            bl = Baslinje(niva=niva)
+            forsta = {}
+            t0 = time.perf_counter()
+            for post in poster:
+                try:
+                    forsta[post["task_id"]] = bygg(post, bl).kropp
+                except Exception as fel:      # redovisas, aldrig tyst
+                    print("  byggfel %s: %s" % (post["task_id"], fel))
+            t1 = time.perf_counter()
+            lika = 0
+            for post in poster:
+                tid = post["task_id"]
+                if tid not in forsta:
+                    continue
+                try:
+                    if bygg(post, Baslinje(niva=niva)).kropp == forsta[tid]:
+                        lika += 1
+                except Exception as fel:
+                    print("  byggfel %s: %s" % (tid, fel))
+            print("  %-8s %6.1f ms for %d uppgifter, %.2f ms per uppgift, "
+                  "byte-identisk vid omkorning: %s"
+                  % (niva, (t1 - t0) * 1000.0, len(poster),
+                     (t1 - t0) * 1000.0 / max(1, len(poster)),
+                     _kav(lika, len(forsta))))
+
     if a.slinga:
         print("")
         print("REPARATIONSSLINGAN MED BASLINJEN SOM MODELL")
-        print("%-8s %-8s %-10s %-8s %-6s %s"
-              % ("uppgift", "niva", "lage", "utfall", "varv", "koder utan regel"))
+        print("%-8s %-8s %-10s %-9s %-8s %-6s %s"
+              % ("uppgift", "niva", "lage", "ram", "utfall", "varv",
+                 "koder utan regel"))
         for post in facitposter:
             for niva in nivaer:
                 for lage in R.LAGEN:
-                    protokoll, modell = kor_slinga(post, niva, lage)
-                    print("%-8s %-8s %-10s %-8s %-6d %s"
-                          % (post["task_id"], niva, lage, protokoll.utfall,
-                             len(protokoll.varv),
-                             ", ".join(modell.utan_regel[:4]) or "-"))
+                    for ram in RAMLAGEN:
+                        protokoll, modell = kor_slinga(post, niva, lage,
+                                                       ram=ram)
+                        print("%-8s %-8s %-10s %-9s %-8s %-6d %s"
+                              % (post["task_id"], niva, lage, ram,
+                                 protokoll.utfall, len(protokoll.varv),
+                                 ", ".join(modell.utan_regel[:3]) or "-"))
     if tmp is not None:
         tmp.cleanup()
     return 0
