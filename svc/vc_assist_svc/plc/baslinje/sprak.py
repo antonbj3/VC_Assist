@@ -367,6 +367,24 @@ _NIVA = re.compile(r"\b(hog|hogt|hoga|lag|lagt|laga)\b", re.I)
 _TILL = re.compile(r"\btill\b", re.I)
 
 
+def _talform(rest: str, m_till, kanda, tagna) -> bool:
+    """Sant om `rest` verkligen är "satt <signal> till <tal>".
+
+    Talet måste stå EFTER `till` och får inte plockas ur ett taggnamn. MÄTT
+    under bygget: "for kartan till ST440_RWK_CNT" gav värdet 440. Håller formen
+    inte faller läsningen tillbaka på nivåformen i stället för att tappa
+    handlingen — en tappad handling är en tyst förlust, och det är just den
+    sortens förlust hela modulen är skriven emot.
+    """
+    fore = [n for n in _signaler_i(rest[:m_till.start()], kanda)
+            if n not in tagna]
+    if not fore:
+        return False
+    svans = rest[m_till.end():]
+    ren = _utan_namn(svans, _signaler_i(svans, kanda))
+    return bool(_TAL.search(ren) or _TALORDRE.search(ren))
+
+
 def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
     """Handlingarna i en textbit, i textens ordning.
 
@@ -413,17 +431,16 @@ def las_handlingar(text: str, kanda) -> Tuple[Handling, ...]:
                 tagna.add(n)
             continue
         m_till = _TILL.search(rest)
-        if m_till:
+        if m_till and _talform(rest, m_till, kanda, tagna):
             # "satt X till 1": målet är signalen FÖRE ordet `till`, värdet
             # står efter. Står ingen känd signal före `till` är målet något
             # raden kallar vid ett namn kartan inte har, och då blir det ingen
             # handling alls — hellre en oläst rad än en skrivning till fel tagg.
             fore = [n for n in _signaler_i(rest[:m_till.start()], kanda)
                     if n not in tagna]
-            if not fore:
-                continue
-            ut.append(Handling(SATTVARDE, fore[0],
-                               varde=_tal(rest[m_till.end():])))
+            svans = rest[m_till.end():]
+            ren = _utan_namn(svans, _signaler_i(svans, kanda))
+            ut.append(Handling(SATTVARDE, fore[0], varde=_tal(ren)))
             tagna.add(fore[0])
             for n in _signaler_i(rest[m_till.end():], kanda):
                 tagna.add(n)

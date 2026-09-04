@@ -171,6 +171,65 @@ def test_ett_tal_ur_ett_taggnamn_blir_aldrig_ett_gransvarde():
     assert (jam[0].jamforelse, jam[0].varde) == ("<", 5.0)
 
 
+def test_satt_till_ett_tal_tar_aldrig_talet_ur_ett_taggnamn():
+    """Matt fel under bygget: "for kartan till ST440" gav vardet 440.
+
+    Samma fella som gransvardet, i den andra riktningen: ett tal som plockas ur
+    ett namn ar inget varde, och en generator som skriver 440 till en raknare
+    for att stationen heter ST440 ser ut att fungera tills stationen byter
+    nummer.
+    """
+    kanda = KANDA | {"ST160_LYR_NO", "ST440_RWK_CNT"}
+    h = Sp.las_handlingar("satt ST160_LYR_NO till 1", kanda)
+    assert [(x.sort, x.signal, x.varde) for x in h] == [
+        (Sp.SATTVARDE, "ST160_LYR_NO", 1.0)]
+    h = Sp.las_handlingar("satt UT1 hog och for kartan till ST440_RWK_CNT",
+                          kanda)
+    assert Sp.Handling(Sp.SATT, "UT1", True) in h, (
+        "handlingen tappades helt; en tappad handling ar en tyst forlust")
+    assert not [x for x in h if x.sort == Sp.SATTVARDE], (
+        "440 ur taggnamnet ST440_RWK_CNT blev ett varde: %r" % (h,))
+
+
+def test_raekneord_lases_som_tal():
+    """"ar fyra" ar lika vanligt som "ar 4" i banken. En lasare som bara ser
+    siffror tappar villkoret TYST, och det ar varre an att inte lasa raden."""
+    v = Sp.las_villkor("ST260_LAY_CNT ar fyra", KANDA)
+    jam = [t for t in v.termer if t.jamforelse]
+    assert jam and (jam[0].jamforelse, jam[0].varde) == ("=", 4.0)
+
+
+def test_ett_avslutande_verb_stoppar_det_foregaende():
+    """Matt fel under bygget: "pulsa X och las Y" gjorde matsignalen Y till ett
+    skrivmal, darfor att pulsens rackvidd strackte sig genom hela raden."""
+    h = Sp.las_handlingar("pulsa UT1 och las A_OK", KANDA)
+    assert [(x.sort, x.signal) for x in h] == [(Sp.PULS, "UT1")]
+
+
+def test_en_puls_tas_ner_i_nasta_steg():
+    """En kamera som triggas pa NIVA tar en bild per scan."""
+    signaler = [_sig("ST010_PRT_PRS", "in"), _sig("ST010_CAM_TRIG", "out"),
+                _sig("ST010_CAM_FOUND", "in")]
+    spec = Spec(tuple(signaler),
+                ("vid ST010_PRT_PRS: pulsa ST010_CAM_TRIG",
+                 "vanta pa ST010_CAM_FOUND"), (), "")
+    kropp = Baslinje().generera(spec).kropp
+    assert "ST010_CAM_TRIG := TRUE;" in kropp
+    assert "ST010_CAM_TRIG := FALSE;" in kropp
+
+
+def test_vantan_i_satt_och_vanta_hamnar_pa_nasta_steg():
+    """"satt X hog och vanta pa Y" ar X nu och Y som nasta stegs villkor. En
+    kommandokedja som inte vantar pa sina kvittenser ar precis den
+    driftsattningsmiss banken finns for att hitta."""
+    kanda = {"ST010_VAC_ON", "ST010_VAC_OK", "ST010_RB_START"}
+    d = Sp.las(["satt ST010_VAC_ON hog och vanta pa ST010_VAC_OK",
+                "satt ST010_RB_START hog"], [], kanda).direktiv
+    assert len(d) == 2
+    assert [h.signal for h in d[0].handlingar] == ["ST010_VAC_ON"]
+    assert [t.signal for t in d[1].villkor.termer] == ["ST010_VAC_OK"]
+
+
 def test_ett_brytord_avslutar_verbets_rackvidd():
     """"satt X hog, aldrig samtidigt med Y" ar en order till X och ett FORBUD
     mot Y. Utan brytordet startades bada."""
