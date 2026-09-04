@@ -63,3 +63,40 @@ saknade fält, L1.
 Skulden tas inte. Om något inte hinner bli klart **levereras det inte**, och
 fasen står kvar som öppen. En öppen fas är ärlig. En stängd fas med en stub är
 en lögn som kostar tre gånger mer senare.
+
+---
+
+## S-reglerna räcker inte, för de fångar bara det som går att linta
+
+S1–S4 är mekaniska kontroller på **kod**. Den dyraste skulden i det här bygget
+har inte varit kod — den har varit **det vi visste men inte skrev ned**.
+
+Fyra mätningar har visat samma sak: ett tal som såg rimligt ut, från ett
+instrument ingen hade provat mot ett känt svar. `M-34` (fel lista räknad tolv
+gånger), `M-57` (biblioteket fanns hela tiden), `pgrep -f` som matchade sin egen
+sökning, och `M-66` (mönstret som missade numrerade rubriker). Ingen av dem hade
+fångats av en linter, och alla fyra hade fångats av en rad som sa *"detta är
+inte prövat"*.
+
+## S5. Skuld fångas när den skrivs, inte vid en granskning
+
+Operatörens formulering: *"Vi fångar det at moment of writing föredragsvis."*
+
+*Kontroll:* varje mätning bär ett **ärlighetsavsnitt** — *"Vad som INTE är
+mätt"* eller motsvarande. `svc/vc_assist_svc/skuld.py` skördar dem till
+`docs/matningar/SKULDREGISTER.md`, tillsammans med markörer i koden
+(`PRELIMINÄR`, `TODO`, *"öppen punkt"*, *"oprövad"*).
+
+Registret **förs aldrig för hand**. Ett register någon måste komma ihåg att
+uppdatera är redan glömt, och den enda skuld som hamnar där är den man ändå kom
+ihåg — alltså inte den farliga.
+
+Antalet mätningar **utan** ärlighetsavsnitt är en spärr som bara får gå nedåt,
+och som inte heller får ligga över verkligheten. Ett tak med luft i slutar fånga
+nästa glidning. Mätt 2026-09-05: 24 av 44, nästan alla skrivna innan
+disciplinen satte sig.
+
+En mätning utan ett sådant avsnitt är inte en mätning utan skuld. Det är en
+mätning vars skuld ingen har skrivit ned — och det är precis vad guldgrindens
+krav på `HONESTY` redan säger om en rapport: regeln är **tom** om sektionen inte
+finns, och en rapport utan den såg en gång ut som guld.
