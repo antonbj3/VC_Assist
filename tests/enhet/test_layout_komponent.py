@@ -16,13 +16,17 @@ import pytest
 
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
-sys.path.insert(0, os.path.dirname(__file__))
 
+# `attrapp_vcmx` ligger i samma mapp. pytest lagger den mappen i sokvagen
+# sjalv, precis som test_oga_pa_djupet.py forlitar sig pa for
+# test_ogonkoppling - ingen egen sys.path-andring behovs, och en sadan hade
+# lagt hela provmappen i vagen for alla andra importer.
 import attrapp_vcmx as A                                          # noqa: E402
 from vc_assist_svc import komponentfil as K                       # noqa: E402
 from vc_assist_svc.layout import komponent as KO                  # noqa: E402
-from vc_assist_svc.layout import (Ankare, Hall, Langd, MinstaAvstand,  # noqa: E402
-                                  Scen, Status, losa, till_verktygsanrop)
+from vc_assist_svc.layout import (Ankare, Hall, InomRackvidd, Langd,  # noqa: E402
+                                  MinstaAvstand, Scen, Status, losa,
+                                  till_verktygsanrop)
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +321,73 @@ def test_ett_band_med_bara_en_ingang_har_ingen_ordning(tmp_path):
 def test_en_komponent_utan_flodesfalt_ger_inget_flode(tmp_path):
     f = K.las(robot(tmp_path), djupt=True)
     assert KO.flode_ur_fakta(f) is None
+
+
+# ---------------------------------------------------------------------------
+# hela vagen: tre riktiga komponenter, en cell, och anropen ut
+# ---------------------------------------------------------------------------
+
+def test_en_hel_cell_av_riktiga_komponenter_gar_hela_vagen(tmp_path):
+    """Fas 5:s vag, men med komponentfakta i stallet for lador.
+
+    Tre komponenter, deras EGNA granssnitt kopplade i kedja, layouten lost,
+    och anropen skrivna med den STRIKTA grinden pa. Provet visar att bryggan
+    barar hela vagen och inte bara ett falt i taget.
+    """
+    band_in = K.las(band(tmp_path, "Band in"), djupt=True)
+    band_ut = K.las(band(tmp_path, "Band ut"), djupt=True)
+    robot_f = K.las(robot(tmp_path, "IRB cell", rackvidd="1650"),
+                    djupt=True, geometri=True)
+
+    bindningar = [
+        KO.Bindning("band_in", band_in, bounds(3000.0, 600.0, 900.0)),
+        KO.Bindning("robot_1", robot_f, bounds(1000.0, 1000.0, 1900.0)),
+        KO.Bindning("band_ut", band_ut, bounds(3000.0, 600.0, 900.0)),
+    ]
+
+    hall = Hall("cell", Langd.m(20.0), Langd.m(12.0), Langd.m(6.0))
+    scen = Scen(hall)
+    for b in bindningar:
+        scen.lagg_till(b.objekt(underhallsmarginal=Langd.mm(400.0),
+                                enhet="CELL"))
+
+    # kedjan gar att lasa ur filerna: band_in -> band_ut
+    kedja = KO.kopplingsbara(band_in, band_ut)
+    assert [(k.granssnitt_a, k.granssnitt_b) for k in kedja] == [
+        ("OutInterface", "InInterface")]
+
+    # och roboten nar bada banden, med rackvidden ur filen
+    krav = [InomRackvidd("band_in", "robot_1", helt=False),
+            InomRackvidd("band_ut", "robot_1", helt=False)]
+    losning = losa(scen, krav)
+    assert losning.status is Status.LOST, losning.skal
+
+    anrop = till_verktygsanrop(losning.scen, strikt=True,
+                               komponentnamn=KO.komponentnamn_karta(bindningar))
+    assert len(anrop) == 3
+    namn = sorted(a.argument["component"] for a in anrop)
+    assert namn == ["Band in", "Band ut", "IRB cell"]
+    for a in anrop:
+        assert len(a.argument["position"]) == 3
+        assert a.argument["wpr"][0] == 0.0 and a.argument["wpr"][1] == 0.0
+
+
+def test_ett_objekt_utan_lada_stoppar_hela_kedjan(tmp_path):
+    """TRASIG FIXTUR: en av tre komponenter saknar sin lada.
+
+    Cellen far INTE bli tva komponenter placerade och en tyst borta. Bryggan
+    faller redan nar objektet ska byggas, med namnet pa den som saknar matt.
+    """
+    band_in = K.las(band(tmp_path, "Band in"), djupt=True)
+    robot_f = K.las(robot(tmp_path, "IRB cell"), djupt=True, geometri=True)
+    bindningar = [KO.Bindning("band_in", band_in, bounds(3000.0, 600.0, 900.0)),
+                  KO.Bindning("robot_1", robot_f, None)]
+    byggda = []
+    with pytest.raises(KO.Saknasfel) as fel:
+        for b in bindningar:
+            byggda.append(b.objekt())
+    assert len(byggda) == 1
+    assert "IRB cell" in str(fel.value)
 
 
 def test_bryggan_avvisar_nagot_som_inte_ar_komponentfakta():

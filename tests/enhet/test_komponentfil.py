@@ -14,8 +14,11 @@ import pytest
 
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
-sys.path.insert(0, os.path.dirname(__file__))
 
+# `attrapp_vcmx` ligger i samma mapp. pytest lagger den mappen i sokvagen
+# sjalv, precis som test_oga_pa_djupet.py forlitar sig pa for
+# test_ogonkoppling - ingen egen sys.path-andring behovs, och en sadan hade
+# lagt hela provmappen i vagen for alla andra importer.
 import attrapp_vcmx as A                                          # noqa: E402
 from vc_assist_svc import komponentfil as K                       # noqa: E402
 
@@ -459,6 +462,41 @@ def test_lederna_bar_namn_typ_och_granser(tmp_path):
     assert set(leder) == {"Axis1", "Axis2"}
     assert leder["Axis1"].sort == "Rotational"
     assert (leder["Axis2"].min_varde, leder["Axis2"].max_varde) == (0.0, 1200.0)
+
+
+def test_INTE_LAST_ar_ett_annat_svar_an_FINNS_INTE(tmp_path):
+    """TRASIG FIXTUR mot en tyst likhet.
+
+    En robot med en rackviddsprofil, last UTAN geometri. Rackvidden saknas i
+    bada fallen, men skalen ar olika, och en lasare som slar ihop dem far en
+    olast fil att se ut som en fil utan profil.
+    """
+    punkter = [(0.0, 0.0, 870.0), (579.8, 0.0, 273.1), (0.0, 0.0, -112.0)]
+    sokvag = A.skriv(tmp_path / "r.vcmx",
+                     A.modelxml(Name="R", Type="Robots", Manufacturer="A",
+                                Reach="0"),
+                     A.rsc("R"), {"envelopeprofile": A.text_envelope(punkter)})
+
+    utan = K.las(sokvag, djupt=True, geometri=False)
+    _mm, harkomst, kalla = utan.rackvidd()
+    assert harkomst == K.Harkomst.SAKNAS
+    assert "INTE LAST" in kalla
+
+    med = K.las(sokvag, djupt=True, geometri=True)
+    mm, harkomst, kalla = med.rackvidd()
+    assert harkomst == K.Harkomst.HARLEDD
+    assert abs(mm - 579.8) < 1e-6
+
+
+def test_utan_profil_i_filen_sager_kallan_att_den_inte_finns(tmp_path):
+    sokvag = A.skriv(tmp_path / "r.vcmx",
+                     A.modelxml(Name="R", Type="Robots", Manufacturer="A",
+                                Reach="0"),
+                     A.rsc("R"))
+    _mm, harkomst, kalla = K.las(sokvag, djupt=True,
+                                 geometri=True).rackvidd()
+    assert harkomst == K.Harkomst.SAKNAS
+    assert "ingen envelopeprofile finns" in kalla
 
 
 def test_grunt_lage_laser_inte_component_rsc(tmp_path):

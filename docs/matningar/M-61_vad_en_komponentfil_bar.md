@@ -1,6 +1,6 @@
 # M-61 — vad en komponentfil bär, och varför den omslutande volymen inte står i den
 
-**Datum:** 2026-09-04 · VC Premium 4.10 · testprefixet `~/.wine-vc-test`
+**Datum:** 2026-09-04/05 · VC Premium 4.10 · testprefixet `~/.wine-vc-test`
 **Nämnare:** **3201 komponentfiler**, 149 tillverkare, **0 oläsbara** — hela
 biblioteket ur M-57, inte ett urval.
 **Mätt med:** `python3 -m vc_assist_svc.komponentfil --svep`, alltså med koden
@@ -14,15 +14,32 @@ som levereras. **Ingen VC har rörts.**
 | namn, kategori, tillverkare | 3201 | 0 | 0 | 3201 |
 | räckvidd | 1437 | 225 | 1539 | 3201 |
 | nyttolast (`MaxPayload` > 0) | 2358 | 0 | 843 | 3201 |
-| gränssnitt, med namn och fälttyper | 11 563 | 0 | 0 | 11 563 |
-| — komponenter som bär minst ett | 3062 | 0 | 139 | 3201 |
+| gränssnittens **namn** | 11 563 | 0 | 0 | 11 563 |
+| — av dem med minst ett fält | 9 167 | 0 | 2 396 | 11 563 |
+| — av dem med en ram | 9 318 | 0 | 2 245 | 11 563 |
+| komponenter som bär minst ett gränssnitt | 3062 | 0 | 139 | 3201 |
 | monteringsramarnas **namn** | 9824 | 0 | 0 | 9824 |
 | monteringsramarnas **läge** | 3036 | 121 | 6667 | 9824 |
-| leder, med namn, typ och gränser | 29 405 | 0 | 0 | 29 405 |
+| ledernas **typ** | 29 405 | 0 | 0 | 29 405 |
+| — ledens namn | 27 726 | 0 | 1 679 | 29 405 |
+| — båda ledgränserna | 23 355 | 0 | 6 050 | 29 405 |
 | geometriblobbens **egen** låda | 0 | 67 907 | 11 128 | 79 035 |
 
 Första raden är hela mätningen. **Ingen av de 3201 filerna bär komponentens
 omslutande volym.** Det är inte slarv, och nästa avsnitt säger varför.
+
+De 225 härledda räckvidderna kräver att geometrin läses. Läses filen utan
+geometri säger svaret `saknas` med skälet **"rackviddsprofilen är INTE LÄST"**
+— ett annat svar än "det finns ingen profil", och skillnaden står i klartext i
+stället för att döljas i samma ord.
+
+Mätningen körs om med:
+
+    python3 -m vc_assist_svc.komponentfil --svep --ut <fil>     # hela svepet
+    python3 -m vc_assist_svc.komponentfil --fil <komponent>     # en fil
+
+Biblioteksroten söks upp, aldrig antas (`katalogindex.hitta`). Hittas ingen
+skrivs listan över vad som provades.
 
 ## Varför lådan inte finns i filen
 
@@ -85,9 +102,11 @@ En skiftlägesokänslig sökning som inte läser sammanhanget hade rapporterat
 "bounding box finns i 1855 filer". Den hade varit helt fel.
 
 **3. VC:s egen eCatalog-databas.** `eCatalog_4.10.2.sdf`, 28 MB — den katalog
-programmet självt söker i. Dess enda mätbara storhet är `Reach` (6003
-förekomster). Ingen låda, ingen storlek, inget fotavtryck. **VC cachar den
-inte heller.**
+programmet självt söker i. Metoden är grov, en strängsökning i binärfilen, och
+den redovisas som sådan: de enda storhetsnamn som alls förekommer är `Reach`
+(6003 gånger), `Size` (2) och `MaxPayload` (1). Ingen låda, ingen
+utsträckning, inget fotavtryck. **VC cachar den alltså inte heller** — vilket
+är väntat om den räknas när komponenten byggs.
 
 ## Vad som däremot går att läsa, och vad det kostar
 
@@ -143,12 +162,17 @@ går att avkoda, och **225 av de 735 hålen fylls av den.**
 
 Profilen ligger i **två format** under samma postnamn:
 
-* **3DS-varianten**, 695 filer: chunk `0x8001`, segment som `float64`
-* **textvarianten**, 204 filer: rader med punkter och kanter
-* och i **7 filer** går trädgången sönder — objektet `TRACE` bär två
-  oförklarade byte mellan sina barn — så chunken måste bytesökas. Där avgör en
-  **exakt längdmatchning** om fyndet duger: strukturen ska ta slut precis där
-  nyttolasten tar slut. Utan det kravet läses brus som geometri.
+* **3DS-varianten**, 505 filer: chunk `0x8001`, punkter som `float64`
+* **textvarianten**, 197 filer: rader med punkter och kanter
+* summa 702, och alla 702 avkodas
+
+Av de 505 3DS-filerna hittas chunken genom trädgången i 498. I **7** går
+trädgången sönder — objektet `TRACE` bär två oförklarade byte mellan sina barn
+— och där måste chunken bytesökas. Då avgör en **exakt längdmatchning** om
+fyndet duger: strukturen ska ta slut precis där nyttolasten tar slut. Utan det
+kravet läses brus som geometri. De sju bär dessutom en tredje layout inne i
+chunken (en enda polylinje i stället för segment), och deras radier stämmer
+med `Reach` inom 4 mm i sex fall av sju.
 
 Beviset för att avkodningen är rätt kommer utifrån:
 
@@ -220,6 +244,12 @@ Fälttyperna — det som avgör vad som går att koppla till vad:
 med 0** (tar emot). `rSimFlowField` bär `Port`: 224 med 0 (in), 234 med 1 (ut)
 och 75 med 2 till 6 — grenar och samlingar.
 
+Alla 11 563 gränssnitt har ett namn, men **2396 har inget fält alls** och 2245
+ingen ram. Ett gränssnitt utan fält går inte att para ihop med något genom de
+två reglerna nedan, och det ska stå i talet i stället för att döljas i
+summan. 4858 av 11 563 är dessutom `Abstract` — mallar som VC fyller i vid
+anslutning, inte färdiga uttag.
+
 Det ger två **kandidatregler**, lästa ur datan och inte uppfunna:
 
 1. flöde: port 1 i A mot port 0 i B
@@ -232,6 +262,23 @@ Om VC håller med går bara att veta genom att fråga VC, och `canConnect` döda
 pumpen en gång (M-16). Frågan ligger därför i
 `tests/protocol/fas5_riktiga_komponenter.md` steg 8, med tre par som regeln
 **avvisar** och som måste svara falskt — annars mäter grinden ingenting.
+
+### Lederna
+
+29 405 rörliga leder (`Dof` skild från `Fixed`). Typerna är inte två utan tolv:
+
+| Typ | antal | | Typ | antal |
+|---|---:|---|---|---:|
+| `Custom` | 13 806 | | `RZ` | 710 |
+| `Rotational` | 9 991 | | `RY` | 449 |
+| `RotationalFollower` | 2 545 | | `TX` | 204 |
+| `Translational` | 1 025 | | `TY` | 162 |
+| `TranslationalFollower` | 305 | | `TZ` | 98 |
+| | | | `RX`, `Dummy` | 110 |
+
+**1679 leder saknar namn** och **6050 saknar minst en av sina två gränser.** En
+läsare som antar att varje led är namngiven och begränsad får ett tomt fält att
+se ut som noll grader.
 
 ## Transportörens längd och riktning
 
@@ -363,15 +410,16 @@ bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
 
 | Nivå | Fil | Antal |
 |---|---|---:|
-| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 39 |
-| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 21 |
+| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 42 |
+| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 23 |
 | L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 6 |
 
-Trasiga fixturer, nio stycken: en komponent vars mått saknas, en avhuggen
+Trasiga fixturer, elva stycken: en komponent vars mått saknas, en avhuggen
 3DS-blobb, en triangel som pekar utanför sin hörnlista, en profil som inte går
-att avkoda, en profilnyttolast som inte går jämnt ut, en ram under en nod utan
-`Offset`, ett tomt uttryck utan matris, ett band med bara en ingång — och en
-layout som lådorna löser och de riktiga måtten inte löser.
+att avkoda, en profilnyttolast som inte går jämnt ut, en tom profil, en ram
+under en nod utan `Offset`, ett tomt uttryck utan matris, ett band med bara en
+ingång, en cell där en av tre komponenter saknar sin låda — och en layout som
+lådorna löser och de riktiga måtten inte löser.
 
 Till dem kommer tre par som `kopplingsbara` ska **avvisa**: två robotar som
 båda vill monteras på något, två transportöringångar mot varandra, och en

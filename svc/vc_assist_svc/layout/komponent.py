@@ -12,8 +12,8 @@ Den har modulen ar bryggan. `komponentfil.py` laser vad en .vcmx faktiskt bar;
 den har modulen gor ett `Objekt` av det, med samma harda regel som resten av
 motorn: **ett matt som datan inte bar fylls aldrig i.**
 
-DEN OBEKVAMA RADEN, OCH DEN ar MATT
-------------------------------------
+DEN OBEKVAMA RADEN, OCH DEN AR MATT
+-----------------------------------
 Den omslutande volymen star INTE i filen (M-61). Inte i model.xml, inte i
 component.rsc, och inte heller i VC:s egen eCatalog-databas. Den ar ingen
 egenskap hos filen utan hos den BYGGDA komponenten vid en viss
@@ -28,8 +28,13 @@ flyttar komponenten fel, tyst.
 VAD SOM DAREMOT GAR ATT LASA
 ----------------------------
 Rackvidden gar. Den star som `Reach` i model.xml, och for 225 robotar dar det
-faltet ar tomt gar den att RAKNA ur `envelopeprofile`, robotens egen
+faltet ar tomt ELLER NOLL gar den att rakna ur `envelopeprofile`, robotens egen
 rackviddsprofil. Bada vagarna bar sin harkomst.
+
+Transportorens ORDNING gar. Vilket granssnitt som tar emot och vilket som
+lamnar ifran sig star i filen for 122 av 163 transportorer. Dess RIKTNING som
+en vektor gor det inte: ramarnas lage ar parametriskt i 303 av 324 fall, och
+`flode_ur_fakta` lamnar da vektorn outraknad med uttrycket som skal.
 
 Granssnitten gar. Namn, sektioner, ramar och falttyper - allt det en generisk
 kontakt inte har. `kopplingsbara()` foreslar par ur den datan, och foreslar ar

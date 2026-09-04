@@ -17,8 +17,8 @@ FA UR FILEN, ELLER KRAVS VC? Svaret star i M-61, och det ar delat:
   HARLEDD ur filen   varje geometriblobbs EGEN lada (blobbarna ar Autodesk 3DS)
   SAKNAS i filen     komponentens SAMMANSATTA omslutande volym
 
-Den sista raden ar den viktiga. Det finns inget faltet i nagon del av arkivet -
-inte i model.xml, inte i component.rsc, och inte heller i VC:s egen
+Den sista raden ar den viktiga. Det finns inget SADANT FALT i nagon del av
+arkivet - inte i model.xml, inte i component.rsc, och inte heller i VC:s egen
 eCatalog-databas, som bara bar Reach. Skalet ar inte slarv: den omslutande
 volymen ar ingen egenskap hos FILEN. Den ar en egenskap hos den BYGGDA
 komponenten vid en viss parameteruppsattning och en viss stallning. En
@@ -47,23 +47,24 @@ FORMATEN
                    Trad, inte lista - features NASTLAS i varandra.
 * `geo-*` m.fl.    Autodesk 3DS. Samma chunk-taggar (0x4D4D huvud, 0x4110
                    hornlista), sa hornen gar att lasa utan VC.
-* `envelopeprofile` 3DS med en egen chunk 0x8001: robotens rackviddsprofil som
-                   en polylinje i XZ-planet, i millimeter.
+* `envelopeprofile` robotens rackviddsprofil som en polylinje i XZ-planet, i
+                   millimeter. TVA format under samma postnamn: 3DS med en
+                   egen chunk 0x8001 (695 filer) och ren text (204).
 """
 from __future__ import annotations
 
 import os
 import re
 import struct
+import time
 import zipfile
-from typing import Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["Filfel", "Harkomst", "Falt", "Sektion", "Granssnitt",
-           "Ram", "Led", "Geometri",
-           "Lada", "Rackviddsprofil", "Komponentfakta", "las", "las_ur_zip",
+__all__ = ["Filfel", "Harkomst", "Post", "tolka_rsc",
+           "Falt", "Sektion", "Granssnitt", "Ram", "Led", "Geometri",
+           "Lada", "Rackviddsprofil", "Komponentfakta",
+           "las", "las_ur_zip", "svep",
            "las_profil", "tds_profil", "text_profil", "tds_lada",
-           "tds_kontroll",
-           "POSTER_UTAN_GEOMETRI"]
+           "tds_kontroll", "POSTER_UTAN_GEOMETRI"]
 
 
 class Filfel(Exception):
@@ -1012,13 +1013,14 @@ class Komponentfakta(object):
     __slots__ = ("sokvag", "namn", "kategori", "tillverkare", "rackvidd_mm",
                  "nyttolast_kg", "taggar", "utfasad", "beskrivning",
                  "granssnitt", "ramar", "leder", "geometri", "profil",
-                 "lada", "lada_skal", "djupt", "egenskaper", "struktur")
+                 "lada", "lada_skal", "djupt", "geometri_last",
+                 "egenskaper", "struktur")
 
     def __init__(self, sokvag, namn, kategori, tillverkare, rackvidd_mm=None,
                  nyttolast_kg=None, taggar=(), utfasad=False, beskrivning="",
                  granssnitt=(), ramar=(), leder=(), geometri=(), profil=None,
-                 lada=None, lada_skal="", djupt=False, egenskaper=None,
-                 struktur=None):
+                 lada=None, lada_skal="", djupt=False, geometri_last=False,
+                 egenskaper=None, struktur=None):
         self.sokvag = sokvag
         self.namn = namn
         self.kategori = kategori
@@ -1036,6 +1038,10 @@ class Komponentfakta(object):
         self.lada = lada
         self.lada_skal = lada_skal
         self.djupt = bool(djupt)
+        # Om geometriblobbarna och rackviddsprofilen lastes. Utan flaggan gar
+        # "ingen profil fanns" inte att skilja fran "profilen lastes aldrig",
+        # och det ar precis den sortens tysta likhet som M-58 handlade om.
+        self.geometri_last = bool(geometri_last)
         self.egenskaper = dict(egenskaper or {})
         # Rakningen av tradets egna delar. Den bar svaret pa varfor den
         # sammansatta ladan inte gar att rakna fram: en transform som bara
@@ -1062,9 +1068,10 @@ class Komponentfakta(object):
         millimetern i 207 fall av 477 och inom en centimeter i 390 (M-61), sa
         den deklarerade far vinna - det ar den som star i databladet.
 
-        Profilen lases bara i djupt lage med geometri. I grunt lage ar svaret
-        darfor SAKNAS aven for en robot som bar en profil, och kallan sager
-        det i stallet for att tiga.
+        Profilen lases bara nar `geometri=True`. Lastes den inte sager kallan
+        just det - "INTE LAST" ar ett annat svar an "finns inte", och en
+        lasare som slar ihop dem far en robot utan rackvidd att se ut som en
+        robot vars fil saknar profil.
         """
         if self.rackvidd_mm and self.rackvidd_mm > 0.0:
             return (self.rackvidd_mm, Harkomst.LAST,
@@ -1073,10 +1080,10 @@ class Komponentfakta(object):
             return (self.profil.radie_mm, Harkomst.HARLEDD,
                     "storsta |x| i envelopeprofile, %d segment"
                     % len(self.profil))
-        if not self.djupt:
+        if not self.geometri_last:
             return (None, Harkomst.SAKNAS,
-                    "Reach saknas eller ar noll; profilen ar inte last, for "
-                    "indexet byggdes i grunt lage")
+                    "Reach saknas eller ar noll, och rackviddsprofilen ar "
+                    "INTE LAST - filen lastes utan geometri")
         return (None, Harkomst.SAKNAS,
                 "Reach saknas eller ar noll och ingen envelopeprofile finns")
 
@@ -1138,6 +1145,7 @@ def las_ur_zip(z, sokvag="", djupt=False, geometri=False):
         utfasad=(egen.get("IsDeprecated") == "True"),
         beskrivning=egen.get("Description") or "",
         djupt=djupt,
+        geometri_last=bool(geometri),
         egenskaper=egen,
     )
     # Den omslutande volymen star inte i nagon del av arkivet. Se modulens
@@ -1191,8 +1199,11 @@ def svep(filer, geometri=True, skriv=None):
     Namnaren ar alltid antalet filer som gicks igenom, och den skrivs ut. Ett
     svep som bara redovisar tallaren sager ingenting.
     """
+    t0 = time.time()
     r = {
         "namnare": len(filer),
+        "sekunder": 0.0,
+        "geometri_last": bool(geometri),
         "lasta": 0,
         "olasliga": [],
         "lada_last": 0,
@@ -1315,7 +1326,8 @@ def svep(filer, geometri=True, skriv=None):
                 r["alla_geo_konstanta"] += 1
                 k["alla_geo_konstanta"] += 1
         if skriv and i and i % 250 == 0:
-            skriv("  %d/%d" % (i, len(filer)))
+            skriv("  %d/%d  %.0f s" % (i, len(filer), time.time() - t0))
+    r["sekunder"] = round(time.time() - t0, 1)
     return r
 
 
@@ -1375,7 +1387,9 @@ def main(argv=None):
     filer = _filer_under(rot)
     r = svep(filer, geometri=not a.utan_geometri, skriv=print)
     n = r["namnare"]
-    print("\nNAMNARE: %d filer" % n)
+    print("\nNAMNARE: %d filer, last pa %.1f s%s"
+          % (n, r["sekunder"],
+             "" if r["geometri_last"] else " (utan geometri)"))
     for nyckel in ("lasta", "lada_last", "lada_harledd", "lada_saknas",
                    "kategori_last", "rackvidd_last", "rackvidd_noll",
                    "rackvidd_saknas", "profil_last",
