@@ -68,13 +68,31 @@ Den första versionen fällde L-02, och grinden mätte då fel storhet.
 | `vcCollisionDetector` duger **inte** — dess nodlistor töms tyst | M-35, M-36 |
 | `measureDistance` kräver `update()` + `sim.update()` mellan flytt och mätning | M-36 |
 
-## Vad som ÄR och INTE är stängt i fas 5
+## Gränssnitt på gränssnittsnivå
+
+Tre par byggda och kopplade i samma körning: `canConnect` sant, `connect` sant,
+`IsConnected` sant, och `ConnectedComponent` pekar på rätt granne.
+
+Den saknade bindningen var **`Container`** — flödesfältets referens till sitt
+flödesbeteende. Alla tidigare försök band bara `Port`, så fältet pekade på en
+port i ingenting och `canConnect` svarade falskt utan att säga varför. Se
+[M-37](../../docs/matningar/M-37_granssnitt_gar_att_koppla.md).
+
+## Fas 5 är STÄNGD
 
 | Led i grinden | Läge |
 |---|---|
-| N mållayouter byggda i VC | **klart**, 18 scener |
-| noll kollisioner | **klart**, mätt av VC:s egen geometri, med trasigt fall som fäller |
-| alla gränssnitt kopplade | **halvt** — kontaktnivån fungerar (M-17), gränssnittsnivån inte |
+| N mållayouter byggda i VC | **klart**, 18 scener, 117 objektpar |
+| noll kollisioner | **klart**, mätt av VC:s egen geometri |
+| alla gränssnitt kopplade | **klart**, på gränssnittsnivå |
+| trasigt fall fäller | **klart**, `band+fotocell` |
 
-Fasen är alltså **inte** stängd, men den står öppen på ett enda led, och det
-ledet är mätt.
+**20 av 20 prov.**
+
+## Vad som fortfarande INTE är prövat
+
+* **Windows.** Allt är kört under Wine.
+* **Riktiga katalogkomponenter.** Alla kroppar är block vi byggt själva. En
+  transportör ur eCatalog kan bete sig annorlunda.
+* **Att något flödar genom kopplingen.** Gränssnitten är kopplade; att en
+  produkt vandrar igenom dem är fas 6 och 7, och är öppet (M-34).

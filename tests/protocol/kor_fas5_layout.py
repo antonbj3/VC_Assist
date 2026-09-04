@@ -138,6 +138,51 @@ def _objekt_ur(scen, los):
     return ut
 
 
+GRANSSNITTSKOD = """import json
+app = getApplication()
+ut = {'byggda': [], 'kopplingar': []}
+
+def bygg(namn, kontakttyp):
+    for c in list(app.Components):
+        if c.Name == namn:
+            app.deleteComponent(c)
+    c = app.createComponent()
+    c.Name = namn
+    stig = c.createBehaviour(VC_ONEWAYPATH, str('Stig'))
+    ifc = c.createBehaviour(VC_ONETOONEINTERFACE, str('Flow'))
+    sek = ifc.createSection(str('Sec'))
+    falt = sek.createField(VC_FLOWFIELD, str('Flode'))
+    kontakt = None
+    for kk in stig.Connectors:
+        if kk.Type == kontakttyp:
+            kontakt = kk
+            break
+    for p in falt.Properties:
+        if p.Name == 'Container':
+            p.Value = stig
+        elif p.Name == 'Port' and kontakt is not None:
+            p.Value = kontakt.Index
+        elif p.Name == 'PortName' and kontakt is not None:
+            p.Value = str(kontakt.Name)
+    ut['byggda'].append({'namn': namn, 'kontakt': kontakt.Name if kontakt else None})
+    return ifc
+
+kedja = %d
+grans = []
+for i in range(kedja):
+    grans.append((bygg('Kedja%%dU' %% i, VC_CONNECTOR_OUTPUT),
+                  bygg('Kedja%%dI' %% i, VC_CONNECTOR_INPUT)))
+for i, (ut_if, in_if) in enumerate(grans):
+    kan = bool(ut_if.canConnect(in_if))
+    kopplad = bool(ut_if.connect(in_if)) if kan else False
+    ut['kopplingar'].append({'par': i, 'canConnect': kan, 'connect': kopplad,
+                             'IsConnected': bool(ut_if.IsConnected),
+                             'till': ut_if.ConnectedComponent.Name
+                                     if ut_if.ConnectedComponent else None})
+print(json.dumps(ut))
+"""
+
+
 def _kor(k, kod, desc, t=90):
     post = k.anrop("exec_queue", {"code": kod, "desc": desc,
                                   "tillat_skriptbeteende": True})["result"]
@@ -200,6 +245,22 @@ def main():
             fel += 1
             print("    FEL  %-6s %s" % (ps.id, str(e)[:110]))
             utfall.append({"scen": ps.id, "fel": str(e)[:200]})
+
+    print("\n  === granssnitt kopplade pa GRANSSNITTSNIVA (M-37) ===")
+    try:
+        d = _kor(k, GRANSSNITTSKOD % 3, "koppla tre granssnittspar")
+        kopp = d.get("kopplingar") or []
+        alla = [x for x in kopp if x.get("connect") and x.get("IsConnected")]
+        print("    %s %d av %d par kopplade: %s"
+              % ("OK  " if len(alla) == len(kopp) and kopp else "FEL ",
+                 len(alla), len(kopp),
+                 ", ".join("%s" % x.get("till") for x in alla)))
+        if len(alla) != len(kopp) or not kopp:
+            fel += 1
+        utfall.append({"granssnittspar": len(kopp), "kopplade": len(alla)})
+    except Exception as e:
+        fel += 1
+        print("    FEL  %s" % str(e)[:120])
 
     print("\n  === det trasiga fallet: tva objekt flyttas in i varandra ===")
     try:
