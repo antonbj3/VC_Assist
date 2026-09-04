@@ -182,3 +182,36 @@ huruvida mataren fungerar.
   och kopplade — de tre villkoren i ett anrop.
 
 L1-prov utan VC: `tests/enhet/test_byggrecept.py`.
+
+## Vad som INTE är mätt
+
+* De tre linjerna är byggda och mätta **en gång** var, i ett startskript, i samma
+  körning. Ingen upprepning och ingen spridning bakom något av talen.
+* Villkoren är mätta som **nödvändiga**, ett i taget utelämnat. Att de tre
+  tillsammans är **tillräckliga** är visat för en uppställning — en matare, en
+  bana på 3000 mm, 200 mm/s, en produkt. Ett fjärde tyst villkor som råkade vara
+  uppfyllt i alla tre linjerna hade inte synts.
+* Fönstren är korta. M41A mättes över 9,8 → 37,8 simulerade sekunder, alltså sju
+  intervall och åtta produkter. En matare som fyrar oregelbundet över längre tid,
+  eller slutar efter tjugo minuter, hade sett hel ut här.
+* Att en bruten koppling **inte** går att laga under drift är mätt i ett fall:
+  bortkopplad vid t = 161,0, återkopplad vid t = 186,2, noll produkter till
+  t = 211,3 — 25 s, fem intervall. Om mataren tar upp takten efter längre tid,
+  efter en reset eller efter en omstart är inte mätt.
+* Det fjärde fallet (samma linje byggd i en körande simulering) är mätt **en**
+  gång, från simtid 62,7 till 96,9. Slutsatsen *"fyrar aldrig"* är alltså
+  "fyrade inte på sju intervall".
+* Bland de fyra motbevisade påståendena bärs ett av en parentes utan mätrad:
+  *"`Part` fungerar också — sätter man `Part` till en `.vcmd`-URI sätts
+  `TemplateComponent` automatiskt"*. Det redovisas inte som en mätning någonstans
+  i texten.
+* Förklaringen till `create()`:s `None` — att den prövar sin egen behållares
+  kapacitet — är en tolkning. `testCapacity` var `False` i varje mätning, även
+  när linjen matade, och vad den storheten mäter är fortfarande omätt (M-34).
+* Ändringarna i `svc/vc_assist_svc/byggrecept/recept.py` provas av
+  `tests/enhet/test_byggrecept.py`, **utan VC**. I VC är bara receptet
+  `flödeslinje` kört, en gång. De fyra övriga punkterna i listan är prövade som
+  kod, inte som verkan.
+* `DistanceTolerance = 1e9` avfärdar avståndet som orsak i **det** provet. Vilken
+  geometrisk tolerans som gäller vid ett normalt värde är inte mätt, och
+  `canConnect` beskrivs ändå som en geometrisk fråga.
