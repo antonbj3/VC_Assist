@@ -86,6 +86,7 @@ Vid fel:
 | `cancel` | avbryter pågående `exec` om möjligt | direkt |
 | `eyes_start` | startar provtagning | kö |
 | `eyes_stop` | stoppar och returnerar sökväg till rapport | direkt |
+| `plc_in` | skjuter in kopplarens PLC-ögonblicksbild i ögats tidsserie | direkt |
 | `shutdown` | stänger bryggan | kö |
 
 ### `exec` och `exec_queue`
