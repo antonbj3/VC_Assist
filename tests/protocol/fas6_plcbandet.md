@@ -121,3 +121,84 @@ programmet inte.
 * **Säkerhetslägen.** Bara anonymt och osäkrat är kört.
 * **En handskriven sekvens.** Provprogrammet är ett genomsläpp med flit; en
   riktig stegkedja hör till fas 7.
+
+---
+
+# FAS 6 STÄNGD — 2026-09-04
+
+**körs av:** `tests/protocol/kor_fas6_slinga.py`
+**mätning:** `docs/matningar/M-39_slingan_sluten.md`
+
+## Vad som ändrades sedan status ovan
+
+Statusen ovan sa *"halva grinden är passerad"* och att ledet **VC-plugin → scen**
+var oprövat.
+
+Det ledet finns inte, och kan inte finnas. `M-38` mätte att VC:s Python-API har
+**noll** yta mot uppkoppling — sökning i indexets 3444 symboler efter `opc`,
+`server`, `variable` och `subscri` ger bara falska träffar. OPC UA finns bara i
+`.NET`, och VC:s Python når inte `.NET` (M-07). VC:s egen OPC UA-klient går
+alltså inte att konfigurera programmatiskt.
+
+Slingan sluts i stället genom **tjänsten**, med en kopplare:
+
+```
+scenens givarsignal -> kopplaren -> OPC UA -> PLC:ns logik
+                    <- kopplaren <- OPC UA <-
+scenens donsignal
+```
+
+## Utfall
+
+Handskriven structured text, kompilerad av STruC++ och körd av OpenPLC v4,
+styr en signal i VC-scenen:
+
+| Prov | Donet följde efter på | kopplarvarv |
+|---|---|---|
+| givare = True | 109.3 ms | 1 |
+| givare = False | 210.3 ms | 2 |
+| givare = True | 231.7 ms | 2 |
+
+**Kopplarens varv:** 5 körda, 5 lyckade, median **89.11 ms**, p95 **104.85 ms**.
+
+## Det trasiga fallet
+
+PLC-anslutningen stängdes mitt i slingan. Kopplaren **gav upp efter tre raka
+fel** i stället för att fortsätta skriva gamla värden till scenen.
+
+Utan den spärren hade slingan sett ut att arbeta medan scenen matades med
+inaktuella värden, och ögat hade dömt på dem.
+
+## L1 för kopplaren
+
+`tests/enhet/test_kopplare.py`, 9 prov, ingen docker, inget nät, ingen VC.
+Båda sidor är attrapper. Provar: att riktningen kommer ur kartan, att ett varv
+flyttar värden åt rätt håll, att varje led tidtas separat, att en död PLC fäller
+slingan, att ett lyckat varv nollställer felräkningen, och att scenskrivningen
+går genom **kön** och aldrig genom `exec` (I12).
+
+Under provskrivningen ströks en gren i kopplaren som var **oåtkomlig kod**:
+`Signalkarta` avvisar redan en signal utan komponentnamn, utan scensignal eller
+med okänd riktning. Garantin bor ett lager upp och provas där.
+
+## Grinden, ordagrant
+
+> Handskriven ST styr scenen genom OPC UA. Tur och retur mätt i ms.
+
+| Led | Läge |
+|---|---|
+| handskriven ST | **klart** |
+| styr scenen | **klart** — en VC-signal följer PLC:ns utgång |
+| genom OPC UA | **klart** — via tjänsten, inte via VC:s plugin (M-38) |
+| tur och retur mätt i ms | **klart** — 89.11 ms per varv, 109–232 ms genomslag |
+| trasigt fall fäller | **klart** |
+
+## Vad som INTE är prövat
+
+* **Bara två signaler.** Kopplarens varv växer med antalet; varje led är ett
+  bryggeanrop.
+* **Ingen rörelse.** Donet är en boolesk signal, inte en transportör som går.
+  Det är fas 7, och blockeras av M-34.
+* **Ingen tidsstämpling till ögat.** Ögat har gränssnittet (`Plckalla.skjut_in`);
+  kopplaren använder det inte än.
+* **Windows.**
