@@ -7,7 +7,8 @@
   "orsak": "Speglar en driftsattningsmiss som ar vanlig pa singuleringsstationer: stoppgrinden kommenderas oppen pa fotocellens niva i stallet for pa dess stigande flank. Sa lange bandet ar tomt ser det ratt ut, men nar burkarna kommer tatt star grinden kvar oppen och slapper tva burkar pa en flank. Felet hittas forst vid full linjefart.",
   "prompt": "Bygg en singuleringsstation for konservburkar och skriv styrningen till den.\n\nScen: en bandtransportor med bandbredd 600 mm som gar kontinuerligt i 0,5 m/s, en pneumatisk\nstoppgrind vid bandets slut, och en genomgaende fotocell 120 mm uppstroms grinden.\nProdukten ar en konservburk, diameter 99 mm och hojd 119 mm, massa 0,42 kg. Burkarna\nkommer i ojamn foljd med 250 till 900 mm lucka.\n\nUppgift: slapp fram exakt en burk per stigande flank pa ST010_PEC_PART. Grinden ska\noppna forst nar burken statt still mot grinden i minst 0,40 s, sa att den inte glider\nvidare pa bandets efterslapning, och den ska stanga igen innan nasta burk nar fram.\nGrindens slagtid ar 0,12 s och ST010_STP_OPENED bekraftar oppet lage.\n\nTakten ar 45 burkar per minut, alltsa 1,33 s per burk. Anlaggningen far bara kora nar\nEMG_OK och AIR_OK ar hoga. Anvand de signalnamn som star i signalkartan; hitta inte pa\negna.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F5"
+    "F5",
+    "F15"
   ],
   "stege": "separeringsstation",
   "difficulty": 3,

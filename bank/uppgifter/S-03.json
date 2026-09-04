@@ -7,7 +7,8 @@
   "orsak": "Speglar en forreglingsmiss med foljder for spårbarheten: kassationsluckan oppnas pa vagcellens niva utan forregling mot att kartan verkligen lamnat banan. Kartan kan da raknas som kasserad och anda ga vidare i flodet. Antalet stammer inte langre, och i lakemedelsproduktion ar en oforklarad differens ett stopp for hela satsen.",
   "prompt": "Bygg en kassationsstation och skriv styrningen till den.\n\nScen: en bandtransportör med bandbredd 400 mm som gar i 0,30 m/s, en vagcell under banan som\nkontrollvager varje blisterkarta, en pneumatisk utskjutare mot en kassationslada med raknare,\noch en genomgaende fotocell i kassationsladans inlopp. Kartan ar 90 x 55 x 12 mm och vager\n0,018 kg. Godkant viktfonster ar 0,016 till 0,020 kg.\n\nUppgift: vag varje karta. Ligger vikten utanfor fonstret ska kartan skjutas ut i kassationsladan\noch raknas i ST210_REJ_CNT, men raknaren far okas forst nar ST210_REJ_PEC sett kartan passera\nin i ladan. Godkanda kartor raknas i ST210_OK_CNT. Summan av de tva raknarna ska alltid vara lika\nmed ST210_IN_CNT. Takten ar 45 kartor per minut.\n\nEn karta far aldrig raknas som kasserad utan att ha lamnat banan. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F8"
+    "F8",
+    "F15"
   ],
   "stege": "separeringsstation",
   "difficulty": 3,

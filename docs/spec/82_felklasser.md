@@ -21,6 +21,7 @@ personer sorterar samma fel likadant. Annars är talet meningslöst.
 | `F12` | Ohederlig | passerar bara därför att något omöjligt skedde | ögat, HONESTY |
 | `F13` | Verktygsfel | agenten anropade rätt verktyg fel, eller gav upp | loggen |
 | `F14` | Annat | passar ingen klass | — |
+| `F15` | Flank och latch | villkoret läses på nivå i stället för på flank, eller ett tillstånd hålls inte kvar när villkoret försvinner | **ögat**, TIMING; spårfacit, flankräkning |
 
 ## Sorteringsregler
 
@@ -33,3 +34,15 @@ personer sorterar samma fel likadant. Annars är talet meningslöst.
    inte fyllas på.
 4. Varje rapporterat fel bär **grind, kod och den rad ur ögat eller loggen**
    som motiverar klassningen. Ingen klassning utan belägg.
+5. **`F6` och `F7` får aldrig fällas av en statisk grind.** Formell verifiering
+   av ST kan inte avgöra timersemantik: SemaPLC (arXiv 2608.18565) rapporterar
+   noll avgörbara utfall för TON-bärande uppgifter, och PLCverif täcker ~25 %
+   av ST (arXiv 2203.17253). Se `docs/research/R-01`. En statisk dom över
+   timing vore en falsk grön i den ände där felen faktiskt bor.
+6. **`F15` är nyare än de andra klasserna och finns av ett skäl.** Ingen
+   publicerad LLM-utvärdering mäter flank- eller latchfel (R-01 §1.4).
+   `61_st_generering.md` och `tests/protocol/fas7_stationen.md` (trasigt fall
+   T3) bygger båda på klassen utan att kunna namnge den. Nio bankuppgifter bar
+   redan materialet men var taggade `F5`, `F6`, `F7` eller `F8`, så klassen
+   gick inte att rapportera. Omtaggningen är gjord av M-45 och kostade ingen ny
+   uppgift.

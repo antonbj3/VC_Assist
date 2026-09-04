@@ -7,7 +7,8 @@
   "orsak": "Speglar den vanligaste singuleringsbuggen: stoppgrinden kommenderas pa fotocellens niva. Nar burkarna star tatt ar nivan redan hog fran foregaende burk, sa grinden oppnar 255 ms innan flanken for den nya burken, och tva burkar passerar pa en flank. Ogats EDGE-rader visar ordningen som ett fasforhallande, vilket ar hela skalet att signaler och fysik ligger pa samma tidsaxel.",
   "prompt": "Har ar en ogonrapport fran en korning av uppgift T-01, singuleringsstationen med\nstoppgrind, fotocell och 45 burkar per minut. Rapporten kommer ur vc_eyes och foljer\ngrammatiken i docs/spec/41_ogat_kontrakt.md.\n\nLas rapporten och avgor om korningen ar godkand. Om den inte ar det: namnge vilken rad som\nfaller den, i vilken ordning handelserna intraffade, och vilken felklass ur\ndocs/spec/82_felklasser.md fallningen tillhor. Se sarskilt pa tiderna i EDGE-raderna och pa\nforhallandet mellan in och out i THROUGHPUT.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F5"
+    "F5",
+    "F15"
   ],
   "stege": "sortering_hojd_enkel",
   "difficulty": 2,

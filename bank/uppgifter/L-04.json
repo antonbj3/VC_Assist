@@ -8,7 +8,8 @@
   "prompt": "Bygg en palleteringsstation med pallvaxling och skriv styrningen till den.\n\nScen: samma palleteringscell som i L-01, med en ABB IRB 660-180/3.15, ett vakuumgripdon med\natta sugkoppar och en kedjetransportor. Till det kommer ett pallmagasin med pallutmatare och en\nackumulerande inbana med plats for sex kollin. Kollit ar 400 x 300 x 200 mm och vager 4,8 kg.\nRobotens langsta arbetsradie i uppgiften ar 2400 mm.\n\nUppgift: bygg tre lager om atta kollin per pall. Begar en ny pall genom ST180_MAG_REQ nar det\naterstar atta kollin pa den pagaende pallen, alltsa ett helt lager, sa att vaxlingen kan\nforberedas. Nar pallen ar full ska den full pallen ut och den tomma in inom 22,0 s.\nPalleteringen far sta still hogst 22,0 s per pall och inbanan far aldrig ga over sex kollin.\n\nTakten ar 5,5 s per kolli. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
     "F8",
-    "F11"
+    "F11",
+    "F15"
   ],
   "stege": "produktionslinje",
   "difficulty": 5,

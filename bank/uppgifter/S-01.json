@@ -7,7 +7,8 @@
   "orsak": "Speglar en sorteringsmiss som ger fel produkt i fel lada: utskjutaren kommenderas pa hojdgivarens niva i stallet for pa den lagrade bedomningen for just den detalj som star vid utskjutaren. Nar detaljerna kommer tatt sorteras foregaende detaljs besked pa nasta detalj, och felet vandrar en detalj framat genom hela flodet.",
   "prompt": "Bygg en sorteringsstation med tva utgangar och skriv styrningen till den.\n\nScen: en bandtransportor med bandbredd 400 mm som gar i 0,35 m/s, en genomgaende fotocell som\nhojdgivare 400 mm uppstroms utskjutaren, en pneumatisk utskjutare med 0,4 s slagtid, och tva\nutgangar: rakt fram och at sidan. Produkten ar en burk 73 x 73 x 110 mm som vager 0,33 kg.\nHoga burkar ska rakt fram, laga at sidan.\n\nUppgift: bedom varje burk vid hojdgivaren, lagra beskedet tillsammans med burken och skjut ut\nden forst nar den nar utskjutaren, 400 mm senare. Vid 0,35 m/s ar det 1,14 s. Kom ihag att\nutskjutarens slagtid ar 0,4 s, sa kommandot maste ges i forvag. Takten ar 60 burkar per minut.\n\nSortera aldrig pa givarens ogonblicksniva. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F5"
+    "F5",
+    "F15"
   ],
   "stege": "sortering_hojd_enkel",
   "difficulty": 2,

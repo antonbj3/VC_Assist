@@ -8,7 +8,8 @@
   "prompt": "Bygg en kedja pa tre transportorer med backtryckshantering och skriv styrningen.\n\nScen: tre bandtransportorer i foljd, alla 600 mm breda och 0,5 m/s, kallade ST060, ST070 och\nST080 raknat i flodesriktningen. Varje bana har en reflexfotocell i sitt slut. Produkten ar en\nkartong 400 x 300 x 200 mm som vager 4,8 kg.\n\nUppgift: nar ST080_PEC_END varit hog i mer an 2,0 s ar nedstroms blockerat. Stoppa da banorna i\nordningen ST080 forst, sedan ST070, sedan ST060, med 0,8 s mellan varje stopp, sa att\nkartongerna glesas ut i stallet for att packas ihop. Nar blockeringen slapper ska banorna\nstartas i omvand ordning, ST060 sist, med samma mellanrum.\n\nNormal takt ar 30 kartonger per minut. Ingen kartong far ligga an mot nasta med mer an\n15 mm inpressning; det matas som minsta avstand mellan kartonger. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
     "F8",
-    "F11"
+    "F11",
+    "F15"
   ],
   "stege": "produktionslinje",
   "difficulty": 5,

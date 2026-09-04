@@ -7,7 +7,8 @@
   "orsak": "Speglar en driftsattningsmiss som ger fog som slapper efter manader: oppentiden raknas fran att robotprogrammet startar i stallet for fran att limmunstycket stangde. Nar strangen tar langre tid an vanligt, till exempel efter ett munstycksbyte, ar limmet redan skinnat nar delarna fogas. Fogen ser perfekt ut och haller i provet, men slapper i falt.",
   "prompt": "Bygg en limningscell och skriv styrningen till den.\n\nScen: en FANUC M-10iD/12 med rackvidd 1441 mm och nyttolast 12 kg, ett limmunstycke med\ndoseringsventil som vager 4,2 kg, en limstation med uppvarmt lim, en fixtur med pneumatiska\nspannare och en 2D-kamera som mater limstrangens langd och brott. Underdelen ar ett plastholje\n180 x 120 x 45 mm som vager 0,34 kg och locket vager 0,14 kg. Robotens langsta arbetsradie i\nuppgiften ar 1250 mm.\n\nUppgift: lagg en sammanhangande limstrang runt hela fogen, 640 mm lang, med doseringsventilen\noppen i 8,0 s. Kameran mater strangen; brott eller en langd utanfor 620 till 660 mm ska stoppa\nstationen. Limmets oppentid ar 180,0 s och den ska raknas fran fallande flank pa\nST290_ADH_VALVE, alltsa fran att munstycket stangde, aldrig fran programstart. Locket ska vara\npa plats och fixturen spand inom oppentiden. Takten ar 46,0 s per enhet.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F6"
+    "F6",
+    "F15"
   ],
   "stege": "separeringsstation",
   "difficulty": 3,

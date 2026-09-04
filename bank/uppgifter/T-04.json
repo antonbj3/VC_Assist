@@ -7,7 +7,8 @@
   "orsak": "Speckar en driftsattningsmiss i buffertstyrning: platsraknaren okas pa inflodesgivarens niva i stallet for pa dess flank, sa att en lastbarare som star still over givaren raknas flera ganger. Bufferten tror sig full vid atta av tolv platser och linan tappar 30 procent av sin kapacitet utan att nagot larm gar.",
   "prompt": "Bygg en ackumulerande buffert och skriv styrningen till den.\n\nScen: en ackumulerande rullbana for lastbarare, 500 mm bred och 24 m/min, med plats for\n12 VDA KLT 6147 om 600 x 400 x 147 mm. En stoppgrind i inloppet, en stoppgrind i utloppet,\nen reflexfotocell vid varje grind. Lastbararna vager 9,5 kg fyllda.\n\nUppgift: hall reda pa antalet lastbarare i bufferten. Stoppa inflodet nar antalet nar 12 och\nslapp in igen nar det fallit till 11 eller lagre. Rakna pa flanker, aldrig pa nivaer. Slapp ut\nen lastbarare varje gang nedstroms station begar en genom ST040_DEM_REQ, och kvittera med\nST040_DEM_ACK nar lastbararen lamnat utloppet.\n\nUtloppet ska kunna leverera var 8:e sekund, alltsa 450 lastbarare i timmen. Uppehallet vid\nutloppsgrinden ar 0,60 s sa att lastbararen hinner sta stilla innan den slapps.\nSignalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F8"
+    "F8",
+    "F15"
   ],
   "stege": "nivareglering",
   "difficulty": 2,

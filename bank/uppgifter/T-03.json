@@ -7,7 +7,8 @@
   "orsak": "Speglar den klassiska sammanflodesbuggen: bada banornas slappsignaler beraknas i samma PLC-scan ur var sin fotocell, utan gemensam last. Nar bada banorna har last samtidigt gar bada slappsignalerna hoga i samma scanfonster och tva lastbarare kilas fast i sammanflodet. Felet syns aldrig nar man provkor en bana i taget.",
   "prompt": "Bygg ett sammanflode och skriv styrningen till det.\n\nScen: tva ackumulerande rullbanor for lastbarare, bada 500 mm breda och 24 m/min, som gar\nsamman till en utgaende rullbana av samma typ. Varje inkommande bana har en stoppgrind och\nen reflexfotocell framfor grinden. Lastbararen ar en VDA KLT 6147, alltsa 600 x 400 x 147 mm,\nmed en fylld massa pa 12 kg.\n\nUppgift: slapp fram en lastbarare i taget till utgangen. Nar bada banorna har last ska de\nturas om, sa att ingen bana svalter ut den andra. En slappt lastbarare behover 1,5 s pa sig\natt lamna sammanflodet innan nasta far slappas; ST030_PEC_MERGE ser nar sammanflodet ar fritt.\n\nKravet ar hart: ST030_STP1_OPEN och ST030_STP2_OPEN far aldrig vara hoga i samma\nPLC-scanfonster. Utgaende takt ar 20 lastbarare per minut. Anvand signalnamnen i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
   "targets_class": [
-    "F7"
+    "F7",
+    "F15"
   ],
   "stege": "separeringsstation",
   "difficulty": 3,
