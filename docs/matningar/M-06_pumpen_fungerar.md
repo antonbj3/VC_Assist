@@ -48,3 +48,22 @@ som "executes a delay that halts a running simulation". Anropad inifrån skripte
 Alternativ om den inte bär: loopa `sim.run(0.05)` från kommandots modulnivå
 och betjäna kön mellan anropen. Då måste det mätas att VC:s gränssnitt förblir
 användbart.
+
+## Vad som INTE är mätt
+
+* De 560 varven och *"exakt 20,0 Hz"* är mätta i **simuleringstid**. Samma text
+  mäter väggklockan för alla 560 varven till under 0,01 s. Talet 20,0 Hz säger
+  alltså ingenting om realtid, och det är precis den skillnaden M-08 sedan mätte.
+* Att `from vcScript import *` är **nödvändig** är mätt. Att den är tillräcklig
+  för godtyckliga skript är det inte — provet var ett skript med en loop.
+* Slutsatsen om `SimSpeed` (*"att sätta den ändrade ingenting"*) är dragen under
+  `sim.run()`. M-08 mätte senare att `SimSpeed` styr den interaktiva
+  uppspelningen. Mätningen prövade alltså fel körsätt och drog en slutsats om
+  egenskapen i allmänhet.
+* Hook-ordningen `OnReset → OnStart → OnRun → OnStop` är avläst ur **en**
+  körning. Om ordningen håller vid reset under drift, vid stopp mitt i ett varv
+  eller vid fel i skriptet är inte mätt.
+* `vcApplication.delayRealTime` står som kandidat och är märkt oprövad i texten.
+  Den prövades inte här.
+* Bekräftelsen ur `Commands/Wizards/SensorWizard.py` är en läsning av
+  medföljande kod, inte en körning.

@@ -46,3 +46,27 @@ normalt och nämnde det inte i loggen. **Trasiga tillägg misslyckas tyst.**
 
 Konsekvens för designen: bryggan måste **själv** logga att den startat,
 eftersom VC inte säger något om den inte gör det.
+
+## Vad som INTE är mätt
+
+* Allt är mätt i ett Wine-prefix på Linux mot VC Premium 4.10. Ingen rad är mätt
+  på Windows och ingen på någon annan VC-version — M-44 slår fast att ingen
+  mätning i hela repot är gjord på Windows.
+* Raden *"`threading` — importerbar"* säger att modulen går att importera. Att en
+  tråd som startas får CPU är en annan storhet, och den är motsatt: M-04 och M-07
+  mätte att bakgrundstrådar svälter så fort kommandot återvänt. Raden ser ut som
+  ett grönt svar på den fråga trådmodellen i `31_brygga_protokoll.md` byggdes på,
+  och var det inte.
+* `socket.bind("127.0.0.1", 8901)` är mätt som en **bindning**. Att någon utifrån
+  kan ansluta, skicka och få svar mättes inte här.
+* Listan över verifierade API-ytor säger att namnen finns och svarade i
+  kommandots scope. Den säger ingenting om vad de returnerar, om svaren är rätta,
+  eller om anropen är ofarliga — `app.save` finns på samma objekt och dödar
+  pumpen (M-13).
+* *"Trasiga tillägg misslyckas tyst"* vilar på **ett** avsiktligt syntaxtrasigt
+  tillägg, en gång. Andra sätt att vara trasig — importfel, fel under körning,
+  en modul som kastar i sin toppnivå — är inte prövade här.
+* Scopeindelningen är prövad genom kroken `OnAppInitialized` och ett kommando.
+  Att `getApplication()` saknas i **alla** `vcApplication`-krokar är inte mätt.
+* Sökvägsfyndet är mätt som "den ena vägen fyrar, den andra inte" i ett prefix.
+  Om `Python 2`-nivån heter något annat i en annan VC-version är oprövat.

@@ -61,3 +61,25 @@ båda. Simuleringstid ska därför läsas i skriptets scope. Orsaken är omätt.
 
 Pumpen lever bara medan simuleringen går. Vad som händer med köade begäran när
 operatören stoppar simuleringen är obestämt och hör till fas 1:s protokoll.
+
+## Vad som INTE är mätt
+
+* Kvoten 1,000 är mätt över **en** körning på 155 s, i en tom scen, med en pump
+  som inte betjänade någon begäran. Under last — köade anrop, scenändringar,
+  ögats provtagning — är kvoten omätt.
+* *"3 100 varv utan ett enda missat"* räknas ur skriptets **egen** räknare. Ett
+  varv som skriptet självt hoppade över hade inte synts i den räkningen; det
+  finns ingen oberoende klocka som räknar varven.
+* Driften *"under 0,01 s över 155 s"* är en körning på tre minuter. Om driften
+  växer över en timme eller ett dygn är inte mätt.
+* Att `SimSpeed` styr interaktiv uppspelning och inte satskörning är en
+  **förklaring** till M-06:s utfall. Den prövades inte här genom att sätta
+  `SimSpeed` under en `startSimulation()`.
+* Att `sim.SimTime` läst ur kommandots scope stod kvar på 0,000 är mätt.
+  Orsaken står som omätt i texten och är det fortfarande, så regeln *"läs
+  simuleringstid i skriptets scope"* är en åtgärd utan känd mekanism.
+* Vad som händer med köade begäran när operatören stoppar simuleringen är
+  obestämt och inte mätt. Det står i texten och lämnades till fas 1:s protokoll.
+* Hela mätningen är gjord headless under Wine. Att `startSimulation()` beter sig
+  likadant med gränssnittet öppet, där uppspelningen faktiskt ritas, är oprövat
+  (M-22 i `RESERVERADE.md`).

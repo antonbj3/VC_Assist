@@ -48,3 +48,21 @@ alltså blockera i verklig tid — men då står VC still.
 Applikationsobjektet har 91 metoder. De som betyder något för bryggan:
 `startSimulation`, `stopSimulation`, `resetSimulation`, `render`, `flush`,
 `delayRealTime`, `getPythonDllPath`, `rayCast`, `rayIntersect`.
+
+## Vad som INTE är mätt
+
+* Trådsvälten är mätt i **en** uppställning: en daemon-tråd som skriver var
+  0,25 s, med huvudtråden i `time.sleep(1.0)`. Att varje tråd i varje läge
+  svälter är en generalisering ur det enda fallet.
+* Mekanismen — *"VC:s egen meddelandeloop släpper inte GIL"* — är en förklaring
+  som passar mätningen. Ingen mätning tittade på GIL:en. Det som mättes var fem
+  rader under sömnen och noll rader efteråt.
+* *"Noll varv, för alltid"* är inte en mätbar storhet. Mätningen varade så länge
+  den varade; hur länge det var står inte i texten.
+* `import clr` och `import System` gav ImportError i **det här** scopet. Att .NET
+  är onåbart från varje scope i VC följer inte av det.
+* De 91 metoderna på applikationsobjektet är en `dir()`-räkning. Vilka som
+  fungerar, vad de returnerar och vilka som dödar pumpen är inte mätt här —
+  `save` hör till de 91 och dödar den (M-13).
+* Versionssträngen är läst en gång i ett prefix. Att VC Premium 4.10 alltid bär
+  Stackless 2.7.1, och vad andra VC-versioner bär, är inte mätt.

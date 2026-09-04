@@ -64,3 +64,22 @@ Kandidater att mäta härnäst:
 4. Om skriptfel slukas tyst, och hur man får ut dem (`useTracing`, `output`, `flush` finns på `vcScript`)
 
 Punkt 4 är trolig och billig: `vcScript` har `useTracing` och `output`.
+
+## Vad som INTE är mätt
+
+* Bytesträngsfyndet är mätt på **fyra** anrop. Invarianten *"all text som skickas
+  in i VC:s API ska gå genom `_s()`"* gäller varje strängskrivning i hela API:t
+  och är alltså mycket bredare än sitt underlag.
+* `_s()` är prövad i VC:s Stackless Python 2.7. Att den är en no-op på VC 5.0
+  med Python 3 är läst ur språket, inte mätt — ingen mätning i repot har rört
+  VC 5.0.
+* `sim.run(30.0)` på 0,04 s väggklocka är **en** körning i en scen utan arbete.
+  Talet mäter en tom scen, inte hur `run()` beter sig när något faktiskt räknas.
+* Att `first_state()` aldrig anropas är mätt som frånvaro. **Varför** den inte
+  anropas mättes inte, och blev kvar som blockerare till M-06.
+* Metodfelet i texten (fyra körningar felsökta på fel rad) är rättat i just det
+  fallet. Om samma antagande — att tracebacken pekar på anropet man tänker på —
+  sitter kvar i någon annan slutsats är inte genomsökt.
+* `dir()` på `vcScript` visade bara metoder medan `Script` gick att nå ändå.
+  Vilka andra egenskaper som är osynliga för `dir()` är inte kartlagt, så
+  introspektion kan inte användas för att utesluta att något finns.

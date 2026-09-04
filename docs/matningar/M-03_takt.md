@@ -50,3 +50,25 @@ så första begäran på en färsk anslutning inte betalar hela perioden.
 Kostnaden är simulerad tid som går åt till tomma varv under aktiva fönster.
 Med `startSimulation()` är simulerad tid samma sak som väggklockstid (M-08),
 så det förbrukar inget som en mätning behöver.
+
+## Vad som INTE är mätt
+
+* Varje tal är **en** körning. 224,7 Hz, 17,2 Hz, medianen och värstafallet har
+  ingen upprepning, ingen spridning och ingen felstapel.
+* Svarstiden är tjugo tur-och-retur från **en** klient över **en** anslutning på
+  loopback i samma Wine-prefix. Flera samtidiga klienter, större nyttolaster och
+  vägen över ett nät är omätta.
+* *"Värsta av 20"* är värsta av tjugo. Tjugo punkter kan inte mäta en svans: en
+  paus som inträffar en gång på tusen begäran hade inte synts, och det finns
+  ingen p99 och inget långkörningsprov.
+* Att de ~8 ms per varv är `tick()`:s eget arbete är en **förklaring**, inte en
+  mätning. Ingen profilering delade upp dem på `select`, städning och loggning,
+  så fördelningen mellan de tre är okänd.
+* Faslåsningen mellan pump och klient är sluten ur att medianen låg på 49,93 ms
+  när perioden var 50 ms. Det är ett starkt indicium, men ingen mätning varierade
+  perioden och visade att medianen följde med.
+* Talen är mätta mot Wines schemaläggare på den här maskinen, headless `:99`,
+  med VC ensam om maskinen. M-44 pekar uttryckligen ut just de här talen som de
+  som mest sannolikt mäter annorlunda på Windows, och den mätningen är inte gjord.
+* Kostnaden för den adaptiva pumpens tomma varv är inte mätt. Den avfärdas med
+  hänvisning till M-08:s kvot 1,000, som är mätt i en tom scen utan trafik.
