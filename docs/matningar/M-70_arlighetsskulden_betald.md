@@ -206,9 +206,12 @@ in i registret.
   meningen.
 * **Ingenting är mätt i VC.** Hela det här arbetet är textarbete på disk. Ingen
   VC-instans har rörts, och ingen av de gamla mätningarna är körd om.
-* **Två prov i sviten är röda och är inte mina:**
-  `test_layout.py::test_varje_publikt_namn_har_en_konsument` och
+* **Sviten är grön, men inte stilla.** Mitt i arbetet var två prov röda och inte
+  mina — `test_layout.py::test_varje_publikt_namn_har_en_konsument` och
   `test_troskelharkomst.py::test_ingen_troskel_pekar_pa_en_matning_som_inte_finns`
-  (fem trösklar pekar på M-62 och M-63, som ännu inte är skrivna). Att de var röda
-  före mitt arbete är inte kontrollerat genom att köra sviten på `ce16a00` — det
-  är slutet ur att de rör filer jag inte har rört.
+  (fem trösklar pekade på M-62 och M-63, som inte fanns då). Vid sista körningen
+  var båda gröna igen, för att andra agenter hade landat sitt arbete. Ett grönt
+  slutläge i ett repo där sex händer skriver samtidigt säger alltså något om
+  ögonblicket, inte om att ingenting är trasigt: `tests/enhet/test_plan.py` och
+  `test_plan_villkor.py` går fortfarande inte att samla in
+  (`ImportError: cannot import name 'Villkor'`) och är uteslutna ur körningen.

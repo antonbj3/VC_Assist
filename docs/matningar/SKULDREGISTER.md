@@ -482,7 +482,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * M-50 är kvar och är inte min.** Den är en halvskriven mätning
 * Taket är satt i ett rörligt repo.** `UTAN_ARLIGHETSAVSNITT = 1` är exakt lika
 * Ingenting är mätt i VC.** Hela det här arbetet är textarbete på disk. Ingen
-* Två prov i sviten är röda och är inte mina:**
+* Sviten är grön, men inte stilla.** Mitt i arbetet var två prov röda och inte
 
 ### M-71_ren_maskin_utan_vc.md — Vad som fortfarande INTE är prövat
 
