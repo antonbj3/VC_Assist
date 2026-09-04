@@ -4,23 +4,13 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 11
+## Mätningar utan ärlighetsavsnitt: 1
 
 En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
 
-* `M-31_lintern_var_sjalv_en_falsk_gron.md`
-* `M-32_mataren_och_komponentidentiteten.md`
-* `M-33_varldsenheten_ar_millimeter.md`
-* `M-34_produkten_finns_men_flodar_inte.md`
-* `M-35_kollisionsdetektorn_fyrar_inte.md`
-* `M-36_measuredistance_ar_kollisionsmattet.md`
-* `M-37_granssnitt_gar_att_koppla.md`
-* `M-40_varfor_mataren_aldrig_fyrade.md`
-* `M-44_windows_oprovat.md`
-* `M-47_verktygstackning_runda_1.md`
 * `M-50_de_trasiga_fallen.md`
 
-## Vad mätningarna säger att de inte vet: 206 punkter
+## Vad mätningarna säger att de inte vet: 289 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -50,6 +40,10 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Faslåsningen mellan pump och klient är sluten ur att medianen låg på 49,93 ms
 * Talen är mätta mot Wines schemaläggare på den här maskinen, headless `:99`,
 * Kostnaden för den adaptiva pumpens tomma varv är inte mätt. Den avfärdas med
+
+### M-04_exekveringsmodellen.md — Öppen fråga, blockerande för fas 1
+
+* Ingen av dem är prövad.** Fas 1 kan inte stängas förrän en av dem mätts.
 
 ### M-04_exekveringsmodellen.md — Vad som INTE är mätt
 
@@ -165,6 +159,75 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Säkerhetslägen i OPC UA.** Bara `None/None` med anonym åtkomst är körd.
 * Belastning.** Ingen mätning gjordes med samtidig trafik, och maskinen körde
 
+### M-31_lintern_var_sjalv_en_falsk_gron.md — Vad som INTE är mätt
+
+* Talet 125 kommer ur den ombyggda lintern, och den var inte prövad mot ett
+* Vad som **räknas** som en tröskelkonstant är linterns egen definition. Ett tal
+* Lintern kontrollerar att en hänvisad mätning **finns**. Att mätningen faktiskt
+* Talen 79 och 67 är båda mätta med den **nya** lintern. Ingen av dem går att
+* Vilka av de 125 trösklarna som är **fel** är inte mätt. Mätningen räknar
+* De 27 döda hänvisningarna är räknade en gång. Att ingen ny död hänvisning kan
+
+### M-32_mataren_och_komponentidentiteten.md — Vad som INTE är mätt
+
+* Punkt 6 är fel, och rättelsen står bara som en ruta ovanför slutsatsen.**
+* Talet *"72 simulerade sekunder → 0 produkter"* är mätt på en matare byggd i en
+* redan körande** simulering. M-40 mätte att just det gör att en matare aldrig
+* Att en programmatiskt skapad komponent saknar identitet är mätt för
+* "En URI överlever inte en layoutrunda"* är mätt för **en** fil utanför en känd
+* Hela bygg–spara–ladda-omvägen visade sig senare vara onödig: M-40 mätte att
+* De två uppstartsluckorna (`vc_assist_startlayout.txt`,
+* De två uppstartsfelen (dubbel pump ur en sparad layout, `__future__`-flaggor
+
+### M-33_varldsenheten_ar_millimeter.md — Vad som INTE är mätt
+
+* Kopplingen mellan enhetstabellen och `vcMatrix.P` görs via **en** kropp — en
+* `findUnitFamily` gav `None` på varje prövat namn. Det är en frånvaro i en
+* gissad namnlista**, inte en mätning av att familjen saknas — exakt samma form
+* `vcMotionPath.Speed = 200.0` är ett **rimlighetsargument**, inte en mätning.
+* Tyngdaccelerationens enhet är fortfarande omätt.** Texten lämnar frågan öppen,
+* Bekräftelse mot ett objekt av **känd fysisk storlek ur en katalog** står som
+* Att ändringen av cellernas mått till millimeter gör de fyra grindarna
+* Mätt mot VC Premium 4.10. Att basenheten är densamma i andra VC-versioner, och
+
+### M-34_produkten_finns_men_flodar_inte.md — Vad som INTE är mätt
+
+* Varje rad i tabellen är **en** observation ur ett svep, inte en upprepad
+* "Fyrar den automatiska matningen? **Nej**"* är mätt över 160 simulerade
+* Slutsatsen i *Var det står* — att en bana kräver en transportstyrenhet, och att
+* `testCapacity = False` på båda sidor även under drift står som *"betydelsen är
+* Mätfelet är rättat för `len(app.Components)`. Var det talet användes på andra
+* De fyra transportstyrenheterna prövades med ett argumentlöst `createBehaviour`,
+* Att `VC_PYTHONTRANSPORTCONTROLLER` skapades *"utan att bryggan dog"* är mätt en
+
+### M-35_kollisionsdetektorn_fyrar_inte.md — Vad som INTE är mätt
+
+* Rätt observation, fel diagnos.** M-36 mätte orsaken: `NodeListA` tar emot en
+* Hypotesen under *Trolig orsak, omätt* — att detektorn måste ligga i layouten —
+* De fyra gröna layouterna mäter att fyra scener gick att **bygga**. De mäter
+* Det trasiga fallet är **två kuber**, en uppställning, en förskjutning. Att
+* `StopOnCollision`-fyndet gäller det objekt `sim.newCollisionDetector()`
+* Att fasen står öppen *"på en mätt orsak"* stämde inte när det skrevs: orsaken
+
+### M-36_measuredistance_ar_kollisionsmattet.md — Vad som INTE är mätt
+
+* Måtten är tagna på **två axelinriktade kuber** som förskjuts längs **en** axel,
+* Facit är räknat ur de positioner mätningen själv satte, och förutsätter M-33:s
+* Måttet är mättat vid noll.** `0.0` betyder både "kant i kant" och "900 mm
+* Uppdateringsreceptet `nod.update()` + `sim.update()` är mätt som nödvändigt
+* tillsammans**. Vilket av de två anropen som gör jobbet, eller om båda behövs,
+* Att de tre avfärdade vägarna (layoutpost, läsning efter ett simuleringssteg,
+* Ombyggnaden av ögats `mindist`-provtagning från detektorn till `measureDistance`
+
+### M-37_granssnitt_gar_att_koppla.md — Vad som INTE är mätt
+
+* Receptet binder `Container`, `Port` och `PortName` i en loop över
+* Receptet är kört **en gång**, på ett par komponenter byggda i samma körning.
+* Kopplingen är mätt till `canConnect True`, `connect True`, `IsConnected True`.
+* Rättelsen av M-16 pekar ut den ogiltiga bindningen som orsak. Det är slutet ur
+* Kontaktvalet på `Type` i stället för index ärvs från M-17 och prövas inte om
+* Att fas 5:s tredje led därmed *"är möjligt att uppfylla"* är en slutsats om
+
 ### M-38_vagen_mellan_plc_och_scen.md — Vad som inte är avgjort
 
 * Om VC:s inbyggda koppling går att få in via en **sparad layout** som redan
@@ -178,6 +241,19 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Ingen tidsstämpling till ögat.** Kopplaren mäter sina egna led, men skjuter
 * Windows.**
 
+### M-40_varfor_mataren_aldrig_fyrade.md — Vad som INTE är mätt
+
+* De tre linjerna är byggda och mätta **en gång** var, i ett startskript, i samma
+* Villkoren är mätta som **nödvändiga**, ett i taget utelämnat. Att de tre
+* Fönstren är korta. M41A mättes över 9,8 → 37,8 simulerade sekunder, alltså sju
+* Att en bruten koppling **inte** går att laga under drift är mätt i ett fall:
+* Det fjärde fallet (samma linje byggd i en körande simulering) är mätt **en**
+* Bland de fyra motbevisade påståendena bärs ett av en parentes utan mätrad:
+* "`Part` fungerar också — sätter man `Part` till en `.vcmd`-URI sätts
+* Förklaringen till `create()`:s `None` — att den prövar sin egen behållares
+* Ändringarna i `svc/vc_assist_svc/byggrecept/recept.py` provas av
+* `DistanceTolerance = 1e9` avfärdar avståndet som orsak i **det** provet. Vilken
+
 ### M-41_produkten_flodar.md — Vad som inte är visat
 
 * Produkten lämnar aldrig banan till något annat.** Banans utgångs­gränssnitt
@@ -186,12 +262,23 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * `Accumulate = True` är satt men aldrig belastad.** Ingen produkt har blivit
 * Rörelsen är mätt i simulerad tid, inte i väggklockstid.** Serien är tagen
 
+### M-42_plc_pa_ogats_tidsaxel.md — Vad som ligger utanför d, och som d inte påstår sig mäta
+
+* PLC:ns egen skanfördröjning.** M-20 mätte den till 40,0 ms vid 20 ms
+* Riggens brygga är snabbare än VC:s.** Här är tur och retur 5,2 ms median;
+
 ### M-42_plc_pa_ogats_tidsaxel.md — Vad som INTE är mätt
 
 * Mot en levande VC.** Riggen mäter mekanismen, inte produktionsvägen.
 * Epokfrågan är kringgången, inte besvarad.** Om VC:s `time.time()` under
 * Flera kopplare mot samma öga.** Det sista inskottet vinner; ingen
 * Windows.**
+
+### M-44_windows_oprovat.md — Vad rättelserna medvetet INTE gör
+
+* De ändrar **ingenting** i Wine-vägen. `valj_adressflagga` ger Wine samma
+* De påstår inte att Windows fungerar. Varje ny gren är prövad som **gren**,
+* 
 
 ### M-45_bankens_tackning.md — 8. Vad som INTE är prövat
 
@@ -211,6 +298,14 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * OBEVISAT 2 — `_pumpvarningar` är en VARNING där M-13 säger död.**
 * OBEVISAT 3 — `MAX_LIKA_ANROP = 2` mot VRK-008.** Regeln säger *"Upprepa
 * OBEVISAT 4 — `test_harnessen_oppnar_ingen_socket` är textbaserat.** Den
+* 
+
+### M-47_verktygstackning_runda_1.md — Vad de här måtten INTE säger
+
+* Att en symbol står i byggd kod betyder att en mall **nämner** den, inte att
+* Ytdiffen ser bara de symboler `47` valde att namnge. Den mäter täckningen av
+* planen**, inte av API:t.
+* Steg-täckningen ärver `48`:s kolumn "Kräver". Där den namnger fel yta blir
 * 
 
 ### M-48_grind_1_till_4_skarpt.md — Vad som INTE är mätt
@@ -289,6 +384,26 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Rangordningen.** Träffar sorteras på kortast namn först, vilket är rätt för
 * "IRB 120"* mot *"IRB 120-3/0.6 LID"*. Om det är rätt regel i allmänhet är
 
+### M-61_vad_en_komponentfil_bar.md — Vad som INTE är mätt
+
+* Om `get_bounds` täcker hela komponenten.** Verktyget läser rotnodens
+* Om en katalogkomponent alls går att ladda.** `app.load()` mot en `.vcmx` är
+* Om lådan beror på ställningen och på parametrarna.** Sannolikt ja, för båda,
+* Om VC:s gränssnittsnamn är samma som filens.** Läsningen här är oprövad mot
+* De 75 flödesfälten med port 2–6.**
+* Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
+
+### M-64_vad_anvandaren_ser_medan_det_arbetar.md — 6. Vad systemet inte vet, i två klasser
+
+* Utanför räckvidd**, fem poster, ordagrant efter `50_grindar.md`:
+* Ej prövat i den här körningen**, hämtat ur källornas egna skäl:
+* stationsgrindens överhoppade grindar, med grindens eget skäl (`ej kord;
+* reparationsslingans `ej_korda`
+* ögonkopplingens fyra utfall ur `M-42` — inskott till ett stängt öga, värden
+* ögats saknade sektioner, härledda ur domen
+* steg som aldrig kördes, och — skilt från dem — steg som **påbörjades men
+* 
+
 ### M-64_vad_anvandaren_ser_medan_det_arbetar.md — 9. Vad detta INTE bevisar
 
 * Ingen VC kördes.** Inget i den här mätningen har varit i närheten av
@@ -339,19 +454,15 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * En maskin utan docker.** OpenPLC-avbilden dras av docker, inte av oss.
 * Klonen är lokal.** `git clone --local` från samma disk, inte över nätet.
 
-## Produktionsmoduler som ingen provfil nämner: 3 (786 rader)
+## Produktionsmoduler som ingen provfil nämner: 1 (143 rader)
 
 * `svc/vc_assist_svc/layout/vc_utdata.py` — 143 rader
-* `svc/vc_assist_svc/plan/layoutport.py` — 264 rader
-* `svc/vc_assist_svc/plan/villkorssprak.py` — 379 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (656 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 1 (135 rader)
 
-* `svc/vc_assist_svc/plan/bestallning.py` — 234 rader
-* `svc/vc_assist_svc/plan/processer.py` — 287 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 101
+## Markörer i koden: 103
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -479,6 +590,11 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 ### enhet/test_api_index.py
 
 * enhet/test_api_index.py:604  """docs/spec/95_testprotokoll.md: en grind utan trasig fixtur ar oprovad."""
+
+### enhet/test_bestallning.py
+
+* enhet/test_bestallning.py:14  slapper igenom det korrekta. En grind som bara provats at ena hallet ar oprovad
+* enhet/test_bestallning.py:1163  oprovad - och en oprovad grind ar en forhoppning som har fatt ett namn.
 
 ### enhet/test_dataverktyg.py
 
