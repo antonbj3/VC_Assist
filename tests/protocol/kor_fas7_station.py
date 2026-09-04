@@ -307,9 +307,8 @@ def ogonplan(rate_hz=20.0, varvtid_s=0.3):
         # Bromsklacken ar det enda objekt PLC:n kommenderar. Utan `movers` kan
         # ogat inte fraga om ett kommenderat objekt verkligen rorde sig.
         "movers": {"ST7_Don/Stopp": "ST7_Broms"},
-        # Fasforhallandet mellan PLC-taggen och scenens signal ar kopplarens
-        # egen transporttid, matt pa ogats axel.
-        "plc_par": [("stopp", "ST7_Don/Stopp")],
+        # `plc_par` bara nar PLC-vardena verkligen skjuts in; utan dem ar
+        # fasforhallandet en fraga utan svar.
         # Cykeln borjar pa SCENENS fotocell, inte pa en PLC-tagg. Skalet ar
         # mätt: kopplaren skjuter in PLC:ns UTGANGAR i ogats serie, inte dess
         # ingangar, sa `plc:givare` finns aldrig dar - och en start som aldrig
@@ -581,6 +580,7 @@ class Stationskopplare(Kopplare):
         # HELA kon - som vaxer med varje post. En tat pollning stryper darfor
         # simuleringen, och alltmer ju langre korningen gar.
         self.pollintervall = 0.1
+        self._utestaende = []
         # En SKYDDAD ingang gar inte att driva harifran, och det ar ratt.
         # MATT: opcuakonfig.variabel ger en skyddad tagg lasrattigheter bara,
         # och en WriteRequest mot den svarar BadInternalError - kopplaren foll
@@ -617,6 +617,19 @@ class Stationskopplare(Kopplare):
                            % (qid, timeout))
 
     def skriv_scenen(self, varden):
+        """Lamnar over anlaggningssteget till kon och VANTAR INTE pa det.
+
+        MATT (M-49): ett varv som vantar ut sin egen scenskrivning star still
+        sa lange pumpen ar upptagen - och medan slingan star still skjuts inga
+        PLC-varden in i ogats serie. En enda hicka pa 1,4 s gav fem prov med
+        ett varde aldre an PLC_FARSK_S, och ogat domer da INCONCLUSIVE for
+        hela korningen. Steget ar en STALLDONSORDER, inte en fraga: den kostar
+        ett varv i genomslag, och det varvet ryms redan i facits
+        transportfonster.
+
+        Utfallet tigs inte ihjal. Varje inlamnad post kontrolleras nasta varv,
+        och en post som foll faller kopplarvarvet.
+        """
         rader = []
         for s in self.fran_plc:
             v = varden.get(s.tagg)
@@ -628,11 +641,26 @@ class Stationskopplare(Kopplare):
         kod = anlaggningskod(self.kor_signal, "\n".join(rader) or "pass")
         post = self.brygga.koa(kod, desc="anlaggningen: ett processteg")
         self.brygga.godkann(post["qid"])
-        ut = self._vanta_latt(post["qid"])
-        if ut["state"] != "done":
-            raise RuntimeError("anlaggningssteget slutade som %r" % ut["state"])
-        self.anlaggning.append({"qid": post["qid"], "state": ut["state"]})
+        self._utestaende.append(post["qid"])
+        # Hall kon kort: fler an sa har manga poster pa vag betyder att pumpen
+        # inte hinner med, och da ar det ratt att vanta ut den aldsta.
+        if len(self._utestaende) > MAX_UTESTAENDE:
+            aldst = self._utestaende.pop(0)
+            ut = self._vanta_latt(aldst)
+            if ut["state"] != "done":
+                raise RuntimeError("anlaggningssteget %s slutade som %r"
+                                   % (aldst, ut["state"]))
+        self.anlaggning.append(post["qid"])
         return {}
+
+    def stang_av(self):
+        """Vantar ut det som annu ar pa vag. Anropas nar slingan ar klar."""
+        for qid in list(self._utestaende):
+            try:
+                self._vanta_latt(qid, timeout=30.0)
+            except Exception:
+                pass
+        self._utestaende = []
 
 
 # ---- VC ------------------------------------------------------------------
@@ -852,6 +880,11 @@ def driftsatt(kand, k, byggrot, namn, strucpp, runtime_include, bas,
 # UA-lasning kostar 0,4 ms (M-20), sa tatheten ar nastan gratis - det dyra ar
 # scenskrivningen, och den ligger kvar i kopplarvarvet.
 PLC_TATHET_S = 0.05         # Satt av M-49.
+# Hur manga anlaggningssteg som far vara pa vag samtidigt. Ett ar for lite -
+# da vantar slingan ut varje steg och slutar skjuta in PLC-varden medan den
+# vantar. Manga ar for mycket - da bygger kon upp en fordrojning mellan PLC:ns
+# order och scenen som facit inte raknat med. Tva ger ett varvs pipelining.
+MAX_UTESTAENDE = 2          # Satt av M-49.
 
 
 def kor_slingan(brygga, kopplare, ogonkoppling, sekunder,
@@ -870,12 +903,14 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder,
         except Exception as e:
             # Kopplaren gav upp. Ogat far veta det ROP RAKT UT, sa serien far
             # ett hal med skal i stallet for gamla tal (M-42).
-            ogonkoppling.bryt("kopplaren gav upp: %s" % str(e)[:120])
+            if ogonkoppling is not None:
+                ogonkoppling.bryt("kopplaren gav upp: %s" % str(e)[:120])
             raise
         logg["varv"] += 1
         if v.fel:
             logg["fel"].append(v.fel)
-            ogonkoppling.bryt("kopplarvarv %d foll: %s" % (v.nr, v.fel))
+            if ogonkoppling is not None:
+                ogonkoppling.bryt("kopplarvarv %d foll: %s" % (v.nr, v.fel))
         if v.fran_plc.get("stopp") and v.fran_plc.get("slapp"):
             logg["konflikter"] += 1
         stopp = bool(v.fran_plc.get("stopp"))
@@ -902,7 +937,8 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder,
         # tva kraven drar at var sitt hall, sa de skiljs at: scenskrivningen
         # glest, PLC-avlasningen tatt.
         forsta = True
-        while forsta or time.time() - t_varv < varvtid_s:
+        while ogonkoppling is not None and (
+                forsta or time.time() - t_varv < varvtid_s):
             forsta = False
             t_las = time.time()
             try:
@@ -917,6 +953,9 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder,
             sov = plc_tathet_s - (time.time() - t_las)
             if sov > 0:
                 time.sleep(sov)
+        kvar = varvtid_s - (time.time() - t_varv)
+        if ogonkoppling is None and kvar > 0:
+            time.sleep(kvar)
     varvtider.sort()
     if varvtider:
         logg["varv_ms"] = {
@@ -951,8 +990,9 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
         plan = ogonplan(a.ogonrate, a.varvtid)
         start = brygga.oga_start(plan, simtid)
         rad["oga_start"] = start
-        ogon = Ogonkoppling(brygga)
-        ogon.synka()
+        ogon = Ogonkoppling(brygga) if a.plc_inskott else None
+        if ogon is not None:
+            ogon.synka()
         # Kopplaren skjuter INTE sjalv in i ogat. MATT (M-49): dess inskott
         # sker efter scenskrivningen, och en scenskrivning som fastnat i
         # pumpen i sju sekunder gav ett PLC-varde som var sju sekunder gammalt
@@ -961,11 +1001,15 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
         kopplare = Stationskopplare(k, ua, brygga, oga=None)
         rad["slinga"] = kor_slingan(brygga, kopplare, ogon, a.sekunder,
                                     a.varvtid, a.plc_tathet)
+        # Ogat stoppas FORST. Allt som gors efter slingan - att vanta ut
+        # kvarvarande scenskrivningar, att stanga OPC UA - ar tid da ogat
+        # provtar utan att fa nagot nytt, och den tiden hor inte till matningen.
+        stopp = brygga.oga_stopp()
+        kopplare.stang_av()
         rad["kopplaren"] = kopplare.sammanfattning()
         rad["anlaggning"] = {"steg": len(kopplare.anlaggning)}
     finally:
         ua.stang()
-    stopp = brygga.oga_stopp()
     rad["oga_stopp"] = dict((x, stopp.get(x))
                             for x in ("samples", "dur_s", "rate_hz", "saknade"))
     data = stopp.get("data")
@@ -1036,6 +1080,11 @@ def main(argv=None):
                    default="opc.tcp://172.17.0.2:4840/openplc/opcua",
                    help="adressen servern binder till (containerns egen)")
     p.add_argument("--sekunder", type=float, default=60.0)
+    p.add_argument("--plc-inskott", action="store_true",
+                   help="skjut in PLC:ns egna varden i ogats serie (M-42). "
+                        "AV som standard: facit doms pa scenens signaler, som "
+                        "ogat laser sjalvt, och ett inskott som blir gammalt "
+                        "faller da hela korningen pa en fraga den inte staller")
     p.add_argument("--ogonrate", type=float, default=20.0,
                    help="ogats provtakt i Hz; varje prov kostar ett sim.update()")
     p.add_argument("--plc-tathet", type=float, default=PLC_TATHET_S,
