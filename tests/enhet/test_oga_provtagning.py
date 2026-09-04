@@ -549,7 +549,8 @@ class FalskDetektor(object):
         self.DisplayMinimumDistance = None
         self.StopOnCollision = None
         self.Active = False
-        self.avstand = 0.012
+        # VC:s varldsenhet ar MILLIMETER (M-33). Attrappen talar VC:s sprak.
+        self.avstand = 12.0
         self.traffar = False
 
     def testMinimumDistance(self):
@@ -659,8 +660,10 @@ def test_kollisionsdetektorn_skapas_ur_planen_och_matar_avstandet():
     assert det.Active is True
     assert det.StopOnCollision is False, \
         "ett stopp river simuleringen och med den pumpen (M-13)"
-    assert abs(det.Tolerance - 100.0 / P.LANGDENHET_TILL_MM) < 1e-12
+    assert abs(det.Tolerance - 100.0 / P.VC_TILL_MM) < 1e-12
     d = scen.mindist({"namn": "gripper+fixtur"})
+    # VC svarar i millimeter, sa d_mm ar VC:s tal rakt av (VC_TILL_MM = 1.0),
+    # medan punkterna raknas till kanonisk meter som poserna.
     assert abs(d["d_mm"] - 12.0) < 1e-9
     assert d["p2"] == [0.012, 0.0, 0.0] and d["inom_tolerans"] is True
 

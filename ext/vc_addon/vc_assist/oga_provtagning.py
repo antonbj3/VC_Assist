@@ -27,11 +27,18 @@ import oga_harledning as H
 # sa en avbruten korning anda gar att lasa.
 SKRIV_VAR_N_RAD = 100       # PRELIMINAR. Satts av matning M-10.
 
-# VC:s varldsenhet mot millimeter. Ligger HAR for att det ar vid avlasningen
-# enheten kommer in i systemet, och den ar OMATT: ogats syntetiska celler
-# rakar i meter medan VC:s 3D-varld normalt rakar i millimeter. Talet ar
-# skrivet pa ett stalle sa en matning kan rata det pa ett stalle.
-LANGDENHET_TILL_MM = 1000.0  # OMATT ANTAGANDE, se 42_ogat_utbyggt.md.
+# Enheterna. TVA storheter, inte en - de var ihopslagna i en enda konstant, och
+# det doljer felet i det vanliga fallet: sa lange bade skrivning och lasning gar
+# genom samma faktor blir domarna ratt medan varje ABSOLUT millimetertal ar fel.
+#
+# MATT i M-33: VC:s basenhet ar MILLIMETER (findUnit("mm") har faktor 1.0,
+# "m" har 1000.0). Ogats analys raknar daremot i METER - oga_analys.py
+# multiplicerar med 1000 pa sju stallen for att fa millimeter.
+#
+# Darfor: allt som lases UR VC delas med 1000 pa vagen in, och allt som skrivs
+# TILL VC multipliceras med 1000 pa vagen ut. Kanonisk enhet i serien ar meter.
+VC_TILL_MM = 1.0             # VC:s varldsenhet uttryckt i mm. MATT i M-33.
+KANONISK_TILL_VC = 1000.0    # meter -> VC:s varldsenhet. MATT i M-33.
 
 # Fullscenprovtagningens kostnadsstyrning. Pumpens tick har en budget pa
 # 25 ms (pump.TICK_BUDGET_S, satt av M-03:s taktmatning). Ogat far en femtedel
@@ -155,7 +162,10 @@ class VcScen(Scen):
         try:
             m = nod.WorldPositionMatrix
             p = m.P
-            return {"p": [p.X, p.Y, p.Z], "q": kvat_fran_vc(m.getQuaternion())}
+            return {"p": [p.X / KANONISK_TILL_VC,
+                          p.Y / KANONISK_TILL_VC,
+                          p.Z / KANONISK_TILL_VC],
+                    "q": kvat_fran_vc(m.getQuaternion())}
         except Exception as e:
             self._saknas(spec, "kunde inte lasa posen: %s" % type(e).__name__)
             return None
@@ -174,7 +184,11 @@ class VcScen(Scen):
             m.setWPR(0.0, 0.0, float(punkt[3]))
             nod.PositionMatrix = m
             m = nod.PositionMatrix
-        m.translateAbs(punkt[0] - m.P.X, punkt[1] - m.P.Y, punkt[2] - m.P.Z)
+        # Kanonisk enhet i serien ar METER; VC:s varld ar millimeter (M-33).
+        x = punkt[0] * KANONISK_TILL_VC
+        y = punkt[1] * KANONISK_TILL_VC
+        z = punkt[2] * KANONISK_TILL_VC
+        m.translateAbs(x - m.P.X, y - m.P.Y, z - m.P.Z)
         nod.PositionMatrix = m
         return True
 
@@ -408,7 +422,7 @@ class VcScen(Scen):
             det.NodeListB = noder_b
             tol_mm = float(post.get("tolerans_mm",
                                     (plan or {}).get("mind_tolerans_mm", 100.0)))
-            det.Tolerance = tol_mm / LANGDENHET_TILL_MM
+            det.Tolerance = tol_mm / VC_TILL_MM
             det.DisplayMinimumDistance = False
             # StopOnCollision maste vara av: ett stopp river simuleringen och
             # med den pumpen (M-13), och da finns ingen som kan rapportera
@@ -437,15 +451,18 @@ class VcScen(Scen):
             return None
         if d is None:
             return None
-        return {"d_mm": float(d) * LANGDENHET_TILL_MM,
+        return {"d_mm": float(d) * VC_TILL_MM,
                 "p1": self._punkt(p1), "p2": self._punkt(p2),
                 "inom_tolerans": traffade}
 
     @staticmethod
     def _punkt(v):
+        """VC:s varldsenhet -> kanonisk meter, samma vag som posen (M-33)."""
         if v is None:
             return [0.0, 0.0, 0.0]
-        return [getattr(v, "X", 0.0), getattr(v, "Y", 0.0), getattr(v, "Z", 0.0)]
+        return [getattr(v, "X", 0.0) / KANONISK_TILL_VC,
+                getattr(v, "Y", 0.0) / KANONISK_TILL_VC,
+                getattr(v, "Z", 0.0) / KANONISK_TILL_VC]
 
     def traff(self):
         """Forsta verkliga traffen bland detektorerna, med nod OCH feature."""

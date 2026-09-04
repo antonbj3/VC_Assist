@@ -397,7 +397,8 @@ Härkomsten är av **två slag**, och de blandas inte ihop:
 | `GENOMSTROMNING_MARGINAL_S` | analys | M-19 |
 | `SCEN_DECIMALER`, `SCEN_FULL_VAR_N_RAD`, `NARHET_MAX_PAR` | härledning | beslut, §9.1 |
 | `SCEN_BUDGET_MS`, `GLES_FONSTER`, `GLES_TAK`, `KOMPONENTLISTA_VAR_N_RAD` | provtagning | beslut, §9.1 |
-| `LANGDENHET_TILL_MM`, `G_MS2` | provtagning, härledning | **omätt antagande, §9.2** |
+| `VC_TILL_MM`, `KANONISK_TILL_VC` | provtagning | **MÄTT i M-33** — VC:s bas är millimeter |
+| `G_MS2` | härledning | **omätt antagande, §9.2** |
 
 M-10, M-18 och M-19 står redan i `docs/matningar/RESERVERADE.md` och deras
 beskrivningar där täcker exakt det som pekar på dem härifrån. Utbyggnaden
@@ -415,31 +416,34 @@ lägger alltså **ingen** ny tröskelskuld och inget nytt dött mätningsnummer.
 | `GLES_TAK` | 64 | vid 20 Hz och faktor 64 ses scenen var 3,2 s. Grövre än så är serien inget underlag, och då säger ögat det i stället för att glesa vidare. |
 | `KOMPONENTLISTA_VAR_N_RAD` | 20 | vid 20 Hz: nya och borttagna komponenter syns inom en sekund. |
 
-### 9.2 `LANGDENHET_TILL_MM` — den farligaste omätta saken i ögat
+### 9.2 Världsenheten — MÄTT i M-33, inte längre ett antagande
 
-Ögats syntetiska celler räknar i **meter** (golv på z = 0, detalj på z = 0,75).
-VC:s 3D-värld räknar normalt i **millimeter**. Hela ögat bär i dag antagandet
-`1 enhet = 1 meter`, skrivet på ett ställe som `LANGDENHET_TILL_MM = 1000.0`,
-och samma antagande ligger inbakat som `* 1000.0` på flera ställen i
-`oga_analys.py`. `G_MS2` bär samma fråga: VC:s scen har en egen
-tyngdacceleration, i världens längdenhet.
+`app.findUnit("mm")` har faktor **1,0**, `"m"` har 1000,0, `"cm"` 10,0 och
+tum 25,4. Faktorn anger antal basenheter, alltså är **VC:s basenhet millimeter**.
 
-Stämmer inte antagandet är varje avståndstal i mm fel med en faktor 1000, och
-domarna på `TELEPORT_TRANSFER`, `PLACE`, `MINDIST` och `UNDERGROUND` blir fel
-åt ett håll som ser rimligt ut.
+Konstanten var tidigare EN, och bar då två storheter — precis den fälla som gör
+att felet inte syns i det vanliga fallet: så länge både skrivning och läsning
+går genom samma faktor blir domarna rätt medan varje absolut millimetertal är
+fel med tusen.
 
-De två konstanterna är därför märkta `OMÄTT ANTAGANDE` och pekar hit i stället
-för på ett mätningsnummer — det finns inget reserverat nummer som täcker dem,
-och att låna M-11:s (som handlar om kvaternionens ordning och världsmatrisens
-eftersläpning) vore falsk härkomst. **Det behövs en ny rad i
-`RESERVERADE.md`**, se §11.
+Den är nu två:
 
----
+| Konstant | Betydelse | Värde |
+|---|---|---|
+| `VC_TILL_MM` | VC:s världsenhet uttryckt i millimeter | **1,0** |
+| `KANONISK_TILL_VC` | meter till VC:s världsenhet | **1000,0** |
 
-## 10. Vad som kräver en mätning i VC
+Ögats serie räknar i **meter**, eftersom `oga_analys.py` multiplicerar med 1000
+på sju ställen för att få millimeter. Provtagaren räknar därför om åt båda
+hållen: `VcScen.pose()` och `_punkt()` delar med 1000 på vägen in, `satt_pose()`
+multiplicerar med 1000 på vägen ut.
 
-Fyra frågepaket. Tre av dem har redan ett reserverat nummer; det fjärde saknar
-det, se §11.
+Korroborering utan att fråga enhetstabellen: `vcMotionPath.Speed` är 200,0 som
+standard. I millimeter per sekund är det 12 m/min, en normal transportörs-
+hastighet. I meter per sekund vore det 720 km/h.
+
+Kvar som omätt: `G_MS2`. Är tyngdaccelerationen 9,81 eller 9810 i VC:s enheter?
+
 
 ### M-10 — ögats kalibrering mot handbyggda celler (reserverat)
 
