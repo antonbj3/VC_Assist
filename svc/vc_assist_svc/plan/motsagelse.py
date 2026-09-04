@@ -19,9 +19,17 @@ FYRA DOMAR, OCH INGEN AV DEM HETER "MOJLIG"
                    brutet NODVANDIGT villkor.
     VALET_FALLER   villkoren gar att uppfylla, men inte med den komponent som
                    valts. Skillnaden ar botemedlet: byt komponent, inte krav.
-    OKANT          nagon storhet saknar varde. Da vet grinden inte, och OKANT
-                   ar aldrig ett godkannande (I3). Kallprojektets stubbar
+    OKANT          en STATISK storhet saknar varde - ett matt som inte star i
+                   katalogen, en cellyta ingen angett. Da vet grinden inte, och
+                   OKANT ar aldrig ett godkannande (I3). Kallprojektets stubbar
                    svarade `pass` nar argumentet saknades; det arvs inte.
+
+                   En MATT storhet (scen.kollisioner, scen.min_avstand_mm) ar
+                   okand av KONSTRUKTION fore bygget, och det ar inte samma sak.
+                   Den blir ett krav att mata efter bygget - planens
+                   verifiering - och den far darfor inte gora domen okand. Att
+                   blanda ihop de tva hade gjort varenda bestallning okand och
+                   grinden vardelos, vilket ar ett annat satt att sluta mata.
     INGEN_FUNNEN   ingen motsagelse hittades av de kontroller som gick att
                    kora. Det ar INTE ett bevis for att layouten gar - det ar
                    ett bevis for att just de har kontrollerna inte fallde.
@@ -55,7 +63,7 @@ Endast standardbiblioteket.
 """
 from __future__ import annotations
 
-from .storheter import Faktarum, egenskaper
+from .storheter import Faktarum, STATISK, egenskaper, lage
 from .villkorssprak import BRUTET, OKANT as VILLKOR_OKANT, Typvillkor
 
 OMOJLIG = "OMOJLIG"
@@ -120,18 +128,20 @@ class Krock(object):
 class Motsagelsedom(object):
     """Utfallet, med sitt skal och sina okanda storheter."""
 
-    __slots__ = ("dom", "krockar", "okanda", "provade", "hoppade")
+    __slots__ = ("dom", "krockar", "okanda", "att_mata", "provade", "hoppade")
 
-    def __init__(self, dom, krockar=(), okanda=(), provade=0, hoppade=()):
+    def __init__(self, dom, krockar=(), okanda=(), provade=0, hoppade=(),
+                 att_mata=()):
         self.dom = dom
         self.krockar = list(krockar)
-        self.okanda = list(okanda)      # [(storhet, skal)]
+        self.okanda = list(okanda)      # [(storhet, skal)] - STATISKA hal
+        self.att_mata = list(att_mata)  # [(storhet, villkor_id)] - matta krav
         self.provade = provade
         self.hoppade = list(hoppade)    # [(kontroll, skal)]
 
     def __repr__(self):
-        return "Motsagelsedom(%s, %d krockar, %d okanda)" % (
-            self.dom, len(self.krockar), len(self.okanda))
+        return "Motsagelsedom(%s, %d krockar, %d okanda, %d att mata)" % (
+            self.dom, len(self.krockar), len(self.okanda), len(self.att_mata))
 
     @property
     def faller(self):
@@ -145,6 +155,9 @@ class Motsagelsedom(object):
             rader.append(k.text())
         for storhet, skal in self.okanda:
             rader.append("OKAND %s: %s" % (storhet, skal))
+        for storhet, villkor_id in self.att_mata:
+            rader.append("ATT MATA EFTER BYGGET %s (villkoret %s)"
+                         % (storhet, villkor_id))
         for kontroll, skal in self.hoppade:
             rader.append("EJ PROVAD %s: %s" % (kontroll, skal))
         return "\n".join(rader)
@@ -277,15 +290,24 @@ def _intervallkrockar(villkor):
 # --------------------------------------------------------- varden mot krav
 
 def _vardekrockar(villkor, faktarum):
-    """MK2: ett KANT varde som bryter ett villkor, plus listan over okanda."""
+    """MK2 plus de tva sorternas okanda: statiska hal och matta krav.
+
+    Ett villkor pa en MATT storhet ar okant fore bygget av konstruktion. Det
+    ar inget hal i datan - det ar planens verifiering, och den hor hemma i en
+    egen lista.
+    """
     krockar = []
     okanda = []
+    att_mata = []
     provade = 0
     for v in villkor:
         dom, skal = v.prova(faktarum)
         provade += 1
         if dom == VILLKOR_OKANT:
-            okanda.append((v.storhet, skal))
+            if lage(v.storhet) == STATISK:
+                okanda.append((v.storhet, skal))
+            else:
+                att_mata.append((v.storhet, v.id))
             continue
         if dom != BRUTET:
             continue
@@ -301,7 +323,7 @@ def _vardekrockar(villkor, faktarum):
             "MK2_VARDE_MOT_VILLKOR", v.storhet, skal, [v,
                 ("varde:%s" % v.storhet, "%s = %s" % (v.storhet, varde.text()))],
             atgard))
-    return krockar, okanda, provade
+    return krockar, okanda, att_mata, provade
 
 
 # ------------------------------------------------------------- geometrin
@@ -392,8 +414,13 @@ def granska(villkor, faktarum, spec=None, geometri=True):
     if not isinstance(faktarum, Faktarum):
         faktarum = Faktarum()
     krockar, provade = _intervallkrockar(villkor)
-    varde_krockar, okanda, n = _vardekrockar(villkor, faktarum)
-    krockar += varde_krockar
+    varde_krockar, okanda, att_mata, n = _vardekrockar(villkor, faktarum)
+    # En storhet vars villkor redan visats vara omojliga sinsemellan behover
+    # inte ocksa rapporteras mot det varde vi harledde ur samma villkor. Ett
+    # problem som rapporteras tva ganger later som tva problem, och operatoren
+    # letar da efter ett fel som inte finns.
+    redan = set(k.storhet for k in krockar)
+    krockar += [k for k in varde_krockar if k.storhet not in redan]
     provade += n
     hoppade = []
 
@@ -418,4 +445,5 @@ def granska(villkor, faktarum, spec=None, geometri=True):
             domar.append(OMOJLIG)
     if not domar and (okanda or hoppade):
         domar.append(OKANT)
-    return Motsagelsedom(_hardast(domar), krockar, okanda, provade, hoppade)
+    return Motsagelsedom(_hardast(domar), krockar, okanda, provade, hoppade,
+                         att_mata)

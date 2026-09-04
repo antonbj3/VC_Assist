@@ -152,9 +152,12 @@ def gangstrak(text):
 def rackvidd(text):
     """[Utlast] med rackvidder i mm, i textens ordning.
 
-    Formen finns darfor att rackvidden nastan aldrig gar att sla upp: MATT i
-    M-63 over hela komponentbiblioteket bar 0 av 2169 robotar ett reach-falt i
-    metadatan. Star talet i begaran ar det darfor ofta det enda som finns.
+    Formen finns darfor att rackvidden ar svar att sla upp, och hur svar beror
+    pa VAR man tittar. MATT i M-63 over hela komponentbiblioteket: 0 av 2169
+    robotar bar ett reach-falt i component.rsc (det katalogindex.py laser),
+    men 1434 av 2169 bar `Reach` i model.xml (det komponentfil.py laser).
+    Samma fraga, tva svar, och skillnaden ar filen. Star talet i begaran ar
+    det darfor ofta det snabbaste och alltid det billigaste.
     """
     ut = []
     for m, belagg in _traff(text, _RACKVIDD):
@@ -279,6 +282,61 @@ def _belagg_for(text, ord_):
     # harkomstkontrollen ar det inget belagg, och da anvands ordet sjalvt.
     bit = text[i:i + len(ord_)]
     return bit if normalisera(bit) == ord_ else ord_
+
+
+# ------------------------------------------------------------ kopplingarna
+
+# Hur en koppling skrivs i fri text. Listan ar sluten: en oppen lista hade
+# gjort vilket ord som helst mellan tva roller till en koppling, och topologin
+# ar det som styr hela geometrin.
+_KOPPLINGSORD = (r"->", r"=>", r"→", r"till", r"kopplas till", r"kopplad till",
+                 r"matar in i", r"matar", r"vidare till")
+
+_ANDELSER = ("", "en", "et", "n", "t", "ar", "arna", "erna", "or", "orna", "er")
+
+
+def kopplingar(text, roller):
+    """[(fran_roll, till_roll, belagg)] ur uttryck som 'bandet -> roboten'.
+
+    Bara par dar BADA orden ar kanda roller blir en koppling. Ett ord vi inte
+    har en roll for ger ingen koppling alls - och forfining.py gor da en fraga
+    av det, i stallet for att koppla ihop nagot pa mafa. Topologin gissas
+    aldrig: ordningen orden rakade sta i texten ar inget belagg for vad som
+    ska sitta ihop.
+    """
+    n = normalisera(text)
+    ut = []
+    for a in roller:
+        for b in roller:
+            if a == b:
+                continue
+            for ord_ in _KOPPLINGSORD:
+                monster = (r"%s\s*%s\s*%s"
+                           % (_rollmonster(a), ord_, _rollmonster(b)))
+                m = re.search(monster, n)
+                if not m:
+                    continue
+                if (a, b) not in [(x, y) for x, y, _b in ut]:
+                    ut.append((a, b, _ur_original(text, n, m)))
+                break
+    return ut
+
+
+def _rollmonster(roll):
+    return "%s(?:%s)?" % (re.escape(normalisera(roll)),
+                          "|".join(a for a in _ANDELSER if a))
+
+
+def _ur_original(text, normaliserad, m):
+    """Den ordagranna biten ur ursprungstexten som traffen svarar mot.
+
+    Normaliseringen kan ha kortat text (flera blanksteg -> ett), sa
+    intervallet ar en uppskattning. Bekraftas den inte av normaliseringen
+    anvands den normaliserade biten - den star kvar som belagg, och
+    harkomstgrinden jamfor anda normaliserat mot normaliserat.
+    """
+    bit = text[m.start():m.end()]
+    return bit if normalisera(bit) == m.group(0) else m.group(0)
 
 
 # ---------------------------------------------------------- rackviddskravet

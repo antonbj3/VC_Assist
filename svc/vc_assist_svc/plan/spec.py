@@ -287,16 +287,19 @@ class Koppling(object):
     "position"-falt gar inte att smyga in i en kopplingspost.
     """
 
-    __slots__ = ("fran_roll", "till_roll")
+    __slots__ = ("fran_roll", "till_roll", "harkomst")
 
-    def __init__(self, fran_roll, till_roll):
+    def __init__(self, fran_roll, till_roll, harkomst=None):
         self.fran_roll = fran_roll
         self.till_roll = till_roll
+        self.harkomst = harkomst
         problem = []
         _text(fran_roll, "fran_roll", problem)
         _text(till_roll, "till_roll", problem)
         if fran_roll == till_roll:
             problem.append("en roll kan inte kopplas till sig sjalv")
+        if harkomst is not None and not isinstance(harkomst, Harkomst):
+            problem.append("harkomsten ar ingen Harkomst")
         if problem:
             raise Specfel("kopplingen %s->%s" % (fran_roll, till_roll), problem)
 
@@ -304,12 +307,17 @@ class Koppling(object):
         return "Koppling(%s -> %s)" % (self.fran_roll, self.till_roll)
 
     def till_json(self):
-        return {"fran_roll": self.fran_roll, "till_roll": self.till_roll}
+        return {"fran_roll": self.fran_roll, "till_roll": self.till_roll,
+                "harkomst": (self.harkomst.till_json()
+                             if self.harkomst else None)}
 
     @classmethod
     def fran_json(cls, data):
-        granska_nycklar(data, ("fran_roll", "till_roll"), "koppling")
-        return cls(data["fran_roll"], data["till_roll"])
+        granska_nycklar(data, ("fran_roll", "till_roll", "harkomst"),
+                        "koppling")
+        return cls(data["fran_roll"], data["till_roll"],
+                   Harkomst.fran_json(data["harkomst"])
+                   if data["harkomst"] else None)
 
 
 class Signal(object):
@@ -588,6 +596,9 @@ class DetaljeradSpec(object):
         ut = []
         if self.omrade is not None:
             ut.append(("omradet", self.omrade.harkomst))
+        for k in self.kopplingar:
+            ut.append(("kopplingen %s->%s" % (k.fran_roll, k.till_roll),
+                       k.harkomst))
         for v in self.villkor:
             ut.append(("villkoret %s" % v.id, v.harkomst))
         for r in self.relationer:

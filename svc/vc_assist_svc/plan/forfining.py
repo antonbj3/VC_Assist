@@ -316,8 +316,10 @@ class Forfinare(object):
                 "Kartan operatoren gav oversatter dem; utan karta blir varje "
                 "URI en fraga i stallet", "katalog")
 
-        kopplingar = [Koppling(k["from_role"], k["to_role"])
-                      for k in data["scene"]["connections"]]
+        kopplingar = [Koppling(k["from_role"], k["to_role"],
+                               Harkomst("bank", "%s#scene.connections[%d]"
+                                        % (tid, n)))
+                      for n, k in enumerate(data["scene"]["connections"])]
 
         signaler = [Signal(s["name"], s["dir"], s["type"], s.get("comment", ""))
                     for s in data["control"]["signals"]]
@@ -441,7 +443,7 @@ class Forfinare(object):
             raise Specfel("forfiningen", ["ur_fritext kraver en Grundbegaran"])
         text = begaran.text
         delar = self._delar_ur_fritext(text)
-        kopplingar = self._kopplingar_ur_fritext(delar)
+        kopplingar = self._kopplingar_ur_fritext(delar, text)
         signaler = self._signaler_ur_fritext(text)
         takt = self._takt_ur_fritext(text)
         omrade, villkor = self._omrade_ur_fritext(text)
@@ -599,6 +601,7 @@ class Forfinare(object):
                 dim = None
                 if all(post.get(n) for n in ("l_mm", "b_mm", "h_mm")):
                     dim = [post["l_mm"], post["b_mm"], post["h_mm"]]
+                self._blad(ord_, post)
                 delar.append(Del(ord_, uri, 1, kategori, dim,
                                  post.get("massa_kg")))
             elif traffar:
@@ -625,22 +628,33 @@ class Forfinare(object):
                 "en scen utan delar gar inte att bygga")
         return delar
 
-    def _kopplingar_ur_fritext(self, delar):
-        """Fri text sager sallan VILKA delar som ska kopplas ihop.
+    def _kopplingar_ur_fritext(self, delar, text):
+        """Kopplingar som STAR i texten. Resten blir en fraga.
 
-        Topologin gissas darfor aldrig. En kedja i den ordning orden rakade
-        sta i texten hade sett rimlig ut och varit ett pahitt.
+        Topologin gissas aldrig. En kedja i den ordning orden rakade sta i
+        texten hade sett rimlig ut och varit ett pahitt. Star det daremot
+        "bandet matar roboten" ar det operatorens ord, och da ar kopplingen
+        last och inte gissad - belagget bevisar skillnaden.
         """
         if len(delar) < 2:
             return []
-        self.fraga(
-            "kopplingar",
-            "hur ska %s kopplas ihop? ange par av roller"
-            % ", ".join(d.roll for d in delar),
-            "kopplingen ar relationen sjalv (I8), och en gissad topologi "
-            "styr hela geometrin. Ordningen orden rakade sta i texten ar "
-            "inget belagg for vad som ska sitta ihop")
-        return []
+        roller = [d.roll for d in delar]
+        ut = [Koppling(fran, till, Harkomst("begaran", belagg))
+              for fran, till, belagg in lasning.kopplingar(text, roller)]
+        kopplade = set()
+        for k in ut:
+            kopplade.add(k.fran_roll)
+            kopplade.add(k.till_roll)
+        utan = [r for r in roller if r not in kopplade]
+        if utan:
+            self.fraga(
+                "kopplingar",
+                "hur ska %s kopplas ihop med resten? ange par av roller"
+                % ", ".join(utan),
+                "kopplingen ar relationen sjalv (I8), och en gissad topologi "
+                "styr hela geometrin. Ordningen orden rakade sta i texten ar "
+                "inget belagg for vad som ska sitta ihop")
+        return ut
 
     def _signaler_ur_fritext(self, text):
         namn = signalnamn(text)

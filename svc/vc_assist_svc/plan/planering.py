@@ -66,11 +66,18 @@ MOTIV_KLON = (
 class Planerare(object):
     """Bygger stegen. Bar ingen kannedom om bryggan eller korningen."""
 
-    def __init__(self, spec, layout=None, frigang_mm=None, golv_mm=None):
+    def __init__(self, spec, layout=None, frigang_mm=None, golv_mm=None,
+                 datablad=None):
         self.spec = spec
         self.layout = layout
         self.frigang_mm = frigang_mm
         self.golv_mm = golv_mm
+        self.datablad = dict(datablad or {})
+        # Layoutmotorns EGNA svar, sparat rakt av. Utan det kan den som
+        # planerade se att inga koordinater kom, men inte VARFOR - och
+        # skillnaden mellan "hallen ar for liten" och "de har tre kraven kan
+        # inte galla samtidigt" ar hela svaret till operatoren.
+        self.layoutsvar = None
         self.steg = []
         if layout is not None and not isinstance(layout, Layoutport):
             raise Specfel("planeringen",
@@ -123,15 +130,15 @@ class Planerare(object):
                 "pa fel komponent" % roll,
                 beroenden=(ladda.id,)))
             sist = namnkontroll.id
-            if roll in placeringar:
-                p = placeringar[roll]
+            if (roll, 1) in placeringar:
+                p = placeringar[(roll, 1)]
                 sist = self._lagg(Steg.verktygssteg(
                     "placera_%s" % roll, "set_transform",
                     {"component": roll, "position": p.position_mm,
                      "wpr": p.wpr_deg},
                     "layoutmotorn: %s" % p.motiv,
                     beroenden=(namnkontroll.id,))).id
-            sist = self._instanser(del_, ladda.id, sist)
+            sist = self._instanser(del_, ladda.id, sist, placeringar)
             klara[roll] = sist
         if len(laddade) > 1:
             # En deklaration, inte en korform: inlasningarna har inga
@@ -140,7 +147,7 @@ class Planerare(object):
             for steg_id in laddade:
                 self._satt_parallell(steg_id, "inlasning")
 
-    def _instanser(self, del_, ladda_id, sist_id):
+    def _instanser(self, del_, ladda_id, sist_id, placeringar=None):
         """Instans 2..n av en del: klona ur den forsta, eller las in igen.
 
         Ett alternativ i planens mening: antingen A eller B, och exakt en av
@@ -164,6 +171,18 @@ class Planerare(object):
                 % (i, del_.roll),
                 beroenden=(sist_id, ladda_id), forvillkor=forvillkor,
                 alternativ_grupp=grupp))
+            # Instansen far sitt EGNA lage. Att lata kopia nummer tva sta kvar
+            # dar VC:s klon lagger den vore en tyst nedgradering: layouten har
+            # raknat ett lage for den, och specen bad om tva.
+            p = (placeringar or {}).get((del_.roll, i))
+            if p is not None:
+                self._lagg(Steg.verktygssteg(
+                    "placera_%s" % namn, "set_transform",
+                    {"component": namn, "position": p.position_mm,
+                     "wpr": p.wpr_deg},
+                    "layoutmotorn, instans %d: %s" % (i, p.motiv),
+                    beroenden=("inst_%s_a_klon" % namn,
+                               "inst_%s_b_ladd" % namn)))
         return sist_id
 
     def _placeringar(self):
@@ -179,7 +198,9 @@ class Planerare(object):
                 "valde sjalva skulle bestamma bade cellens yta och vad som "
                 "senare raknas som en for trang passage")
             return {}
-        svar = self.layout.placera(self.spec, self.frigang_mm, self.golv_mm)
+        svar = self.layout.placera(self.spec, self.frigang_mm, self.golv_mm,
+                                   self.datablad)
+        self.layoutsvar = svar
         for a in svar.antaganden:
             self.spec.antaganden.append(
                 Antagande(a["vad"], a["varde"], a["motiv"], "layout"))
@@ -193,7 +214,7 @@ class Planerare(object):
                        "layoutmotorn lamnade %d roller utan koordinater. De "
                        "far sina lagen ur kopplingarna i stallet, vilket ar "
                        "den ordning I8 foreskriver" % len(utan))
-        return dict((p.roll, p) for p in svar.placeringar)
+        return dict(((p.roll, p.instans), p) for p in svar.placeringar)
 
     # -- kopplingarna -----------------------------------------------------
 
@@ -277,11 +298,11 @@ class Planerare(object):
             beroenden=slut))
 
 
-def planera(spec, layout=None, frigang_mm=None, golv_mm=None):
+def planera(spec, layout=None, frigang_mm=None, golv_mm=None, datablad=None):
     """Detaljerad spec -> byggplan.
 
     Lagger till i specens antaganden och fragor: valen planeringen sjalv gor
     hor hemma dar, bredvid de val forfiningen gjorde, sa att operatoren har en
     lista och inte tva.
     """
-    return Planerare(spec, layout, frigang_mm, golv_mm).planera()
+    return Planerare(spec, layout, frigang_mm, golv_mm, datablad).planera()

@@ -276,10 +276,14 @@ class Faktarum(object):
                 return Varde(True, float(ur_blad), "mm",
                              "databladet for %s" % roll)
             return okant(
-                "rackvidden for %s ar okand. Den star inte i komponentens "
-                "metadata: MATT i M-63 over hela biblioteket bar 0 av 2169 "
-                "robotar ett reach-falt. Den maste komma ur begaran, ur "
-                "bank/katalog_index.json eller ur ett matt datablad" % roll)
+                "rackvidden for %s ar okand, och VAR man letar avgor. MATT i "
+                "M-63 over hela biblioteket: 0 av 2169 robotar bar ett "
+                "reach-falt i component.rsc, som katalogindex.py laser, men "
+                "1434 av 2169 bar Reach i model.xml, som komponentfil.py "
+                "laser. Ett datablad byggt ur katalogindexet saknar den "
+                "alltsa. Den maste komma ur begaran, ur "
+                "bank/katalog_index.json, ur komponentfilen eller ur ett matt "
+                "datablad" % roll)
         if falt == "yta_mm2":
             langd = self._matt_ur_del(roll, 0, "langd_mm")
             bredd = self._matt_ur_del(roll, 1, "bredd_mm")
