@@ -6,6 +6,7 @@
 | `10_matta_fakta.md` | Allt som är MÄTT i VC, OpenPLC och Wine. Med härkomst. | klar |
 | `20_arv.md` | Vad som ärvs ur Isaac Assist, komponent för komponent | klar |
 | `30_arkitektur.md` | Lagren, processgränserna, dataflödet | klar |
+| `35_plattformar.md` | Windows och Wine. Neutralitetsregler, vad som är driftsnotering | klar |
 | `40_ogat.md` | vc_eyes: vad som provtas, vad som härleds, domskontraktet | klar |
 | `50_grindar.md` | Grindkedjan och vad varje grind fångar | klar |
 | `60_plc.md` | OpenPLC v4, OPC UA, deklarationsgenerering, inladdning | klar |
