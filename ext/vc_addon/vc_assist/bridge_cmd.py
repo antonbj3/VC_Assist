@@ -238,7 +238,7 @@ def _tillampa_uppskjutet(app, pump):
     for post in poster:
         try:
             g = _uppskjutet_scope(app)
-            exec(post.get("code", ""), g)
+            exec(compile(post.get("code", ""), "<uppskjutet>", "exec", 0, True), g)
             _log("  tillampad: %s" % post.get("desc"))
         except Exception:
             _log("  MISSLYCKADES: %s\n%s" % (post.get("desc"), traceback.format_exc()))
@@ -257,6 +257,7 @@ def _tillampa_uppskjutet(app, pump):
 
 
 STARTLAYOUT = os.path.join(os.path.expanduser("~"), "vc_assist_startlayout.txt")
+STARTSKRIPT = os.path.join(os.path.expanduser("~"), "vc_assist_startskript.py")
 
 
 def _ladda_startlayout(app):
@@ -285,10 +286,64 @@ def _ladda_startlayout(app):
     _log("laddar startlayout: %s" % uri)
     try:
         app.load(_s(uri))
+        # En sparad layout kan bara med sig en GAMMAL brygg-komponent, och den
+        # startar da en andra pump i samma process. Matt: den andra skrev over
+        # den levandes token och foll sedan pa bindningen, sa den forsta blev
+        # oanbar med E_AUTH. Har, fore simuleringen startar, ar de inerta och
+        # gar att ta bort.
+        gamla = [x for x in list(app.Components) if x.Name == "VcAssistBridge"]
+        for x in gamla:
+            app.deleteComponent(x)
+        if gamla:
+            _log("tog bort %d gammal brygg-komponent ur layouten" % len(gamla))
         _log("startlayouten laddad, scenen har %d komponenter"
              % len(list(app.Components)))
     except Exception:
         _log("startlayouten gick inte att ladda\n" + traceback.format_exc())
+
+
+def _kor_startskript(app):
+    """Kor forberedande kod EFTER laddningen men FORE simuleringen startar.
+
+    Tva mätta skäl gör den här luckan nodvandig:
+
+    1. Ett beteende som laggs till i en REDAN korande simulering initieras
+       aldrig. En matare byggd sa haller sin Part-URI men producerar ingenting.
+    2. En URI overlever inte app.save + app.load. En matares Part, satt till
+       file:///C:/.../Produkt.vcmd, kommer tillbaka som bara "file:///".
+       Sokvagen maste alltsa sattas om efter varje laddning.
+
+    Koden kors med samma scope som bryggans exec, minus bryggan sjalv.
+    """
+    if not os.path.exists(STARTSKRIPT):
+        return
+    try:
+        f = open(STARTSKRIPT)
+        try:
+            kalla = f.read()
+        finally:
+            f.close()
+    except Exception:
+        _log("kunde inte lasa %s" % STARTSKRIPT)
+        return
+    if not kalla.strip():
+        return
+    _log("kor startskript (%d tecken)" % len(kalla))
+    try:
+        # dont_inherit=True: utan den arver skriptet den har modulens
+        # unicode_literals, och VC:s py2-bindning svarar SystemError pa varje
+        # strang (M-05). Mätt: startskriptet foll pa exakt den raden.
+        kompilerad = compile(kalla, "<vc_assist_startskript>", "exec", 0, True)
+    except SyntaxError as e:
+        _log("STARTSKRIPTET GAR INTE ATT KOMPILERA: rad %s: %s" % (e.lineno, e.msg))
+        return
+    g = _uppskjutet_scope(app)
+    g["getSimulation"] = app.getSimulation
+    try:
+        exec(kompilerad, g)
+        _log("startskriptet kordes")
+    except Exception:
+        _log("startskriptet foll\n" + traceback.format_exc())
 
 
 def _starta():
@@ -301,6 +356,7 @@ def _starta():
     try:
         _tillampa_uppskjutet(app, None)
         _ladda_startlayout(app)
+        _kor_startskript(app)
         comp = app.createComponent()
         comp.Name = _s("VcAssistBridge")
         kalla = SKRIPT % {"dir": d.replace("\\", "\\\\"), "port": PORT}

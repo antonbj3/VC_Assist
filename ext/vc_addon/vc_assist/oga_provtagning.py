@@ -31,20 +31,20 @@ SKRIV_VAR_N_RAD = 100       # PRELIMINAR. Satts av matning M-10.
 # enheten kommer in i systemet, och den ar OMATT: ogats syntetiska celler
 # rakar i meter medan VC:s 3D-varld normalt rakar i millimeter. Talet ar
 # skrivet pa ett stalle sa en matning kan rata det pa ett stalle.
-LANGDENHET_TILL_MM = 1000.0  # PRELIMINAR. Satts av matning M-17.
+LANGDENHET_TILL_MM = 1000.0  # OMATT ANTAGANDE, se 42_ogat_utbyggt.md.
 
 # Fullscenprovtagningens kostnadsstyrning. Pumpens tick har en budget pa
 # 25 ms (pump.TICK_BUDGET_S, satt av M-03:s taktmatning). Ogat far en femtedel
 # av den; over det glesas SCENEN ut - aldrig rollerna, aldrig tyst.
-SCEN_BUDGET_MS = 5.0        # PRELIMINAR. Satts av matning M-16.
+SCEN_BUDGET_MS = 5.0        # Beslut ur M-03:s takt, se 42_ogat_utbyggt.md.
 # Hur manga scenavlasningar som mats innan glesningen andras. En enda dyr
 # avlasning ar ett utslag, inte en takt.
-GLES_FONSTER = 8            # PRELIMINAR. Satts av matning M-16.
+GLES_FONSTER = 8            # Beslut, motiverat i 42_ogat_utbyggt.md.
 # Hogsta glesningsfaktor. Over den ar serien sa gles att den inte langre ar
 # ett underlag, och ogat sager det i stallet for att glesa vidare.
-GLES_TAK = 64               # PRELIMINAR. Satts av matning M-16.
+GLES_TAK = 64               # Beslut, motiverat i 42_ogat_utbyggt.md.
 # Hur ofta komponentlistan hamtas om, sa nya och borttagna objekt syns.
-KOMPONENTLISTA_VAR_N_RAD = 20   # PRELIMINAR. Satts av matning M-16.
+KOMPONENTLISTA_VAR_N_RAD = 20   # Beslut, motiverat i 42_ogat_utbyggt.md.
 # Hur gammalt ett PLC-varde far vara och anda raknas som samtidigt med provet.
 PLC_FARSK_S = 0.25          # PRELIMINAR. Satts av matning M-19.
 

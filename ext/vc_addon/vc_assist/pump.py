@@ -197,18 +197,26 @@ class Brygga(object):
         # aldrig ha startat - noll rader nagonstans. (En kvarlevande wineserver
         # hall porten trots att motorn var dodad.)
         self.logg("startar pa 127.0.0.1:%d" % self.port)
-        self._skriv_token()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind(("127.0.0.1", self.port))     # ALDRIG 0.0.0.0
         except Exception as e:
-            self.logg("KUNDE INTE BINDA 127.0.0.1:%d: %r" % (self.port, e))
+            # Bindningen sker FORE token skrivs. Matt skal: en andra brygga i
+            # samma process - t.ex. nar en sparad layout bar med sig
+            # brygg-komponenten - skrev over den LEVANDE bryggans token och
+            # misslyckades sedan med att binda. Den levande blev oanbar med
+            # E_AUTH, utan att nagot i dess egen logg sa nagot.
+            self.logg("KUNDE INTE BINDA 127.0.0.1:%d: %r "
+                      "(en annan brygga har porten; tokenfilen lamnas orord)"
+                      % (self.port, e))
             try:
                 s.close()
             except Exception:
                 pass
             raise
+        # Forst nu, nar porten bevisligen ar var, ar tokenfilen var att skriva.
+        self._skriv_token()
         s.listen(8)
         s.setblocking(0)
         self.lyssnare = s
@@ -462,7 +470,12 @@ class Brygga(object):
             g = dict(self._exec_globals)
             g["_s"] = _s
             g["__name__"] = "__vc_assist_exec__"
-            exec(kod, g)
+            # dont_inherit=True. MATT: exec arver __future__-flaggor fran den
+            # anropande modulen, och pump.py har unicode_literals. Varje
+            # strangliteral i anroparens kod blev darfor unicode, och VC:s
+            # py2-bindning svarar SystemError pa unicode (M-05). Det tvingade
+            # varje anropare att skriva str() runt varenda strang.
+            exec(compile(kod, "<vc_assist_exec>", "exec", 0, True), g)
         except Exception:
             undantag = traceback.format_exc()
         finally:

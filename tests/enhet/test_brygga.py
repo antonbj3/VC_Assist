@@ -426,3 +426,22 @@ def test_bryggan_varnar_INNAN_den_kor_kod_som_dodar_den(klient):
     assert svar["ok"] is True
     assert svar["result"]["dodar_pumpen"]
     assert "startas om" in svar["result"]["varning"]
+
+
+def test_en_andra_brygga_skriver_inte_over_den_levandes_token(brygga, tmp_path):
+    """Matt 2026-09-04: en sparad layout bar med sig brygg-komponenten. Nar den
+    laddades startade en ANDRA brygga i samma process, skrev over tokenfilen och
+    misslyckades sedan med att binda. Den levande bryggan blev oanbar med E_AUTH
+    utan att nagot i dess egen logg sa nagot."""
+    b, port, tokenfil = brygga
+    with open(tokenfil) as f:
+        levande = f.read().strip()
+
+    andra = pump.Brygga(port=port, tokenfil=tokenfil,
+                        loggfil=str(tmp_path / "andra.log"))
+    with pytest.raises(Exception):
+        andra.starta()
+
+    with open(tokenfil) as f:
+        assert f.read().strip() == levande, "tokenfilen skrevs over av en brygga som inte fick porten"
+    assert andra.token is None, "en brygga utan port ska inte ha nagon token"

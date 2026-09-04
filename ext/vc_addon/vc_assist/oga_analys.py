@@ -24,8 +24,6 @@ tests/enhet/test_oga_harledning.py for oga_harledning.py.
 """
 from __future__ import absolute_import, division, print_function
 
-import math
-
 import oga_harledning as H
 import oga_kontrakt as K
 
@@ -47,7 +45,7 @@ MIN_PROV = 10               # PRELIMINAR. Satts av matning M-10.
 # Hur stor del av ett objekts serie som far vara oläst och objektet anda gar
 # att uttala sig om. Over den blir scengrindarna INCONCLUSIVE i stallet for
 # att lasa en utglesad serie som "stod still".
-SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-16.
+SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-10.
 # Hur manga sekunder en station far svalta eller vara blockerad innan det
 # faller en korning som DEKLARERAT ett genomstromningskrav. Utan deklarerat
 # krav faller den inte alls - da finns inget facit att fella mot.
@@ -113,9 +111,6 @@ class Analys(object):
             self._oversikt = H.Scenoversikt(
                 self.rader, roller, self.plan.get("forvantat_rorliga"))
         return self._oversikt
-
-    def _tid(self, i):
-        return float(self.rader[i].get("t", 0.0))
 
     def _serie(self, grupp, namn):
         """[(t, p, q)] for ett spart objekt, hoppar over rader dar det saknas."""
@@ -525,6 +520,163 @@ class Analys(object):
                     lagst = p[2]
         return lagst
 
+    # -- scenen som helhet -------------------------------------------------
+
+    def scenanalys(self, th):
+        """Vad som hande i HELA scenen, inte bara i rollerna.
+
+        Ingen av de har harledningarna far ett eget nyckelord i v1:s
+        grammatik. De faller domen med sin orsak i klartext och ligger
+        fullstandigt i eyes.json; ett forslag pa v2-rader star i
+        42_ogat_utbyggt.md.
+        """
+        o = self.oversikt()
+        h = {"rorliga": o.rorliga(), "stilla": o.stilla(), "okanda": o.okanda(),
+             "profiler": o.profiler,
+             "samtidiga": o.samtidiga()[:20],
+             "forandringar": o.forandringar(),
+             "narhet": o.narhet(),
+             "ledtider": o.ledtider(),
+             "oombedd": o.oombedd_rorelse(),
+             "orort": o.orort_trots_signal(th.get("flanker") or [],
+                                           self.plan.get("movers")),
+             "gles": self.scen}
+        h["utslungad"] = {}
+        for namn in (self.tracked.get("parts") or []):
+            serie = o.serier.get(namn)
+            if not serie:
+                continue
+            kast = H.utslungad(serie)
+            if kast:
+                h["utslungad"][namn] = kast
+                self.skal.append("%s slungades ivag i %.1f m/s vid t=%.2f s"
+                                 % (namn, kast["fart_ms"], kast["t"]))
+        h["aldrig_tagen"] = self._aldrig_tagen(o)
+        h["obestambar"] = self._scen_obestambar(o)
+        if h["oombedd"]:
+            for post in h["oombedd"]:
+                self.skal.append("%s rörde sig %.0f mm utan att någon bad om det"
+                                 % (post["objekt"], post["vaglangd_mm"]))
+        for post in (h["orort"] or []):
+            self.skal.append("%s fick %s men %s"
+                             % (post["objekt"], post["signal"], post["varfor"]))
+        return h
+
+    def _aldrig_tagen(self, o):
+        """Detaljen stod still i VARLDEN medan verktyget gjorde hela resan.
+
+        Skild fran NEVER_GRIPPED, som bara sager att greppmangden var tom. Den
+        har sager VARFOR: det fanns inget att gripa om, for delen rorde sig
+        aldrig. Tva celler skiljer dem at (se tests/celler.py).
+        """
+        delnamn, verktygsnamn = self._del_och_verktyg()
+        if delnamn is None or verktygsnamn is None:
+            return None
+        pd = o.profiler.get(delnamn)
+        pv = o.profiler.get(verktygsnamn)
+        if pd is None or pv is None or pd["stilla"] is None:
+            return None
+        if pd["stilla"] and pv["stilla"] is False:
+            return {"del": delnamn, "verktyg": verktygsnamn,
+                    "del_vaglangd_mm": round(pd["vaglangd_mm"], 3),
+                    "verktyg_vaglangd_mm": round(pv["vaglangd_mm"], 3)}
+        return None
+
+    def _scen_obestambar(self, o):
+        """Nar scenens grindar INTE gar att lita pa - utglesad eller oläst.
+
+        Fail-closed: en utglesad serie far inte lasas som "allt stod still".
+        """
+        gles = (self.scen or {}).get("gles_faktor", 1)
+        if self.plan.get("forvantat_rorliga") is None:
+            return None
+        if o.okanda():
+            return "%d objekt lastes aldrig av" % len(o.okanda())
+        varsta = 0.0
+        for namn in o.profiler:
+            varsta = max(varsta, o.profiler[namn]["olast_andel"])
+        if varsta > SCEN_OLAST_MAX_ANDEL:
+            hur = ("glesningsfaktor %d" % gles) if gles > 1 else "okand orsak"
+            return ("%.0f %% av proven saknar en scenavlasning (%s)"
+                    % (varsta * 100.0, hur))
+        return None
+
+    # -- robotleder ---------------------------------------------------------
+
+    def robotanalys(self):
+        o = self.oversikt()
+        led = H.Ledanalys(self.rader, self.ledgranser, self.ledtyper,
+                          self.plan.get("robot_tcp"), o.serier)
+        h = led.analysera()
+        for robot in sorted(h):
+            d = h[robot]
+            for g in d.get("granser_nadda", []):
+                if g["over"]:
+                    self.skal.append(
+                        "%s led %d gick förbi sin gräns (%.2f av [%.2f, %.2f])"
+                        % (robot, g["led"], g["varde"], g["gransvarden"][0],
+                           g["gransvarden"][1]))
+            for sing in d.get("singularitet", []):
+                if not sing.get("obestambar"):
+                    self.skal.append(
+                        "%s stod i kinematisk urartning %.2f-%.2f s"
+                        % (robot, sing["start_s"], sing["slut_s"]))
+            for f in d.get("foljfel", []):
+                if not f["nadde_malet"]:
+                    self.skal.append(
+                        "%s led %d nådde aldrig sitt kommenderade värde "
+                        "(%.3f kvar)" % (robot, f["led"], f["kvarstaende_fel"]))
+        return h
+
+    # -- stationer ----------------------------------------------------------
+
+    def stationsanalys(self):
+        h = H.stationslage(self.rader)
+        krav = self.plan.get("genomstromning") or {}
+        h["_krav"] = dict(krav)
+        h["_brott"] = []
+        for station in sorted(h):
+            if station.startswith("_"):
+                continue
+            d = h[station]
+            if not isinstance(d, dict) or "svalt_s" not in d:
+                continue
+            for nyckel, etikett in (("svalt", "svalt"), ("blockerad", "blockerad")):
+                tak = krav.get("max_%s_s" % nyckel)
+                if tak is None:
+                    continue
+                matt = d["%s_s" % nyckel]
+                if matt > float(tak) + GENOMSTROMNING_MARGINAL_S:
+                    h["_brott"].append({"station": station, "vad": etikett,
+                                        "matt_s": matt, "krav_s": float(tak)})
+                    self.skal.append(
+                        "%s var %s %.1f s, kravet är högst %.1f s"
+                        % (station, etikett, matt, float(tak)))
+        return h
+
+    # -- scenforstaelse i ord ----------------------------------------------
+
+    def berattelse(self):
+        """Vad pagick i scenen, i ord. ALDRIG en dom.
+
+        I1 star fast: ogats DOM ar auktoritativ, och den ar domsraden. Den har
+        texten ar en redogorelse for underlaget och far inte forvaxlas med
+        den - darfor innehaller den inga ord om godkant eller underkant.
+        """
+        h = dict(self.harledt.get("scene") or {})
+        h["grepp"] = (self.harledt.get("motion") or {}).get("grip")
+        h["stationer"] = self.harledt.get("stationer")
+        h["robotar"] = self.harledt.get("robotar")
+        h["fas"] = (self.harledt.get("timing") or {}).get("fas")
+        return H.berattelse(self.oversikt(), h, self.run)
+
+    def vad_pagar(self, t):
+        """Svaret pa 'vad pagar i scenen just nu' vid en tidpunkt."""
+        h = dict(self.harledt.get("scene") or {})
+        h["grepp"] = (self.harledt.get("motion") or {}).get("grip")
+        h["stationer"] = self.harledt.get("stationer")
+        return H.vad_pagar(self.oversikt(), float(t), h)
+
     # -- domen --
 
     def rapport(self):
@@ -538,8 +690,13 @@ class Analys(object):
         gen, gh = self.genomstromning()
         sak, sh = self.sakerhet()
         hed, hh = self.hederlighet(mh)
+        scen = self.scenanalys(th)
+        robotar = self.robotanalys()
+        stationer = self.stationsanalys()
         self.harledt = {"motion": mh, "timing": th, "throughput": gh,
-                        "safety": sh, "honesty": hh}
+                        "safety": sh, "honesty": hh, "scene": scen,
+                        "robotar": robotar, "stationer": stationer}
+        self.harledt["berattelse"] = self.berattelse()
 
         for namn, rader in (("MOTION", motion), ("TIMING", tid),
                             ("THROUGHPUT", gen), ("SAFETY", sak), ("HONESTY", hed)):
@@ -547,21 +704,45 @@ class Analys(object):
             for rad in rader:
                 r.rad(rad)
 
-        varde, orsak = self._dom(mh, th, sh, hh)
+        varde, orsak = self._dom(mh, th, sh, hh, scen, robotar, stationer)
         r.satt_dom(varde, orsak)
         return r
 
-    def _dom(self, mh, th, sh, hh):
+    def _dom(self, mh, th, sh, hh, scen=None, robotar=None, stationer=None):
         # Ordningen ar en rangordning: en overtradelse slar allt annat, och en
         # osakerhet far ALDRIG bli ett PASS.
+        scen = scen or {}
+        robotar = robotar or {}
+        stationer = stationer or {}
         if hh.get("overtradelse"):
             return "FAIL", self._orsak("hederlighetsgrind fälld")
         if mh.get("for_fa_prov"):
             return "INCONCLUSIVE", self._orsak("för få prov")
+        if scen.get("obestambar"):
+            # En utglesad eller oläst scen far inte bli ett godkannande. Det
+            # ar samma regel som for fa prov, bara pa scenens sida.
+            return "INCONCLUSIVE", self._orsak("scenen går inte att döma: %s"
+                                               % scen["obestambar"])
+        if th.get("plc_gammal"):
+            # Ett PLC-varde aldre an sitt prov ligger inte pa samma tidsaxel
+            # som fysiken, och hela poangen med PLC i serien var att de gor
+            # det. Da ar fasforhallandet inget matt.
+            return "INCONCLUSIVE", self._orsak("PLC-värdena var inte samtidiga")
         if mh.get("grip") is None:
             return "FAIL", self._orsak("greppet bildades aldrig")
         if sh.get("kollision"):
             return "FAIL", self._orsak("kollision")
+        if scen.get("oombedd"):
+            return "FAIL", self._orsak("något i scenen rörde sig oombett")
+        if scen.get("utslungad"):
+            return "FAIL", self._orsak("delen slungades iväg")
+        for post in (scen.get("orort") or []):
+            return "FAIL", self._orsak("ett kommenderat objekt rörde sig aldrig")
+        brott = self._robotbrott(robotar)
+        if brott:
+            return "FAIL", self._orsak(brott)
+        if stationer.get("_brott"):
+            return "FAIL", self._orsak("genomströmningskravet hölls inte")
         carry = mh.get("carry") or {}
         if carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S:
             return "INCONCLUSIVE", self._orsak("bärsträckan för kort")
@@ -576,6 +757,29 @@ class Analys(object):
             if d["lage"] == "SHORT":
                 return "FAIL", self._orsak("uppehållet för kort")
         return "PASS", "allt inom marginal"
+
+    @staticmethod
+    def _robotbrott(robotar):
+        """Rangordningen inom robotdelen, i den ordning en operator vill veta.
+
+        Gransoverskridandet forst: det ar det enda av de tre som ar ett
+        entydigt fel. Urartning och foljfel kan vara avsiktliga i en riggad
+        cell, men de ar aldrig nagot man vill missa.
+        """
+        for robot in sorted(robotar):
+            for g in (robotar[robot].get("granser_nadda") or []):
+                if g["over"]:
+                    return "led %d på %s gick förbi sin gräns" % (g["led"], robot)
+        for robot in sorted(robotar):
+            for sing in (robotar[robot].get("singularitet") or []):
+                if not sing.get("obestambar"):
+                    return "kinematisk urartning i %s" % robot
+        for robot in sorted(robotar):
+            for f in (robotar[robot].get("foljfel") or []):
+                if not f["nadde_malet"]:
+                    return "led %d på %s nådde inte sitt kommenderade värde" % (
+                        f["led"], robot)
+        return None
 
     def _orsak(self, kort):
         if not self.skal:

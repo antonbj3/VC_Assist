@@ -27,28 +27,42 @@ import math
 
 # ---- trosklar ------------------------------------------------------------
 #
-# M-16 ogats fullscenprovtagning, M-17 kollisionsdetektorn, M-18 robotlederna
-# och M-19 stationsstatistiken och PLC-fasen ar SPECIFICERADE i
-# docs/spec/42_ogat_utbyggt.md men annu inte gjorda. Varje tal harifran ar
-# darfor PRELIMINART och valt sa att det faller at det harda hallet: hellre
+# Tva sorters harkomst, och de blandas inte ihop:
+#
+#   PRELIMINAR + M-nn   ett tal som ska MATAS. Numret star i
+#                       docs/matningar/RESERVERADE.md tills matningen finns.
+#   42_ogat_utbyggt.md  ett tal som ar BESLUTAT, med skalet utskrivet dar.
+#                       Ett tak, en kapning och en lagringsupplosning ar val,
+#                       inte matningar - men de ska anda peka ut var valet gjordes.
+#
+# Allt preliminart ar valt sa att det faller at det harda hallet: hellre
 # INCONCLUSIVE an ett falskt PASS.
 
 # Scenens lagring. Kvantiseringen ar det enda som skiljer den lagrade serien
 # fran den lasta, och den maste ligga LANGT under varje troskel som domer.
-SCEN_DECIMALER = 6              # PRELIMINAR. Satts av matning M-16.
-SCEN_FULL_VAR_N_RAD = 50        # PRELIMINAR. Satts av matning M-16.
+SCEN_DECIMALER = 6              # Beslut, motiverat i 42_ogat_utbyggt.md.
+SCEN_FULL_VAR_N_RAD = 50        # Beslut, motiverat i 42_ogat_utbyggt.md.
 
 # Rorelse i scenen. Ett objekt som flyttat sig mindre an sa har under HELA
 # korningen har inte rort sig; det ar kvantiseringsbrus och numeriskt driv.
-STILLA_TOTAL_MM = 1.0           # PRELIMINAR. Satts av matning M-16.
+STILLA_TOTAL_MM = 1.0           # PRELIMINAR. Satts av matning M-10.
 # Rorelse MELLAN tva prov. Under detta star objektet still i det provet.
-ROR_SIG_MM = 0.5                # PRELIMINAR. Satts av matning M-16.
+ROR_SIG_MM = 0.5                # PRELIMINAR. Satts av matning M-10.
 # Hur langt tva prov far ligga isar och anda raknas som samtidiga.
-SAMTIDIG_FONSTER_S = 0.10       # PRELIMINAR. Satts av matning M-16.
+SAMTIDIG_FONSTER_S = 0.10       # PRELIMINAR. Satts av matning M-10.
+# Hur mycket farten maste andras for att raknas som en fartandring, som andel
+# av den storre av de tva farterna. En relativ troskel, for en absolut skulle
+# bara en storhet i ett band och en annan i ett annat.
+FART_ANDRING_ANDEL = 0.35       # PRELIMINAR. Satts av matning M-10.
+# Farten maste dessutom vara over detta i minst en av punkterna, annars ar en
+# 35-procentig andring bara brus kring noll.
+FART_GOLV_MM_S = 20.0           # PRELIMINAR. Satts av matning M-10.
+# Hur mycket hojden maste andras for att raknas som ett nytt hojdlage.
+HOJD_ANDRING_MM = 50.0          # PRELIMINAR. Satts av matning M-10.
 # Tak pa antalet par i narhetsrakningen. Over det rapporteras kapningen.
-NARHET_MAX_PAR = 2000           # PRELIMINAR. Satts av matning M-16.
+NARHET_MAX_PAR = 2000           # Beslut, motiverat i 42_ogat_utbyggt.md.
 # Ett objekt som ingen bad om far rora sig sa har mycket utan att fallas.
-OOMBEDD_MM = 5.0                # PRELIMINAR. Satts av matning M-16.
+OOMBEDD_MM = 5.0                # PRELIMINAR. Satts av matning M-10.
 
 # Robotleder. Enheten beror pa ledtypen (grader for vridled, langdenhet for
 # skjutled) - darfor tva separata tal och ingen gemensam "ledfart".
@@ -69,12 +83,22 @@ BLOCKERAD_MIN_S = 1.0           # PRELIMINAR. Satts av matning M-19.
 # Andel av korningen ett tillstand maste uppta for att kallas flaskhals.
 FLASKHALS_ANDEL = 0.20          # PRELIMINAR. Satts av matning M-19.
 
-# Utslungad detalj: fart over detta OCH en fallkurva som foljer tyngdkraften.
-# Skild fran BLOWUP, som ar numerisk explosion och ligger en tiopotens hogre.
+# Utslungad detalj: VAGRAT fart over detta OCH en fallkurva som foljer
+# tyngdkraften. Vagrat, inte total: en TAPPAD detalj faller ocksa fritt och
+# passerar ocksa 3 m/s pa vagen ner. Det som skiljer ett kast fran ett tapp ar
+# den vagrata rorelsemangden, ingenting annat - och en grind som mater den
+# totala farten domer bada likadant.
 UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
+# Vagrat fart som fortfarande raknas som flykt, sa flygfonstret inte klipps av
+# ett enda langsammare prov mitt i banan.
+UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 # Hur mycket den mata nedatriktade accelerationen far avvika fran g.
 FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-G_MS2 = 9.81                    # Tyngdaccelerationen, inte en troskel.
+# Tyngdaccelerationen. Ser ut som en naturkonstant men ar det inte i den har
+# koden: VC:s scen har en EGEN tyngdacceleration, och den rakar i varldens
+# langdenhet - samma omatta enhetsfraga som oga_provtagning.LANGDENHET_TILL_MM.
+# Talet nedan ar SI, och det ar ett antagande tills nagon matt det i VC.
+G_MS2 = 9.81                    # OMATT ANTAGANDE, se 42_ogat_utbyggt.md.
 
 
 # ---- vektor- och kvaternionmatematik ------------------------------------
@@ -275,6 +299,46 @@ def rorelseprofil(serie):
     return profil
 
 
+def forandringar(serie):
+    """NAR ett objekt bytte fart, riktning eller hojd - inte bara ATT det gjorde.
+
+    Tre skilda storheter, tre skilda handelser. En sammanslagen "andring" hade
+    varit ett tal som bar tre saker, och da gar det inte att svara pa vilken
+    av dem som intraffade.
+    """
+    lasta = [(t, p) for (t, p, _q, last) in serie if last]
+    ut = []
+    if len(lasta) < 3:
+        return ut
+    farter, riktningar = [None], [None]
+    for i in range(1, len(lasta)):
+        dt = lasta[i][0] - lasta[i - 1][0]
+        steg = diff(lasta[i][1], lasta[i - 1][1])
+        farter.append((norm(steg) * 1000.0 / dt) if dt > 0 else 0.0)
+        riktningar.append(tuple(1 if x > 1e-9 else (-1 if x < -1e-9 else 0)
+                                for x in steg) if farter[-1] > FART_GOLV_MM_S
+                          else None)
+    for i in range(2, len(lasta)):
+        storst = max(farter[i], farter[i - 1])
+        if (storst > FART_GOLV_MM_S
+                and abs(farter[i] - farter[i - 1]) > FART_ANDRING_ANDEL * storst):
+            ut.append({"t": lasta[i][0], "vad": "fart",
+                       "fran_mm_s": round(farter[i - 1], 2),
+                       "till_mm_s": round(farter[i], 2)})
+        if (riktningar[i] is not None and riktningar[i - 1] is not None
+                and riktningar[i] != riktningar[i - 1]):
+            ut.append({"t": lasta[i][0], "vad": "riktning",
+                       "fran": list(riktningar[i - 1]), "till": list(riktningar[i])})
+    niva = lasta[0][1][2]
+    for t, p in lasta[1:]:
+        if abs(p[2] - niva) * 1000.0 > HOJD_ANDRING_MM:
+            ut.append({"t": t, "vad": "hojd",
+                       "fran_m": round(niva, 4), "till_m": round(p[2], 4)})
+            niva = p[2]
+    ut.sort(key=lambda h: (h["t"], h["vad"]))
+    return ut
+
+
 def rorde_sig_vid(serie):
     """{t: True} for de prov dar objektet rorde sig sedan forra provet."""
     ut = {}
@@ -318,6 +382,15 @@ class Scenoversikt(object):
     def okanda(self):
         """Objekt vars rorelse INTE gar att uttala sig om: aldrig avlasta."""
         return sorted(n for n in self.profiler if self.profiler[n]["stilla"] is None)
+
+    def forandringar(self):
+        """{objekt: [handelse]} - nar varje objekt bytte fart, riktning, hojd."""
+        ut = {}
+        for namn in self.serier:
+            h = forandringar(self.serier[namn])
+            if h:
+                ut[namn] = h
+        return ut
 
     # -- samtidighet --
 
@@ -856,22 +929,39 @@ def utslungad(serie):
     Skild fran BLOWUP: en numerisk explosion har ingen fysik i sig och ligger
     en tiopotens hogre i fart. En utslungad detalj gar fort OCH faller ratt.
     Bada raknas, sa de aldrig kan doljas av varandra.
+
+    Skild ocksa fran ett TAPP. Ett tapp ar ocksa fritt fall och passerar ocksa
+    3 m/s pa vagen ner - matt pa cellen `tappad`, dar en tidigare version av
+    den har grinden fallde med orsaken "delen slungades ivag". Det som skiljer
+    dem ar den VAGRATA farten, och det ar den som mats.
+
+    Fallkurvan mats over FLYGFONSTRET - fran det prov farten forst overskrider
+    trosket till det prov den sjunker under flygfarten. En tidigare version tog
+    den globala toppfarten som startpunkt, och eftersom en kastparabel gar
+    FORTAST precis innan den tar mark hamnade fonstret efter kastet, dar
+    accelerationen ar noll. Den missade varje riktigt kast.
     """
     lasta = [(t, p) for (t, p, _q, last) in serie if last]
     if len(lasta) < 4:
         return None
-    toppfart = 0.0
-    topp_i = None
+    farter = [None]
+    vagrat = [None]
     for i in range(1, len(lasta)):
         dt = lasta[i][0] - lasta[i - 1][0]
-        if dt <= 0:
-            continue
-        v = norm(diff(lasta[i][1], lasta[i - 1][1])) / dt
-        if v > toppfart:
-            toppfart, topp_i = v, i
-    if topp_i is None or toppfart < UTSLUNGAD_MS:
+        steg = diff(lasta[i][1], lasta[i - 1][1])
+        farter.append(norm(steg) / dt if dt > 0 else 0.0)
+        vagrat.append(math.sqrt(steg[0] ** 2 + steg[1] ** 2) / dt if dt > 0 else 0.0)
+    start = None
+    for i in range(1, len(lasta)):
+        if vagrat[i] > UTSLUNGAD_MS:
+            start = i
+            break
+    if start is None:
         return None
-    z = [(t, p[2]) for t, p in lasta[topp_i:]]
+    slut = start
+    while slut + 1 < len(lasta) and vagrat[slut + 1] > UTSLUNGAD_FLYG_MS:
+        slut += 1
+    z = [(t, p[2]) for t, p in lasta[start - 1:slut + 1]]
     if len(z) < 3:
         return None
     accar = []
@@ -886,11 +976,11 @@ def utslungad(serie):
     if not accar:
         return None
     medel = sum(accar) / len(accar)
-    fritt_fall = abs(medel + G_MS2) <= FRITT_FALL_TOL * G_MS2
-    if not fritt_fall:
+    if abs(medel + G_MS2) > FRITT_FALL_TOL * G_MS2:
         return None
-    return {"t": lasta[topp_i][0], "fart_ms": round(toppfart, 3),
-            "z_acc_ms2": round(medel, 3)}
+    return {"t": lasta[start][0], "fart_ms": round(farter[start], 3),
+            "vagrat_ms": round(vagrat[start], 3), "z_acc_ms2": round(medel, 3),
+            "flygfonster_s": round(lasta[slut][0] - lasta[start][0], 3)}
 
 
 # ---- handelser och berattelse -------------------------------------------
@@ -905,6 +995,10 @@ def handelser(oversikt, extra=None):
                        "text": "%s borjade rora sig" % namn})
             ut.append({"t": b, "vad": "rorelse_slut", "objekt": namn,
                        "text": "%s stannade" % namn})
+    for namn, poster in oversikt.forandringar().items():
+        for h in poster:
+            ut.append({"t": h["t"], "vad": "byte_" + h["vad"], "objekt": namn,
+                       "text": "%s bytte %s" % (namn, h["vad"])})
     for post in (extra or []):
         ut.append(post)
     ut.sort(key=lambda h: (h["t"], h.get("vad", ""), h.get("objekt", "")))
@@ -952,6 +1046,13 @@ def berattelse(oversikt, h=None, run=None):
             "%d riktningsbyten."
             % (namn, p["vaglangd_mm"], p["maxfart_ms"],
                p["t_forsta"] or 0.0, p["t_sista"] or 0.0, p["riktningsbyten"]))
+    for namn in rorliga[:5]:
+        byten = oversikt.forandringar().get(namn) or []
+        if byten:
+            rader.append(
+                "%s bytte %s."
+                % (namn, ", ".join("%s vid %.2f s" % (h["vad"], h["t"])
+                                   for h in byten[:4])))
     samtidiga = oversikt.samtidiga()
     if samtidiga:
         a, b, sek, _n = samtidiga[0]

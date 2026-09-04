@@ -11,7 +11,7 @@ uppmaningen att skriva ned det nya talet — annars ruttnar spärren.
 
 ## Nuvarande skuld
 
-    UTAN_HARKOMST = 67
+    UTAN_HARKOMST = 59
 
 Av 125 tröskelkonstanter i `ext/`, `svc/` och `bank/`.
 
