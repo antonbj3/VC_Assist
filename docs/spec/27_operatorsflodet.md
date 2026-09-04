@@ -306,3 +306,54 @@ Inget av detta är bestämt.
 5. **Ett riktigt komponentbibliotek.** Utan det är fas 5:s egentliga grind —
    *N mållayouter byggda, noll kollisioner, alla gränssnitt kopplade* — inte
    stängd, och §5 steg 3–7 är prövade endast på tomma komponenter.
+
+
+---
+
+## F-G12 — vad användaren ser medan det arbetar
+
+De elva `F-G`-grindarna handlar om installation, start och genomlopp. Ingen av
+dem säger något om vad användaren ser **under** en körning.
+
+> **F-G12.** Under en pågående körning går förloppsytan att läsa, och den
+> fäller sin egen grind. Trasiga fall som måste falla: en visning som påstår
+> att en fallen körning arbetar, en som skriver om en grinds ord, och en som
+> visar en dom vars ärlighetsgrind aldrig kört.
+
+## Glappet som gav upphov till grinden
+
+**MÄTT 2026-09-05 (M-64), före koden fanns:**
+
+| | antal |
+|---|---:|
+| rapportytor i systemet | **7** |
+| ger text en människa läser | 4 |
+| går att läsa under körning | 2 |
+| **båda samtidigt** | **0** |
+
+Noll av sju. Förklaringen är enkel och strukturell: i `svc/` fanns **noll**
+återanrop, observatörer eller lyssnare. Varje rapportyta var per konstruktion
+terminal — den svarade när allt var klart.
+
+Och det här dokumentets elva grindar var **specade och obyggda**, inte
+halvbyggda: noll av `F-G1`–`F-G11` nämndes i något prov.
+
+## Grinden dömer paret, inte renderaren
+
+`forlopp/`-grinden dömer **protokollet och texten tillsammans**. Följden är att
+den också fäller en webbsida som inte är skriven än.
+
+Det är skälet till att ingen webbsida byggdes. En sådan låser det val
+`26_appen.md` §7 fråga 1 lämnar öppet — webbläsare eller terminal — och grinden
+binder ytan ändå. Ytan är text just för att svaret ska kunna bli vilket som
+helst.
+
+## Hålet som står öppet med flit
+
+Ytan **går att driva**, men ingenting driver den. Noll moduler i `svc/` utanför
+`forlopp/` konstruerar ett `Forlopp`. Det står rött i
+`tests/motbevis/test_forloppet_har_ingen_forare_motbevis.py`.
+
+Kopplaren och reparationsslingan ska **inte** laga det själva: att låta ett
+lägre lager känna presentationslagret vore fel beroenderiktning. Vägen in går
+genom `forlopp.kallor`, och den är byggd och provad.

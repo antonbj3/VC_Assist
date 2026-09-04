@@ -343,3 +343,33 @@ FAS n ACCEPTANS — avbrott
 3. **Hur mycket ska operatören se som standard?** Listan i avsnitt 7 är
    fullständig. Frågan är om `VERKTYG_START` och `VERKTYG_KLART` ska vara på
    som standard eller bara i ett utförligt läge.
+
+
+---
+
+## Två tillägg till den slutna händelselistan (M-64)
+
+Listan kunde inte säga två saker som fas 17 behöver.
+
+**`FALLET` — att körningen SJÄLV föll.** `VERKTYG_FEL` är ett anrop som föll.
+`AVBRUTEN` är operatörens beslut. Kopplaren som ger upp efter tre raka fel
+(`M-39`) hade **ingen händelse alls** — den viktigaste spärren i hela PLC-benet
+var osynlig i operatörens flöde. Händelsen bär skälet **ordagrant**.
+
+**`GRIND` — vad grind 1–4 sa.** `DOM` är ögat och `GULD` är guldgrinden.
+Förgrindarna hade ingen händelse, trots att `27_operatorsflodet.md` §5 steg 10
+lovar operatören *"fyra grindar med utfall"*. Händelsen bär grindens **egna
+ord**, aldrig en omskrivning (I1).
+
+Tilläggen ligger i `TILLAGDA_SORTER` och provas för sig, så att de **syns** i
+stället för att glida in i en sluten lista.
+
+## Läget härleds, det sätts aldrig
+
+Ur `M-64`, och det är fasens hårdaste regel: `FALLET` är **absorberande**.
+`VÄNTAR PÅ OPERATÖREN` och `TYST` är egna lägen, inte arbete.
+
+Fyndet som motiverar det: **ett hjärtslag som räknas som framsteg gör en död
+körning odödlig.** Mätt över 600 pulser där inget annat hände sa läget
+`ARBETAR` i **600 av 600**. Med hjärtslaget skilt från framsteg: 5 av 600 — och
+de fem är sekunderna inom tystnadstaket, där `ARBETAR` är rätt svar.
