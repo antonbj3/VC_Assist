@@ -802,8 +802,8 @@ def plcflanker(rader):
     """Flanker i PLC-variablerna, i samma form som signalflankerna.
 
     Namnen bar prefixet plc: sa en PLC-tagg och en VC-signal aldrig kan
-    forvaxlas i domstexten. Domskontraktets <signal> ar \\S+, sa prefixet
-    ryms i grammatiken utan att den behover andras.
+    forvaxlas i domstexten. Domskontraktets <signal> ar ett namn utan
+    blanksteg, sa prefixet ryms i grammatiken utan att den behover andras.
     """
     ut = []
     taggar = sorted(set(t for r in rader for t in (r.get("plc") or {})))

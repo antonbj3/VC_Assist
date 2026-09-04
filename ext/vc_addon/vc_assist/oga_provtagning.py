@@ -112,6 +112,14 @@ class VcScen(Scen):
         self.uppdatera_fore_last = uppdatera_fore_last
         self._cache = {}
         self.saknade = []
+        self.plan = {}
+        self.roller = set()
+        self._komponenter = None      # cachad lista, hamtas om med jamna mellanrum
+        self._servo = {}              # robotspec -> vcServoController
+        self._detektorer = {}         # parnamn -> vcCollisionDetector
+        self._statistik = {}          # stationsspec -> vcStatistics
+        self.ledgranser = {}          # robotspec -> [[lag, hog], ...]
+        self.ledtyper = {}            # robotspec -> ["deg" | "mm" | None, ...]
 
     def uppdatera(self):
         if self.uppdatera_fore_last:
@@ -189,9 +197,373 @@ class VcScen(Scen):
             self._saknas(spec, "kunde inte lasa signalen: %s" % type(e).__name__)
             return None
 
+    # -- uppsattning ------------------------------------------------------
+
+    def konfigurera(self, plan):
+        """Bygger det dyra en gang: detektorer, servostyrningar, statistik.
+
+        Allt som misslyckas hamnar i `saknade`. Det ar avsiktligt att en
+        misslyckad uppsattning INTE kastar: en scen utan kollisionsdetektor
+        ska ge en dom som sager att avstandet ar obekant, inte en krasch och
+        inte ett tyst godkannande.
+        """
+        plan = dict(plan or {})
+        self.plan = plan
+        self.roller = set(plan.get("parts") or []) | set(plan.get("tools") or [])
+        for spec in (plan.get("joints") or []):
+            self._servostyrning(spec, plan)
+        for post in (plan.get("mind") or []):
+            self._detektor(post, plan)
+        for spec in (plan.get("stat") or []):
+            self._statistikbeteende(spec)
+        return self
+
+    # -- hela scenen ------------------------------------------------------
+
+    def komponenter(self, tvinga=False):
+        """Scenens komponenter. Cachad: app.Components bygger en ny lista."""
+        if self._komponenter is None or tvinga:
+            try:
+                self._komponenter = list(self.app.Components)
+            except Exception as e:
+                self._saknas("app.Components",
+                             "kunde inte lasa komponentlistan: %s" % type(e).__name__)
+                self._komponenter = []
+        return self._komponenter
+
+    def poser_alla(self):
+        """Pose for varje komponent i scenen, utom de som redan bar en roll.
+
+        Rollerna provtas separat och i full takt; hade de legat i bada hade
+        samma objekt burit tva serier och en skillnad mellan dem hade varit
+        omojlig att tolka.
+        """
+        ut = {}
+        for comp in self.komponenter():
+            try:
+                namn = comp.Name
+            except Exception as e:
+                self._saknas("app.Components",
+                             "en komponent saknar Name: %s" % type(e).__name__)
+                continue
+            if namn in self.roller:
+                continue
+            try:
+                m = comp.WorldPositionMatrix
+                pkt = m.P
+                ut[namn] = {"p": [pkt.X, pkt.Y, pkt.Z],
+                            "q": kvat_fran_vc(m.getQuaternion())}
+            except Exception as e:
+                self._saknas(namn, "kunde inte lasa posen: %s" % type(e).__name__)
+        return ut
+
+    # -- robotleder -------------------------------------------------------
+
+    def _servostyrning(self, spec, plan):
+        """Hittar en vcServoController. Namnges 'Robot' eller 'Robot/Beteende'.
+
+        Utan namngivet beteende letas det upp pa FORMEN - ett beteende som
+        bar Joints - i stallet for pa VC_SERVOCONTROLLER-konstanten. Skalet
+        star i M-15: createBehaviour returnerar tyst None pa en konstant som
+        inte ar en beteendetyp, och ett uppslag som bygger pa en konstant i
+        skriptets scope faller sonder nar scopet ser annorlunda ut.
+        """
+        if spec in self._servo:
+            return self._servo[spec]
+        delar = spec.split("/", 1)
+        comp = self.app.findComponent(str(delar[0]))
+        if comp is None:
+            self._saknas(spec, "ingen komponent som heter %r" % delar[0])
+            return None
+        ctrl = None
+        try:
+            if len(delar) == 2:
+                ctrl = comp.findBehaviour(str(delar[1]))
+            else:
+                for beh in comp.Behaviours:
+                    if hasattr(beh, "Joints"):
+                        ctrl = beh
+                        break
+        except Exception as e:
+            self._saknas(spec, "kunde inte leta upp servostyrningen: %s"
+                         % type(e).__name__)
+            return None
+        if ctrl is None or not hasattr(ctrl, "Joints"):
+            self._saknas(spec, "hittade ingen servostyrning med Joints")
+            return None
+        self._servo[spec] = ctrl
+        self._ledmetadata(spec, ctrl, plan)
+        return ctrl
+
+    def _ledmetadata(self, spec, ctrl, plan):
+        """Ledgranser och ledtyper, en gang. Bada far vara OKANDA.
+
+        MinValue och MaxValue ar UTTRYCK i VC, inte tal. Gar uttrycket inte
+        att lasa som ett tal blir gransen okand, och da domer analysen inte pa
+        den. Ett gissat gransvarde vore varre an inget.
+        """
+        granser, typer = [], []
+        planens_typer = list((plan.get("ledtyper") or {}).get(spec) or [])
+        try:
+            leder = list(ctrl.Joints)
+        except Exception as e:
+            self._saknas(spec, "kunde inte lasa Joints: %s" % type(e).__name__)
+            return
+        for i, j in enumerate(leder):
+            lag = self._tal(getattr(j, "MinValue", None))
+            hog = self._tal(getattr(j, "MaxValue", None))
+            if lag is None or hog is None:
+                granser.append(None)
+                self._saknas(spec, "led %d har uttryck som gransvarden (%r, %r)"
+                             % (i, getattr(j, "MinValue", None),
+                                getattr(j, "MaxValue", None)))
+            else:
+                granser.append([lag, hog])
+            if i < len(planens_typer):
+                typer.append(planens_typer[i])
+            else:
+                typer.append(self._ledtyp(j))
+        self.ledgranser[spec] = granser
+        self.ledtyper[spec] = typer
+
+    @staticmethod
+    def _tal(varde):
+        try:
+            return float(varde)
+        except (TypeError, ValueError):
+            return None
+
+    def _ledtyp(self, led):
+        """'deg', 'mm' eller None. Okand typ ger None, och da namnges ingen
+        fart i en enhet den inte har."""
+        for attribut in ("JointServoType", "Type"):
+            varde = getattr(getattr(led, "Dof", None), attribut, None)
+            if varde is None:
+                varde = getattr(led, attribut, None)
+            if varde is None:
+                continue
+            text = str(varde).upper()
+            if "ROT" in text or text.endswith("_R"):
+                return "deg"
+            if "TRANS" in text or "PRISM" in text:
+                return "mm"
+        return None
+
+    def leder(self, spec):
+        ctrl = self._servo.get(spec) or self._servostyrning(spec, self.plan)
+        if ctrl is None:
+            return None
+        try:
+            return [float(j.CurrentValue) for j in ctrl.Joints]
+        except Exception as e:
+            self._saknas(spec, "kunde inte lasa ledvarden: %s" % type(e).__name__)
+            return None
+
+    def ledmal(self, spec):
+        """Kommenderat varde per led - halften av 'kommenderat mot uppnatt'."""
+        ctrl = self._servo.get(spec)
+        if ctrl is None:
+            return None
+        try:
+            return [float(ctrl.getJointTarget(i))
+                    for i in range(len(list(ctrl.Joints)))]
+        except Exception as e:
+            self._saknas(spec, "kunde inte lasa ledmal: %s" % type(e).__name__)
+            return None
+
+    # -- kollision och minsta avstand -------------------------------------
+
+    def _detektor(self, post, plan):
+        """sim.newCollisionDetector() - i API-ytan sedan lange, aldrig anropad.
+
+        `post` ar antingen ett parnamn (en strang) eller
+        {"namn":..., "a": [nodspec...], "b": [nodspec...], "tolerans_mm":...}.
+        Ett blott parnamn gar INTE att bygga en detektor av; da registreras
+        det som saknat och analysen far ingen MINDIST-rad for paret.
+        """
+        if not isinstance(post, dict):
+            self._saknas(str(post), "paret saknar nodlistor; en detektor kraver "
+                                    "a och b")
+            return None
+        namn = post.get("namn") or "%s+%s" % (post.get("a"), post.get("b"))
+        if namn in self._detektorer:
+            return self._detektorer[namn]
+        noder_a = [self._nod(x) for x in (post.get("a") or [])]
+        noder_b = [self._nod(x) for x in (post.get("b") or [])]
+        noder_a = [n for n in noder_a if n is not None]
+        noder_b = [n for n in noder_b if n is not None]
+        if not noder_a or not noder_b:
+            self._saknas(namn, "en av nodlistorna blev tom")
+            return None
+        try:
+            det = self.sim.newCollisionDetector()
+        except Exception as e:
+            self._saknas(namn, "newCollisionDetector kastade %s" % type(e).__name__)
+            return None
+        if det is None:
+            self._saknas(namn, "newCollisionDetector gav None")
+            return None
+        try:
+            det.NodeListA = noder_a
+            det.NodeListB = noder_b
+            tol_mm = float(post.get("tolerans_mm",
+                                    (plan or {}).get("mind_tolerans_mm", 100.0)))
+            det.Tolerance = tol_mm / LANGDENHET_TILL_MM
+            det.DisplayMinimumDistance = False
+            # StopOnCollision maste vara av: ett stopp river simuleringen och
+            # med den pumpen (M-13), och da finns ingen som kan rapportera
+            # traffen.
+            det.StopOnCollision = False
+            det.Active = True
+        except Exception as e:
+            self._saknas(namn, "kunde inte satta upp detektorn: %s" % type(e).__name__)
+            return None
+        self._detektorer[namn] = det
+        return det
+
+    def mindist(self, spec):
+        namn = spec.get("namn") if isinstance(spec, dict) else spec
+        det = self._detektorer.get(namn)
+        if det is None:
+            return None
+        try:
+            traffade = bool(det.testMinimumDistance())
+            d = det.getMinimumDistanceDistance()
+            p1 = det.getMinimumDistancePoint1()
+            p2 = det.getMinimumDistancePoint2()
+        except Exception as e:
+            self._saknas(namn, "kunde inte lasa minsta avstandet: %s"
+                         % type(e).__name__)
+            return None
+        if d is None:
+            return None
+        return {"d_mm": float(d) * LANGDENHET_TILL_MM,
+                "p1": self._punkt(p1), "p2": self._punkt(p2),
+                "inom_tolerans": traffade}
+
+    @staticmethod
+    def _punkt(v):
+        if v is None:
+            return [0.0, 0.0, 0.0]
+        return [getattr(v, "X", 0.0), getattr(v, "Y", 0.0), getattr(v, "Z", 0.0)]
+
+    def traff(self):
+        """Forsta verkliga traffen bland detektorerna, med nod OCH feature."""
+        for namn in sorted(self._detektorer):
+            det = self._detektorer[namn]
+            try:
+                if not det.testAllCollisions():
+                    continue
+                a = det.getHitNodeA()
+                b = det.getHitNodeB()
+                fa = det.getHitFeatureA()
+                fb = det.getHitFeatureB()
+            except Exception as e:
+                self._saknas(namn, "kunde inte lasa traffen: %s" % type(e).__name__)
+                continue
+            return [self._namn(a), self._namn(b), self._namn(fa), self._namn(fb)]
+        return None
+
+    @staticmethod
+    def _namn(objekt):
+        if objekt is None:
+            return "okand"
+        return str(getattr(objekt, "Name", objekt))
+
+    # -- statistik per station --------------------------------------------
+
+    def _statistikbeteende(self, spec):
+        if spec in self._statistik:
+            return self._statistik[spec]
+        delar = spec.split("/", 1)
+        comp = self.app.findComponent(str(delar[0]))
+        if comp is None:
+            self._saknas(spec, "ingen komponent som heter %r" % delar[0])
+            return None
+        beh = None
+        try:
+            if len(delar) == 2:
+                beh = comp.findBehaviour(str(delar[1]))
+            else:
+                for b in comp.Behaviours:
+                    if hasattr(b, "ComponentsArrived"):
+                        beh = b
+                        break
+        except Exception as e:
+            self._saknas(spec, "kunde inte leta upp statistiken: %s"
+                         % type(e).__name__)
+            return None
+        if beh is None or not hasattr(beh, "ComponentsArrived"):
+            self._saknas(spec, "hittade inget vcStatistics-beteende")
+            return None
+        self._statistik[spec] = beh
+        return beh
+
+    def stat(self, spec):
+        beh = self._statistik.get(spec)
+        if beh is None:
+            return None
+        ut = {}
+        # in/out behaller sina namn ur kontraktets eyes.json. De nya falten
+        # laggs bredvid, sa en aldre lasare fortsatter fungera.
+        for nyckel, attribut in (("in", "ComponentsArrived"),
+                                 ("out", "ComponentsDeparted"),
+                                 ("cur", "ComponentsCurrent")):
+            varde = self._heltal(beh, attribut, spec)
+            if varde is not None:
+                ut[nyckel] = varde
+        for nyckel, attribut in (("idle_pct", "IdlePercentage"),
+                                 ("busy_pct", "BusyPercentage"),
+                                 ("blocked_pct", "BlockedPercentage"),
+                                 ("broken_pct", "BreakPercentage")):
+            try:
+                ut[nyckel] = float(getattr(beh, attribut))
+            except Exception:
+                pass
+        try:
+            ut["state"] = str(beh.State)
+        except Exception:
+            pass
+        return ut or None
+
+    def _heltal(self, beh, attribut, spec):
+        try:
+            return int(getattr(beh, attribut))
+        except Exception as e:
+            self._saknas(spec, "kunde inte lasa %s: %s" % (attribut, type(e).__name__))
+            return None
+
+
+class Plckalla(object):
+    """Gransnittet mot PLC-bandet i svc/vc_assist_svc/plc/.
+
+    PUSH, inte pull. En OPC UA-lasning inne i pumpens tick skulle ata av
+    tick-budgeten pa 25 ms och kan blockera pa natverket; da stannar bade
+    provtagningen och bryggan. Den externa sidan skjuter i stallet in sin
+    senaste ogonblicksbild med `skjut_in`, och provtagaren tar den som den ar
+    - tillsammans med dess ALDER, sa ett gammalt varde aldrig kan gora sig
+    till ett samtidigt.
+    """
+
+    def __init__(self):
+        self.varden = {}
+        self.t = None
+
+    def skjut_in(self, varden, t=None):
+        self.varden = dict(varden or {})
+        self.t = None if t is None else float(t)
+        return self
+
+    def las(self, t):
+        """({tagg: varde}, alder_s) eller (None, None) nar inget skjutits in."""
+        if not self.varden:
+            return None, None
+        alder = None if self.t is None else max(0.0, float(t) - self.t)
+        return dict(self.varden), alder
+
 
 class Provtagare(object):
-    def __init__(self, scen, plan, sokvag=None):
+    def __init__(self, scen, plan, sokvag=None, plckalla=None, klocka=None):
         self.scen = scen
         self.plan = dict(plan or {})
         self.rate_hz = float(self.plan.get("rate_hz", 20.0))
@@ -204,6 +576,23 @@ class Provtagare(object):
         self.nasta_t = None
         self.aktiv = False
         self.n_skrivna = 0
+        # Hela scenen provtas som standard. "roller" begransar till de utpekade
+        # objekten och finns for en cell dar scenen ar for stor for att lasas
+        # alls; det ar ett medvetet val, aldrig ett tyst standardvarde.
+        self.scenlage = self.plan.get("scene", "all")
+        self.plckalla = plckalla
+        self.klocka = klocka or time.time
+        # Glesning: mats, antas aldrig. Faktorn andras bara av en MATT kostnad.
+        self.gles_faktor = 1
+        self.glesningar = []
+        self.scenkostnad_ms = []
+        self._kostnadsfonster = []
+        self._scen_forra = {}
+        self._scen_namn = set()
+        self._n_scenlast = 0
+        self.scen_avstangd = None
+        if hasattr(scen, "konfigurera"):
+            scen.konfigurera(self.plan)
 
     # -- livscykel --
 
@@ -261,19 +650,131 @@ class Provtagare(object):
                 sig[spec] = bool(v)
         if sig:
             rad["sig"] = sig
-        for namn, hamta in (("mind", self.scen.mindist), ("stat", self.scen.stat)):
-            ut = {}
-            for spec in (self.plan.get(namn) or []):
-                v = hamta(spec)
-                if v is not None:
-                    ut[spec] = v
-            if ut:
-                rad[namn] = ut
+        leder, ledmal = {}, {}
+        for spec in (self.plan.get("joints") or []):
+            v = self.scen.leder(spec)
+            if v is not None:
+                leder[spec] = list(v)
+            m = self.scen.ledmal(spec)
+            if m is not None:
+                ledmal[spec] = list(m)
+        if leder:
+            rad["joints"] = leder
+        if ledmal:
+            rad["joints_mal"] = ledmal
+        mind = {}
+        for spec in (self.plan.get("mind") or []):
+            namn = spec.get("namn") if isinstance(spec, dict) else spec
+            v = self.scen.mindist(spec)
+            if v is not None:
+                mind[namn] = v
+        if mind:
+            rad["mind"] = mind
+        stat = {}
+        for spec in (self.plan.get("stat") or []):
+            v = self.scen.stat(spec)
+            if v is not None:
+                stat[spec] = v
+        if stat:
+            rad["stat"] = stat
+        self._plc(rad, t)
         traff = self.scen.traff()
         if traff:
             rad["hit"] = list(traff)
+        self._scen(rad)
         self.rader.append(rad)
         return rad
+
+    def _plc(self, rad, t):
+        """PLC-varden pa SAMMA tidsaxel som fysiken - hela poangen med ogat.
+
+        Vardet bar sin ALDER. Ett varde som ar aldre an provet ar inte
+        samtidigt med det, och ett fasforhallande raknat pa ett gammalt varde
+        vore ett tal utan storhet.
+        """
+        if self.plckalla is None:
+            return
+        varden, alder = self.plckalla.las(float(t))
+        if not varden:
+            return
+        rad["plc"] = dict(varden)
+        if alder is None:
+            rad["plc_alder_s"] = None
+            rad["plc_gammal"] = True
+        else:
+            rad["plc_alder_s"] = round(alder, 4)
+            if alder > PLC_FARSK_S:
+                rad["plc_gammal"] = True
+
+    def _scen(self, rad):
+        """Hela scenens poser, delta-lagrade, med MATT kostnadsstyrning."""
+        if self.scenlage != "all":
+            return
+        if self.gles_faktor > 1 and (len(self.rader) % self.gles_faktor) != 0:
+            return
+        fore = self.klocka()
+        poser = self.scen.poser_alla()
+        kostnad_ms = (self.klocka() - fore) * 1000.0
+        if poser is None:
+            if self.scen_avstangd is None:
+                self.scen_avstangd = "scenen svarar inte pa poser_alla"
+            return
+        self._notera_kostnad(kostnad_ms, rad["t"])
+        namn = set(poser)
+        nya = sorted(namn - self._scen_namn)
+        borta = sorted(self._scen_namn - namn)
+        forsta = self._n_scenlast == 0
+        self._scen_namn = namn
+        full = (self._n_scenlast % H.SCEN_FULL_VAR_N_RAD) == 0
+        delta, self._scen_forra = H.koda_scen(poser, self._scen_forra, full)
+        self._n_scenlast += 1
+        rad["scenlast"] = True
+        rad["scene"] = delta
+        if full:
+            rad["scenfull"] = True
+        if nya and not forsta:
+            rad["scen_nya"] = nya
+        if borta:
+            rad["scen_borta"] = borta
+
+    def _notera_kostnad(self, ms, t):
+        """Glesningen styrs av en MATT kostnad, aldrig av en gissad scenstorlek.
+
+        Varje andring skrivs ner med talet som orsakade den. Ett oga som
+        glesar tyst tappar objekt utan att nagon vet om det, och en serie dar
+        ett objekt saknas ser likadan ut som en serie dar det stod still.
+        """
+        self.scenkostnad_ms.append(round(ms, 4))
+        self._kostnadsfonster.append(ms)
+        if len(self._kostnadsfonster) < GLES_FONSTER:
+            return
+        fonster = self._kostnadsfonster
+        self._kostnadsfonster = []
+        median = sorted(fonster)[len(fonster) // 2]
+        if median > SCEN_BUDGET_MS:
+            if self.gles_faktor >= GLES_TAK:
+                if not any(g.get("orsak") == "TAK" for g in self.glesningar):
+                    self.glesningar.append(
+                        {"t": t, "fran": self.gles_faktor, "till": self.gles_faktor,
+                         "median_ms": round(median, 4), "budget_ms": SCEN_BUDGET_MS,
+                         "orsak": "TAK"})
+                return
+            ny = min(GLES_TAK, self.gles_faktor * 2)
+            self.glesningar.append(
+                {"t": t, "fran": self.gles_faktor, "till": ny,
+                 "median_ms": round(median, 4), "budget_ms": SCEN_BUDGET_MS,
+                 "orsak": "OVER_BUDGET"})
+            self.gles_faktor = ny
+        elif median * 2.0 < SCEN_BUDGET_MS and self.gles_faktor > 1:
+            # Halveras forst nar kostnaden ligger under HALVA budgeten. Utan
+            # den hysteresen pendlar faktorn kring gransen och serien far en
+            # takt som varken ar den ena eller den andra.
+            ny = max(1, self.gles_faktor // 2)
+            self.glesningar.append(
+                {"t": t, "fran": self.gles_faktor, "till": ny,
+                 "median_ms": round(median, 4), "budget_ms": SCEN_BUDGET_MS,
+                 "orsak": "UNDER_BUDGET"})
+            self.gles_faktor = ny
 
     # -- utdata --
 
@@ -288,9 +789,17 @@ class Provtagare(object):
             "tracked": {"parts": list(self.plan.get("parts") or []),
                         "tools": list(self.plan.get("tools") or []),
                         "signals": list(self.plan.get("signals") or []),
-                        "pairs": list(self.plan.get("mind") or [])},
+                        "pairs": list(self.plan.get("mind") or []),
+                        "joints": list(self.plan.get("joints") or []),
+                        "stations": list(self.plan.get("stat") or []),
+                        "scene": sorted(self._scen_namn)},
             "rows": self.rader,
+            "scen": self.scenrapport(),
         }
+        for nyckel in ("ledgranser", "ledtyper"):
+            varde = getattr(self.scen, nyckel, None)
+            if varde:
+                d[nyckel] = dict(varde)
         saknade = getattr(self.scen, "saknade", None)
         if saknade:
             # Det som INTE gick att lasa ska synas i underlaget. En tyst lucka
@@ -299,6 +808,30 @@ class Provtagare(object):
         if delvis:
             d["partial"] = True
         return d
+
+    def scenrapport(self):
+        """Vad ogat gjorde med scenen - inklusive det den inte hann med.
+
+        Talen har ar MATTA under korningen. De ligger i serien for att en
+        utglesad provtagning ska ga att se i efterhand: en analys som inte vet
+        att scenen glesades kan inte skilja "stod still" fran "sags aldrig".
+        """
+        kostnader = sorted(self.scenkostnad_ms)
+        rapport = {"lage": self.scenlage,
+                   "gles_faktor": self.gles_faktor,
+                   "handelser": list(self.glesningar),
+                   "budget_ms": SCEN_BUDGET_MS,
+                   "avlasningar": self._n_scenlast,
+                   "objekt": len(self._scen_namn)}
+        if kostnader:
+            rapport["kostnad_ms"] = {
+                "n": len(kostnader),
+                "median": kostnader[len(kostnader) // 2],
+                "max": kostnader[-1],
+                "summa": round(sum(kostnader), 4)}
+        if self.scen_avstangd:
+            rapport["avstangd"] = self.scen_avstangd
+        return rapport
 
     def skriv(self, delvis=False):
         f = open(self.sokvag, "w")

@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from .fria_ytor import RASTER_M, ledig_area_m2
+from .fria_ytor import ledig_area_m2
 from .kollision import granska, provplacera
 from .matt import Langd, krav
 from .relationer import FORSLAGSRASTER_M, Relation
@@ -42,13 +42,14 @@ from .rum import Layoutfel, Pose, Scen
 
 __all__ = ["Status", "Steg", "Losning", "losa", "NODBUDGET"]
 
-# MÄTT 2026-09-04 med bank/uppgifter genom layout/provscener.py: den dyraste
-# av de nitton provscenerna använder 3 224 noder, och den dyraste
-# konfliktanalysen (nitton omsökningar) 20 682 noder. Budgeten är satt till
-# tio gånger den dyraste enskilda sökningen, avrundat uppåt, så att en scen
-# som är dubbelt så stor som bankens största fortfarande ryms utan att
-# lösaren behöver ändras. Passeras taket blir svaret OBESTAMBART, aldrig ett
-# tyst sämre svar. Talet är alltså inte en gissning utan en mätning gånger en
+# MÄTT 2026-09-04 genom layout/provscener.py över 24 scener byggda ur
+# bank/uppgifter och bank/katalog_index.json: den dyraste scenen (OB-rackvidd,
+# en robot mot västra väggen som ska nå en fixtur mot den östra i en 20 m bred
+# hall) förbrukar 15 912 prövade lägen för huvudsökningen OCH hela
+# konfliktanalysen tillsammans. Den dyraste LÖSTA scenen förbrukar 204.
+# Budgeten gäller per delsökning och är satt till 40 000, alltså mer än dubbelt
+# så mycket som den dyraste hela scenen behöver. Passeras taket blir svaret
+# OBESTAMBART, aldrig ett tyst sämre svar. Talet är en mätning gånger en
 # marginal, och mätningen går att köra om med provscener.mat().
 NODBUDGET = 40000
 
@@ -211,7 +212,7 @@ def _kandidater(scen, namn, relationer, raster_m):
             if n in sedda:
                 continue
             sedda.add(n)
-            yield pose, r.kod
+            yield pose, r.kod, r
     if sedda:
         return
     for pose, kalla in _rasterkandidater(scen, namn, raster_m):
@@ -219,7 +220,9 @@ def _kandidater(scen, namn, relationer, raster_m):
         if n in sedda:
             continue
         sedda.add(n)
-        yield pose, kalla
+        # Rastret täcker hela hallen och beror inte på var något annat står,
+        # så ett avvisat rasterläge har ingen relation att skylla på.
+        yield pose, kalla, None
 
 
 def _relationer_bryts(scen, namn, relationer):
@@ -281,7 +284,8 @@ def _sok(scen, relationer, ordning, raster_m, budget):
         provade = 0
         avvisade = {}
         konflikt = set()
-        for pose, kalla in _kandidater(arbets, namn, relationer, raster_m):
+        for pose, kalla, kalla_rel in _kandidater(arbets, namn, relationer,
+                                                  raster_m):
             rakning[0] += 1
             if rakning[0] > budget:
                 raise _Budget()
@@ -292,6 +296,14 @@ def _sok(scen, relationer, ordning, raster_m, budget):
                 avvisade[kod] = avvisade.get(kod, 0) + 1
                 konflikt |= skyller([o.b if o.a == namn else o.a
                                      for o in svar.overlapp])
+                if kalla_rel is not None:
+                    # Läget kom UR en relation, så det beror på var
+                    # relationens andra objekt står. Ett läge utanför hallen
+                    # är då inte ovillkorligt: flyttas referensen flyttas
+                    # förslaget med. Utan den här raden gav en rullbana bakom
+                    # en station vid västra väggen ett falskt OVERBESTAMD.
+                    konflikt |= skyller([n for n in kalla_rel.berorda()
+                                         if n != namn])
                 continue
             arbets.placera(namn, pose)
             brott = _relationer_bryts(arbets, namn, relationer)
@@ -410,7 +422,7 @@ def losa(scen, relationer=(), raster_m=None, budget=NODBUDGET):
         for namn, pose in placering.items():
             if not klar.ar_placerad(namn):
                 klar.placera(namn, pose)
-        dom = granska(klar, raster_m=Langd.m(RASTER_M))
+        dom = granska(klar)
         if dom.ok:
             return Losning(Status.LOST, placering, (), spar, dom, noder, "", klar)
         # Sökningen och den oberoende granskningen säger emot varandra. Det

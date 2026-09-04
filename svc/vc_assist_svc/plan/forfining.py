@@ -86,9 +86,20 @@ def _normalisera(text):
 
 _ORD = re.compile(r"[a-z0-9]+")
 
+# Svenska bestamda och pluralandelser. "bandet" och "roboten" ska hitta samma
+# katalogpost som "band" och "robot"; utan listan hittar de ingen alls. Listan
+# ar sluten och kort med flit: prefixmatchning hade last "pallmagasin" som
+# "pall" och gett en lastbarare som ingen bett om.
+ANDELSER = ("", "en", "et", "n", "t", "ar", "arna", "erna", "or", "orna", "er")
+
 
 def _tokens(text):
     return _ORD.findall(_normalisera(text))
+
+
+def _namner(tokens, ord_):
+    """Star ordet i texten, i nagon av sina vanliga former?"""
+    return any(ord_ + andelse in tokens for andelse in ANDELSER)
 
 
 # ord i begaran -> (kategori i katalogindexet, fragment i uri eller namn)
@@ -384,7 +395,7 @@ class Forfinare(object):
         delar = []
         sedda = set()
         for ord_, kategori, fragment in ORDBOK:
-            if ord_ not in tokens or (kategori, fragment) in sedda:
+            if not _namner(tokens, ord_) or (kategori, fragment) in sedda:
                 continue
             sedda.add((kategori, fragment))
             traffar = self.kandidater(kategori, fragment, matt)

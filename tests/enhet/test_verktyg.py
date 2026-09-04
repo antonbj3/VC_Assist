@@ -221,15 +221,31 @@ def test_registret_ar_fullt_och_delat_i_tva():
     assert set(V.CODE_GEN_HANDLERS) | set(V.DATA_HANDLERS) == set(V.REGISTER)
 
 
-def test_domanerna_ar_de_tva_som_bestalldes():
-    assert set(V.domaner()) == {"scene", "composition"}
-    assert len(V.domaner()["scene"]) == 15
-    assert len(V.domaner()["composition"]) == 6
+def test_de_tva_domaner_filen_ager_ligger_i_registret():
+    """Filen ager scene och composition. Registret bar fler domaner an sa,
+    fyllda av andra celler - det ar inte ett fel utan meningen."""
+    mina = set(v.doman for v in mitt_register().values())
+    assert mina == set(MINA_DOMANER)
+    assert len(mitt_register()) == 21, "scene har 15 verktyg och composition 6"
 
 
-def test_exempellistan_tacker_hela_registret():
+MINA_DOMANER = ("scene", "composition")
+
+
+def mitt_register():
+    """De domaner DEN HAR filen ager.
+
+    Registret ar processglobalt och fylls av alla domanmoduler. Ovriga domaner
+    har egna testfiler med egna exempellistor; att krava exempel for dem har
+    skulle mata grannens arbete och falla varje gang nagon lagger till ett
+    verktyg nagon annanstans.
+    """
+    return dict((n, v) for n, v in V.REGISTER.items() if v.doman in MINA_DOMANER)
+
+
+def test_exempellistan_tacker_de_domaner_filen_ager():
     """En lista som inte tacker allt mater fel. Nytt verktyg -> nytt exempel."""
-    assert set(EXEMPEL) == set(V.REGISTER)
+    assert set(EXEMPEL) == set(mitt_register())
 
 
 @pytest.mark.parametrize("namn", sorted(V.REGISTER))

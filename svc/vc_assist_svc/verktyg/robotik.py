@@ -119,7 +119,7 @@ _YTOR_LAYOUT = ("app.Components", "comp.Name", "comp.Behaviours")
 # Mallar som ocksa laser en nod (flanslage, verktygsramens nod).
 _YTOR_ROBOT_NOD = _YTOR_ROBOT + ("node.WorldPositionMatrix",)
 # Mallar som ocksa slar upp en nod pa namn.
-_YTOR_ROBOT_FINDNODE = _YTOR_ROBOT + ("comp.findNode", "node.WorldPositionMatrix")
+_YTOR_ROBOT_FINDNODE = _YTOR_ROBOT + ("comp.findNode",)
 # Mallar som laser komponentens egna egenskaper (nyttolast).
 _YTOR_ROBOT_EGENSKAPER = _YTOR_ROBOT + ("comp.Properties",)
 # Mallar som fragar om simuleringen kor - ett program utfors bara da.
@@ -275,7 +275,6 @@ VC_MEDLEMMAR = (
     ("vcRobotController", "addBase"),
     ("vcJoint", "Name"),
     ("vcJoint", "Type"),
-    ("vcJoint", "CurrentValue"),
     ("vcJoint", "InitialValue"),
     ("vcJoint", "MinValue"),
     ("vcJoint", "MaxValue"),
@@ -305,6 +304,7 @@ VC_MEDLEMMAR = (
     ("vcMotionTarget", "RobotConfig"),
     ("vcMotionTarget", "ConfigCount"),
     ("vcMotionTarget", "getConfigWarning"),
+    ("vcSimulation", "IsRunning"),
     ("vcExecutor", "Program"),
     ("vcExecutor", "CurrentStatement"),
     ("vcExecutor", "IsEnabled"),
@@ -338,10 +338,7 @@ VC_MEDLEMMAR = (
     ("vcMotionStatement", "ExternalTCP"),
     ("vcPositionStatement", "Positions"),
     ("vcPositionStatement", "createPosition"),
-    ("vcPositionFrame", "Name"),
-    ("vcPositionFrame", "JointValues"),
     ("vcPositionFrame", "PositionInReference"),
-    ("vcPositionFrame", "PositionInWorld"),
     ("vcPositionFrame", "setJoints"),
     ("vcIfStatement", "ThenScope"),
     ("vcIfStatement", "ElseScope"),
@@ -539,8 +536,14 @@ _SATSPOST = {
         "properties": {"type": "array", "description": "Satsens egenskaper.",
                        "items": _EGENSKAPSPOST},
         "nested_statements": {"type": "integer",
-                              "description": ("Antal satser i satsens egna "
-                                              "grenar. De listas INTE har.")},
+                              "description": ("Antal satser i satsens then-, "
+                                              "else- och scope-gren. De listas "
+                                              "INTE har.")},
+        "uncounted_branches": {"type": "integer",
+                               "description": ("Antal else-if- och case-grenar "
+                                               "vars innehall INTE ar raknat. "
+                                               "Ar talet noll ar "
+                                               "nested_statements fullstandigt.")},
     },
 }
 
@@ -786,19 +789,6 @@ def _rader_typkarta():
     return rader
 
 
-def _rader_nastlade(variabel="sats"):
-    """Raknar satser i satsens egna grenar utan att lista dem."""
-    return [
-        "nastlade = 0",
-        'for gren in ("ThenScope", "ElseScope", "Scope"):',
-        "    if hasattr(%s, gren):" % variabel,
-        # hasattr(namn) racker inte: grenen kan finnas och vara None.
-        "        s2 = getattr2(%s, gren)" % variabel,
-        "        if s2 is not None:",
-        "            nastlade = nastlade + len(s2.Statements)",
-    ]
-
-
 def _rader_ledvarden(kalla="r"):
     """Laser tillbaka ledvardena efter en rorelse."""
     return [
@@ -1000,13 +990,18 @@ def _kod_robot_info(argument):
         "wm = r.WorldTransformMatrix",
         "ww = wm.getWPR()",
         "nyttolast = []",
+        "avkortad = False",
         "for cp in k.Properties:",
         # Nyttolasten ar INGEN yta i VC:s robotstyrenhet. Den bor som en
         # komponentegenskap, och namnet varierar mellan tillverkarnas
         # modeller. Darfor gissas inget namn: alla egenskaper vars namn
         # innehaller payload lamnas ut, och ar listan tom sa ar den tom.
-        '    if "payload" in cp.Name.lower():',
-        '        nyttolast.append({"name": cp.Name, "value": _enkelt(cp.Value)})',
+        '    if "payload" not in cp.Name.lower():',
+        "        continue",
+    ]
+    rader += tak("nyttolast")
+    rader += [
+        '    nyttolast.append({"name": cp.Name, "value": _enkelt(cp.Value)})',
     ]
     rader += _rader_programslakt()
     rader += [
@@ -1023,7 +1018,7 @@ def _kod_robot_info(argument):
         '        "world_frame_wpr": [ww.X, ww.Y, ww.Z],',
         '        "program_family": familj, "program": programnamn,',
         '        "routine_count": antal_rutiner,',
-        '        "payload_properties": nyttolast})',
+        '        "payload_properties": nyttolast, "avkortad": avkortad})',
     ]
     return bygg(["_enkelt", "_svara"], rader)
 
@@ -1070,10 +1065,12 @@ _lagg(
                                                     "namner payload. Tom lista "
                                                     "betyder att komponenten inte "
                                                     "bar nagon."),
-                                    "items": _EGENSKAPSPOST}},
+                                    "items": _EGENSKAPSPOST},
+             "avkortad": RET_AVKORTAD},
             ["robot", "controller", "joint_count", "speed_percent",
              "tool_count", "base_count", "world_frame_position",
-             "world_frame_wpr", "program_family", "payload_properties"]),
+             "world_frame_wpr", "program_family", "payload_properties",
+             "avkortad"]),
     _YTOR_ROBOT_EGENSKAPER,
     _kod_robot_info,
 )
@@ -1338,7 +1335,7 @@ _lagg(
                         "items": _RAMPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["robot", "controller", "kind", "frames", "antal", "avkortad"]),
-    _YTOR_ROBOT_NOD,
+    _YTOR_ROBOT,
     _kod_list_frames,
 )
 
@@ -1429,16 +1426,22 @@ def _kod_read_routine(argument):
         "        nastlade = nastlade + len(s.ElseScope.Statements)",
         '    if hasattr(s, "Scope") and s.Scope is not None:',
         "        nastlade = nastlade + len(s.Scope.Statements)",
-        '    if hasattr(s, "ElseIfScopes") and s.ElseIfScopes is not None:',
-        "        for sc in s.ElseIfScopes:",
-        "            nastlade = nastlade + len(sc.Statements)",
-        '    if hasattr(s, "Cases") and s.Cases is not None:',
-        "        for sc in s.Cases:",
-        "            nastlade = nastlade + len(sc.Statements)",
+        # else-if-grenar och case-grenar RAKNAS men deras innehall gor det
+        # inte. Skalet ar matt, inte en genvag: vcElseIfScope och vcCaseScope
+        # deklarerar ingen Statements i den matta API-ytan (bara Condition),
+        # och ett namn som inte star i kallan far inte skrivas in i en mall
+        # (I9). Antalet grenar lamnas darfor ut for sig, sa att en ofullstandig
+        # rakning SYNS i stallet for att se ut som en fullstandig.
+        "    grenar = 0",
+        '    if hasattr(s, "ElseIfScopes") and s.ElseIfScopes:',
+        "        grenar = grenar + len(s.ElseIfScopes)",
+        '    if hasattr(s, "Cases") and s.Cases:',
+        "        grenar = grenar + len(s.Cases)",
         '    rader.append({"index": index, "name": s.Name,',
         '                  "type": _enkelt(s.Type), "type_label": etikett,',
         '                  "properties": egenskaper,',
-        '                  "nested_statements": nastlade})',
+        '                  "nested_statements": nastlade,',
+        '                  "uncounted_branches": grenar})',
         "    index = index + 1",
         '_svara({"robot": k.Name, "routine": ru.Name, "statements": rader,',
         '        "antal": len(rader), "avkortad": avkortad,',
@@ -1451,8 +1454,9 @@ _lagg(
     "read_routine",
     "Lasar satserna i en rutin med index, typ och alla egenskaper. "
     "Egenskapsnamnen harifran ar precis de namn add_statement och "
-    "edit_statement vill ha. Satser inne i en gren (if, while, switch) "
-    "RAKNAS men listas inte.",
+    "edit_statement vill ha. Satser i en then-, else- eller scope-gren RAKNAS "
+    "men listas inte; else-if- och case-grenar kan bara raknas som GRENAR, "
+    "och uncounted_branches sager hur manga de var.",
     "read",
     params({"component": ARG_ROBOT, "routine": ARG_RUTIN}, ["component"]),
     returns({"robot": RET_ROBOT, "routine": RET_RUTIN,

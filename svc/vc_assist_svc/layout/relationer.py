@@ -597,8 +597,17 @@ class Pa(Relation):
                     or 2.0 * halv_y > yta.djup_m + LAGE_TOL_M):
                 continue  # får inte plats på underlaget vid den här vridningen
             # Mitt på först: en låda mitt på en pall är det normala fallet.
+            # Sedan de fyra hörnen kant i kant med underlaget. Ett
+            # palleteringsmönster börjar alltid i ett hörn, och hörnlägena
+            # ligger nästan aldrig på ett raster som utgår från mitten - utan
+            # dem blir varje rutmönster falskt överbestämt.
             mx, my = yta.mitt_m
             ut.append(Pose.meter(mx, my, z_m, vridning))
+            for hx, hy in ((yta.x0_m + halv_x, yta.y0_m + halv_y),
+                           (yta.x1_m - halv_x, yta.y0_m + halv_y),
+                           (yta.x0_m + halv_x, yta.y1_m - halv_y),
+                           (yta.x1_m - halv_x, yta.y1_m - halv_y)):
+                ut.append(Pose.meter(hx, hy, z_m, vridning))
             inre = Rektangel(yta.x0_m + halv_x, yta.y0_m + halv_y,
                              yta.x1_m - halv_x, yta.y1_m - halv_y) \
                 if (yta.bredd_m - 2.0 * halv_x > LAGE_TOL_M

@@ -79,9 +79,6 @@ class Uppgiftsgraf(object):
             raise Specfel("uppgiftsgrafen", ["inget steg heter %r" % (steg_id,)])
         return self._steg[steg_id]
 
-    def id_lista(self):
-        return sorted(self._steg)
-
     # -- kanter -----------------------------------------------------------
 
     def _kanter(self):

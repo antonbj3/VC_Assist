@@ -333,17 +333,17 @@ def test_varje_kravd_yta_finns_i_formagerapportens_egen_lista(namn):
 
 @pytest.mark.parametrize("namn", transportnamn())
 def test_verktyget_kraver_de_ytor_dess_mall_faktiskt_ror(namn):
-    """Kraver far inte vara en onskelista: koden ska anvanda ytorna."""
-    kod = kod_for(namn, V.validera_argument(V.REGISTER[namn],
-                                            EXEMPEL[namn][-1]))
+    """Kraver far inte vara en onskelista: koden ska anvanda ytorna.
+
+    Kravet galler VERKTYGET och inte ett enskilt anrop - ett verktyg med ett
+    valfritt argument har tva vagar genom mallen, och formagegrinden domer om
+    bada pa en gang. Darfor provas unionen over exemplen.
+    """
+    kod = "\n".join(kod_for(namn, V.validera_argument(V.REGISTER[namn], rat))
+                    for rat in EXEMPEL[namn])
     for yta in V.REGISTER[namn].kraver:
         medlem = yta.split(".", 1)[1]
-        if yta == "app.Components":
-            # Bara den vagen som gar over hela layouten ror den, och det
-            # exempel som testas kan vara enkomponentsvarianten. Bada vagarna
-            # finns i verktyget, sa kravet galler verktyget och inte anropet.
-            continue
-        assert medlem in kod, "%s kraver %s men mallen ror den aldrig" % (
+        assert medlem in kod, "%s kraver %s men ingen av dess vagar ror den" % (
             namn, yta)
 
 
@@ -734,40 +734,44 @@ def _typer_med_ytan(ytor):
                   if all(y in INDEX.typytan(t) for y in ytor))
 
 
+# Facit for tabellens urskiljningsformaga, MATT mot api_index 2026-09-04.
+# Faller provet nedan har antingen API-indexet eller tabellen andrats, och
+# beskrivningen i transport.py ar inte langre sann.
+SLAGFACIT = {
+    "container": ["vcComponentCreator", "vcContainer",
+                  "vcInterpolatingTransportController", "vcMotionPath",
+                  "vcPatternContainer", "vcRoutingRule", "vcTransport"],
+    "flow": ["vcComponentCreator", "vcComponentFlowProxy", "vcContainer",
+             "vcFlow", "vcInterpolatingTransportController", "vcMotionPath",
+             "vcPatternContainer", "vcProductCreator", "vcRoutingRule",
+             "vcTransport"],
+    "statistics": ["vcStatistics"],
+    "sensor": ["vcProcessPointSensor"],
+    "routing_rule": ["vcRoutingRule"],
+    "product_creator": ["vcProductCreator"],
+    "component_creator": ["vcComponentCreator"],
+    "process_controller": ["vcProcessController"],
+    "process_executor": ["vcProcessExecutor"],
+    "transport_node": ["vcTransportNode"],
+}
+
+
 def test_varje_slag_traffar_de_typer_det_mattes_mot():
-    """Tabellens urskiljningsformaga ar MATT, inte pastadd.
+    assert set(SLAGFACIT) == set(T.SLAGNAMN)
+    for slag, ytor in T.SLAG:
+        assert _typer_med_ytan(ytor) == SLAGFACIT[slag], slag
 
-    Faller detta har API-indexet eller tabellen andrats, och beskrivningen i
-    transport.py ar inte langre sann.
+
+def test_atta_av_tio_slag_pekar_ut_exakt_en_typ():
+    """De tva familjerna ar container och flow, och bara de.
+
+    Ett verktyg som kraver ett entydigt slag vet vilken yta objektet bar; ett
+    som kraver en familj vet det inte och maste fraga med hasattr.
     """
-    facit = {
-        "container": ["vcComponentCreator", "vcContainer",
-                      "vcInterpolatingTransportController", "vcMotionPath",
-                      "vcPatternContainer", "vcRoutingRule", "vcTransport"],
-        "flow": ["vcComponentCreator", "vcComponentFlowProxy", "vcContainer",
-                 "vcFlow", "vcInterpolatingTransportController",
-                 "vcMotionPath", "vcPatternContainer", "vcProductCreator",
-                 "vcRoutingRule", "vcTransport"],
-        "statistics": ["vcStatistics"],
-        "sensor": ["vcProcessPointSensor"],
-        "routing_rule": ["vcRoutingRule"],
-        "product_creator": ["vcProductCreator"],
-        "component_creator": ["vcComponentCreator"],
-        "process_controller": ["vcProcessController"],
-        "process_executor": ["vcProcessExecutor"],
-        "transport_node": ["vcTransportNode"],
-    }
-    assert set(facit) == set(T.SLAGNAMN)
-    for slag, ytor in T.SLAG:
-        assert _typer_med_ytan(ytor) == facit[slag], slag
-
-
-def test_de_entydiga_slagen_pekar_ut_exakt_en_typ():
-    for slag, ytor in T.SLAG:
-        if slag in T.SLAG_ENTYDIGA:
-            assert len(_typer_med_ytan(ytor)) == 1, slag
-        else:
-            assert len(_typer_med_ytan(ytor)) > 1, slag
+    entydiga = sorted(s for s, t in SLAGFACIT.items() if len(t) == 1)
+    familjer = sorted(s for s, t in SLAGFACIT.items() if len(t) > 1)
+    assert familjer == ["container", "flow"]
+    assert len(entydiga) == 8
 
 
 def test_ett_uppfunnet_ytpar_traffar_ingenting():
@@ -878,32 +882,47 @@ def test_literalerna_overlever_citattecken_och_svenska_tecken():
                        "parameter": "Hastighet"}))
     ast.parse(kod)
     kod.encode("ascii")
-    assert r'_s(u"Bana \"ett\" åäö")' in kod
+    # json.dumps(ensure_ascii=True) ger \uXXXX, som Python laser likadant i
+    # 2.7 och 3.x. Det ar darfor mallarna kan vara ren ASCII och anda bara
+    # svenska namn.
+    assert r'_s(u"Bana \"ett\" \u00e5\u00e4\u00f6")' in kod
 
 
-@pytest.mark.parametrize("namn,argument", ANROP,
-                         ids=lambda x: x if isinstance(x, str) else "")
-def test_varje_listande_verktyg_bar_taket_och_sager_nar_det_klipper(namn,
-                                                                    argument):
-    """En klippt lista som inte sager det ar en tyst nedgradering (I3)."""
-    if "avkortad" not in V.REGISTER[namn].returns["properties"]:
+@pytest.mark.parametrize("namn", transportnamn())
+def test_varje_verktyg_som_lamnar_en_lista_bar_ocksa_taket(namn):
+    """Regeln, mekaniskt: en lista utan tak kan spranga bryggans kropp.
+
+    Taket ligger pa den lista vars langd foljer LAYOUTENS storlek. Tre slags
+    listor slipper: den som schemat sjalv begransar med maxItems, de nastlade
+    som foljer ett enda objekts egen definition, och ingen fjarde - samma
+    husregel som scen.py och granssnitt.py. En klippt lista utan avkortad ar
+    en tyst nedgradering (I3).
+    """
+    v = V.REGISTER[namn]
+    listor = [f for f, s in v.returns["properties"].items()
+              if "array" in (s["type"] if isinstance(s["type"], list)
+                             else [s["type"]])
+              and "maxItems" not in s]
+    if not listor:
+        assert "avkortad" not in v.returns["properties"], (
+            "%s bar avkortad utan att lamna nagon lista" % namn)
         return
-    kod = kod_for(namn, argument)
-    assert "len(rader) >= %d" % kodmall.MAX_POSTER in kod
+    assert "avkortad" in v.returns["properties"], (
+        "%s lamnar listorna %s utan att kunna saga att de klipptes" % (
+            namn, listor))
+    assert "avkortad" in v.returns["required"], namn
+    kod = "\n".join(kod_for(namn, V.validera_argument(v, rat))
+                    for rat in EXEMPEL[namn])
+    assert ">= %d" % kodmall.MAX_POSTER in kod
     assert "kodmall.MAX_POSTER" in kod, "talet ska bara sin harkomst i mallen"
     assert '"avkortad": avkortad' in kod
 
 
-def test_taket_finns_i_alla_listande_verktyg_utom_de_som_inte_listar():
-    """station_state_times ar det enda utan tak, och det ar avsiktligt.
-
-    Dess lista ar lika lang som argumentet states, alltsa styrd av anroparen
-    och inte av layoutens storlek.
-    """
-    utan = [n for n in transportnamn()
-            if "avkortad" not in V.REGISTER[n].returns["properties"]
-            and V.REGISTER[n].effect == "read"]
-    assert utan == ["station_state_times"]
+def test_de_enda_verktygen_utan_lista_ar_de_som_svarar_om_ETT_ting():
+    utan = sorted(n for n in transportnamn()
+                  if "avkortad" not in V.REGISTER[n].returns["properties"]
+                  and V.REGISTER[n].effect == "read")
+    assert utan == ["get_transport_parameter", "transport_behaviour_info"]
 
 
 # ---- 9. statistiken som ogats ravara ------------------------------------
@@ -1004,7 +1023,10 @@ def test_ingen_mall_ror_de_tvetydiga_statistiknamnen():
     for namn, argument in ANROP:
         kod = kod_for(namn, argument)
         for t in tvetydiga:
-            assert ".%s" % t not in kod, "%s ror %s" % (namn, t)
+            # Ordgrans: .Statements ar inte .State, och en delstrangsjamforelse
+            # hade anklagat varje mall som laser en processrutins steg.
+            assert not re.search(r"\.%s\b" % re.escape(t), kod), (
+                "%s ror %s" % (namn, t))
     kod = kod_for("station_state_times",
                   V.validera_argument(V.REGISTER["station_state_times"],
                                       {"component": "S", "behaviour": "St",

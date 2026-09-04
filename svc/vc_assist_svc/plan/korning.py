@@ -42,7 +42,7 @@ FALLEN = "fallen"
 KOAD = "koad"
 EJ_UTFORD = "ej_utford"
 
-PROTOKOLLVERSION = 1
+PROTOKOLLVERSION = 1   # formatversion, ingen troskel: forsta formen av ett protokoll
 
 
 def godkann_aldrig(qid, verktyg, beskrivning):

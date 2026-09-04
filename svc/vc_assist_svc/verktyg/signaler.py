@@ -22,6 +22,12 @@ skrivskyddade for agenten." Har ar den mekanisk:
   * VARJE skrivande verktyg i domanen kor _sparra() over sina namnbarande
     argument INNAN nagon kod genereras. Ett traffat namn ger Sakerhetsavslag,
     bryggan ror sig inte, och skalet namner markoren.
+  * De tre verktyg som skriver i en SIGNALKARTA bar dessutom en andra halva
+    inne i mallen: _sparra_karta() gar igenom kartans portar och kastar om
+    nagon av dem bar en sakerhetstagg. Skalet ar en matt lucka i den forsta
+    halvan - tjansten domer NAMN, och en karta som heter BoolMap men bar
+    EMG_OK pa en port ar lika mycket en skyddskrets. Vad portarna bar vet
+    bara VC, sa den halvan maste ligga dar.
   * LASANDE verktyg sparras INTE - man maste kunna SE nodstoppet - men varje
     signalpost bar "safety" och "safety_reason", sa markningen foljer med in
     i PLC-inventeringen i stallet for att ga forlorad.
@@ -211,6 +217,7 @@ TAGGARGUMENT = (
     "name",
     "signal",
     "other_signal",
+    "map",
     "port_name",
     "behaviour",
     "property",
@@ -440,7 +447,12 @@ _ROLLMEDLEM = "P:VisualComponents.Connectivity.OpcUA.IOpcUAServer.Session"
 # Matt lucka. Monstret sokes i api_index:s symbolnamn av
 # test_verktyg_signaler.py, som faller om VC nagon gang far en
 # Python-uppkopplingsyta - da ar den har texten inte langre sann.
-PYTHONLUCKA_MONSTER = r"opc|connectivity|server|variablegroup|valueitem"
+# Tokens, inte losa delstrangar. MATT varfor: monstret "opc|server" traffade
+# vcTopology.getCurveLoopCurve ("lo-OPC-urve") och VC_STATEMENT_RESERVERESOURCE
+# ("re-SERVER-esource"), alltsa fem falska traffar som hade fatt luckan att se
+# stangd ut. Ett monster som mater fel ar varre an inget monster.
+PYTHONLUCKA_MONSTER = (r"opcua|connectivity|variablegroup|valueitem"
+                       r"|connectionplugin|connectionstate|\bserver|server\b")
 PYTHON_TRAFFAR = 0
 
 NOTERING_UPPKOPPLING = (
@@ -796,6 +808,28 @@ _EGNA = {
         '            "ports": int(m.PortCount),',
         '            "direction": riktning, "listeners": lyssnare}',
     ]),
+    "_sparra_karta": (("_sakerhet",), [
+        "def _sparra_karta(m, vad):",
+        "    # I15, runtime-halvan av sakerhetsgransen. Tjanstens _sparra()",
+        "    # domer NAMN och kan omojligt se vad kartans portar BAR - det",
+        "    # vet bara VC. En karta som heter BoolMap men bar EMG_OK pa en",
+        "    # port ar lika mycket en skyddskrets, sa den provas har, precis",
+        "    # innan andringen sker.",
+        '    if not hasattr(m, "getInternalPortSignal"):',
+        "        return",
+        "    antal = int(m.PortCount)",
+        "    if antal > %d:   # kodmall.MAX_POSTER, ur bryggans 1 MiB-kropp"
+        % MAX_POSTER,
+        "        antal = %d" % MAX_POSTER,
+        "    for i in range(antal):",
+        "        sig = m.getInternalPortSignal(i)",
+        "        if sig is None:",
+        "            continue",
+        "        skal = _sakerhet(sig.Name)",
+        "        if skal is not None:",
+        "            raise ValueError(vad + %s + str(i) + %s + skal)"
+        % (_txt(" avvisas: port "), _txt(" bar en sakerhetstagg: ")),
+    ]),
     "_egenskaper": ((), [
         "def _egenskaper(b):",
         "    ut = []",
@@ -810,8 +844,8 @@ _EGNA = {
 _EGEN_ORDNING = (
     "_sakerhet", "_ar_signal", "_ar_karta", "_signaltyper", "_karttyper",
     "_riktningstyper", "_typnamn", "_riktnamn", "_sig", "_karta",
-    "_bet", "_anslutna_bet", "_riktningar", "_signalpost", "_kartpost",
-    "_egenskaper",
+    "_bet", "_anslutna_bet", "_sparra_karta", "_riktningar", "_signalpost",
+    "_kartpost", "_egenskaper",
 )
 
 
@@ -1456,6 +1490,7 @@ def _hamta_uppkoppling(argument):
         "role": "client",
         "role_evidence": _dotnet(_ROLLMEDLEM),
         "python_api_hits": PYTHON_TRAFFAR,
+        "python_api_pattern": PYTHONLUCKA_MONSTER,
         "readable_from_python": False,
         "sections": avsnitt,
         "open_path": ["list_signals", "signal_inventory", "signal_map_info",
@@ -1501,6 +1536,10 @@ registrera(
                 "type": "integer",
                 "description": ("Antal symboler i VC:s Python-API som ror "
                                 "uppkoppling. Matt, och noll.")},
+            "python_api_pattern": {
+                "type": "string",
+                "description": ("Monstret siffran ovan raknades med. Ett tal "
+                                "utan sin matmetod gar inte att prova om.")},
             "readable_from_python": {
                 "type": "boolean",
                 "description": "Om nagot av detta gar att lasa genom bryggan. Alltid false."},
@@ -1519,8 +1558,8 @@ registrera(
                           "description": "Verktygen som ar den oppna vagen i stallet.",
                           "items": {"type": "string", "description": "Verktygsnamn."}},
             "notering": RET_NOTERING},
-            ["role", "role_evidence", "python_api_hits", "readable_from_python",
-             "sections", "open_path", "notering"]),
+            ["role", "role_evidence", "python_api_hits", "python_api_pattern",
+             "readable_from_python", "sections", "open_path", "notering"]),
         since=SINCE,
         # KRAVER for ett data-verktyg. Schemat kraver minst en yta ur
         # formaga.YTOR, och verktyget kor i tjansten utan att ro VC. Vi
@@ -1848,6 +1887,7 @@ def _kod_signal_map_set_port(argument):
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
         "s = _sig(k, %s)" % lit(argument["signal"]),
+        "_sparra_karta(m, %s)" % _txt("signal_map_set_port"),
     ] + _krav_yta("m", "setPortSignal", "signal_map_set_port") + [
         "if %d >= int(m.PortCount):" % argument["port"],
         '    raise ValueError("porten finns inte; kartan har " '
@@ -1866,7 +1906,8 @@ def _kod_signal_map_set_port(argument):
         '        "port": %d, "signal": s.Name, "port_name": namn})'
         % argument["port"],
     ]
-    return _mall(["_komp", "_svara"], ["_karta", "_sig"], rader)
+    return _mall(["_komp", "_svara"], ["_karta", "_sig", "_sparra_karta"],
+                 rader)
 
 
 _lagg(
@@ -1901,9 +1942,10 @@ def _kod_signal_map_clear_port(argument):
     _sparra("signal_map_clear_port", argument)
     _krav_ickenegativ("signal_map_clear_port", argument, "port")
     port = argument["port"]
-    return _mall(["_komp", "_svara"], ["_karta"], [
+    return _mall(["_komp", "_svara"], ["_karta", "_sparra_karta"], [
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
+        "_sparra_karta(m, %s)" % _txt("signal_map_clear_port"),
     ] + _krav_yta("m", "disconnect", "signal_map_clear_port")
       + _krav_yta("m", "setPortSignal", "signal_map_clear_port") + [
         "if %d >= int(m.PortCount):" % port,
@@ -1948,9 +1990,11 @@ def _kod_set_signal_map_direction(argument):
     _sparra("set_signal_map_direction", argument)
     etikett = argument["direction"]
     konstant = dict(RIKTNINGAR)[etikett]
-    return _mall(["_komp", "_svara"], ["_karta", "_riktnamn"], [
+    return _mall(["_komp", "_svara"],
+                 ["_karta", "_riktnamn", "_sparra_karta"], [
         "k = _komp(%s)" % lit(argument["component"]),
         "m = _karta(k, %s)" % lit(argument["map"]),
+        "_sparra_karta(m, %s)" % _txt("set_signal_map_direction"),
     ] + _krav_yta("m", "Direction", "set_signal_map_direction") + [
         "try:",
         "    onskad = %s" % konstant,

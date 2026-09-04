@@ -35,7 +35,7 @@ from .rum import (FRIHALLNA, LAGE_TOL_M, Kropp, Layoutfel, Scen,
 __all__ = ["Overlapp", "Zonbrott", "Hojdbrott", "Passagebrott", "Utanfor",
            "Provsvar", "Granskning", "separation", "provplacera", "granska",
            "kravd_separation_m", "tillganglig_hojd_m", "radie_langs",
-           "avstand_m"]
+           "avstand_m", "fri_bredd_m"]
 
 
 def _axelnamn(vektor, agare):
@@ -259,7 +259,16 @@ def kravd_separation_m(a, b):
     A:s. Båda kraven gäller samtidigt, och det hårdare av dem är det som
     binder. Att summera dem hade krävt dubbelt utrymme mellan två maskiner som
     var för sig bara begär sitt eget.
+
+    UNDANTAG: hör kropparna till samma ENHET är kravet noll. En robots
+    fixtur, dess pall och dess givare står inne i robotens cell och ska stå
+    tätt; underhållsutrymmet är utrymmet runt CELLEN. Utan undantaget blir en
+    robot med 900 mm räckvidd och 800 mm underhållsutrymme oanvändbar: allt
+    den kan nå ligger i utrymmet den kräver fritt, och varje sådan uppgift
+    hade blivit falskt överbestämd.
     """
+    if a.enhet and a.enhet == b.enhet:
+        return 0.0
     return max(a.marginal_m, b.marginal_m)
 
 
@@ -312,7 +321,12 @@ def _skar(a, b, d):
     """Skär de två kropparnas lådor varandra i XY, utan marginal?"""
     for kropp in (a, b):
         for axel in kropp.axlar:
-            if abs(_skalar(d, axel)) - radie_langs(a, axel) - radie_langs(b, axel) > LAGE_TOL_M:
+            luft = (abs(_skalar(d, axel)) - radie_langs(a, axel)
+                    - radie_langs(b, axel))
+            # Beröring är inte överlapp: två lådor kant i kant delar ingen
+            # volym. Utan det hade varje tätt packat pallmönster blivit en
+            # kollision, och grinden hade mätt flyttalsbrus.
+            if luft >= -LAGE_TOL_M:
                 return False
     return True
 
@@ -339,9 +353,11 @@ def separation(a, b, kravd_m=None):
         for axel in kropp.axlar:
             avstand = abs(_skalar(d, axel))
             luft = avstand - radie_langs(a, axel) - radie_langs(b, axel)
-            if luft - kravd_m > LAGE_TOL_M:
-                # Bevisat separerade med mer än kravet: projektionerna är
-                # isär, alltså är kropparna det.
+            if luft - kravd_m >= -LAGE_TOL_M:
+                # Projektionerna är isär med minst kravet, alltså är kropparna
+                # det. Ett krav som är EXAKT uppfyllt är uppfyllt: annars hade
+                # ett mellanrum på 400 mm mot ett krav på 400 mm fällt, och
+                # relationsspråkets egna tal hade blivit omöjliga att skriva.
                 return None
             kandidater.append((kravd_m - luft, axel, agare))
 
@@ -413,26 +429,123 @@ def _hojdbrott(scen, namn, kropp):
     return []
 
 
+def _hinder_i_zon(scen, zon, extra=None, hoppa=()):
+    """Kroppar som finns i zonen under dess fria höjd, som klippta lådor.
+
+    ``hoppa`` gäller BARA kropparna i scenen. ``extra`` är den kropp som
+    prövas och räknas alltid med, även om den heter samma sak som något som
+    står i scenen - det är just poängen med en förhandskontroll.
+    """
+    ut = []
+    kroppar = [k for k in scen.kroppar() if k is not None and k.namn not in hoppa]
+    if extra is not None:
+        kroppar.append(extra)
+    for kropp in kroppar:
+        if kropp.z0_m >= zon.fri_hojd_m - LAGE_TOL_M:
+            continue  # passerar ovanför den höjd som ska hållas fri
+        if kropp.z1_m <= LAGE_TOL_M:
+            continue
+        klippt = zon.yta.snitt(kropp.aabb())
+        if klippt is not None:
+            ut.append((kropp.namn, klippt))
+    return ut
+
+
+def fri_bredd_m(scen, zon, extra=None, hoppa=()):
+    """Passagens smalaste fria bredd, var den är som smalast, och av vad.
+
+    Mätt tvärs gångens LÅNGA axel. Måttet är ANALYTISKT och inte rastrerat:
+    snitten läggs vid hindrens egna kanter, så måttet är exakt för
+    axelriktade kroppar. En vriden kropp räknas genom sin omslutande låda,
+    alltså större än den är, vilket ger en fri bredd som aldrig överskattas.
+
+    Bara det som finns under zonens fria höjd räknas: en transportör som
+    korsar över gången på 2,6 m smalnar inte av den för en truck på 2,2 m.
+
+    ``extra`` är en kropp som inte står i scenen ännu, för förhandskontroll.
+    """
+    if zon.typ not in (Zontyp.GANG, Zontyp.UTRYMNINGSVAG):
+        raise Layoutfel("fri bredd mäts i en gång eller en utrymningsväg, "
+                        "inte i %s" % zon.typ.value)
+    yta = zon.yta
+    langs_x = yta.bredd_m >= yta.djup_m
+    hinder = _hinder_i_zon(scen, zon, extra, hoppa)
+    if langs_x:
+        lag, hog = yta.x0_m, yta.x1_m
+        tvars_lag, tvars_hog = yta.y0_m, yta.y1_m
+        kant = lambda r: (r.x0_m, r.x1_m, r.y0_m, r.y1_m)
+    else:
+        lag, hog = yta.y0_m, yta.y1_m
+        tvars_lag, tvars_hog = yta.x0_m, yta.x1_m
+        kant = lambda r: (r.y0_m, r.y1_m, r.x0_m, r.x1_m)
+
+    kanter = [kant(r) for _n, r in hinder]
+    punkter = sorted({lag, hog} | {v for k in kanter for v in k[:2]})
+    smalast = tvars_hog - tvars_lag
+    vid = lag
+    varst = ()
+    for i in range(len(punkter) - 1):
+        a, b = punkter[i], punkter[i + 1]
+        if b - a <= LAGE_TOL_M:
+            continue
+        mitt = 0.5 * (a + b)
+        sperrar = []
+        namn = []
+        for (namn_i, _r), (k0, k1, t0, t1) in zip(hinder, kanter):
+            if k0 - LAGE_TOL_M <= mitt <= k1 + LAGE_TOL_M:
+                sperrar.append((t0, t1))
+                namn.append(namn_i)
+        bredd = _storsta_lucka_m(sperrar, tvars_lag, tvars_hog)
+        if bredd < smalast - LAGE_TOL_M:
+            smalast = bredd
+            vid = mitt - lag
+            varst = tuple(sorted(set(namn)))
+    return smalast, vid, varst
+
+
+def _storsta_lucka_m(sperrar, lag, hog):
+    """Största fria intervall i [lag, hog] efter att spärrarna klippts bort."""
+    sorterade = sorted(sperrar)
+    basta = 0.0
+    kant = lag
+    for t0, t1 in sorterade:
+        if t0 > kant:
+            basta = max(basta, min(t0, hog) - kant)
+        kant = max(kant, t1)
+        if kant >= hog:
+            return basta
+    return max(basta, hog - kant)
+
+
 def _zonbrott(scen, namn, kropp):
     ut = []
     for zon in scen.hall.zoner:
         if zon.typ not in FRIHALLNA:
             continue
-        if zon.typ is Zontyp.GANG:
-            # Gången mäts på sin FRIA BREDD i granska(), inte på intrång.
-            # En bred gång tål ett skåp; en smal gör det inte, och det är
-            # bredden som är storheten, inte närvaron.
-            continue
         if kropp.z0_m >= zon.fri_hojd_m - LAGE_TOL_M:
             continue  # passerar ovanför den höjd som ska hållas fri
+        snitt = zon.yta.snitt(kropp.aabb())
+        if snitt is None:
+            continue
+        if zon.typ is Zontyp.GANG and zon.minsta_bredd_m is not None:
+            # En gång med ett breddkrav får trängas in i, så länge den bredd
+            # som är kvar räcker. Det är BREDDEN som är storheten, inte
+            # närvaron: en 3 m bred gång tål ett skåp, en 1,6 m bred gör det
+            # inte, och en grind som bara ser närvaron mäter fel sak.
+            bredd, vid, _h = fri_bredd_m(scen, zon, extra=kropp, hoppa=(namn,))
+            if bredd >= zon.minsta_bredd_m - LAGE_TOL_M:
+                continue
+            ut.append(Zonbrott(namn, zon.namn, zon.typ.value, snitt.area_m2,
+                               zon.fri_hojd_m, kropp.z0_m))
+            continue
+        # Utrymningsväg, förbjudet område, och en gång utan uttryckligt
+        # breddkrav: hålls helt fria upp till sin fria höjd. Fail-closed - en
+        # gång utan angiven minsta bredd tolkas som "rör den inte".
         zonkropp = _rektangel_som_kropp("zon:" + zon.namn, zon.yta,
                                         0.0, zon.fri_hojd_m)
-        traff = separation(kropp, zonkropp, 0.0)
-        if traff is None:
+        if separation(kropp, zonkropp, 0.0) is None:
             continue
-        snitt = zon.yta.snitt(kropp.aabb())
-        ut.append(Zonbrott(namn, zon.namn, zon.typ.value,
-                           snitt.area_m2 if snitt else 0.0,
+        ut.append(Zonbrott(namn, zon.namn, zon.typ.value, snitt.area_m2,
                            zon.fri_hojd_m, kropp.z0_m))
     return ut
 
@@ -456,15 +569,8 @@ def provplacera(scen, namn, pose, bortse_fran=()):
                     _zonbrott(scen, namn, kropp), _hojdbrott(scen, namn, kropp))
 
 
-def granska(scen, raster_m=None):
-    """EFTERHANDSKONTROLL. Hela layouten, allt som kan fällas.
-
-    Passagemåtten mäts på rastret ur fria_ytor.py. Importen ligger inne i
-    funktionen för att hålla modulerna oberoende åt ena hållet: fria_ytor
-    använder kollision, inte tvärtom.
-    """
-    from .fria_ytor import minsta_fria_bredd_m
-
+def granska(scen):
+    """EFTERHANDSKONTROLL. Hela layouten, allt som kan fällas."""
     if not isinstance(scen, Scen):
         raise Layoutfel("granska tar en Scen")
     placerade = scen.placerade_namn()
@@ -486,7 +592,7 @@ def granska(scen, raster_m=None):
     for zon in scen.hall.zoner:
         if zon.minsta_bredd_m is None:
             continue
-        bredd_m, vid_m, hinder = minsta_fria_bredd_m(scen, zon, raster_m)
+        bredd_m, vid_m, hinder = fri_bredd_m(scen, zon)
         if bredd_m < zon.minsta_bredd_m - LAGE_TOL_M:
             passagebrott.append(Passagebrott(zon.namn, zon.minsta_bredd_m,
                                              bredd_m, vid_m, hinder))

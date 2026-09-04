@@ -32,7 +32,7 @@ from .verifiering import Verifieringskrav
 
 # Formatversionen. Hojs den ska lasaren falla pa en aldre fil i stallet for
 # att gissa, precis som ogats "EYES v1" (docs/spec/41_ogat_kontrakt.md).
-SPECVERSION = 1
+SPECVERSION = 1   # formatversion, ingen troskel: forsta formen, ingen aldre fil finns
 
 # Ett motiv kortare an sa har hinner inte saga VARFOR. Talet ags av
 # bank/schema.py (MIN_MOTIV_TECKEN) och importeras darifran sa att ett
@@ -42,7 +42,7 @@ MIN_MOTIV_TECKEN = bankschema.MIN_MOTIV_TECKEN
 # Minsta antal oberoende korningar bakom ett rapporterat tal. I5 i
 # docs/spec/90_invarianter.md: "Minst tre oberoende korningar ... med
 # uppvarmning som inte raknas."
-MIN_KORNINGAR = 3
+MIN_KORNINGAR = 3   # harkomst: I5 i docs/spec/90_invarianter.md, minst tre korningar
 
 RIKTNINGAR = bankschema.SIGNALRIKTNINGAR      # ("in", "out")
 SIGNALTYPER = bankschema.SIGNALTYPER          # ("bool", "int", "real")

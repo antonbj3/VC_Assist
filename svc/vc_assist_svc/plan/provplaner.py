@@ -30,7 +30,7 @@ import sys
 
 from .fel import Planfel
 from .forfining import Forfinare
-from .kallor import bankschema  # noqa: F401  - lagger bank/ i sokvagen
+from .kallor import UPPGIFTSKATALOG  # lagger ocksa bank/ i sokvagen
 from .planering import planera
 
 import lasare  # noqa: E402  - bank/lasare.py, nadd genom kallor.py
@@ -145,7 +145,7 @@ def main(argv=None):
     a.add_argument("--karta", help="JSON-fil med bank://-URI -> VC-URI")
     args = a.parse_args(argv)
 
-    bank = lasare.ladda(strikt=False)
+    bank = lasare.ladda(UPPGIFTSKATALOG, strikt=False)
     if getattr(bank, "problem", None):
         sys.stderr.write("VARNING: %d bankuppgifter ar ogiltiga och hoppas over\n"
                          % len(bank.problem))

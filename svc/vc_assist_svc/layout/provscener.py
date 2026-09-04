@@ -120,10 +120,16 @@ def _robotmatt_mm(rackvidd_mm):
 class Byggare:
     """Bygger en scen ur bankens vokabulär. Måtten kommer ur banken."""
 
-    def __init__(self, hall, kat=None):
+    def __init__(self, hall, kat=None, enhet=""):
         self.kat = kat if kat is not None else katalog()
         self.scen = Scen(hall)
         self.relationer = []
+        # Enheten är cellen objekten hör till. Objekt i samma enhet kräver
+        # inget underhållsutrymme av varandra; utrymmet gäller runt cellen.
+        self.enhet = enhet
+
+    def _enhet(self, enhet):
+        return self.enhet if enhet is None else enhet
 
     def _post(self, uri):
         try:
@@ -131,7 +137,7 @@ class Byggare:
         except KeyError:
             raise KeyError("bank://-posten %r finns inte i katalogindexet" % uri)
 
-    def robot(self, namn, uri):
+    def robot(self, namn, uri, enhet=None):
         p = self._post(uri)
         l, b, h = _robotmatt_mm(float(p["rackvidd_mm"]))
         return self.lagg(Objekt(
@@ -139,41 +145,46 @@ class Byggare:
             underhallsmarginal=Langd.mm(MARGINAL_ROBOT_MM),
             kravd_fri_hojd=Langd.mm(ROBOT_FRI_HOJD_MM),
             rackvidd=Langd.mm(float(p["rackvidd_mm"])),
-            kategori="robot", tillatna_vridningar=(0.0, 90.0, 180.0, 270.0)))
+            kategori="robot", enhet=self._enhet(enhet),
+            tillatna_vridningar=(0.0, 90.0, 180.0, 270.0)))
 
-    def transport(self, namn, uri, langd_mm, vridningar=(0.0, 90.0, 180.0, 270.0)):
+    def transport(self, namn, uri, langd_mm, enhet=None,
+                  vridningar=(0.0, 90.0, 180.0, 270.0)):
         """Transportör. BREDDEN kommer ur banken, LÄNGDEN ur uppgiften."""
         p = self._post(uri)
         return self.lagg(Objekt(
             namn, Langd.mm(float(langd_mm)), Langd.mm(float(p["bredd_mm"])),
             Langd.mm(TRANSPORTHOJD_MM),
             underhallsmarginal=Langd.mm(MARGINAL_TRANSPORT_MM),
-            kategori="transport", barande=True,
+            kategori="transport", barande=True, enhet=self._enhet(enhet),
             tillatna_vridningar=vridningar))
 
-    def station(self, namn, uri, vridningar=(0.0, 90.0, 180.0, 270.0)):
+    def station(self, namn, uri, enhet=None,
+                vridningar=(0.0, 90.0, 180.0, 270.0)):
         p = self._post(uri)
         l, b, h = STATIONSMATT_MM[p["uri"]]
         return self.lagg(Objekt(
             namn, Langd.mm(l), Langd.mm(b), Langd.mm(h),
             underhallsmarginal=Langd.mm(MARGINAL_STATION_MM),
-            kategori="station", barande=True, tillatna_vridningar=vridningar))
+            kategori="station", barande=True, enhet=self._enhet(enhet),
+            tillatna_vridningar=vridningar))
 
-    def lastbarare(self, namn, uri, vridningar=(0.0, 90.0)):
+    def lastbarare(self, namn, uri, enhet=None, vridningar=(0.0, 90.0)):
         """Pall eller låda. Alla tre måtten kommer ur banken."""
         p = self._post(uri)
         return self.lagg(Objekt(
             namn, Langd.mm(float(p["l_mm"])), Langd.mm(float(p["b_mm"])),
             Langd.mm(float(p["h_mm"])),
             underhallsmarginal=Langd.mm(MARGINAL_LASTBARARE_MM),
-            kategori="lastbarare", barande=True,
+            kategori="lastbarare", barande=True, enhet=self._enhet(enhet),
             tillatna_vridningar=vridningar))
 
-    def givare(self, namn, uri):
+    def givare(self, namn, uri, enhet=None):
         self._post(uri)
         l, b, h = SMADON_MM
         return self.lagg(Objekt(namn, Langd.mm(l), Langd.mm(b), Langd.mm(h),
-                                kategori="givare", tillatna_vridningar=(0.0,)))
+                                kategori="givare", enhet=self._enhet(enhet),
+                                tillatna_vridningar=(0.0,)))
 
     def lagg(self, objekt):
         self.scen.lagg_till(objekt)
@@ -225,16 +236,24 @@ def _gang(namn, x0, y0, x1, y1):
 
 
 # ---- scenerna ------------------------------------------------------------
+#
+# ENHETER: objekt i samma enhet kräver inget underhållsutrymme av varandra.
+# En robotcell packas tätt inuti och har sitt utrymme runt sig, och en givare
+# som sitter på en transportör är en del av transportören. Se
+# kollision.kravd_separation_m.
+
 
 def _t01(kat):
-    """T-01: band med stoppgrind, en givare och ett don, längs södra väggen."""
+    """T-01: band med stoppgrind, en givare och en kassationslåda."""
     u = uppgift("T-01")
     assert u["grupp"] == "T"
-    b = Byggare(_hall("T-01", 14.0, 9.0, zoner=[_gang("gang", 0.0, 6.0, 14.0, 9.0)]), kat)
-    b.transport("band", "bank://transport/band_600", 6000.0,
-                vridningar=(0.0,))
+    b = Byggare(_hall("T-01", 14.0, 9.0,
+                      zoner=[_gang("gang", 0.0, 6.0, 14.0, 9.0)]),
+                kat, enhet="ST010")
+    b.transport("band", "bank://transport/band_600", 6000.0, vridningar=(0.0,))
     b.givare("fotocell", "bank://givare/fotocell_genomgaende")
-    b.station("kassation", "bank://station/kassationslada", vridningar=(0.0,))
+    b.station("kassation", "bank://station/kassationslada", enhet="",
+              vridningar=(0.0,))
     b.kraver(MotVagg("band", Vagg.SODER, marginal=Langd.mm(500.0)),
              Bredvid("fotocell", "band", mellanrum=Langd.mm(100.0)),
              Framfor("kassation", "band", avstand=Langd.m(1.0)),
@@ -244,13 +263,13 @@ def _t01(kat):
 
 def _t02(kat):
     """T-02: indexerad matning som matar en fixtur."""
-    b = Byggare(_hall("T-02", 12.0, 8.0), kat)
+    b = Byggare(_hall("T-02", 12.0, 8.0), kat, enhet="ST020")
     b.transport("matare", "bank://transport/band_400", 3000.0, vridningar=(0.0,))
-    b.station("fixtur", "bank://station/fixtur_pneumatisk_spann",
-              vridningar=(0.0,))
     b.givare("lagesgivare", "bank://givare/lagesgivare_encoder")
+    b.station("fixtur", "bank://station/fixtur_pneumatisk_spann", enhet="",
+              vridningar=(0.0,))
     b.kraver(MotVagg("matare", Vagg.VASTER, marginal=Langd.m(1.0)),
-             Framfor("fixtur", "matare", avstand=Langd.mm(600.0)),
+             Framfor("fixtur", "matare", avstand=Langd.m(1.0)),
              Bredvid("lagesgivare", "matare", mellanrum=Langd.mm(150.0)))
     return b.klar()
 
@@ -287,7 +306,7 @@ def _p01(kat):
     """P-01: robot plockar ur en stillastående fixtur och lägger i en KLT."""
     u = uppgift("P-01")
     assert u["grupp"] == "P"
-    b = Byggare(_hall("P-01", 12.0, 10.0), kat)
+    b = Byggare(_hall("P-01", 12.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_1200_5_0900")
     b.station("fixtur", "bank://station/fixtur_pneumatisk_spann")
     b.lastbarare("klt", "bank://last/klt_4147")
@@ -299,7 +318,7 @@ def _p01(kat):
 
 def _p02(kat):
     """P-02: robot plockar från ett rörligt band, med låda bredvid."""
-    b = Byggare(_hall("P-02", 14.0, 10.0), kat)
+    b = Byggare(_hall("P-02", 14.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/fanuc_m10id_12")
     b.transport("band", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
     b.lastbarare("klt", "bank://last/klt_6147")
@@ -312,7 +331,7 @@ def _p02(kat):
 
 def _p04(kat):
     """P-04: plock ur ostrukturerad hög i gitterbox, med 3D-kamera."""
-    b = Byggare(_hall("P-04", 12.0, 10.0), kat)
+    b = Byggare(_hall("P-04", 12.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_2600_20_1650")
     b.lastbarare("gitterbox", "bank://last/gitterbox")
     b.lastbarare("utpall", "bank://last/eur_pall")
@@ -326,10 +345,16 @@ def _p04(kat):
 
 
 def _l01(kat):
-    """L-01: palletering, ett lager i rutmönster på EUR-pall."""
+    """L-01: palletering, fyra kolli i rutmönster på en EUR-pall.
+
+    Måtten är bankens: EUR-pall 1200 x 800 x 144 mm och VDA KLT 4147
+    400 x 300 x 147 mm. Fyra lådor i två rader ryms med 400 mm över på
+    långsidan, och rutmönstret uttrycks som två rader åt öster och en
+    koppling norrut mellan dem.
+    """
     u = uppgift("L-01")
     assert u["fysik"]["arbetsradie_mm"] > 0
-    b = Byggare(_hall("L-01", 14.0, 12.0), kat)
+    b = Byggare(_hall("L-01", 14.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_660_180_3150")
     b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
     b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
@@ -338,17 +363,17 @@ def _l01(kat):
     b.kraver(CentreradI("robot"),
              InomRackvidd("pall", "robot"),
              InomRackvidd("inbana", "robot", helt=False),
-             Pa("kolli_0", "pall"),
+             Pa("kolli_0", "pall"), Pa("kolli_1", "pall"),
+             Pa("kolli_2", "pall"), Pa("kolli_3", "pall"),
              IRad(("kolli_0", "kolli_1"), Riktning.OSTER, Langd.mm(0.0)),
-             IRad(("kolli_2", "kolli_3"), Riktning.OSTER, Langd.mm(0.0)),
-             Pa("kolli_2", "pall"),
-             IRad(("kolli_0", "kolli_2"), Riktning.NORR, Langd.mm(0.0)))
+             IRad(("kolli_0", "kolli_2"), Riktning.NORR, Langd.mm(0.0)),
+             IRad(("kolli_2", "kolli_3"), Riktning.OSTER, Langd.mm(0.0)))
     return b.klar()
 
 
 def _l02(kat):
     """L-02: två lager med mellanlägg, alltså stapling i höjd."""
-    b = Byggare(_hall("L-02", 12.0, 12.0), kat)
+    b = Byggare(_hall("L-02", 12.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_660_180_3150")
     b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
     b.lastbarare("lager_1", "bank://last/mellanlagg_papp", vridningar=(0.0,))
@@ -362,7 +387,7 @@ def _l02(kat):
 
 def _l03(kat):
     """L-03: avpalletering, pall in på kedjetransportör, kolli ut på band."""
-    b = Byggare(_hall("L-03", 16.0, 12.0), kat)
+    b = Byggare(_hall("L-03", 16.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_4600_60_2050")
     b.transport("pallbana", "bank://transport/kedjetransportor_pall", 3000.0,
                 vridningar=(0.0,))
@@ -377,39 +402,43 @@ def _l03(kat):
 
 
 def _s01(kat):
-    """S-01: två utgångar, en givare, utskjutare i korsningen."""
-    b = Byggare(_hall("S-01", 16.0, 12.0), kat)
+    """S-01: två utgångar, en givare, avlämning åt två håll."""
+    b = Byggare(_hall("S-01", 16.0, 12.0), kat, enhet="ST100")
     b.transport("inbana", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
-    b.transport("utbana_ok", "bank://transport/band_400", 3000.0,
-                vridningar=(0.0,))
-    b.transport("utbana_nok", "bank://transport/band_400", 3000.0,
-                vridningar=(90.0,))
     b.givare("fotocell", "bank://givare/reflex_fotocell")
+    b.transport("utbana_ok", "bank://transport/band_400", 3000.0, enhet="",
+                vridningar=(0.0,))
+    b.transport("utbana_nok", "bank://transport/band_400", 3000.0, enhet="",
+                vridningar=(90.0,))
     b.kraver(MotVagg("inbana", Vagg.SODER, marginal=Langd.m(2.0)),
-             Framfor("utbana_ok", "inbana", avstand=Langd.mm(300.0)),
-             TillVanster("utbana_nok", "inbana", avstand=Langd.mm(400.0)),
+             Framfor("utbana_ok", "inbana", avstand=Langd.mm(500.0)),
+             TillVanster("utbana_nok", "inbana", avstand=Langd.mm(500.0)),
              Bredvid("fotocell", "inbana", mellanrum=Langd.mm(150.0)))
     return b.klar()
 
 
 def _s02(kat):
-    """S-02: tre utgångar i rad, alla nås från samma inbana."""
+    """S-02: tre utgångar i rad, alla matade från samma inbana."""
     b = Byggare(_hall("S-02", 18.0, 14.0), kat)
     b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
     for i in range(3):
         b.transport("ut_%d" % i, "bank://transport/band_400", 2500.0,
                     vridningar=(0.0,))
     b.kraver(MotVagg("inbana", Vagg.VASTER, marginal=Langd.m(1.0)),
-             Framfor("ut_0", "inbana", avstand=Langd.mm(400.0)),
+             Framfor("ut_0", "inbana", avstand=Langd.mm(500.0)),
              IRad(("ut_0", "ut_1", "ut_2"), Riktning.NORR, Langd.m(1.2)))
     return b.klar()
 
 
 def _a01(kat):
-    """A-01: fixtur med två matarbanor och robot, ur uppgiftens egen scen."""
+    """A-01: fixtur med två matarbanor och robot, ur uppgiftens egen scen.
+
+    Rollerna och deras bank-URI:er läses ur uppgiftens ``scene.components``,
+    inte ur en lista här. Byter uppgiften robot byter provscenen robot.
+    """
     u = uppgift("A-01")
     roller = {k["role"]: k["uri"] for k in u["scene"]["components"]}
-    b = Byggare(_hall("A-01", 14.0, 12.0), kat)
+    b = Byggare(_hall("A-01", 14.0, 12.0), kat, enhet="ST230")
     b.robot("robot", roller["robot"])
     b.station("fixtur", roller["fixtur"])
     b.transport("matarbana_a", roller["matarbana_a"], 3000.0, vridningar=(0.0,))
@@ -436,7 +465,7 @@ def _a03(kat):
                 4000.0, vridningar=(0.0,))
     b.kraver(MotVagg("st250", Vagg.SODER, marginal=Langd.m(1.0)),
              IRad(("st250", "st260"), Riktning.OSTER, Langd.m(5.0)),
-             Bakom("rullbana", "st250", avstand=Langd.mm(600.0)),
+             Bakom("rullbana", "st250", avstand=Langd.m(1.0)),
              UtanforZon("st250", "gang"), UtanforZon("st260", "gang"),
              UtanforZon("rullbana", "gang"))
     return b.klar()
@@ -444,7 +473,7 @@ def _a03(kat):
 
 def _h01(kat):
     """H-01: robot lämnar över till band, med verktygsställ bredvid."""
-    b = Byggare(_hall("H-01", 14.0, 12.0), kat)
+    b = Byggare(_hall("H-01", 14.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/kuka_kr10_r1100")
     b.transport("band", "bank://transport/band_400", 4000.0, vridningar=(0.0,))
     b.station("verktygsstall", "bank://station/verktygsstall")
@@ -456,7 +485,8 @@ def _h01(kat):
 
 
 def _c01(kat):
-    """C-01: komplett cell med två stationer, buffert, pelare och gång."""
+    """C-01: komplett cell med två stationer, buffert, pelare, gång och
+    utrymningsväg. Den största provscenen och den enda med allt på en gång."""
     hall = _hall("C-01", 24.0, 16.0,
                  zoner=[_gang("gang", 0.0, 12.5, 24.0, 16.0),
                         Zon("utrymning", Zontyp.UTRYMNINGSVAG,
@@ -474,25 +504,26 @@ def _c01(kat):
     b.station("buffert", "bank://station/buffert_ackumulerande",
               vridningar=(0.0,))
     b.station("station_2", "bank://station/skruvstation", vridningar=(0.0,))
-    b.robot("robot", "bank://robot/abb_irb_2600_20_1650")
-    b.lastbarare("utpall", "bank://last/eur_pall", vridningar=(0.0,))
+    b.robot("robot", "bank://robot/abb_irb_2600_20_1650", enhet="CELL")
+    b.lastbarare("utpall", "bank://last/eur_pall", enhet="CELL",
+                 vridningar=(0.0,))
     b.kraver(MotVagg("inbana", Vagg.SODER, marginal=Langd.m(1.0)),
              Framfor("station_1", "inbana", avstand=Langd.m(1.0)),
-             TillHoger("buffert", "station_1", avstand=Langd.m(1.0)),
-             TillHoger("station_2", "buffert", avstand=Langd.m(1.0)),
+             IRad(("station_1", "buffert", "station_2"), Riktning.OSTER,
+                  Langd.m(1.0)),
              CentreradI("robot"),
              InomRackvidd("utpall", "robot", helt=False),
-             UtanforZon("utpall", "gang"),
-             UtanforZon("robot", "gang"))
+             UtanforZon("utpall", "utrymning"),
+             UtanforZon("robot", "utrymning"))
     return b.klar()
 
 
 def _t01_pelarhall(kat):
-    """T-01 igen, men i en hall med pelare mitt i vägen. Samma facit."""
+    """T-01 igen, men i en hall med en pelare mitt i vägen. Samma facit."""
     hall = _hall("T-01-pelare", 14.0, 9.0,
                  pelare=[Pelare("mitt", Vek2.m(7.0, 2.0), Langd.mm(500.0),
                                 Langd.mm(500.0))])
-    b = Byggare(hall, kat)
+    b = Byggare(hall, kat, enhet="ST010")
     b.transport("band", "bank://transport/band_600", 6000.0, vridningar=(0.0,))
     b.givare("fotocell", "bank://givare/fotocell_genomgaende")
     b.kraver(MotVagg("band", Vagg.NORR, marginal=Langd.m(1.0)),
@@ -501,7 +532,11 @@ def _t01_pelarhall(kat):
 
 
 def _under_travers(kat):
-    """En travers över halva hallen: pressen måste stå där taket räcker."""
+    """En travers över halva hallen: pressen måste stå där taket räcker.
+
+    Pressen är 2200 mm hög och traversen lämnar 2000 mm. Zonen är alltså inte
+    förbjuden - den är för låg, och det är två olika saker.
+    """
     hall = _hall("travers", 14.0, 10.0,
                  zoner=[Zon("under_travers", Zontyp.ARBETSYTA,
                             Rektangel.av(Langd.m(0.0), Langd.m(0.0),
@@ -527,7 +562,7 @@ def _ob_horn_och_mitt(kat):
 def _ob_rackvidd(kat):
     """Överbestämd: fixturen ska stå mot östra väggen och nås av en robot
     som står mot den västra, i en hall bredare än räckvidden."""
-    b = Byggare(_hall("OB-rackvidd", 20.0, 10.0), kat)
+    b = Byggare(_hall("OB-rackvidd", 20.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_1200_5_0900")
     b.station("fixtur", "bank://station/fixtur_pneumatisk_spann",
               vridningar=(0.0,))
@@ -556,7 +591,12 @@ def _ob_pa_for_liten(kat):
 
 
 def _ob_gangen(kat):
-    """Överbestämd: pressen ska stå i gången, som ska hållas fri."""
+    """Överbestämd: pressen ska stå helt i gången, som ska hållas 1,6 m bred.
+
+    Gången är 2,0 m djup och pressen 1,2 m, så det som blir kvar är 0,8 m.
+    Kravet på fri bredd fäller alltså placeringen, och det är BREDDEN som
+    fäller den, inte närvaron.
+    """
     b = Byggare(_hall("OB-gang", 12.0, 10.0,
                       zoner=[_gang("gang", 0.0, 4.0, 12.0, 6.0)]), kat)
     b.station("press", "bank://station/press_tvahands", vridningar=(0.0,))
@@ -565,10 +605,16 @@ def _ob_gangen(kat):
 
 
 def _ryms_inte(kat):
-    """Ryms inte: åtta EUR-pallar i en hall om 3 x 3 m."""
-    b = Byggare(_hall("RYMS-INTE", 3.0, 3.0), kat)
-    for i in range(8):
-        b.lastbarare("pall_%d" % i, "bank://last/eur_pall")
+    """Ryms inte: tre EUR-pallar i en hall om 2,5 x 1,0 m.
+
+    Pallen är 1200 x 800 mm, så bara vridningen 0 grader får plats på djupet
+    och två pallar i bredd fyller hallen. Den tredje har ingenstans att ta
+    vägen, och det beror på hallen, inte på någon relation.
+    """
+    b = Byggare(_hall("RYMS-INTE", 2.5, 1.0), kat)
+    for i in range(3):
+        b.lastbarare("pall_%d" % i, "bank://last/eur_pall",
+                     vridningar=(0.0, 180.0))
     return b.klar()
 
 
@@ -590,7 +636,7 @@ PROVSCENER = (
              Status.LOST),
     Provscen("L-03", "L-03", "avpalletering från kedjetransportör", _l03,
              Status.LOST),
-    Provscen("S-01", "S-01", "två utgångar med utskjutare", _s01, Status.LOST),
+    Provscen("S-01", "S-01", "två utgångar med givare", _s01, Status.LOST),
     Provscen("S-02", "S-02", "tre utgångar i rad", _s02, Status.LOST),
     Provscen("A-01", "A-01", "fixtur med två matarbanor, ur uppgiftens scen",
              _a01, Status.LOST),
@@ -613,7 +659,7 @@ PROVSCENER = (
              Status.OVERBESTAMD),
     Provscen("OB-gang", "A-03", "press mitt i gången", _ob_gangen,
              Status.OVERBESTAMD),
-    Provscen("RYMS-INTE", "L-01", "åtta EUR-pallar i en hall om 3 x 3 m",
+    Provscen("RYMS-INTE", "L-01", "tre EUR-pallar i en hall om 2,5 x 1,0 m",
              _ryms_inte, Status.RYMS_INTE),
 )
 
@@ -679,6 +725,8 @@ def rapport():
                         r["objekt"], r["noder"], r["overlapp"], r["anrop"]))
         if r["konflikt"]:
             rader.append("        konflikt: " + ", ".join(r["konflikt"]))
+        if not r["enligt_facit"] and r["skal"]:
+            rader.append("        skal: " + r["skal"])
     rader += [
         "SUMMA losta %d av %d vantade" % (m["losta_av_vantade"],
                                           m["vantade_losta"]),

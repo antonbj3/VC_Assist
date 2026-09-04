@@ -5,16 +5,28 @@ Ror varken VC eller natverk. Kors av py3 ute i tjansten och gar att prova pa
 konstruerade serier utan att VC startas - det ar avsiktligt, for en domare som
 bara gar att prova genom det den ska doma ar ingen domare.
 
-Kalla: docs/spec/40_ogat.md, docs/spec/41_ogat_kontrakt.md
+Kalla: docs/spec/40_ogat.md, 41_ogat_kontrakt.md, 42_ogat_utbyggt.md
+
+ARBETSDELNING: rakningarna bor i oga_harledning.py, POLICYN bor har. Den har
+filen bestammer vilket tal som far falla en korning; den raknar sa lite som
+mojligt sjalv.
+
+DOMSGRAMMATIKEN AR LAST TILL v1 (41_ogat_kontrakt.md). De harledningar som
+tillkommit sedan dess ryms inte som egna rader - okand rad i en kand sektion
+ar ett kontraktsfel. De far darfor tva vagar ut: de FALLER domen med sin egen
+orsak i klartext, och de ligger fullstandigt i eyes.json under "derived". Ett
+forslag pa v2-grammatik med rader for dem star i docs/spec/42_ogat_utbyggt.md.
 
 TROSKELREGEL (41_ogat_kontrakt.md): varje trosket bar den matning som satte
 det. Ingen trosket utan hanvisning - det kontrolleras av
-tests/enhet/test_troskelharkomst.py.
+tests/enhet/test_troskelharkomst.py for den har filen och av
+tests/enhet/test_oga_harledning.py for oga_harledning.py.
 """
 from __future__ import absolute_import, division, print_function
 
 import math
 
+import oga_harledning as H
 import oga_kontrakt as K
 
 # ---- trosklar ------------------------------------------------------------
@@ -32,53 +44,29 @@ PLACE_TOL_MM = 25.0         # PRELIMINAR. Satts av matning M-10.
 BLOWUP_VMAX_MS = 25.0       # PRELIMINAR. Satts av matning M-10.
 UNDERGROUND_MARGINAL_M = 0.005   # PRELIMINAR. Satts av matning M-10.
 MIN_PROV = 10               # PRELIMINAR. Satts av matning M-10.
+# Hur stor del av ett objekts serie som far vara oläst och objektet anda gar
+# att uttala sig om. Over den blir scengrindarna INCONCLUSIVE i stallet for
+# att lasa en utglesad serie som "stod still".
+SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-16.
+# Hur manga sekunder en station far svalta eller vara blockerad innan det
+# faller en korning som DEKLARERAT ett genomstromningskrav. Utan deklarerat
+# krav faller den inte alls - da finns inget facit att fella mot.
+GENOMSTROMNING_MARGINAL_S = 0.0  # PRELIMINAR. Satts av matning M-19.
 
 
-# ---- liten kvaternionmatematik ------------------------------------------
+# ---- kvaternion- och vektormatematik ------------------------------------
+#
+# EN implementation, i oga_harledning.py. Namnen ligger kvar har for att den
+# har modulen ar ogats offentliga yta mot tjansten och mot proven; tva kopior
+# av samma rakning hade kunnat drifta isar utan att nagot sag det.
 
-def q_konjugat(q):
-    x, y, z, w = q
-    return (-x, -y, -z, w)
-
-
-def q_mult(a, b):
-    ax, ay, az, aw = a
-    bx, by, bz, bw = b
-    return (aw * bx + ax * bw + ay * bz - az * by,
-            aw * by - ax * bz + ay * bw + az * bx,
-            aw * bz + ax * by - ay * bx + az * bw,
-            aw * bw - ax * bx - ay * by - az * bz)
-
-
-def q_rotera(q, v):
-    x, y, z, w = q
-    vx, vy, vz = v
-    # v' = v + 2w(qv x v) + 2 qv x (qv x v)
-    tx = 2.0 * (y * vz - z * vy)
-    ty = 2.0 * (z * vx - x * vz)
-    tz = 2.0 * (x * vy - y * vx)
-    return (vx + w * tx + (y * tz - z * ty),
-            vy + w * ty + (z * tx - x * tz),
-            vz + w * tz + (x * ty - y * tx))
-
-
-def q_vinkel_deg(q):
-    """Vridningsvinkeln i en kvaternion, alltid 0-180 grader."""
-    w = max(-1.0, min(1.0, abs(q[3])))
-    return math.degrees(2.0 * math.acos(w))
-
-
-def _diff(a, b):
-    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-
-def _norm(v):
-    return math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-
-
-def i_verktygsramen(p_del, q_verktyg, p_verktyg):
-    """Delens lage uttryckt i verktygets ram."""
-    return q_rotera(q_konjugat(q_verktyg), _diff(p_del, p_verktyg))
+q_konjugat = H.q_konjugat
+q_mult = H.q_mult
+q_rotera = H.q_rotera
+q_vinkel_deg = H.q_vinkel_deg
+i_verktygsramen = H.i_verktygsramen
+_diff = H.diff
+_norm = H.norm
 
 
 # ---- analysen ------------------------------------------------------------
@@ -89,12 +77,42 @@ class Analys(object):
         self.template = data.get("template", "okand")
         self.run = data.get("run", {})
         self.tracked = data.get("tracked", {})
-        self.rader = data.get("rows", [])
         self.plan = plan or {}
+        # Scenen lagras delta-kodad. Den packas upp EN gang, har, sa resten av
+        # analysen ser en tat serie oavsett hur den lagrats. Uppackningen bar
+        # ocksa skillnaden mellan "stod still" och "lastes aldrig" vidare.
+        rader = data.get("rows", [])
+        self.delta_lagrad = any(("scene" in r or "scenlast" in r) for r in rader)
+        self.rader = H.expandera(rader) if self.delta_lagrad else rader
+        self.scen = data.get("scen") or {}
+        self.ledgranser = data.get("ledgranser") or self.plan.get("ledgranser") or {}
+        self.ledtyper = data.get("ledtyper") or self.plan.get("ledtyper") or {}
         self.harledt = {}
         self.skal = []          # varfor domen blev som den blev
+        self._oversikt = None
 
     # -- hjalp --
+
+    @staticmethod
+    def _rent(namn):
+        """Ett namn som far sta i domstexten.
+
+        Grammatikens <signal>, <station> och <par> ar ett namn utan blanksteg.
+        Ett namn med ett blanksteg i skulle inte matcha monstret, och
+        skrivaren kastar da mitt
+        i rapporten - en rapport som kraschar domaren kan dolja rott. Namnet
+        stads i stallet, en gang, pa ett stalle.
+        """
+        return "_".join(str(namn).split()) or "namnlos"
+
+    def oversikt(self):
+        """Scenoversikten, byggd en gang och delad av alla harledningar."""
+        if self._oversikt is None:
+            roller = ((self.tracked.get("parts") or [])
+                      + (self.tracked.get("tools") or []))
+            self._oversikt = H.Scenoversikt(
+                self.rader, roller, self.plan.get("forvantat_rorliga"))
+        return self._oversikt
 
     def _tid(self, i):
         return float(self.rader[i].get("t", 0.0))
@@ -253,14 +271,31 @@ class Analys(object):
                 if forra is not None and bool(v) != bool(forra):
                     flank = "RISE" if v else "FALL"
                     t = float(r.get("t", 0.0))
-                    rader.append("EDGE %s %s t=%.3fs" % (signal, flank, t))
+                    rader.append("EDGE %s %s t=%.3fs" % (self._rent(signal), flank, t))
                     h["flanker"].append({"signal": signal, "flank": flank, "t": t})
                 forra = v
+
+        # PLC-variablerna ligger pa SAMMA tidsaxel som fysiken och far darfor
+        # samma radform. Prefixet plc: skiljer dem fran VC:s egna signaler, och
+        # grammatikens <signal> ar ett namn utan blanksteg, sa prefixet ryms
+        # utan att kontraktet behover andras.
+        plcflanker = H.plcflanker(self.rader)
+        for f in plcflanker:
+            rader.append("EDGE %s %s t=%.3fs"
+                         % (self._rent(f["signal"]), f["flank"], f["t"]))
+        h["flanker"].extend(plcflanker)
+        h["plc_gammal"] = [float(r.get("t", 0.0)) for r in self.rader
+                           if r.get("plc_gammal")]
+        if h["plc_gammal"]:
+            self.skal.append(
+                "%d PLC-prov var aldre an sitt eget prov" % len(h["plc_gammal"]))
+        h["fas"] = H.fasforhallande(h["flanker"], self.plan.get("plc_par"))
 
         for signal, mover in (self.plan.get("movers") or {}).items():
             ms = self._latens(signal, mover)
             if ms is not None:
-                rader.append("LATENCY %s -> %s %.1fms" % (signal, mover, ms))
+                rader.append("LATENCY %s -> %s %.1fms"
+                             % (self._rent(signal), self._rent(mover), ms))
                 h.setdefault("latens", {})[signal] = ms
 
         for station, krav in (self.plan.get("stations") or {}).items():
@@ -272,7 +307,8 @@ class Analys(object):
             if lage == "SHORT":
                 self.skal.append("uppehållet vid %s var %.2f s, kravet är %.2f s"
                                  % (station, faktisk, req))
-            rader.append("DWELL %s %.3fs req=%.3fs %s" % (station, faktisk, req, lage))
+            rader.append("DWELL %s %.3fs req=%.3fs %s"
+                         % (self._rent(station), faktisk, req, lage))
             h["dwell"].append({"station": station, "s": faktisk, "req_s": req, "lage": lage})
 
         rader.append(self._kapplopning(h))
@@ -334,8 +370,8 @@ class Analys(object):
             dt = (stig[i]["t"] - stig[i - 1]["t"]) * 1000.0
             if dt <= fonster_ms and stig[i]["signal"] != stig[i - 1]["signal"]:
                 self.skal.append("två utgångar gick höga inom %.1f ms" % dt)
-                return "RACE %s+%s dt=%.1fms" % (stig[i - 1]["signal"],
-                                                 stig[i]["signal"], dt)
+                return "RACE %s+%s dt=%.1fms" % (self._rent(stig[i - 1]["signal"]),
+                                                 self._rent(stig[i]["signal"]), dt)
         return "RACE none"
 
     # -- genomstromning --
@@ -354,7 +390,8 @@ class Analys(object):
             cykler = self._cykeltider(serie)
             avg = sum(cykler) / len(cykler) if cykler else 0.0
             rader.append("STATION %s in=%d out=%d avg=%.3fs min=%.3fs max=%.3fs"
-                         % (station, int(sista.get("in", 0)), int(sista.get("out", 0)),
+                         % (self._rent(station), int(sista.get("in", 0)),
+                            int(sista.get("out", 0)),
                             avg, min(cykler) if cykler else 0.0,
                             max(cykler) if cykler else 0.0))
             h[station] = {"in": int(sista.get("in", 0)), "out": int(sista.get("out", 0)),
@@ -393,15 +430,22 @@ class Analys(object):
                 if basta is None or v < basta[0]:
                     basta = (v, float(r.get("t", 0.0)))
             if basta:
-                rader.append("MINDIST %s %.1fmm t=%.3fs" % (namn, basta[0], basta[1]))
+                rader.append("MINDIST %s %.1fmm t=%.3fs"
+                             % (self._rent(namn), basta[0], basta[1]))
                 h[namn] = {"min_mm": basta[0], "t": basta[1]}
 
         for r in self.rader:
             hit = r.get("hit")
             if hit:
                 t = float(r.get("t", 0.0))
-                rader.append("COLLISION %s x %s t=%.3fs" % (hit[0], hit[1], t))
+                rader.append("COLLISION %s x %s t=%.3fs"
+                             % (self._rent(hit[0]), self._rent(hit[1]), t))
                 h["kollision"] = {"a": hit[0], "b": hit[1], "t": t}
+                if len(hit) >= 4:
+                    # getHitFeatureA/B: VILKEN yta som trafffade vilken. Ryms
+                    # inte i v1:s COLLISION-rad, sa den ligger i underlaget.
+                    h["kollision"]["feature_a"] = hit[2]
+                    h["kollision"]["feature_b"] = hit[3]
                 self.skal.append("kollision mellan %s och %s vid t=%.2f s"
                                  % (hit[0], hit[1], t))
                 break

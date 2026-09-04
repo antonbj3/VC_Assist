@@ -29,7 +29,7 @@ SLAG ett beteende har, inte vilka namn objektet bar. Foljden ar konkret:
     Darfor finns inga get_conveyor_speed/set_conveyor_direction har. I stallet
     finns list_transport_parameters (som VISAR vad som finns) och
     get/set_transport_parameter (som laser och satter det modellen sag).
-    Samma regel som katalogen: modellen valjer bara ur en traefflista, den
+    Samma regel som katalogen: modellen valjer bara ur en trafflista, den
     hittar aldrig pa ett namn (I9).
   * KAPACITET har daremot ett deklarerat namn - vcContainer.Capacity - och far
     darfor egna verktyg.
@@ -106,11 +106,6 @@ SLAG = (
 )
 SLAGNAMN = tuple(namn for namn, _ytor in SLAG)
 
-# Slag som pekar ut exakt en typ i den matta ytan. Ett verktyg som kraver ett
-# av dem vet vilka namn objektet bar; ett verktyg som kraver "container" eller
-# "flow" vet det inte och maste fraga med hasattr.
-SLAG_ENTYDIGA = tuple(namn for namn in SLAGNAMN if namn not in ("container", "flow"))
-
 
 # ---- lokala kodhjalpare --------------------------------------------------
 #
@@ -172,10 +167,11 @@ def _hamta_komponent(namn, variabel="k"):
     ]
 
 
-def _hamta_beteende(namn, komponent="k", variabel="b"):
+def _hamta_beteende(namn):
+    """Raderna som hamtar beteendet ur komponenten k, ocksa de inline."""
     return [
-        "%s = %s.findBehaviour(%s)" % (variabel, komponent, lit(namn)),
-        "if %s is None:" % variabel,
+        "b = k.findBehaviour(%s)" % lit(namn),
+        "if b is None:",
         '    raise ValueError("komponenten har inget beteende som heter " + %s)'
         % lit(namn),
     ]
@@ -222,6 +218,10 @@ RET_SLAG = {
                     "beteende kan vara flera: en dirigeringsregel ar bade "
                     "container, flow och routing_rule."),
     "items": {"type": "string", "description": "Ett slag ur listan i schemat."},
+    # Langden foljer tabellen SLAG, inte layouten. Det ar skalet till att
+    # listan inte behover nagot tak och nagon avkortad-flagga, och maxItems
+    # sager det i schemat i stallet for i en kommentar.
+    "maxItems": len(SLAG),
 }
 RET_VARDE = {
     "type": ["string", "number", "integer", "boolean", "null"],
@@ -409,17 +409,6 @@ _lagg(
 
 # ---- list_transport_parameters -------------------------------------------
 
-def _rader_parameterpost(kalla, indrag="    "):
-    return [
-        '%srader.append({"name": p.Name, "value": _enkelt(p.Value),' % indrag,
-        '%s               "type": _enkelt(p.Type),' % indrag,
-        '%s               "writable_when_simulating": bool(p.WritableWhenSimulating),'
-        % indrag,
-        '%s               "writable_when_connected": bool(p.WritableWhenConnected)})'
-        % indrag,
-    ]
-
-
 def _kod_list_transport_parameters(argument):
     rader = _hamta_komponent(argument["component"])
     if "behaviour" in argument:
@@ -429,7 +418,12 @@ def _kod_list_transport_parameters(argument):
         rader += ["agare = k.Name", "kalla = k.Properties"]
     rader += ["rader = []", "avkortad = False", "for p in kalla:"]
     rader += tak("rader")
-    rader += _rader_parameterpost("kalla")
+    rader += [
+        '    rader.append({"name": p.Name, "value": _enkelt(p.Value),',
+        '                  "type": _enkelt(p.Type),',
+        '                  "writable_when_simulating": bool(p.WritableWhenSimulating),',
+        '                  "writable_when_connected": bool(p.WritableWhenConnected)})',
+    ]
     rader += [
         '_svara({"component": k.Name, "owner": agare, "parameters": rader,',
         '        "antal": len(rader), "avkortad": avkortad})',
@@ -1431,14 +1425,14 @@ def _kod_product_type_info(argument):
         "    avkortad = False",
         "    for p in t.ProductProperties:",
     ]
-    rader += tak("egenskaper", "    ")
+    rader += tak("egenskaper", "        ")
     rader += [
         '        egenskaper.append({"name": p.Name, "value": _enkelt(p.Value)})',
         "    stycklista = []",
         '    if bool(t.IsAssembly) and hasattr(t, "AssemblySteps"):',
         "        for s in t.AssemblySteps:",
     ]
-    rader += tak("stycklista", "        ")
+    rader += tak("stycklista", "            ")
     rader += [
         '            steg = {"step": s.Name, "parent": None,',
         '                    "children": len(s.ChildSteps)}',

@@ -289,12 +289,12 @@ class Objekt:
 
     __slots__ = ("namn", "langd", "bredd", "hojd", "underhallsmarginal",
                  "kravd_fri_hojd", "tillatna_vridningar", "barande",
-                 "ankare", "kategori", "rackvidd")
+                 "ankare", "kategori", "rackvidd", "enhet")
 
     def __init__(self, namn, langd, bredd, hojd,
                  underhallsmarginal=None, kravd_fri_hojd=None,
                  tillatna_vridningar=VRIDNINGAR_RATA, barande=False,
-                 ankare=None, kategori="", rackvidd=None):
+                 ankare=None, kategori="", rackvidd=None, enhet=""):
         self.namn = str(namn)
         if not self.namn:
             raise Layoutfel("ett objekt måste ha ett namn")
@@ -322,6 +322,9 @@ class Objekt:
         self.ankare = ankare if ankare is not None else Ankare.antagen_mitt_golv()
         self.kategori = str(kategori)
         self.rackvidd = None if rackvidd is None else krav(rackvidd, "rackvidd")
+        # Enheten är cellen objektet hör till. Två objekt i samma enhet kräver
+        # inget underhållsutrymme av varandra; se kollision.kravd_separation_m.
+        self.enhet = str(enhet)
 
     @property
     def fotavtryck_area_m2(self):
@@ -381,10 +384,11 @@ class Kropp:
     """Ett placerat objekts geometri: vriden låda i XY, intervall i Z."""
 
     __slots__ = ("namn", "mitt_x_m", "mitt_y_m", "halv_x_m", "halv_y_m",
-                 "z0_m", "z1_m", "vridning_grader", "marginal_m", "_axlar")
+                 "z0_m", "z1_m", "vridning_grader", "marginal_m", "enhet",
+                 "_axlar")
 
     def __init__(self, namn, mitt_x_m, mitt_y_m, halv_x_m, halv_y_m,
-                 z0_m, z1_m, vridning_grader, marginal_m=0.0):
+                 z0_m, z1_m, vridning_grader, marginal_m=0.0, enhet=""):
         self.namn = namn
         self.mitt_x_m = mitt_x_m
         self.mitt_y_m = mitt_y_m
@@ -394,6 +398,7 @@ class Kropp:
         self.z1_m = z1_m
         self.vridning_grader = vridning_grader
         self.marginal_m = marginal_m
+        self.enhet = enhet
         r = math.radians(vridning_grader)
         c, s = math.cos(r), math.sin(r)
         # Objektets lokala X- och Y-axel uttryckta i världen.
@@ -621,7 +626,8 @@ class Scen:
         return Kropp(namn, pose.x_m, pose.y_m,
                      o.langd.som_m / 2.0, o.bredd.som_m / 2.0,
                      pose.z_m, pose.z_m + o.hojd.som_m,
-                     pose.vridning_grader, o.underhallsmarginal.som_m)
+                     pose.vridning_grader, o.underhallsmarginal.som_m,
+                     o.enhet)
 
     def kroppar(self):
         return tuple(self.kropp(n) for n in self.placerade_namn())

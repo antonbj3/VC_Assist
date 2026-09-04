@@ -24,7 +24,7 @@ from .fel import Specfel
 from .graf import Uppgiftsgraf
 from .predikat import granska_vag, typ_pa_vag
 from .spec import DetaljeradSpec, SPECVERSION, granska_nycklar
-from .steg import Bindning, FORBJUDNA_STEGNYCKLAR, KONTROLLSVAR
+from .steg import FORBJUDNA_STEGNYCKLAR, KONTROLLSVAR
 
 # Vad planen tacker. Sluten lista: "scenbygge" ar det som gar att planera med
 # de verktyg som finns (scene och composition, 21 st). Styrningen och ogats

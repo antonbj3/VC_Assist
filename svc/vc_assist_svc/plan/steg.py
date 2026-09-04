@@ -256,9 +256,6 @@ class Kontroll(object):
             return tuple(self.kallor)
         return ()
 
-    def ger_namn(self):
-        return tuple(n for n, _t in self.ger)
-
     def till_json(self):
         return {"sort": self.sort,
                 "villkor": self.villkor.till_json() if self.villkor else None,
@@ -362,17 +359,6 @@ class Steg(object):
         for namn, varde in self.argument.items():
             ut[namn] = varde.vittne() if isinstance(varde, Bindning) else varde
         return ut
-
-    def referenser(self):
-        """Alla steg det har steget laser nagot ur, oavsett vag in."""
-        ut = set(self.beroenden)
-        if self.forvillkor is not None:
-            ut.update(self.forvillkor.berorda_steg())
-        if self.kontroll is not None:
-            ut.update(self.kontroll.berorda_steg())
-        for _namn, b in self.bindningar():
-            ut.add(b.fran_steg)
-        return tuple(sorted(ut))
 
     def lasta_steg(self):
         """Steg vars SVAR det har steget laser. De maste vara beroenden."""

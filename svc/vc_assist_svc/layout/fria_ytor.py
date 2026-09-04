@@ -13,6 +13,11 @@ ja som var fel kostar en kollision i VC.
 Rasterkartan FÖRESLÅR bara. Varje läge den lämnar ifrån sig prövas exakt av
 ``kollision.provplacera`` innan det räknas som svar.
 
+Passagebredder mäts INTE här. De mäts analytiskt i ``kollision.fri_bredd_m``,
+där snitten läggs vid hindrens egna kanter i stället för på ett raster. Den
+rastrerade varianten fanns här tidigare och är borttagen, inte etiketterad
+(docs/spec/96_ingen_skuld.md S4).
+
 Källa: uppdragets punkt 5.
 """
 from __future__ import annotations
@@ -22,10 +27,10 @@ import math
 from .kollision import provplacera
 from .matt import krav
 from .rum import (FRIHALLNA, LAGE_TOL_M, Layoutfel, Objekt, Pose, Rektangel,
-                  Scen, Zontyp)
+                  Scen)
 
-__all__ = ["RASTER_M", "Rasterkarta", "storsta_lediga_rektangel", "far_plats",
-           "minsta_fria_bredd_m", "ledig_area_m2"]
+__all__ = ["RASTER_M", "Rasterkarta", "storsta_lediga_rektangel",
+           "far_plats", "ledig_area_m2"]
 
 # ANTAGET. Sätts av mätning M-20 (layoutmotorns kalibrering), som inte är körd.
 # Valt till 50 mm, en sjättedel av det minsta objektmått banken innehåller
@@ -280,65 +285,3 @@ def far_plats(scen, objekt, raster_m=None, omrade=None, vridningar=None,
                 if provplacera(scen, namn, pose).fri:
                     return pose
     return None
-
-
-def minsta_fria_bredd_m(scen, zon, raster_m=None):
-    """Passagens smalaste fria bredd, var den är som smalast, och av vad.
-
-    Mätt tvärs gångens LÅNGA axel, station för station längs den. Bara det
-    som finns under zonens fria höjd räknas: en transportör som korsar över
-    gången på 2,6 m smalnar inte av den för en truck på 2,2 m.
-
-    Måttet är kvantiserat till rastret och avrundat NEDÅT, alltså aldrig
-    större än den verkliga fria bredden.
-    """
-    if zon.typ not in (Zontyp.GANG, Zontyp.UTRYMNINGSVAG):
-        raise Layoutfel("fri bredd mäts i en gång eller en utrymningsväg, "
-                        "inte i %s" % zon.typ.value)
-    karta = Rasterkarta(scen, zon.fri_hojd_m, raster_m=raster_m,
-                        omrade=zon.yta, undvik_zontyper=())
-    langs_x = zon.yta.bredd_m >= zon.yta.djup_m
-    if langs_x:
-        stationer, tvars = karta.nx, karta.ny
-        cell_tvars_m, cell_langs_m = karta.dy_m, karta.dx_m
-    else:
-        stationer, tvars = karta.ny, karta.nx
-        cell_tvars_m, cell_langs_m = karta.dx_m, karta.dy_m
-
-    minsta = None
-    vid = 0.0
-    varst_station = 0
-    for s in range(stationer):
-        basta_kor = 0
-        kor = 0
-        for t in range(tvars):
-            fri = karta.ledig(s, t) if langs_x else karta.ledig(t, s)
-            kor = kor + 1 if fri else 0
-            if kor > basta_kor:
-                basta_kor = kor
-        bredd = basta_kor * cell_tvars_m
-        if minsta is None or bredd < minsta:
-            minsta = bredd
-            varst_station = s
-            vid = (s + 0.5) * cell_langs_m
-
-    hinder = _hinder_vid(scen, zon, karta, varst_station, langs_x, cell_langs_m)
-    return (0.0 if minsta is None else minsta), vid, hinder
-
-
-def _hinder_vid(scen, zon, karta, station, langs_x, cell_langs_m):
-    """Vilka kroppar som skär den smalaste stationens remsa."""
-    a = zon.yta.x0_m if langs_x else zon.yta.y0_m
-    lag, hog = a + station * cell_langs_m, a + (station + 1) * cell_langs_m
-    if langs_x:
-        remsa = Rektangel(lag, zon.yta.y0_m, hog, zon.yta.y1_m)
-    else:
-        remsa = Rektangel(zon.yta.x0_m, lag, zon.yta.x1_m, hog)
-    ut = []
-    for namn in scen.placerade_namn():
-        kropp = scen.kropp(namn)
-        if kropp.z0_m >= zon.fri_hojd_m - LAGE_TOL_M:
-            continue
-        if remsa.snitt(kropp.aabb(kropp.marginal_m)) is not None:
-            ut.append(namn)
-    return tuple(sorted(ut))

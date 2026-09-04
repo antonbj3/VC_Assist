@@ -48,7 +48,7 @@ from __future__ import annotations
 
 from .fel import Layoutfel
 
-KONTRAKTSVERSION = 1
+KONTRAKTSVERSION = 1   # formatversion, ingen troskel: forsta formen av portens kontrakt
 
 
 class Placering(object):
