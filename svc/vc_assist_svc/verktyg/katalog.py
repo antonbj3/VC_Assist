@@ -14,9 +14,18 @@ egenskaper. Det indexet finns inte, och det gar inte att bygga har:
 
   * VC:s eCatalog ar en NATTJANST bakom anvandarkonto. Utan konto och
     natverk finns ingen katalog att ga igenom.
-  * MATT 2026-09-04 i testprefixet: NOLL .vcmx-layouter och FEM
-    komponentfiler pa disk. Det finns alltsa inget lokalt katalogbibliotek
-    att soka i heller.
+  * RATTAD 2026-09-04, se M-57. Raden sa tidigare: "MATT i testprefixet:
+    NOLL .vcmx-layouter och FEM komponentfiler pa disk. Det finns alltsa
+    inget lokalt katalogbibliotek att soka i heller."
+    Det var fel, och felet var att jag letade i INSTALLATIONSKATALOGEN. De fem
+    filerna finns - de ar ritningsmallar. Biblioteket ligger i Public Documents
+    och innehaller 3201 komponenter fran 149 tillverkare, darav 1736 robotar
+    och 58 transportorer. svc/vc_assist_svc/katalogindex.py bygger indexet pa
+    1,8 sekunder.
+    VERKTYGEN HAR ANVANDER ANNU INTE det indexet. De 65 handskrivna posterna
+    star kvar tills bankens vokabular gar att bredda utan att bryta
+    M4_UNKNOWN_URI. Tills dess ar begransningen VAR, inte VC:s, och det ska
+    sagas sa i stallet for att skyllas pa en tom katalog.
 
 Kallan har ar darfor bank/katalog_index.json: 65 poster med verkliga
 robotmodeller, standardiserade pallmatt och lastbarare, som banken redan
