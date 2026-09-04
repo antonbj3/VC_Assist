@@ -1,7 +1,7 @@
 {
   "id": "arbetsordning",
   "titel": "Arbetsordning",
-  "version": 2,
+  "version": 3,
   "prioritet": 6,
   "kapbar": true,
   "prioritet_skal": "Kapas näst först. Reglerna här styr effektiviteten i turen, inte sanningshalten i svaret: en modell utan dem tar fler rundor och läser tillbaka mindre, men varje enskilt anrop prövas av samma grindar ändå.",
@@ -36,9 +36,9 @@
     },
     {
       "id": "ARB-004",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "verifiering",
       "text": "Mät efter ändringen, aldrig före. Ett avstånd du rapporterar ska vara läst efter det sista skrivande anropet.",
       "skal": "Världsmatrisen släpar ett scensteg (M-11), så ett mått taget före eller direkt efter en flytt beskriver läget före flytten. Det talet ser rimligt ut och är fel.",
       "harkomst": ["M-11"]

@@ -335,6 +335,12 @@ class Harness(object):
             if utfall.ok:
                 protokoll.lagg("VERKTYG_OK", anrop.namn, utfall.beskrivning(),
                                runda)
+                if utfall.andrade:
+                    # Scenen andrades. Allt som mattes fore detta beskriver
+                    # laget FORE andringen (ARB-004, M-11). Generationen hojs
+                    # FORE resultatet laggs in, sa att anropets egna argument
+                    # hor till den nya generationen.
+                    grund.ny_generation()
                 grund.lagg_resultat(anrop.namn, utfall.argument, utfall.resultat)
                 raka_fel = 0
                 fallda_nycklar.pop(nyckel, None)

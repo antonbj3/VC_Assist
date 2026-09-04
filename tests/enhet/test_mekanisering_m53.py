@@ -14,6 +14,7 @@ Varje avsnitt har BADA riktningarna. En grind som bara provas i den fallande
 riktningen mater sin egen benagenhet att neka.
 """
 import os
+import re
 import sys
 
 import pytest
@@ -629,3 +630,89 @@ def test_connect_utan_koordinat_haller_schemat(forgranskare):
                                   "other_component": "Transportor",
                                   "other_interface": "OutFeed"}))
     assert dom.slapps
+
+
+# ---- 14. ARB-004: mat efter andringen ----------------------------------
+
+def test_ett_matt_taget_fore_flytten_stods_inte_langre():
+    """Talet kommer ur ett RIKTIGT verktygssvar, sa verify-contract stodde
+    det fram till M-53. MATT M-11: det beskriver laget fore flytten."""
+    grund = Vf.Grund()
+    grund.lagg_resultat("measure_distance", {}, {"distance": 812.0})
+    tal = Tx.tal_i("Avstandet ar 812 mm.")[0]
+    assert grund.stodjer_tal(tal) is None
+    grund.ny_generation()
+    grund.lagg_resultat("set_transform", {"position": [2500.0, 0.0, 0.0]},
+                        {"set": True})
+    skal = grund.stodjer_tal(tal)
+    assert skal
+    assert "ARB-004" in skal
+    assert "M-11" in skal
+
+
+def test_ett_matt_taget_efter_flytten_stods():
+    grund = Vf.Grund()
+    grund.ny_generation()
+    grund.lagg_resultat("set_transform", {"position": [2500.0, 0.0, 0.0]},
+                        {"set": True})
+    grund.lagg_resultat("measure_distance", {}, {"distance": 812.0})
+    tal = Tx.tal_i("Avstandet ar 812 mm.")[0]
+    assert grund.stodjer_tal(tal) is None
+
+
+def test_det_egna_flyttargumentet_hor_till_den_nya_generationen():
+    """Bad modellen om en flytt till 2500 mm och anropet gick igenom, sa ar
+    2500 ett tal den har ratt att skriva EFTERAT. Generationen hojs darfor
+    fore resultatet laggs in."""
+    grund = Vf.Grund()
+    grund.ny_generation()
+    grund.lagg_resultat("set_transform", {"position": [2500.0, 0.0, 0.0]},
+                        {"set": True, "position": [2500.0, 0.0, 0.0]})
+    tal = Tx.tal_i("Roboten star nu 2500 mm i x-led.")[0]
+    assert grund.stodjer_tal(tal) is None
+
+
+# ---- 15. ARL-007: den regel som SER mekaniserbar ut och inte ar det -----
+
+def test_ett_harkomstkrav_i_samma_mening_hade_fallt_riktiga_kontrollfall():
+    """MATNINGEN bakom att ARL-007 star kvar som bedd.
+
+    Regeln kraver talet och dess kalla i SAMMA mening. Provet raknar om
+    matningen vid varje korning i stallet for att lita pa ett tal: hur manga
+    av bänkens KONTROLLFALL - alltsa korrekt beteende som inte far fallas -
+    skulle en sadan grind avvisa? Ar svaret storre an noll gar regeln inte
+    att mekanisera utan att korrekt beteende skrivs om for att passa
+    grinden, och det ar att lata grinden byta fraga.
+    """
+    falska = []
+    for falla in Fa.KONTROLLFALL:
+        verktyg = set(falla.manus or {})
+        for svar in falla.svar:
+            if not svar.text:
+                continue
+            for tal in Tx.tal_i(svar.text):
+                if not any(v in tal.mening.text for v in verktyg):
+                    falska.append((falla.id, tal.mening.text))
+    assert falska, ("ingen matmening alls i kontrollfallen - da mater provet "
+                    "ingenting och ARL-007 bor provas om")
+    assert len(falska) >= 2, falska
+
+
+def test_de_ej_mekaniska_fallorna_tacker_varje_bedd_regel():
+    """Varje regel som fortfarande ar bedd ska ha ett SKRIVET skal.
+
+    EJ_MEKANISK ar harnessens arliga rackviddsredovisning. En bedd regel utan
+    en sadan post ar en regel ingen har tagit stallning till - och det var
+    precis lage SAK-003 lag i innan M-46 hittade den.
+    """
+    korpus = I.las_korpus()
+    bedda = set(r.id for r in korpus.regler() if r.allvar == "regel")
+    namnda = set()
+    for falla in Fa.ALLA:
+        if falla.facit != Fa.EJ_MEKANISK:
+            continue
+        namnda |= set(re.findall(r"\b[A-Z]{3}-\d{3}\b", falla.beskrivning))
+    saknas = sorted(bedda - namnda)
+    assert not saknas, (
+        "bedda regler utan ett skrivet skal i nagon EJ_MEKANISK-falla: %s"
+        % ", ".join(saknas))

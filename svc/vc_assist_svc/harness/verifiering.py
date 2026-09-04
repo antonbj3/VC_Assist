@@ -28,6 +28,12 @@ TVA SORTERS AVVIKELSE, med olika text tillbaka:
           en decimal stodjs av varje matvarde som avrundas till det. Enheter
           rakas om till bas (millimeter, sekunder, grader, kilogram) fore
           jamforelsen, eftersom verktygens vektorer ar i millimeter.
+          Tre olika skal skiljs at, och skillnaden ar hela poangen: talet
+          FINNS INTE i turen (den klassiska hallucinationen), det finns en
+          FAKTOR 1000 bort (DOM-003, en tappad enhet), eller det fanns FORE
+          den sista scenandringen (ARB-004, ett matt som beskriver laget fore
+          flytten). Ett tal som ser rimligt ut har olika botemedel i de tre
+          fallen.
     namn  ett namn som varken star i ett verktygssvar, i uppgiften, i
           API-indexet eller i katalogen. Det ar den klassiska hallucinationen
           och den domes hardare: den kan inte avrundas ratt.
@@ -88,7 +94,14 @@ class Grund(object):
         self.katalogindex = katalogindex or {}
         self._strangar: List[str] = []
         self._normaliserade: set = set()
-        self._tal: List[float] = []
+        # (varde, generation). GENERATIONEN ar antalet scenandringar som hade
+        # skett nar talet kom in. ARB-004 mekaniserad: ett avstand du
+        # rapporterar ska vara last EFTER det sista skrivande anropet, och
+        # MATT M-11 slapar varldsmatrisen ett scensteg. Ett tal ur en
+        # generation som inte langre ar aktuell beskriver laget FORE
+        # andringen, och det talet ser rimligt ut.
+        self._tal: List[Tuple[float, int]] = []
+        self.generation = 0
         self.kallor: List[str] = []
 
         # NAMN, men inte TAL, ur de har tre kallorna. Skalet ar matt i
@@ -121,7 +134,7 @@ class Grund(object):
             return
         for m in _TAL_I_STRANG.finditer(text):
             try:
-                self._tal.append(float(m.group(0)))
+                self._tal.append((float(m.group(0)), self.generation))
             except ValueError:
                 continue
 
@@ -130,7 +143,7 @@ class Grund(object):
             return
         if isinstance(varde, (int, float)):
             if med_tal:
-                self._tal.append(float(varde))
+                self._tal.append((float(varde), self.generation))
         elif isinstance(varde, str):
             self._lagg_strang(varde, med_tal)
         elif isinstance(varde, dict):
@@ -140,6 +153,16 @@ class Grund(object):
         elif isinstance(varde, (list, tuple)):
             for v in varde:
                 self._lagg_varde(v, med_tal)
+
+    def ny_generation(self) -> int:
+        """Scenen andrades. Allt som mattes fore detta ar nu gammalt.
+
+        Anropas av loopen FORE resultatet av det andrande anropet laggs in,
+        sa att anropets egna argument (den position du bad om) hor till den
+        NYA generationen: den flytten ar ju just det som gjordes.
+        """
+        self.generation += 1
+        return self.generation
 
     def lagg_resultat(self, verktyg: str, argument: Any, resultat: Any) -> None:
         """Ett LYCKAT verktygsanrop: argumenten OCH svaret.
@@ -164,14 +187,25 @@ class Grund(object):
         """None om talet stods, annars skalet det inte gor det."""
         faktor = tal.bas / tal.varde if tal.varde else 1.0
         marginal = 0.5 * (10.0 ** -tal.decimaler) + _FLYTTALSMARGINAL
-        for observerat in self._tal:
+        gamla = []
+        for observerat, generation in self._tal:
             # Jamfor i den enhet MODELLEN skrev talet i: avrundningen skedde
             # dar, sa marginalen hor hemma dar.
             i_modellens_enhet = observerat / faktor if faktor else observerat
-            if abs(tal.varde - i_modellens_enhet) <= marginal:
+            traff = (abs(tal.varde - i_modellens_enhet) <= marginal
+                     or abs(tal.varde - observerat) <= marginal)
+            if not traff:
+                continue
+            if generation == self.generation:
                 return None
-            if abs(tal.varde - observerat) <= marginal:
-                return None
+            gamla.append(generation)
+        if gamla:
+            return ("talet stods av en matning ur generation %d, men scenen "
+                    "har andrats %d gang(er) sedan dess. MATT M-11: "
+                    "varldsmatrisen slapar ett scensteg, sa ett matt taget "
+                    "fore den sista andringen beskriver laget FORE den. Mat "
+                    "om efter det sista skrivande anropet (ARB-004)"
+                    % (max(gamla), self.generation - max(gamla)))
         if not self._tal:
             return ("inget verktyg i turen har returnerat ett enda tal, sa "
                     "talet kan inte komma ur en matning")
@@ -179,7 +213,7 @@ class Grund(object):
         if enhet:
             return enhet
         return ("inget verktygssvar i turen bar det talet; narmaste varde ar "
-                "%s" % _narmast(tal, self._tal, faktor))
+                "%s" % _narmast(tal, [v for v, _g in self._tal], faktor))
 
     def _enhetsmiss(self, tal: Talpastaende) -> Optional[str]:
         """Skalet nar talet stods i en ANNAN enhet an den skrevs i.
@@ -191,7 +225,7 @@ class Grund(object):
         """
         if not tal.varde:
             return None
-        for observerat in self._tal:
+        for observerat, _generation in self._tal:
             kvot = observerat / tal.varde
             for faktor in ENHETSFAKTORER:
                 if abs(kvot - faktor) <= ENHETSTOLERANS * faktor:
