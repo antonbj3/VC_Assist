@@ -29,6 +29,7 @@ Alla dokument, i nummerordning. Uppdaterad 2026-09-04.
 | `49_komponentmodellen.md` | 49 — Komponentmodellen: hur en komponent kan koppla ihop sig |
 | `50_grindar.md` | Grindkedjan |
 | `60_plc.md` | PLC-benet |
+| `61_st_generering.md` | Vad modellen får skriva, och hur det döms |
 | `70_faser.md` | Faser |
 | `80_bank.md` | Bänken |
 | `81_mallschema.md` | Mallschema |
