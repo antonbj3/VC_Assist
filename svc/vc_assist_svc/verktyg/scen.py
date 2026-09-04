@@ -565,7 +565,9 @@ def _kod_save_layout(argument):
 
 _lagg(
     "save_layout",
-    "Sparar hela layouten till en URI.",
+    "Sparar hela layouten till en URI. MATT: app.save() stoppar simuleringen, "
+    "sa bryggan gar ned efterat och VC maste startas om. Sparandet SKER, men "
+    "inget utfall kommer tillbaka.",
     "write",
     params({"uri": {"type": "string",
                      "description": "Mal-URI, oftast file:/// foljt av full sokvag."}},

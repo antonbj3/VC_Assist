@@ -210,6 +210,29 @@ def granska(kod):
 
 SKRIPTTYPER = ("VC_SCRIPT", "VC_PYTHONSCRIPT")
 
+# Anrop som ocksa stoppar simuleringen och darmed dodar pumpen. app.save() ar
+# MATT: den dodade bryggan mitt i fas 5:s verktygsprov.
+#
+# Skillnaden mot skriptbeteenden ar avsiktlig. Att lagga till ett skript ar
+# sallsynt och har en uppskjuten vag; det AVVISAS. Att spara en layout ar en
+# helt normal sak att vilja gora; den TILLATS men markeras, sa anroparen vet
+# att inget utfall kommer och slutar vanta pa ett svar som aldrig kan skickas.
+DODANDE_ANROP = ("save",)
+
+
+def dodar_pumpen(kod):
+    """Anrop som stoppar simuleringen utan att vara skriptbeteenden."""
+    skal = []
+    try:
+        trad = ast.parse(kod)
+    except SyntaxError:
+        return skal
+    for nod in ast.walk(trad):
+        if isinstance(nod, ast.Call) and _sista_namnet(nod.func) in DODANDE_ANROP:
+            skal.append("rad %s: %s() stoppar simuleringen"
+                        % (getattr(nod, "lineno", None), _sista_namnet(nod.func)))
+    return skal
+
 
 def skapar_skriptbeteende(kod):
     """Returnerar en lista skal, tom om koden inte ror skriptbeteenden."""

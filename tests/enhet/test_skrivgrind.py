@@ -137,3 +137,18 @@ def test_vanligt_scenbygge_ar_inte_ett_skriptbeteende():
                 "app.deleteComponent(c)",
                 "c.PositionMatrix = m"):
         assert S.skapar_skriptbeteende(kod) == [], kod
+
+
+def test_save_ar_dodande_men_inte_ett_skriptbeteende():
+    """Tva olika klasser med olika politik: skriptbeteenden AVVISAS, save
+    TILLATS men markeras. Att blanda ihop dem tar bort en formaga som behovs."""
+    assert S.dodar_pumpen("app.save('file:///x.vcmx')")
+    assert S.skapar_skriptbeteende("app.save('file:///x.vcmx')") == []
+    assert S.skapar_skriptbeteende("c.createBehaviour(VC_SCRIPT, 'x')")
+    assert S.dodar_pumpen("c.createBehaviour(VC_SCRIPT, 'x')") == []
+
+
+def test_vanligt_scenbygge_dodar_inte_pumpen():
+    for kod in ("app.createComponent()", "app.deleteComponent(c)",
+                "c.PositionMatrix = m", "print(c.Name)"):
+        assert S.dodar_pumpen(kod) == [], kod

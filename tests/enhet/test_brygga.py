@@ -417,3 +417,12 @@ def test_uppskjutet_avvisningsmeddelande_pekar_ut_bada_vagarna(klient):
         klient.koa("c.createBehaviour(VC_SCRIPT, 'x')", desc="x")
     assert "skjut_upp" in ei.value.meddelande
     assert "tillat_skriptbeteende" in ei.value.meddelande
+
+
+def test_bryggan_varnar_INNAN_den_kor_kod_som_dodar_den(klient):
+    """Efterat finns ingen pump som kan svara. Varningen maste komma fore."""
+    post = klient.koa("getApplication().save('file:///x.vcmx')", desc="spara")
+    svar = klient.godkann(post["qid"])
+    assert svar["ok"] is True
+    assert svar["result"]["dodar_pumpen"]
+    assert "startas om" in svar["result"]["varning"]

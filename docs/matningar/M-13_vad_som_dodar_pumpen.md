@@ -15,6 +15,11 @@ med kontroll av `IsRunning` och att bryggan svarar efteråt:
 | `createBehaviour(VC_BOOLEANSIGNAL, ...)` | done | ja | ja |
 | `app.deleteComponent(c)` | done | ja | ja |
 | **`createBehaviour(VC_SCRIPT, ...)`** | **inget utfall** | **nej** | **nej** |
+| **`app.save(uri)`** | **inget utfall** | **nej** | **nej** |
+
+`app.save()` upptäcktes senare samma kväll, under fas 5:s verktygsprov: den dödade
+bryggan mitt i `save_layout`. Listan över dödande operationer är alltså **inte**
+härledd ur någon princip — den växer av mätning, och kan växa igen.
 
 Scenbygge i allmänhet är alltså **ofarligt**. Det är att lägga till ett
 **skriptbeteende** som stoppar simuleringen — rimligt, eftersom VC måste
@@ -37,11 +42,22 @@ skickas. Tre vägar prövade, alla mätta:
 
 Slutsatsen är att skriptmiljöns nedmontering inte går att rida ut inifrån.
 
-## Vad bryggan gör i stället
+## Vad bryggan gör i stället — två olika svar, av mätta skäl
 
-Den **vägrar** koden och säger varför, i stället för att dö tyst mitt i sitt
-eget svar. Ett uttryckligt `tillat_skriptbeteende` finns för den som ändå vill,
-och då är tystnaden ett medvetet val.
+De två operationerna behandlas **olika**, och skillnaden är avsiktlig.
+
+| Operation | Bryggans svar | Varför |
+|---|---|---|
+| `createBehaviour(VC_SCRIPT)` | **avvisas** | sällsynt, och det finns en uppskjuten väg: koden skrivs till disk och tillämpas vid nästa VC-start, före simuleringen, där den är ofarlig |
+| `app.save(uri)` | **tillåts, men varnas om FÖRE körning** | att spara en layout är en helt normal sak att vilja göra. Att förbjuda den vore att ta bort en förmåga som behövs |
+
+Varningen måste komma **före** körningen. Efteråt finns ingen pump som kan svara,
+och en anropare som väntar på ett utfall väntar för evigt. Godkännandet svarar
+därför direkt med `dodar_pumpen` och en förklaring, och tjänstens utförare slutar
+då vänta i stället för att gå i timeout.
+
+Det här är också svaret på frågan om en framtida användare skulle gå på samma
+mina: nej — men bara för att den hittades här och blev en grind.
 
 Följden för fas 2: cellens rörelse drivs av **pumpen själv**, inte av ett eget
 drivskript. Det behövs inget nytt skriptbeteende alls.

@@ -27,6 +27,7 @@ aven om tjansten skulle rada fel. De tva linjerna ar oberoende.
 """
 from __future__ import annotations
 
+import time
 from types import MappingProxyType
 
 from .fel import OkantVerktyg, Svarsfel
@@ -34,6 +35,10 @@ from .register import CODE_GEN_HANDLERS, DATA_HANDLERS, REGISTER
 from .schema import validera_argument, validera_resultat
 
 OP_FOR_EFFECT = MappingProxyType({"read": "exec", "write": "exec_queue"})
+
+# Hur ofta kon fragas om en godkand posts utfall, och hur lange.
+KO_POLL_S = 0.05            # PRELIMINAR. Satts av matning M-14.
+KO_TIMEOUT_S = 60.0         # PRELIMINAR. Satts av matning M-14.
 
 
 def op_for_effect(effect):
@@ -83,6 +88,7 @@ class Utforare(object):
         self._kodgen = (CODE_GEN_HANDLERS if code_gen_handlers is None
                         else code_gen_handlers)
         self.koade = {}          # qid -> verktygsnamn, sa svaret kan provas
+        self.ko_timeout_s = KO_TIMEOUT_S
 
     def _verktyg(self, namn):
         if namn not in self.register:
@@ -151,12 +157,22 @@ class Utforare(object):
                 "schema svaret ska provas mot" % (qid,))
         namn = self.koade[qid]
         verktyg = self._verktyg(namn)
-        svar = self.klient.anrop("queue_approve", {"qid": qid})
-        yttre = svar.get("result") or {}
-        if yttre.get("state") != "done":
+        kvitto = (self.klient.anrop("queue_approve", {"qid": qid})
+                  .get("result") or {})
+        if kvitto.get("dodar_pumpen"):
+            # Bryggan har sagt i forvag att den gar ned. Att polla efter ett
+            # utfall vore att vanta pa ett svar som inte kan skickas.
+            return Resultat(namn, verktyg.effect, verktyg.mode,
+                            op="queue_approve", koad=False, qid=qid,
+                            resultat=None, stdout="", svar=kvitto)
+        post = self._vanta_pa_utfall(qid, namn)
+        if post["state"] != "done":
             raise Svarsfel("%s: koposten %s slutade som %r, inte done"
-                           % (namn, qid, yttre.get("state")))
-        resultat = yttre.get("result")
+                           % (namn, qid, post["state"]))
+        svar = post.get("svar") or {}
+        resultat = svar.get("result")
+        if isinstance(resultat, dict) and "result" in resultat:
+            resultat = resultat["result"]
         if resultat is None:
             raise Svarsfel(
                 "%s: koposten kordes men sista raden pa stdout var ingen JSON. "
@@ -165,3 +181,25 @@ class Utforare(object):
         return Resultat(namn, verktyg.effect, verktyg.mode, op="queue_approve",
                         koad=False, qid=qid, resultat=resultat,
                         stdout=svar.get("stdout", ""), svar=svar)
+
+    def _vanta_pa_utfall(self, qid, namn, timeout=None):
+        """Godkannandet KVITTERAS bara; pumpen kor koden.
+
+        Bryggan andrades av ett matt skal: kod som stoppar simuleringen dodar
+        pumpens tasklet mitt i exec, och ett inline-godkannande forsvann da
+        tillsammans med sitt eget svar (M-13). Utfallet lases darfor ur kon.
+        """
+        slut = time.time() + (timeout or self.ko_timeout_s)
+        sist = None
+        while time.time() < slut:
+            for post in (self.klient.anrop("queue_list", {"with_result": True})
+                         ["result"]["queue"]):
+                if post["qid"] == qid:
+                    sist = post
+                    if post["state"] in ("done", "failed", "interrupted",
+                                         "rejected"):
+                        return post
+            time.sleep(KO_POLL_S)
+        raise Svarsfel("%s: koposten %s fick inget utfall inom %.0f s (sist: %r)"
+                       % (namn, qid, timeout or self.ko_timeout_s,
+                          (sist or {}).get("state")))

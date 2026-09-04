@@ -74,7 +74,7 @@ def _s(x):
 class Post(object):
     """En post i godkannandekon."""
 
-    def __init__(self, qid, desc, kod, timeout_ms):
+    def __init__(self, qid, desc, kod, timeout_ms, dodar_pumpen=None):
         self.qid = qid
         self.desc = desc
         self.kod = kod
@@ -82,6 +82,7 @@ class Post(object):
         self.requested_at = time.time()
         self.state = "pending"
         self.svar = None
+        self.dodar_pumpen = list(dodar_pumpen or [])
 
     def som_dict(self, med_kod=False, med_svar=False):
         d = {
@@ -94,6 +95,8 @@ class Post(object):
             d["code"] = self.kod
         if med_svar and self.svar is not None:
             d["svar"] = self.svar
+        if self.dodar_pumpen:
+            d["dodar_pumpen"] = self.dodar_pumpen
         return d
 
 
@@ -622,7 +625,8 @@ class Brygga(object):
                   "ett medvetet val.")
         self._qid += 1
         post = Post("q%d" % self._qid, args.get("desc", ""), kod,
-                    args.get("timeout_ms", 5000))
+                    args.get("timeout_ms", 5000),
+                    dodar_pumpen=skrivgrind.dodar_pumpen(kod))
         self.ko.append(post)
         self.logg("koad %s: %s" % (post.qid, post.desc))
         return P.svar_ok(id_, post.som_dict())
@@ -698,6 +702,17 @@ class Brygga(object):
                               "forst sa lamnar den det laget")
         post.state = "approved"
         self.logg("godkand %s, kors av pumpen" % post.qid)
+        if post.dodar_pumpen:
+            # Sag det INNAN koden kors. Efterat finns ingen pump som kan svara,
+            # och en anropare som vantar pa ett utfall vantar for evigt (M-13).
+            self.logg("  varning: %s dodar pumpen (%s)"
+                      % (post.qid, "; ".join(post.dodar_pumpen)))
+            d = post.som_dict()
+            d["dodar_pumpen"] = post.dodar_pumpen
+            d["varning"] = ("koden stoppar simuleringen. Den KORS, men bryggan "
+                            "gar ned och nagot utfall kommer aldrig. VC maste "
+                            "startas om for att bryggan ska leva igen.")
+            return P.svar_ok(id_, d)
         if args.get("inline"):
             # Bara for kod som bevisligen inte ror simuleringen. Anvands av
             # testerna dar det inte finns nagon pump.

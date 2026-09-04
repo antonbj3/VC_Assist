@@ -137,6 +137,8 @@ class Attrappbrygga(object):
         self.logg = []
         self._register = register or V.REGISTER
         self.qid = 0
+        self.ko = []          # bryggans ko: godkannandet kvitteras, pumpen kor
+        self.nasta_utfall = "done"   # satts till "failed" av det test som vill det
 
     def anrop(self, op, args=None):
         self.logg.append((op, args or {}))
@@ -146,14 +148,33 @@ class Attrappbrygga(object):
         if op == "exec_queue":
             self.qid += 1
             qid = "q%d" % self.qid
-            self._koad = args
+            self.ko.append({"qid": qid, "desc": args.get("desc", ""),
+                            "state": "pending", "_args": args})
             return {"v": 1, "ok": True, "stdout": "",
                     "result": {"qid": qid, "desc": args.get("desc", ""),
                                "state": "pending"}}
         if op == "queue_approve":
+            # Bryggan KVITTERAR bara; pumpen kor koden (M-13). Attrappen
+            # harmar det genom att lata posten bli klar vid nasta queue_list.
+            for post in self.ko:
+                if post["qid"] == args["qid"]:
+                    post["state"] = "approved"
             return {"v": 1, "ok": True, "stdout": "",
-                    "result": {"qid": args["qid"], "state": "done",
-                               "result": self._resultat(self._koad)}}
+                    "result": {"qid": args["qid"], "state": "approved"}}
+        if op == "queue_list":
+            ut = []
+            for post in self.ko:
+                if post["state"] == "approved":
+                    post["state"] = self.nasta_utfall
+                    post["svar"] = (
+                        {"ok": True, "stdout": "",
+                         "result": self._resultat(post["_args"])}
+                        if self.nasta_utfall == "done" else
+                        {"ok": False, "stdout": "",
+                         "error": {"code": "E_EXEC", "message": "provfel"}})
+                ut.append(dict((k, v) for k, v in post.items()
+                               if not k.startswith("_")))
+            return {"v": 1, "ok": True, "stdout": "", "result": {"queue": ut}}
         raise AssertionError("attrappen kan inte %r" % (op,))
 
     def _resultat(self, args):
@@ -752,18 +773,14 @@ def test_ett_skrivande_verktyg_koas_och_kan_godkannas(utf, brygga):
     assert r.koad and r.op == "exec_queue" and r.qid == "q1"
     assert brygga.logg[0][1]["desc"] == "save_layout(uri='file:///c/l.vcmx')"
     klar = utf.godkann("q1")
-    assert brygga.op_lista == ["exec_queue", "queue_approve"]
+    assert brygga.op_lista == ["exec_queue", "queue_approve", "queue_list"]
     assert klar.resultat["saved"] is True
 
 
 def test_en_kopost_som_inte_gick_igenom_raknas_inte_som_lyckad(utf, brygga,
                                                                monkeypatch):
     utf.utfor("save_layout", {"uri": "file:///c/l.vcmx"})
-    monkeypatch.setattr(brygga, "anrop",
-                        lambda op, args=None: {"ok": True, "stdout": "",
-                                               "result": {"qid": args["qid"],
-                                                          "state": "failed",
-                                                          "result": None}})
+    brygga.nasta_utfall = "failed"
     with pytest.raises(V.Svarsfel) as e:
         utf.godkann("q1")
     assert "slutade som 'failed'" in str(e.value)
