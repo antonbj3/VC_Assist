@@ -36,15 +36,15 @@ from typing import List, Optional, Sequence, Tuple
 
 from .handelser import (ARBETAR, AVBRUTET, EJ_PROVAT, EJ_STARTAT, FALLET,
                         Forloppsfel, Handelse, KLART, MED_EGEN_SEKTION,
-                        Ovisshet, PAGAR_MARKOR,
-                        RACKVIDDEN, STEG_FOLL, STEG_HOPPAT, STEG_KLART,
-                        STEG_PAGAR, STEG_VANTAR, Steg, TYST,
-                        UTANFOR_RACKVIDD, VANTAR)
+                        Ovisshet, PAGAR_MARKOR, RACKVIDDEN, STEG_FOLL,
+                        STEG_HOPPAT, STEG_KLART, STEG_PAGAR, STEG_VANTAR,
+                        Steg, TYST, UTANFOR_RACKVIDD, VANTAR)
 
 # Hur många händelserader visningen skriver ut. MÄTT i M-64: en händelserad
-# är 40-90 tecken, så tolv rader är under 1 100 tecken och hela ytan ryms
-# under 4 000 för en fallen körning. Händelser som bär någon annans ord
-# trimmas ALDRIG bort, oavsett tak.
+# är 40-90 tecken, så tolv rader kostar under 1 100 och hela ytan mäter
+# 2 321 tecken i sitt dyraste läge. Utan taket kostade en körning med 204
+# händelser 8 481 tecken i stället för 1 608. Händelser som bär någon annans
+# ord trimmas ALDRIG bort, oavsett tak.
 MAX_HANDELSERADER = 12          # Satt av M-64.
 
 # Hur länge det får gå mellan två VERKLIGA händelser innan läget blir TYST.
