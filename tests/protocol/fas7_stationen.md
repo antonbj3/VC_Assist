@@ -4,13 +4,18 @@
 **kontrakt:** `docs/spec/70_faser.md` — *"Grind 1–5 gröna. Ögat säger PASS.
 L1-guld"*
 **specen:** `docs/spec/61_st_generering.md`
-**körs av:** `tests/protocol/kor_fas7_station.py` (byggs)
+**körs av:** `tests/protocol/kor_fas7_station.py`
 
-**Status: ÖPPEN, och grinden är skriven före bygget.**
+**Status: STÄNGD 2026-09-04.** Grind 1–5 gröna, ögat sa PASS, guldgrinden gav
+`GOLD gold_verified_core`. Talen står i
+[M-49](../../docs/matningar/M-49_stationen_arbetar.md) och de trasiga fallen i
+[M-50](../../docs/matningar/M-50_de_trasiga_fallen.md). Utfallet i sin helhet
+står längst ned.
 
-Detta dokument existerar innan generatorn gör det. Skälet är att en grind som
-skrivs efter koden mäter koden. Kraven nedan är alltså inte en beskrivning av
-vad som råkar fungera, utan vad som måste hålla.
+Dokumentet skrevs innan generatorn fanns. Skälet är att en grind som skrivs
+efter koden mäter koden. Kraven nedan är alltså inte en beskrivning av vad som
+råkar fungera, utan vad som måste hålla — och de stod oförändrade när
+körningen gjordes.
 
 ## Vad fasen faktiskt påstår
 
@@ -21,7 +26,7 @@ en scen som rör sig.
 Notera vad som inte påstås: ingenting om flera stationer (fas 8), ingenting om
 hur ofta det lyckas (fas 9). Fas 7 påstår att vägen finns.
 
-## Förutsättning som ännu inte är uppfylld
+## Förutsättning som ~~ännu inte är uppfylld~~ **är uppfylld**
 
 Fasen kan inte stängas förrän något **flödar** i en scen.
 
@@ -30,7 +35,9 @@ skapar en riktig produkt vid manuellt anrop, men behållaren är tom över 160
 simulerade sekunder, och banans behållare är tom. En station utan material är
 inte en station, och ögat har då ingen rörelse att döma.
 
-Det ledet mäts separat (M-40, M-41). Fas 7 står öppen till dess.
+Det ledet mättes separat: M-40 fann de två tysta villkoren, M-41 mätte att en
+produkt matas fram av sig själv och åker i 250,0 mm/s. Stationen i M-49 står på
+den linjen, och materialet flödade under hela mätningen.
 
 ## Grindarna som ska vara gröna
 
@@ -103,3 +110,52 @@ Skrivs ned här nu, så att det inte kan glömmas bort när talen är gröna:
 * **Windows.**
 * **Verklig hårdvara.** Sensorstuds, ställdonsdynamik och fältbussjitter finns
   inte i simuleringen. Ögat är felfinnande, aldrig bevis.
+
+## Utfallet — mätt 2026-09-04
+
+Sex körningar, var och en med egen VC-omstart, egen kompilering och
+uppladdning till OpenPLC, 25 s uppvärmning och 110 s mätning.
+
+| # | Fall | grind 1–4 | ögats dom | vad ögat mätte |
+|---|---|---|---|---|
+| — | **HEL** rimlig lösning | alla GODKÄND | **PASS** | tio hela cykler, alla i ordning och inom fönstren, exakt ett stopp per produkt, noll överlapp |
+| T3 | nivåläsning där en flank krävs | alla GODKÄND | **FAIL** | bromsen gick ut **3 gånger per produkt** (4 på en cykel), på 9 cykler av 9 |
+| T4 | timer som nollställs av sitt eget villkor | alla GODKÄND | **INCONCLUSIVE** | ingen cykel började ens: `Stopp` hög i 100,0 % av 1100 prov, en enda produkt i scenen på 110 s |
+| T5 | förregling skriven som kommentar | alla GODKÄND | **FAIL** | överlapp **5,50 s** i 66 prov mellan broms och utmatning |
+| T6 | rätt på första varvet, fel efter stopp mitt i sekvensen | alla GODKÄND | **FAIL** | nio cykler perfekta, **cykel 2 — den som pausen träffade — matade aldrig ut** |
+| T7′ | `NOLL`: rör alla signaler, gör ingenting | alla GODKÄND | **FAIL** | tio cykler började, bromsen gick aldrig ut på någon av dem |
+
+**Inget av de fem trasiga fallen föll före ögat.** Alla fem passerade grind
+1–4, vilket är det protokollet krävde: en statisk regel som råkar fånga T3 vore
+inget bevis på att ögat fungerar.
+
+### Vad facit inte kunde förrän mätningen tvingade fram det
+
+Tre rättelser, alla gjorda **innan** något dömdes grönt, och alla mätta:
+
+1. **Ordningen ensam ser inte en station som gör om sitt arbete.** T3 höll
+   ordningen på fem cykler av sex medan den stoppade samma produkt tre till
+   fyra gånger — en ordningsdom tar den första flanken som passar och slutar
+   sedan titta. Facit fick en **räkning**.
+2. **Räkningen får inte gälla utmatningen.** En driftpaus mitt i utmatningen
+   släcker den och tänder den igen, så en riktig lösning matar ut två gånger
+   på just den produkt pausen träffade. En grind som fäller den rätta lösningen
+   på sin egen störning mäter störningen.
+3. **Perturbationen måste landa inne i sekvensen, och riggen måste vara varm.**
+   En paus som kommer efter att processtiden tagit slut skiljer inte T6 från
+   HEL. Och den första cykeln efter start är inget prov — den är ett
+   uppstartsförlopp — så linjen körs 25 s innan ögat får se den. Rättelsen
+   ligger i **riggen**, inte i facit.
+
+### Vad fasen INTE prövade, trots grönt
+
+* **Att en modell skriver kroppen.** Alla sex ST-kroppar är handskrivna. Fas 7
+  påstår att vägen finns, inte att en språkmodell hittar den. Reparationsvarv:
+  **noll**, av samma skäl.
+* **Nödstoppet.** Den `skyddad`-märkta ingången går inte att driva över OPC UA
+  (`opcuakonfig` ger den bara läsrättigheter, och en skrivning svarar
+  `BadInternalError`). Den stod konstant `FALSE`.
+* **Fasförhållandet PLC ↔ scen.** Kräver `--plc-inskott`, och med den fälls
+  körningen på ögats färskhetsgrind. Se M-49.
+* Och allt som redan stod nedskrivet ovan: flera stationer, frekvens, Windows,
+  verklig hårdvara.

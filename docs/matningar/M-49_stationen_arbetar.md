@@ -24,6 +24,52 @@ produkten når fotocellen → bromsen ut inom transporttiden → processtiden 2 
 bromsen släpper → utmatningen 0,5 s → produkten lämnar stationen. Och: bromsen
 och utmatningen får aldrig vara höga samtidigt.
 
+## Fasens kontrakt, punkt för punkt
+
+`docs/spec/70_faser.md` för fas 7: *"Grind 1–5 gröna. Ögat säger PASS.
+L1-guld"*.
+
+| Kravet | Utfall |
+|---|---|
+| Grind 1 kompilering | GODKÄND (STruC++ 0.6.6, riktig kompilator) |
+| Grind 2 statisk analys | GODKÄND |
+| Grind 3 deklarationsmatchning | GODKÄND |
+| Grind 4 anropsvalidering | GODKÄND |
+| Grind 5 ögat | **PASS** |
+| L1-guld | **GOLD gold_verified_core** (1 av 1 celler gav PASS) |
+
+De fem trasiga fallen står i [M-50](M-50_de_trasiga_fallen.md). Alla fem
+passerade grind 1–4 och fälldes av ögat — inget av dem föll före det, vilket
+är protokollets hårda krav.
+
+## Vad ögat sa
+
+**PASS.** Tio hela cykler i rad, alla i rätt ordning, alla inom sina fönster,
+exakt ett stopp per produkt, noll överlapp mellan broms och utmatning.
+
+```
+cyk  0 t0=  7.00  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  1 t0= 16.90  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  2 t0= 27.10  Stopp RISE 0.6  FALL 4.8  Slapp RISE 4.8  FALL 5.4  Puls FALL 6.3   <- driftpausen
+cyk  3 t0= 37.00  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  4 t0= 46.90  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  5 t0= 57.10  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  6 t0= 67.00  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  7 t0= 76.90  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  8 t0= 87.10  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk  9 t0= 97.00  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2
+cyk 10 t0=106.90  avhuggen - fonstret ryms inte i serien, alltsa oprovad
+stopp per cykel: 1 1 1 1 1 1 1 1 1 1
+forregling: overlapp 0.00 s
+```
+
+Nio cykler ligger inom 0,1 s av varandra på varje steg. Den tionde är
+driftpausen, och den syns exakt där den lades: processtiden blev 4,8 s i
+stället för 2,4 s — den pålagda pausen på 1,0 s plus omstarten av `TON`:en —
+och stationen fortsatte som förut på nästa produkt.
+
+Serien: 110,0 s, 1100 prov, 10,00 Hz.
+
 ## Två saker som simuleras av tjänsten, och varför
 
 **Fotocellen och ställdonen bor i tjänsten, inte i VC.** Det är inte en genväg

@@ -81,13 +81,135 @@ Pausen läggs nu i den **första stoppfas som börjar efter 25 s**, och den syns
 ögats serie (`ST7_Givare/Kor` är en spårad signal). I den godkända körningen:
 
 ```
-driftvaljarens flanker:  RISE 0.2 s   FALL 32.3 s   RISE 33.6 s
-HEL cykel 3 (t0 = 31.1):  Stopp FALL 5.1 s   (ovriga cykler: 2.5-2.6 s)
+driftvaljaren:            FALL 28.0 s   RISE 29.2 s
+HEL cykel 2 (t0 = 27.1):  Stopp FALL 4.8 s   (ovriga nio cykler: 2.4 s)
 ```
 
-Processtiden förlängdes alltså med precis pausen, och stationen fortsatte.
-Det är facit för `kor`: en pausad linje får inte släppa en klämd produkt.
+Processtiden förlängdes alltså med precis pausen plus omstarten av `TON`:en,
+och stationen fortsatte som förut på nästa produkt. Det är facit för `kor`: en
+pausad linje får inte släppa en klämd produkt.
 
 ## Utfallet
 
-*(fylls i av körningen)*
+Grind 1–4 kördes skarpt på **varje** fall. Alla fem passerade alla fyra — ingen
+av dem föll före ögat, vilket är precis vad protokollet kräver.
+
+| # | grind 1–4 | ögats dom | ögats egen orsak, ordagrant |
+|---|---|---|---|
+| **HEL** | alla GODKÄND | **PASS** | `allt inom marginal` |
+| **T3** | alla GODKÄND | **FAIL** | `sekvens: stationens sekvens hölls inte: cykel 0: ST7_Don/Stopp gick hog 3 ganger, hogst 1 ar tillatet` (och likadant på 9 cykler av 9) |
+| **T4** | alla GODKÄND | **INCONCLUSIVE** | `sekvensen gick inte att döma: ingen RISE-flank pa ST7_Givare/Puls: ingen cykel borjade ens` |
+| **T5** | alla GODKÄND | **FAIL** | `forregling: förreglingen bröts` — överlapp **5,50 s** i 66 prov, första vid t = 0,4 s |
+| **T6** | alla GODKÄND | **FAIL** | `sekvens: stationens sekvens hölls inte: cykel 2: ST7_Don/Slapp RISE uteblev i fonstret 1.20-6.24 s efter starten` |
+| **NOLL** | alla GODKÄND | **FAIL** | `sekvens: stationens sekvens hölls inte: cykel 0: ST7_Don/Stopp RISE uteblev i fonstret 0.00-1.44 s efter starten` (och likadant på 10 cykler av 10) |
+
+### T3 — nivån i stället för flanken
+
+Nio dömda cykler, **nio brott**, alla på räkningen:
+
+```
+stopp per cykel:  3 3 3 3 3 3 3 3 4
+```
+
+Stationen gör om hela sitt arbete tre gånger på varje produkt. Ordningen håller
+varje gång — det är antalet varv som är felet, och det var den insikten som
+gav facit sin räkning.
+
+### T4 — timern som startas av sin egen puls
+
+Ögat säger `INCONCLUSIVE`, och skälet är starkare än det låter: **ingen cykel
+började ens.** Serien säger varför, utan tolkning:
+
+```
+ST7_Don/Stopp    hög i 100,0 % av 1100 prov
+ST7_Don/Slapp    hög i   0,0 % av 1100 prov
+bromsklacken     y = 5,700 m hela körningen (utskjuten)
+produkter i scenen: 1 (ST7_P02), i 110 s
+```
+
+Bromsen gick ut och släppte aldrig. Bandet stod, kön bakom växte utanför
+fotocellen, och exakt en produkt fanns i scenen under hela mätningen. Det är
+inte en obestämbar station — det är en död linje, och ögat säger det med sina
+egna tal.
+
+*(Utan uppvärmningen såg ögat T4:s första stopp och fällde den i stället på
+`ST7_Don/Stopp FALL uteblev i fonstret 1.20-6.24 s`. Uppvärmningen behövs för
+att den hela lösningen ska mätas i jämvikt, och priset är att T4:s dödläge
+hinner inträffa innan mätningen börjar. Båda utfallen är fällningar, och båda
+står här.)*
+
+### T5 — förreglingen som kommentar
+
+```
+förregling ST7_Don/Stopp + ST7_Don/Slapp:
+    överlapp 5,50 s i 66 prov, första vid t = 0,40 s, tak 0,10 s  ->  BROTT
+```
+
+Taket är seriens eget provintervall: ett överlapp som syns i ett enda prov kan
+vara två flanker i samma prov. 66 prov kan det inte vara.
+
+### T6 — rätt på första varvet
+
+**Nio cykler av tio är perfekta.** Den tionde är den som avbröts:
+
+```
+driftväljaren:  FALL 30.4 s   RISE 31.6 s
+cyk 1 t0=19.00  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2   OK
+cyk 2 t0=29.20  Stopp RISE 0.6  FALL 1.8  Slapp RISE ---- MISSING                   BROTT
+cyk 3 t0=39.10  Stopp RISE 0.6  FALL 2.4  Slapp RISE 2.4  FALL 3.0  Puls FALL 4.2   OK
+```
+
+Pausen kom 1,2 s in i cykel 2. Lösningen nollställde läget, släppte bromsen på
+1,8 s i stället för 2,4 — och matade aldrig ut. Produkten passerade
+obehandlad, och nästa varv gick som om ingenting hänt. **Exakt en cykel av tio
+skiljer den från den hela lösningen**, och det är den cykel perturbationen
+träffade.
+
+Ingen förgrind kan se det. Raden `laget := 0;` i `IF NOT kor`-grenen är giltig
+ST, rör bara deklarerade taggar, kompilerar, och är dessutom en rad en erfaren
+konstruktör skriver av god vana.
+
+
+### NOLL — facitets nollpunkt
+
+`stopp := stopp AND (givare OR NOT givare);` och en rad till. Programmet rör
+alla fem taggarna, skriver varje utgång exakt en gång, och gör ingenting.
+
+```
+ST7_Don/Stopp    hög i  0,0 % av 1101 prov
+ST7_Don/Slapp    hög i  0,0 % av 1101 prov
+ST7_Givare/Puls  hög i 32,2 % av 1101 prov   <- linjen gick, produkter kom
+```
+
+Tio cykler började — materialet flödade hela tiden — och **alla tio fälldes**
+på att bromsen aldrig gick ut. Det är den nollpunkt M-48 flyttade hit: en tom
+kropp fälls redan av grind 3, men det här programmet passerar alla fyra
+förgrindarna och kan bara fällas av facit. Med det har facit en undre gräns,
+och talen ovanför den betyder något.
+
+## Vad körningen kostade
+
+Sex fall, var och en: VC startas om, programmet kompileras och laddas i
+OpenPLC, runtimeprocessen startas om, linjen värms 25 s, och ögat provtar
+110 s.
+
+```
+kopplarvarv per fall:  367 mätta + 84 under uppvärmningen
+varvtid:               median 44-48 ms, p95 59-65 ms, max 108-195 ms
+ogats serie:           110,0 s, 1100 prov, 10,00 Hz
+```
+
+T5 är den enda som gav **konflikter i anläggningen**: 22 varv där både bromsen
+och utmatningen begärdes samtidigt. Anläggningen låter bromsen vinna — en klämd
+produkt får inte matas ut — och rapporterar konflikten i stället för att tiga.
+
+## Vad som INTE är prövat
+
+* **Att en modell skriver kropparna.** Alla sex är handskrivna. Fas 7 påstår
+  att vägen finns, inte att en språkmodell hittar den; det är fas 9.
+* **Reparationsvarv.** Protokollet ber om antalet, och det är noll här av
+  samma skäl: ingen modell har fått något fel tillbaka att laga.
+* **Nödstoppet.** `nodstopp` går inte att driva över OPC UA (M-49) och stod
+  konstant `FALSE`. Vad ST-koden gör när den går hög är oprövat.
+* **Fler trasiga fall än fem.** Felklasserna i protokollet är slut, men
+  felklasserna i verkligheten är det inte.

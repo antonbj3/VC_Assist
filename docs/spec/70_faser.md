@@ -28,7 +28,7 @@ slarv"*, *"missa ingenting"* — bor där, inte i uppstartsstegen.
 | 4 | **API-index** | sökbart index ur `vc_python_api.json` + AST-validering mot schemat | Modellen kan inte anropa ett verktyg eller argument som inte finns. Mätt över N försök: noll uppfunna namn | **stängd** |
 | 5 | **Scenbygge** | katalogindex, spawn via URI, koppling via `canConnect`/`connect` | N mållayouter byggda: noll kollisioner, alla gränssnitt kopplade | **stängd** |
 | 6 | **PLC-bandet** | OpenPLC v4, OPC UA, genererad signalkarta och deklarationer | Handskriven ST styr scenen genom OPC UA. Tur och retur mätt i ms | **stängd** (M-39) |
-| 7 | **ST för en station** | skelett + deklarationer genererade, modellen skriver sekvensen | Grind 1–5 gröna. Ögat säger PASS. **L1-guld** | grind 1–4 gröna (M-48); ögat återstår |
+| 7 | **ST för en station** | skelett + deklarationer genererade, modellen skriver sekvensen | Grind 1–5 gröna. Ögat säger PASS. **L1-guld** | **STÄNGD** (M-49, M-50): grind 1–5 gröna, ögat PASS, L1-guld; fem trasiga fall fällda av ögat |
 | 8 | **Komposition** | flera stationer | Guld per station, sedan guld för linan. **L2** | öppen |
 | 9 | **Bänken** | scenariosamling med facit | Tre tal rapporterade: första försöket, efter k varv, fel per klass. **Kräver fas 11** | öppen |
 | 10 | **Paketering** | nedladdningsbart tillägg | Ren maskin: klona, installera, kör. Fungerar utan handpåläggning. **Kräver fas 12** | byggd, oprövad på ren maskin |
