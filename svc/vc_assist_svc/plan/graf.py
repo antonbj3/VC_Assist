@@ -12,19 +12,21 @@ uttrycka:
 Tva krav ar hardare an de later:
 
 CYKLER SKA UPPTACKAS. En cykel far aldrig bli en oandlig loop, och felet ska
-namna VILKA steg som ingar. Darfor letas starkt sammanhangande komponenter med
-Tarjans algoritm och rapporteras med sina medlemmar; ordning() vagrar sedan
-lamna en halv ordning.
+namna VILKA steg som ingar. ordning() vagrar sedan lamna en halv ordning.
 
 ORDNINGEN AR DETERMINISTISK. Samma graf ger samma ordning varje gang, oavsett
 i vilken ordning stegen rakade laggas in. Utan det gar en korning inte att
 jamfora med nasta, och da ar en jamforelse mellan tva korningar vardelos.
-Mekanismen: Kahns algoritm dar det MINSTA id:t bland de korbara alltid valjs.
-Det ar ett kanoniskt val, inte ett godtyckligt.
+
+BADA SVAREN RAKNAS I ordning.py, som ocksa processordningen i processer.py
+anvander. Samma matematik far inte skrivas tva ganger: tva implementationer av
+samma kontroll ar tva OLIKA kontroller sa fort nagon ratter den ena.
 """
 from __future__ import annotations
 
 from .fel import Graffel, Specfel
+from .ordning import (cykler as _cykler, kanonisk_ordning, lager as _lager,
+                      nabar as _nabar, okanda_kanter)
 from .steg import Steg
 
 LINTKODER = {
@@ -86,65 +88,22 @@ class Uppgiftsgraf(object):
         return dict((i, tuple(sorted(b for b in s.beroenden if b in self._steg)))
                     for i, s in self._steg.items())
 
+    def _alla_kanter(self):
+        """{id: beroenden som deklarerats, aven de som inte finns}."""
+        return dict((i, tuple(s.beroenden)) for i, s in self._steg.items())
+
     def okanda_beroenden(self):
-        ut = []
-        for i in sorted(self._steg):
-            for b in sorted(self._steg[i].beroenden):
-                if b not in self._steg:
-                    ut.append((i, b))
-        return ut
+        return okanda_kanter(self._alla_kanter())
 
     # -- cykler -----------------------------------------------------------
 
     def cykler(self):
         """Varje ring av steg som beror pa varandra, med sina medlemmar.
 
-        Tarjan, iterativt: en djup graf far inte kunna sla i rekursionstaket
-        och gora en cykelrapport till ett RecursionError.
+        Raknas i ordning.py, iterativt: en djup graf far inte kunna sla i
+        rekursionstaket och gora en cykelrapport till ett RecursionError.
         """
-        kanter = self._kanter()
-        index = {}
-        laglank = {}
-        pa_stacken = set()
-        stack = []
-        raknare = [0]
-        ut = []
-
-        for start in sorted(self._steg):
-            if start in index:
-                continue
-            arbete = [(start, 0)]
-            while arbete:
-                nod, i = arbete[-1]
-                if i == 0:
-                    index[nod] = laglank[nod] = raknare[0]
-                    raknare[0] += 1
-                    stack.append(nod)
-                    pa_stacken.add(nod)
-                grannar = kanter[nod]
-                if i < len(grannar):
-                    arbete[-1] = (nod, i + 1)
-                    granne = grannar[i]
-                    if granne not in index:
-                        arbete.append((granne, 0))
-                    elif granne in pa_stacken:
-                        laglank[nod] = min(laglank[nod], index[granne])
-                    continue
-                arbete.pop()
-                if arbete:
-                    forlader = arbete[-1][0]
-                    laglank[forlader] = min(laglank[forlader], laglank[nod])
-                if laglank[nod] == index[nod]:
-                    komponent = []
-                    while True:
-                        m = stack.pop()
-                        pa_stacken.discard(m)
-                        komponent.append(m)
-                        if m == nod:
-                            break
-                    if len(komponent) > 1:
-                        ut.append(sorted(komponent))
-        return sorted(ut)
+        return _cykler(self._kanter())
 
     # -- ordning ----------------------------------------------------------
 
@@ -159,19 +118,8 @@ class Uppgiftsgraf(object):
             raise Graffel("grafen gar inte att ordna: %s"
                           % "; ".join("%s beror pa %s som inte finns" % (i, b)
                                       for i, b in okanda))
-        kanter = self._kanter()
-        kvar = dict((i, set(b)) for i, b in kanter.items())
-        ut = []
-        while True:
-            korbara = sorted(i for i, b in kvar.items() if not b)
-            if not korbara:
-                break
-            # Det MINSTA id:t forst. Kanoniskt val -> samma ordning varje gang.
-            valt = korbara[0]
-            ut.append(valt)
-            del kvar[valt]
-            for beroenden in kvar.values():
-                beroenden.discard(valt)
+        # Det MINSTA id:t forst. Kanoniskt val -> samma ordning varje gang.
+        ut, kvar = kanonisk_ordning(self._kanter())
         if kvar:
             cykler = self.cykler()
             raise Graffel(
@@ -187,17 +135,7 @@ class Uppgiftsgraf(object):
         kunna kora planen. Koraren i korning.py kor sekventiellt (se dess
         docstring), sa talet ar ett matt pa planen, inte pa korningen.
         """
-        ordnade = self.ordning()
-        niva = {}
-        for i in ordnade:
-            beroenden = [b for b in self._steg[i].beroenden if b in self._steg]
-            niva[i] = 0 if not beroenden else 1 + max(niva[b] for b in beroenden)
-        ut = []
-        for i in ordnade:
-            while len(ut) <= niva[i]:
-                ut.append([])
-            ut[niva[i]].append(i)
-        return [sorted(lag) for lag in ut]
+        return _lager(self._kanter(), self.ordning())
 
     def bredd(self):
         """Bredaste lagret. 1 betyder en helt sekventiell plan."""
@@ -222,18 +160,7 @@ class Uppgiftsgraf(object):
 
     def nabar(self, fran, till):
         """Finns en beroendevag fran 'till' till 'fran'? (dvs. en ordning)."""
-        kanter = self._kanter()
-        sedda = set()
-        stack = [fran]
-        while stack:
-            nod = stack.pop()
-            for b in kanter.get(nod, ()):
-                if b == till:
-                    return True
-                if b not in sedda:
-                    sedda.add(b)
-                    stack.append(b)
-        return False
+        return _nabar(self._kanter(), fran, till)
 
     # -- granskning -------------------------------------------------------
 
