@@ -39,23 +39,23 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 # Tillståndsnummer, PackTags v3.0. Namnen står med för att koden ska gå att
 # läsa; numren är det som skrivs på ST..._PML_STATE.
-CLEARING = 1
-STOPPED = 2
-STARTING = 3
-IDLE = 4
-SUSPENDED = 5
-EXECUTE = 6
-STOPPING = 7
-ABORTING = 8
-ABORTED = 9
-HOLDING = 10
-HELD = 11
-UNHOLDING = 12
-SUSPENDING = 13
-UNSUSPENDING = 14
-RESETTING = 15
-COMPLETING = 16
-COMPLETE = 17
+CLEARING = 1                # PackTags v3.0, verifierad i M-45.
+STOPPED = 2                 # PackTags v3.0, verifierad i M-45.
+STARTING = 3                # PackTags v3.0, verifierad i M-45.
+IDLE = 4                    # PackTags v3.0, verifierad i M-45.
+SUSPENDED = 5               # PackTags v3.0, verifierad i M-45.
+EXECUTE = 6                 # PackTags v3.0, verifierad i M-45.
+STOPPING = 7                # PackTags v3.0, verifierad i M-45.
+ABORTING = 8                # PackTags v3.0, verifierad i M-45.
+ABORTED = 9                 # PackTags v3.0, verifierad i M-45.
+HOLDING = 10                # PackTags v3.0, verifierad i M-45.
+HELD = 11                   # PackTags v3.0, verifierad i M-45.
+UNHOLDING = 12              # PackTags v3.0, verifierad i M-45.
+SUSPENDING = 13             # PackTags v3.0, verifierad i M-45.
+UNSUSPENDING = 14           # PackTags v3.0, verifierad i M-45.
+RESETTING = 15              # PackTags v3.0, verifierad i M-45.
+COMPLETING = 16             # PackTags v3.0, verifierad i M-45.
+COMPLETE = 17               # PackTags v3.0, verifierad i M-45.
 
 TILLSTANDSNAMN = {
     CLEARING: "CLEARING", STOPPED: "STOPPED", STARTING: "STARTING",
@@ -67,15 +67,15 @@ TILLSTANDSNAMN = {
 }
 
 # CntrlCmd 1–9.
-CMD_RESET = 1
-CMD_START = 2
-CMD_STOP = 3
-CMD_HOLD = 4
-CMD_UNHOLD = 5
-CMD_SUSPEND = 6
-CMD_UNSUSPEND = 7
-CMD_ABORT = 8
-CMD_CLEAR = 9
+CMD_RESET = 1               # PackTags v3.0, verifierad i M-45.
+CMD_START = 2               # PackTags v3.0, verifierad i M-45.
+CMD_STOP = 3                # PackTags v3.0, verifierad i M-45.
+CMD_HOLD = 4                # PackTags v3.0, verifierad i M-45.
+CMD_UNHOLD = 5              # PackTags v3.0, verifierad i M-45.
+CMD_SUSPEND = 6             # PackTags v3.0, verifierad i M-45.
+CMD_UNSUSPEND = 7           # PackTags v3.0, verifierad i M-45.
+CMD_ABORT = 8               # PackTags v3.0, verifierad i M-45.
+CMD_CLEAR = 9               # PackTags v3.0, verifierad i M-45.
 
 # De verkande tillstånden: de lämnas på State Complete, inte på ett kommando.
 PA_STATE_COMPLETE: Dict[int, int] = {
