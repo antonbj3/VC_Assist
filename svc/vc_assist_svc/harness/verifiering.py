@@ -43,7 +43,7 @@ from .text import Namnpastaende, Talpastaende, namn_i, normalisera, tal_i
 # Avrundningsmarginal utover halva sista decimalen. Ren flyttalsmarginal, inte
 # en tolerans pa matningen: 2,5 far inte falla pa att 2500,0/1000 blir
 # 2,4999999999999996.
-_FLYTTALSMARGINAL = 1e-9
+_FLYTTALSMARGINAL = 1e-9   # Satt av M-46, ren float64-marginal.
 
 # Tal i en strang ur ett verktygssvar, t.ex. modellnamnet "IRB 1200-5/0.9".
 # Ett verktygssvar som BAR talet i en text stodjer talet: modellen som

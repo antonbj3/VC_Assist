@@ -44,7 +44,10 @@ if _BANK not in sys.path:
 
 import lasare as _bank_lasare  # noqa: E402
 
+from ..st import lasare as st_lasare  # noqa: E402
+from ..st import modell as ST  # noqa: E402
 from ..st import validator as st_validator  # noqa: E402
+from ..st.fel import Syntaxfel as ST_Syntaxfel  # noqa: E402
 
 # HEURISTIK, se modulens docstring. Orden ar de som faktiskt forekommer i
 # katalogindexet och i bankens sakerhetsuppgifter (nodstopp, ljusrida,
@@ -82,6 +85,17 @@ KRINGGAENDEORD = (
 # Verkan som far rora en sakerhetsmarkt sak. Allt annat nekas.
 TILLATEN_VERKAN = ("read",)
 
+# Bitlogiska operatorer. Star tva SKILDA skyddade taggar i samma sadana
+# uttryck har den genererade logiken byggt sin egen sakerhetsfunktion av tva
+# fardiga, och det ar precis vad SAK-003 forbjuder: forreglingen tas fardig
+# som EN insignal ur sakerhets-PLC:n. Satt av M-46.
+SAMMANVAGANDE_OPERATORER = ("AND", "OR", "XOR", "&")
+
+# Hur manga skilda skyddade taggar som far vagas ihop i ett och samma
+# uttryck. En ar forreglingen sjalv och ar hela poangen med I15; tva ar en
+# sammanvagning.
+MAX_SKYDDADE_I_ETT_UTTRYCK = 1     # Satt av M-46.
+
 
 @dataclass(frozen=True)
 class Sakerhetsdom:
@@ -114,6 +128,84 @@ def _strangar_i(varde: Any) -> List[str]:
             ut.extend(_strangar_i(v))
         return ut
     return []
+
+
+def _barn(nod: Any):
+    """Barnen till en nod i ST-tradet. Generisk over dataklasserna.
+
+    Skrivs generiskt med flit: en ny uttrycks- eller satstyp i st/modell.py
+    ska INTE kunna gomma en sammanvagning for grinden bara for att den har
+    ett faltnamn ingen tankte pa har.
+    """
+    if not hasattr(nod, "__dataclass_fields__"):
+        return
+    for namn in nod.__dataclass_fields__:
+        varde = getattr(nod, namn, None)
+        if isinstance(varde, (list, tuple)):
+            for post in varde:
+                yield post
+        else:
+            yield varde
+
+
+def _noder(nod: Any):
+    """Noden och allt under den."""
+    stack = [nod]
+    while stack:
+        aktuell = stack.pop()
+        if aktuell is None or isinstance(aktuell, (str, int, float, bool)):
+            continue
+        yield aktuell
+        stack.extend(_barn(aktuell))
+
+
+def _skyddade_namn_under(nod: Any, skyddade: frozenset) -> Tuple[str, ...]:
+    """De skilda skyddade taggarna som star nagonstans under noden."""
+    sedda = []
+    for under in _noder(nod):
+        if isinstance(under, ST.Namn):
+            stor = under.ident.upper()
+            if stor in skyddade and stor not in sedda:
+                sedda.append(stor)
+    return tuple(sedda)
+
+
+def sammanvagningar(kalla: str, skyddade) -> Tuple[Tuple[int, Tuple[str, ...]], ...]:
+    """[(rad, taggar)] for varje uttryck som vager ihop flera skyddade taggar.
+
+    SAK-003, mekaniserad. Grinden laser ST:s EGET trad (st/lasare.py) i
+    stallet for att leta i texten: "LJUSRIDA_OK AND TVAHANDSDON_OK" och
+    "LJUSRIDA_OK\\n  AND TVAHANDSDON_OK" ar samma uttryck, och en
+    strangsokning hade sett tva olika saker.
+
+    En oparsbar kalla ger tom lista. Det ar inte en lucka: ST-validatorn
+    domer syntaxen, och sakerhetsgrinden ska inte bli en andra syntaxgrind.
+    """
+    mangd = frozenset(t.upper() for t in skyddade)
+    if not mangd:
+        return ()
+    try:
+        enhet = st_lasare.las(kalla)
+    except ST_Syntaxfel:
+        return ()
+    traffar = []
+    stack = [enhet]
+    while stack:
+        nod = stack.pop()
+        if nod is None or isinstance(nod, (str, int, float, bool)):
+            continue
+        if (isinstance(nod, ST.Binar)
+                and nod.op.upper() in SAMMANVAGANDE_OPERATORER):
+            taggar = _skyddade_namn_under(nod, mangd)
+            if len(taggar) > MAX_SKYDDADE_I_ETT_UTTRYCK:
+                # YTTERSTA uttrycket rapporteras, och grenarna under det
+                # gas inte igenom: "A AND B AND C" ar EN sammanvagning, inte
+                # tva, och en grind som raknar samma sak tva ganger mater
+                # sin egen rekursion.
+                traffar.append((nod.rad, tuple(sorted(taggar))))
+                continue
+        stack.extend(_barn(nod))
+    return tuple(sorted(set(traffar)))
 
 
 class Sakerhetsgrind(object):
@@ -196,21 +288,37 @@ class Sakerhetsgrind(object):
     # ---- ST-kod ----------------------------------------------------------
 
     def granska_st(self, kalla: str) -> Sakerhetsdom:
-        """Kor ST-validatorn med kartans skyddade taggar.
+        """Kor ST-validatorn med kartans skyddade taggar, och provar SAK-003.
 
-        Grinden implementerar inte om domen: den anropar samma validator som
-        grindkedjan gor, och laser koden SAKERHET ur dess anmarkningar.
+        Grinden implementerar inte om SKRIVDOMEN: den anropar samma validator
+        som grindkedjan gor, och laser koden SAKERHET ur dess anmarkningar.
+
+        SAMMANVAGNINGEN ar daremot en egen dom, och maste vara det: den ar
+        inte ett fel i ST utan ett brott mot I15:s andra halva, och
+        ST-validatorn har ingen anledning att kanna till den. Den ar lagd har
+        och inte i validatorn av samma skal som resten av sakerhetsgrinden
+        ligger har. Matt av M-46: fore den var SAK-003 markt allvar=block
+        utan att en enda rad kod kunde falla den.
         """
         if self.signalkarta is None:
             return Sakerhetsdom(
                 ("ingen signalkarta ar last, sa ST-koden kan inte provas mot "
                  "nagra skyddade taggar; okant behandlas som skyddat (I3)",),
                 "signalkarta")
+        skyddade = self.signalkarta.skyddade()
         rapport = st_validator.validera(
             kalla,
             externa=self.signalkarta.typer(),
-            skyddade=self.signalkarta.skyddade(),
+            skyddade=skyddade,
             utgangar=self.signalkarta.utgangar())
-        skal = tuple("rad %d: %s" % (a.rad, a.text)
-                     for a in rapport.anmarkningar if a.kod == "SAKERHET")
-        return Sakerhetsdom(skal, "st_validator" if skal else "")
+        skal = list("rad %d: %s" % (a.rad, a.text)
+                    for a in rapport.anmarkningar if a.kod == "SAKERHET")
+        kalla_kod = "st_validator" if skal else ""
+        for rad, taggar in sammanvagningar(kalla, skyddade):
+            skal.append(
+                "rad %d: %s vags ihop i ett och samma uttryck; en fardig "
+                "forregling tas som EN insignal ur sakerhets-PLC:n och "
+                "sammanvags aldrig i genererad logik (SAK-003, invariant I15)"
+                % (rad, " och ".join(taggar)))
+            kalla_kod = kalla_kod or "sammanvagning"
+        return Sakerhetsdom(tuple(skal), kalla_kod)
