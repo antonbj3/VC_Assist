@@ -24,7 +24,7 @@ from .fel import Specfel
 from .graf import Uppgiftsgraf
 from .predikat import granska_vag, typ_pa_vag
 from .spec import DetaljeradSpec, SPECVERSION, granska_nycklar
-from .steg import FORBJUDNA_STEGNYCKLAR, KONTROLLSVAR
+from .steg import Bindning, FORBJUDNA_STEGNYCKLAR, KONTROLLSVAR
 
 # Vad planen tacker. Sluten lista: "scenbygge" ar det som gar att planera med
 # de verktyg som finns (scene och composition, 21 st). Styrningen och ogats
@@ -44,6 +44,17 @@ LINTKODER = {
     "P9_PREDIKATVAG": "ett predikat laser en vag svaret aldrig bar",
     "P10_INGEN_OGONKONTROLL": "planen bar ett verifieringskrav men inget steg "
                               "som provar det",
+    # Efterkontrollerna, K16 och P7. Egna bokstaver med flit: byggplanens
+    # P-koder kolliderar redan med specens grindnamn P1-P8 (M-63), och att
+    # fylla pa den kollisionen vore att gora en matt skuld storre.
+    "EK1_WRITE_UTAN_POST": "ett skrivande steg har ingen efterkontroll som "
+                           "kan falla",
+    "EK2_POST_HALLER_INTE": "efterkontrollen haller inte verktygets schema "
+                            "eller returns",
+    "EK3_POST_SKRIVER": "efterkontrollen anropar ett skrivande verktyg; all "
+                        "matning ar lasande (K23)",
+    "EK4_POST_KAN_INTE_FALLA": "efterkontrollen ar trivialt sann och kan "
+                               "aldrig falla",
 }
 
 
@@ -149,6 +160,69 @@ class Byggplan(object):
                     ut.append(("P2_ARGUMENTFEL", "steget %s: %s" % (steg.id, p)))
         ut += self._granska_bindningar(steg, register)
         ut += self._granska_predikatvagar(steg, register)
+        ut += self._granska_efterkontroller(steg, register)
+        return ut
+
+    def _granska_efterkontroller(self, steg, register):
+        """K16 och P7: varje skrivande steg bar minst en post SOM KAN FALLA.
+
+        Den sista halvan ar hela poangen. Kallans `post_condition` var prosa
+        med noll konsumenter, och kallans facitgrind hade en kontroll dar
+        `cube_path == target_path` gjorde domen trivialt sann. En
+        efterkontroll som inte kan falla ar samma sak som ingen.
+        """
+        ut = []
+        skrivande = (steg.sort == "verktyg" and steg.verktyg in register
+                     and register[steg.verktyg].effect == "write")
+        if skrivande and not steg.efterkontroller:
+            ut.append(("EK1_WRITE_UTAN_POST",
+                       "steget %s anropar %s som skriver i scenen, men ingen "
+                       "efterkontroll provar att det blev sa. Kallans "
+                       "post_condition hade noll konsumerar; det arvs inte"
+                       % (steg.id, steg.verktyg)))
+        for e in steg.efterkontroller:
+            ut += self._granska_en_post(steg, e, register)
+        return ut
+
+    def _granska_en_post(self, steg, e, register):
+        ut = []
+        if e.verktyg not in register:
+            return [("EK2_POST_HALLER_INTE",
+                     "steget %s: efterkontrollen anropar %r; %d verktyg finns "
+                     "i registret" % (steg.id, e.verktyg, len(register)))]
+        verktyg = register[e.verktyg]
+        if verktyg.effect != "read":
+            ut.append(("EK3_POST_SKRIVER",
+                       "steget %s: efterkontrollen anropar %s som ar %s. All "
+                       "matning ar lasande och far aldrig ligga i skrivkon "
+                       "(K23)" % (steg.id, e.verktyg, verktyg.effect)))
+        try:
+            validera_argument(verktyg, e.argument_med_vittnen())
+        except Argumentfel as fel:
+            for p in fel.problem:
+                ut.append(("EK2_POST_HALLER_INTE",
+                           "steget %s, efterkontroll %s: %s"
+                           % (steg.id, e.verktyg, p)))
+        vagfel = granska_vag(verktyg.returns, e.vag)
+        if vagfel:
+            ut.append(("EK2_POST_HALLER_INTE",
+                       "steget %s, efterkontroll %s: %s"
+                       % (steg.id, e.verktyg, vagfel)))
+        elif e.operator in ("finns", "saknas"):
+            # Ett falt som verktyget ALLTID svarar med gar inte att sakna, sa
+            # 'finns' pa ett obligatoriskt falt ar trivialt sant.
+            if e.vag in (verktyg.returns.get("required") or ()):
+                ut.append(("EK4_POST_KAN_INTE_FALLA",
+                           "steget %s: %s.%s star i verktygets required, sa "
+                           "%r ar alltid sant. En efterkontroll som inte kan "
+                           "falla ar samma sak som ingen"
+                           % (steg.id, e.verktyg, e.vag, e.operator)))
+        for namn, bindning in e.bindningar():
+            if bindning.fran_steg not in self.graf:
+                ut.append(("EK2_POST_HALLER_INTE",
+                           "steget %s: efterkontrollen binder %s till steget "
+                           "%s som inte finns"
+                           % (steg.id, namn, bindning.fran_steg)))
         return ut
 
     def _svarsschema(self, steg_id, register):
@@ -249,12 +323,16 @@ class Byggplan(object):
         skrivande = [s for s in verktygssteg
                      if s.verktyg in register
                      and register[s.verktyg].effect == "write"]
+        med_post = [s for s in skrivande if s.efterkontroller]
         return {
             "plan": self.id,
             "steg": len(self.graf),
             "verktygssteg": len(verktygssteg),
             "kontrollsteg": len(self.graf) - len(verktygssteg),
             "skrivande_steg": len(skrivande),
+            "skrivande_med_efterkontroll": len(med_post),
+            "efterkontroller": sum(len(s.efterkontroller)
+                                   for s in self.graf),
             "bredd": self.graf.bredd(),
             "antaganden": len(self.spec.antaganden),
             "fragor": len(self.spec.fragor),

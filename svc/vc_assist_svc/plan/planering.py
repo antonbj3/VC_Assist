@@ -38,7 +38,7 @@ from .graf import Uppgiftsgraf
 from .layoutport import Layoutport
 from .predikat import Forvillkor, Predikat
 from .spec import Antagande, Fraga
-from .steg import Bindning, Kontroll, Steg
+from .steg import Bindning, Efterkontroll, Kontroll, Steg
 
 # Faktumet ogonrapporten kommer in som nar planen kors. Koraren far den
 # utifran; planeringslagret startar aldrig ogat sjalvt.
@@ -55,6 +55,23 @@ MOTIV_INGEN_LAYOUT = (
     "Komponenterna placeras av VC:s plug and play utifran kopplingarna, vilket "
     "ar den ordning I8 foreskriver: modellen anger relationer, VC raknar "
     "geometrin")
+
+# Efterkontrollerna planen skriver, per skrivande steg. K16: varje post ar ett
+# verktygsanrop plus en jamforelse, aldrig prosa. Motiven star i klartext
+# darfor att en efterkontroll som ingen forstar ar en efterkontroll ingen
+# lagar nar den faller.
+MOTIV_POST_LADDAD = (
+    "VC svarar 'loaded' pa sin egen inlasning. Att komponenten sedan FINNS i "
+    "layouten under det namn planen bad om ar en annan fraga, och den stalls "
+    "till scenen i stallet for till anropet")
+MOTIV_POST_PLACERAD = (
+    "set_transform sager 'set'. get_transform laser tillbaka laget ur scenen. "
+    "Likhet ar den harda lasningen och den enda som gar att prova utan en "
+    "matt tolerans - och en tolerans utan matning vore ett tal vi hittat pa")
+MOTIV_POST_KOPPLAD = (
+    "connect svarar 'connected'. interface_info fragar GRANSNITTET om det ar "
+    "kopplat, alltsa scenen och inte anropet. Det ar skillnaden mellan att "
+    "verktyget lyckades och att det blev sa")
 
 MOTIV_KLON = (
     "en andra instans av samma komponent kan antingen klonas ur den forsta "
@@ -118,7 +135,8 @@ class Planerare(object):
             ladda = self._lagg(Steg.verktygssteg(
                 "ladda_%s" % roll, "load_component",
                 {"uri": del_.uri, "name": roll},
-                "laser in %s ur katalogen och ger den rollens namn" % roll))
+                "laser in %s ur katalogen och ger den rollens namn" % roll,
+                efterkontroller=(_finns(roll),)))
             laddade.append(ladda.id)
             namnkontroll = self._lagg(Steg.kontrollsteg(
                 "namn_%s" % roll,
@@ -137,7 +155,8 @@ class Planerare(object):
                     {"component": roll, "position": p.position_mm,
                      "wpr": p.wpr_deg},
                     "layoutmotorn: %s" % p.motiv,
-                    beroenden=(namnkontroll.id,))).id
+                    beroenden=(namnkontroll.id,),
+                    efterkontroller=(_star_dar(roll, p.position_mm),))).id
             sist = self._instanser(del_, ladda.id, sist, placeringar)
             klara[roll] = sist
         if len(laddade) > 1:
@@ -163,14 +182,15 @@ class Planerare(object):
                 "inst_%s_a_klon" % namn, "clone_component",
                 {"name": del_.roll, "new_name": namn},
                 MOTIV_KLON, beroenden=(sist_id, ladda_id),
-                forvillkor=forvillkor, alternativ_grupp=grupp))
+                forvillkor=forvillkor, alternativ_grupp=grupp,
+                efterkontroller=(_finns(namn),)))
             self._lagg(Steg.verktygssteg(
                 "inst_%s_b_ladd" % namn, "load_component",
                 {"uri": del_.uri, "name": namn},
                 "andra vagen till instans %d av %s: samma URI en gang till"
                 % (i, del_.roll),
                 beroenden=(sist_id, ladda_id), forvillkor=forvillkor,
-                alternativ_grupp=grupp))
+                alternativ_grupp=grupp, efterkontroller=(_finns(namn),)))
             # Instansen far sitt EGNA lage. Att lata kopia nummer tva sta kvar
             # dar VC:s klon lagger den vore en tyst nedgradering: layouten har
             # raknat ett lage for den, och specen bad om tva.
@@ -182,7 +202,8 @@ class Planerare(object):
                      "wpr": p.wpr_deg},
                     "layoutmotorn, instans %d: %s" % (i, p.motiv),
                     beroenden=("inst_%s_a_klon" % namn,
-                               "inst_%s_b_ladd" % namn)))
+                               "inst_%s_b_ladd" % namn),
+                    efterkontroller=(_star_dar(namn, p.position_mm),)))
         return sist_id
 
     def _placeringar(self):
@@ -272,7 +293,9 @@ class Planerare(object):
                  "other_interface": Bindning("namngiven", par.id,
                                              namn="if%d_b" % n)},
                 "kopplingen ar relationen sjalv; inga koordinater foljer med "
-                "(I8)", beroenden=(svarade_ja.id, par.id)))
+                "(I8)", beroenden=(svarade_ja.id, par.id),
+                efterkontroller=(_ar_kopplad(
+                    a, Bindning("namngiven", par.id, namn="if%d_a" % n)),)))
 
     def _satt_parallell(self, steg_id, grupp):
         for i, s in enumerate(self.steg):
@@ -296,6 +319,25 @@ class Planerare(object):
             "haller planens verifieringskrav mot ogats EGEN rapport. Utan den "
             "har kontrollen ar planen en kandidat, aldrig en leverans",
             beroenden=slut))
+
+
+def _finns(namn):
+    """Efterkontroll: komponenten finns i layouten under det namn vi bad om."""
+    return Efterkontroll("find_component", {"name": namn}, "found", "==",
+                         True, MOTIV_POST_LADDAD)
+
+
+def _star_dar(namn, position_mm):
+    """Efterkontroll: komponenten star dar layouten sa att den skulle sta."""
+    return Efterkontroll("get_transform", {"component": namn}, "position",
+                         "==", list(position_mm), MOTIV_POST_PLACERAD)
+
+
+def _ar_kopplad(komponent, granssnitt):
+    """Efterkontroll: gransnittet ar kopplat, enligt scenen."""
+    return Efterkontroll("interface_info",
+                         {"component": komponent, "interface": granssnitt},
+                         "is_connected", "==", True, MOTIV_POST_KOPPLAD)
 
 
 def planera(spec, layout=None, frigang_mm=None, golv_mm=None, datablad=None):

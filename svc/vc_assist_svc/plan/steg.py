@@ -24,7 +24,7 @@ grepp som banken anvander for att prova en facitmall mot ogats grammatik.
 from __future__ import annotations
 
 from .fel import Specfel
-from .predikat import Forvillkor
+from .predikat import Forvillkor, Korlage, OPERATORER, Predikat
 
 # Typerna en bindning kan bara. Samma namn som JSON-schemats, sa att en
 # bindnings typ gar att stalla mot verktygets returns utan oversattning.
@@ -42,6 +42,15 @@ FORBJUDNA_STEGNYCKLAR = ("op", "effect", "exec", "exec_queue", "lage", "ko")
 
 KONTROLLSORTER = ("villkor", "bindning", "oga")
 STEGSORTER = ("verktyg", "kontroll")
+
+# Operatorer i en efterkontroll som jamfor storlek. De kraver tal pa bada
+# sidor; ett strangvarde skulle annars jamforas alfabetiskt och se ut att
+# fungera (samma falla som predikat._ORDNINGSOPERATORER).
+_ORDNING_I_POST = ("<", "<=", ">", ">=")
+
+
+def _ar_tal(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 # Vad ett kontrollsteg svarar med. Det ar kontrollstegens motsvarighet till
@@ -194,6 +203,128 @@ def _enda_gemensamma_par(kallsvar, ger):
 BINDNINGSREGLER = {"enda_gemensamma_par": _enda_gemensamma_par}
 
 
+class Efterkontroll(object):
+    """Ett verktygsanrop plus en jamforelse. K16, och den viktigaste luckan.
+
+    Specen sager det rakt ut om kallprojektet: `spec_generator.py` skriver
+    `post_condition` som PROSA, och fältet har NOLL konsumenter i hela repot.
+    En efterkontroll som ingen kor ar ingen efterkontroll - den ar en
+    formulering som ser ut som en garanti.
+
+    Formen ar darfor mekanisk: {verktyg, argument, vag, operator, forvantat}.
+    Verktyget maste finnas i registret, det maste vara LASANDE (K23: all
+    matning ar read och far aldrig ligga i skrivkon), vagen maste finnas i
+    verktygets returns-schema, och jamforelsen gors av predikat.py - samma
+    kod som forvillkoren anvander, sa att de tva aldrig kan drifta isar.
+
+    FORVANTAT AR ALLTID ETT LITTERALT VARDE.
+
+    Ett facit som raknas fram ur korningen ar inget facit. Det ar precis
+    kallans `L-SC-01_REJECT_SELF_REF`: en kontroll dar `cube_path ==
+    target_path` var trivialt sann och darfor aldrig kunde falla. En bindning
+    far darfor sta i ARGUMENTEN - dar den pekar ut VAD som ska matas - men
+    aldrig i det som svaret jamfors mot.
+    """
+
+    __slots__ = ("verktyg", "argument", "vag", "operator", "forvantat",
+                 "motiv")
+
+    def __init__(self, verktyg, argument, vag, operator, forvantat=None,
+                 motiv=""):
+        self.verktyg = verktyg
+        self.argument = dict(argument or {})
+        self.vag = vag
+        self.operator = operator
+        self.forvantat = forvantat
+        self.motiv = motiv
+        problem = []
+        if not isinstance(verktyg, str) or not verktyg.strip():
+            problem.append("efterkontrollen maste namna sitt verktyg")
+        if not isinstance(vag, str) or not vag.strip():
+            problem.append("efterkontrollen maste namna vagen i svaret den "
+                           "laser")
+        if operator not in OPERATORER:
+            problem.append("okand operator %r; kanda ar %s"
+                           % (operator, ", ".join(OPERATORER)))
+        if isinstance(forvantat, Bindning):
+            problem.append(
+                "det forvantade vardet ar en bindning. Ett facit som raknas "
+                "fram ur korningen ar inget facit - da kan kontrollen inte "
+                "falla (L-SC-01_REJECT_SELF_REF)")
+        if operator in _ORDNING_I_POST and not _ar_tal(forvantat):
+            problem.append("%r kraver ett tal att jamfora med, fick %r"
+                           % (operator, forvantat))
+        if operator in ("finns", "saknas") and forvantat is not None:
+            problem.append("%r tar inget varde" % operator)
+        smitare = sorted(set(self.argument) & set(FORBJUDNA_STEGNYCKLAR))
+        if smitare:
+            problem.append("efterkontrollen bar %s; exekveringslaget ags av "
+                           "utforaren (I12)" % ", ".join(smitare))
+        if problem:
+            raise Specfel("efterkontrollen %r" % (verktyg,), problem)
+
+    def __repr__(self):
+        return "Efterkontroll(%s.%s %s %r)" % (self.verktyg, self.vag,
+                                               self.operator, self.forvantat)
+
+    def rad(self):
+        return "%s(%s) -> %s %s %r%s" % (
+            self.verktyg, ", ".join(sorted(self.argument)), self.vag,
+            self.operator, self.forvantat,
+            (" (%s)" % self.motiv) if self.motiv else "")
+
+    def bindningar(self):
+        return tuple(sorted(((n, v) for n, v in self.argument.items()
+                             if isinstance(v, Bindning)), key=lambda p: p[0]))
+
+    def lasta_steg(self):
+        return tuple(sorted(set(b.fran_steg for _n, b in self.bindningar())))
+
+    def argument_med_vittnen(self):
+        ut = {}
+        for namn, varde in self.argument.items():
+            ut[namn] = varde.vittne() if isinstance(varde, Bindning) else varde
+        return ut
+
+    def prova(self, svar):
+        """(uppfyllt, skal) mot verktygets EGNA svar. Kastar aldrig.
+
+        Jamforelsen gors av predikat.Predikat, alltsa av samma kod som
+        forvillkoren. Tva jamforelser av samma sak ar tva olika jamforelser sa
+        fort nagon ratter den ena.
+        """
+        try:
+            predikat = Predikat("resultat", steg="_post", vag=self.vag,
+                                operator=self.operator, varde=self.forvantat)
+        except Specfel as fel:
+            return False, str(fel)
+        return predikat.prova(Korlage(resultat={"_post": svar}))
+
+    def till_json(self):
+        argument = {}
+        for namn, varde in self.argument.items():
+            argument[namn] = (varde.till_json() if isinstance(varde, Bindning)
+                              else varde)
+        return {"verktyg": self.verktyg, "argument": argument, "vag": self.vag,
+                "operator": self.operator, "forvantat": self.forvantat,
+                "motiv": self.motiv}
+
+    @classmethod
+    def fran_json(cls, data):
+        vantade = ("verktyg", "argument", "vag", "operator", "forvantat",
+                   "motiv")
+        if not isinstance(data, dict) or set(data) != set(vantade):
+            raise Specfel("efterkontroll",
+                          ["forvantade precis nycklarna %s"
+                           % ", ".join(sorted(vantade))])
+        argument = {}
+        for namn, varde in (data["argument"] or {}).items():
+            argument[namn] = (Bindning.fran_json(varde)
+                              if Bindning.ar_bindning(varde) else varde)
+        return cls(data["verktyg"], argument, data["vag"], data["operator"],
+                   data["forvantat"], data["motiv"])
+
+
 class Kontroll(object):
     """Ett steg som inte anropar VC, men som avgor nagot.
 
@@ -282,11 +413,12 @@ class Steg(object):
 
     __slots__ = ("id", "sort", "motiv", "verktyg", "argument", "kontroll",
                  "beroenden", "forvillkor", "alternativ_grupp",
-                 "parallell_grupp")
+                 "parallell_grupp", "efterkontroller")
 
     def __init__(self, id, sort, motiv, verktyg=None, argument=None,
                  kontroll=None, beroenden=(), forvillkor=None,
-                 alternativ_grupp=None, parallell_grupp=None):
+                 alternativ_grupp=None, parallell_grupp=None,
+                 efterkontroller=()):
         self.id = id
         self.sort = sort
         self.motiv = motiv
@@ -297,6 +429,7 @@ class Steg(object):
         self.forvillkor = forvillkor
         self.alternativ_grupp = alternativ_grupp
         self.parallell_grupp = parallell_grupp
+        self.efterkontroller = tuple(efterkontroller)
         problem = []
         if not isinstance(id, str) or not id.strip():
             problem.append("steget saknar id")
@@ -325,6 +458,12 @@ class Steg(object):
         for namn, varde in self.argument.items():
             if isinstance(varde, Bindning) and sort != "verktyg":
                 problem.append("bindningen %r sitter pa ett kontrollsteg" % namn)
+        for e in self.efterkontroller:
+            if not isinstance(e, Efterkontroll):
+                problem.append("%r ar ingen Efterkontroll" % (e,))
+        if self.efterkontroller and sort != "verktyg":
+            problem.append("ett kontrollsteg anropar inget verktyg och har "
+                           "darfor ingenting att efterkontrollera")
         if problem:
             raise Specfel("steget %r" % (id,), problem)
 
@@ -369,6 +508,8 @@ class Steg(object):
             ut.update(self.kontroll.berorda_steg())
         for _namn, b in self.bindningar():
             ut.add(b.fran_steg)
+        for e in self.efterkontroller:
+            ut.update(e.lasta_steg())
         return tuple(sorted(ut))
 
     # -- serialisering ----------------------------------------------------
@@ -385,13 +526,15 @@ class Steg(object):
                 "forvillkor": (self.forvillkor.till_json()
                                if self.forvillkor else None),
                 "alternativ_grupp": self.alternativ_grupp,
-                "parallell_grupp": self.parallell_grupp}
+                "parallell_grupp": self.parallell_grupp,
+                "efterkontroller": [e.till_json()
+                                    for e in self.efterkontroller]}
 
     @classmethod
     def fran_json(cls, data):
         vantade = ("id", "sort", "motiv", "verktyg", "argument", "kontroll",
                    "beroenden", "forvillkor", "alternativ_grupp",
-                   "parallell_grupp")
+                   "parallell_grupp", "efterkontroller")
         if not isinstance(data, dict):
             raise Specfel("steg", ["forvantade ett objekt, fick %s"
                                    % type(data).__name__])
@@ -417,4 +560,6 @@ class Steg(object):
                    Kontroll.fran_json(data["kontroll"]) if data["kontroll"] else None,
                    data["beroenden"],
                    Forvillkor.fran_json(data["forvillkor"]) if data["forvillkor"] else None,
-                   data["alternativ_grupp"], data["parallell_grupp"])
+                   data["alternativ_grupp"], data["parallell_grupp"],
+                   [Efterkontroll.fran_json(e)
+                    for e in (data["efterkontroller"] or [])])

@@ -661,7 +661,98 @@ TRASIGA_FIXTURER = {
     "P8_TOM_PLAN": "test_en_tom_plan_ar_ingen_plan",
     "P9_PREDIKATVAG": "test_ett_predikat_som_laser_en_vag_verktyget_aldrig_svarar_med_avvisas",
     "P10_INGEN_OGONKONTROLL": "test_en_plan_med_verifiering_men_utan_kontrollsteg_avvisas",
+    "EK1_WRITE_UTAN_POST": "test_ett_skrivande_steg_utan_efterkontroll_avvisas",
+    "EK2_POST_HALLER_INTE": "test_en_efterkontroll_som_laser_en_vag_verktyget_aldrig_svarar_med_avvisas",
+    "EK3_POST_SKRIVER": "test_en_efterkontroll_som_anropar_ett_skrivande_verktyg_avvisas",
+    "EK4_POST_KAN_INTE_FALLA": "test_en_efterkontroll_som_alltid_ar_sann_avvisas",
 }
+
+
+# ---- efterkontrollerna, K16 och P7 -------------------------------------
+#
+# Kallans `post_condition` var prosa med NOLL konsumenter i hela repot, och
+# specen kallar det den viktigaste luckan att stanga. De fyra proven nedan ar
+# de trasiga fixturerna for de fyra satt en efterkontroll kan vara vardelos.
+
+def _skrivsteg(efterkontroller=()):
+    return Steg.verktygssteg("a", "load_component",
+                             {"uri": "file:///x.vcm", "name": "x"},
+                             "laser in en komponent",
+                             efterkontroller=efterkontroller)
+
+
+def _post(**kv):
+    from vc_assist_svc.plan.steg import Efterkontroll
+    argument = {"verktyg": "find_component", "argument": {"name": "x"},
+                "vag": "found", "operator": "==", "forvantat": True}
+    argument.update(kv)
+    return Efterkontroll(**argument)
+
+
+def test_ett_skrivande_steg_utan_efterkontroll_avvisas():
+    """P7: varje write-steg ska ha minst ett post som kan falla."""
+    plan = _plan_med_steg([_skrivsteg(), _oga_steg(("a",))])
+    koder = [kod for kod, _ in plan.granska()]
+    assert "EK1_WRITE_UTAN_POST" in koder
+
+
+def test_samma_steg_med_en_efterkontroll_ar_rent():
+    """Motprovet. En grind som faller pa allt mater ingenting."""
+    plan = _plan_med_steg([_skrivsteg((_post(),)), _oga_steg(("a",))])
+    koder = [kod for kod, _ in plan.granska()]
+    assert not [k for k in koder if k.startswith("EK")]
+
+
+def test_en_efterkontroll_som_laser_en_vag_verktyget_aldrig_svarar_med_avvisas():
+    plan = _plan_med_steg([_skrivsteg((_post(vag="finns_inte"),)),
+                           _oga_steg(("a",))])
+    koder = [kod for kod, _ in plan.granska()]
+    assert "EK2_POST_HALLER_INTE" in koder
+
+
+def test_en_efterkontroll_som_anropar_ett_skrivande_verktyg_avvisas():
+    """K23: all matning ar lasande och far aldrig ligga i skrivkon."""
+    plan = _plan_med_steg([_skrivsteg((_post(
+        verktyg="delete_component", argument={"name": "x"}, vag="deleted"),)),
+        _oga_steg(("a",))])
+    koder = [kod for kod, _ in plan.granska()]
+    assert "EK3_POST_SKRIVER" in koder
+
+
+def test_en_efterkontroll_som_alltid_ar_sann_avvisas():
+    """'found' star i find_components required, sa 'finns' ar trivialt sant.
+
+    Det ar samma falla som L-SC-01_REJECT_SELF_REF: en kontroll som inte kan
+    falla ar samma sak som ingen kontroll.
+    """
+    plan = _plan_med_steg([_skrivsteg((_post(operator="finns",
+                                             forvantat=None),)),
+                           _oga_steg(("a",))])
+    koder = [kod for kod, _ in plan.granska()]
+    assert "EK4_POST_KAN_INTE_FALLA" in koder
+
+
+def test_ett_facit_som_raknas_fram_ur_korningen_ar_inget_facit():
+    """Ett forvantat varde som ar en bindning gar inte ens att konstruera."""
+    from vc_assist_svc.plan.steg import Bindning, Efterkontroll
+    with pytest.raises(Specfel) as fel:
+        Efterkontroll("find_component", {"name": "x"}, "found", "==",
+                      Bindning("namngiven", "par1", namn="if1_a"))
+    assert "facit" in str(fel.value)
+
+
+def test_efterkontrollen_provas_at_bada_hallen_mot_ett_verkligt_svar():
+    post = _post()
+    assert post.prova({"found": True})[0] is True
+    assert post.prova({"found": False})[0] is False
+    assert post.prova({})[0] is False
+
+
+def test_efterkontrollen_gar_att_rundgangas_genom_json():
+    from vc_assist_svc.plan.steg import Efterkontroll
+    post = _post()
+    assert Efterkontroll.fran_json(post.till_json()).till_json() \
+        == post.till_json()
 
 
 def test_varje_lintkod_har_en_trasig_fixtur_som_faller_pa_den():
