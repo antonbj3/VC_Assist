@@ -30,7 +30,12 @@ from vc_assist_svc.harness import kanal as Kn             # noqa: E402
 from vc_assist_svc.harness import kodfallor as Kf         # noqa: E402
 from vc_assist_svc.harness import loop as L               # noqa: E402
 from vc_assist_svc.harness import modell as Mo            # noqa: E402
+from vc_assist_svc.harness import mattafakta as Mf        # noqa: E402
+from vc_assist_svc.harness import redovisning as Rd       # noqa: E402
+from vc_assist_svc.harness import text as Tx              # noqa: E402
 from vc_assist_svc.harness import turordning as T         # noqa: E402
+from vc_assist_svc.harness import verifiering as Vf       # noqa: E402
+from vc_assist_svc.harness import arlighet as A           # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -429,3 +434,198 @@ def test_kodfallsgrindarna_domer_i_dokumenterad_ordning():
     grind, skal = Kf.granska(kod)
     assert grind == "kvaternion"
     assert Kf.GRINDAR.index("kvaternion") < Kf.GRINDAR.index("py27")
+
+
+# ---- 9. DOM-005 och DOM-006: vagar som ar matta till att inte finnas ----
+
+@pytest.mark.parametrize("mening", [
+    "Vi kan importera USD-filen direkt i VC.",
+    "Nasta steg ar att exportera scenen till USD.",
+    "Ladda in FBX-modellen i layouten.",
+    "Satt upp VC som OPC UA-server mot PLC:n.",
+    "VC kan agera OPC UA-server mot styrsystemet.",
+])
+def test_en_vag_som_inte_finns_avvisas(mening):
+    assert Mf.granska(mening), mening
+
+
+@pytest.mark.parametrize("mening", [
+    "VC har ingen USD-lasare, sa den vagen finns inte.",
+    "Jag exporterar layouten till FBX.",
+    "PLC:n ar OPC UA-server och VC ansluter som klient.",
+    "Konfigurera PLC:n som OPC UA-server.",
+    "Vi laddar in husdjuret i scenen.",
+    "Jag laddar komponenten ur katalogen.",
+])
+def test_riktiga_vagar_och_riktiga_besked_slapps_igenom(mening):
+    """Den som HAR ratt far aldrig anklagas. 'husdjur' star med av ett matt
+    skal: ordet bar 'usd', och med delstrangsmatchning blev ett husdjur en
+    filformatsfraga."""
+    assert not Mf.granska(mening), mening
+
+
+def test_faktagrinden_gar_hela_vagen_genom_forgranskningen(forgranskare):
+    dom = forgranskare.granska_svarstext(
+        "Enklast ar att importera USD-filen direkt i VC.")
+    assert not dom.slapps
+    assert dom.avvisning.grind == Mf.GRIND
+    assert "DOM-006" in " ".join(dom.avvisning.skal)
+
+
+# ---- 10. DOM-003: enheten hor till talet -------------------------------
+
+def test_ett_tal_i_fel_storleksordning_pekas_ut_som_enhetsmiss():
+    """Foll fore M-53 med ett skal som inte hjalpte: 'inget verktygssvar bar
+    det talet'. Talet var inte pahittat - enheten var tappad."""
+    grund = Vf.Grund()
+    grund.lagg_resultat("measure_distance", {}, {"distance": 812.0})
+    tal = Tx.tal_i("Avstandet ar 0,812.")[0]
+    skal = grund.stodjer_tal(tal)
+    assert skal
+    assert "DOM-003" in skal
+    assert "MILLIMETER" in skal
+
+
+def test_ett_pahittat_tal_far_fortfarande_det_vanliga_skalet():
+    grund = Vf.Grund()
+    grund.lagg_resultat("measure_distance", {}, {"distance": 812.0})
+    tal = Tx.tal_i("Avstandet ar 137 mm.")[0]
+    skal = grund.stodjer_tal(tal)
+    assert skal
+    assert "DOM-003" not in skal
+    assert "narmaste varde" in skal
+
+
+def test_ett_matt_i_meter_MED_enhet_stods_fortfarande():
+    grund = Vf.Grund()
+    grund.lagg_resultat("measure_distance", {}, {"distance": 2500.0})
+    tal = Tx.tal_i("Avstandet ar 2,5 m.")[0]
+    assert grund.stodjer_tal(tal) is None
+
+
+# ---- 11. VRK-009 och SYS-003: redovisningen ----------------------------
+
+class _Utfall(object):
+    """Minsta utfallspost grinden behover. L1: inget kors."""
+
+    def __init__(self, verktyg, resultat, ok=True, andrade=False):
+        self.verktyg = verktyg
+        self.resultat = resultat
+        self.ok = ok
+        self.andrade = andrade
+        self.fel = ""
+
+
+def test_en_klippt_lista_redovisad_som_helhet_fangas():
+    utfall = [_Utfall("list_components", {"antal": 500, "avkortad": True})]
+    anm = Rd.granska("Layouten innehaller 500 komponenter.", utfall)
+    assert [a.kod for a in anm] == ["avkortat_som_helhet"]
+    assert "VRK-009" in anm[0].skal
+
+
+def test_en_klippt_lista_som_redovisas_som_klippt_slapps_igenom():
+    utfall = [_Utfall("list_components", {"antal": 500, "avkortad": True})]
+    assert not Rd.granska(
+        "Listan ar avkortad vid 500 poster, sa layouten har minst 500 "
+        "komponenter.", utfall)
+
+
+def test_en_hel_lista_anklagas_aldrig():
+    utfall = [_Utfall("list_components", {"antal": 2, "avkortad": False})]
+    assert not Rd.granska("Layouten innehaller 2 komponenter.", utfall)
+
+
+def test_simuleringen_som_bevis_fangas():
+    anm = Rd.granska("Simuleringen gick igenom och cellen ar darmed bevisat "
+                     "saker att driftsatta.", [])
+    assert [a.kod for a in anm] == ["bevis_ur_simulering"]
+    assert "SYS-003" in anm[0].skal
+
+
+def test_ett_bevisord_utan_simuleringsord_anklagas_inte():
+    """Det ar SIMULERINGENS rackvidd regeln handlar om. En matning far kallas
+    ett bevis for det den matte."""
+    assert not Rd.granska("Matningen bevisar att avstandet ar 812 mm.", [])
+
+
+def test_bevispastaende_med_nekande_ord_slipper_igenom():
+    """KAND LUCKA, at det ofarliga hallet, och den star har for att den ska
+    vara synlig i stallet for underforstadd.
+
+    Nekandet ar det som skiljer den arliga meningen ('simuleringen bevisar
+    ingenting om verklig hardvara') fran den falska, sa grinden maste slappa
+    varje mening som bar ett nekande ord. Priset ar att en falsk bevisutsaga
+    som RAKAR bara ett sadant ord ocksa slipper igenom.
+    """
+    assert not Rd.granska("Simuleringen gick igenom utan kollisioner, alltsa "
+                          "ar cellen bevisat saker.", [])
+
+
+# ---- 12. ARL-008: forfluten tid bara om det kordes ---------------------
+
+def test_pastadd_andring_efter_bara_lasningar_fangas():
+    """M-46:s 'kvar, och inte lagat'. Foll fore M-53: turen slapptes."""
+    utfall = [_Utfall("list_components", Fa.LISTSVAR),
+              _Utfall("list_interfaces", Fa.INTERFACESVAR)]
+    anm = A.granska("Jag kopplade ihop IRB1200 och Transportor.", utfall)
+    assert [a.kod for a in anm] == ["arlighet_pastadd_andring"]
+    assert "ARL-008" in anm[0].skal
+
+
+def test_samma_pastaende_med_en_verklig_andring_slapps_igenom():
+    utfall = [_Utfall("list_components", Fa.LISTSVAR),
+              _Utfall("connect", Fa.KOPPLINGSSVAR, andrade=True)]
+    assert not A.granska("Jag kopplade ihop IRB1200 och Transportor.", utfall)
+
+
+def test_ett_tillstand_som_lasts_ur_scenen_anklagas_inte():
+    """'ar kopplad' ar ingen pastadd handling. En grind som anklagade den
+    hade gjort det omojligt att RAPPORTERA en koppling man last."""
+    utfall = [_Utfall("list_interfaces", Fa.INTERFACESVAR)]
+    assert not A.granska(
+        "IRB1200 ar kopplad till Transportor enligt granssnittslistan.",
+        utfall)
+
+
+def test_en_andring_som_foll_stodjer_inte_pastaendet():
+    utfall = [_Utfall("connect", None, ok=False, andrade=True)]
+    anm = A.granska("Jag kopplade ihop dem.", utfall)
+    assert any(a.kod == "arlighet_pastadd_andring" for a in anm)
+
+
+def test_matverktyg_raknas_inte_som_andring_i_arligheten():
+    """measure_distance ar deklarerat write men andrar ingenting (M-36), och
+    faltet andrade kommer ur KODEN och inte ur effect. En modell som bara
+    matit har inte kopplat nagot."""
+    kod = _kod("measure_distance", {"component": "IRB1200",
+                                    "other_component": "Transportor"})
+    assert not T.andrar_scenen(kod)
+    utfall = [_Utfall("measure_distance", {"distance": 812.0},
+                      andrade=bool(T.andrar_scenen(kod)))]
+    anm = A.granska("Jag flyttade roboten till plats.", utfall)
+    assert [a.kod for a in anm] == ["arlighet_pastadd_andring"]
+
+
+# ---- 13. VRK-003: relationer, aldrig koordinater -----------------------
+
+def test_en_koordinat_pa_connect_avvisas_av_schemat(forgranskare):
+    """Kopplingen ar RELATIONEN. Ett koordinatargument skulle flytta
+    geometriraknandet fran VC:s plug and play till modellen."""
+    dom = forgranskare.granska_anrop(Mo.Verktygsanrop(
+        namn="connect", argument={"component": "IRB1200",
+                                  "interface": "BaseInterface",
+                                  "other_component": "Transportor",
+                                  "other_interface": "OutFeed",
+                                  "position": [500.0, 0.0, 0.0]}))
+    assert not dom.slapps
+    assert dom.avvisning.grind == "argument"
+    assert "position" in " ".join(dom.avvisning.skal)
+
+
+def test_connect_utan_koordinat_haller_schemat(forgranskare):
+    dom = forgranskare.granska_anrop(Mo.Verktygsanrop(
+        namn="connect", argument={"component": "IRB1200",
+                                  "interface": "BaseInterface",
+                                  "other_component": "Transportor",
+                                  "other_interface": "OutFeed"}))
+    assert dom.slapps

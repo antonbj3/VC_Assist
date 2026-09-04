@@ -65,6 +65,11 @@ MEKANISMER = MappingProxyType({
         "i namnordning, skickar unicode in i VC:s API eller inte gar att kora "
         "i Python 2.7 avvisas",
         "harness/kodfallor.py via harness/forgranskning.py"),
+    "redovisning": (
+        "redovisningsgrinden: en klippt lista (avkortad=true) redovisad som "
+        "en helhet, och ett simuleringsvarv beskrivet som ett bevis, tvingar "
+        "omskrivning",
+        "harness/redovisning.py via harness/loop.py"),
     "matta_fakta": (
         "faktagrinden: ett forslag som vilar pa nagot som ar MATT till att "
         "inte finnas i VC 4.10 - USD, FBX-import eller VC som OPC UA-server "

@@ -43,6 +43,7 @@ from vc_assist_svc.harness import loop as L             # noqa: E402
 from vc_assist_svc.harness import mekanismer as Mk      # noqa: E402
 from vc_assist_svc.harness import arlighet as A         # noqa: E402
 from vc_assist_svc.harness import oga as Og             # noqa: E402
+from vc_assist_svc.harness import redovisning as Rd     # noqa: E402
 from vc_assist_svc.harness import turordning as T       # noqa: E402
 
 # Krav ur uppdraget: minst 25 fällor. Talet står här och inte i en kommentar
@@ -142,6 +143,7 @@ def test_facit_ar_verkliga_utfallskoder():
     giltiga |= set("STOPP:%s" % s for s in L.STOPPREGLER)
     giltiga |= set("OMSKRIVNING:%s" % k for k in A.KODER)
     giltiga |= set("OMSKRIVNING:%s" % k for k in Og.KODER)
+    giltiga |= set("OMSKRIVNING:%s" % k for k in Rd.KODER)
     giltiga |= set(("OMSKRIVNING:verify_tal", "OMSKRIVNING:verify_namn"))
     for falla in Fa.ALLA:
         assert falla.facit in giltiga, (falla.id, falla.facit)

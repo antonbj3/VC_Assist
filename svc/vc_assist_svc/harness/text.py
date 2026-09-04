@@ -119,8 +119,14 @@ KLARIDIOM = ("klart att", "klar att", "klart och tydligt", "klar over",
 # Ord som gor att en mening TALAR OM ett fel. En mening med bade en
 # framgangsmarkor och ett sadant ord ar ingen falsk framgang - det ar
 # "kopplingen gick inte igenom".
+# "ingenting" star med SEPARAT och inte som en bojning av "inget": listan
+# matchas pa ordgrans, och "ingenting" ar ett eget ord. HITTAD AV M-53:
+# meningen "connect foll: VC nekade kopplingen. Ingenting ar kopplat." bar
+# inget ord ur listan, sa den rakades inte som en mening som talar om ett
+# fel - och det ar precis det arliga svar arlighetsgrinden vill se.
 NEKANDE = (
-    "inte", "inget", "ingen", "inga", "misslyckades", "gick fel", "kunde inte",
+    "inte", "inget", "ingen", "inga", "ingenting", "inte alls", "nothing",
+    "misslyckades", "gick fel", "kunde inte",
     "nekade", "avvisad", "avvisades", "avbrots", "avbröts", "saknas",
     "saknades", "fel", "felet", "kastade", "utan", "aldrig", "ej",
     "foll", "föll", "timeout", "timade", "stoppades",

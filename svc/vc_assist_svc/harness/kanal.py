@@ -32,6 +32,13 @@ class Anropsutfall:
     koad: bool = False
     qid: str = ""
     varningar: Tuple[str, ...] = ()
+    # Andrade anropet scenen? Satt av loopen ur den GENERERADE koden
+    # (turordning.andrar_scenen), inte ur verktygets deklarerade effect:
+    # matverktygen ar deklarerade write men andrar ingenting, eftersom deras
+    # kod bara kor update() for att fa farska matt (M-36). Falt och inte
+    # harledning, sa att arlighetsgrinden kan lasa det utan att kanna till
+    # nagon kodmall. Satt av M-53.
+    andrade: bool = False
 
     def beskrivning(self) -> str:
         if self.ok and self.koad:

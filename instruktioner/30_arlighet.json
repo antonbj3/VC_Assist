@@ -1,7 +1,7 @@
 {
   "id": "arlighet",
   "titel": "Ärlighetsregler",
-  "version": 1,
+  "version": 2,
   "prioritet": 2,
   "kapbar": false,
   "prioritet_skal": "Kapas aldrig. Harnessen kan tvinga fram en omskrivning, men den kan inte skriva det ärliga svaret åt modellen: den vet vad som INTE stämmer, aldrig vad som är sant. En modell utan de här reglerna producerar text som omskrivningsslingan bara kan avvisa, aldrig laga, och turen slutar i ett stopp i stället för i ett svar.",
@@ -72,9 +72,9 @@
     },
     {
       "id": "ARL-008",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "arlighet",
       "text": "Skilj på vad du gjorde och vad du föreslår. Skriv i förfluten tid bara om det faktiskt kördes, och märk förslag som förslag.",
       "skal": "Verify-contract prövar påståenden om världen, inte planer. En modell som skriver sina planer i förfluten tid gör sina förslag oskiljbara från sina mätningar, och då blir hela svaret oanvändbart.",
       "harkomst": ["docs/spec/20_arv.md"]

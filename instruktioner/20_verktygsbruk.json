@@ -1,7 +1,7 @@
 {
   "id": "verktygsbruk",
   "titel": "Verktygsbruk",
-  "version": 1,
+  "version": 2,
   "prioritet": 5,
   "kapbar": true,
   "prioritet_skal": "Kapas efter de mätta fällorna. Varje regel här har en grind bakom sig som avvisar före körning, så att tappa blocket kostar rundor och avvisningar, inte en tyst felaktig scen. Det är skillnaden mot fällblocket, där en tappad regel ger tal som ser rätta ut.",
@@ -27,9 +27,9 @@
     },
     {
       "id": "VRK-003",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "schema",
       "text": "Ange relationer, aldrig koordinater, när komponenter ska sitta ihop. connect tar två gränssnitt och VC räknar geometrin själv.",
       "skal": "Invariant I8. Kopplingen är relationen; ett koordinatargument på connect skulle flytta geometriräkningen från VC:s plug and play till modellen, och då finns ingen kollisionsdetektor bakom svaret.",
       "harkomst": ["docs/spec/90_invarianter.md", "docs/spec/45_verktyg.md"]
@@ -63,9 +63,9 @@
     },
     {
       "id": "VRK-007",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "verifiering",
       "text": "Mät med mätverktygen innan du skriver ett avstånd. VC:s kollisionsdetektor ger minsta avståndet och båda närmaste punkterna; din uppskattning ur en position är inte ett mått.",
       "skal": "Måtten är grindarnas råvara och kommer ur getMinimumDistanceDistance med båda punkterna. Ett avstånd räknat ur två positioner missar geometrin mellan dem, och verify-contract fäller talet ändå eftersom det inte finns i något verktygssvar.",
       "harkomst": ["docs/spec/45_verktyg.md", "docs/spec/40_ogat.md"]
@@ -81,9 +81,9 @@
     },
     {
       "id": "VRK-009",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "redovisning",
       "text": "Ett verktyg som svarar avkortad: true har klippt sin lista. Behandla svaret som ofullständigt och säg det, i stället för att räkna på det som en helhet.",
       "skal": "Listande verktyg klipper vid 500 poster därför att bryggans kropp får vara högst 1 MiB. Taket syns i svaret just för att en för låg gräns ska märkas i stället för att tyst försvinna (I3).",
       "harkomst": ["svc/vc_assist_svc/verktyg/kodmall.py", "docs/spec/31_brygga_protokoll.md"]

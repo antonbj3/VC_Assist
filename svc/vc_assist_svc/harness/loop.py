@@ -23,8 +23,13 @@ klassen") tillampad pa svaret i stallet for pa anropet:
   2 arlighet                honesty-rewrite. F12 ar overordnad i
                             felklasstabellen: en ohederlig gron ar farligare
                             an ett rott.
-  3 ogat                    en dom modellen inte far falla.
-  4 verifiering             verify-contract, finmaskigast och sist.
+  3 redovisning             en klippt lista redovisad som en helhet, och ett
+                            simuleringsvarv beskrivet som ett bevis. Samma
+                            klass som arligheten men en storleksordning
+                            mildare: underlaget ar akta och slutsatsen for
+                            stor, sa den domer efter arligheten.
+  4 ogat                    en dom modellen inte far falla.
+  5 verifiering             verify-contract, finmaskigast och sist.
 
 TAKEN, och varifran talen kommer:
 
@@ -56,6 +61,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .. import verktyg as V
 from . import arlighet as A
 from . import oga as O
+from . import redovisning as R
 from . import turordning as T
 from . import verifiering as Vf
 from .fel import Modellfel
@@ -323,7 +329,8 @@ class Harness(object):
                 verktyg=utfall.verktyg, argument=utfall.argument,
                 ok=utfall.ok, resultat=utfall.resultat, fel=utfall.fel,
                 koad=utfall.koad, qid=utfall.qid,
-                varningar=tuple(dom.varningar))
+                varningar=tuple(dom.varningar),
+                andrade=bool(T.andrar_scenen(dom.kod or "")))
             protokoll.utfallen.append(utfall)
             if utfall.ok:
                 protokoll.lagg("VERKTYG_OK", anrop.namn, utfall.beskrivning(),
@@ -384,6 +391,12 @@ class Harness(object):
             protokoll.lagg("OMSKRIVNING", anmarkningar[0].kod,
                            "; ".join(a.text() for a in anmarkningar), runda)
             return A.omskrivningskrav(anmarkningar)
+
+        redovisning = R.granska(text, protokoll.utfallen)
+        if redovisning:
+            protokoll.lagg("OMSKRIVNING", redovisning[0].kod,
+                           "; ".join(a.text() for a in redovisning), runda)
+            return R.omskrivningskrav(redovisning)
 
         ogonanmarkningar = O.granska(text, ogonrapport, guldbeslut)
         if ogonanmarkningar:

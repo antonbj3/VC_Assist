@@ -31,6 +31,23 @@ TRE REGLER, och de tva sista ar vara egna:
       breda: har finns inget verktygsutfall som stodjer anklagelsen, sa den
       maste vara sakrare an de tva andra.
 
+  arlighet_pastadd_andring
+      DEN ANDRA HALVAN AV M-46:s fynd 2, mekaniserad av M-53. Regeln ovan
+      fangar bara turen med NOLL anrop. En tur med enbart LASANDE anrop gick
+      fortfarande igenom: "Klart! Jag kopplade ihop dem" efter tre lasningar
+      slapptes rakt ut till operatoren, eftersom bada de arvda reglerna bara
+      fragar om nagot FOLL. M-46 skrev att det kravde att Anropsutfall bar
+      verktygets verkan; det bar nu ett falt ANDRADE, satt av loopen ur
+      turordning.andrar_scenen() over den GENERERADE koden. Det ar ett
+      snavare och sannare matt an effect: matverktygen ar deklarerade write
+      men andrar ingenting (M-36).
+
+      Anklagelsen kraver ett HANDLINGSORD i aktiv forfluten form (jag
+      kopplade, flyttade, sparade). Tillstandsformen "roboten ar kopplad" ar
+      med FLIT utelamnad: den kan vara last ur scenen, och da ar den sann.
+      ARL-008 sager just detta - skriv i forfluten tid bara om det faktiskt
+      kordes.
+
 Grinden anklagar aldrig pa svag grund: ett framgangspastaende maste bara en
 tydlig markor (text.FRAMGANGSMARKORER) och far inte samtidigt namna ett fel.
 Klassningen av en mening som PASTAENDE ar daremot fail-closed. Skalen for
@@ -41,10 +58,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, List, Sequence, Tuple
 
-from .text import framgangspastaenden, klarpastaenden, namner_fel
+from .text import (bar_ord, framgangspastaenden, klarpastaenden, meningar,
+                   namner_fel, NEKANDE)
 
 KODER = ("arlighet_sista_verktyget", "arlighet_onamnt_fel",
-         "arlighet_utan_verktyg")
+         "arlighet_utan_verktyg", "arlighet_pastadd_andring")
+
+# Aktiva forflutna former av de handlingar som ANDRAR scenen. Tillstandsformer
+# ("ar kopplad", "star pa plats") star INTE har: de kan vara lasta ur scenen
+# och ar da sanna. Matchas pa ordgrans, som allt annat som anklagar.
+HANDLINGSORD = (
+    "kopplade", "kopplat", "kopplats", "flyttade", "flyttat", "flyttats",
+    "laddade", "laddat", "laddats", "sparade", "sparat", "sparats",
+    "skapade", "skapat", "skapats", "raderade", "raderat", "tog bort",
+    "andrade", "ändrade", "andrat", "ändrat", "placerade", "placerat",
+    "kopierade", "kopierat", "dopte om", "startade om",
+    "connected", "moved", "loaded", "saved", "created", "deleted",
+    "placed", "attached", "renamed",
+)
 
 
 @dataclass(frozen=True)
@@ -103,7 +134,40 @@ def granska(text: str, utfall: Sequence[Any]) -> Tuple[Anmarkning, ...]:
                   "inte ett enda fel"
                   % (len(fallda), len(utfall),
                      "; ".join(_felbeskrivning(u) for u in fallda[:3])))))
+
+    anmarkningar.extend(_pastadda_andringar(text, utfall))
     return tuple(anmarkningar)
+
+
+def _pastadda_andringar(text: str,
+                        utfall: Sequence[Any]) -> List[Anmarkning]:
+    """Meningar som pastar en utford ANDRING nar ingen andring gjordes.
+
+    Ett utfall bar faltet andrade, satt av loopen ur den genererade koden.
+    Saknas faltet helt - en syntetisk utfallspost i ett prov - antas det vara
+    falskt, och grinden domer da pa turens lasningar. Det ar ratt riktning:
+    en post utan uppgift om andring ar ingen KAND andring, och en anklagelse
+    ska inte kunna vila pa ett antagande om att nagot andrades.
+    """
+    if any(getattr(u, "andrade", False) and getattr(u, "ok", False)
+           for u in utfall):
+        return []
+    ut = []
+    for mening in meningar(text):
+        lag = mening.lag
+        if bar_ord(lag, NEKANDE):
+            continue
+        ord_ = bar_ord(lag, HANDLINGSORD)
+        if not ord_:
+            continue
+        ut.append(Anmarkning(
+            kod="arlighet_pastadd_andring",
+            skal=("svaret sager %r, alltsa en utford andring, men inget av "
+                  "turens %d anrop andrade scenen; skriv i forfluten tid "
+                  "bara om det faktiskt kordes (ARL-008, ARL-004)"
+                  % (ord_, len(utfall))),
+            mening=mening.text))
+    return ut
 
 
 def omskrivningskrav(anmarkningar: Sequence[Anmarkning]) -> str:

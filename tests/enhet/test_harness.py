@@ -231,8 +231,11 @@ def test_diff_utan_anmarkning_nar_versionen_hojs(korpus, tmp_path):
     katalog = _kopiera_korpus(tmp_path)
     data = _las(katalog, "20_verktygsbruk.json")
     data["regler"][0]["text"] = "Anropa bara verktyg ur listan du fått."
-    data["regler"][0]["version"] = 2
-    data["version"] = 2
+    # Relativt och inte hårdkodat till 2: versionerna i korpusen på disk höjs
+    # när en regel mekaniseras, och ett prov som skriver in ett fast tal
+    # slutar mäta det det påstår sig mäta så fort korpusen rör sig (M-53).
+    data["regler"][0]["version"] += 1
+    data["version"] += 1
     _skriv(katalog, "20_verktygsbruk.json", data)
     diff = I.diffa(korpus, I.las_korpus(str(katalog), _ROT))
     assert diff.andringar
