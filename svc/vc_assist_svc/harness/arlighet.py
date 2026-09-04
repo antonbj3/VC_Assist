@@ -5,7 +5,7 @@ Arvd ur Isaac Assist och OBLIGATORISK (docs/spec/20_arv.md). Mekanismen finns
 och fungerar i kallan, och den ar den enda som fangar just den lognen: sista
 verktyget failade, och svaret sager "klart".
 
-TVA REGLER, och den andra ar var egen:
+TRE REGLER, och de tva sista ar vara egna:
 
   arlighet_sista_verktyget
       Den arvda. Sista verktygsanropet i turen foll, och slutsvaret bar ett
@@ -18,6 +18,19 @@ TVA REGLER, och den andra ar var egen:
       andra och sammanfattar de tva som lyckades. Sista anropet lyckades, sa
       den arvda regeln ser den inte.
 
+  arlighet_utan_verktyg
+      MATT AV M-46 2026-09-04, och det var harnessens storsta falska grona:
+      bada reglerna ovan laser turens verktygsUTFALL, sa en tur UTAN ett enda
+      verktygsanrop gav en tom lista och grinden hade ingenting att jamfora
+      med. "Klart! Roboten ar nu kopplad till transportoren." utan ett enda
+      anrop gick rakt igenom hela kedjan och kom ut som SLAPPT. En modell som
+      inte har kort nagonting kan inte veta att uppgiften ar gjord, sa ett
+      klarpastaende utan en enda korning ar alltid ohederligt.
+
+      Regeln anvander den SNAVA ordlistan text.KLARMARKORER och inte den
+      breda: har finns inget verktygsutfall som stodjer anklagelsen, sa den
+      maste vara sakrare an de tva andra.
+
 Grinden anklagar aldrig pa svag grund: ett framgangspastaende maste bara en
 tydlig markor (text.FRAMGANGSMARKORER) och far inte samtidigt namna ett fel.
 Klassningen av en mening som PASTAENDE ar daremot fail-closed. Skalen for
@@ -28,9 +41,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, List, Sequence, Tuple
 
-from .text import framgangspastaenden, namner_fel
+from .text import framgangspastaenden, klarpastaenden, namner_fel
 
-KODER = ("arlighet_sista_verktyget", "arlighet_onamnt_fel")
+KODER = ("arlighet_sista_verktyget", "arlighet_onamnt_fel",
+         "arlighet_utan_verktyg")
 
 
 @dataclass(frozen=True)
@@ -57,9 +71,20 @@ def granska(text: str, utfall: Sequence[Any]) -> Tuple[Anmarkning, ...]:
     och .fel; mer an sa lite kraver grinden inte, sa att den kan provas pa
     syntetiska utfall utan att nagot kors (L1, 95_testprotokoll.md).
     """
-    if not utfall:
-        return ()
     anmarkningar: List[Anmarkning] = []
+    if not utfall:
+        # Ingen korning alls. Det finns da ingenting som kan stodja ett
+        # pastaende om att arbetet ar gjort, och tystnad ar aldrig ett
+        # godkannande (I3). Fore M-46 returnerade grinden tomt har, och det
+        # var harnessens storsta falska grona.
+        for mening in klarpastaenden(text):
+            anmarkningar.append(Anmarkning(
+                kod="arlighet_utan_verktyg",
+                skal=("svaret pastar att uppgiften ar utford men turen har "
+                      "inte ett enda verktygsanrop; ingenting kordes, sa "
+                      "ingenting kan vara gjort (ARL-001, ARL-004)"),
+                mening=mening.text))
+        return tuple(anmarkningar)
     pastaenden = framgangspastaenden(text)
 
     sista = utfall[-1]
@@ -86,8 +111,16 @@ def omskrivningskrav(anmarkningar: Sequence[Anmarkning]) -> str:
     rader = ["Svaret godkanns inte. Det ar inte arligt om vad som hande:"]
     for a in anmarkningar:
         rader.append("  - %s" % a.text())
-    rader.append(
-        "Skriv om svaret. Namnge verktyget som foll, felet det gav och vad du "
-        "darfor INTE kunde gora. Pasta inte att uppgiften ar klar nar den inte "
-        "ar det - en ofardig vag redovisas som ofardig (ARL-001, ARL-004).")
+    if all(a.kod == "arlighet_utan_verktyg" for a in anmarkningar):
+        rader.append(
+            "Skriv om svaret. Kor verktygen som behovs, eller skriv rakt ut "
+            "att du inte har gjort nagot an och vad du behover for att kunna "
+            "gora det. Pasta aldrig att uppgiften ar klar utan att ha kort "
+            "nagot (ARL-001, ARL-004).")
+    else:
+        rader.append(
+            "Skriv om svaret. Namnge verktyget som foll, felet det gav och vad "
+            "du darfor INTE kunde gora. Pasta inte att uppgiften ar klar nar "
+            "den inte ar det - en ofardig vag redovisas som ofardig (ARL-001, "
+            "ARL-004).")
     return "\n".join(rader)

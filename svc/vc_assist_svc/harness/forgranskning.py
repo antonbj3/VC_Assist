@@ -103,8 +103,20 @@ URIFRAGOR = frozenset((("catalog_item", "uri"), ("search_catalog", "query")))
 URIKALLOR = frozenset((("load_component", "uri"),))
 
 # Sprakmarkning pa ett kodblock i modellens text -> hur blocket domes.
+#
+# Listorna ar numera ETT SNABBSPAR, inte en vitlista. INNEHALLET avgor:
+# ett block som gar att parsa som Python domes som Python, och ett block som
+# bar ST:s egna slutord domes som ST, oavsett vad som star efter stangslet.
+# MATT AV M-46 2026-09-04: med vitlistan slapp ```python3 rakt igenom bade
+# api-grinden och skrivgrinden, och ```structured_text forbi ST-grinden. En
+# markning grinden inte kande igen var alltsa ett godkannande ur tystnad,
+# vilket ar precis det I3 forbjuder.
 _PYTHONSPRAK = ("python", "py", "python2", "python27", "vc", "")
 _STSPRAK = ("st", "iec", "structured-text", "iecst")
+
+# Slutorden i IEC 61131-3. Ett block som bar nagot av dem ar ST och inget
+# annat: de star inte i Python och inte i loptext.
+_STSLUTORD = ("END_PROGRAM", "END_FUNCTION_BLOCK", "END_FUNCTION")
 
 
 @dataclass(frozen=True)
@@ -269,21 +281,22 @@ class Forgranskare(object):
             return self._nej("sakerhet", "slutsvaret", dom.skal)
 
         for sprak, block in kodblock(text):
-            lag = (sprak or "").lower()
-            if lag in _STSPRAK:
+            lag = (sprak or "").lower().strip()
+            if lag in _STSPRAK or _ar_st(block):
                 st_dom = self.sakerhet.granska_st(block)
                 if st_dom.nekas:
                     return self._nej("sakerhet", "ST-blocket i slutsvaret",
                                      st_dom.skal)
                 continue
-            if lag not in _PYTHONSPRAK:
-                continue
-            if not lag and not _ar_python(block):
-                # Ett OMARKT block som inte ens gar att parsa ar prosa, inte
-                # kod. Att doma det hade gjort grinden till en som anklagar
-                # loptext, och en grind som anklagar i onodan slutar bli last.
-                # Ett omarkt block som DAREMOT parsar domes: en modell ska
-                # inte kunna gomma kod genom att utelamna sprakmarkningen.
+            kand_python = bool(lag) and lag in _PYTHONSPRAK
+            if not kand_python and not _ar_python(block):
+                # Varken en kand Python-markning eller nagot som gar att
+                # parsa som Python. Det ar prosa, ett omarkt textblock eller
+                # ett annat sprak, och att doma det hade gjort grinden till
+                # en som anklagar loptext - en grind som anklagar i onodan
+                # slutar bli last. Ett block som DAREMOT parsar domes, oavsett
+                # markning: en modell ska inte kunna gomma kod bakom en
+                # etikett grinden inte kanner igen.
                 continue
             api = self._api_problem(block)
             if api:
@@ -400,8 +413,26 @@ def _ar_python(kod: str) -> bool:
     return True
 
 
+def _ar_st(kod: str) -> bool:
+    """Sant om texten bar IEC 61131-3:s egna slutord.
+
+    Innehallsprov, inte etikettprov. Orden star varken i Python eller i
+    loptext, sa provet anklagar inte prosa. Satt av M-46.
+    """
+    stor = (kod or "").upper()
+    return any(ord_ in stor for ord_ in _STSLUTORD)
+
+
+# Bada markdown-stangslen. En modell som skriver ~~~ i stallet for ``` skulle
+# annars gomma sin kod for hela grindkedjan. Satt av M-46.
+_STANGSEL = ("```", "~~~")
+
+
 def kodblock(text: str) -> List[Tuple[str, str]]:
-    """(sprakmarkning, kod) for varje trestreckat block i texten.
+    """(sprakmarkning, kod) for varje stangslat block i texten.
+
+    Bada markdown-stangslen laser, och blocket stangs bara av SITT EGET
+    tecken: ett ~~~ inuti ett ```-block ar text, inte slut.
 
     Ett oavslutat block raknas MED, med det som star efter oppningen. En
     avhuggen kodmarkering ska inte kunna gomma koden for grinden.
@@ -411,11 +442,12 @@ def kodblock(text: str) -> List[Tuple[str, str]]:
     i = 0
     while i < len(rader):
         rad = rader[i].strip()
-        if rad.startswith("```"):
-            sprak = rad[3:].strip()
+        oppnare = next((s for s in _STANGSEL if rad.startswith(s)), None)
+        if oppnare is not None:
+            sprak = rad[len(oppnare):].strip()
             kropp = []
             i += 1
-            while i < len(rader) and not rader[i].strip().startswith("```"):
+            while i < len(rader) and not rader[i].strip().startswith(oppnare):
                 kropp.append(rader[i])
                 i += 1
             ut.append((sprak, "\n".join(kropp)))
