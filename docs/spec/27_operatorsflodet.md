@@ -73,7 +73,7 @@ Alla fem är mätta. Alla fem ser ut som att ingenting hände.
 | 1 | Fel `Python N`-nivå | VC startar normalt. Inget tillägg. Ingen rad någonstans (**M-01**) | installationen väljer nivå ur disk, aldrig ur gissning; grön start §4 |
 | 2 | Syntaxfel i tilläggets moduler | `loadCommand` returnerar ett objekt, `execute()` kastar inget, kroken loggar `executed`, modulkroppen körs **aldrig** (**M-09**) | granskning på disk före start, i båda riktningarna (källa och mål) |
 | 3 | `OnRun` utan `from vcScript import *` | pumpen startar aldrig, felet slukas (**M-06**) | mallgranskning i installationen; bryggan loggar sin egen start |
-| 4 | Port 8901 upptagen av en kvarlevande `wineserver` | bryggan binder inte, undantaget slukas i `OnRun`, **noll rader någonstans** (**M-13**, sidofynd) | loggen skrivs **före** bindningen (`Brygga.starta`); `~/bin/vc-stoppa.sh` gör `wineserver -k` och kontrollerar att porten är fri |
+| 4 | Port 8901 upptagen av en kvarlevande `wineserver` | bryggan binder inte, undantaget slukas i `OnRun`, **noll rader någonstans** (**M-13**, sidofynd) | loggen skrivs **före** bindningen (`Brygga.starta`); på Linux gör `~/bin/vc-stoppa.sh` `wineserver -k` och kontrollerar att porten är fri. På Windows finns ingen motsvarighet: `netstat -ano | findstr :8901`, avsluta PID:et. **OPRÖVAT** (M-44) |
 | 5 | Ingen licens | VC startar inte, eller startar utan de förmågor tillägget behöver | förmågerapporten säger vilka ytor som finns; VPN startas av `vc.sh` innan VC |
 
 **Regel F-1.** Tystnad är aldrig ett kvitto. Efter en start ska operatören

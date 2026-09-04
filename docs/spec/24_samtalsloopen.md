@@ -151,7 +151,7 @@ beteende, inte ett undantag.
 | **Simuleringen stoppad** | `sim` svarar `kor: false` | bryggan startar om den själv (`aterstart_simulering`, KOD@HEAD). Tjänsten väntar högst `KO_TIMEOUT_S` | "simuleringen stannade; bryggan startade om den (nr N)" |
 | **Pumpen dog mitt i en post** | posten står `running` när pumpen kommer tillbaka | posten blir `interrupted`. **Aldrig omkörning automatiskt** | posten, dess `desc`, och frågan om den ska köras igen |
 | **VC omstartad** | ny tokenfil, ny förmågerapport, tom kö | arbetsordern på disk är enda kontinuiteten. Scenen **läses om** före nästa skrivning | "VC startades om. Läser om scenen innan jag fortsätter" |
-| **Porten upptagen vid start** | bind misslyckas | bryggan loggar **före** bindningen (KOD@HEAD, rättat efter M-13) | "port 8901 upptagen — `wineserver` lever kvar. Kör `~/bin/vc-stoppa.sh`" |
+| **Porten upptagen vid start** | bind misslyckas | bryggan loggar **före** bindningen (KOD@HEAD, rättat efter M-13) | "port 8901 upptagen. **Linux:** `wineserver` lever kvar, kör `~/bin/vc-stoppa.sh`. **Windows:** `netstat -ano | findstr :8901` och avsluta PID:et" (Windows-ledet **OPRÖVAT**, M-44) |
 
 ### Regeln som binder ihop dem
 

@@ -117,7 +117,7 @@ efteråt.
 | Orsak | Vad operatören ser | Vad han gör |
 |---|---|---|
 | Tokenfilen saknas | *"`~/vc_assist_token` finns inte. Bryggan har aldrig startat i den här VC-sessionen."* + de tre grön-start-filerna med bock eller kryss | följer `27_operatorsflodet.md` §3, de fem tysta fällorna |
-| Porten lyssnar inte | *"Ingenting lyssnar på 127.0.0.1:8901."* | kontrollerar bootloggen; kör `vc-stoppa.sh` om en gammal `wineserver` håller porten (**MÄTT M-13**) |
+| Porten lyssnar inte | *"Ingenting lyssnar på 127.0.0.1:8901."* | kontrollerar bootloggen; **Linux:** kör `vc-stoppa.sh` om en gammal `wineserver` håller porten (**MÄTT M-13**). **Windows:** ingen `wineserver` finns — processen som håller porten är en kvarlevande `VisualComponents.Engine.exe`, läs ut den med `netstat -ano | findstr :8901` och avsluta det PID:et. **OPRÖVAT på Windows** (M-44) |
 | `E_AUTH` | *"Tokenet är från en tidigare VC-session."* | tjänsten läser om filen automatiskt och försöker en gång till; lyckas det sägs det, det tystas inte |
 
 ### 3.2 ansluten
