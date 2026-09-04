@@ -256,6 +256,35 @@ Tre avläsningar:
 
 ---
 
+## 5b. Är "4 av 4" bara vår egen tolks åsikt?
+
+Domen kommer från `svc/vc_assist_svc/st/tolk.py`. Har tolken fel om
+ST-semantiken har facit fel, och då mäter bänken vår egen missuppfattning med
+stor precision. `M-45` skrev in det som en öppen punkt: *samma spår genom
+tolken och genom en annan motor, med skillnaden per signal och per scan
+redovisad.*
+
+Den mätningen är nu gjord för baslinjens kod.
+`tests/protocol/kor_m62_baslinjen_mot_strucpp.py` bygger varje program med
+STruC++ 0.6.6 till en körbar REPL och driver den med **samma spår, scan för
+scan, på samma 20 ms cykel** som tolken. Varje utsignal läses varje scan — inte
+bara där facit tittar, eftersom en jämförelse som bara tittar där facit tittar
+bara hittar de skillnader facit redan letar efter.
+
+| Storhet | k av n |
+|---|---|
+| sekvenser körda genom båda motorerna | 33 av 33 |
+| scan jämförda | 3 060 |
+| **signalavläsningar jämförda** | **15 354** |
+| **avvikelser** | **0** |
+
+Två oberoende implementationer av ST-semantiken ger alltså samma spår för
+baslinjens kod, på varje avläst signal i varje scan. **Det bevisar ingenting om
+OpenPLC:s runtime** — den leden av M-45:s öppna punkt är fortfarande obetald —
+men det tar bort möjligheten att 4 av 4 är en artefakt av vår egen tolk.
+
+---
+
 ## 6. Vad det här betyder för fas 9
 
 Det finns två läsningar av "4 av 4", och bara den ena håller.
@@ -270,6 +299,11 @@ fullständigt att en översättning räcker.** Det är den läsning ablationen
 stöder. `control.sequence` för `T-07` är åtta rader som namnger varje tagg och
 varje handling i tur och ordning. Att göra ST av dem är en kompilering, inte en
 konstruktion.
+
+Ablationens rad *"ramen ensam"* är beviset, och den är redan mätt: **tas den
+uppräknade sekvensen bort löser baslinjen 1 av 4**, och den enda som återstår
+är `S-05`, som är en publicerad standard med ett mallbibliotek. Skillnaden
+mellan 4 av 4 och 1 av 4 är alltså exakt vad `control.sequence` bär.
 
 Följden för fas 9 är rak och obekväm:
 
