@@ -50,6 +50,20 @@ _FLYTTALSMARGINAL = 1e-9   # Satt av M-46, ren float64-marginal.
 # skriver 1200 har last det, inte hittat pa det.
 _TAL_I_STRANG = re.compile(r"-?\d+(?:\.\d+)?")
 
+# Enhetsfaktorer mellan VC:s basenhet och de enheter en modell skriver i.
+# MATT: verktygens vektorargument ar definierade i MILLIMETER (verktyg/bas.py,
+# XYZ), och de tre stegen upp ar cm, dm och m. Listan finns for EN sak: nar
+# ett tal inte stods av nagon matning ska grinden kunna saga OM det hade
+# stotts i en annan enhet, i stallet for att bara saga att det saknas. Det ar
+# skillnaden mellan "talet ar pahittat" och "du glomde enheten", och DOM-003
+# handlar om den andra. Satt av M-53.
+ENHETSFAKTORER = (1000.0, 100.0, 10.0, 0.1, 0.01, 0.001)  # Satt av M-53.
+# Hur nara kvoten maste ligga en av faktorerna for att det ska rakas som
+# samma tal i en annan enhet. Relativ, sa att den galler for bade 0,812 och
+# for 2500. Satt av M-53: 1e-6 ar langt under varje verklig matskillnad och
+# langt over flyttalsbruset.
+ENHETSTOLERANS = 1e-6  # Satt av M-53.
+
 
 @dataclass(frozen=True)
 class Avvikelse:
@@ -161,8 +175,33 @@ class Grund(object):
         if not self._tal:
             return ("inget verktyg i turen har returnerat ett enda tal, sa "
                     "talet kan inte komma ur en matning")
+        enhet = self._enhetsmiss(tal)
+        if enhet:
+            return enhet
         return ("inget verktygssvar i turen bar det talet; narmaste varde ar "
                 "%s" % _narmast(tal, self._tal, faktor))
+
+    def _enhetsmiss(self, tal: Talpastaende) -> Optional[str]:
+        """Skalet nar talet stods i en ANNAN enhet an den skrevs i.
+
+        DOM-003, mekaniserad: langder i VC ar millimeter och vinklar grader,
+        och ett matt i meter maste skrivas ut som meter. Ett bart 2,5 i en
+        matmening ar inte kontrollerbart - och det ar just formen en modell
+        skriver nar den har rakat om till meter i huvudet.
+        """
+        if not tal.varde:
+            return None
+        for observerat in self._tal:
+            kvot = observerat / tal.varde
+            for faktor in ENHETSFAKTORER:
+                if abs(kvot - faktor) <= ENHETSTOLERANS * faktor:
+                    return ("inget verktygssvar bar %g, men ett bar %g - "
+                            "alltsa samma tal en faktor %g bort. VC:s langder "
+                            "ar MILLIMETER och vinklar grader (verktyg/bas.py); "
+                            "skriver du ett matt i en annan enhet ska enheten "
+                            "sta i samma mening som talet (DOM-003)"
+                            % (tal.varde, observerat, faktor))
+        return None
 
     def stodjer_namn(self, namn: Namnpastaende) -> Optional[str]:
         if namn.sort == "uri":

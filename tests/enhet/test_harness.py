@@ -40,6 +40,7 @@ from vc_assist_svc.harness import (arlighet as A, fel as Fel,               # no
                                    sammansattning as Sam, verifiering as Vf)
 from vc_assist_svc.harness import fallor as Fa         # noqa: E402
 from vc_assist_svc.harness import kodfallor as Kf      # noqa: E402
+from vc_assist_svc.harness import mattafakta as Mf     # noqa: E402
 
 HARNESSKATALOG = os.path.join(_ROT, "svc", "vc_assist_svc", "harness")
 
@@ -557,9 +558,10 @@ def test_grindordningen_ar_den_dokumenterade():
     assert Fg.GRINDAR[1] == "sakerhet"      # ovillkorlig, före allt annat
     # skrivgrind är sista grinden på ett ANROP. Efter den kommer M-53:s
     # kodfällsgrindar, som bara dömer modellens egna kodblock i slutsvaret.
-    kedjan = Fg.GRINDAR[:len(Fg.GRINDAR) - len(Kf.GRINDAR)]
+    svarsgrindar = Kf.GRINDAR + (Mf.GRIND,)
+    kedjan = Fg.GRINDAR[:len(Fg.GRINDAR) - len(svarsgrindar)]
     assert kedjan[-1] == "skrivgrind"
-    assert Fg.GRINDAR[len(kedjan):] == Kf.GRINDAR
+    assert Fg.GRINDAR[len(kedjan):] == svarsgrindar
 
 
 def test_sakerhetsgrinden_domer_fore_registret(forgranskare):

@@ -31,11 +31,12 @@ GRINDORDNINGEN, och varfor den ar som den ar:
   8 api_namn        AST-validering av den genererade koden
   9 skrivgrind      lasande verktyg vars kod skriver, och skriptbeteenden
 
-De tre sista grindarna (kvaternion, bytestrangar, py27) ligger i
-kodfallor.py och domer BARA modellens egna kodblock i slutsvaret. De star
-sist darfor att de fragar om ett block som redan ar riktig, skrivfri VC-kod:
-en kvaternion last i namnordning ar fel i ett block som i ovrigt gar att
-kora.
+De fyra sista grindarna domer BARA modellens SLUTSVAR. kvaternion,
+bytestrangar och py27 ligger i kodfallor.py och laser svarets kodblock; de
+star sist darfor att de fragar om ett block som redan ar riktig, skrivfri
+VC-kod. matta_fakta ligger i mattafakta.py och laser svarets meningar: ett
+forslag som vilar pa USD eller pa VC som OPC UA-server kor inte alls, och
+star darfor allra sist.
 
 82_felklasser.md, sorteringsregel 1: forsta grinden som faller bestammer
 klassen. Ordningen ar alltsa inte en smakfraga utan en klassningsregel, och
@@ -53,6 +54,7 @@ from .. import api_index
 from .. import verktyg as V
 from ..verktyg.fel import Argumentfel, Avstangt
 from . import kodfallor
+from . import mattafakta
 from .sakerhet import ROT, Sakerhetsgrind
 
 _EXT = os.path.join(ROT, "ext", "vc_addon", "vc_assist")
@@ -63,7 +65,7 @@ import skrivgrind  # noqa: E402
 
 GRINDAR = ("tomt_anrop", "sakerhet", "ratkod", "okant_verktyg", "avstangt",
            "argument", "katalog_uri", "api_namn", "skrivgrind") + \
-          kodfallor.GRINDAR
+          kodfallor.GRINDAR + (mattafakta.GRIND,)
 
 # Bryggan lagger _s i exec-globalerna vid varje korning (pump.py:_kor), sa
 # mallarna kallar en funktion som inte star i deras egen kod. Validatorn ser
@@ -319,6 +321,14 @@ class Forgranskare(object):
             grind, skal = kodfallor.granska(block)
             if grind:
                 return self._nej(grind, "kodblocket i slutsvaret", skal)
+
+        # Sist i kedjan, och med flit: ett forslag som vilar pa nagot som
+        # inte finns kor inte alls, medan koden ovanfor kan hinna andra
+        # scenen. Forsta grinden som faller bestammer klassen.
+        fakta = mattafakta.granska(text)
+        if fakta:
+            return self._nej(mattafakta.GRIND, "slutsvaret",
+                             mattafakta.skal(fakta))
         return Forgranskningsdom()
 
     # ---- delgrindar ------------------------------------------------------

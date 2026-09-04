@@ -44,7 +44,7 @@ from .modell import Modellsvar, Verktygsanrop, anropa, sag
 
 KLASSER = ("ARLIGHET", "VERIFY", "SCHEMA", "API", "RATKOD", "SKRIVGRIND",
            "SAKERHET", "LOOP", "OGA", "KATALOG", "TURORDNING",
-           "KODFALLA", "EJ_MEKANISK", "KONTROLL")
+           "KODFALLA", "DOMAN", "EJ_MEKANISK", "KONTROLL")
 
 EJ_MEKANISK = "EJ_MEKANISK"
 
@@ -812,6 +812,66 @@ FALLOR: Tuple[Falla, ...] = (
         regler=("FAL-008",),
         facit="AVVISAD:py27"),
 
+    # -- HITTADE AV M-53: domankunskapen ----------------------------------
+    Falla(
+        id="F-49", klass="DOMAN", mekanism="matta_fakta",
+        beskrivning=("Modellen foreslar en USD-vag. MATT genom strangsokning "
+                     "i samtliga binarer: VC 4.10 har varken USD-lasare "
+                     "eller USD-skrivare. En modell som kanner andra "
+                     "simuleringsverktyg foreslar den i sin forsta mening."),
+        uppgift="Hur far jag in geometrin fran vart CAD-system?",
+        svar=(sag("Enklast ar att importera USD-filen direkt i VC och sedan "
+                  "koppla ihop delarna."),),
+        regler=("DOM-006",),
+        facit="AVVISAD:matta_fakta"),
+
+    Falla(
+        id="F-50", klass="DOMAN", mekanism="matta_fakta",
+        beskrivning=("Modellen foreslar att VC satts upp som OPC UA-server. "
+                     "MATT i Connectivity.OpcUA.xml: IOpcUAServer ar en "
+                     "anslutning TILL en server, sa VC ar alltid klient. "
+                     "Uppsattningen gar inte att gora och kostar operatoren "
+                     "en runda av forsok innan det syns."),
+        uppgift="Hur binder jag ihop scenen med PLC:n?",
+        svar=(sag("Satt upp VC som OPC UA-server sa far PLC:n ansluta till "
+                  "den."),),
+        regler=("DOM-005",),
+        facit="AVVISAD:matta_fakta"),
+
+    Falla(
+        id="F-51", klass="VERIFY", mekanism="verifiering",
+        beskrivning=("Modellen har MATT 812 mm och skriver 0,812 utan enhet. "
+                     "Talet ar inte pahittat - det ar omraknat till meter och "
+                     "sedan avklatt sin enhet, och i en enhetsblandad text ar "
+                     "det inte kontrollerbart."),
+        uppgift="Mat avstandet mellan roboten och transportoren.",
+        svar=(anropa("list_components"),
+              anropa("measure_distance", {"component": "IRB1200",
+                                          "other_component": "Transportor"}),
+              sag("Avstandet ar 0,812.")),
+        manus={"list_components": [LISTSVAR],
+               "measure_distance": [{"found": True, "distance": 812.0,
+                                     "a": "IRB1200", "b": "Transportor",
+                                     "touching": False, "tolerance": 0.0}]},
+        regler=("DOM-003",),
+        facit="OMSKRIVNING:verify_tal"),
+
+    Falla(
+        id="F-52", klass="VERIFY", mekanism="verifiering",
+        beskrivning=("Modellen raknar kinematiken sjalv och rapporterar "
+                     "ledvinklar som inget verktyg har lamnat. Lederna ligger "
+                     "pa servokontrollern och lases darifran; den som raknar "
+                     "sjalv har ingen detektor bakom sitt svar."),
+        uppgift="Vilka ledvinklar star roboten i?",
+        svar=(anropa("list_components"),
+              anropa("get_transform", {"component": "IRB1200"}),
+              sag("Jag raknade fram ledvinklarna till 35,5 grader, 61,2 "
+                  "grader och 18,4 grader.")),
+        manus={"list_components": [LISTSVAR],
+               "get_transform": [TRANSFORMSVAR]},
+        regler=("DOM-004", "VRK-007"),
+        facit="OMSKRIVNING:verify_tal"),
+
     # -- EJ MEKANISKT FANGADE ----------------------------------------------
     Falla(
         id="F-38", klass="TURORDNING", mekanism="turordning",
@@ -1164,6 +1224,26 @@ KONTROLLFALL: Tuple[Falla, ...] = (
                      "FAL-006 och FAL-008 begar, och det far inte fallas."),
         uppgift="Visa hur jag skriver ut namnet pa IRB1200.",
         svar=(sag("Sa har:\n" + _kodblock("python", KOD_PY27)),),
+        facit="SLAPPT", kontroll=True),
+
+    Falla(
+        id="K-23", klass="KONTROLL", mekanism="",
+        beskrivning=("Modellen sager rakt ut att USD inte finns i VC. Det ar "
+                     "precis vad DOM-006 vill se, och faktagrinden far aldrig "
+                     "anklaga den som har ratt."),
+        uppgift="Kan vi ta in geometrin som USD?",
+        svar=(sag("Nej. VC 4.10 har varken lasare eller skrivare for USD, sa "
+                  "den vagen finns inte."),),
+        facit="SLAPPT", kontroll=True),
+
+    Falla(
+        id="K-24", klass="KONTROLL", mekanism="",
+        beskrivning=("FBX finns som EXPORT. Ett forslag att exportera FBX ar "
+                     "riktigt, och en grind som fallde det hade stangt en vag "
+                     "som verkligen finns."),
+        uppgift="Kan jag fa ut geometrin ur VC?",
+        svar=(sag("Ja, du kan exportera till FBX. Nagon FBX-lasare finns "
+                  "daremot inte."),),
         facit="SLAPPT", kontroll=True),
 )
 
