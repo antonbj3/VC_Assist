@@ -182,3 +182,20 @@ Bryggan ska överleva att en layout stängs och en ny öppnas. Den ska **inte**
 4. Fel kod ger `E_EXEC` med traceback, och bryggan lever vidare
 5. `timeout_ms` överskrids ⇒ `E_TIMEOUT`, och bryggan återhämtar sig
 6. **Provtagningstakten mätt i Hz och nedskriven**
+
+## Trådmodellen är ersatt (M-07, M-08)
+
+Avsnittet som märktes OGILTIG efter M-04 har nu både en mätt mekanism och en
+giltig modell i sitt ställe.
+
+Motorn är **Stackless Python 2.7.1**. Bakgrundstrådar får CPU enbart medan
+huvudtråden står i ett anrop som släpper GIL; VC:s meddelandeloop släpper den
+aldrig. Se [M-07](../matningar/M-07_motorn_ar_stackless.md).
+
+Bryggan är i stället ett `VC_SCRIPT`-beteende vars `OnRun` är pumpen, driven av
+`app.startSimulation()`. Mätt takt **20,0 Hz mot väggklockan**, kvot
+simuleringstid/väggtid **1,000** över 155 sekunder och 3 100 varv. Se
+[M-08](../matningar/M-08_vaggklockspumpen.md).
+
+Allt som rör VC sker på huvudtråden inne i `OnRun`. Begäran köas, pumpen betar
+av kön. Ingen tråd, ingen timer, ingen .NET.
