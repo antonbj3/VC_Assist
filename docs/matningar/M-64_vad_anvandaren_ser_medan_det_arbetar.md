@@ -394,3 +394,12 @@ helst.
   sig, och det skyddet är lika brett som `kallor.py` är — inte bredare.
 * **Fält 1 och 7 finns inte.** Samtalet och systemläget kräver en levande
   brygga. Ingen del av `A-G4` är därmed stängd.
+* **Ingenting driver ytan än.** Den går att driva, och det är en annan sak än
+  att den drivs. Noll moduler i `svc/` utanför `forlopp/` konstruerar ett
+  `Forlopp`. De två som äger en körnings tidslinje — `harness/loop.py` och
+  `plan/korning.py` — returnerar fortfarande sitt protokoll först när allt är
+  över. Hålet står som `tests/motbevis/test_forloppet_har_ingen_forare_motbevis.py`,
+  rött med flit, och lagas den dag någon står högst upp och anropar
+  `forlopp.kallor`. Kopplaren och reparationsslingan ska **inte** laga det
+  själva: att låta ett lägre lager känna presentationslagret vore att vända
+  beroendet fel väg.
