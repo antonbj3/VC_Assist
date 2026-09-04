@@ -1,0 +1,16 @@
+# Radslut. Skalet ar inte smak, det ar VC.
+#
+# Git for Windows installerar med core.autocrlf=true som standard. En klon pa
+# Windows skriver da CRLF i arbetstradet. Tillaggets filer kopieras BYTE FOR
+# BYTE in i VC (install/paket.py jamfor sha256), och bridge_cmd.py:s SKRIPT ar
+# en trippelciterad strang vars varde da bar \r\n. Den strangen skickas till
+# VC:s Python 2.7 som skriptkallkod - och Python 2:s compile() tar bara \n.
+# (Universella radslut i compile() kom forst i Python 3.2.)
+#
+# eol=lf slar core.autocrlf, sa arbetstradet blir LF aven pa Windows.
+# Satt av M-44.
+* text=auto eol=lf
+
+# VC:s egna referensfiler ar hamtade ur installationen och ligger med sina
+# egna CRLF. De ar kallmaterial, inte var kod: ingen normalisering alls.
+docs/referens/** -text

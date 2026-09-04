@@ -135,21 +135,35 @@ def _py2fallor(trad, namn):
     return problem
 
 
+def _crlf_problem(namn):
+    """Meddelandet for en fil med CRLF. Egen funktion sa provet kan citera det."""
+    return ("%s har CRLF-radslut. Filen kopieras BYTE FOR BYTE in i VC, och "
+            "bridge_cmd.py:s SKRIPT ar en strang vars varde da bar \\r\\n - "
+            "Python 2:s compile() tar bara \\n. Orsaken ar nastan alltid "
+            "core.autocrlf=true, som Git for Windows satter som standard. "
+            "Repots .gitattributes tvingar LF; kor 'git rm --cached -r . && "
+            "git reset --hard' i en ren klon, eller ratta filen for hand."
+            % namn)
+
+
 def granska_pythonfiler(mapp, filer, pythonniva=None):
     """Lista over problem. Tom lista betyder att filerna gar att ladda.
 
     Prover, i ordning:
       1. filen finns och gar att lasa som UTF-8
-      2. den parsar och kompilerar
-      3. ``__init__.py`` definierar ``OnAppInitialized`` - utan den gor VC
+      2. den har LF-radslut, inte CRLF (M-44: en klon med core.autocrlf=true
+         ger CRLF, och SKRIPT-strangen inne i bridge_cmd.py blir da okompilerbar
+         for VC:s Python 2 - men helt gron i den har vardmaskinens Python 3)
+      3. den parsar och kompilerar
+      4. ``__init__.py`` definierar ``OnAppInitialized`` - utan den gor VC
          ingenting med tillagget, och sager inget om det heller
-      4. ``bridge_cmd.py``:s SKRIPT-mall parsar EFTER formatering, och borjar
+      5. ``bridge_cmd.py``:s SKRIPT-mall parsar EFTER formatering, och borjar
          med ``from vcScript import *`` (utan den raden finns varken delay()
          eller getSimulation(), och OnRun dor tyst - M-06)
-      5. pa en Python 2-niva: inga py2-fallor
+      6. pa en Python 2-niva: inga py2-fallor
 
-    Punkt 2 kors av VARDMASKINENS Python 3. Det ar inte samma kompilator som
-    VC 4.10:s Python 2.7, och det pastas inte heller - punkt 5 finns just for
+    Punkt 3 kors av VARDMASKINENS Python 3. Det ar inte samma kompilator som
+    VC 4.10:s Python 2.7, och det pastas inte heller - punkt 6 finns just for
     att tacka det gap den skillnaden lamnar.
     """
     problem = []
@@ -160,9 +174,14 @@ def granska_pythonfiler(mapp, filer, pythonniva=None):
             continue
         try:
             with open(sokvag, "rb") as f:
-                kalla = f.read().decode("utf-8")
+                ravaror = f.read()
+            kalla = ravaror.decode("utf-8")
         except (OSError, UnicodeDecodeError) as e:
             problem.append("%s gar inte att lasa: %s" % (namn, e))
+            continue
+
+        if b"\r\n" in ravaror:
+            problem.append(_crlf_problem(namn))
             continue
         try:
             trad = ast.parse(kalla, filename=sokvag)

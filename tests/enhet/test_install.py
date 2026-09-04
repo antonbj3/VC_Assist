@@ -529,6 +529,59 @@ def test_skriptmall_utan_vcScript_importen_faller(tmp_path):
     assert any("vcScript" in p for p in problem), problem
 
 
+def test_crlf_i_kallan_faller(tmp_path):
+    """M-44: en klon pa Windows med core.autocrlf=true ger CRLF.
+
+    Filen parsar och KOMPILERAR i den har vardmaskinens Python 3 - universella
+    radslut i compile() kom i Python 3.2. VC:s Python 2 har dem inte, och
+    SKRIPT-strangen inne i bridge_cmd.py far da \r\n i sitt varde. Utan den
+    har raden ar grinden gron och tillagget trasigt: precis den falska
+    framgang M-09 handlade om.
+    """
+    kalla = kalla_kopia(tmp_path)
+    sokvag = os.path.join(kalla, "bridge_cmd.py")
+    with open(sokvag, "rb") as f:
+        rader = f.read()
+    with open(sokvag, "wb") as f:
+        f.write(rader.replace(b"\n", b"\r\n"))
+
+    # Vardmaskinens Python 3 ser INGENTING: det ar hela poangen med provet.
+    with open(sokvag, "rb") as f:
+        text = f.read().decode("utf-8")
+    compile(text, sokvag, "exec")
+
+    problem = paket.granska_pythonfiler(kalla, paket.kallfiler(kalla), "Python 2")
+    assert any("CRLF" in p and "bridge_cmd.py" in p for p in problem), problem
+
+
+def test_crlf_stoppar_installationen_och_ror_inte_maldisken(tmp_path):
+    kalla = kalla_kopia(tmp_path)
+    sokvag = os.path.join(kalla, "protokoll.py")
+    with open(sokvag, "rb") as f:
+        rader = f.read()
+    with open(sokvag, "wb") as f:
+        f.write(rader.replace(b"\n", b"\r\n"))
+    m = _vcmapp(tmp_path, "4.10", ("Python 2",))
+    malmapp = os.path.join(m.my_commands, "Python 2", paket.PAKETNAMN)
+    with pytest.raises(paket.Verifieringsfel) as fel:
+        paket.installera(malmapp, kalla=kalla, pythonniva="Python 2")
+    assert "CRLF" in str(fel.value)
+    assert not os.path.exists(malmapp)
+
+
+def test_ensamt_cr_utan_lf_ar_inte_crlf(tmp_path):
+    """Grinden ska trafa CRLF, inte varje forekomst av \r.
+
+    En strangliteral med ett \r i sig ar inte ett radslutsproblem.
+    """
+    kalla = kalla_kopia(tmp_path)
+    sokvag = os.path.join(kalla, "protokoll.py")
+    with open(sokvag, "a", encoding="utf-8", newline="\n") as f:
+        f.write("\nVAGNRETUR = \"\\r\"\n")
+    problem = paket.granska_pythonfiler(kalla, paket.kallfiler(kalla), "Python 2")
+    assert not any("CRLF" in p for p in problem), problem
+
+
 def test_saknad_OnAppInitialized_faller(tmp_path):
     """Utan kroken gor VC ingenting med tillagget - och sager inget om det."""
     kalla = kalla_kopia(tmp_path)
