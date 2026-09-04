@@ -343,3 +343,66 @@ Skriv utfallen tillbaka som MÄTT i `hypoteser.py` och här.
 | koppla Bana1→Bana2 | E0 fel (`canConnect` False), G0 fel, **B5 ok** ("Input"); `IsConnected` False | flöde utan PnP; Container obundet (E6) |
 | linje | Mall, Matare, Sanka byggs; koppla Matare→Bana1 och Bana2→Sanka föll på receptets `findBehaviour("Path")` | receptfel, lagat (koppla väljer över alla beteenden) |
 | simulering 6 s | 6 komponenter före och efter, **noll skapade** | D5 (Limit osatt) och/eller D6 (utgång okopplad); `las_flode` mäter nästa gång |
+
+---
+
+## 6. Hur en cell faktiskt hänger ihop
+
+Operatörens fråga: *"jag antar att saker står på varandra, och ofta i förhållande
+till varandra … vet som sagt inte hur celler och sånt brukar byggas upp."*
+
+Den frågan är inte perifer. Kompositionslagret bygger i dag som om alla lägen
+vore fria, och det är fel i minst fyra avseenden.
+
+### Fyra sätt saker står i förhållande till varandra
+
+**Golvet.** Det mesta står på z = 0. En transportör har ben, en robot en sockel.
+Höjden är sällan fri — den bestäms av vad som ska nås, inte av var det finns
+plats.
+
+**Monteringsramar.** Ett grepdon skruvas fast på robotens verktygsfläns, inte
+*i närheten av* den. **MÄTT** i en `.vcmx` (M-57:s bibliotek): metadatan bär
+`BaseFrame "rSimBaseFrame"` med `Frame "tool1"`, `Frame "tool2"` och
+`Node "mountplate"`, plus `Mass`, `CenterOfGravity` och `Inertia` per ram.
+API:t bär `vcHelpers.Robot.mountTool` och `unmountTool` — montering är alltså
+en förstklassig operation, inte en positionsberäkning.
+
+**Gränssnitt som bär både flöde och geometri.** Två transportörer kopplas ände
+mot ände. Utgången på den ena *är* ingången på den andra, och det är inte bara
+en logisk relation.
+
+**Räckvidden styr layouten, inte tvärtom.** Roboten måste nå både plockpunkten
+och släpppunkten. I en riktig cell är det sällan möbleringen som bestämmer var
+roboten står — det är räckvidden som bestämmer var allt annat får stå. Vår
+layoutlösare har ingen räckviddsmodell alls.
+
+### Den öppna frågan som avgör designen
+
+**Positionerar `connect()` komponenterna, eller kopplar den bara logiskt?**
+
+Ingen mätning svarar. Skillnaden är inte en detalj:
+
+| Om kopplingen är **logisk** | Om VC **snäpper** |
+|---|---|
+| layoutlösaren äger geometrin och måste räkna ut varje läge | lösaren placerar **en** av delarna och låter VC göra resten |
+| en felräkning ger två delar som är kopplade men står isär | två räkningar slåss om samma läge |
+
+Vi bygger i dag som om svaret vore det vänstra, utan att veta.
+
+Mätningen är skriven: `tests/protocol/kor_m67_kopplingens_geometri.py`. Den
+bygger två komponenter med gränssnitt på kända, åtskilda och vridna lägen,
+läser världsläget, kopplar, och läser igen. Trasigt fall: två utgångar som inte
+går att koppla får **inte** flytta något.
+
+### Vad som INTE är mätt
+
+* **Om `connect()` flyttar.** Körningen finns, den är inte körd (VC upptagen).
+* **Om monteringsramarna går att nå från Python.** `Frame` finns i metadatan och
+  52 `Frame`-symboler finns i API:t, men ingen har hämtat en ram ur en laddad
+  komponent och satt något på den.
+* **Räckvidd.** Ingen komponent i biblioteket bär ett `Reach`-fält (M-57: inget
+  gemensamt schema). Räckvidd måste härledas ur länklängder, och en härledd
+  räckvidd är en modellparameter som ska bära sin härledning.
+* **Vad som får stå på vad.** Ingen mätning säger om VC har någon uppfattning om
+  bärighet, staplingsordning eller golvkontakt. Sannolikt inte — VC saknar massa
+  och tröghet helt (M-55) — men det är inte prövat.
