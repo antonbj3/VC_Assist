@@ -1427,3 +1427,40 @@ def test_ett_program_som_inte_kor_syns_i_svaret():
         v = REGISTER[namn]
         assert "simulation_running" in v.returns["required"], namn
         assert "getSimulation().IsRunning" in kod_union(namn), namn
+
+
+def test_rorelsemalets_antingen_eller_ar_bade_deklarerad_och_tvingad():
+    """Regeln star i schemat OCH i koden. Provet hindrar dem fran att glida isar.
+
+    Den stod tidigare bara i koden, med en docstring som sa att den 'inte gar
+    att skriva i JSON-schemat'. Den gar - projektets egen nyckel x-minst-en-av
+    finns just for det - men schema.py tvingar den bara pa toppniva. Alltsa:
+    DEKLARERAD i schemat sa varje lasare ser den (modellen, provens
+    argumentgenerator), TVINGAD i _rader_mal som ser den nastlade posten.
+
+    Faller det har provet: nagon har tagit bort den ena halvan.
+    """
+    import vc_assist_svc.verktyg as V
+    from vc_assist_svc.verktyg.fel import Argumentfel
+
+    grupper = R._MALSCHEMA.get("x-minst-en-av")
+    assert grupper == [["position", "joint_values"]], \
+        "regeln ar inte deklarerad i _MALSCHEMA"
+
+    verktyg = V.REGISTER["move_targets"]
+    for falt in grupper[0]:
+        assert falt in R._MALSCHEMA["properties"], \
+            "%s deklareras i x-minst-en-av men finns inte bland egenskaperna" % falt
+
+    # Tvingandet: ett mal utan bada falten ska avvisas.
+    utan_bada = {"component": "R", "targets": [{"motion": "joint"}]}
+    argument = V.validera_argument(verktyg, utan_bada)
+    with pytest.raises(Argumentfel):
+        V.CODE_GEN_HANDLERS["move_targets"](argument)
+
+    # Och med ettdera ska det ga igenom.
+    for falt, varde in (("position", [0.0, 0.0, 0.0]),
+                        ("joint_values", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])):
+        med = {"component": "R", "targets": [{"motion": "joint", falt: varde}]}
+        kod = V.CODE_GEN_HANDLERS["move_targets"](V.validera_argument(verktyg, med))
+        assert "createTarget()" in kod

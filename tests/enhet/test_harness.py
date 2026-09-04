@@ -440,12 +440,61 @@ _EXEMPELVARDEN = {
 }
 
 
+def _varde_for_schema(schema, namn=None):
+    """Ett minimalt giltigt varde for ett schema, rekursivt.
+
+    Rekursionen ar inte pyntning. Den forsta versionen gav [0.0, 0.0, 0.0] for
+    VARJE array oavsett items, vilket rackte sa lange alla arrayer var
+    koordinater. Nar robotdomanen kopplades in fanns plotsligt en array av
+    OBJEKT (move_targets.targets), och generatorn matade den med flyttal - sa
+    provet fallde pa sin egen fixtur och inte pa produkten.
+
+    Ett prov som bygger sin indata ur schemat maste folja schemat hela vagen
+    ned, annars vaxer det ifran registret det skulle folja med.
+    """
+    if schema is None:
+        return _EXEMPELVARDEN.get(namn, "X")
+    if "enum" in schema:
+        return schema["enum"][0]
+    typ = schema.get("type")
+    if typ in ("number", "integer"):
+        return 1
+    if typ == "boolean":
+        return True
+    if typ == "array":
+        if namn is not None and namn in _EXEMPELVARDEN:
+            return _EXEMPELVARDEN[namn]
+        poster = schema.get("items")
+        antal = max(int(schema.get("minItems", 3) or 3), 1)
+        if poster is None:
+            return [0.0, 0.0, 0.0]
+        return [_varde_for_schema(poster) for _ in range(antal)]
+    if typ == "object":
+        ut = {}
+        egenskaper = schema.get("properties", {})
+        # Samma regel som pa toppniva i _argument_for: required, forsta ur
+        # varje x-minst-en-av, och hela varje x-tillsammans. Utan den saknar
+        # ett nastlat objekt sina antingen-eller-falt och provet faller pa sin
+        # egen fixtur.
+        nycklar = list(schema.get("required", []))
+        for grupp in schema.get("x-minst-en-av", []):
+            nycklar.append(grupp[0])
+        for grupp in schema.get("x-tillsammans", []):
+            nycklar.extend(grupp)
+        for nyckel in nycklar:
+            if nyckel in ut:
+                continue
+            ut[nyckel] = _varde_for_schema(egenskaper.get(nyckel), nyckel)
+        return ut
+    return _EXEMPELVARDEN.get(namn, "X")
+
+
 def _argument_for(verktyg):
     """Ett minimalt giltigt anrop, byggt ur verktygets EGET schema.
 
     Byggs ur schemat och inte ur en lista, sa att provet foljer med nar
     registret vaxer. Det gjorde det mitt under den har cellen: 21 verktyg
-    blev 77.
+    blev 77, och sedan 119 nar robotdomanen kopplades in.
     """
     krav = list(verktyg.parameters.get("required", []))
     for grupp in verktyg.parameters.get("x-minst-en-av", []):
@@ -457,18 +506,7 @@ def _argument_for(verktyg):
         schema = verktyg.parameters["properties"].get(namn)
         if schema is None:
             continue
-        if "enum" in schema:
-            argument[namn] = schema["enum"][0]
-        elif schema["type"] in ("number", "integer"):
-            argument[namn] = 1
-        elif schema["type"] == "boolean":
-            argument[namn] = True
-        elif schema["type"] == "array":
-            argument[namn] = _EXEMPELVARDEN.get(namn, [0.0, 0.0, 0.0])
-        elif schema["type"] == "object":
-            argument[namn] = {}
-        else:
-            argument[namn] = _EXEMPELVARDEN.get(namn, "X")
+        argument[namn] = _varde_for_schema(schema, namn)
     return argument
 
 

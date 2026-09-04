@@ -65,9 +65,21 @@ gor for canConnect och Sections, och av samma skal.
 Det ar inte idealet. Idealet vore rader i formaga.YTOR for
 robot.Joints, robot.createTarget, executor.Program och de ovriga, sa att ett
 robotverktyg kan slas AV med ett skal i stallet for att falla med ett
-ValueError inne i VC. Den filen ligger utanfor den har cellens skrivstaket.
-Den cell som kopplar in modulen bor lagga till dem, och da kan `kraver` nedan
-skarpas utan att nagon mall behover andras.
+ValueError inne i VC.
+
+MEN: den cell som kopplade in modulen provade det och lat bli, av ett matt
+skal. formaga.YTOR provas mot en ordbok med app, sim, comp och node - fyra
+objekt som ALLTID finns. En robotyta har inget objekt att provas mot om scenen
+saknar robot vid bryggans start, och formaga() svarar da finns=None
+("inget robot att prova mot"). formagegrind._yta_finns behandlar None som
+saknad, alltsa fail-closed. Foljden hade blivit att alla verktyg har slogs AV
+i varje scen som inte redan hade en robot inladdad nar bryggan startade - och
+det ar de flesta, eftersom roboten ofta laddas in AV ett av de har verktygen.
+
+Att lagga in raderna kraver alltsa forst en mekanism som kan skriva om
+formagerapporten NAR scenen andras, inte bara vid start. Den mekanismen finns
+inte, och att lagga in raderna utan den vore inte en skarpning utan en
+regression. Kvar som en uttalad oppen punkt.
 
 VARFOR MALLARNA SKRIVER KEDJAN RAKT UT
 ---------------------------------------
@@ -628,6 +640,13 @@ _MALSCHEMA = {
     "description": ("Ett rorelsemal. Ange antingen position eller "
                     "joint_values."),
     "properties": dict(_MALEGENSKAPER),
+    # Regeln stod tidigare BARA i beskrivningen och i koden i _rader_mal.
+    # Nyckeln ar projektets egen (schema.py._EGNA_NYCKLAR) och deklarerar
+    # regeln for varje lasare av schemat - modellen som far verktygslistan, och
+    # provens argumentgenerator. Tvingandet ligger kvar i _rader_mal, som ser
+    # den nastlade posten; test_rorelsemalets_antingen_eller_ar_bade_
+    # deklarerad_och_tvingad binder ihop de tva sa att de inte kan glida isar.
+    "x-minst-en-av": [["position", "joint_values"]],
 }
 
 
@@ -835,9 +854,10 @@ def _rader_ledvarden(kalla="r"):
 def _rader_mal(spec, variabel, styrenhet="r"):
     """Bygger ett vcMotionTarget ur en malspecifikation.
 
-    spec ar redan validerad mot _MALEGENSKAPER. Att ett mal maste bara
-    ANTINGEN position eller joint_values gar inte att skriva i JSON-schemat
-    for en nastlad post, sa det provas har och avvisas som ett argumentfel.
+    spec ar redan validerad mot _MALEGENSKAPER. Regeln att ett mal maste bara
+    ANTINGEN position eller joint_values DEKLARERAS i _MALSCHEMA med nyckeln
+    x-minst-en-av, men schema.py tvingar den nyckeln bara pa toppniva. Den
+    nastlade posten tvingas darfor har, och avvisas som ett argumentfel.
     """
     rader = ["%s = %s.createTarget()" % (variabel, styrenhet)]
     rader.append("%s.MotionType = %s"
