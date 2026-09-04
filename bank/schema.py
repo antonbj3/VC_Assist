@@ -273,6 +273,11 @@ KARNFALT = ("task_id", "title", "goal", "grupp", "bransch", "orsak", "prompt",
 MIN_ORSAK_TECKEN = 100
 MIN_MOTIV_TECKEN = 40
 
+# Härkomsten för ett spårfacit ska peka på en mätning i docs/matningar/, precis
+# som varje tröskel i koden gör. Formen prövas här; att numret finns prövas av
+# tests/enhet/test_troskelharkomst.py, som slår upp det.
+_MNUMMER_I_BANKEN = re.compile(r"\bM-\d+\b")
+
 
 def _fel(kod, text):
     return (kod, text)
@@ -372,6 +377,7 @@ def validera(post, filnamn=None, katalogindex=None, felklasser=None):
     fel += _validera_scenarier(post)
     fel += _validera_karnutgangar(post)
     fel += _validera_facit(post)
+    fel += _validera_sparfacit(post)
     fel += _validera_variant(post, ar_variant)
 
     if post["verified_status"] not in ("unverified", "L1", "L2"):
@@ -796,4 +802,224 @@ def _validera_variant(post, ar_variant):
     if not trasig["vad_som_ar_fel"]:
         fel.append(_fel("M16_VARIANT_WITHOUT_ARTIFACT",
                         "varianten säger inte vad som är fel"))
+    return fel
+
+
+# --------------------------------------------------------------- spårfacit
+
+# Ett spårfacit är den andra facitformen i banken, tillagd av M-45. Ögonfacit i
+# `expect` dömer scenen efter en körning i VC. Spårfacit dömer styrlogiken mot
+# insignalerna över tid, och går att döma idag, utan VC. De ligger bredvid
+# varandra; ögat fäller domen om scenen (invariant I1), spåret om logiken.
+#
+# Fältet är frivilligt. De 47 uppgifter som fanns före M-45 saknar det och ska
+# fortsätta gå igenom lintern oförändrade — annars är utvidgningen inte
+# bakåtkompatibel utan en omskrivning.
+SPARFACITFALT = ("harkomst", "standard", "scan_ms", "referens", "sekvenser",
+                 "invarianter", "flanker", "motbevis")
+STEGFALT = ("t_ms", "satt", "krav", "varfor")
+SEKVENSFALT = ("id", "beskrivning", "steg")
+INVARIANTFALT = ("namn", "sekvens", "nar", "kraver", "varfor")
+FLANKFALT = ("namn", "sekvens", "signal", "typ", "fran_ms", "till_ms", "antal",
+             "varfor")
+MOTBEVISFALT = ("namn", "st", "vad_som_ar_fel", "faller_pa")
+FLANKTYPER = ("RISE", "FALL")
+
+# Hur många scan ett punktkrav minst måste ligga efter den senaste ändringen av
+# en insignal i samma sekvens. Under den marginalen mäter facit hur många scan
+# en implementation råkar ta på sig, inte om styrlogiken är riktig. Två scan är
+# PLC:ns egen uppmätta svarstid: exakt två scan, 40,0 ms vid 20 ms scanperiod.
+MARGINAL_SCAN = 2               # Mätt i M-20.
+
+# Ett motbevis är en lösning som ser riktig ut men bryter mot ett krav, och som
+# domaren måste fälla. Utan minst ett per spårfacit är grinden oprovad (regel
+# S2 i docs/spec/96_ingen_skuld.md: ingen grind utan trasig fixtur).
+MIN_MOTBEVIS = 1                # Satt av 96_ingen_skuld.md.
+
+
+def _validera_sparfacit(post):
+    """Spårfacit ska gå att döma utan att någon tolkar det välvilligt."""
+    facit = post.get("facit_spar")
+    if facit is None:
+        return []
+    fel = []
+    if not isinstance(facit, dict):
+        return [_fel("M33_SPARFACIT", "facit_spar är inte ett objekt")]
+    if set(facit) != set(SPARFACITFALT):
+        return [_fel("M33_SPARFACIT",
+                     "facit_spar ska ha exakt %s" % ", ".join(SPARFACITFALT))]
+
+    scan_ms = facit["scan_ms"]
+    if not _ar_tal(scan_ms) or scan_ms <= 0:
+        fel.append(_fel("M33_SPARFACIT", "scan_ms = %r" % (scan_ms,)))
+        scan_ms = None
+    if not _MNUMMER_I_BANKEN.search(str(facit["harkomst"] or "")):
+        fel.append(_fel("M33_SPARFACIT",
+                        "facit_spar.harkomst namnger ingen mätning"))
+    if not str(facit["standard"] or "").strip():
+        fel.append(_fel("M33_SPARFACIT",
+                        "facit_spar.standard säger inte vilken publicerad "
+                        "tillståndsmodell eller standard facit lutar sig mot"))
+    referens = facit["referens"]
+    if not isinstance(referens, str) or not referens.strip():
+        fel.append(_fel("M33_SPARFACIT",
+                        "facit_spar.referens är tom; utan en lösning som "
+                        "uppfyller facit är facit ett påstående"))
+    elif isinstance(post.get("prompt"), str) and referens.strip()[:60] in post["prompt"]:
+        # Referenslösningen bevisar att facit går att uppfylla. Hamnar den i
+        # uppgiftstexten är den i stället svaret, och bänken mäter avskrift.
+        fel.append(_fel("M33_SPARFACIT",
+                        "referenslösningen läcker in i uppgiftstexten"))
+
+    signaler = dict((s["name"].upper(), s) for s in _signaler(post) if "name" in s)
+
+    def _kand(namn, riktning=None):
+        s = signaler.get(str(namn).upper())
+        if s is None:
+            return "okänd signal %r" % (namn,)
+        if riktning and s.get("dir") != riktning:
+            return "%s är %r, inte %r" % (namn, s.get("dir"), riktning)
+        return None
+
+    sekvenser = facit["sekvenser"]
+    if not isinstance(sekvenser, list) or not sekvenser:
+        fel.append(_fel("M33_SPARFACIT", "facit_spar.sekvenser är tom"))
+        sekvenser = []
+    ider = []
+    for sekv in sekvenser:
+        if not isinstance(sekv, dict) or set(sekv) != set(SEKVENSFALT):
+            fel.append(_fel("M33_SPARFACIT",
+                            "sekvensen ska ha exakt %s" % ", ".join(SEKVENSFALT)))
+            continue
+        ider.append(sekv["id"])
+        steg = sekv["steg"]
+        if not isinstance(steg, list) or not steg:
+            fel.append(_fel("M33_SPARFACIT",
+                            "sekvensen %r har inga steg" % (sekv["id"],)))
+            continue
+        satt_tider = []
+        krav_finns = False
+        for s in steg:
+            if not isinstance(s, dict) or set(s) != set(STEGFALT):
+                fel.append(_fel("M33_SPARFACIT",
+                                "steget ska ha exakt %s: %r"
+                                % (", ".join(STEGFALT), s)))
+                continue
+            t = s["t_ms"]
+            if not _ar_tal(t) or t < 0:
+                fel.append(_fel("M33_SPARFACIT", "t_ms = %r" % (t,)))
+                continue
+            if scan_ms and abs((t / scan_ms) - round(t / scan_ms)) > 1e-9:
+                fel.append(_fel("M33_SPARFACIT",
+                                "t_ms %r ligger inte på scanrutnätet %r"
+                                % (t, scan_ms)))
+            if s["satt"]:
+                satt_tider.append(float(t))
+            for namn in (s["satt"] or {}):
+                brist = _kand(namn, "in")
+                if brist:
+                    fel.append(_fel("M33_SPARFACIT",
+                                    "steget sätter %s" % brist))
+            for namn in (s["krav"] or {}):
+                krav_finns = True
+                brist = _kand(namn)
+                if brist:
+                    fel.append(_fel("M33_SPARFACIT", "kravet läser %s" % brist))
+            if s["krav"] and not str(s["varfor"] or "").strip():
+                fel.append(_fel("M33_SPARFACIT",
+                                "kravet vid t=%r säger inte varför" % (t,)))
+        if not krav_finns:
+            fel.append(_fel("M33_SPARFACIT",
+                            "sekvensen %r ställer inget krav alls" % (sekv["id"],)))
+        # Marginalregeln: ett krav som ligger för nära en insignaländring mäter
+        # scanantal i stället för styrlogik.
+        if scan_ms:
+            for s in steg:
+                if not isinstance(s, dict) or not s.get("krav"):
+                    continue
+                t = float(s["t_ms"])
+                nara = [v for v in satt_tider if 0 <= t - v < MARGINAL_SCAN * scan_ms]
+                if nara:
+                    fel.append(_fel("M33_SPARFACIT",
+                                    "kravet vid t=%.0f ms ligger %0.f ms efter en "
+                                    "insignaländring; marginalen är %d scan"
+                                    % (t, t - max(nara), MARGINAL_SCAN)))
+    if len(set(ider)) != len(ider):
+        fel.append(_fel("M33_SPARFACIT", "två sekvenser har samma id"))
+
+    for inv in facit["invarianter"] or []:
+        if not isinstance(inv, dict) or set(inv) != set(INVARIANTFALT):
+            fel.append(_fel("M33_SPARFACIT",
+                            "invarianten ska ha exakt %s" % ", ".join(INVARIANTFALT)))
+            continue
+        if inv["sekvens"] not in ider and inv["sekvens"] != "*":
+            fel.append(_fel("M33_SPARFACIT",
+                            "invarianten %r pekar på sekvensen %r som inte finns"
+                            % (inv["namn"], inv["sekvens"])))
+        if not inv["nar"] or not inv["kraver"]:
+            fel.append(_fel("M33_SPARFACIT",
+                            "invarianten %r har tomt villkor eller tomt krav"
+                            % (inv["namn"],)))
+        for namn in list(inv["nar"] or {}) + list(inv["kraver"] or {}):
+            brist = _kand(namn)
+            if brist:
+                fel.append(_fel("M33_SPARFACIT", "invarianten läser %s" % brist))
+        if not str(inv["varfor"] or "").strip():
+            fel.append(_fel("M33_SPARFACIT",
+                            "invarianten %r säger inte varför" % (inv["namn"],)))
+
+    for f in facit["flanker"] or []:
+        if not isinstance(f, dict) or set(f) != set(FLANKFALT):
+            fel.append(_fel("M33_SPARFACIT",
+                            "flankkravet ska ha exakt %s" % ", ".join(FLANKFALT)))
+            continue
+        if f["sekvens"] not in ider:
+            fel.append(_fel("M33_SPARFACIT",
+                            "flankkravet %r pekar på sekvensen %r som inte finns"
+                            % (f["namn"], f["sekvens"])))
+        if f["typ"] not in FLANKTYPER:
+            fel.append(_fel("M33_SPARFACIT", "okänd flanktyp %r" % (f["typ"],)))
+        brist = _kand(f["signal"], "out")
+        if brist:
+            fel.append(_fel("M33_SPARFACIT", "flankkravet räknar %s" % brist))
+        if not (_ar_tal(f["fran_ms"]) and _ar_tal(f["till_ms"])
+                and f["fran_ms"] < f["till_ms"]):
+            fel.append(_fel("M33_SPARFACIT",
+                            "flankfönstret %r..%r är inte ett fönster"
+                            % (f["fran_ms"], f["till_ms"])))
+        if not isinstance(f["antal"], int) or isinstance(f["antal"], bool) \
+                or f["antal"] < 0:
+            fel.append(_fel("M33_SPARFACIT", "antal = %r" % (f["antal"],)))
+        if not str(f["varfor"] or "").strip():
+            fel.append(_fel("M33_SPARFACIT",
+                            "flankkravet %r säger inte varför" % (f["namn"],)))
+
+    motbevis = facit["motbevis"]
+    if not isinstance(motbevis, list) or len(motbevis) < MIN_MOTBEVIS:
+        fel.append(_fel("M33_SPARFACIT",
+                        "spårfacit utan motbevis; en grind utan trasig fixtur "
+                        "mäter ingenting"))
+        motbevis = []
+    namn_sedda = set()
+    for mb in motbevis:
+        if not isinstance(mb, dict) or set(mb) != set(MOTBEVISFALT):
+            fel.append(_fel("M33_SPARFACIT",
+                            "motbeviset ska ha exakt %s" % ", ".join(MOTBEVISFALT)))
+            continue
+        if mb["namn"] in namn_sedda:
+            fel.append(_fel("M33_SPARFACIT",
+                            "två motbevis heter %r" % (mb["namn"],)))
+        namn_sedda.add(mb["namn"])
+        if not isinstance(mb["st"], str) or not mb["st"].strip():
+            fel.append(_fel("M33_SPARFACIT",
+                            "motbeviset %r bär ingen kod" % (mb["namn"],)))
+        if len(str(mb["vad_som_ar_fel"] or "")) < MIN_MOTIV_TECKEN:
+            fel.append(_fel("M33_SPARFACIT",
+                            "motbeviset %r säger inte vad som är fel"
+                            % (mb["namn"],)))
+        if not isinstance(mb["faller_pa"], list) or not mb["faller_pa"]:
+            fel.append(_fel("M33_SPARFACIT",
+                            "motbeviset %r namnger ingen brist det ska fällas "
+                            "på; då kan det falla av vilket skäl som helst"
+                            % (mb["namn"],)))
     return fel
