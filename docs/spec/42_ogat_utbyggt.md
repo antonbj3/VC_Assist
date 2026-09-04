@@ -294,7 +294,15 @@ på samma tidsaxel blir ett tidsfel ett **läsbart fasförhållande**.
 ```python
 kalla = Plckalla()
 kalla.skjut_in({"Start": True, "Klar": False}, t=sim.SimTime)   # utifrån
+kalla.bryt("kopplaren gav upp efter 3 raka fel", t=sim.SimTime) # kontakten borta
 ```
+
+Vägen dit går genom bryggans `plc_in` (`svc/vc_assist_svc/plc/ogonkoppling.py`).
+Kopplaren skickar värdets **ålder**, inte dess tidpunkt: en varaktighet betyder
+samma sak i båda processerna, en tidpunkt bara om klockorna delar epok — och
+epoken överlever inte ett `sim.reset()`. Pumpen räknar om åldern till
+simuleringstid med sin egen **mätta** takt (M-42; `sim.run()` går 2000 gånger
+fortare än väggklockan, M-08).
 
 En OPC UA-läsning inne i pumpens tick skulle äta av budgeten på 25 ms och kan
 blockera på nätverket; då stannar både provtagningen och bryggan. Den externa
@@ -307,6 +315,24 @@ Varje rad bär `plc_alder_s`. Är värdet äldre än `PLC_FARSK_S` sätts
 `plc_gammal`, och analysen dömer då **INCONCLUSIVE**: ett värde äldre än sitt
 eget prov ligger inte på samma tidsaxel som fysiken, och då är fasförhållandet
 inget mått. Ett värde utan tidsstämpel räknas alltid som gammalt.
+
+Bortom `PLC_TYSTNAD_S` är talet inte längre ett värde utan ett minne. Då
+**släpps** det: raden får `plc_avbrott` med skälet och `plc_gammal`, men inga
+tal. En serie som visar inaktuella PLC-värden utan att märka dem är värre än en
+som visar hål (M-42). Fyra utfall, aldrig två:
+
+| Läge | Raden bär |
+|---|---|
+| färskt | `plc`, `plc_alder_s` |
+| gammalt (`> PLC_FARSK_S`) | `plc`, `plc_alder_s`, `plc_gammal` |
+| tyst (`> PLC_TYSTNAD_S`) | `plc_avbrott`, `plc_gammal` — **inga värden** |
+| avbrutet (`bryt()`) | `plc_avbrott` med den yttre sidans egna ord |
+
+De två sista finns för att kopplaren kan dö på två sätt. Den som lever men inte
+får svar säger ifrån själv; den som dör tvärt hinner inte, och fångas av
+tystnadstaket. Tystnad går inte att skilja från "inget nytt har hänt".
+En tidsstämpel som ligger i **framtiden** (klockan har gått bakåt, `sim.reset()`)
+klipps inte till ålder noll — det vore det färskaste värdet i hela serien.
 
 ### Formen i domstexten
 
@@ -394,6 +420,8 @@ Härkomsten är av **två slag**, och de blandas inte ihop:
 | `SING_LEDFART_DEG_S`, `SING_TCP_MM_S`, `SING_TCP_DEG_S`, `SING_MIN_S` | härledning | M-18 |
 | `SVALT_MIN_S`, `BLOCKERAD_MIN_S`, `FLASKHALS_ANDEL` | härledning | M-19 |
 | `PLC_FARSK_S` | provtagning | M-19 |
+| `PLC_TYSTNAD_S`, `PLC_BAKAT_TOL_S` | provtagning | **MÄTT i M-42** |
+| `TAKTFONSTER` | pump | **MÄTT i M-42** — simuleringstakten mäts, antas inte |
 | `GENOMSTROMNING_MARGINAL_S` | analys | M-19 |
 | `SCEN_DECIMALER`, `SCEN_FULL_VAR_N_RAD`, `NARHET_MAX_PAR` | härledning | beslut, §9.1 |
 | `SCEN_BUDGET_MS`, `GLES_FONSTER`, `GLES_TAK`, `KOMPONENTLISTA_VAR_N_RAD` | provtagning | beslut, §9.1 |
@@ -485,6 +513,10 @@ Utöver det som redan står i `RESERVERADE.md` behöver M-10 nu också sätta:
    genomströmning.
 4. Fördröjningen mellan OPC UA-klientens läsning och simuleringstiden, så
    `PLC_FARSK_S` sätts mot ett mätt tal i stället för mot en fjärdedels sekund.
+   M-42 mätte hopfogningens egen del av den (median −0,23 ms, spridning
+   ±3,4 ms) mot attrapper. Det är ett **golv** för talet, inte talet: PLC:ns
+   egen skanfördröjning (40 ms, M-20) ligger före stämpeln, och VC:s brygga är
+   långsammare än riggens (9,9 mot 5,2 ms, M-03).
 
 ### Ett fjärde paket utan nummer — världsenheten och kollisionsdetektorn
 
