@@ -1,75 +1,74 @@
 # -*- coding: utf-8 -*-
-"""M-03: mater om OnRender fyrar och i vilken takt.
+"""M-04: far VC:s API roras fran en bakgrundstrad?
 
-Detta ar ANNU INTE bryggan. Det ar matningen som avgor om OnRender duger
-som pump. Byggs ut till full brygga forst nar takten ar kand.
+Om ja: bryggan behover ingen pump alls. Socketservern kan anropa API:t direkt.
+Om nej: vi maste hitta en tredje vag, eftersom M-03 visade att varken
+OnRender eller OnIdle fyrar nar programmet star stilla.
 
 Giltig i bade Python 2.7 och 3.x.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import threading
 import time
 
 from vcCommand import *
 
 app = getApplication()
 
-_OUT = os.path.join(os.path.expanduser("~"), "vc_assist_m03.log")
-_state = {"n": 0, "t0": time.time(), "last_write": 0.0, "sim_ticks": 0}
-_prev_handler = getattr(app, "OnRender", None)
+_OUT = os.path.join(os.path.expanduser("~"), "vc_assist_m04.log")
+_lock = threading.Lock()
 
 
 def _write(msg):
     try:
-        f = open(_OUT, "a")
-        f.write("%s %s\n" % (time.strftime("%H:%M:%S"), msg))
-        f.close()
+        with _lock:
+            f = open(_OUT, "a")
+            f.write("%s %s\n" % (time.strftime("%H:%M:%S"), msg))
+            f.close()
     except Exception:
         pass
 
 
-def _pump(sim=None):
-    _state["n"] += 1
+def _probe(where):
+    """Samma API-anrop fran huvudtrad och bakgrundstrad. Ska ge samma svar."""
+    rows = []
     try:
-        if sim is not None and getattr(sim, "IsRunning", False):
-            _state["sim_ticks"] += 1
-    except Exception:
-        pass
-    now = time.time()
-    if now - _state["last_write"] >= 5.0:
-        elapsed = now - _state["t0"]
-        rate = _state["n"] / elapsed if elapsed > 0 else 0.0
-        _write("ticks=%d elapsed=%.1fs rate=%.2fHz sim_ticks=%d"
-               % (_state["n"], elapsed, rate, _state["sim_ticks"]))
-        _state["last_write"] = now
-    # kedja vidare sa vi inte klipper nagon annans hanterare
-    if callable(_prev_handler):
-        try:
-            _prev_handler(sim)
-        except Exception:
-            pass
-
-
-def _capability():
-    ytor = ("findComponent", "load", "render", "executeFrameGrab", "beginFrameGrab",
-            "findCamera", "createView", "getSimulation", "Components", "Simulation",
-            "loadCommand", "addMenuItem", "saveBitmap")
-    rows = ["=== M-03 START %s ===" % time.strftime("%Y-%m-%d %H:%M:%S")]
+        rows.append("%s components=%d" % (where, len(app.Components)))
+    except Exception as e:
+        rows.append("%s components_FEL=%r" % (where, e))
     try:
-        import sys
-        rows.append("python=%s" % sys.version.split()[0])
-    except Exception:
-        pass
-    for n in ytor:
-        rows.append("has.%s=%s" % (n, hasattr(app, n)))
-    rows.append("prev_OnRender_callable=%s" % callable(_prev_handler))
+        sim = app.getSimulation()
+        rows.append("%s SimTime=%s IsRunning=%s" % (where, sim.SimTime, sim.IsRunning))
+    except Exception as e:
+        rows.append("%s sim_FEL=%r" % (where, e))
+    try:
+        rows.append("%s findCamera=%s" % (where, app.findCamera() is not None))
+    except Exception as e:
+        rows.append("%s camera_FEL=%r" % (where, e))
+    try:
+        c = app.load("", False)
+        rows.append("%s load_tom=%s" % (where, c))
+    except Exception as e:
+        rows.append("%s load_FEL=%r" % (where, type(e).__name__))
     _write("\n".join(rows))
 
 
-_capability()
-try:
-    app.OnRender = _pump
-    _write("OnRender bunden")
-except Exception as e:
-    _write("KUNDE INTE BINDA OnRender: %r" % (e,))
+def _bg():
+    time.sleep(3.0)
+    _write("--- BAKGRUNDSTRAD startad, ident=%s" % threading.current_thread().ident)
+    for i in range(3):
+        _probe("[bg%d]" % i)
+        time.sleep(4.0)
+    _write("--- BAKGRUNDSTRAD klar (VC lever fortfarande om denna rad finns "
+           "och appen inte kraschade)")
+
+
+_write("=== M-04 START %s  huvudtrad=%s ==="
+       % (time.strftime("%Y-%m-%d %H:%M:%S"), threading.current_thread().ident))
+_probe("[main]")
+t = threading.Thread(target=_bg)
+t.daemon = True
+t.start()
+_write("bakgrundstrad startad")

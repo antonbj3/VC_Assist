@@ -103,9 +103,16 @@ ur **sista raden på stdout om den är giltig JSON**. Är den inte det blir
 `result` null och `stdout` bär allt. Det är samma svarskanal som källprojektet
 använder, och skälet är att koden körs med `exec` utan returvärde.
 
-## Trådmodellen — det som får bryggan att inte frysa VC
+## Trådmodellen — OGILTIG, se M-04
 
-**MÄTT-antagande som fas 1 ska bekräfta:** VC:s Python kör på applikationens tråd.
+> **VARNING 2026-09-04.** Avsnittet nedan bygger på ett antagande som är
+> **motbevisat** i `docs/matningar/M-04_exekveringsmodellen.md`:
+> bakgrundstrådar körs inte i VC:s Python, och inget event fyrar när appen
+> står stilla. VC:s Python är kooperativ och simuleringsdriven.
+> Ersättningskandidat är `vcScript.OnRun` med `delay()`. Skrivs om när
+> den öppna frågan i M-04 är mätt.
+
+**MOTBEVISAT antagande:** VC:s Python kör på applikationens tråd.
 
 Därför:
 
