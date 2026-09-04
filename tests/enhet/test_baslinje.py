@@ -38,12 +38,14 @@ for _p in (os.path.join(_ROT, "bank"), os.path.join(_ROT, "svc")):
 
 import baslinjebank as B                                     # noqa: E402
 import par as Par                                            # noqa: E402
+import reparationsbank as RB                                 # noqa: E402
 from vc_assist_svc.plc import reparation as R                # noqa: E402
 from vc_assist_svc.plc.baslinje import (ATGARDER, Baslinje,  # noqa: E402
                                         Baslinjefel, BaslinjeModell,
                                         NIVA_MAGER, NIVA_PROSA, NIVA_SPEC,
                                         Spec, morfologi as Mo, packml as Pm,
                                         sprak as Sp)
+from vc_assist_svc.plc.skelett import Skelett                # noqa: E402
 from vc_assist_svc.plc.stationsgrind import (NAMN_DEKLARATION,  # noqa: E402
                                              NAMN_STATISK, Kandidat,
                                              granska_station)
@@ -596,6 +598,44 @@ def test_en_deterministisk_generator_utan_regel_laser_slingan(poster):
     assert protokoll.utfall == R.UTFALL_LAST
     assert modell.utan_regel, ("baslinjen borde ha rapporterat minst en kod "
                               "den inte har nagon regel for")
+
+
+def test_slingan_kan_inte_skilja_baslinjen_fran_en_annan_modell(poster):
+    """Hela poangen med fas 11:s leveransform.
+
+    SAMMA slingobjekt och SAMMA grindsteg kors med en attrappmodell och med
+    baslinjen. Skiljer slingan pa dem mater ett par inte de tva sidorna utan
+    vilken vag genom slingan de tog.
+    """
+    from vc_assist_svc.harness.modell import AttrappModell, Modell, sag
+
+    post = _post(poster, "T-07")
+    spec = B.spec_ur_uppgift(post)
+    baslinje = BaslinjeModell(spec)
+    resultat = baslinje.generator().generera(spec)
+    karta = RB.karta_ur_uppgift(post, resultat.station)
+    skelett = Skelett.av_karta(karta, resultat.deklarationer)
+    grindar = [R.Stationssteg(karta), RB.Sparfacitsteg(post)]
+    slinga = R.Reparationsslinga(skelett, grindar)
+    uppgiftstext = RB.uppgiftstext(post, skelett)
+
+    assert isinstance(baslinje, Modell)
+    a = slinga.kor(AttrappModell([sag(resultat.kropp)]), uppgiftstext,
+                   uppgift="T-07")
+    b = slinga.kor(BaslinjeModell(spec), uppgiftstext, uppgift="T-07")
+    assert a.utfall == b.utfall == R.UTFALL_LOST
+    assert a.varv[0].st_kalla == b.varv[0].st_kalla
+
+
+def test_baslinjen_har_ingen_kanal_ut(poster):
+    """Den kan inte na natet, och det ska ga att se utan att lita pa en
+    docstring: den bar en spec och en generator, ingenting annat."""
+    modell = BaslinjeModell(B.spec_ur_uppgift(_post(poster, "T-07")))
+    misstankta = [n for n in vars(modell)
+                  if any(o in n.lower()
+                         for o in ("socket", "url", "kanal", "http", "klient",
+                                   "nyckel", "token"))]
+    assert not misstankta, misstankta
 
 
 def test_atgardstabellen_slar_pa_ratt_installning(poster):
