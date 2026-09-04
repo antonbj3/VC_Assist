@@ -7,6 +7,8 @@
 - Ingen VC-process kör
 - Minst 8 GB fritt efter kopiering
 
+## Status: STÄNGD — VC startar i testprefixet och når licensservern
+
 ## Steg
 1. Verifiera att inga VC-processer kör
 2. Kopiera `~/.wine-vc` till `~/.wine-vc-test` med bevarade rättigheter och länkar

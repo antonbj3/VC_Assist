@@ -5,6 +5,8 @@
 **grind (70_faser.md):** *"Modellen kan inte anropa ett verktyg eller argument som
 inte finns. Mätt över N försök: noll uppfunna namn."*
 
+## Status: STÄNGD — 0 av 0 uppfunna namn i eget oberoende prov
+
 ## Indexet, mätt
 
 | Storhet | Antal |

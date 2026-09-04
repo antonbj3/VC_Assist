@@ -4,6 +4,8 @@
 **kontrakt:** `docs/spec/45_verktyg.md`
 **körs av:** `tests/protocol/kor_fas5.py`
 
+## Status: STÄNGD — 20 av 20 verktygsanrop mot riktig VC
+
 Verktygsmallarna var skrivna mot VC:s dokumentation men hade **aldrig exekverats
 i VC**. Det är precis den sortens oprövade yta där dokumentationen och
 verkligheten går isär — se M-11, där kvaternionen visade sig vara skalär-först

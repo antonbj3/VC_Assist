@@ -4,7 +4,17 @@
 **kontrakt:** `docs/spec/60_plc.md`, grind 3 i `docs/spec/50_grindar.md`
 **L1:** `tests/enhet/test_plc.py` (88 prov, ingen docker, inget nät)
 **L3:** `python3 -m vc_assist_svc.plc.matning`
-**mätning:** `docs/matningar/M-20_plcbandet.md`
+**mätning:** `docs/matningar/M-20_plcbandet.md`, `M-39_slingan_sluten.md`
+
+## Status: STÄNGD 2026-09-04
+
+> Texten längre ned i det här dokumentet skrevs medan fasen var halvöppen
+> och står kvar som historik. Den säger *"halva grinden är passerad"* och
+> att ledet VC-plugin → scen är oprövat. **Det är inte längre sant** —
+> avsnittet **FAS 6 STÄNGD** längst ned bär utfallet.
+>
+> Att den gamla statusen låg först i filen är i sig ett fel jag gjorde: en
+> läsare som stannar vid rubriken fick fel svar i över ett dygn.
 
 ## Fasens grind, ordagrant ur 70_faser.md
 

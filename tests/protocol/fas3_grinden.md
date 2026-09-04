@@ -4,6 +4,8 @@
 **kontrakt:** `docs/spec/50_grindar.md`, `docs/spec/41_ogat_kontrakt.md`
 **grind (70_faser.md):** *"Guld endast när varje cell passerar. Okänd klass ⇒ inte guld."*
 
+## Status: STÄNGD — 11 fail-closed-vägar provade
+
 ## Doktrinen den lyder under
 
 Grinden **parsar ögats egen utdata och implementerar aldrig om måttet.**

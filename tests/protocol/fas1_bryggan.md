@@ -3,6 +3,8 @@
 **beskriver:** `ext/vc_addon/`, `service/vc_assist/bridge_client.py`
 **kontrakt:** `docs/spec/31_brygga_protokoll.md`
 
+## Status: STÄNGD — 13 av 13 prov, tur och retur och takt mätt
+
 ## Förutsättning
 - Fas 0 klar: testprefix med egen `Documents`
 - Tillägget ligger under `My Commands/Python 2/vc_assist/` (MÄTT i M-01)

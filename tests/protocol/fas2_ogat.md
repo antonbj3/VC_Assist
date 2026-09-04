@@ -5,6 +5,8 @@
 **grind (70_faser.md):** *"På en handbyggd bra och en handbyggd trasig cell: ögats dom
 matchar facit i båda. Trasig cell **måste** fällas."*
 
+## Status: STÄNGD — 5 av 5 celler i riktig VC, trasig cell fälls
+
 ## Utfall 2026-09-04 — mot en körande VC
 
 Kört med `python3 tests/protocol/kor_fas2.py`. VC Premium 4.10 under Wine 11.16,

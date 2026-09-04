@@ -5,6 +5,9 @@
 alla gränssnitt kopplade"*
 **körs av:** `tests/protocol/kor_fas5_layout.py`
 
+## Status: STÄNGD — 20 av 20, 117 objektpar, noll kollisioner.
+Se `fas5_riktiga_komponenter.md`: allt var BLOCK (M-57)
+
 ## Varför körningen finns
 
 Layoutmotorn löser scenerna utanför VC och rapporterar noll överlapp över 24

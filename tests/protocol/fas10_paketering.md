@@ -6,6 +6,9 @@
 handpåläggning."*
 **kontrakt:** `docs/spec/35_plattformar.md`, `docs/spec/36_versioner.md`
 
+## Status: ÖPPEN — allt utom ett steg är mätt.
+Kvar: att VC startar med det installationen lade dit (kräver VC)
+
 ## Förutsättning
 
 - Repot klonat. Inget installerat, inget byggt, inga paket hämtade.

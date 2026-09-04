@@ -6,6 +6,8 @@
 **körs av:** `tests/enhet/test_bestallning.py` (L1 — ingen VC, ingen OpenPLC,
 ingen kompilator)
 
+## Status: se dokumentets egen text — fasen byggs just nu
+
 ## Grinden, ordagrant
 
 > En grundbeställning i fritext blir en detaljerad, körbar byggplan med villkor

@@ -8,6 +8,8 @@
 händer, vilken grind som fällde och varför, och vad systemet INTE vet. Trasigt
 fall: ett fällt läge får aldrig se ut som ett arbetande."*
 
+## Status: se dokumentets egen text
+
 ## Körs med
 
 ```
