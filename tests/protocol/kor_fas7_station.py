@@ -108,7 +108,12 @@ UTMATNINGSTID = "T#500ms"
 # skrivet for att ga sonder pa just det - men en perturbation som bara det
 # trasiga fallet fick hade matt fallet, inte losningen.
 PAUS_EFTER_CYKEL = 2        # pausen laggs i den har stoppfasen (1-raknad)
-PAUS_FORDROJNING_S = 1.0    # sa lang tid efter att stoppet gatt hogt
+# Fordrojningen raknas fran att SLINGAN ser stoppet ga hogt, och den ser det
+# forst efter ett kopplarvarv. Sedan tar det ett varv till innan `kor` nar
+# PLC:n. MATT (M-50): med 1,0 s hann processtiden ta slut fore pausen, och da
+# ar T6 inte skilt fran HEL - en perturbation som landar utanfor sekvensen
+# provar ingenting.
+PAUS_FORDROJNING_S = 0.2    # Satt av M-50.
 PAUS_LANGD_S = 1.0
 
 # ---- signalkartan ---------------------------------------------------------
@@ -256,10 +261,20 @@ FALL = [
 # Snavheten som gar forlorad har finns kvar dar den gar att mata: cellen
 # `station_forsent` i tests/celler.py har ett snavt fonster och FALLS av det.
 # Braketten kommer ur MATNINGSKORNINGAR, inte ur de korningar den ska doma.
-# Tre separata korningar gav samma T#2s-timer som 0,30 s till 4,55 s pa ogats
-# axel, alltsa kvoter 0,15 till 2,28. Braketten ar de talen med marginal.
-KLOCKA_LAG = 0.15           # Satt av M-49 (langsammaste uppmatta kvot 0,15).
-KLOCKA_HOG = 2.5            # Satt av M-49 (snabbaste uppmatta kvot 2,28).
+#
+# Forst mattes kvoten till 0,15-2,28 - en faktor 15 - och da hade fonstren
+# blivit sa vida att "inom tiden" inte matt nagot. ORSAKEN var inte VC utan
+# VAR EGEN pollning: `queue_list` serialiserar hela kon MED varje posts svar,
+# och slingan fragade efter den flera ganger per varv. Med en lattare fraga
+# (utan kod, utan svar) mattes kvoten till 1,000 i tre driftpunkter i rad:
+#
+#   varvtid 0,30 tathet 0,10 -> sim 45,4 / vagg 45,4 = 1,000 (378 ms/varv)
+#   varvtid 0,60 tathet 0,15 -> sim 45,4 / vagg 45,5 = 1,000 (689 ms/varv)
+#   varvtid 1,00 tathet 0,20 -> sim 46,0 / vagg 46,0 = 1,000 (1096 ms/varv)
+#
+# Braketten nedan ar darfor snav, och den snavheten ar KOPT med en mätning.
+KLOCKA_LAG = 0.6            # Satt av M-49 (kvoten mattes till 1,000).
+KLOCKA_HOG = 1.6            # Satt av M-49 (kvoten mattes till 1,000).
 # Vad transporten scen -> PLC -> scen kostar. Genomslaget tar ett till tva
 # kopplarvarv (M-39), och varvet ar en vaggklockstid som ocksa maste braketteras.
 TRANSPORTVARV = 3           # Satt av M-49 (genomslag 1-2 varv, ett till marginal).
@@ -337,7 +352,11 @@ def ogonplan(rate_hz=20.0, varvtid_s=0.3):
         "forregling": [["ST7_Don/Stopp", "ST7_Don/Slapp"]],
         "parts": ["ST7_Broms"],
         "tools": [],
-        "signals": ["ST7_Givare/Puls", "ST7_Don/Stopp", "ST7_Don/Slapp"],
+        # Driftvaljaren ar med for att PERTURBATIONEN ska sta i underlaget.
+        # En storning som inte syns i serien gar inte att skilja fran en
+        # storning som aldrig kom.
+        "signals": ["ST7_Givare/Puls", "ST7_Givare/Kor",
+                    "ST7_Don/Stopp", "ST7_Don/Slapp"],
     }
 
 
@@ -543,6 +562,11 @@ class Stationskopplare(Kopplare):
         Kopplare.__init__(self, *a, **kw)
         self.kor_signal = True
         self.anlaggning = []      # anlaggningens svar, ett per varv
+        # Hur ofta kon fragas om postens utfall. MATT (M-49): varje fraga ar
+        # en bryggbegaran som kostar pumptid, och `queue_list` serialiserar
+        # HELA kon - som vaxer med varje post. En tat pollning stryper darfor
+        # simuleringen, och alltmer ju langre korningen gar.
+        self.pollintervall = 0.1
         # En SKYDDAD ingang gar inte att driva harifran, och det ar ratt.
         # MATT: opcuakonfig.variabel ger en skyddad tagg lasrattigheter bara,
         # och en WriteRequest mot den svarar BadInternalError - kopplaren foll
@@ -552,6 +576,31 @@ class Stationskopplare(Kopplare):
         # lata kopplaren driva den hade varit att bygga just det systemet.
         self.skyddade = [s for s in self.till_plc if s.skyddad]
         self.till_plc = [s for s in self.till_plc if not s.skyddad]
+
+    def _vanta_latt(self, qid, timeout=60.0):
+        """Vantar ut posten UTAN att be om kons svar.
+
+        MATT (M-49): `queue_list` serialiserar hela kon MED varje posts svar,
+        och kon vaxer med en post per varv. Efter ~1500 poster ar svaret over
+        protokollets 1 MiB och bryggan svarar E_TOO_LARGE - mitt i en korning,
+        pa en fraga som bara skulle ha last ett tillstand. Innan dess kostar
+        varje pollning mer och mer pumptid, och simuleringen tappar fart i
+        takt med att kon vaxer. Vi fragar darfor utan kod och utan svar.
+        """
+        slut = time.time() + timeout
+        while time.time() < slut:
+            kon = self.brygga.anrop(
+                "queue_list", {"with_code": False,
+                               "with_result": False})["result"]["queue"]
+            for post in kon:
+                if post["qid"] == qid:
+                    if post["state"] in ("done", "failed", "interrupted",
+                                         "rejected"):
+                        return post
+                    break
+            time.sleep(self.pollintervall)
+        raise RuntimeError("posten %s fick inget utfall inom %.0f s"
+                           % (qid, timeout))
 
     def skriv_scenen(self, varden):
         rader = []
@@ -564,13 +613,12 @@ class Stationskopplare(Kopplare):
             rader.append("    b.Value = %r" % (bool(v),))
         kod = anlaggningskod(self.kor_signal, "\n".join(rader) or "pass")
         post = self.brygga.koa(kod, desc="anlaggningen: ett processteg")
-        ut = self.brygga.godkann_och_vanta(post["qid"], timeout=60.0,
-                                           intervall=0.01)
+        self.brygga.godkann(post["qid"])
+        ut = self._vanta_latt(post["qid"])
         if ut["state"] != "done":
             raise RuntimeError("anlaggningssteget slutade som %r" % ut["state"])
-        svar = ((ut.get("svar") or {}).get("result") or {}).get("result") or {}
-        self.anlaggning.append(svar)
-        return svar
+        self.anlaggning.append({"qid": post["qid"], "state": ut["state"]})
+        return {}
 
 
 # ---- VC ------------------------------------------------------------------
@@ -815,10 +863,9 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel,
         if v.fel:
             logg["fel"].append(v.fel)
             ogonkoppling.bryt("kopplarvarv %d foll: %s" % (v.nr, v.fel))
-        a = kopplare.anlaggning[-1] if kopplare.anlaggning else {}
-        if a.get("konflikt"):
+        if v.fran_plc.get("stopp") and v.fran_plc.get("slapp"):
             logg["konflikter"] += 1
-        stopp = bool(a.get("stopp"))
+        stopp = bool(v.fran_plc.get("stopp"))
         if stopp and not forra_stopp:
             stoppflanker += 1
             if stoppflanker == paus_i_cykel and paus_till is None:
@@ -903,10 +950,7 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
                                     PAUS_EFTER_CYKEL, a.varvtid,
                                     a.plc_tathet)
         rad["kopplaren"] = kopplare.sammanfattning()
-        rad["anlaggning"] = {
-            "prov": len(kopplare.anlaggning),
-            "sista": kopplare.anlaggning[-1] if kopplare.anlaggning else None,
-        }
+        rad["anlaggning"] = {"steg": len(kopplare.anlaggning)}
     finally:
         ua.stang()
     stopp = brygga.oga_stopp()
@@ -988,6 +1032,9 @@ def main(argv=None):
                    help="kortaste varvtid i sekunder; halller nere pumptrycket")
     p.add_argument("--fall", default=None, help="komma-lista, t.ex. HEL,T3")
     p.add_argument("--starta-om", action="store_true")
+    p.add_argument("--ingen-omstart-per-fall", action="store_true",
+                   help="starta INTE om VC mellan fallen; kon vaxer da over "
+                        "hela korningen och bromsar simuleringen")
     p.add_argument("--bara-scen", action="store_true",
                    help="skriv startskriptet och prova scenen, kor inget fall")
     p.add_argument("--json", default=None)
@@ -1030,10 +1077,26 @@ def main(argv=None):
 
     valda = set((a.fall or ",".join(n for n, _k, _v, _p in FALL)).split(","))
     ut = {"station": STATION, "skelett": sk.text(), "fall": []}
+    forsta = True
     try:
         for namn, kropp, vad, vantas in FALL:
             if namn not in valda:
                 continue
+            if not forsta and not a.ingen_omstart_per_fall:
+                # VC startas om mellan fallen. Skalet ar mätt: godkannandekon
+                # vaxer med en post per varv och `queue_list` serialiserar hela
+                # kon - efter ~1500 poster faller den pa protokollets 1 MiB, och
+                # langt innan dess kostar varje pollning mer pumptid an den
+                # forra. En omstart ger dessutom varje fall SAMMA utgangslage:
+                # samma scen, samma simuleringstid, samma tomma ko.
+                brygga.stang()
+                print("  startar om VC infor %s ..." % namn)
+                _starta_om_vc()
+                if not _vanta_pa_bryggan(300.0):
+                    raise RuntimeError("bryggan kom aldrig upp igen")
+                brygga = Klient(port=8901, tokenfil=TOKEN,
+                                timeout=180.0).anslut()
+            forsta = False
             print("\n  --- %s: %s ---" % (namn, vad))
             ut["fall"].append(kor_fall(namn, kropp, vad, vantas, a, sk, k,
                                        index, brygga))
