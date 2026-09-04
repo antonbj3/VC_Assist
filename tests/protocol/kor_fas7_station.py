@@ -107,7 +107,11 @@ UTMATNINGSTID = "T#500ms"
 # Linjen pausas EN gang, mitt i en stoppfas, och lika for alla fall. T6 ar
 # skrivet for att ga sonder pa just det - men en perturbation som bara det
 # trasiga fallet fick hade matt fallet, inte losningen.
-PAUS_EFTER_CYKEL = 2        # pausen laggs i den har stoppfasen (1-raknad)
+# Pausen laggs i den FORSTA stoppfas som borjar efter sa har lang tid, sa att
+# minst en hel cykel hunnit ga fore den. Att rakna stoppflanker fran noll gav
+# fel cykel: korningen borjar mitt i floodet och den forsta flanken kan hora
+# till en produkt som redan var pa vag in.
+PAUS_TIDIGAST_S = 25.0      # Satt av M-50.
 # Fordrojningen raknas fran att SLINGAN ser stoppet ga hogt, och den ser det
 # forst efter ett kopplarvarv. Sedan tar det ett varv till innan `kor` nar
 # PLC:n. MATT (M-50): med 1,0 s hann processtiden ta slut fore pausen, och da
@@ -319,6 +323,16 @@ def ogonplan(rate_hz=20.0, varvtid_s=0.3):
         # ett matt pa NAR stationens stalldon fick sin order.
         "sekvens": {
             "start": {"signal": "ST7_Givare/Puls", "flank": "RISE"},
+            # Stationen far STOPPA en produkt en gang. Ordningen ensam ser
+            # inte en station som gor om allt - den tar den forsta flanken som
+            # passar och slutar titta (M-50).
+            #
+            # Bara stoppet raknas, inte utmatningen. MATT: en driftpaus mitt i
+            # utmatningen slacker `slapp` och tander den igen nar linjen gar,
+            # sa en helt riktig losning matar ut tva ganger pa den produkt som
+            # pausen trafffade. Stoppet har inte det problemet - pausen ror det
+            # inte. Att rakna utmatningen hade fallt HEL pa perturbationen.
+            "hogst": {"ST7_Don/Stopp": 1},
             "steg": [
                 # bromsen ut: bara transporten, ingen timer
                 {"signal": "ST7_Don/Stopp", "flank": "RISE",
@@ -840,13 +854,12 @@ def driftsatt(kand, k, byggrot, namn, strucpp, runtime_include, bas,
 PLC_TATHET_S = 0.05         # Satt av M-49.
 
 
-def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel,
+def kor_slingan(brygga, kopplare, ogonkoppling, sekunder,
                 varvtid_s=0.0, plc_tathet_s=PLC_TATHET_S):
     """Sluter slingan tills tiden gatt. Returnerar en logg over varven."""
     logg = {"varv": 0, "paus": None, "konflikter": 0, "fel": []}
     taggar = [x.tagg for x in kopplare.fran_plc]
     t_start = time.time()
-    stoppflanker = 0
     forra_stopp = False
     paus_till = None
     varvtider = []
@@ -866,10 +879,10 @@ def kor_slingan(brygga, kopplare, ogonkoppling, sekunder, paus_i_cykel,
         if v.fran_plc.get("stopp") and v.fran_plc.get("slapp"):
             logg["konflikter"] += 1
         stopp = bool(v.fran_plc.get("stopp"))
-        if stopp and not forra_stopp:
-            stoppflanker += 1
-            if stoppflanker == paus_i_cykel and paus_till is None:
-                paus_till = time.time() + PAUS_FORDROJNING_S
+        if (stopp and not forra_stopp and paus_till is None
+                and logg["paus"] is None
+                and time.time() - t_start >= PAUS_TIDIGAST_S):
+            paus_till = time.time() + PAUS_FORDROJNING_S
         forra_stopp = stopp
         # Perturbationen: driftvaljaren slas av en stund, lika for alla fall.
         if paus_till is not None and time.time() >= paus_till:
@@ -947,8 +960,7 @@ def kor_fall(namn, kropp, vad, vantas_passera, a, sk, k, index, brygga):
         # varandra, och sager sjalv ifran nar kopplaren ger upp.
         kopplare = Stationskopplare(k, ua, brygga, oga=None)
         rad["slinga"] = kor_slingan(brygga, kopplare, ogon, a.sekunder,
-                                    PAUS_EFTER_CYKEL, a.varvtid,
-                                    a.plc_tathet)
+                                    a.varvtid, a.plc_tathet)
         rad["kopplaren"] = kopplare.sammanfattning()
         rad["anlaggning"] = {"steg": len(kopplare.anlaggning)}
     finally:
