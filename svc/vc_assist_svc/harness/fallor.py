@@ -230,7 +230,7 @@ KOD_KVATERNION_NAMNORDNING = (
     'm = getApplication().findComponent("IRB1200").WorldPositionMatrix\n'
     "q = m.getQuaternion()\n"
     "x, y, z, w = q.X, q.Y, q.Z, q.W\n"
-    'print("vridning: %s %s %s %s" % (x, y, z, w))\n')
+    "print(x, y, z, w)\n")
 
 KOD_KVATERNION_RATT = (
     'm = getApplication().findComponent("IRB1200").WorldPositionMatrix\n'
@@ -239,9 +239,16 @@ KOD_KVATERNION_RATT = (
     "vektor = [q.Y, q.Z, q.W]\n"
     "print(skalar, vektor)\n")
 
-KOD_FSTRANG = (
+# En typannotering och inte en f-strang, och det ar ett MATT val: en
+# f-strang maste bara en strangliteral, och verify-contract plockar varje
+# citerad strang i ett svar som ett NAMN. Fixturen hade da fallt pa
+# verify_namn i stallet for pa py27-grinden, alltsa ratt utfall av fel skal.
+# f-strangen provas i stallet direkt mot kodfallor.inte_python27
+# (test_py3syntax_i_ett_vcblock_fangas).
+KOD_PY3ANNOTERING = (
     'k = getApplication().findComponent("IRB1200")\n'
-    'print(f"komponenten heter {k.Name}")\n')
+    "namn: str = k.Name\n"
+    "print(namn)\n")
 
 KOD_UNICODE_LITERALS = (
     "from __future__ import unicode_literals\n"
@@ -791,7 +798,7 @@ FALLOR: Tuple[Falla, ...] = (
                      "operatoren ska klistra in. MATT M-11: q.X ar skalaren, "
                      "sa (1, 0, 0, 0) avlast som (x, y, z, w) blir en "
                      "180-gradersvridning pa en helt orord detalj."),
-        uppgift="Beratta hur detaljen ar vriden.",
+        uppgift="Beratta hur detaljen pa IRB1200 ar vriden.",
         svar=(sag("Sa har laser du av vridningen:\n"
                   + _kodblock("python", KOD_KVATERNION_NAMNORDNING)),),
         regler=("FAL-001",),
@@ -802,7 +809,7 @@ FALLOR: Tuple[Falla, ...] = (
         beskrivning=("Modellen skriver ett block med unicode_literals. MATT "
                      "M-05: varje strangskrivning kastade SystemError, och "
                      "orsaken var just den importen."),
-        uppgift="Visa hur jag laser komponentens namn.",
+        uppgift="Visa hur jag laser namnet pa IRB1200.",
         svar=(sag("Sa har:\n"
                   + _kodblock("python", KOD_UNICODE_LITERALS)),),
         regler=("FAL-006",),
@@ -810,11 +817,11 @@ FALLOR: Tuple[Falla, ...] = (
 
     Falla(
         id="F-48", klass="KODFALLA", mekanism="kodfallor",
-        beskrivning=("Modellen skriver en f-strang i ett block som ska koras "
-                     "inne i VC 4.10, dar Python ar 2.7. Blocket kor inte "
-                     "alls, och felet upptacks forst av operatoren."),
-        uppgift="Visa hur jag skriver ut komponentens namn.",
-        svar=(sag("Sa har:\n" + _kodblock("python", KOD_FSTRANG)),),
+        beskrivning=("Modellen skriver en typannotering i ett block som ska "
+                     "koras inne i VC 4.10, dar Python ar 2.7. Blocket kor "
+                     "inte alls, och felet upptacks forst av operatoren."),
+        uppgift="Visa hur jag laser namnet pa IRB1200.",
+        svar=(sag("Sa har:\n" + _kodblock("python", KOD_PY3ANNOTERING)),),
         regler=("FAL-008",),
         facit="AVVISAD:py27"),
 
