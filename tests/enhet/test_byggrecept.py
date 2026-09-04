@@ -381,3 +381,215 @@ def test_las_flode_laser_det_som_avgor_om_nagot_rort_sig():
     for namn in ("WorldPositionMatrix", "Container", "getPathDistance",
                  "CreationTime", "ComponentCount", "SimTime", "Components"):
         assert namn in kod, namn
+
+
+# ---- 5. de tre villkoren for att nagot ska FLODA (M-40) --------------------
+#
+# M-40 matte tre saker som alla ar TYSTA nar de bryts: en ram som inte byggts
+# om ligger i origo, en bana vars beteende inte uppdaterats har PathLength 0,
+# och ett flodesfalt vars Container bands EFTER Port bar Port = -1. Ingen av
+# dem ger ett fel nagonstans - linjen star bara still. Proven nedan later dem
+# inte forsvinna ur koden igen utan att nagot gar rott.
+
+
+def _hjalparnamnrum():
+    """Kor receptens genererade hjalpare i ett tomt namnrum, med attrapper.
+
+    Hjalparna ar TEXT i recept.py (_HJALP_BAS/_HJALP_BYGG) och kors normalt
+    inne i VC. Att exekvera dem har ar det enda sattet att prova deras logik
+    utan VC. VC-namnen (vcVector, VC_FRAME ...) rors inte av de funktioner
+    proven anropar, sa de behover inte finnas.
+    """
+    from vc_assist_svc.byggrecept import recept as R
+    # _enkelt kommer ur kodmallens hjalpartabell, inte ur recept.py:s egna
+    # rader; utan den faller varje _forsok() tyst pa NameError och bundna blir
+    # tom av FEL skal.
+    rum = {"BETEENDENAMN": R.BETEENDENAMN, "KONTAKTNAMN": R.KONTAKTNAMN,
+           "KONTAKTNAMN_TEXT": R.KONTAKTNAMN_TEXT, "FALTNAMN": R.FALTNAMN,
+           "_enkelt": lambda v: v}
+    exec(compile(R._HJALP_BAS + R._HJALP_BYGG, "<hjalpare>", "exec"), rum)
+    return rum
+
+
+class _Attrapp(object):
+    def __init__(self, **kv):
+        self.__dict__.update(kv)
+
+
+class _UtanKontakter(object):
+    """Ett beteende utan Connectors, som VC:s bindning beter sig.
+
+    MATT i M-40: VC 4.10 svarar NameError ("Attribute or method 'Connectors'
+    not found."), inte AttributeError. En attrapp som kastar AttributeError
+    hade latit den gamla koden se ratt ut.
+    """
+
+    Name = "OutInterface"
+
+    def __getattr__(self, namn):
+        raise NameError("Attribute or method '%s' not found." % namn)
+
+
+def test_alla_kontakter_hoppar_over_beteenden_som_kastar_nameerror():
+    rum = _hjalparnamnrum()
+    kontakt = _Attrapp(Name="Output", Index=0, Type=2, Connection=None)
+    bar = _Attrapp(Name="Path", Connectors=[kontakt])
+    komp = _Attrapp(Behaviours=[_UtanKontakter(), bar])
+    par = rum["_alla_kontakter"](komp, None)
+    assert [(b.Name, c.Name) for b, c in par] == [("Path", "Output")]
+
+
+def test_trasig_fixtur_bara_attributeerror_fangat_faller():
+    """Grinden maste falla den gamla koden. Fangar man bara AttributeError
+    slapper NameError igenom och hela kopplingen dor pa forsta granssnittet."""
+    from vc_assist_svc.byggrecept import recept as R
+    kalla = R._HJALP_BAS + R._HJALP_BYGG
+    kalla = kalla.replace("except (AttributeError, NameError):",
+                          "except AttributeError:")
+    rum = {"BETEENDENAMN": R.BETEENDENAMN, "KONTAKTNAMN": R.KONTAKTNAMN,
+           "KONTAKTNAMN_TEXT": R.KONTAKTNAMN_TEXT, "FALTNAMN": R.FALTNAMN,
+           "_enkelt": lambda v: v}
+    exec(compile(kalla, "<trasig>", "exec"), rum)
+    komp = _Attrapp(Behaviours=[_UtanKontakter()])
+    with pytest.raises(NameError):
+        rum["_alla_kontakter"](komp, None)
+
+
+class _Egenskap(object):
+    """Ett flodesfalt-Port som VC:t: att satta Container nollstaller Port.
+
+    Beteendet ar MATT i M-40 (Port last tillbaka som -1 nar Container sattes
+    efterat), och det ar just det attrappen harmar.
+    """
+
+    def __init__(self, namn, varde):
+        self.Name = namn
+        self.Value = varde
+
+
+class _ContainerEgenskap(object):
+    """Container-egenskapen nollstaller Port nar den skrivs -- det ar precis
+    vad VC gor, matt i M-40."""
+
+    Name = "Container"
+
+    def __init__(self, falt):
+        self._falt = falt
+
+    def _las(self):
+        return self._falt._container.Value
+
+    def _skriv(self, v):
+        self._falt._container.Value = v
+        self._falt._port.Value = -1
+
+    Value = property(_las, _skriv)
+
+
+class _Falt(object):
+    def __init__(self):
+        self._port = _Egenskap("Port", 0)
+        self._portnamn = _Egenskap("PortName", "")
+        self._container = _Egenskap("Container", None)
+        self.Name = "Flow"
+
+        self._c = _ContainerEgenskap(self)
+
+    @property
+    def Properties(self):
+        return [self._c, self._port, self._portnamn]
+
+
+def test_container_binds_fore_port_annars_blir_port_minus_ett():
+    rum = _hjalparnamnrum()
+    falt = _Falt()
+    kontakt = _Attrapp(Name="Output", Index=0)
+    agare = _Attrapp(Name="Creator")
+    logg = []
+    bundna = rum["_bind"](logg, falt, kontakt, agare, 0)
+    assert "Port" in bundna and "Container" in bundna, bundna
+    assert falt._port.Value == 0, "Port nollstalldes: Container bands efter Port"
+    assert falt._container.Value is agare
+
+
+def test_trasig_fixtur_port_fore_container_ger_minus_ett():
+    """Grinden ovan maste kunna FALLA. Binds Port forst och Container efterat
+    -- den ordning recepten hade fore M-40 -- star Port pa -1, och ett falt
+    med Port = -1 ger canConnect False."""
+    falt = _Falt()
+    for egenskap in falt.Properties:
+        if egenskap.Name == "Port":
+            egenskap.Value = 0
+    for egenskap in falt.Properties:
+        if egenskap.Name == "Container":
+            egenskap.Value = _Attrapp(Name="Creator")
+    assert falt._port.Value == -1
+
+
+def test_bindningsordningen_i_kallan_ar_container_forst():
+    """Sjalva ordningen i koden, inte bara utfallet pa attrappen."""
+    from vc_assist_svc.byggrecept import recept as R
+    kropp = R._HJALP_BYGG.split("def _bind(")[1].split("\ndef ")[0]
+    assert kropp.index("BETEENDENAMN") < kropp.index("KONTAKTNAMN")
+
+
+def test_ramen_byggs_om_efter_placeringen():
+    """En ram vars feature inte byggts om ligger kvar i nodens origo, och en
+    bana av tva sadana ramar far PathLength 0 (M-40)."""
+    from vc_assist_svc.byggrecept import recept as R
+    kropp = R._HJALP_BYGG.split("def _ram(")[1].split("\ndef ")[0]
+    assert "f.PositionMatrix = m" in kropp
+    assert "f.rebuild()" in kropp
+    assert kropp.index("f.rebuild()") > kropp.index("f.PositionMatrix = m")
+
+
+@pytest.mark.parametrize("namn,arg", [("transportor", {"name": "B"}),
+                                      ("buffert", {"name": "B"}),
+                                      ("flodeslinje", {"name": "L",
+                                                       "mall": "P"})])
+def test_banan_uppdateras_efter_att_path_satts(namn, arg):
+    """PathLength ar 0.0 tills banbeteendet uppdaterats, aven med ratt ramar.
+    komponent.update() och sim.update() racker inte -- det ar beteendets egen
+    update() (M-40)."""
+    kod = B.generera(namn, arg)
+    assert "bana.update()" in kod
+    assert kod.index("bana.update()") > kod.index("bana.Path = ")
+
+
+def test_flodeslinjen_lagger_banan_dar_matarens_utram_star():
+    """canConnect ar en GEOMETRISK fraga (M-40). Matarens ut-ram sitter vid
+    matarens langd, sa banan maste laggas dar - annars svarar canConnect False
+    och linjen forblir isar utan att nagot sags."""
+    kod = B.generera("flodeslinje",
+                     {"name": "L", "mall": "P", "x": 1000.0, "y": -2000.0,
+                      "matarlangd": 500.0})
+    assert "_placera(matare, 1000.0, -2000.0, 0.0)" in kod
+    assert "_placera(bana_k, 1000.0 + 500.0, -2000.0, 0.0)" in kod
+
+
+def test_flodeslinjen_kan_ta_en_mall_utan_uri():
+    """M-40 motbevisar att Part maste peka pa en losbar URI: TemplateComponent
+    tar en komponent som star i scenen, aven en utan URI och utan VCID."""
+    kod = B.generera("flodeslinje", {"name": "L", "mall": "Produkt"})
+    assert "skapare.TemplateComponent = mall" in kod
+    assert "skapare.Part = " not in kod
+    kod2 = B.generera("flodeslinje", {"name": "L", "del_uri": "file:///c/p.vcmd"})
+    assert "skapare.Part = " in kod2
+    assert "TemplateComponent = mall" not in kod2
+
+
+def test_placera_flyttar_relativt_till_ett_absolut_lage():
+    rum = _hjalparnamnrum()
+
+    class _M(object):
+        def __init__(self):
+            self.P = _Attrapp(X=100.0, Y=200.0, Z=0.0)
+
+        def translateAbs(self, dx, dy, dz):
+            self.P = _Attrapp(X=self.P.X + dx, Y=self.P.Y + dy, Z=self.P.Z + dz)
+
+    class _K(object):
+        PositionMatrix = _M()
+
+    k = _K()
+    assert rum["_placera"](k, 400.0, 0.0, 0.0) == [400.0, 0.0, 0.0]

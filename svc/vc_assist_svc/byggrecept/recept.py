@@ -125,27 +125,10 @@ def _bind(logg, falt, kontakt, agare, agarindex):
     # MATT). Beteendet: Container enligt B7-B9 i rangordning. PortName
     # satts alltid (B10). Returnerar namnen pa egenskaperna som bands.
     bundna = []
-    kontaktegenskap = None
-    for namn in KONTAKTNAMN:
-        kontaktegenskap = _hitta_egenskap(falt, namn)
-        if kontaktegenskap is not None:
-            break
-    if kontaktegenskap is not None and kontakt is not None:
-        def satt_port():
-            kontaktegenskap.Value = kontakt.Index
-            return _enkelt(kontaktegenskap.Value)
-        ok, _ = _forsok(logg, "B3", satt_port)
-        if ok and kontaktegenskap.Value is not None:
-            bundna.append(kontaktegenskap.Name)
-    for namn in KONTAKTNAMN_TEXT:
-        textegenskap = _hitta_egenskap(falt, namn)
-        if textegenskap is not None and kontakt is not None:
-            def satt_portnamn(textegenskap=textegenskap):
-                textegenskap.Value = kontakt.Name
-                return _enkelt(textegenskap.Value)
-            ok, _ = _forsok(logg, "B10", satt_portnamn)
-            if ok:
-                bundna.append(textegenskap.Name)
+    # ORDNINGEN AR MATT (M-40): Container satts FORST. Satts Port forst och
+    # Container efterat nollstalls Port till -1, och ett falt med Port = -1
+    # ger ett granssnitt vars canConnect ar False. Det syns inte som ett fel
+    # nagonstans -- bara som en linje som aldrig kopplas ihop.
     beteendeegenskap = None
     for namn in BETEENDENAMN:
         beteendeegenskap = _hitta_egenskap(falt, namn)
@@ -169,6 +152,27 @@ def _bind(logg, falt, kontakt, agare, agarindex):
         if ok and beteendeegenskap.Value is not None:
             bundna.append(beteendeegenskap.Name)
             break
+    kontaktegenskap = None
+    for namn in KONTAKTNAMN:
+        kontaktegenskap = _hitta_egenskap(falt, namn)
+        if kontaktegenskap is not None:
+            break
+    if kontaktegenskap is not None and kontakt is not None:
+        def satt_port():
+            kontaktegenskap.Value = kontakt.Index
+            return _enkelt(kontaktegenskap.Value)
+        ok, _ = _forsok(logg, "B3", satt_port)
+        if ok and kontaktegenskap.Value is not None:
+            bundna.append(kontaktegenskap.Name)
+    for namn in KONTAKTNAMN_TEXT:
+        textegenskap = _hitta_egenskap(falt, namn)
+        if textegenskap is not None and kontakt is not None:
+            def satt_portnamn(textegenskap=textegenskap):
+                textegenskap.Value = kontakt.Name
+                return _enkelt(textegenskap.Value)
+            ok, _ = _forsok(logg, "B10", satt_portnamn)
+            if ok:
+                bundna.append(textegenskap.Name)
     return bundna
 
 
@@ -190,6 +194,11 @@ def _ram(k, namn, x, y, z, vrid):
     if vrid:
         m.rotateRelZ(vrid)
     f.PositionMatrix = m
+    # MATT i M-40: PositionMatrix tar emot vardet direkt, men ramens VERKLIGA
+    # lage (NodePositionMatrix, FramePositionMatrix) star kvar i nodens
+    # ursprung tills featuren byggts om. En bana vars ramar aldrig byggdes om
+    # far PathLength 0 och bar da ingenting alls.
+    f.rebuild()
     return f
 
 
@@ -214,6 +223,15 @@ def _granssnitt(logg, k, namn, ram, falttyp, kontakt, agare, abstrakt):
             "bound_properties": bundna}
 
 
+def _placera(k, x, y, z):
+    # Komponentens ursprung till (x, y, z). translateAbs flyttar RELATIVT, sa
+    # differensen mot nuvarande lage ar det som skickas.
+    m = k.PositionMatrix
+    m.translateAbs(x - m.P.X, y - m.P.Y, z - m.P.Z)
+    k.PositionMatrix = m
+    return [m.P.X, m.P.Y, m.P.Z]
+
+
 def _beteenden(k):
     ut = []
     for b in k.Behaviours:
@@ -223,14 +241,20 @@ def _beteenden(k):
 
 def _alla_kontakter(k, filter_namn):
     # Varje kontakt i varje beteende som har kontakter. Ett beteende utan
-    # Connectors (granssnitt, signaler) ger AttributeError och hoppas over.
+    # Connectors (granssnitt, signaler) hoppas over.
+    #
+    # MATT i M-40: VC 4.10:s bindning kastar NameError ("Attribute or method
+    # 'Connectors' not found."), INTE AttributeError. Ett except AttributeError
+    # fangade darfor ingenting, och hela koppla-receptet foll pa forsta
+    # granssnittet i listan. Undantagstypen ar VC:s, inte Pythons -- den maste
+    # matas, inte antas.
     ut = []
     for b in k.Behaviours:
         if filter_namn is not None and b.Name != filter_namn:
             continue
         try:
             kontakter = b.Connectors
-        except AttributeError:
+        except (AttributeError, NameError):
             continue
         for c in kontakter:
             ut.append((b, c))
@@ -438,6 +462,11 @@ def _transportor_rader(argument, ackumulera, kapacitet):
         "bana.Path = [ram_in, ram_ut]",
         "bana.Speed = %s" % tal(hastighet),
         "bana.Accumulate = %r" % bool(ackumulera),
+        # MATT i M-40: PathLength ar 0.0 tills banbeteendet uppdaterats, aven
+        # nar Path bar tva ramar pa ratt avstand. En bana med PathLength 0 tar
+        # inte emot nagot, och en matare kopplad till den skapar aldrig nagot
+        # -- tyst, utan fel. update() maste ske EFTER att Path satts.
+        "bana.update()",
     ]
     if kapacitet is not None:
         rader.append("bana.Capacity = %d" % int(kapacitet))
@@ -550,6 +579,160 @@ def matare(argument):
         '        "interfaces": granssnitt, "forsok": forsok})',
     ]
     hjalpare = ["_enkelt", "_svara"]
+    if "mall" in argument:
+        hjalpare.append("_komp")
+    return bygg(hjalpare, rader, ["vcVector"])
+
+
+# ---- flodeslinje ---------------------------------------------------------------
+
+def flodeslinje(argument):
+    """En matare och en bana, placerade och kopplade sa att det FLODAR.
+
+    Recepten transportor + matare + koppla bygger delarna var for sig, men
+    tre villkor maste hallas samtidigt for att en produkt ska matas fram och
+    aka -- alla tre matta i M-40, alla tre tysta nar de bryts:
+
+      1. Ramarna maste byggas om (_ram gor det) sa banans PathLength inte ar 0.
+      2. Banbeteendet maste uppdateras EFTER att Path satts, annars ar
+         PathLength anda 0 och banan tar inte emot nagot.
+      3. Matarens ut-ram och banans in-ram maste ligga PA SAMMA STALLE i
+         varlden. canConnect ar en geometrisk fraga; ligger de isar svarar den
+         False och linjen forblir isar utan att nagot sags.
+
+    Darfor placerar det har receptet banan sjalvt: matarens ut-ram sitter vid
+    matarens langd, sa banan laggs dar. En linje byggd med det har receptet
+    matade fram en produkt var Interval sekund och flyttade den i Speed mm/s
+    (M-41).
+
+    Mataren behover dessutom en mall. TemplateComponent tar en komponent som
+    star i scenen, aven en utan URI och utan VCID (M-40 motbevisar antagandet
+    att Part maste peka pa en losbar URI).
+    """
+    prefix = argument["name"]
+    intervall = float(argument.get("intervall", 5.0))
+    grans = int(argument.get("grans", 1000000))
+    hastighet = float(argument.get("hastighet", 200.0))
+    banlangd = float(argument.get("banlangd", 3000.0))
+    matarlangd = float(argument.get("matarlangd", 400.0))
+    bredd = float(argument.get("bredd", 400.0))
+    hojd = float(argument.get("hojd", 700.0))
+    x = float(argument.get("x", 0.0))
+    y = float(argument.get("y", 0.0))
+    falttyp = _falttyp(argument)
+    rader = _inledning() + [
+        "app = getApplication()",
+        "forsok = []",
+        # Prefixet gar in i VC som ETT varde, sa namnen i scenen alltid ar
+        # det anroparen bad om plus ett fast suffix (M-05: genom _s).
+        "linjeprefix = %s" % lit(prefix),
+        # ---- mataren ----
+        "matare = app.createComponent()",
+        "if matare is None:",
+        '    raise ValueError("createComponent gav ingen matare")',
+        "matare.Name = linjeprefix + %s" % lit("_Matare"),
+        "kropp_m = matare.RootFeature.createFeature(VC_BLOCK, %s)" % lit("Kropp"),
+        "matt_m = {%s: %s, %s: %s, %s: %s}" % (
+            lit("Length"), tal(matarlangd), lit("Width"), tal(bredd),
+            lit("Height"), tal(hojd)),
+        "for p in kropp_m.Properties:",
+        "    if p.Name in matt_m:",
+        "        p.Value = matt_m[p.Name]",
+        "ram_ut = _ram(matare, %s, %s, 0.0, %s, 180.0)"
+        % (lit("Out"), tal(matarlangd), tal(hojd)),
+        "skapare = matare.createBehaviour(VC_COMPONENTCREATOR, %s)" % lit("Creator"),
+        "if skapare is None:",
+        '    raise ValueError("createBehaviour(VC_COMPONENTCREATOR) gav None")',
+        "skapare.Enabled = True",
+        "skapare.Interval = %s" % tal(intervall),
+        "skapare.Limit = %d" % grans,
+        "mallnamn = None",
+    ]
+    if "mall" in argument:
+        rader += [
+            "mall = _komp(%s)" % lit(argument["mall"]),
+            "skapare.TemplateComponent = mall",
+            "if skapare.TemplateComponent is not None:",
+            "    mallnamn = skapare.TemplateComponent.Name",
+        ]
+    elif "del_uri" in argument:
+        rader += [
+            "skapare.Part = %s" % lit(argument["del_uri"]),
+            "if skapare.TemplateComponent is not None:",
+            "    mallnamn = skapare.TemplateComponent.Name",
+        ]
+    rader += [
+        "kontakt_m = _kontakt(forsok, skapare, VC_CONNECTOR_OUTPUT)",
+        "def bygg_matarens_utgang():",
+        "    return _granssnitt(forsok, matare, %s, ram_ut, %s, kontakt_m, skapare, False)"
+        % (lit("OutInterface"), falttyp),
+        "ok_m, granssnitt_m = _forsok(forsok, %s, bygg_matarens_utgang)" % lit("D1"),
+        "matarens_lage = _placera(matare, %s, %s, 0.0)" % (tal(x), tal(y)),
+        # ---- banan ----
+        "bana_k = app.createComponent()",
+        "if bana_k is None:",
+        '    raise ValueError("createComponent gav ingen bana")',
+        "bana_k.Name = linjeprefix + %s" % lit("_Bana"),
+        "kropp_b = bana_k.RootFeature.createFeature(VC_BLOCK, %s)" % lit("Kropp"),
+        "matt_b = {%s: %s, %s: %s, %s: %s}" % (
+            lit("Length"), tal(banlangd), lit("Width"), tal(bredd),
+            lit("Height"), tal(hojd)),
+        "for p in kropp_b.Properties:",
+        "    if p.Name in matt_b:",
+        "        p.Value = matt_b[p.Name]",
+        "ram_in = _ram(bana_k, %s, 0.0, 0.0, %s, 0.0)" % (lit("PathIn"), tal(hojd)),
+        "ram_slut = _ram(bana_k, %s, %s, 0.0, %s, 180.0)"
+        % (lit("PathOut"), tal(banlangd), tal(hojd)),
+        "bana = bana_k.createBehaviour(VC_ONEWAYPATH, %s)" % lit("Path"),
+        "if bana is None:",
+        '    raise ValueError("createBehaviour(VC_ONEWAYPATH) gav None")',
+        "bana.Path = [ram_in, ram_slut]",
+        "bana.Speed = %s" % tal(hastighet),
+        "bana.Accumulate = True",
+        # Villkor 2. Utan den ar PathLength 0.0 och ingenting flodar (M-40).
+        "bana.update()",
+        "kontakt_in = _kontakt(forsok, bana, VC_CONNECTOR_INPUT)",
+        "kontakt_ut = _kontakt(forsok, bana, VC_CONNECTOR_OUTPUT)",
+        "def bygg_banans_ingang():",
+        "    return _granssnitt(forsok, bana_k, %s, ram_in, %s, kontakt_in, bana, False)"
+        % (lit("InInterface"), falttyp),
+        "def bygg_banans_utgang():",
+        "    return _granssnitt(forsok, bana_k, %s, ram_slut, %s, kontakt_ut, bana, False)"
+        % (lit("OutInterface"), falttyp),
+        "ok_in, granssnitt_in = _forsok(forsok, %s, bygg_banans_ingang)" % lit("C3"),
+        "ok_ut, granssnitt_ut = _forsok(forsok, %s, bygg_banans_utgang)" % lit("C3"),
+        # Villkor 3: banans in-ram laggs dar matarens ut-ram star.
+        "banans_lage = _placera(bana_k, %s + %s, %s, 0.0)"
+        % (tal(x), tal(matarlangd), tal(y)),
+        # ---- kopplingen ----
+        "granssnitt_matare = matare.findBehaviour(%s)" % lit("OutInterface"),
+        "granssnitt_bana = bana_k.findBehaviour(%s)" % lit("InInterface"),
+        "kopplad = False",
+        "kan = False",
+        "if granssnitt_matare is not None and granssnitt_bana is not None:",
+        "    def koppla_ihop():",
+        "        if not granssnitt_matare.canConnect(granssnitt_bana):",
+        '            raise ValueError("canConnect ar False: ramarna ligger isar")',
+        "        if not granssnitt_matare.connect(granssnitt_bana):",
+        '            raise ValueError("connect gav False fast canConnect var True")',
+        "        return _anslutna(granssnitt_matare)",
+        "    kan = bool(granssnitt_matare.canConnect(granssnitt_bana))",
+        "    ok_k, _r = _forsok(forsok, %s, koppla_ihop)" % lit("E0"),
+        "    kopplad = bool(ok_k)",
+        '_svara({"built": True, "kind": %s,' % lit("flodeslinje"),
+        '        "matare": matare.Name, "bana": bana_k.Name,',
+        '        "creator": {"interval": skapare.Interval, "limit": skapare.Limit,',
+        '                    "part": skapare.Part, "template": mallnamn,',
+        '                    "enabled": bool(skapare.Enabled)},',
+        '        "path_length": bana.PathLength, "speed": bana.Speed,',
+        '        "matarens_lage": matarens_lage, "banans_lage": banans_lage,',
+        '        "canConnect": kan, "connected": kopplad,',
+        '        "is_connected": bool(granssnitt_matare.IsConnected),',
+        '        "interfaces": [granssnitt_m, granssnitt_in, granssnitt_ut],',
+        '        "behaviours": _beteenden(matare) + _beteenden(bana_k),',
+        '        "forsok": forsok})',
+    ]
+    hjalpare = ["_enkelt", "_svara", "_anslutna"]
     if "mall" in argument:
         hjalpare.append("_komp")
     return bygg(hjalpare, rader, ["vcVector"])
@@ -739,6 +922,7 @@ RECEPT = {
     "transportor": transportor,
     "buffert": buffert,
     "matare": matare,
+    "flodeslinje": flodeslinje,
     "sanka": sanka,
     "koppla": koppla,
     "las_flode": las_flode,
@@ -762,6 +946,12 @@ EXEMPEL = {
                {"name": "Matare2", "mall": "Produkt", "intervall": 2.5,
                 "grans": 100, "abstrakt": True},
                {"name": "Matare3", "del_uri": "file:///c/produkt.vcm"}],
+    "flodeslinje": [{"name": "Linje1", "mall": "Produkt"},
+                    {"name": "Linje2", "del_uri": "file:///c/produkt.vcmd",
+                     "intervall": 2.0, "grans": 50, "hastighet": 300.0,
+                     "banlangd": 5000.0, "matarlangd": 500.0, "bredd": 500.0,
+                     "hojd": 800.0, "x": 1000.0, "y": -2000.0,
+                     "falttyp": "transport"}],
     "sanka": [{"name": "Sanka1"}, {"name": "Sanka2", "kapacitet": 50, "synlig": True}],
     "koppla": [{"a": "Bana1", "b": "Bana2"},
                {"a": "Matare1", "b": "Bana1", "granssnitt_a": "OutInterface",
