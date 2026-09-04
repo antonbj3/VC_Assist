@@ -1,4 +1,49 @@
-# Versionsstöd
+# Versionsstöd — universalitet
+
+Kravet är samma som för Windows mot Linux: tillägget ska **anpassa sig efter
+det det hittar**, inte byggas för en version. Ingen version är den privilegierade.
+
+## Grundregeln: förmåga, inte versionsnummer
+
+Koden frågar **vad som finns**, inte **vilken version det är**.
+
+```python
+if hasattr(app, "executeFrameGrab"):
+    ...
+else:
+    raise Unsupported("executeFrameGrab saknas i denna VC-version")
+```
+
+Versionsnumret används till exakt tre saker:
+1. välja rätt API-index
+2. härleda sökvägen till tilläggsmappen
+3. märka mätresultat
+
+Allt annat avgörs av förmågeprövning. Skälet: en okänd framtida version ska
+fungera i det den kan, inte falla på att den inte står i en lista.
+
+## Tre svarsformer, aldrig fler
+
+| Läge | Beteende |
+|---|---|
+| Förmågan finns | kör |
+| Förmågan saknas | **kasta ett tydligt fel** som namnger förmågan |
+| Okänt | behandlas som saknad. Aldrig gissa |
+
+En saknad förmåga får aldrig ge tyst nedgradering. Det är samma regel som
+S1 i `96_ingen_skuld.md`: en ofärdig väg kastar, den returnerar aldrig framgång.
+
+## Självbeskrivning vid start
+
+Bryggan skriver vid uppstart en förmågerapport: VC-version, Python-version,
+plattform, och vilka av de ytor tillägget behöver som faktiskt finns.
+Rapporten är det första tjänsten läser, och den avgör vilka verktyg som
+exponeras för modellen.
+
+Motiv, mätt: trasiga tillägg misslyckas **tyst** i VC. Bryggan måste därför
+själv säga att den lever och vad den kan.
+
+---
 
 Kravet: tillägget ska gå på **4.10 och på de senaste versionerna**, i första hand 5.0.
 
