@@ -40,6 +40,10 @@ _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 sys.path.insert(0, _ROT)
 
+sys.path.insert(0, os.path.join(_ROT, "bank"))
+
+import par as Par                                                # noqa: E402
+from bank import baslinjebank as BB                              # noqa: E402
 from bank import domare, lasare, reparationsbank as RB          # noqa: E402
 from vc_assist_svc.plc import stationsgrind as SG               # noqa: E402
 from vc_assist_svc.plc.skelett import Skelett, Skelettfel       # noqa: E402
@@ -129,9 +133,40 @@ def main(argv=None):
         klasser.update(r.get("koder") or [])
 
     print("\n  FORSTA FORSOKET: %d av %d" % (godkanda, len(resultat)))
-    print("  BASLINJEN (M-62, basta niva): 4 av 4 i varv 1")
-    if godkanda == len(resultat) == 4:
-        print("  => OAVGJORT mot en mallkompilator. Det ska sagas med de orden.")
+
+    # Paret, och det ar hela poangen: specen sager att fas 9:s tal aldrig far
+    # publiceras ensamt. Par.para KASTAR om sidorna domts av olika domare - en
+    # jamforelse mellan tva domare mater domaren, inte de tva sidorna.
+    grindar = ("spar",)
+    modellsidan = Par.Sida(
+        "modell (Claude-agent, n=1)",
+        Par.signatur(poster, grindar),
+        dict((r["task_id"], bool(r.get("godkand"))) for r in resultat),
+        dict(klasser))
+    try:
+        bas = BB.kor_niva(poster, "spec")
+        baslinjesidan = BB._sida("baslinjen (M-62, niva spec)", bas, poster,
+                                 grindar)
+        rapport = Par.para(baslinjesidan, modellsidan)
+        print("\n  PARET (samma domare, kontrollerad signatur %s):"
+              % baslinjesidan.signatur.kort())
+        print("    %-32s %d av %d" % (baslinjesidan.namn,
+                                      baslinjesidan.klarade, baslinjesidan.antal))
+        print("    %-32s %d av %d" % (modellsidan.namn,
+                                      modellsidan.klarade, modellsidan.antal))
+        if modellsidan.klarade == baslinjesidan.klarade:
+            print("    => OAVGJORT mot en mallkompilator. Det ska sagas med "
+                  "de orden.")
+        elif modellsidan.klarade < baslinjesidan.klarade:
+            print("    => Baslinjen ar BATTRE. En regelmotor slog modellen.")
+        else:
+            print("    => Modellen ar battre pa %d uppgifter."
+                  % (modellsidan.klarade - baslinjesidan.klarade))
+    except Par.Parfel as fel:
+        print("\n  PARET GAR INTE ATT BILDA:\n    %s" % fel)
+    except Exception as fel:
+        print("\n  baslinjesidan gick inte att kora: %s: %s"
+              % (type(fel).__name__, fel))
     print("\n  fel per klass:")
     for kod, n in klasser.most_common():
         print("    %-24s %d" % (kod, n))
