@@ -166,6 +166,78 @@ def matningar_utan_arlighetsavsnitt(katalog: str) -> List[str]:
     return ut
 
 
+def moduler_utan_prov(rot: str) -> Dict[str, List[Tuple[str, int]]]:
+    """Produktionsmoduler efter vilken sorts prov som namner dem.
+
+    Tva hinkar, och skillnaden ar inte kosmetisk:
+
+      "inget"     ingen provfil alls namner modulen. Med sakerhet oprovad.
+      "bara_l3"   bara en korning under tests/protocol/ namner den. Sadana
+                  kraver levande VC, OpenPLC eller kompilator och kors INTE av
+                  `pytest tests/enhet`. En modul i den hinken gar alltsa inte
+                  att kontrollera pa en ren maskin, och det ar en annan sorts
+                  skuld an ingen tackning alls - men det ar skuld.
+
+    Kriteriet ar med flit grovt: namns modulens filnamn i provtexten? Ett finare
+    matt hade varit battre och dyrare, och det grova fangar redan det som ska
+    fangas.
+
+    __init__.py raknas inte: den ar limmet och provas genom det den binder.
+    """
+    def las(katalog):
+        text = []
+        for kat, kataloger, filer in os.walk(katalog):
+            kataloger[:] = [k for k in kataloger if k != "__pycache__"]
+            for f in filer:
+                if f.endswith((".py", ".md")):
+                    try:
+                        with open(os.path.join(kat, f), "r",
+                                  encoding="utf-8") as fh:
+                            text.append(fh.read())
+                    except (OSError, UnicodeDecodeError):
+                        pass
+        return "\n".join(text)
+
+    enhet = las(os.path.join(rot, "tests", "enhet"))
+    protokoll = las(os.path.join(rot, "tests", "protocol"))
+    ovrigt = ""
+    tests = os.path.join(rot, "tests")
+    if os.path.isdir(tests):
+        for post in sorted(os.listdir(tests)):
+            hel = os.path.join(tests, post)
+            if os.path.isdir(hel) and post not in ("enhet", "protocol",
+                                                   "__pycache__"):
+                ovrigt += las(hel)
+
+    ut = {"inget": [], "bara_l3": []}
+    for under in ("svc", "ext", "bank", "install"):
+        bas = os.path.join(rot, under)
+        if not os.path.isdir(bas):
+            continue
+        for katalog, kataloger, filer in os.walk(bas):
+            kataloger[:] = [k for k in kataloger
+                            if k not in ("__pycache__", "node_modules")]
+            for f in sorted(filer):
+                if not f.endswith(".py") or f == "__init__.py":
+                    continue
+                stam = os.path.splitext(f)[0]
+                sokvag = os.path.relpath(os.path.join(katalog, f), rot)
+                try:
+                    n = sum(1 for _ in open(os.path.join(rot, sokvag),
+                                            encoding="utf-8"))
+                except (OSError, UnicodeDecodeError):
+                    n = 0
+                if stam in enhet or stam in ovrigt:
+                    continue
+                if stam in protokoll:
+                    ut["bara_l3"].append((sokvag, n))
+                else:
+                    ut["inget"].append((sokvag, n))
+    ut["inget"].sort()
+    ut["bara_l3"].sort()
+    return ut
+
+
 def bygg(rot: str) -> Dict[str, object]:
     matningar = os.path.join(rot, "docs", "matningar")
     poster: List[Post] = []
@@ -181,6 +253,7 @@ def bygg(rot: str) -> Dict[str, object]:
         "matningsposter": poster,
         "kodposter": kodposter,
         "utan_arlighetsavsnitt": matningar_utan_arlighetsavsnitt(matningar),
+        "moduler_utan_prov": moduler_utan_prov(rot),
         "antal_punkter": sum(p.antal for p in poster),
         "antal_kodmarkorer": sum(p.antal for p in kodposter),
     }
@@ -218,6 +291,18 @@ def text(register: Dict[str, object]) -> str:
         rader.append("")
         for r in p.rader:
             rader.append("* %s" % r)
+        rader.append("")
+    utan_prov = register.get("moduler_utan_prov") or {"inget": [], "bara_l3": []}
+    for nyckel, rubrik in (
+            ("inget", "Produktionsmoduler som ingen provfil nämner"),
+            ("bara_l3", "Produktionsmoduler som bara nämns av en L3-körning "
+                        "(kräver VC/OpenPLC, körs inte av `pytest tests/enhet`)")):
+        lista = utan_prov.get(nyckel) or []
+        rader.append("## %s: %d (%d rader)"
+                     % (rubrik, len(lista), sum(n for _f, n in lista)))
+        rader.append("")
+        for f, n in lista:
+            rader.append("* `%s` — %d rader" % (f, n))
         rader.append("")
     rader.append("## Markörer i koden: %d" % register["antal_kodmarkorer"])
     rader.append("")

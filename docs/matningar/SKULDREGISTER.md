@@ -4,7 +4,7 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 24
+## Mätningar utan ärlighetsavsnitt: 25
 
 En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
 
@@ -32,8 +32,9 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * `M-40_varfor_mataren_aldrig_fyrade.md`
 * `M-44_windows_oprovat.md`
 * `M-47_verktygstackning_runda_1.md`
+* `M-65_ogat_pa_djupet.md`
 
-## Vad mätningarna säger att de inte vet: 74 punkter
+## Vad mätningarna säger att de inte vet: 82 punkter
 
 ### M-20_plcbandet.md — 9. Vad som inte är mätt
 
@@ -153,12 +154,40 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Om katalognamn och `Category` någonsin skiljer sig.** Att jämföra dem över
 * Om `Name` någonsin ligger efter byte 181.** 300 av 3201 är ett stickprov.
 
+### M-59_databladets_tackning.md — 12. Vad som INTE är mätt
+
+* De 506 `rPythonKinematics`-robotarnas räckvidd.** Måtten finns i
+* Om den valda räckviddsformeln håller för de 846 ledade armar som inte har
+* `Advanced::ConveyorCapacity` = 9999.** Värdet ser ut som en sentinel för
+* Ingen komponent är laddad i VC.** Att fälten går att läsa ur filen är inte
+* Gränssnittens typer och riktningar.** Databladet ger namnen och skiljer
+
 ### M-60_vad_ett_katalogsvar_kostar.md — Vad som INTE är mätt
 
 * Tokens, inte tecken.** Alla tal ovan är tecken. En tokenräknare för den
 * Om tio rader räcker.** `MAX_RADER = 10` är satt på kostnad, inte på hur ofta
 * Rangordningen.** Träffar sorteras på kortast namn först, vilket är rätt för
 * "IRB 120"* mot *"IRB 120-3/0.6 LID"*. Om det är rätt regel i allmänhet är
+
+### M-68_kod_utan_prov.md — Vad som INTE är mätt
+
+* Om proven faktiskt provar något.** Kriteriet är grovt: nämns modulens
+* Om de fem utan prov är farliga.** Radantal är inte risk. `layoutport.py` kan
+* Protokollkörningarna själva.** Ingen av dem har prov, och det är rimligt —
+
+## Produktionsmoduler som ingen provfil nämner: 5 (1229 rader)
+
+* `svc/vc_assist_svc/layout/vc_utdata.py` — 143 rader
+* `svc/vc_assist_svc/plan/layoutport.py` — 194 rader
+* `svc/vc_assist_svc/plan/villkorssprak.py` — 379 rader
+* `svc/vc_assist_svc/plc/baslinje/morfologi.py` — 288 rader
+* `svc/vc_assist_svc/plc/baslinje/packml.py` — 225 rader
+
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (1427 rader)
+
+* `svc/vc_assist_svc/komponentfil.py` — 1005 rader
+* `svc/vc_assist_svc/plan/processer.py` — 287 rader
+* `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
 ## Markörer i koden: 101
 
@@ -207,7 +236,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 
 ### vc_assist_svc/forlopp/yta.py
 
-* vc_assist_svc/forlopp/yta.py:54  TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
+* vc_assist_svc/forlopp/yta.py:55  TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
 
 ### vc_addon/vc_assist/bridge_cmd.py
 
@@ -258,7 +287,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * vc_addon/vc_assist/oga_harledning.py:91  UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:94  UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:96  FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_harledning.py:966  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+* vc_addon/vc_assist/oga_harledning.py:1127  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
 
 ### vc_addon/vc_assist/oga_provtagning.py
 

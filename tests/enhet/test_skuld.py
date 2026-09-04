@@ -141,3 +141,63 @@ def test_registerfilen_pa_disk_ar_aktuell():
     for rad in ("## Mätningar utan ärlighetsavsnitt: %d"
                 % len(reg["utan_arlighetsavsnitt"]),):
         assert rad in pa_disk, "registret pa disk ar inaktuellt: saknar %r" % rad
+
+
+# ---- moduler utan prov -----------------------------------------------------
+
+# MATT 2026-09-05. Tva hinkar, och skillnaden ar inte kosmetisk:
+#   inget    ingen provfil alls namner modulen
+#   bara_l3  bara en korning under tests/protocol/, som kraver levande VC eller
+#            OpenPLC och INTE kors av `pytest tests/enhet` - alltsa ingenting
+#            som gar att kontrollera pa en ren maskin
+#
+# Taken far bara ga NEDAT.
+#
+# Varfor det inte ocksa finns ett krav pa att taket ska ligga PA verkligheten,
+# som troskelskulden har: sex agenter arbetar i repot just nu och lagger till
+# moduler vars prov kommer strax efter. Ett exakthetskrav i natt hade gjort
+# sviten rod for deras halvfardiga arbete i stallet for att fanga skuld. Kravet
+# ska in nar natten lagt sig, och att det inte ar inne AN ar sjalv en skuld -
+# den star i M-68.
+MODULER_UTAN_PROV = 5
+MODULER_BARA_L3 = 3
+
+
+def test_moduler_utan_prov_bara_krymper():
+    u = S.moduler_utan_prov(_ROT)
+    assert len(u["inget"]) <= MODULER_UTAN_PROV, (
+        "%d moduler har inget prov alls, taket ar %d:\n  %s"
+        % (len(u["inget"]), MODULER_UTAN_PROV,
+           "\n  ".join("%s (%d rader)" % (f, n) for f, n in u["inget"])))
+
+
+def test_moduler_med_bara_l3_prov_bara_krymper():
+    u = S.moduler_utan_prov(_ROT)
+    assert len(u["bara_l3"]) <= MODULER_BARA_L3, (
+        "%d moduler provas bara av en L3-korning, taket ar %d:\n  %s"
+        % (len(u["bara_l3"]), MODULER_BARA_L3,
+           "\n  ".join("%s (%d rader)" % (f, n) for f, n in u["bara_l3"])))
+
+
+def test_de_tva_hinkarna_ar_skilda(tmp_path):
+    """En modul far inte hamna i bada, och inte i fel."""
+    for d in ("svc", "tests/enhet", "tests/protocol"):
+        os.makedirs(os.path.join(str(tmp_path), d), exist_ok=True)
+    (tmp_path / "svc" / "provad.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "svc" / "bara_kord.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "svc" / "ensam.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tests" / "enhet" / "t.py").write_text(
+        "import provad\n", encoding="utf-8")
+    (tmp_path / "tests" / "protocol" / "k.py").write_text(
+        "import bara_kord\n", encoding="utf-8")
+    u = S.moduler_utan_prov(str(tmp_path))
+    assert [f for f, _n in u["inget"]] == [os.path.join("svc", "ensam.py")]
+    assert [f for f, _n in u["bara_l3"]] == [os.path.join("svc", "bara_kord.py")]
+
+
+def test_init_filer_raknas_inte(tmp_path):
+    """__init__.py ar limmet och provas genom det den binder."""
+    os.makedirs(os.path.join(str(tmp_path), "svc", "p"), exist_ok=True)
+    (tmp_path / "svc" / "p" / "__init__.py").write_text("", encoding="utf-8")
+    u = S.moduler_utan_prov(str(tmp_path))
+    assert u["inget"] == [] and u["bara_l3"] == []
