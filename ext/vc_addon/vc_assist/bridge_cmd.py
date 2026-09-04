@@ -25,8 +25,29 @@ from vcCommand import *
 
 vcCommand_modul = _sys.modules.get("vcCommand")
 
+try:
+    # __init__.py har lagt tillaggsmappen pa sys.path innan det har scopet
+    # laddas. Misslyckades det gar modulen anda att ladda: importfel HAR
+    # skulle sluka hela bryggan tyst, precis som M-09.
+    import plats as _plats
+except ImportError:
+    _plats = None
+
+
+def _anvandarmapp():
+    """Mappen for token, loggar och tillstandsfiler.
+
+    Gar genom plats nar den finns. Skalet star i plats.py: expanduser("~")
+    svarar olika i VC:s Python 2.7 och i tjanstens Python 3 nar HOME ar satt
+    pa Windows, och da hittar tjansten aldrig bryggans token (M-44).
+    """
+    if _plats is not None:
+        return _plats.anvandarmapp()
+    return os.path.expanduser("~")
+
+
 app = getApplication()
-_LOG = os.path.join(os.path.expanduser("~"), "vc_assist_boot.log")
+_LOG = os.path.join(_anvandarmapp(), "vc_assist_boot.log")
 PORT = int(os.environ.get("VC_ASSIST_PORT", "8901"))
 # Kortare an sa ar det inte en scenandring utan en loop.
 OMSTART_MINSTA_MELLANRUM_S = 0.5    # PRELIMINAR. Satts av matning M-13.
@@ -53,11 +74,23 @@ def _s(x):
 
 
 def _tillaggsmapp():
+    """Tillaggets mapp, och en logg som sager VILKET led som svarade.
+
+    plats.tillaggsmapp() provar VC_ASSIST_DIR bade som sokvag och som
+    file:///-URI (M-01), och soker sedan under ALLA dokumentmappar som finns -
+    inklusive en OneDrive-omdirigerad, som ar det normala pa en foretags-
+    Windows. Sokningen ar djupbegransad; den gamla var det inte.
+    """
+    if _plats is not None:
+        mapp, kalla = _plats.tillaggsmapp()
+        _log("tillaggsmapp: %s (%s)" % (mapp, kalla))
+        return mapp
+    # Reservvag utan plats: exakt det som gallde fore M-44. Hellre en sokning
+    # som syns i loggen an en gissad sokvag som tyst pekar fel.
+    _log("plats kunde inte importeras; soker under ~/Documents som forut")
     d = os.environ.get("VC_ASSIST_DIR")
     if d and os.path.isdir(d):
         return d
-    # Reservvag: leta upp pump.py under Mina kommandon. Hellre en sokning som
-    # syns i loggen an en gissad sokvag som tyst pekar fel.
     hem = os.path.expanduser("~")
     for rot, mappar, filer in os.walk(os.path.join(hem, "Documents")):
         if "pump.py" in filer and os.path.basename(rot) == "vc_assist":
@@ -221,7 +254,7 @@ def _tillampa_uppskjutet(app, pump):
     Har, vid uppstart och FORE startSimulation(), ar samma operation ofarlig:
     ingen pump lever an, sa det finns ingenting att doda (M-13).
     """
-    fil = os.path.join(os.path.expanduser("~"), "vc_assist_uppskjutet.json")
+    fil = os.path.join(_anvandarmapp(), "vc_assist_uppskjutet.json")
     if not os.path.exists(fil):
         return
     try:
@@ -256,8 +289,8 @@ def _tillampa_uppskjutet(app, pump):
         pass
 
 
-STARTLAYOUT = os.path.join(os.path.expanduser("~"), "vc_assist_startlayout.txt")
-STARTSKRIPT = os.path.join(os.path.expanduser("~"), "vc_assist_startskript.py")
+STARTLAYOUT = os.path.join(_anvandarmapp(), "vc_assist_startlayout.txt")
+STARTSKRIPT = os.path.join(_anvandarmapp(), "vc_assist_startskript.py")
 
 
 def _ladda_startlayout(app):

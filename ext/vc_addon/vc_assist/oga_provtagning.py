@@ -22,6 +22,7 @@ import os
 import time
 
 import oga_harledning as H
+import plats
 
 # Hur ofta serien skrivs till disk. Kontraktet kraver inkrementell skrivning
 # sa en avbruten korning anda gar att lasa.
@@ -54,6 +55,16 @@ GLES_TAK = 64               # Beslut, motiverat i 42_ogat_utbyggt.md.
 KOMPONENTLISTA_VAR_N_RAD = 20   # Beslut, motiverat i 42_ogat_utbyggt.md.
 # Hur gammalt ett PLC-varde far vara och anda raknas som samtidigt med provet.
 PLC_FARSK_S = 0.25          # PRELIMINAR. Satts av matning M-19.
+# Hur lange serien far bara ett PLC-varde vidare utan att fa ett nytt. Bortom
+# den gransen ar talet inte langre ett varde utan ett minne, och serien visar
+# ett HAL med skal i stallet. Kopplaren sager ifran sjalv nar den tappar
+# kontakten - den har gransen ar backstoppet for nar kopplaren sjalv ar borta
+# och alltsa inte kan saga nagonting alls.
+PLC_TYSTNAD_S = 0.5         # Satt av M-42.
+# Hur langt bakat en tidsstampel far ligga fore den raknas som en klocka som
+# flyttat sig bakat (sim.reset nollar simuleringstiden). Under den ar det
+# avrundningsbrus, over den ar det en annan tidsaxel.
+PLC_BAKAT_TOL_S = 0.001     # Satt av M-42.
 
 
 def kvat_fran_vc(vcvektor):
@@ -572,18 +583,47 @@ class Plckalla(object):
     def __init__(self):
         self.varden = {}
         self.t = None
+        self.avbrott = None
+        self.n_inskott = 0
+        self.n_avbrott = 0
 
     def skjut_in(self, varden, t=None):
         self.varden = dict(varden or {})
         self.t = None if t is None else float(t)
+        self.avbrott = None
+        self.n_inskott += 1
+        return self
+
+    def bryt(self, skal, t=None):
+        """Kontakten ar borta. Vardena SLAPPS, de foljer inte med vidare.
+
+        Tystnad gar inte att skilja fran "inget nytt har hant". Darfor sager
+        den yttre sidan ifran uttryckligen nar den inte langre har nagot
+        farskt att komma med, och serien far ett hal med skal i stallet for
+        gamla tal som ser samtidiga ut.
+        """
+        self.varden = {}
+        self.t = None if t is None else float(t)
+        # "%s" i stallet for str(): i py2 kastar str() pa en unicodestrang med
+        # aao, och skalet kommer over protokollet som unicode.
+        self.avbrott = ("%s" % (skal,))[:200] if skal else "kontakten bruten"
+        self.n_avbrott += 1
         return self
 
     def las(self, t):
-        """({tagg: varde}, alder_s) eller (None, None) nar inget skjutits in."""
+        """({tagg: varde}, alder_s, avbrott).
+
+        alder_s ar None nar ingen tidsstampel foljde med, och NEGATIV nar
+        stampeln ligger i framtiden. Det senare klipps inte till noll: en
+        stampel i framtiden betyder att klockan flyttat sig bakat under
+        handerna pa oss, inte att vardet ar farskt.
+        """
+        if self.avbrott:
+            return None, None, self.avbrott
         if not self.varden:
-            return None, None
-        alder = None if self.t is None else max(0.0, float(t) - self.t)
-        return dict(self.varden), alder
+            return None, None, None
+        alder = None if self.t is None else float(t) - self.t
+        return dict(self.varden), alder, None
 
 
 class Provtagare(object):
@@ -592,8 +632,9 @@ class Provtagare(object):
         self.plan = dict(plan or {})
         self.rate_hz = float(self.plan.get("rate_hz", 20.0))
         self.intervall = 1.0 / self.rate_hz if self.rate_hz > 0 else 0.05
-        self.sokvag = sokvag or os.path.join(
-            os.path.expanduser("~"), "vc_assist_eyes.json")
+        # plats.fil(), inte expanduser: de tva sidorna av sommen far inte
+        # peka pa olika mappar pa Windows. Se plats.py och M-44.
+        self.sokvag = sokvag or plats.fil(plats.OGONFIL)
         self.rader = []
         self.startad = None
         self.t0 = None
@@ -715,20 +756,46 @@ class Provtagare(object):
         Vardet bar sin ALDER. Ett varde som ar aldre an provet ar inte
         samtidigt med det, och ett fasforhallande raknat pa ett gammalt varde
         vore ett tal utan storhet.
+
+        FYRA utfall, aldrig tva:
+          farskt          - varde + alder
+          gammalt         - varde + alder + plc_gammal (analysen: INCONCLUSIVE)
+          hal av tystnad  - INGA varden, plc_avbrott med skal, plc_gammal
+          hal av avbrott  - INGA varden, den yttre sidans egna ord om varfor
+
+        De tva sista slapper vardena med avsikt. En serie som visar inaktuella
+        PLC-tal utan att marka dem ar varre an en som visar hal (M-42).
         """
         if self.plckalla is None:
             return
-        varden, alder = self.plckalla.las(float(t))
+        varden, alder, avbrott = self.plckalla.las(float(t))
+        if avbrott:
+            rad["plc_avbrott"] = avbrott
+            rad["plc_gammal"] = True
+            return
         if not varden:
             return
-        rad["plc"] = dict(varden)
         if alder is None:
+            # Fail-closed: utan tidsstampel gar samtidigheten inte att styrka.
+            rad["plc"] = dict(varden)
             rad["plc_alder_s"] = None
             rad["plc_gammal"] = True
-        else:
+            return
+        if alder < -PLC_BAKAT_TOL_S:
+            rad["plc_avbrott"] = (
+                "tidsstampeln ligger %.3f s i framtiden; klockan har gatt bakat"
+                % (-alder))
+            rad["plc_gammal"] = True
+            return
+        if alder > PLC_TYSTNAD_S:
+            rad["plc_avbrott"] = "ingen ny ogonblicksbild pa %.2f s" % alder
             rad["plc_alder_s"] = round(alder, 4)
-            if alder > PLC_FARSK_S:
-                rad["plc_gammal"] = True
+            rad["plc_gammal"] = True
+            return
+        rad["plc"] = dict(varden)
+        rad["plc_alder_s"] = round(alder, 4)
+        if alder > PLC_FARSK_S:
+            rad["plc_gammal"] = True
 
     def _scen(self, rad):
         """Hela scenens poser, delta-lagrade, med MATT kostnadsstyrning."""

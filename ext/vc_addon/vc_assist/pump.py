@@ -26,6 +26,7 @@ import traceback
 
 import formaga as F
 import oga_provtagning as OP
+import plats
 import protokoll as P
 import skrivgrind
 
@@ -55,6 +56,11 @@ AKTIV_FONSTER_S = 2.0      # PRELIMINAR. Satts av matning M-26.
 OMSTART_MINSTA_MELLANRUM_S = 1.0    # PRELIMINAR. Satts av matning M-13.
 OMSTART_TAK_PER_MINUT = 20          # PRELIMINAR. Satts av matning M-13.
 
+# Hur manga tick-par takten (simulerade sekunder per vaggklockssekund) mats
+# over. Ett enda par mater pumpens jitter och inte takten; med for manga par
+# slapar matningen efter nar takten byter regim.
+TAKTFONSTER = 20                    # Satt av M-42.
+
 
 def _s(x):
     """Bytestrang i py2, oforandrad i py3.
@@ -69,6 +75,47 @@ def _s(x):
     except NameError:
         pass
     return x
+
+
+def valj_adressflagga(sockmodul=None, plattform=None, wine=None):
+    """Vilken adressflagga lyssnaren ska satta. Returnerar (namn, konstant).
+
+    Det har ar inte kosmetik, och grenen finns for att SO_REUSEADDR BETYDER
+    OLIKA SAKER:
+
+    * Pa Linux (och pa Wines winsock, som ar Linux under) later SO_REUSEADDR
+      oss binda over en port som ligger i TIME_WAIT, men INTE over en levande
+      lyssnare. En andra brygga far EADDRINUSE och faller.
+    * Pa riktig Windows later SO_REUSEADDR en andra sockel binda samma adress
+      medan den forsta LYSSNAR. Bindningen lyckas, och vilken av de tva som far
+      en inkommande anslutning ar inte definierat.
+
+    Bryggan hanger pa den forsta semantiken. ``starta()`` binder FORE den
+    skriver tokenfilen, just for att en andra brygga i samma process - t.ex.
+    ur en sparad layout som bar med sig brygg-komponenten - annars skriver over
+    den levandes token och gor den oanbar med E_AUTH. Pa Windows skulle den
+    andra bindningen LYCKAS, tokenfilen skrivas over, och skyddet vara borta.
+
+    Darfor: SO_EXCLUSIVEADDRUSE pa riktig Windows, SO_REUSEADDR overallt annars.
+    Wine behaller alltsa exakt dagens beteende - det ar det enda som ar matt.
+
+    Att SO_EXCLUSIVEADDRUSE gor det vi vill EFTER en krasch (TIME_WAIT) ar
+    OPROVAT och star som punkt i M-44.
+    """
+    if sockmodul is None:
+        sockmodul = socket
+    if plattform is None:
+        plattform = sys.platform
+    if wine is None:
+        wine = plats.ar_wine(plattform)
+    if wine or not plats.ar_windows(plattform):
+        return "SO_REUSEADDR", sockmodul.SO_REUSEADDR
+    flagga = getattr(sockmodul, "SO_EXCLUSIVEADDRUSE", None)
+    if flagga is None:
+        # Ingen flagga alls ar Windows egen standard: bind misslyckas nar
+        # nagon annan haller adressen. Det ar den semantik bryggan vill ha.
+        return "ingen (Windows utan SO_EXCLUSIVEADDRUSE)", None
+    return "SO_EXCLUSIVEADDRUSE", flagga
 
 
 class Post(object):
@@ -114,14 +161,13 @@ class Brygga(object):
                  exec_globals=None):
         self.port = int(port)
         self.token = None
-        self.tokenfil = tokenfil or os.path.join(
-            os.path.expanduser("~"), "vc_assist_token")
-        self.loggfil = loggfil or os.path.join(
-            os.path.expanduser("~"), "vc_assist_brygga.log")
-        self.formagefil = os.path.join(
-            os.path.expanduser("~"), "vc_assist_formaga.json")
-        self.uppskjutetfil = os.path.join(
-            os.path.expanduser("~"), "vc_assist_uppskjutet.json")
+        # Alla fyra genom plats.fil(): expanduser("~") svarar OLIKA i VC:s
+        # Python 2.7 och i tjanstens Python 3 nar HOME ar satt pa Windows.
+        # Se plats.py:s docstring och M-44.
+        self.tokenfil = tokenfil or plats.fil(plats.TOKEN)
+        self.loggfil = loggfil or plats.fil(plats.BRYGGLOGG)
+        self.formagefil = plats.fil(plats.FORMAGA)
+        self.uppskjutetfil = plats.fil(plats.UPPSKJUTET)
         self.formagerapport = None
         self.lyssnare = None
         self.klienter = []
@@ -135,6 +181,13 @@ class Brygga(object):
         self._senaste_trafik = 0.0
         self.provtagare = None
         self.bandrivare = None
+        # Simuleringstiden som skriptets scope senast lamnade in, och
+        # vaggklockan i samma ogonblick. Paret ar det ENDA stallet dar de tva
+        # klockorna motas: SimTime last ur kommandots scope star still (M-08).
+        self.simtid = None
+        self.simtid_vagg = None
+        self._klockpar = []
+        self.n_klockbakat = 0
         # MATT: att skapa en komponent med ett skriptbeteende STOPPAR den
         # korande simuleringen. Pumpen bor i simuleringen (M-08), sa bryggan
         # blir stum mitt i sitt eget svar. Darfor startas den om.
@@ -198,7 +251,10 @@ class Brygga(object):
         # hall porten trots att motorn var dodad.)
         self.logg("startar pa 127.0.0.1:%d" % self.port)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        flaggnamn, flagga = valj_adressflagga()
+        if flagga is not None:
+            s.setsockopt(socket.SOL_SOCKET, flagga, 1)
+        self.logg("adressflagga: %s" % flaggnamn)
         try:
             s.bind(("127.0.0.1", self.port))     # ALDRIG 0.0.0.0
         except Exception as e:
@@ -280,6 +336,28 @@ class Brygga(object):
             return PAUS_AKTIV
         return PAUS_TOM
 
+    def takt(self):
+        """Simulerade sekunder per vaggklockssekund, MATT ur pumpens egna slag.
+
+        Med app.startSimulation() ar kvoten 1,000 (M-08) - men bara da.
+        sim.run(t) kor i maxfart: 20 simulerade sekunder pa 0,01 s. Ogats
+        tidsaxel ar simuleringstid, kopplarens alder mats i vaggklocka, och
+        kvoten mellan dem ar alltsa inte en ettas sjalvklarhet utan en storhet
+        som maste mates. Utan den blir ett varde som ar 0,09 s gammalt mot
+        vaggen 180 s gammalt i serien - och det syns inte.
+
+        None nar takten inte gar att mata. Da har PLC-vardena ingen giltig
+        tidsaxel, och ogat far hellre ett hal an ett falskt farskt tal.
+        """
+        par = self._klockpar
+        if len(par) < 2:
+            return None
+        dv = par[-1][0] - par[0][0]
+        ds = par[-1][1] - par[0][1]
+        if dv <= 0 or ds < 0:
+            return None
+        return ds / dv
+
     def tick(self, simtid=None):
         """Ett varv. Anropas fran skriptets OnRun. Blockerar aldrig.
 
@@ -287,6 +365,17 @@ class Brygga(object):
         har: kommandots scope ser en inaktuell SimTime (M-08).
         """
         self._n_tick += 1
+        if simtid is not None:
+            if self.simtid is not None and float(simtid) < self.simtid:
+                # sim.reset() nollar simuleringstiden. Ett fonster som spanner
+                # over hoppet ger en takt som ar ren dikt, sa det kastas.
+                self._klockpar = []
+                self.n_klockbakat += 1
+            self.simtid = float(simtid)
+            self.simtid_vagg = time.time()
+            self._klockpar.append((self.simtid_vagg, self.simtid))
+            if len(self._klockpar) > TAKTFONSTER:
+                del self._klockpar[0]
         if self.provtagare is not None and simtid is not None:
             try:
                 if self.bandrivare is not None:
@@ -520,7 +609,10 @@ class Brygga(object):
             return P.svar_fel(id_, P.E_ARGS,
                               "simtid saknas; den maste komma fran skriptets scope")
         scen = OP.VcScen(app(), sim())
-        self.provtagare = OP.Provtagare(scen, plan)
+        # Kallan finns fran forsta provet, aven om ingen kopplare har hort av
+        # sig an. Skapas den forst vid forsta inskottet finns det ingen som
+        # kan saga ifran nar kontakten aldrig kommer.
+        self.provtagare = OP.Provtagare(scen, plan, plckalla=OP.Plckalla())
         self.provtagare.starta(float(simtid))
         bana = args.get("bana")
         self.bandrivare = (OP.Bandrivare(scen, bana).starta(float(simtid))
@@ -582,10 +674,65 @@ class Brygga(object):
 
     def _op_eyes_status(self, id_, args):
         if self.provtagare is None:
-            return P.svar_ok(id_, {"aktiv": False})
+            return P.svar_ok(id_, {"aktiv": False, "simtid": self.simtid,
+                                   "takt": self.takt()})
+        kalla = self.provtagare.plckalla
         return P.svar_ok(id_, {"aktiv": self.provtagare.aktiv,
                                "prov": len(self.provtagare.rader),
-                               "t0": self.provtagare.t0})
+                               "t0": self.provtagare.t0,
+                               "simtid": self.simtid,
+                               "takt": self.takt(),
+                               "plc_inskott": None if kalla is None else kalla.n_inskott,
+                               "plc_avbrott": None if kalla is None else kalla.avbrott})
+
+    def _op_plc_in(self, id_, args):
+        """Kopplarens ogonblicksbild in pa OGATS tidsaxel.
+
+        Argumentet ar en ALDER, inte en tidpunkt. En varaktighet betyder samma
+        sak i bada processerna; en tidpunkt gor det bara om klockorna delar
+        epok - och epoken overlever inte ett sim.reset. Aldern raknas om till
+        simuleringstid med pumpens egen MATTA takt (se takt()).
+
+        Skrivningen gar inte genom godkannandekon. I12 galler det som andrar
+        SCENEN; det har ror bara ogats egen buffert.
+
+        Kalla: docs/matningar/M-42.
+        """
+        varden = args.get("varden")
+        avbrott = args.get("avbrott")
+        alder_s = args.get("alder_s")
+        takt = self.takt()
+        svar = {"oga": self.provtagare is not None, "simtid": self.simtid,
+                "takt": takt, "tick": self._n_tick,
+                "klockbakat": self.n_klockbakat, "lagrat": False}
+        if self.provtagare is None:
+            # INGEN falsk framgang: vardet lagrades inte, och det sags rent ut
+            # i stallet for att kvitteras som om det tagits emot.
+            svar["skal"] = "ogat provtar inte"
+            return P.svar_ok(id_, svar)
+        kalla = self.provtagare.plckalla
+        if kalla is None:
+            kalla = OP.Plckalla()
+            self.provtagare.plckalla = kalla
+        if avbrott:
+            kalla.bryt(avbrott, self.simtid)
+            svar["lagrat"] = True
+            svar["avbrott"] = kalla.avbrott
+            return P.svar_ok(id_, svar)
+        if not varden:
+            svar["skal"] = "inga varden i begaran"
+            return P.svar_ok(id_, svar)
+        # t = None betyder att ogat raknar vardet som gammalt. Det ar avsikten:
+        # utan simuleringstid eller utan matt takt finns ingen axel att lagga
+        # vardet pa, och da ar ett hal ratt svar.
+        t = None
+        if self.simtid is not None and takt is not None and alder_s is not None:
+            t = self.simtid - max(0.0, float(alder_s)) * takt
+        kalla.skjut_in(varden, t)
+        svar["lagrat"] = True
+        svar["pa"] = t
+        svar["taggar"] = len(kalla.varden)
+        return P.svar_ok(id_, svar)
 
     def _ateruppta_simuleringen(self):
         """Startar om simuleringen om koden stoppade den.
