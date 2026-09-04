@@ -88,11 +88,15 @@ class Bounds(object):
     Formen provas har och inte i en kommentar. Ett halvt matt som ar noll
     eller negativt ar ingen lada, och en lada med noll utstrackning gar inte
     att placera - da ar svaret fel, inte objektet platt.
+
+    `avlast_vid` beskriver KOMPONENTENS TILLSTAND nar ladan lastes: dess
+    stallning och dess parametervarden. Ladan beror pa bada (M-61), sa tva
+    lador utan tillstand gar inte att jamfora.
     """
 
-    __slots__ = ("center_mm", "halv_mm")
+    __slots__ = ("center_mm", "halv_mm", "avlast_vid")
 
-    def __init__(self, center_mm, halv_mm):
+    def __init__(self, center_mm, halv_mm, avlast_vid=""):
         c = [float(v) for v in center_mm]
         h = [float(v) for v in halv_mm]
         if len(c) != 3 or len(h) != 3:
@@ -107,24 +111,31 @@ class Bounds(object):
                     % v)
         self.center_mm = tuple(c)
         self.halv_mm = tuple(h)
+        # I VILKET TILLSTAND ladan lastes: komponentens stallning och de
+        # parametervarden den hade. Ladan ar en funktion av bada (M-61), sa
+        # ett matt utan sitt tillstand ar ett matt utan halva sin harkomst.
+        # Tomt betyder INTE "forvalt" utan "inte noterat", och saknade_matt
+        # sager det.
+        self.avlast_vid = str(avlast_vid)
 
     @classmethod
-    def ur_svar(cls, svar):
+    def ur_svar(cls, svar, avlast_vid=""):
         """Ur verktygsskiktets ordbok: {"center": [...], "half_extent": [...]}."""
         if not isinstance(svar, dict):
             raise Saknasfel("get_bounds-svaret ar ingen ordbok: %r" % (svar,))
         for nyckel in ("center", "half_extent"):
             if nyckel not in svar:
                 raise Saknasfel("get_bounds-svaret saknar %r" % nyckel)
-        return cls(svar["center"], svar["half_extent"])
+        return cls(svar["center"], svar["half_extent"], avlast_vid)
 
     @property
     def storlek_mm(self):
         return tuple(2.0 * v for v in self.halv_mm)
 
     def __repr__(self):
-        return ("Bounds(center=%r mm, halv=%r mm)"
-                % (self.center_mm, self.halv_mm))
+        return ("Bounds(center=%r mm, halv=%r mm, avlast vid %s)"
+                % (self.center_mm, self.halv_mm,
+                   self.avlast_vid or Harkomst.SAKNAS))
 
 
 def rackvidd_ur_fakta(fakta):
@@ -158,6 +169,10 @@ def saknade_matt(fakta, bounds=None):
     ut = []
     if bounds is None:
         ut.append("omslutande volym: %s" % fakta.lada_skal)
+    elif not bounds.avlast_vid:
+        ut.append("ladans tillstand: saknas - i vilken stallning och vid "
+                  "vilka parametervarden get_bounds lastes ar inte noterat, "
+                  "och ladan beror pa bada")
     if not fakta.namn:
         ut.append("namn: model.xml bar inget Name")
     if not fakta.kategori:

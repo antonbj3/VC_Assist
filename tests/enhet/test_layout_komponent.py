@@ -110,6 +110,20 @@ def test_en_lada_med_noll_utstrackning_avvisas():
         KO.Bounds([0.0, 0.0, 0.0], [500.0, 0.0, 500.0])
 
 
+def test_en_lada_utan_sitt_tillstand_sags_sakna_det(tmp_path):
+    """Ladan beror pa stallningen och pa parametrarna (M-61). Tva lador utan
+    tillstand gar darfor inte att jamfora, och tomt ar inte ett forval."""
+    f = K.las(robot(tmp_path), djupt=True, geometri=True)
+    utan = KO.Bounds([0.0, 0.0, 950.0], [700.0, 600.0, 950.0])
+    assert any("ladans tillstand: saknas" in x
+               for x in KO.saknade_matt(f, utan))
+    med = KO.Bounds.ur_svar({"center": [0.0, 0.0, 950.0],
+                             "half_extent": [700.0, 600.0, 950.0]},
+                            avlast_vid="hemstallning, ConveyorLength=2000")
+    assert med.avlast_vid == "hemstallning, ConveyorLength=2000"
+    assert not any("ladans tillstand" in x for x in KO.saknade_matt(f, med))
+
+
 def test_ett_get_bounds_svar_utan_falt_avvisas():
     with pytest.raises(KO.Saknasfel):
         KO.Bounds.ur_svar({"center": [0, 0, 0]})

@@ -155,8 +155,9 @@ För de 2169 robotarna: 1434 positiva, 312 nollor, 423 utan fältet. **735
 robotar har alltså ingen räckvidd i sitt eget datablad.**
 
 Men 702 komponenter — alla robotar — bär arkivposten `envelopeprofile`:
-robotens **räckviddsprofil**, en polylinje i XZ-planet, i millimeter. Alla 702
-går att avkoda, och **225 av de 735 hålen fylls av den.**
+robotens **räckviddsprofil**, en polylinje i ett lodrätt snitt genom
+arbetsvolymen, i millimeter. Alla 702 går att avkoda, och **225 av de 735
+hålen fylls av den.**
 
 ### Avkodningen är korsprövad, inte gissad
 
@@ -239,13 +240,23 @@ Samma prov på räckvidden: av samma 117 stämmer `Reach` med namnet i 79, är n
 i 18, saknas i 16 och avviker i 4 — varav två är min egen namnläsning (`145`
 betyder 1,45 m), en skiljer 50 mm, och en är fältförväxlingen ovan.
 
-`svc/vc_assist_svc/datablad.py` skriver i sin inledning att *"nyttolast
-(payload) finns INTE i någon av de 3201 filerna"*. Den mätningen är gjord i
-`component.rsc`:s **rotvariabelrymd**, och där stämmer den — modulens egen
-`saknas`-text säger också just "ingen av rotvariablerna". Men fältet finns i
-`model.xml`, i 93 procent av filerna, validerat 117 av 117. Två ställen, två
-svar. Det är samma felklass som M-34 och M-57, och det är tredje gången i det
-här bygget.
+Tre tal på samma fråga, och de mäter tre olika ställen:
+
+| Var | Nyttolast finns i | Källa |
+|---|---:|---|
+| `component.rsc`, rotvariabelrymden | **426 av 2275** | M-59:s tabell |
+| samma, enligt `datablad.py`:s inledning | **0 av 3201** | modulens docstring |
+| `model.xml` | **2358 av 3201** | den här mätningen, validerad 117 av 117 |
+
+Den mellersta raden är stale. `datablad.py` skriver i sin inledning att
+*"nyttolast (payload) finns INTE i någon av de 3201 filerna"*, men modulens
+egen mätning M-59 säger 426 och modulens `saknas`-text säger korrekt "ingen av
+rotvariablerna". Den blanka meningen i docstringen står kvar och kan läsas som
+att fältet inte finns någonstans.
+
+Det är samma felklass som M-34 och M-57: ett tal som inte rör sig är inget
+bevis på att ingenting finns. `datablad.py` ägs av M-59 och rörs inte härifrån;
+raden står här så att den som äger den kan rätta den.
 
 ## Gränssnitten: det en låda inte har
 
@@ -434,6 +445,10 @@ Bryggan är `svc/vc_assist_svc/layout/komponent.py`:
   komponenten och på det som fattas. Den bygger aldrig ett rätblock.
 * med `Bounds.ur_svar(get_bounds(...))` blir det ett `Objekt` med VC:s mått,
   ett **MÄTT** ankare, komponentens **egen** kategori och räckvidden ur filen.
+* `Bounds` bär också `avlast_vid` — i vilken **ställning** och vid vilka
+  **parametervärden** lådan lästes. Lådan är en funktion av båda, så två lådor
+  utan sitt tillstånd går inte att jämföra. Tomt betyder "inte noterat", och
+  `saknade_matt` säger det.
 * `till_verktygsanrop(strikt=True)` — som redan vägrar skriva anrop ur ett
   antaget ankare — släpper då igenom. Det är dörren som öppnas.
 

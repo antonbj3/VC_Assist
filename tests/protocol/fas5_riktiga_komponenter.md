@@ -21,8 +21,9 @@ mekanismen — skapa, placera, mäta avstånd, koppla gränssnitt. Den bevisade
 inte att en riktig cell går att ställa upp, för den hade aldrig en riktig
 komponent att ställa upp.
 
-Den här körningen byter ut lådorna mot 3201 riktiga komponenter och ställer
-**samma** frågor.
+Den här körningen byter ut lådorna mot riktiga komponenter ur biblioteket och
+ställer **samma** frågor. Urvalet är ett urval, och dess nämnare ska stå i
+rapporten — biblioteket har 3201 komponenter och körningen prövar inte alla.
 
 ## Vad som redan är avgjort utan VC (M-61)
 
@@ -43,6 +44,9 @@ inte i filen; den måste komma ur VC.
 ## Steg 0 — förutsättningar
 
 * Indexet byggt: `python3 svc/vc_assist_svc/katalogindex.py --djupt --ut <fil>`
+* Varje vald komponent läst offline först:
+  `python3 -m vc_assist_svc.komponentfil --fil <komponent>`. Vad filen säger
+  ska stå bredvid vad VC säger, annars går skillnaden inte att se.
 * Biblioteksroten **söks upp**, aldrig antas (`katalogindex.hitta`).
 * VC uppe med bryggan, pumpen mätt levande (fas 1).
 * Skrivgrinden på. `can_connect` dödade pumpen en gång (M-16) och står i
