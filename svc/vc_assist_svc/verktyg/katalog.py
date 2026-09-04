@@ -1,0 +1,471 @@
+# -*- coding: utf-8 -*-
+"""Domanen catalog: vad som finns att spawna (45_verktyg.md).
+
+Alla verktyg har ar DATA. Skalet star i 45_verktyg.md: "allt som ror scenen
+ar kodgenerering; allt som ror index, katalog och kunskap ar data". Ett
+data-verktyg kors i tjansten och gar aldrig via bryggan, sa katalogen kan
+svara aven nar VC inte ar igang.
+
+VAD KATALOGEN AR, MATT
+----------------------
+45_verktyg.md forutsatter ett index som byggs i fas 4 ur eCatalog och bar
+URI, namn, kategori, TILLVERKARE, VILKA GRANSSNITT komponenten bar och dess
+egenskaper. Det indexet finns inte, och det gar inte att bygga har:
+
+  * VC:s eCatalog ar en NATTJANST bakom anvandarkonto. Utan konto och
+    natverk finns ingen katalog att ga igenom.
+  * MATT 2026-09-04 i testprefixet: NOLL .vcmx-layouter och FEM
+    komponentfiler pa disk. Det finns alltsa inget lokalt katalogbibliotek
+    att soka i heller.
+
+Kallan har ar darfor bank/katalog_index.json: 65 poster med verkliga
+robotmodeller, standardiserade pallmatt och lastbarare, som banken redan
+binder sina uppgifter mot (lintkod M4_UNKNOWN_URI i bank/schema.py).
+
+Foljden bars av VARJE svar, inte av en fotnot:
+
+  * `notering` sager att katalogen ar lokal och begransad, och citerar
+    indexfilens egen harkomstrad.
+  * `stampel` och `stampel_betydelse` foljer med varje post, sa att en
+    ANTAGEN siffra aldrig ser ut som en matt (siffrans harkomst hor till
+    siffran).
+  * `granssnitt` finns INTE i den har kallan. Falten ljugs inte ihop; de
+    saknas, och notering_granssnitt sager att de saknas.
+  * En URI som inte star i indexet ger found=false. Uppfunnen URI ar ett
+    hart fel, inte en varning (I9), sa verktyget gissar aldrig fram en
+    sokvag. Alternativen som foljer med ett bomskott ar VERKLIGA URI:er ur
+    indexet.
+
+bank://-URI:er ar inte laddbara VC-URI:er. Indexfilen valde schemat just for
+att ingen ska forvaxla en bankpost med en matt VC-URI, och load_component
+kan darfor inte ta en bank://-URI. Det star i notering.
+"""
+from __future__ import annotations
+
+import collections
+import json
+import os
+import unicodedata
+
+from .bas import SINCE, TIMEOUT_MS, params, returns
+from .fel import Schemafel
+from .register import registrera
+from .schema import Verktyg
+
+DOMAN = "catalog"
+
+_HAR = os.path.dirname(os.path.abspath(__file__))
+ROT = os.path.normpath(os.path.join(_HAR, "..", "..", ".."))
+KATALOGFIL = os.path.join(ROT, "bank", "katalog_index.json")
+
+
+# ---- kallan --------------------------------------------------------------
+
+def _las_katalog(sokvag=KATALOGFIL):
+    """Laser indexfilen. Kastar vid import om den inte gar att lita pa.
+
+    Samma fil som bank/lasare.las_katalogindex laser, inte en kopia av den:
+    en kopierad vokabular driftar fran bankens sa fort nagon andrar den ena.
+    Dubblettkontrollen ar densamma som bankens, av samma skal - tva poster
+    pa samma URI gor svaret beroende av lasordningen.
+    """
+    with open(sokvag, encoding="utf-8") as f:
+        data = json.load(f)
+    poster = collections.OrderedDict()
+    for post in data["poster"]:
+        if post["uri"] in poster:
+            raise Schemafel("katalogindexet har tva poster pa %s (%s)"
+                            % (post["uri"], sokvag))
+        poster[post["uri"]] = post
+    if not poster:
+        raise Schemafel("katalogindexet %s ar tomt" % sokvag)
+    return data, poster
+
+
+DATA, POSTER = _las_katalog()
+
+# Falt som ar postens identitet och inte ett matt varde.
+_IDENTITETSFALT = ("uri", "namn", "kategori", "stampel", "not")
+
+# Enheten star i faltnamnets suffix i indexfilen (rackvidd_mm, anslag_s,
+# hastighet_mps). Tabellen skiljer namnet fran enheten sa att ett tal aldrig
+# lamnar verktyget utan sin enhet. Suffixen ar de som FAKTISKT forekommer i
+# bank/katalog_index.json; ett okant suffix ger enhet=null i stallet for en
+# gissad enhet.
+ENHET_FOR_SUFFIX = {
+    "mm": "mm",
+    "kg": "kg",
+    "s": "s",
+    "ms": "ms",
+    "mmin": "m/min",
+    "mps": "m/s",
+}
+
+KATEGORIER = tuple(sorted({p["kategori"] for p in POSTER.values()}))
+
+# URI-gruppen ar segmentet efter bank://, alltsa bank://<grupp>/<namn>.
+# Den ar INTE samma sak som kategori: gruppen transport bar bade kategorin
+# transport och kategorin don, och gruppen givare bar bade givare och
+# sakerhet. Darfor bars bada i svaret.
+GRUPPER = tuple(sorted({u.split("/")[2] for u in POSTER}))
+
+# Arlighetsraden. Byggd ur indexfilens EGEN harkomstrad i stallet for en
+# omskrivning av den: en omskriven harkomst kan drifta fran den matning den
+# beskriver, en citerad kan inte.
+NOTERING = (
+    "Katalogen ar LOKAL och BEGRANSAD: %d poster ur bank/katalog_index.json. "
+    "VC:s eCatalog ar en nattjanst bakom anvandarkonto och ar inte genomsokt "
+    "harifran. URI:erna ar bank://-poster, inte VC-URI:er, och load_component "
+    "kan inte ladda dem. Valj bara URI:er ur den har trafflistan; en uppfunnen "
+    "URI ar ett hart fel. Indexets egen harkomst: %s"
+    % (len(POSTER), DATA["harkomst"])
+)
+
+NOTERING_GRANSSNITT = (
+    "Granssnitt (vcSimInterface) saknas i den har kallan. 45_verktyg.md vantar "
+    "dem ur eCatalog-indexet i fas 4; det indexet gar inte att bygga utan konto "
+    "och natverk. Falten ar darfor utelamnade, inte pahittade - fraga scenen med "
+    "list_interfaces nar komponenten val ar laddad."
+)
+
+
+def _vik(text):
+    """Skiftlages- och diakritokanslig form for jamforelse.
+
+    MATT 2026-09-04: 35 av indexets 65 poster bar icke-ASCII (Ljusrida,
+    sakerhetsklassad), medan ovriga ar ASCII-translittererade (lagesgivare,
+    tackplat). Utan vikningen hittar en fraga stavad pa det ena sattet inte
+    posten stavad pa det andra. NFKD plus bort med kombinerande tecken gor
+    det utan en handskriven teckentabell som kan aldras.
+    """
+    rensad = unicodedata.normalize("NFKD", (text or "").lower())
+    return "".join(c for c in rensad if not unicodedata.combining(c))
+
+
+def _matt(post):
+    """Postens matta varden som (namn, varde, enhet), enheten ur suffixet."""
+    ut = []
+    for namn in sorted(post):
+        if namn in _IDENTITETSFALT:
+            continue
+        rot, _, suffix = namn.rpartition("_")
+        if rot and suffix in ENHET_FOR_SUFFIX:
+            ut.append({"namn": rot, "varde": post[namn],
+                       "enhet": ENHET_FOR_SUFFIX[suffix]})
+        else:
+            ut.append({"namn": namn, "varde": post[namn], "enhet": None})
+    return ut
+
+
+def _post_ut(post, rang=None):
+    return {
+        "uri": post["uri"],
+        "namn": post["namn"],
+        "kategori": post["kategori"],
+        "grupp": post["uri"].split("/")[2],
+        "stampel": post["stampel"],
+        "stampel_betydelse": DATA["stamplar"][post["stampel"]],
+        "anmarkning": post.get("not"),
+        "matt": _matt(post),
+        "rang": rang,
+    }
+
+
+def _varde(post, namn):
+    """Ett matt varde ur posten, eller None om posten inte bar det faltet."""
+    v = post.get(namn)
+    return float(v) if isinstance(v, (int, float)) else None
+
+
+# ---- registrering --------------------------------------------------------
+
+# bas.laggare() ger mode="codegen"; den har domanen ar data, sa laggaren star
+# har. effect ar INTE en parameter: alla katalogverktyg laser, och ett
+# data-verktyg som skriver avvisas anda av schemat eftersom det skulle ga
+# forbi godkannandekon (I12).
+#
+# KRAVER for ett data-verktyg. Schemat kraver minst en yta ur formaga.YTOR
+# och formagegrinden slar av verktyget nar ytan saknas. Ett katalogverktyg
+# ror ingen VC-yta alls - det kor i tjansten. Vi deklarerar darfor den yta
+# svaret ar TILL FOR: en katalogpost finns for att laddas, och laddningen ar
+# app.load (samma yta som load_component kraver). Foljden ar uttalad och
+# avsiktlig: utan formagerapport fran bryggan ar ocksa katalogverktygen
+# avslagna, och skalet modellen far namner ytan (I3 fail-closed).
+KRAVER = ("app.load",)
+
+
+def _lagg(namn, beskrivning, parameters, returns_, handlare):
+    return registrera(
+        Verktyg(namn=namn, beskrivning=beskrivning, mode="data", effect="read",
+                parameters=parameters, returns=returns_, since=SINCE,
+                kraver=KRAVER, doman=DOMAN,
+                # timeout_ms ar inert pa data-vagen: utforaren skickar den
+                # bara till bryggan for kodgenererande verktyg. Talet halls
+                # anda pa bas.TIMEOUT_MS sa att ingen andra, tystare grans
+                # uppstar i tjansten.
+                timeout_ms=TIMEOUT_MS),
+        handlare)
+
+
+# ---- aterkommande schemabitar --------------------------------------------
+
+_MATTPOST = {
+    "type": "object",
+    "description": "Ett matt varde ur posten, med sin enhet utskriven.",
+    "properties": {
+        "namn": {"type": "string", "description": "Storhetens namn utan enhetssuffix."},
+        "varde": {"type": ["number", "integer", "string", "null"],
+                  "description": "Vardet som det star i indexfilen."},
+        "enhet": {"type": ["string", "null"],
+                  "description": "Enheten ur faltnamnets suffix, null nar suffixet inte ar en kand enhet."},
+    },
+    "required": ["namn", "varde", "enhet"],
+}
+
+_KATALOGPOST = {
+    "type": ["object", "null"],
+    "description": "En post ur det lokala katalogindexet. null nar ingen post fanns.",
+    "properties": {
+        "uri": {"type": "string",
+                "description": "Postens URI. Anvand den exakt; hitta aldrig pa en egen."},
+        "namn": {"type": "string", "description": "Komponentens namn."},
+        "kategori": {"type": "string", "description": "Kategori i indexet."},
+        "grupp": {"type": "string", "description": "URI-gruppen, segmentet efter bank://."},
+        "stampel": {"type": "string",
+                    "description": "Vardenas harkomst: PUBLICERAD_SPEC, STANDARDMATT eller ANTAGEN."},
+        "stampel_betydelse": {"type": "string",
+                              "description": "Vad stampeln betyder, ur indexfilens egen tabell."},
+        "anmarkning": {"type": ["string", "null"],
+                       "description": "Postens egen not, null nar den saknar en."},
+        "matt": {"type": "array", "description": "Postens matta varden.",
+                 "items": _MATTPOST},
+        "rang": {"type": ["string", "null"],
+                 "description": "Hur posten traffades vid sokning, null vid direkt uppslag."},
+    },
+    "required": ["uri", "namn", "kategori", "stampel", "stampel_betydelse", "matt"],
+}
+
+_RET_INDEX = {
+    "type": "object",
+    "description": "Vilket index svaret kommer ur.",
+    "properties": {
+        "index_id": {"type": "string", "description": "Indexets id."},
+        "poster_totalt": {"type": "integer", "description": "Antal poster i hela indexet."},
+        "harkomst": {"type": "string", "description": "Indexfilens egen harkomstrad."},
+        "fil": {"type": "string", "description": "Filen svaret lastes ur."},
+    },
+    "required": ["index_id", "poster_totalt", "harkomst", "fil"],
+}
+_RET_NOTERING = {
+    "type": "string",
+    "description": "Arlighetsraden om katalogens rackvidd. Las den innan du valjer.",
+}
+
+
+def _index_ut():
+    return {"index_id": DATA["index_id"], "poster_totalt": len(POSTER),
+            "harkomst": DATA["harkomst"], "fil": "bank/katalog_index.json"}
+
+
+# ---- search_catalog ------------------------------------------------------
+
+# Ordinal rangordning, inte ett matt tal: poangen ar platsen i listan.
+# Ordningen ar exakt fore prefix fore delstrang, och namn fore URI fore not,
+# av samma skal som i api_index._RANGORDNING.
+_RANGORDNING = ("exakt_uri", "exakt_namn", "prefix_namn", "delstrang_namn",
+                "delstrang_uri", "delstrang_anmarkning")
+
+
+def _rang(post, fraga, vikt):
+    if post["uri"] == fraga:
+        return "exakt_uri"
+    namn = _vik(post["namn"])
+    if namn == vikt:
+        return "exakt_namn"
+    if namn.startswith(vikt):
+        return "prefix_namn"
+    if vikt in namn:
+        return "delstrang_namn"
+    if vikt in _vik(post["uri"]):
+        return "delstrang_uri"
+    if vikt in _vik(post.get("not") or ""):
+        return "delstrang_anmarkning"
+    return None
+
+
+def _search_catalog(argument):
+    fraga = (argument.get("query") or "").strip()
+    vikt = _vik(fraga)
+    kategori = argument.get("category")
+    min_rackvidd = argument.get("min_rackvidd_mm")
+    min_nyttolast = argument.get("min_nyttolast_kg")
+
+    traffar = []
+    for post in POSTER.values():
+        if kategori is not None and post["kategori"] != kategori:
+            continue
+        if min_rackvidd is not None:
+            v = _varde(post, "rackvidd_mm")
+            if v is None or v < min_rackvidd:
+                continue
+        if min_nyttolast is not None:
+            v = _varde(post, "nyttolast_kg")
+            if v is None or v < min_nyttolast:
+                continue
+        if fraga:
+            rang = _rang(post, fraga, vikt)
+            if rang is None:
+                continue
+        else:
+            rang = None
+        traffar.append((_RANGORDNING.index(rang) if rang else len(_RANGORDNING),
+                        post["uri"], _post_ut(post, rang)))
+    traffar.sort(key=lambda t: (t[0], t[1]))
+    return {
+        "traffar": [t[2] for t in traffar],
+        "antal": len(traffar),
+        "index": _index_ut(),
+        "notering": NOTERING,
+        "notering_granssnitt": NOTERING_GRANSSNITT,
+    }
+
+
+_lagg(
+    "search_catalog",
+    "Soker i det LOKALA katalogindexet (65 poster: robotar, transportorer, "
+    "gripdon, givare, stationer och lastbarare). Filtren min_rackvidd_mm och "
+    "min_nyttolast_kg slar bort poster som inte bar faltet alls, sa en robot "
+    "utan angiven rackvidd kommer aldrig med i ett rackviddsfilter. Utan "
+    "argument listas hela indexet. VC:s eCatalog ar INTE genomsokt harifran; "
+    "las notering innan du valjer.",
+    params({
+        "query": {"type": "string",
+                  "description": ("Fri text. Matchas mot namn, URI och "
+                                  "anmarkning, okansligt for skiftlage och "
+                                  "for a-ring och prickar.")},
+        "category": {"type": "string", "enum": list(KATEGORIER),
+                     "description": ("Bara poster i den har kategorin. "
+                                     "Listan ar indexets verkliga kategorier.")},
+        "min_rackvidd_mm": {"type": "number",
+                            "description": "Minsta rackvidd i millimeter. Ror bara poster som bar rackvidd."},
+        "min_nyttolast_kg": {"type": "number",
+                             "description": "Minsta nyttolast i kilogram. Ror bara poster som bar nyttolast."},
+    }),
+    returns({
+        "traffar": {"type": "array",
+                    "description": "Traffarna, bast rang forst. Valj bara har ur.",
+                    "items": _KATALOGPOST},
+        "antal": {"type": "integer", "description": "Antal traffar."},
+        "index": _RET_INDEX,
+        "notering": _RET_NOTERING,
+        "notering_granssnitt": {"type": "string",
+                                "description": "Varfor granssnittsfalten saknas i den har kallan."},
+    }, ["traffar", "antal", "index", "notering", "notering_granssnitt"]),
+    _search_catalog,
+)
+
+
+# ---- catalog_item --------------------------------------------------------
+
+def _catalog_item(argument):
+    uri = argument["uri"].strip()
+    post = POSTER.get(uri)
+    # Alternativen ar VERKLIGA URI:er ur samma bank://<grupp>/, inte gissade
+    # namn. Ingen tolerans behovs och ingen infors: gruppen ar bunden av
+    # datan (storsta gruppen ar 15 poster av 65), sa listan kan inte svalla.
+    alternativ = []
+    if post is None:
+        delar = uri.split("/")
+        grupp = delar[2] if len(delar) > 2 else ""
+        alternativ = [u for u in POSTER if u.split("/")[2] == grupp]
+    return {
+        "found": post is not None,
+        "uri": uri,
+        "post": _post_ut(post) if post is not None else None,
+        "alternativ": alternativ,
+        "index": _index_ut(),
+        "notering": NOTERING,
+        "notering_granssnitt": NOTERING_GRANSSNITT,
+    }
+
+
+_lagg(
+    "catalog_item",
+    "Slar upp EN katalogpost pa exakt URI och ger dess varden med enhet och "
+    "harkomststampel. found=false ar ett giltigt svar och betyder att URI:n "
+    "inte finns - da foljer verkliga URI:er ur samma grupp med som alternativ. "
+    "Verktyget gissar aldrig fram en sokvag.",
+    params({"uri": {"type": "string",
+                    "description": "Postens URI, exakt som den star i trafflistan."}},
+           ["uri"]),
+    returns({
+        "found": {"type": "boolean", "description": "Om URI:n fanns i indexet."},
+        "uri": {"type": "string", "description": "URI:n som slogs upp."},
+        "post": _KATALOGPOST,
+        "alternativ": {"type": "array",
+                       "description": ("Verkliga URI:er ur samma grupp. Fylls "
+                                       "bara vid bomskott."),
+                       "items": {"type": "string", "description": "En URI som finns."}},
+        "index": _RET_INDEX,
+        "notering": _RET_NOTERING,
+        "notering_granssnitt": {"type": "string",
+                                "description": "Varfor granssnittsfalten saknas i den har kallan."},
+    }, ["found", "uri", "post", "alternativ", "index", "notering",
+        "notering_granssnitt"]),
+    _catalog_item,
+)
+
+
+# ---- catalog_categories --------------------------------------------------
+
+def _catalog_categories(argument):
+    kategorier = collections.Counter(p["kategori"] for p in POSTER.values())
+    grupper = collections.Counter(u.split("/")[2] for u in POSTER)
+    stamplar = collections.Counter(p["stampel"] for p in POSTER.values())
+    return {
+        "kategorier": [{"namn": k, "antal": kategorier[k]} for k in KATEGORIER],
+        "grupper": [{"namn": g, "antal": grupper[g]} for g in GRUPPER],
+        "stamplar": [{"namn": s, "antal": stamplar[s],
+                      "betydelse": DATA["stamplar"][s]}
+                     for s in sorted(DATA["stamplar"])],
+        "antal_poster": len(POSTER),
+        "index": _index_ut(),
+        "notering": NOTERING,
+    }
+
+
+_lagg(
+    "catalog_categories",
+    "Vad det lokala katalogindexet faktiskt innehaller: kategorier, "
+    "URI-grupper och hur manga poster som bar vilken harkomststampel. Las det "
+    "har fore search_catalog om du inte vet vad som finns.",
+    params({}),
+    returns({
+        "kategorier": {"type": "array",
+                       "description": "Kategorierna och antal poster i var och en.",
+                       "items": {"type": "object", "description": "En kategori.",
+                                 "properties": {
+                                     "namn": {"type": "string", "description": "Kategorins namn."},
+                                     "antal": {"type": "integer", "description": "Antal poster."}},
+                                 "required": ["namn", "antal"]}},
+        "grupper": {"type": "array",
+                    "description": "URI-grupperna, alltsa segmentet efter bank://.",
+                    "items": {"type": "object", "description": "En URI-grupp.",
+                              "properties": {
+                                  "namn": {"type": "string", "description": "Gruppens namn."},
+                                  "antal": {"type": "integer", "description": "Antal poster."}},
+                              "required": ["namn", "antal"]}},
+        "stamplar": {"type": "array",
+                     "description": "Harkomststamplarna, med betydelse och antal.",
+                     "items": {"type": "object", "description": "En stampel.",
+                               "properties": {
+                                   "namn": {"type": "string", "description": "Stampelns namn."},
+                                   "antal": {"type": "integer", "description": "Antal poster med stampeln."},
+                                   "betydelse": {"type": "string", "description": "Vad stampeln betyder."}},
+                               "required": ["namn", "antal", "betydelse"]}},
+        "antal_poster": {"type": "integer", "description": "Antal poster i indexet."},
+        "index": _RET_INDEX,
+        "notering": _RET_NOTERING,
+    }, ["kategorier", "grupper", "stamplar", "antal_poster", "index", "notering"]),
+    _catalog_categories,
+)
