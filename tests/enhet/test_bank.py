@@ -212,7 +212,10 @@ def test_varje_uppgift_har_normaldrift_och_ett_vandningsfall(bank):
 
 
 def test_varje_analog_insignal_overskrids_at_bada_hall(bank):
-    """SemaPLC-mätningen: 17,3 % fel vid gränsöverskridande mot 7,1 % vid
+    """Gränsscenarier är obligatoriska. (Tidigare motiverat med ett
+    SemaPLC-tal som två källkontroller inte kunnat belägga; talet är struket,
+    regeln står på egna ben. Se bank/README.md.) Ursprunglig lydelse:
+    17,3 % fel vid gränsöverskridande mot 7,1 % vid
     normaldrift. Ett facit som bara kör normalfallet mäter nästan ingenting."""
     analoga = 0
     for u in bank:

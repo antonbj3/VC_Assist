@@ -40,7 +40,7 @@ Kärnfälten är de ur `docs/spec/81_mallschema.md`. Utöver dem bär varje uppg
 | `antaganden` | varje tal som inte går att grunda i publicerad praxis, med motiv | ett märkt antagande är hederligt, ett omärkt påhittat tal är slarv |
 | `fysik` | detaljens mått och massa, och den arbetsradie uppgiften kräver | låter lintern pröva robotvalet mot katalogens publicerade modelldata |
 | `stege` | steg på svårighetsstegen | svårighetsgraden härleds ur steget i stället för att gissas per uppgift |
-| `scenarios` | normaldrift, gränsöverskridande per analog insignal, vändningsfall | mätt: felfrekvensen är 17,3 % vid gränsöverskridande mot 7,1 % vid normaldrift (SemaPLC, arXiv 2608.18565). Ett facit som bara kör normalfallet mäter nästan ingenting |
+| `scenarios` | normaldrift, gränsöverskridande per analog insignal, vändningsfall | **motivet är omskrivet, se nedan.** Ett facit som bara kör normalfallet mäter nästan ingenting |
 | `core_outputs` | de utgångar en spårjämförelse ska väga | poängen "andel portar vars spår stämmer" är odefinierad utan dem |
 | `variant_av`, `broken` | medvetet trasig variant och dess artefakt | regel S2: varje grind måste ha en fixtur som fäller den |
 
@@ -230,3 +230,25 @@ Måttet ligger **bredvid** ögondomen, aldrig i stället för den. Ögat fäller
 * Baslinjen i `docs/spec/83_scenarier.md` — samma uppgifter körda med en
   klassisk metod under samma budget — är inte byggd. Banken bär facit och
   frågor; jämförelsen är ett eget arbete.
+
+## Om talet som stod här förut
+
+Kolumnen `scenarios` motiverades tidigare med *"felfrekvensen är 17,3 % vid
+gränsöverskridande mot 7,1 % vid normaldrift (SemaPLC, arXiv 2608.18565)"*.
+
+**Talet är struket.** Två oberoende källkontroller har försökt slå upp det i
+SemaPLC och ingen har hittat det: motbevisningen 2026-09-04 (§5c) och
+research-destillatet `docs/research/R-01`. Den andra körningen läste artikelns
+resultat och återgav 72,6 %, 52,2 mot 22,4–31,4, kostnaden 34,1 modellanrop och
+TON-fyndet — men ingenting om 17,3 eller 7,1.
+
+Frånvaro är inte motbevis, och talet kan finnas någonstans. Men ett tal som två
+sökningar inte kan belägga får inte bära ett designbeslut. Det är exakt den
+felklass som redan fångats en gång i det här projektet: ett benchmarktal från
+ett annat sammanhang som användes som om det vore vårt.
+
+**Regeln står kvar oförändrad**, och den behöver inte talet. En uppgift vars
+facit bara kör normaldrift provar inte gränserna, och det är gränserna som
+fäller PLC-logik: en jämförelse som är `>` där den skulle vara `>=`, en larmnivå
+som aldrig nås, ett vändningsfall som ingen körde. Skälet är mekaniskt och
+behöver ingen extern siffra.

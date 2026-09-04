@@ -120,7 +120,9 @@ STEGE = (
 STEGE_SVARIGHET = dict(STEGE)
 
 # Gränsscenarier. Mätt skäl (SemaPLC, arXiv 2608.18565): felfrekvensen är
-# 17,3 % vid gränsöverskridande scenarier mot 7,1 % vid normaldrift. Ett facit
+# STRUKET TAL: raden bar tidigare '17,3 % vid gränsöverskridande mot
+# 7,1 % vid normaldrift (SemaPLC)'. Två källkontroller har inte kunnat
+# belägga det; se bank/README.md. Regeln behöver inte talet. Ett facit
 # som bara kör normalfallet mäter alltså nästan ingenting. Därför är det ett
 # fält och inte en fotnot.
 SCENARIOTYPER = ("normaldrift", "gransvarde_lag", "gransvarde_hog", "vandning")
@@ -250,6 +252,7 @@ LINTKODER = {
     "M30_SCENARIER": "gränsscenarierna är ofullständiga",
     "M31_KARNUTGANGAR": "kärnutgångarna för spårjämförelse saknas eller är inte utgångar",
     "M32_STEGE": "svårighetsgraden stämmer inte med steget på svårighetsstegen",
+    "M33_SPARFACIT": "spårfacit går inte att döma mekaniskt",
 }
 
 # Uppgiftstexten är det enda modellen får se. En text på under så här många
