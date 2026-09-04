@@ -1,6 +1,6 @@
 # FAS 5 ACCEPTANS — mållayouter i VC
 
-**beskriver:** `svc/vc_assist_svc/layout/`, `svc/vc_assist_svc/verktyg/scen.py`
+**beskriver:** `svc/vc_assist_svc/layout/`, `ext/vc_addon/vc_assist/`
 **kontrakt:** `docs/spec/70_faser.md` — *"N mållayouter byggda: noll kollisioner,
 alla gränssnitt kopplade"*
 **körs av:** `tests/protocol/kor_fas5_layout.py`
@@ -11,39 +11,70 @@ Layoutmotorn löser scenerna utanför VC och rapporterar noll överlapp över 24
 provscener. Det är **dess egen** mätning, gjord med dess egen geometrimodell.
 
 Den här körningen bygger samma layouter i VC med verklig blockgeometri och låter
-**VC:s** kollisionsdetektor döma. En oberoende domare på samma fråga.
+**VC:s egen geometri** döma, genom `vcNode.measureDistance`. En oberoende
+domare på samma fråga.
 
-## Utfall 2026-09-04 — UNDERKÄNT
+## Utfall 2026-09-04 — 19 av 19 prov
 
-| Prov | Utfall |
+| Scen | objekt | par | minsta avstånd | anm |
+|---|---|---|---|---|
+| `T-01` | 3 | 3 | 2829 mm |  |
+| `T-02` | 3 | 3 | 1399 mm |  |
+| `T-03` | 3 | 3 | 2500 mm |  |
+| `T-04` | 3 | 3 | 3701 mm |  |
+| `P-01` | 3 | 3 | 526 mm |  |
+| `P-02` | 3 | 3 | 1075 mm |  |
+| `P-04` | 4 | 6 | 510 mm |  |
+| `L-01` | 7 | 21 | 44 mm |  |
+| `L-02` | 4 | 6 | 0 mm | stapel |
+| `L-03` | 4 | 6 | 1689 mm |  |
+| `S-01` | 4 | 6 | 2334 mm |  |
+| `S-02` | 4 | 6 | 1500 mm |  |
+| `A-01` | 5 | 10 | 470 mm |  |
+| `A-03` | 3 | 3 | 4901 mm |  |
+| `H-01` | 3 | 3 | 1443 mm |  |
+| `C-01` | 8 | 28 | 1851 mm |  |
+| `T-01-pelare` | 3 | 3 | 2829 mm |  |
+| `TRAVERS` | 2 | 1 | 2309 mm |  |
+
+**117 objektpar mätta, noll kollisioner.** Minsta uppmätta frigång över alla
+scener: **0 mm** (L-01). Största: **4901 mm**.
+
+## Det trasiga fallet
+
+Två objekt flyttades medvetet in i varandra. Det fälls: `band+fotocell`.
+
+Utan den raden vore de gröna resultaten ovan värdelösa — precis det som hände i
+den första versionen av den här körningen, där kollisionsdetektorn svarade noll
+på allt (M-35).
+
+## Ett undantag som kommer ur scenen själv
+
+L-02 är *"två mellanlägg staplade på EUR-pall"*. Två av dess kroppar **nuddar**,
+och avståndet är 0,0 mm.
+
+Det är rätt svar. Scenens egna relationer säger `lager_2 står på lager_1`, och en
+stapel är ingen kollision. Undantaget läses ur scenens deklarerade `Pa`-relationer
+— allt som **inte** är deklarerat stödjande måste ha avstånd större än noll.
+
+Den första versionen fällde L-02, och grinden mätte då fel storhet.
+
+## Mätta förutsättningar
+
+| Vad | Var |
 |---|---|
-| T-01 … T-04 byggda i VC, 3 objekt var | byggda |
-| kollisioner rapporterade av VC | 0 i alla fyra |
-| **trasigt fall: två objekt medvetet i varandra** | **0 kollisioner** |
+| världen är i millimeter | M-33 |
+| block med `Length`/`Width`/`Height` ger verklig geometri | M-33 |
+| `vcCollisionDetector` duger **inte** — dess nodlistor töms tyst | M-35, M-36 |
+| `measureDistance` kräver `update()` + `sim.update()` mellan flytt och mätning | M-36 |
 
-Det trasiga fallet fäller körningen, och det ska det.
+## Vad som ÄR och INTE är stängt i fas 5
 
-En detektor som svarar noll på ett 900 mm överlapp svarar noll på allt. De fyra
-gröna raderna ovan är därför **inga bevis** — de hade sett likadana ut om alla
-objekt stått på samma koordinat.
+| Led i grinden | Läge |
+|---|---|
+| N mållayouter byggda i VC | **klart**, 18 scener |
+| noll kollisioner | **klart**, mätt av VC:s egen geometri, med trasigt fall som fäller |
+| alla gränssnitt kopplade | **halvt** — kontaktnivån fungerar (M-17), gränssnittsnivån inte |
 
-Detaljerna, och allt som prövats, står i
-[M-35](../../docs/matningar/M-35_kollisionsdetektorn_fyrar_inte.md).
-
-## Vad som ÄR visat
-
-| Led | Läge | Belägg |
-|---|---|---|
-| komponenter med verklig geometri | **klart** | block med `Length`/`Width`/`Height`, bounds stämmer (M-33) |
-| motorns koordinater applicerade i VC | **klart** | fyra scener byggda utan fel |
-| noll kollisioner | **kan inte avgöras** | domaren fäller ingenting (M-35) |
-| gränssnitt kopplade | **halvt** | kontaktnivå fungerar, gränssnittsnivå inte (M-17) |
-
-## Nästa mätning
-
-Hypotesen i M-35: `vcCollisionDetector` ärver en layoutpost och kan behöva
-ligga **i** layouten för att utvärderas, eller bara utvärderas medan
-simuleringen stegar. Pröva båda.
-
-Fasen är **inte** stängd, och den står öppen på en mätt orsak i stället för på
-en gissning.
+Fasen är alltså **inte** stängd, men den står öppen på ett enda led, och det
+ledet är mätt.

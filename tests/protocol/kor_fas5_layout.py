@@ -5,7 +5,16 @@
 
 Layoutmotorn loser scenerna utanfor VC och sager noll overlapp. Det ar dess EGEN
 matning. Den har korningen bygger samma layouter i VC med verklig geometri och
-later VC:s kollisionsdetektor doma - en oberoende domare pa samma fraga.
+later VC:s EGEN geometri doma, genom vcNode.measureDistance - en oberoende domare pa
+samma fraga.
+
+Matt i M-36: vcCollisionDetector duger inte. Dess NodeListA tar emot en lista och
+tommer den tyst, sa detektorn svarar alltid noll. measureDistance ger daremot
+exakt ratt avstand, forutsatt att node.update() och sim.update() korts mellan
+flytt och matning (M-11:s efterslapning, tredje gangen den biter).
+
+Avstand 0.0 betyder nuddar ELLER overlappar; mattet skiljer inte de tva. For en
+grind som kraver noll kollisioner racker det.
 
 Och det trasiga fallet: tva objekt flyttas medvetet in i varandra. Upptacker
 detektorn inte det ar den ingen grind, och da betyder de grona svaren ingenting.
@@ -63,7 +72,7 @@ def _bygg_kod(namn_prefix, objekt):
     return "\n".join(rader)
 
 
-DETEKTORKOD = """import json
+MATKOD = """import json
 app = getApplication()
 sim = getSimulation()
 namn = %r
@@ -71,41 +80,46 @@ noder = []
 for n in namn:
     c = app.findComponent(str(n))
     if c is not None:
+        c.update()
         noder.append(c)
+sim.update()
+par = []
 traffar = []
-avstand = []
 for i in range(len(noder)):
     for j in range(i + 1, len(noder)):
-        det = sim.newCollisionDetector()
-        det.NodeListA = [noder[i]]
-        det.NodeListB = [noder[j]]
-        det.Tolerance = 0.0
-        det.DisplayMinimumDistance = False
-        # StopOnCollision star i dokumentationen men FINNS INTE pa objektet
-        # (AttributeError i VC 4.10). Satts darfor bara om den gar.
+        etikett = noder[i].Name + '+' + noder[j].Name
         try:
-            det.StopOnCollision = False
-        except Exception:
-            pass
-        det.Active = True
-        par = noder[i].Name + '+' + noder[j].Name
-        try:
-            traff = bool(det.testAllCollisions(0.0))
+            d = float(noder[i].measureDistance(noder[j])[0])
         except Exception as e:
-            traff = 'FEL ' + type(e).__name__
-        d = None
-        try:
-            if det.testMinimumDistance(1000000.0):
-                d = det.getMinimumDistanceDistance(0)
-        except Exception:
-            d = None
-        if traff:
-            traffar.append(par)
-        avstand.append({'par': par, 'traff': traff,
-                        'avstand_mm': None if d is None else round(float(d), 2)})
-        det.Active = False
-print(json.dumps({'traffar': traffar, 'par': avstand}))
+            par.append({'par': etikett, 'fel': type(e).__name__})
+            continue
+        par.append({'par': etikett, 'avstand_mm': round(d, 2)})
+        if d <= 0.0:
+            traffar.append(etikett)
+print(json.dumps({'traffar': traffar, 'par': par}))
 """
+
+
+def _stodjande_par(relationer):
+    """Par som FAR nudda: nagot som star PA nagot annat.
+
+    Grinden ar noll kollisioner, men en stapel ar inte en kollision. L-02 ar
+    "tva mellanlagg staplade pa EUR-pall", och dess egna relationer sager att
+    lager_2 star pa lager_1. Att de nuddar ar RATT svar, och en grind som
+    faller det mater fel storhet.
+
+    Undantaget kommer ur scenens EGNA deklarerade relationer, inte ur en
+    bekvamlighet: allt som inte ar deklarerat stodjande maste ha avstand > 0.
+    """
+    par = set()
+    for r in relationer:
+        if type(r).__name__ != "Pa":
+            continue
+        mal = getattr(r, "mal", None)
+        underlag = getattr(r, "underlag", None)
+        if isinstance(mal, str) and isinstance(underlag, str):
+            par.add(tuple(sorted((mal, underlag))))
+    return par
 
 
 def _objekt_ur(scen, los):
@@ -151,31 +165,37 @@ def main():
     losta = []
     for ps in PS.PROVSCENER:
         scen, los = ps.kor()
+        _s2, relationer = ps.bygg()
         if str(los.status).endswith("LOST"):
-            losta.append((ps, scen, los))
+            losta.append((ps, scen, los, _stodjande_par(relationer)))
         if len(losta) >= a.scener:
             break
 
     utfall = []
     fel = 0
     print("  === mallayouter byggda i VC, kollisioner matta av VC ===")
-    for ps, scen, los in losta:
+    for ps, scen, los, stod in losta:
         objekt = _objekt_ur(scen, los)
         try:
             _kor(k, _bygg_kod(ps.id, objekt), "bygg %s" % ps.id)
-            d = _kor(k, DETEKTORKOD % [o["namn"] for o in objekt],
+            d = _kor(k, MATKOD % [o["namn"] for o in objekt],
                      "mat kollisioner i %s" % ps.id)
-            traffar = d.get("traffar") or []
+            traffar = [t for t in (d.get("traffar") or [])
+                       if tuple(sorted(t.split("+"))) not in stod]
+            stodjande = [t for t in (d.get("traffar") or [])
+                         if tuple(sorted(t.split("+"))) in stod]
             minsta = [p for p in (d.get("par") or []) if p.get("avstand_mm") is not None]
             minsta_v = min([p["avstand_mm"] for p in minsta]) if minsta else None
             ok = not traffar
             if not ok:
                 fel += 1
-            print("    %s %-6s %d objekt, %d par, %d traffar, minsta avstand %s mm"
+            extra = (", %d deklarerat stodjande" % len(stodjande)) if stodjande else ""
+            print("    %s %-11s %d objekt, %d par, %d traffar, minsta avstand %s mm%s"
                   % ("OK  " if ok else "FEL ", ps.id, len(objekt),
-                     len(d.get("par") or []), len(traffar), minsta_v))
+                     len(d.get("par") or []), len(traffar), minsta_v, extra))
             utfall.append({"scen": ps.id, "objekt": len(objekt),
-                           "traffar": traffar, "minsta_mm": minsta_v, "ok": ok})
+                           "traffar": traffar, "stodjande": stodjande,
+                           "minsta_mm": minsta_v, "ok": ok})
         except Exception as e:
             fel += 1
             print("    FEL  %-6s %s" % (ps.id, str(e)[:110]))
@@ -183,13 +203,13 @@ def main():
 
     print("\n  === det trasiga fallet: tva objekt flyttas in i varandra ===")
     try:
-        ps, scen, los = losta[0]
+        ps, scen, los, stod = losta[0]
         objekt = _objekt_ur(scen, los)
         objekt[1]["x_mm"] = objekt[0]["x_mm"]
         objekt[1]["y_mm"] = objekt[0]["y_mm"]
         objekt[1]["z_mm"] = objekt[0]["z_mm"]
         _kor(k, _bygg_kod("trasig", objekt), "bygg overlappande")
-        d = _kor(k, DETEKTORKOD % [o["namn"] for o in objekt], "mat overlappet")
+        d = _kor(k, MATKOD % [o["namn"] for o in objekt], "mat overlappet")
         traffar = d.get("traffar") or []
         if traffar:
             print("    OK   detektorn faller overlappet: %s" % ", ".join(traffar))
