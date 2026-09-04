@@ -74,6 +74,15 @@ _OINTRESSANTA = ("Brep", "TraceWidth", "Visible", "Name", "MaterialInherit",
 def _parametrar(text):
     """Namn -> varde ur metadatan, utan ritparametrarna.
 
+    VARNING, matt i M-59: den har funktionen soker i HELA texten och far
+    darfor med variabler som sitter inne i geometriprimitiver. `Length`,
+    `Width` och `Height` finns i nastan varje komponent men ar dar en LADAS
+    matt - Prorunner mk1 har namnet `Length` 24 ganger i sina 16 lador och
+    noll ganger som komponentens egen egenskap. Indexets parameterlista ar
+    alltsa en LISTA OVER VAD SOM NAMNS, inte over komponentens egenskaper.
+    Den som vill ha komponentens egna varden ska ga via `datablad.py`, som
+    laser rotnodens variabelrymd och ingenting annat.
+
     Schemat ar INTE enhetligt mellan tillverkare: det finns inget gemensamt
     Payload- eller Reach-falt. Varje komponentfamilj bar sina egna rattar, och
     indexet ska darfor bara VAD SOM FINNS i just den komponenten - aldrig ett
