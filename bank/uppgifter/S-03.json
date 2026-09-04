@@ -1,0 +1,288 @@
+{
+  "task_id": "S-03",
+  "title": "Kassation av avvikande kartor med spårbar rakning",
+  "goal": "Skicka varje underkand blisterkarta till kassation och rakna den, sa att antalet in alltid ar lika med antalet godkanda plus antalet kasserade.",
+  "grupp": "S",
+  "bransch": "lakemedel",
+  "orsak": "Speglar en forreglingsmiss med foljder for spårbarheten: kassationsluckan oppnas pa vagcellens niva utan forregling mot att kartan verkligen lamnat banan. Kartan kan da raknas som kasserad och anda ga vidare i flodet. Antalet stammer inte langre, och i lakemedelsproduktion ar en oforklarad differens ett stopp for hela satsen.",
+  "prompt": "Bygg en kassationsstation och skriv styrningen till den.\n\nScen: en bandtransportör med bandbredd 400 mm som gar i 0,30 m/s, en vagcell under banan som\nkontrollvager varje blisterkarta, en pneumatisk utskjutare mot en kassationslada med raknare,\noch en genomgaende fotocell i kassationsladans inlopp. Kartan ar 90 x 55 x 12 mm och vager\n0,018 kg. Godkant viktfonster ar 0,016 till 0,020 kg.\n\nUppgift: vag varje karta. Ligger vikten utanfor fonstret ska kartan skjutas ut i kassationsladan\noch raknas i ST210_REJ_CNT, men raknaren far okas forst nar ST210_REJ_PEC sett kartan passera\nin i ladan. Godkanda kartor raknas i ST210_OK_CNT. Summan av de tva raknarna ska alltid vara lika\nmed ST210_IN_CNT. Takten ar 45 kartor per minut.\n\nEn karta far aldrig raknas som kasserad utan att ha lamnat banan. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "ST210_REJ_CNT okas nar utskjutaren kommenderas i stallet for nar kartan passerat ST210_REJ_PEC",
+    "vikten lases som ogonblicksvarde under rorelse, sa en godkand karta bedoms som avvikande",
+    "raknarna nollstalls vid stopp, sa satsens spårbarhet bryts mitt i en sats"
+  ],
+  "antaganden": [
+    {
+      "vad": "viktfonstret 0,016 till 0,020 kg",
+      "varde": "16 till 20 g",
+      "motiv": "ett fonster pa plus minus cirka 11 procent runt 18 g; verkliga fonster satts av tablettens vikt och ar inte matt har"
+    },
+    {
+      "vad": "takten 45 kartor per minut",
+      "varde": "45 per minut",
+      "motiv": "matchar blistermaskinens 37,5 per minut i T-02 med marginal; talet ar valt och inte matt"
+    },
+    {
+      "vad": "kartans vikt 0,018 kg",
+      "varde": "18 g",
+      "motiv": "beror pa tabletten; vikten ar antagen och samma som i T-02 sa att uppgifterna gar att kedja"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "blister med tio kaviteter",
+      "l_mm": 90,
+      "b_mm": 55,
+      "h_mm": 12,
+      "massa_kg": 0.018
+    },
+    "arbetsradie_mm": 1800.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Kartor med blandad vikt kommer i 45 per minut och de avvikande skjuts ut i kassationsladan.",
+      "forvantat": "Varje avvikande karta i ladan och raknad, och summan av godkanda och kasserade lika med antalet in."
+    },
+    {
+      "id": "wgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST210_WGT_VAL",
+      "beskrivning": "ST210_WGT_VAL visar 0,4 gram, alltsa nastan ingenting, medan en karta star pa vagcellen.",
+      "forvantat": "En vikt nara noll ar en tom vagcell eller ett givarfel, inte en latt karta. Styrningen ska stoppa bandet och larma i stallet for att kassera."
+    },
+    {
+      "id": "wgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST210_WGT_VAL",
+      "beskrivning": "ST210_WGT_VAL visar 140 gram, sju ganger en full kartas vikt.",
+      "forvantat": "Flera kartor ligger sannolikt pa varandra. Styrningen ska stoppa bandet och larma; att kassera en enda karta skulle gora rakningen fel."
+    },
+    {
+      "id": "stable_uteblir",
+      "typ": "vandning",
+      "signal": "ST210_WGT_STABLE",
+      "beskrivning": "ST210_WGT_STABLE gar aldrig hog under en cykel medan kartan star pa vagcellen.",
+      "forvantat": "Vikten far inte lasas anda. Styrningen ska halla kartan kvar och larma efter 2,0 s, sa att ingen karta bedoms pa en ostabil vagning."
+    }
+  ],
+  "core_outputs": [
+    "ST210_PSH_OUT",
+    "ST210_CNV_RUN",
+    "ST210_REJ_CNT",
+    "ST210_OK_CNT"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "vagcell",
+        "uri": "bank://givare/vagcell",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "kassationslada",
+        "uri": "bank://station/kassationslada",
+        "count": 1
+      },
+      {
+        "role": "kassationsgivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "vagcell"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare"
+      },
+      {
+        "from_role": "utskjutare",
+        "to_role": "kassationslada"
+      },
+      {
+        "from_role": "kassationslada",
+        "to_role": "kassationsgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST210_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST210_WGT_VAL",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt vikt i gram"
+      },
+      {
+        "name": "ST210_WGT_STABLE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vagningen stabil"
+      },
+      {
+        "name": "ST210_PSH_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera utskjutaren mot kassationsladan"
+      },
+      {
+        "name": "ST210_REJ_PEC",
+        "dir": "in",
+        "type": "bool",
+        "comment": "karta passerar in i kassationsladan"
+      },
+      {
+        "name": "ST210_REJ_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kasserade kartor"
+      },
+      {
+        "name": "ST210_OK_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal godkanda kartor"
+      },
+      {
+        "name": "ST210_IN_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kartor in i stationen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "oka ST210_IN_CNT pa varje karta som kommer in i stationen",
+      "vanta pa ST210_WGT_STABLE innan ST210_WGT_VAL lases",
+      "jamfor vikten med fonstret 16 till 20 gram",
+      "vid avvikelse: satt ST210_PSH_OUT hog i 0,4 s",
+      "oka ST210_REJ_CNT forst pa stigande flank pa ST210_REJ_PEC",
+      "vid godkant: lat kartan ga vidare och oka ST210_OK_CNT nar den lamnat stationen",
+      "kontrollera varje cykel att ST210_OK_CNT plus ST210_REJ_CNT ar lika med ST210_IN_CNT"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST210": 0.4
+      },
+      "cycle_s": 1.333,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST210_REJ_CNT far aldrig okas utan en flank pa ST210_REJ_PEC",
+      "vikten far aldrig lasas utan ST210_WGT_STABLE",
+      "ingen utskjutning nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 2700.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST210_PSH_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST210_REJ_PEC RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST210 *s req=0.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST210 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST utskjutare+karta *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST210 *s req=0.4s SHORT"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION utskjutare x karta t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

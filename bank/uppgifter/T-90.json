@@ -1,0 +1,161 @@
+{
+  "task_id": "T-90",
+  "title": "Trasig variant av T-01: anropet till TON saknar semikolon",
+  "goal": "Visa att grind 1 faller ett ST-program som inte kompilerar, i stallet for att slappa det vidare till ogat.",
+  "grupp": "T",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en verklig konsekvens av generering: ett funktionsblockanrop skrivs utan avslutande semikolon och nasta tilldelning limmas ihop med anropet. STruC++ faller det, men bara om grind 1 faktiskt kors fore ogat. Utan den har fixturen vet vi inte att grinden fyrar, bara att den finns.",
+  "prompt": "Har ar ett forslag till losning pa uppgift T-01, singuleringsstationen med stoppgrind\noch fotocell pa en bandtransportor i 0,5 m/s. Losningen ska bedomas innan den far kora i\nsimulatorn.\n\nKor grindkedjan i docs/spec/50_grindar.md pa den bifogade ST-koden och avgor om den far ga\nvidare till ogat. Namnge den grind som faller och den felklass fallningen tillhor enligt\ndocs/spec/82_felklasser.md. Ett program som inte kompilerar far aldrig raknas som ett\nmisslyckat forsok i ogat; det ar ett syntaxfel och inget annat.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F1"
+  ],
+  "stege": "start_stopp_transportor",
+  "difficulty": 1,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "fallningen skickas vidare till ogat, som da domer om en modell som aldrig kordes",
+    "felet klassas som sekvensfel darfor att stoppgrinden aldrig oppnar i simuleringen"
+  ],
+  "antaganden": [
+    {
+      "vad": "STruC++ som kompilator",
+      "varde": "grind 1",
+      "motiv": "specen anger STruC++ som grind 1; vilken exakt regelkod den ger for det har felet ar inte matt och facit namnger darfor felklassen, inte kompilatorns strang"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "konservburk 400 g",
+      "l_mm": 99,
+      "b_mm": 99,
+      "h_mm": 119,
+      "massa_kg": 0.42
+    },
+    "arbetsradie_mm": 3200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ST-koden bedoms av grindkedjan innan nagon simulering startas.",
+      "forvantat": "Grind 1 faller koden pa syntax och den nar aldrig ogat; felklassen ar F1."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST010_STP_OPENED",
+      "beskrivning": "Nagon foreslar att koden anda ska koras, med argumentet att andlagesgivaren skulle avsloja felet i simuleringen.",
+      "forvantat": "En kod som inte kompilerar kan inte koras alls. Argumentet ar sjalva fallan: fallningen far inte flyttas fran grind 1 till ogat."
+    }
+  ],
+  "core_outputs": [
+    "ST010_STP_OPEN",
+    "ST010_CNV_RUN"
+  ],
+  "variant_av": "T-01",
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "stoppgrind",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "fotocell",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "stoppgrind"
+      },
+      {
+        "from_role": "band",
+        "to_role": "fotocell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST010_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST010_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell uppstroms grinden"
+      },
+      {
+        "name": "ST010_STP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera stoppgrinden oppen"
+      },
+      {
+        "name": "ST010_STP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare oppet lage"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som T-01"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST010": 0.4
+      },
+      "cycle_s": 1.333,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "grinden far aldrig oppnas nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": null,
+    "runs": 3,
+    "warmup_s": 0.0,
+    "must_pass": [],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "G1",
+    "verdict": null,
+    "reason_contains": null,
+    "lines": [],
+    "forbidden_lines": [],
+    "gate_code": "F1"
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "st",
+    "artefakt": "PROGRAM ST010_SINGULERING\nVAR\n    tmrDwell  : TON;\n    xPecPrev  : BOOL;\n    xFlank    : BOOL;\nEND_VAR\n\nxFlank   := ST010_PEC_PART AND NOT xPecPrev;\nxPecPrev := ST010_PEC_PART;\n\nST010_CNV_RUN := EMG_OK AND AIR_OK;\n\ntmrDwell(IN := xFlank, PT := T#400MS)\nST010_STP_OPEN := tmrDwell.Q AND NOT ST010_STP_OPENED;\nEND_PROGRAM\n",
+    "vad_som_ar_fel": "Anropet tmrDwell(IN := xFlank, PT := T#400MS) saknar avslutande semikolon, sa nasta rad blir en fortsattning pa anropet. Koden kompilerar inte och grind 1 ska falla den."
+  }
+}

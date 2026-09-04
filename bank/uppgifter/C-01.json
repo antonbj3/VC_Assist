@@ -1,0 +1,323 @@
+{
+  "task_id": "C-01",
+  "title": "Komplett cell: tva stationer och en buffert mot kapacitetsmal",
+  "goal": "Na 100 enheter i timmen over en simulerad timme med tva stationer och en buffert mellan dem, med uppvarmningen borteraknad.",
+  "grupp": "C",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar en driftsattningsmiss som bara syns i kapacitet: bufferten mellan stationerna styrs som ett rent genomlopp utan ackumulering, sa den snabbare stationen tvingas vanta pa den langsammare i varje cykel i stallet for att arbeta upp en ko. Cellen kor felfritt, varje enhet blir ratt, och kapaciteten ligger 14 procent under malet utan att nagon signal ar lag.",
+  "prompt": "Bygg en komplett cell med tva stationer och en buffert, och skriv styrningen till hela cellen.\n\nScen: station ST340 med en fixtur med pneumatiska spannare och en FANUC LR Mate 200iD/7L med\nrackvidd 911 mm och nyttolast 7 kg, en ackumulerande buffert ST360 med plats for tio\nlastbarare, och station ST350 med en likadan fixtur. Lastbararen ar en VDA KLT 4147 om\n400 x 300 x 147 mm som vager 4,4 kg fylld. Robotens langsta arbetsradie i uppgiften ar 850 mm.\n\nUppgift: ST340 arbetar i 32,0 s och ST350 i 28,0 s. Bufferten ska ackumulera, alltsa halla\nlastbarare i ko sa att ST350 kan arbeta vidare medan ST340 arbetar. Malet ar 100 enheter i\ntimmen vid stationar drift. Mat over minst tre oberoende korningar med 300 s uppvarmning som\ninte raknas.\n\nCellen ska na malet, inte bara ga felfritt. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F11"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "bufferten styrs som genomlopp utan ackumulering, sa den snabba stationen vantar varje cykel",
+    "kapaciteten raknas ur en enda korning utan uppvarmning, sa startransienten hojer talet",
+    "malet anses uppnatt darfor att cellen kor utan fel, utan att genomflodet mats"
+  ],
+  "antaganden": [
+    {
+      "vad": "arbetstiderna 32,0 och 28,0 s",
+      "varde": "32,0 s och 28,0 s",
+      "motiv": "olika langa med avsikt sa att bufferten far en roll; bada ligger i spannet 8 till 60 s en monteringsstation brukar ha, men talen ar valda"
+    },
+    {
+      "vad": "kapacitetsmalet 100 enheter i timmen",
+      "varde": "100 per timme",
+      "motiv": "flaskhalsen ar ST340 med 32,0 s, alltsa 112,5 enheter i timmen teoretiskt; malet 100 lamnar cirka 11 procent for stopp och vantan och ar satt, inte matt"
+    },
+    {
+      "vad": "bufferten rymmer tio lastbarare",
+      "varde": "10 platser",
+      "motiv": "tio platser om 400 mm ger en 4 m lang buffert; antalet ar valt sa att det racker for skillnaden mellan stationerna"
+    },
+    {
+      "vad": "robotvalet mot lasten",
+      "varde": "FANUC LR Mate 200iD/7L, 7 kg",
+      "motiv": "lastbararen 4,4 kg plus gripdonet 1,5 kg ger 5,9 kg, vilket inte ryms under en 5 kg-robot; robotvalet foljer alltsa ur talen och ar inte fritt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 4147, fylld",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 147,
+      "massa_kg": 4.4
+    },
+    "arbetsradie_mm": 850.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Cellen kor en simulerad timme med bada stationerna igang och bufferten ackumulerande.",
+      "forvantat": "Minst 100 enheter i timmen vid stationar drift, mätt over fem korningar med 300 s uppvarmning borteraknad."
+    },
+    {
+      "id": "buf_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST360_BUF_CNT",
+      "beskrivning": "ST360_BUF_CNT star pa 0 under hela matperioden trots att ST340 slapper enheter.",
+      "forvantat": "En buffert som aldrig har nagot i sig ackumulerar inte. Styrningen ska larma om det, for det ar just den missen som sanker kapaciteten utan att nagot ser trasigt ut."
+    },
+    {
+      "id": "buf_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST360_BUF_CNT",
+      "beskrivning": "ST360_BUF_CNT nar 12, fler an de tio platser bufferten har.",
+      "forvantat": "Fler lastbarare an platser ar ett rakningsfel. Styrningen ska stoppa inloppet, larma och inte fortsatta rakna."
+    },
+    {
+      "id": "prs_uteblir",
+      "typ": "vandning",
+      "signal": "ST350_PRT_PRS",
+      "beskrivning": "Buffertens utlopp oppnar men ST350_PRT_PRS gar aldrig hog; enheten har fastnat pa vagen.",
+      "forvantat": "ST350 far inte starta en cykel utan enhet. Den ska vanta, larma efter 15,0 s, och genomflodesmatningen ska visa skillnaden mellan in och out i ST360."
+    }
+  ],
+  "core_outputs": [
+    "ST340_STA_DONE",
+    "ST350_STA_DONE",
+    "ST360_STP_IN_OPEN",
+    "ST360_STP_OUT_OPEN",
+    "ST360_BUF_FULL"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_lrmate_200id_7l",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "station1",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "station2",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "buffert",
+        "uri": "bank://station/buffert_ackumulerande",
+        "count": 1
+      },
+      {
+        "role": "bana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "givare1",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "givare2",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "station1",
+        "to_role": "buffert"
+      },
+      {
+        "from_role": "buffert",
+        "to_role": "station2"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "buffert"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "station1",
+        "to_role": "givare1"
+      },
+      {
+        "from_role": "station2",
+        "to_role": "givare2"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST340_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 1 arbetar"
+      },
+      {
+        "name": "ST340_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 1 klar"
+      },
+      {
+        "name": "ST340_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "enhet i station 1"
+      },
+      {
+        "name": "ST350_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 2 arbetar"
+      },
+      {
+        "name": "ST350_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 2 klar"
+      },
+      {
+        "name": "ST350_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "enhet i station 2"
+      },
+      {
+        "name": "ST360_BUF_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal lastbarare i bufferten"
+      },
+      {
+        "name": "ST360_STP_IN_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna buffertens inlopp"
+      },
+      {
+        "name": "ST360_STP_OUT_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna buffertens utlopp"
+      },
+      {
+        "name": "ST360_BUF_FULL",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bufferten full"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "ST340 arbetar 32,0 s pa varje enhet och satter ST340_STA_DONE hog",
+      "slapp enheten till bufferten sa lange ST360_BUF_FULL ar lag",
+      "bufferten ska ackumulera: enheter far sta i ko utan att blockera inloppet forran den ar full",
+      "ST350 hamtar en enhet ur bufferten sa snart den ar tom och ST360_BUF_CNT ar over noll",
+      "ST350 arbetar 28,0 s och satter ST350_STA_DONE hog",
+      "rakna genomflode forst efter 300 s uppvarmning"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST340": 32.0,
+        "ST350": 28.0
+      },
+      "cycle_s": 32.0,
+      "tolerance_s": 0.5
+    },
+    "interlocks": [
+      "ST360_STP_IN_OPEN far aldrig ga hog nar ST360_BUF_FULL ar hog",
+      "ST350 far aldrig starta utan ST350_PRT_PRS",
+      "ingen stationsrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 100.0,
+    "runs": 5,
+    "warmup_s": 300.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST340 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST350 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST360 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST340 *s req=32.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST350 *s req=28.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST340 *s req=32.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST350 *s req=28.0s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

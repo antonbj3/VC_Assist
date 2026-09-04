@@ -1,0 +1,296 @@
+{
+  "task_id": "A-04",
+  "title": "Press med tvahandsdon: genererad logik forreglad av sakerhets-PLC",
+  "goal": "Kora presscykeln med rätt presstid och halltid, med tvahandsdonet som en forregling ur sakerhets-PLC som den genererade logiken laser men aldrig skriver.",
+  "grupp": "A",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar den farligaste sortens driftsattningsmiss: tvahandsdonets bada knappar lases av styrlogiken och sammanvags dar, i stallet for att tas som en fardig och certifierad forregling fran sakerhets-PLC:n. Da blir en samtidighetskontroll som ska ligga i begransat variabelt sprak plotsligt en rad genererad kod. Presstiden brukar dessutom raknas fran kommandot i stallet for fran att pressen natt lage.",
+  "prompt": "Bygg en presstation och skriv styrningen till den.\n\nScen: en press med tvahandsdon, en ljusrida som ar sakerhetsklassad, en nodstoppskrets pa\nsakerhets-PLC och en fixtur med pneumatiska spannare. Detaljen ar en pressad platdetalj\n150 x 90 x 12 mm som vager 0,62 kg. Presstiden ar 3,2 s och halltiden i botten ar 0,80 s.\nTakten ar 14,0 s per detalj.\n\nUppgift: kor presscykeln. Halltiden ska raknas fran ST270_PRS_BOTTOM, alltsa fran att pressen\nnatt bottenlage, aldrig fran kommandot. ST270_SAF_OK kommer fardig fran sakerhets-PLC:n och bar\nbade tvahandsdonets samtidighetskontroll och ljusridans tillstand. Din logik far bara lasa den.\nSkriv aldrig i en sakerhetstagg och rakna aldrig ihop tvahandsdonets knappar sjalv.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F8"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "halltiden raknas fran presskommandot i stallet for fran ST270_PRS_BOTTOM",
+    "tvahandsdonets knappar lases var for sig och sammanvags i den genererade logiken",
+    "ST270_SAF_OK behandlas som en vanlig insignal som far overbryggas nar den flimrar"
+  ],
+  "antaganden": [
+    {
+      "vad": "presstiden 3,2 s och halltiden 0,80 s",
+      "varde": "3,2 s och 0,80 s",
+      "motiv": "presstiden star som ANTAGEN i katalogindexet; halltiden ar vald sa att materialet hinner satta sig och ar inte matt"
+    },
+    {
+      "vad": "takten 14,0 s",
+      "varde": "14,0 s",
+      "motiv": "presscykel plus lastning och lossning; ligger i spannet 8 till 60 s men ar valt"
+    },
+    {
+      "vad": "ljusridans svarstid 20 ms",
+      "varde": "20 ms",
+      "motiv": "star som ANTAGEN i katalogindexet; den verkliga svarstiden hor till den certifierade kretsen och mats inte har"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "pressad platdetalj",
+      "l_mm": 150,
+      "b_mm": 90,
+      "h_mm": 12,
+      "massa_kg": 0.62
+    },
+    "arbetsradie_mm": 1200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer kommer i 14,0 s takt och varje presscykel haller 0,80 s i botten.",
+      "forvantat": "Halltiden raknad fran bottenlaget, sakerhetssignalen bara last, och pressen uppe innan nasta detalj."
+    },
+    {
+      "id": "force_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST270_PRS_FORCE",
+      "beskrivning": "ST270_PRS_FORCE stannar pa 12 kN, under det lagsta arbetsvardet 40 kN, trots att ST270_PRS_BOTTOM gatt hog.",
+      "forvantat": "Bottenlaget utan kraft betyder att detaljen saknas eller ligger fel. Styrningen ska kora upp pressen och larma, inte rakna halltid."
+    },
+    {
+      "id": "force_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST270_PRS_FORCE",
+      "beskrivning": "ST270_PRS_FORCE nar 96 kN, over pressens hogsta tillatna 80 kN.",
+      "forvantat": "Styrningen ska avbryta cykeln och kora upp pressen omedelbart, och larma; overkraft skadar bade verktyg och detalj."
+    },
+    {
+      "id": "saf_uteblir",
+      "typ": "vandning",
+      "signal": "ST270_SAF_OK",
+      "beskrivning": "ST270_SAF_OK gar lag i 40 ms mitt i nedrorelsen och sedan hog igen.",
+      "forvantat": "Rorelsen ska avbrytas pa fallande flank och far inte aterupptas automatiskt nar signalen kommer tillbaka. Aterstart kraver SYS_RESET."
+    }
+  ],
+  "core_outputs": [
+    "ST270_PRS_DOWN",
+    "ST270_PRS_UP",
+    "ST270_CYC_DONE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "press",
+        "uri": "bank://station/press_tvahands",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "ljusrida",
+        "uri": "bank://givare/ljusridla",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "press",
+        "to_role": "fixtur"
+      },
+      {
+        "from_role": "press",
+        "to_role": "ljusrida"
+      },
+      {
+        "from_role": "press",
+        "to_role": "nodstopp"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "narvarogivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST270_SAF_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "sammanvagd sakerhetssignal fran sakerhets-PLC, tvahandsdon och ljusrida; skrivskyddad for agenten"
+      },
+      {
+        "name": "ST270_PRS_DOWN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor pressen ned"
+      },
+      {
+        "name": "ST270_PRS_BOTTOM",
+        "dir": "in",
+        "type": "bool",
+        "comment": "pressen i bottenlage"
+      },
+      {
+        "name": "ST270_PRS_UP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor pressen upp"
+      },
+      {
+        "name": "ST270_PRS_TOP",
+        "dir": "in",
+        "type": "bool",
+        "comment": "pressen i topplage"
+      },
+      {
+        "name": "ST270_PRS_FORCE",
+        "dir": "in",
+        "type": "real",
+        "comment": "presskraft i kilonewton"
+      },
+      {
+        "name": "ST270_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "detalj i fixturen"
+      },
+      {
+        "name": "ST270_CYC_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "presscykeln klar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST270_PRT_PRS, ST270_PRS_TOP och ST270_SAF_OK",
+      "satt ST270_PRS_DOWN hog",
+      "vanta pa ST270_PRS_BOTTOM",
+      "rakna halltiden 0,80 s fran ST270_PRS_BOTTOM, inte fran kommandot",
+      "nollstall ST270_PRS_DOWN och satt ST270_PRS_UP hog",
+      "vanta pa ST270_PRS_TOP och satt ST270_CYC_DONE hog",
+      "avbryt rorelsen omedelbart om ST270_SAF_OK gar lag"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST270": 0.8
+      },
+      "cycle_s": 14.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST270_PRS_DOWN far aldrig ga hog nar ST270_SAF_OK ar lag",
+      "den genererade logiken far aldrig skriva i en sakerhetstagg",
+      "tvahandsdonets samtidighetskontroll ligger pa sakerhets-PLC och far inte upprepas i genererad kod"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 257.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST270_PRS_DOWN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST270_PRS_BOTTOM RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST270_CYC_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST270 *s req=0.8s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST270_PRS_DOWN -> press *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST270 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST pressverktyg+fixtur *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST270 *s req=0.8s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST270_PRS_DOWN+ST270_PRS_UP dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

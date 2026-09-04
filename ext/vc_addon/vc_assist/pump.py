@@ -25,6 +25,7 @@ import time
 import traceback
 
 import formaga as F
+import oga_provtagning as OP
 import protokoll as P
 import skrivgrind
 
@@ -47,6 +48,12 @@ TICK_BUDGET_S = 0.025
 PAUS_TOM = 0.05
 PAUS_AKTIV = 0.005
 AKTIV_FONSTER_S = 2.0
+
+# Omstart av simuleringen efter en scenandring. sim.reset() stoppar
+# simuleringen och utloser DARFOR ett nytt OnStop - utan sparr blir det en
+# omstartsstorm (matt till tusentals varv i sekunden).
+OMSTART_MINSTA_MELLANRUM_S = 1.0    # PRELIMINAR. Satts av matning M-13.
+OMSTART_TAK_PER_MINUT = 20          # PRELIMINAR. Satts av matning M-13.
 
 
 def _s(x):
@@ -76,7 +83,7 @@ class Post(object):
         self.state = "pending"
         self.svar = None
 
-    def som_dict(self, med_kod=False):
+    def som_dict(self, med_kod=False, med_svar=False):
         d = {
             "qid": self.qid,
             "desc": self.desc,
@@ -85,6 +92,8 @@ class Post(object):
         }
         if med_kod:
             d["code"] = self.kod
+        if med_svar and self.svar is not None:
+            d["svar"] = self.svar
         return d
 
 
@@ -108,6 +117,8 @@ class Brygga(object):
             os.path.expanduser("~"), "vc_assist_brygga.log")
         self.formagefil = os.path.join(
             os.path.expanduser("~"), "vc_assist_formaga.json")
+        self.uppskjutetfil = os.path.join(
+            os.path.expanduser("~"), "vc_assist_uppskjutet.json")
         self.formagerapport = None
         self.lyssnare = None
         self.klienter = []
@@ -119,6 +130,17 @@ class Brygga(object):
         self._qid = 0
         self._exec_globals = exec_globals or {}
         self._senaste_trafik = 0.0
+        self.provtagare = None
+        # MATT: att skapa en komponent med ett skriptbeteende STOPPAR den
+        # korande simuleringen. Pumpen bor i simuleringen (M-08), sa bryggan
+        # blir stum mitt i sitt eget svar. Darfor startas den om.
+        self.aterstart_simulering = True
+        self.n_omstarter = 0
+        self._startar_om = False
+        self._omstartstider = []
+        # 0 = ingen omstart pagar, 1 = OnStop har bett om en, 2 = handlaren
+        # utanfor tasklet-nedmonteringen har gjort reset+start.
+        self.omstartsfas = 0
 
     # ---- livscykel -------------------------------------------------------
 
@@ -166,10 +188,23 @@ class Brygga(object):
         return self.formagerapport
 
     def starta(self):
+        # Loggen skrivs FORE bindningen. Skalet ar matt: en upptagen port gav
+        # ett undantag i skriptets OnRun, VC svalde det, och bryggan sag ut att
+        # aldrig ha startat - noll rader nagonstans. (En kvarlevande wineserver
+        # hall porten trots att motorn var dodad.)
+        self.logg("startar pa 127.0.0.1:%d" % self.port)
         self._skriv_token()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("127.0.0.1", self.port))     # ALDRIG 0.0.0.0
+        try:
+            s.bind(("127.0.0.1", self.port))     # ALDRIG 0.0.0.0
+        except Exception as e:
+            self.logg("KUNDE INTE BINDA 127.0.0.1:%d: %r" % (self.port, e))
+            try:
+                s.close()
+            except Exception:
+                pass
+            raise
         s.listen(8)
         s.setblocking(0)
         self.lyssnare = s
@@ -193,19 +228,64 @@ class Brygga(object):
 
     # ---- pumpen ----------------------------------------------------------
 
+    def begar_omstart(self):
+        """Far simuleringen startas om nu? Sant hogst en gang per forsok.
+
+        Sparren maste bo HAR, i objektet som overlever tasklet-doden, och den
+        far slappas forst nar pumpen bevisligen gar igen (pumpen_igang). Ett
+        try/finally duger inte: sim.reset() utloser ett nytt OnStop INNAN
+        raden efter reset() har korts.
+        """
+        if not self.aterstart_simulering or self._startar_om:
+            return False
+        nu = time.time()
+        self._omstartstider = [t for t in self._omstartstider if nu - t < 60.0]
+        if len(self._omstartstider) >= OMSTART_TAK_PER_MINUT:
+            self.logg("omstartstaket natt (%d pa en minut); startar inte om igen"
+                      % OMSTART_TAK_PER_MINUT)
+            self.aterstart_simulering = False
+            return False
+        if self._omstartstider and nu - self._omstartstider[-1] < OMSTART_MINSTA_MELLANRUM_S:
+            return False
+        self._startar_om = True
+        self._omstartstider.append(nu)
+        self.n_omstarter += 1
+        return True
+
+    def pumpen_igang(self):
+        """Pumpen har natt sin loop; en eventuell omstart ar avslutad."""
+        self._startar_om = False
+        self.omstartsfas = 0
+
     def nasta_paus(self):
         """Hur lange pumpen ska sova till nasta varv. Anropas av skriptet."""
+        if self.provtagare is not None and self.provtagare.aktiv:
+            # Ogat kan inte provta snabbare an pumpen slar, och den TYSTA
+            # pumpen ar matt till 17,2 Hz (M-03) - under ogats 20 Hz. Utan den
+            # har raden underprovtar ogat tyst under varje matning.
+            return PAUS_AKTIV
         if time.time() - self._senaste_trafik < AKTIV_FONSTER_S:
             return PAUS_AKTIV
         return PAUS_TOM
 
-    def tick(self):
-        """Ett varv. Anropas fran skriptets OnRun. Blockerar aldrig."""
+    def tick(self, simtid=None):
+        """Ett varv. Anropas fran skriptets OnRun. Blockerar aldrig.
+
+        simtid ar simuleringstiden fran skriptets scope. Den lases DAR och inte
+        har: kommandots scope ser en inaktuell SimTime (M-08).
+        """
         self._n_tick += 1
+        if self.provtagare is not None and simtid is not None:
+            try:
+                self.provtagare.kanske_prov(simtid)
+            except Exception:
+                self.logg("PROVTAGNINGSFEL\n" + traceback.format_exc())
+                self.provtagare.aktiv = False
         if self.lyssnare is None:
             return
         slut = time.time() + TICK_BUDGET_S
         try:
+            self._beta_av_kon()
             self._acceptera()
             self._las_och_svara(slut)
             self._skriv_ut()
@@ -344,6 +424,7 @@ class Brygga(object):
             "begaran": self._n_begaran,
             "degraded": self.degraded,
             "ko": len(self.ko),
+            "ko_vantande": len([p for p in self.ko if p.state in ("pending", "approved")]),
         })
 
     def _op_exec(self, id_, args):
@@ -379,6 +460,7 @@ class Brygga(object):
         finally:
             sys.stdout, sys.stderr = gamla_ut, gamla_fel
         gick = int((time.time() - t0) * 1000)
+        self._ateruppta_simuleringen()
         so, se = ut.getvalue(), fel.getvalue()
         if undantag is not None:
             return P.svar_fel(id_, P.E_EXEC, "undantag i koden", undantag,
@@ -400,12 +482,135 @@ class Brygga(object):
                               "ingen formagerapport skriven; bryggan startades utan objekt")
         return P.svar_ok(id_, self.formagerapport)
 
+    # -- ogat --
+
+    def _op_eyes_start(self, id_, args):
+        plan = args.get("plan") or {}
+        if not plan.get("parts") and not plan.get("tools"):
+            return P.svar_fel(id_, P.E_ARGS,
+                              "planen maste namna minst ett spart objekt i parts eller tools")
+        app = self._exec_globals.get("getApplication")
+        sim = self._exec_globals.get("getSimulation")
+        if app is None or sim is None:
+            return P.svar_fel(id_, P.E_ARGS,
+                              "bryggan har inget VC-scope att provta ur")
+        simtid = args.get("simtid")
+        if simtid is None:
+            return P.svar_fel(id_, P.E_ARGS,
+                              "simtid saknas; den maste komma fran skriptets scope")
+        scen = OP.VcScen(app(), sim())
+        self.provtagare = OP.Provtagare(scen, plan)
+        self.provtagare.starta(float(simtid))
+        self.logg("ogat startat: %r" % (plan,))
+        return P.svar_ok(id_, {"startad": self.provtagare.startad,
+                               "rate_hz": self.provtagare.rate_hz,
+                               "t0": self.provtagare.t0})
+
+    def _op_eyes_stop(self, id_, args):
+        if self.provtagare is None:
+            return P.svar_fel(id_, P.E_ARGS, "ogat har inte startats")
+        sokvag = self.provtagare.stoppa()
+        d = self.provtagare.data()
+        svar = {"path": sokvag, "samples": d["run"]["samples"],
+                "dur_s": d["run"]["dur_s"], "rate_hz": d["run"]["rate_hz"],
+                "saknade": d.get("saknade", [])}
+        # Serien foljer med i svaret nar den ryms. Det gor tjansten oberoende
+        # av att kunna na VC:s filsystem, vilket inte ar sjalvklart pa alla
+        # plattformar. Ar den for stor far filen bara vagen.
+        kropp = P.koda(d)
+        if len(kropp) < P.MAX_KROPP // 2:
+            svar["data"] = d
+        else:
+            svar["for_stor_for_svaret"] = len(kropp)
+        self.provtagare = None
+        # MATT: att skapa en komponent med ett skriptbeteende STOPPAR den
+        # korande simuleringen. Pumpen bor i simuleringen (M-08), sa bryggan
+        # blir stum mitt i sitt eget svar. Darfor startas den om.
+        self.aterstart_simulering = True
+        self.n_omstarter = 0
+        self._startar_om = False
+        self._omstartstider = []
+        # 0 = ingen omstart pagar, 1 = OnStop har bett om en, 2 = handlaren
+        # utanfor tasklet-nedmonteringen har gjort reset+start.
+        self.omstartsfas = 0
+        return P.svar_ok(id_, svar)
+
+    def _op_sim(self, id_, args):
+        """Simuleringens lage, och mojlighet att styra den utan rat exec."""
+        hamta_app = self._exec_globals.get("getApplication")
+        hamta_sim = self._exec_globals.get("getSimulation")
+        if hamta_app is None or hamta_sim is None:
+            return P.svar_fel(id_, P.E_ARGS, "bryggan har inget VC-scope")
+        app, sim = hamta_app(), hamta_sim()
+        gor = args.get("do")
+        if gor == "restart":
+            sim.reset()
+            app.startSimulation()
+        elif gor == "keepalive":
+            self.aterstart_simulering = bool(args.get("on", True))
+        elif gor is not None:
+            return P.svar_fel(id_, P.E_ARGS,
+                              "okant do %r; kanda ar restart, keepalive" % (gor,))
+        return P.svar_ok(id_, {"kor": bool(sim.IsRunning),
+                               "omstarter": self.n_omstarter,
+                               "keepalive": self.aterstart_simulering})
+
+    def _op_eyes_status(self, id_, args):
+        if self.provtagare is None:
+            return P.svar_ok(id_, {"aktiv": False})
+        return P.svar_ok(id_, {"aktiv": self.provtagare.aktiv,
+                               "prov": len(self.provtagare.rader),
+                               "t0": self.provtagare.t0})
+
+    def _ateruppta_simuleringen(self):
+        """Startar om simuleringen om koden stoppade den.
+
+        Skalet ar inte bekvamlighet: pumpen ar ett VC_SCRIPT:s OnRun och lever
+        bara medan simuleringen gar. Stannar den har bryggan ingen tradning som
+        kan ta emot en begaran om att starta den igen - den blir stum for gott.
+        """
+        if not self.aterstart_simulering:
+            return
+        hamta_app = self._exec_globals.get("getApplication")
+        hamta_sim = self._exec_globals.get("getSimulation")
+        if hamta_app is None or hamta_sim is None:
+            return
+        try:
+            sim = hamta_sim()
+            if sim.IsRunning:
+                return
+            self.n_omstarter += 1
+            self.logg("simuleringen stannade av koden; startar om (nr %d)"
+                      % self.n_omstarter)
+            hamta_app().startSimulation()
+        except Exception:
+            self.logg("kunde inte starta om simuleringen\n" + traceback.format_exc())
+
     def _op_exec_queue(self, id_, args):
         kod = args.get("code")
         if not kod:
             return P.svar_fel(id_, P.E_ARGS, "code saknas")
         if len([p for p in self.ko if p.state == "pending"]) >= MAX_KO:
             return P.svar_fel(id_, P.E_QUEUE_FULL, "kon rymmer %d vantande poster" % MAX_KO)
+        skript = skrivgrind.skapar_skriptbeteende(kod)
+        if skript and args.get("skjut_upp"):
+            # Formagan ar inte borttagen, den ar uppskjuten: koden skrivs till
+            # disk och tillampas vid NASTA VC-start, innan simuleringen borjar,
+            # dar samma operation ar ofarlig (M-13).
+            return self._skjut_upp(id_, kod, args.get("desc", ""), skript)
+        if skript and not args.get("tillat_skriptbeteende"):
+            # MATT M-13: detta ar den ENDA operation som stoppar simuleringen,
+            # och pumpen bor i den. Koden skulle koras - och bryggan do mitt i
+            # sitt eget svar, utan vag tillbaka. Battre att saga det an att
+            # tystna.
+            return P.svar_fel(
+                id_, P.E_ARGS,
+                "koden skapar ett skriptbeteende, vilket stoppar simuleringen "
+                "och dodar bryggan utan vag tillbaka (M-13): "
+                + "; ".join(skript)
+                + ". Satt skjut_upp for att tillampa den vid nasta VC-start "
+                  "i stallet, eller tillat_skriptbeteende om tystnaden ar "
+                  "ett medvetet val.")
         self._qid += 1
         post = Post("q%d" % self._qid, args.get("desc", ""), kod,
                     args.get("timeout_ms", 5000))
@@ -413,9 +618,48 @@ class Brygga(object):
         self.logg("koad %s: %s" % (post.qid, post.desc))
         return P.svar_ok(id_, post.som_dict())
 
+    def _skjut_upp(self, id_, kod, desc, skal):
+        poster = self.upskjutna()
+        poster.append({"desc": desc, "code": kod, "skal": skal,
+                       "koad": time.time()})
+        f = open(self.uppskjutetfil, "w")
+        try:
+            json.dump({"v": 1, "poster": poster}, f)
+        finally:
+            f.close()
+        self.logg("uppskjuten till nasta start: %s" % desc)
+        return P.svar_ok(id_, {"uppskjuten": True, "antal": len(poster),
+                               "fil": self.uppskjutetfil, "skal": skal})
+
+    def upskjutna(self):
+        try:
+            f = open(self.uppskjutetfil)
+        except (IOError, OSError):
+            return []
+        try:
+            return (json.load(f) or {}).get("poster", [])
+        except Exception:
+            return []
+        finally:
+            f.close()
+
+    def _op_deferred_list(self, id_, args):
+        return P.svar_ok(id_, {"poster": [
+            {"desc": p.get("desc"), "koad": p.get("koad"), "skal": p.get("skal")}
+            for p in self.upskjutna()], "fil": self.uppskjutetfil})
+
+    def _op_deferred_clear(self, id_, args):
+        n = len(self.upskjutna())
+        try:
+            os.remove(self.uppskjutetfil)
+        except (IOError, OSError):
+            pass
+        return P.svar_ok(id_, {"borttagna": n})
+
     def _op_queue_list(self, id_, args):
         med_kod = bool(args.get("with_code"))
-        return P.svar_ok(id_, {"queue": [p.som_dict(med_kod) for p in self.ko]})
+        med_svar = bool(args.get("with_result", True))
+        return P.svar_ok(id_, {"queue": [p.som_dict(med_kod, med_svar) for p in self.ko]})
 
     def _hitta(self, qid):
         for p in self.ko:
@@ -424,6 +668,14 @@ class Brygga(object):
         return None
 
     def _op_queue_approve(self, id_, args):
+        """Markerar posten godkand. Koden kors av PUMPEN, inte har.
+
+        Skalet ar matt: kod som stoppar simuleringen dodar pumpens tasklet i
+        samma ogonblick, och da kors ingenting efter exec-raden - inte ens
+        svaret skickas. Ett godkannande som korde inline forsvann alltsa spar-
+        lost tillsammans med sitt eget svar. Nu ar godkannandet en HANDLING som
+        kvitteras direkt, och utfallet lases ur queue_list.
+        """
         qid = args.get("qid")
         post = self._hitta(qid)
         if post is None:
@@ -436,12 +688,41 @@ class Brygga(object):
                               "bryggan ar degraded efter en timeout; kor en lasande exec "
                               "forst sa lamnar den det laget")
         post.state = "approved"
+        self.logg("godkand %s, kors av pumpen" % post.qid)
+        if args.get("inline"):
+            # Bara for kod som bevisligen inte ror simuleringen. Anvands av
+            # testerna dar det inte finns nagon pump.
+            return self._kor_post(post, id_)
+        return P.svar_ok(id_, post.som_dict())
+
+    def _kor_post(self, post, id_=None):
+        post.state = "running"
         svar = self._kor(id_, post.kod, post.timeout_ms)
         post.state = "done" if svar.get("ok") else "failed"
         post.svar = svar
         self.logg("kord %s -> %s" % (post.qid, post.state))
-        svar["result"] = {"qid": post.qid, "state": post.state, "result": svar.get("result")}
+        svar["result"] = {"qid": post.qid, "state": post.state,
+                          "result": svar.get("result")}
         return svar
+
+    def _beta_av_kon(self):
+        """En godkand post per varv. Anropas av pumpen."""
+        for post in self.ko:
+            if post.state == "approved":
+                self._kor_post(post)
+                return True
+        return False
+
+    def _markera_avbrutna(self):
+        """En post som stod i running nar pumpen dog fick aldrig ett utfall.
+
+        Den far INTE se ut som pending igen - da skulle den kunna koras en
+        andra gang - och inte som done, for den blev aldrig fardig.
+        """
+        for post in self.ko:
+            if post.state == "running":
+                post.state = "interrupted"
+                self.logg("post %s avbrots nar pumpen dog" % post.qid)
 
     def _op_queue_reject(self, id_, args):
         qid = args.get("qid")
@@ -473,6 +754,9 @@ class Brygga(object):
 # (31_brygga_protokoll.md, "Beteende nar VC stangs").
 
 INSTANS = None
+
+# Satts av bridge_cmd: kopplar om OnStartStop-handlaren efter en reset.
+INSTANS_KOPPLA = lambda: None
 
 
 def hamta_brygga(exec_globals=None, port=STANDARDPORT, **kw):

@@ -1,0 +1,342 @@
+{
+  "task_id": "A-06",
+  "title": "Limningscell med oppentid: fogen ska slutas innan limmet skinnar",
+  "goal": "Lagga en limstrang och foga samman delarna inom limmets oppentid, med strangens langd och limtemperaturen kontrollerade fore fogning.",
+  "grupp": "A",
+  "bransch": "limning",
+  "orsak": "Speglar en driftsattningsmiss som ger fog som slapper efter manader: oppentiden raknas fran att robotprogrammet startar i stallet for fran att limmunstycket stangde. Nar strangen tar langre tid an vanligt, till exempel efter ett munstycksbyte, ar limmet redan skinnat nar delarna fogas. Fogen ser perfekt ut och haller i provet, men slapper i falt.",
+  "prompt": "Bygg en limningscell och skriv styrningen till den.\n\nScen: en FANUC M-10iD/12 med rackvidd 1441 mm och nyttolast 12 kg, ett limmunstycke med\ndoseringsventil som vager 4,2 kg, en limstation med uppvarmt lim, en fixtur med pneumatiska\nspannare och en 2D-kamera som mater limstrangens langd och brott. Underdelen ar ett plastholje\n180 x 120 x 45 mm som vager 0,34 kg och locket vager 0,14 kg. Robotens langsta arbetsradie i\nuppgiften ar 1250 mm.\n\nUppgift: lagg en sammanhangande limstrang runt hela fogen, 640 mm lang, med doseringsventilen\noppen i 8,0 s. Kameran mater strangen; brott eller en langd utanfor 620 till 660 mm ska stoppa\nstationen. Limmets oppentid ar 180,0 s och den ska raknas fran fallande flank pa\nST290_ADH_VALVE, alltsa fran att munstycket stangde, aldrig fran programstart. Locket ska vara\npa plats och fixturen spand inom oppentiden. Takten ar 46,0 s per enhet.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "oppentiden raknas fran programstart i stallet for fran ST290_ADH_VALVE fallande flank",
+    "strangens langd kontrolleras efter fogningen, nar den inte langre gar att se",
+    "limtemperaturen lases en gang vid skiftstart i stallet for fore varje strang"
+  ],
+  "antaganden": [
+    {
+      "vad": "oppentiden 180,0 s",
+      "varde": "180,0 s",
+      "motiv": "en varmsmaltande limtyps oppentid ligger typiskt mellan en och nagra minuter; 180 s ar valt inom det spannet och kommer inte ur ett datablad for ett namngivet lim"
+    },
+    {
+      "vad": "strangens langd 640 mm med fonster 620 till 660",
+      "varde": "640 mm, 620 till 660 mm",
+      "motiv": "langden foljer av holjets omkrets 180 plus 120 gange tva, alltsa 600 mm, plus overlapp i skarven; fonstret plus minus 20 mm ar antaget"
+    },
+    {
+      "vad": "doseringstiden 8,0 s",
+      "varde": "8,0 s",
+      "motiv": "640 mm strang i cirka 80 mm per sekund; bade hastigheten och tiden ar antagna"
+    },
+    {
+      "vad": "takten 46,0 s",
+      "varde": "46,0 s",
+      "motiv": "limning, fogning och spanning ryms i 46 s; talet ligger i spannet 8 till 60 s men ar valt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "plastholje med lock",
+      "l_mm": 180,
+      "b_mm": 120,
+      "h_mm": 45,
+      "massa_kg": 1.4
+    },
+    "arbetsradie_mm": 1250.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Enheter kommer i 46,0 s takt, limmet haller 172 grader och varje strang mater 634 till 648 mm.",
+      "forvantat": "Sammanhangande strang inom fonstret, locket pa och fixturen spand med god marginal till oppentidens 180,0 s."
+    },
+    {
+      "id": "temp_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST290_ADH_TEMP",
+      "beskrivning": "ST290_ADH_TEMP faller till 138 C, under arbetsfonstret 150 till 190 C.",
+      "forvantat": "Kallt lim flyter inte och strangen bryts. Styrningen ska inte oppna doseringsventilen alls, utan vanta pa temperatur och larma."
+    },
+    {
+      "id": "temp_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST290_ADH_TEMP",
+      "beskrivning": "ST290_ADH_TEMP stiger till 205 C, over arbetsfonstret.",
+      "forvantat": "Overhettat lim skinnar snabbare och oppentiden 180,0 s galler inte langre. Styrningen ska stoppa stationen och larma, inte forkorta oppentiden pa egen hand."
+    },
+    {
+      "id": "len_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST290_CAM_LEN",
+      "beskrivning": "ST290_CAM_LEN mater 480 mm, under fonstrets 620 mm, alltsa ett brott i strangen.",
+      "forvantat": "Locket far inte laggas pa. Styrningen ska satta ST290_STA_STOP hog och lamna enheten oppen for manuell bedomning."
+    },
+    {
+      "id": "len_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST290_CAM_LEN",
+      "beskrivning": "ST290_CAM_LEN mater 810 mm, over fonstrets 660 mm, alltsa dubbeldosering i skarven.",
+      "forvantat": "For mycket lim pressas ut i fogen och forstor tatningen. Styrningen ska stoppa stationen och larma."
+    },
+    {
+      "id": "closed_uteblir",
+      "typ": "vandning",
+      "signal": "ST290_CLP_CLOSED",
+      "beskrivning": "ST290_CLP_CLOSE satts hog men ST290_CLP_CLOSED uteblir, och oppentidens 180,0 s loper ut medan enheten star ofogad.",
+      "forvantat": "Enheten ar forlorad nar oppentiden gatt ut. Styrningen ska satta ST290_STA_STOP hog och markera enheten for kassation, aldrig foga en skinnad strang."
+    }
+  ],
+  "core_outputs": [
+    "ST290_ADH_VALVE",
+    "ST290_RB_START",
+    "ST290_LID_PLACE",
+    "ST290_CLP_CLOSE",
+    "ST290_STA_STOP"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "limmunstycke",
+        "uri": "bank://gripdon/limmunstycke",
+        "count": 1
+      },
+      {
+        "role": "limstation",
+        "uri": "bank://station/limstation",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      },
+      {
+        "role": "matarbana",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "limmunstycke"
+      },
+      {
+        "from_role": "limstation",
+        "to_role": "limmunstycke"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "matarbana",
+        "to_role": "fixtur"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST290_ADH_TEMP",
+        "dir": "in",
+        "type": "real",
+        "comment": "limmets temperatur i grader Celsius"
+      },
+      {
+        "name": "ST290_ADH_VALVE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna doseringsventilen"
+      },
+      {
+        "name": "ST290_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta limprogrammet"
+      },
+      {
+        "name": "ST290_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "limprogrammet klart"
+      },
+      {
+        "name": "ST290_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos matning av limstrangen"
+      },
+      {
+        "name": "ST290_CAM_LEN",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt limstranglangd i mm"
+      },
+      {
+        "name": "ST290_LID_PLACE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lagg pa locket och foga"
+      },
+      {
+        "name": "ST290_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann fixturen om den fogade enheten"
+      },
+      {
+        "name": "ST290_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "spannarna i spant lage"
+      },
+      {
+        "name": "ST290_STA_STOP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen stoppad pa limfel"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "las ST290_ADH_TEMP fore varje strang och kontrollera fonstret 150 till 190 grader",
+      "satt ST290_RB_START och ST290_ADH_VALVE hoga och lagg strangen i 8,0 s",
+      "nollstall ST290_ADH_VALVE och starta oppentidsmatningen pa den fallande flanken",
+      "pulsa ST290_CAM_TRIG och las ST290_CAM_LEN innan locket laggs pa",
+      "ligger langden utanfor 620 till 660 mm: satt ST290_STA_STOP hog",
+      "satt ST290_LID_PLACE hog och sedan ST290_CLP_CLOSE hog",
+      "vanta pa ST290_CLP_CLOSED och kontrollera att oppentiden 180,0 s inte gatt ut",
+      "har oppentiden gatt ut: satt ST290_STA_STOP hog och kassera enheten"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST290": 180.0
+      },
+      "cycle_s": 46.0,
+      "tolerance_s": 0.5
+    },
+    "interlocks": [
+      "locket far aldrig laggas pa nar ST290_CAM_LEN ligger utanfor fonstret",
+      "oppentiden ska raknas fran ST290_ADH_VALVE fallande flank, aldrig fran programstart",
+      "ingen limning nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 78.0,
+    "runs": 3,
+    "warmup_s": 180.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_ADH_VALVE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_ADH_VALVE FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_CLP_CLOSED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST290 *s req=180.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST290 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST limmunstycke+fixturback *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST290 *s req=180.0s SHORT"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION limmunstycke x fixturback t=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

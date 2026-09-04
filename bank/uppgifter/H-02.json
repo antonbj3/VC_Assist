@@ -1,0 +1,308 @@
+{
+  "task_id": "H-02",
+  "title": "Overlamning robot till robot i luften",
+  "goal": "Lamna over en detalj direkt mellan tva robotgripare utan mellanlagg, med bada greppen slutna samtidigt under overlamningsfonstret och ingen sekund dar ingen haller.",
+  "grupp": "H",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar den svaraste overlamningen i en cell: bada griparna maste vara slutna samtidigt i ett kort fonster, och ordningen mellan stangning och oppning ar hela uppgiften. Den vanliga missen ar att robot A oppnar pa robot B:s stangkommando i stallet for pa dess ST320_GRP_CLOSED, sa att detaljen ar utan hallare i de 0,35 s griparen behover.",
+  "prompt": "Bygg en overlamning mellan tva robotar och skriv styrningen till bada.\n\nScen: tva ABB IRB 1200-7/0.7 med rackvidd 703 mm och nyttolast 7 kg, bada med tvabackad\npneumatisk parallellgripare som vager 1,5 kg och har 0,35 s slagtid. Detaljen ar en gjuten\nfastdetalj 210 x 95 x 40 mm som vager 1,2 kg. Robotarnas langsta arbetsradie i uppgiften ar\n680 mm. Lamnande robot ar ST310 och mottagande robot ar ST320.\n\nUppgift: for detaljen till overlamningslaget med ST310 och begar overlamning med ST310_HS_REQ.\nST320 kvitterar med ST320_HS_ACK nar den star i lage, stanger sin gripare och bekraftar med\nST320_GRP_CLOSED. Forst da far ST310 oppna sin gripare. Nar ST310_GRP_OPENED ar hog bekraftar\nST320 med ST320_HS_DONE, och ST310 aterstaller med ST310_HS_RST. Overlamningsfonstret, alltsa\ntiden nar bada griparna ar slutna, ska vara minst 0,20 s. Takten ar 9,0 s per detalj.\n\nDet far aldrig finnas ett ogonblick dar ingen gripare haller detaljen. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F7",
+    "F10"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "ST310 oppnar pa ST320_GRP_CLOSE i stallet for pa ST320_GRP_CLOSED, sa detaljen ar utan hallare i 0,35 s",
+    "bada robotarna kommenderas i samma scan utan ordning, sa vem som haller beror pa scanordningen",
+    "overlamningsfonstret raknas fran kommandot i stallet for fran bada andlagesgivarna"
+  ],
+  "antaganden": [
+    {
+      "vad": "detaljens matt och vikt",
+      "varde": "210 x 95 x 40 mm, 1,2 kg",
+      "motiv": "en gjuten fastdetalj; matten ar valda och vikten raknad ur ungefarlig volym i aluminium, inte matt"
+    },
+    {
+      "vad": "overlamningsfonstret 0,20 s",
+      "varde": "0,20 s",
+      "motiv": "vald sa att den ar kortare an griparens slagtid 0,35 s men lang nog att overleva ett scanfonster; talet ar antaget"
+    },
+    {
+      "vad": "takten 9,0 s",
+      "varde": "9,0 s",
+      "motiv": "tva robotrorelser plus handskakningen; talet ar antaget och inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "gjuten fastdetalj",
+      "l_mm": 210,
+      "b_mm": 95,
+      "h_mm": 40,
+      "massa_kg": 1.2
+    },
+    "arbetsradie_mm": 680.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer lamnas over mellan robotarna i 9,0 s takt med bada griparna slutna i minst 0,20 s.",
+      "forvantat": "Ingen detalj tappas, ingen tidpunkt utan hallare och griparna kolliderar aldrig."
+    },
+    {
+      "id": "force_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST320_GRP_FORCE",
+      "beskrivning": "ST320_GRP_FORCE stannar pa 25 N, under den lagsta greppkraften 80 N, trots att ST320_GRP_CLOSED gatt hog.",
+      "forvantat": "Slutet lage utan kraft betyder att griparen slutit bredvid detaljen. ST310 far inte oppna; styrningen ska larma och lata lamnande robot behalla greppet."
+    },
+    {
+      "id": "force_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST320_GRP_FORCE",
+      "beskrivning": "ST320_GRP_FORCE nar 420 N, over den hogsta tillatna 300 N for gjutgodset.",
+      "forvantat": "Overkraft spracker detaljen. Styrningen ska sanka kraften eller avbryta overlamningen och larma, inte fortsatta."
+    },
+    {
+      "id": "closed_uteblir",
+      "typ": "vandning",
+      "signal": "ST320_GRP_CLOSED",
+      "beskrivning": "ST320_GRP_CLOSE satts hog men ST320_GRP_CLOSED uteblir i 1,5 s, mer an fyra ganger slagtiden.",
+      "forvantat": "ST310 far inte oppna. Bada robotarna ska sta kvar med ST310 haaallande detaljen och styrningen larma."
+    }
+  ],
+  "core_outputs": [
+    "ST310_HS_REQ",
+    "ST310_GRP_OPEN",
+    "ST310_HS_RST",
+    "ST320_GRP_CLOSE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot_a",
+        "uri": "bank://robot/abb_irb_1200_7_0700",
+        "count": 1
+      },
+      {
+        "role": "robot_b",
+        "uri": "bank://robot/abb_irb_1200_7_0700",
+        "count": 1
+      },
+      {
+        "role": "gripdon_a",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "gripdon_b",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot_a",
+        "to_role": "gripdon_a"
+      },
+      {
+        "from_role": "robot_b",
+        "to_role": "gripdon_b"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST310_HS_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lamnande robot begar overlamning"
+      },
+      {
+        "name": "ST310_GRP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna lamnande gripare"
+      },
+      {
+        "name": "ST310_GRP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lamnande gripare i oppet lage"
+      },
+      {
+        "name": "ST310_HS_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lamnande robot aterstaller handskakningen"
+      },
+      {
+        "name": "ST320_HS_ACK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mottagande robot i lage och klar"
+      },
+      {
+        "name": "ST320_GRP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stang mottagande gripare"
+      },
+      {
+        "name": "ST320_GRP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mottagande gripare sluten om detaljen"
+      },
+      {
+        "name": "ST320_HS_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mottagande robot har detaljen"
+      },
+      {
+        "name": "ST320_GRP_FORCE",
+        "dir": "in",
+        "type": "real",
+        "comment": "greppkraft i mottagande gripare i newton"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "ST310 for detaljen till overlamningslaget och satter ST310_HS_REQ hog",
+      "ST320 kor till lage och satter ST320_HS_ACK hog",
+      "ST320 satter ST320_GRP_CLOSE hog och vantar pa ST320_GRP_CLOSED",
+      "ST310 satter ST310_GRP_OPEN hog forst nar ST320_GRP_CLOSED ar hog",
+      "hall bada griparna slutna i minst 0,20 s innan ST310 oppnar",
+      "ST310 vantar pa ST310_GRP_OPENED och drar undan",
+      "ST320 satter ST320_HS_DONE hog och ST310 satter ST310_HS_RST hog"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST310": 0.2,
+        "ST320": 0.35
+      },
+      "cycle_s": 9.0,
+      "tolerance_s": 0.03
+    },
+    "interlocks": [
+      "ST310_GRP_OPEN far aldrig ga hog nar ST320_GRP_CLOSED ar lag",
+      "det far aldrig finnas ett scanfonster dar bada griparna ar oppna med detaljen mellan sig",
+      "ingen robotrorelse nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 400.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 6.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST320_GRP_CLOSED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST310_GRP_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST320_HS_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST310 *s req=0.2s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST320 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon_a+gripdon_b *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST310 *s req=0.2s SHORT"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION gripdon_a x gripdon_b t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

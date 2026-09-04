@@ -1,0 +1,265 @@
+{
+  "task_id": "T-05",
+  "title": "Materialbrist uppstroms: svalt station ska stanna kontrollerat",
+  "goal": "Halla en station i vantlage utan att larma nar materialet tar slut, och starta om i takt nar det kommer tillbaka.",
+  "grupp": "T",
+  "bransch": "elektronik",
+  "orsak": "Speglar en driftsattningsmiss i svalthantering: stationen skiljer inte pa svalt och fel. Nar magasinet tommer sig gar samlingslarmet och hela linan stannar, trots att stationen bara skulle ha vantat. Operatoren far kvittera ett larm som aldrig var ett fel, och tillgangligheten mats fel resten av skiftet.",
+  "prompt": "Bygg en station som ska overleva materialbrist och skriv styrningen till den.\n\nScen: en bandtransportor med bandbredd 400 mm som gar i 0,35 m/s och matar kretskort till en\nstation, en induktiv narvarogivare i stationens lage, och ett magasin uppstroms med en\nfotocell som ser om det finns kort kvar. Kortet ar 233 x 160 mm och 1,6 mm tjockt och vager\n0,21 kg.\n\nUppgift: stationen ska arbeta i takt 12,0 s per kort. Nar ST050_MAG_EMPTY gar hog finns inget\nmaterial uppstroms. Da ska stationen avsluta det kort den har, ga till vantlage och halla\nST050_STA_STARVED hog, men SYS_ALARM ska forbli lag. Nar material kommer tillbaka ska\nstationen aterstarta utan operatorsingrepp inom 2,0 s.\n\nSkillnaden mellan svalt och fel ar hela uppgiften. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F11",
+    "F8"
+  ],
+  "stege": "start_stopp_transportor",
+  "difficulty": 1,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "svalt behandlas som fel och drar SYS_ALARM, sa linan stannar i onodan",
+    "stationen aterstartar innan kortet i magasinet natt stationslaget och greppar luft",
+    "ST050_STA_STARVED kvarstar efter aterstart, sa uppstroms fortsatter tro att stationen ar tom"
+  ],
+  "antaganden": [
+    {
+      "vad": "kortets matt och vikt",
+      "varde": "233 x 160 x 1,6 mm, 0,21 kg",
+      "motiv": "matten ar ett vanligt Eurokort-format i dubbel hojd; vikten beror pa komponentbestyckning och ar antagen"
+    },
+    {
+      "vad": "takten 12,0 s",
+      "varde": "12,0 s",
+      "motiv": "en enkel elektronikstation ligger typiskt i spannet 8 till 60 s takt; 12 s ar valt inom det spannet, inte matt"
+    },
+    {
+      "vad": "aterstart inom 2,0 s",
+      "varde": "2,0 s",
+      "motiv": "vald sa att aterstarten kanns omedelbar for operatoren men lamnar tid for narvarokontroll; inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kretskort i dubbelt Eurokort-format",
+      "l_mm": 233,
+      "b_mm": 160,
+      "h_mm": 1.6,
+      "massa_kg": 0.21
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Magasinet ar fyllt och stationen arbetar i takt 12,0 s per kort.",
+      "forvantat": "Ett kort per takt, ST050_STA_STARVED lag, SYS_ALARM lag och bandet i drift."
+    },
+    {
+      "id": "lvl_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST050_MAG_LEVEL",
+      "beskrivning": "ST050_MAG_LEVEL faller till 0 medan ett kort fortfarande ligger i stationslaget.",
+      "forvantat": "Stationen ska gora klart kortet den har, sedan ga till vantlage med ST050_STA_STARVED hog och SYS_ALARM fortsatt lag."
+    },
+    {
+      "id": "lvl_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST050_MAG_LEVEL",
+      "beskrivning": "ST050_MAG_LEVEL visar 250 kort, over magasinets fysiska rymd om 60.",
+      "forvantat": "Ett varde over magasinets rymd ar ett givarfel, inte gott om material. Styrningen ska larma och inte lita pa nivan."
+    },
+    {
+      "id": "prs_uteblir",
+      "typ": "vandning",
+      "signal": "ST050_PRT_PRS",
+      "beskrivning": "Bandet startar efter svalt men ST050_PRT_PRS gar aldrig hog, trots att magasinet sager att material finns.",
+      "forvantat": "Stationen far inte borja arbeta pa antagandet att kortet ar pa plats. Efter 5,0 s utan narvaro ska den larma och sta kvar i vantlage."
+    }
+  ],
+  "core_outputs": [
+    "ST050_CNV_RUN",
+    "ST050_STA_BUSY",
+    "ST050_STA_STARVED",
+    "ST050_STA_DONE",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "narvaro",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "magasinsgivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "station",
+        "uri": "bank://station/skruvstation",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "station"
+      },
+      {
+        "from_role": "station",
+        "to_role": "narvaro"
+      },
+      {
+        "from_role": "band",
+        "to_role": "magasinsgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST050_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "matarbandet gar"
+      },
+      {
+        "name": "ST050_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kort narvarande i stationslaget"
+      },
+      {
+        "name": "ST050_MAG_EMPTY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "magasinet uppstroms ar tomt"
+      },
+      {
+        "name": "ST050_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen arbetar"
+      },
+      {
+        "name": "ST050_STA_STARVED",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen vantar pa material, inte ett fel"
+      },
+      {
+        "name": "ST050_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kortet fardigt"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm, far bara ga hog vid verkligt fel"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "ST050_MAG_LEVEL",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal kort kvar i magasinet uppstroms"
+      }
+    ],
+    "sequence": [
+      "kor bandet nar SYS_AUTO ar hog och stationslaget ar tomt",
+      "vanta pa ST050_PRT_PRS, satt ST050_STA_BUSY hog och arbeta klart",
+      "satt ST050_STA_DONE hog och slapp ut kortet",
+      "om ST050_MAG_EMPTY ar hog och stationslaget ar tomt: satt ST050_STA_STARVED hog och stanna bandet",
+      "hall SYS_ALARM lag under svalt",
+      "nar ST050_MAG_EMPTY gar lag: starta bandet, vanta pa ST050_PRT_PRS och nollstall ST050_STA_STARVED"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST050": 12.0
+      },
+      "cycle_s": 12.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "SYS_ALARM far aldrig ga hog enbart av materialbrist",
+      "stationen far inte borja arbeta utan ST050_PRT_PRS"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 300.0,
+    "runs": 3,
+    "warmup_s": 120.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST050_STA_STARVED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST050_STA_STARVED FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST050 *s req=12.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST050 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE SYS_ALARM RISE t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

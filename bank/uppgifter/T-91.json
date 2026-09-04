@@ -1,0 +1,199 @@
+{
+  "task_id": "T-91",
+  "title": "Trasig variant av T-01: grinden oppnar fore givarflanken",
+  "goal": "Visa att ogat faller en ordningsfoljd dar donet kommenderas fore den flank som skulle ha utlost det.",
+  "grupp": "T",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar den vanligaste singuleringsbuggen: stoppgrinden kommenderas pa fotocellens niva. Nar burkarna star tatt ar nivan redan hog fran foregaende burk, sa grinden oppnar 255 ms innan flanken for den nya burken, och tva burkar passerar pa en flank. Ogats EDGE-rader visar ordningen som ett fasforhallande, vilket ar hela skalet att signaler och fysik ligger pa samma tidsaxel.",
+  "prompt": "Har ar en ogonrapport fran en korning av uppgift T-01, singuleringsstationen med\nstoppgrind, fotocell och 45 burkar per minut. Rapporten kommer ur vc_eyes och foljer\ngrammatiken i docs/spec/41_ogat_kontrakt.md.\n\nLas rapporten och avgor om korningen ar godkand. Om den inte ar det: namnge vilken rad som\nfaller den, i vilken ordning handelserna intraffade, och vilken felklass ur\ndocs/spec/82_felklasser.md fallningen tillhor. Se sarskilt pa tiderna i EDGE-raderna och pa\nforhallandet mellan in och out i THROUGHPUT.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5"
+  ],
+  "stege": "sortering_hojd_enkel",
+  "difficulty": 2,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "rapporten godkanns darfor att DWELL star OK och RACE star none",
+    "fallningen klassas som genomflodesfel darfor att out ar lagre an in, i stallet for som orsaken till det"
+  ],
+  "antaganden": [
+    {
+      "vad": "tiderna i ogonrapporten",
+      "varde": "t=12.150s och t=12.405s",
+      "motiv": "rapporten ar en handskriven fixtur, inte en matning; tiderna ar valda sa att ordningen blir entydig och avstandet 255 ms ar storre an ett rimligt scanfonster"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "konservburk 400 g",
+      "l_mm": 99,
+      "b_mm": 99,
+      "h_mm": 119,
+      "massa_kg": 0.42
+    },
+    "arbetsradie_mm": 3200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ogonrapporten laser av en 90 sekunder lang korning av T-01.",
+      "forvantat": "Rapporten ska fallas pa ordningen mellan EDGE-raderna, med felklass F5."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST010_PEC_PART",
+      "beskrivning": "Fotocellens flank kommer efter donets flank i stallet for fore, vilket ar exakt den vandning rapporten visar.",
+      "forvantat": "Ordningen mellan de tva flankerna ar hela domen. Kommer donet forst ar sekvensen fel oavsett vad DWELL och RACE sager."
+    }
+  ],
+  "core_outputs": [
+    "ST010_STP_OPEN",
+    "ST010_CNV_RUN"
+  ],
+  "variant_av": "T-01",
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "stoppgrind",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "fotocell",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "stoppgrind"
+      },
+      {
+        "from_role": "band",
+        "to_role": "fotocell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST010_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST010_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell uppstroms grinden"
+      },
+      {
+        "name": "ST010_STP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera stoppgrinden oppen"
+      },
+      {
+        "name": "ST010_STP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare oppet lage"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som T-01"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST010": 0.4
+      },
+      "cycle_s": 1.333,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "grinden far aldrig oppnas nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 2700.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 12.0,
+    "gate": "OGAT",
+    "verdict": "FAIL",
+    "reason_contains": "sekvens",
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST010_STP_OPEN RISE t=12.150s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST010_PEC_PART RISE t=12.405s"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST010 in=41 out=38 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "oga",
+    "artefakt": "EYES v1\nTEMPLATE T-01_stoppgrind_pa_niva\nRUN 2026-09-04T18:11:04 DUR 90.000s SAMPLES 1800 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST010_STP_OPEN RISE t=12.150s\n  EDGE ST010_PEC_PART RISE t=12.405s\n  EDGE ST010_STP_OPEN FALL t=13.050s\n  DWELL ST010 0.655s req=0.400s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST010 in=41 out=38 avg=2.180s min=1.900s max=3.400s\nSECTION SAFETY\n  MINDIST stoppgrind+sidostyrning 18.400mm t=12.405s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL sekvens: ST010_STP_OPEN steg 255 ms fore givarflanken ST010_PEC_PART, tva burkar slapptes pa en flank\n",
+    "vad_som_ar_fel": "ST010_STP_OPEN steg 255 ms fore ST010_PEC_PART. Donet kommenderades pa fotocellens niva i stallet for pa dess stigande flank, sa tva burkar slapptes pa en flank. in=41 mot out=38 ar foljden, inte orsaken."
+  }
+}

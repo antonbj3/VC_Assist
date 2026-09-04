@@ -1,0 +1,305 @@
+{
+  "task_id": "P-03",
+  "title": "Uttagsrobot ur formsprutmaskin, utlost av verktygets lagesgivare",
+  "goal": "Ta ut den formsprutade detaljen pa verktygets oppningsgivare, aldrig pa en tid raknad fran cykelstart.",
+  "grupp": "P",
+  "bransch": "plastformsprutning",
+  "orsak": "Speglar en driftsattningsmiss som kostar verktyg: uttaget startas pa en fast tid raknad fran formsprutningens cykelstart. Nar kylningen forlangs med nagra tiondelar gar roboten in medan verktyget fortfarande stanger, och griparmen tar i formhalvan. Verktyget ar dyrare an roboten och stoppet varar i dagar.",
+  "prompt": "Bygg en uttagscell vid en formsprutmaskin och skriv styrningen till den.\n\nScen: en FANUC LR Mate 200iD/7L med rackvidd 911 mm och nyttolast 7 kg, en vakuumgripare med\nfyra sugkoppar om 40 mm, en formsprutmaskin med tvadelat verktyg, en induktiv lagesgivare som\nser att verktyget star helt oppet, och ett avlagg pa en bandtransportor. Detaljen ar ett\nplastholje 180 x 120 x 45 mm som vager 0,34 kg. Robotens langsta arbetsradie i uppgiften ar\n860 mm.\n\nUppgift: uttaget far starta forst pa stigande flank pa ST120_MLD_OPEN, som ar verktygets\nlagesgivare i helt oppet lage. Roboten ska vara ute ur verktyget innan ST120_RB_CLEAR ges,\noch maskinen far inte fa ST120_MLD_CLOSE_OK forran den signalen ar hog. Cykeltiden ar 28,0 s\noch uttaget ska ta hogst 4,5 s av den. Kylningstiden varierar mellan 11 och 14 s.\n\nStarta aldrig uttaget pa en tid raknad fran cykelstart. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5",
+    "F6"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "uttaget startas pa en tid raknad fran cykelstart i stallet for pa ST120_MLD_OPEN",
+    "ST120_RB_CLEAR ges nar robotprogrammet ar klart i stallet for nar armen ar ute ur verktyget",
+    "vakuumet slas av innan detaljen nar avlagget, sa den faller de sista centimetrarna"
+  ],
+  "antaganden": [
+    {
+      "vad": "cykeltiden 28,0 s",
+      "varde": "28,0 s",
+      "motiv": "en formsprutcykel for ett holje i den har storleken ligger typiskt mellan 20 och 40 s; 28 s ar valt inom det spannet och inte matt"
+    },
+    {
+      "vad": "kylningstidens variation 11 till 14 s",
+      "varde": "11 till 14 s",
+      "motiv": "variationen kommer av materialtemperatur och verktygskylning; spannet ar antaget och finns for att gora tidsstyrt uttag omojligt"
+    },
+    {
+      "vad": "uttagstiden hogst 4,5 s",
+      "varde": "4,5 s",
+      "motiv": "vald sa att uttaget ryms i cykeln med marginal; robotens verkliga rorelsetid over 860 mm ar inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "formsprutat plastholje",
+      "l_mm": 180,
+      "b_mm": 120,
+      "h_mm": 45,
+      "massa_kg": 0.34
+    },
+    "arbetsradie_mm": 860.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Maskinen kor 28,0 s cykel, kylningen varierar mellan 11 och 14 s och uttaget tar 4,2 s.",
+      "forvantat": "Uttaget startar pa verktygets oppningsgivare, roboten ar ute innan stangning tillats och detaljen laggs pa bandet."
+    },
+    {
+      "id": "temp_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST120_MLD_TEMP",
+      "beskrivning": "ST120_MLD_TEMP faller till 28 C, under arbetsfonstret 40 till 80 C.",
+      "forvantat": "Ett kallt verktyg ger detaljer som fastnar. Styrningen ska sparra ST120_MLD_CLOSE_OK och larma i stallet for att kora vidare."
+    },
+    {
+      "id": "temp_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST120_MLD_TEMP",
+      "beskrivning": "ST120_MLD_TEMP stiger till 96 C, over arbetsfonstret.",
+      "forvantat": "Vid overtemperatur ar detaljen for mjuk for sugkopparna. Styrningen ska forlanga kylningen och inte starta uttaget forran temperaturen fallit under 80 C."
+    },
+    {
+      "id": "open_uteblir",
+      "typ": "vandning",
+      "signal": "ST120_MLD_OPEN",
+      "beskrivning": "Formsprutcykeln rapporterar klart men ST120_MLD_OPEN gar aldrig hog.",
+      "forvantat": "Uttaget far inte startas anda. Styrningen ska sta kvar utanfor verktyget och larma efter 5,0 s, aven om cykeltiden sager att verktyget borde vara oppet."
+    }
+  ],
+  "core_outputs": [
+    "ST120_RB_START",
+    "ST120_MLD_CLOSE_OK",
+    "ST120_RB_CLEAR",
+    "ST120_VAC_ON"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_lrmate_200id_7l",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_4_sug_40",
+        "count": 1
+      },
+      {
+        "role": "formsprutmaskin",
+        "uri": "bank://station/formsprutmaskin",
+        "count": 1
+      },
+      {
+        "role": "lagesgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "avlaggsband",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "formsprutmaskin",
+        "to_role": "lagesgivare"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "avlaggsband"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST120_MLD_OPEN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "verktyget star helt oppet"
+      },
+      {
+        "name": "ST120_MLD_CLOSE_OK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "maskinen far stanga verktyget"
+      },
+      {
+        "name": "ST120_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta uttagsprogrammet"
+      },
+      {
+        "name": "ST120_RB_BUSY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten kor"
+      },
+      {
+        "name": "ST120_RB_CLEAR",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten ar helt ute ur verktyget"
+      },
+      {
+        "name": "ST120_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST120_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST120_MLD_TEMP",
+        "dir": "in",
+        "type": "real",
+        "comment": "verktygstemperatur i grader Celsius"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      }
+    ],
+    "sequence": [
+      "hall ST120_MLD_CLOSE_OK lag sa lange roboten inte ar ute",
+      "vanta pa stigande flank pa ST120_MLD_OPEN",
+      "satt ST120_VAC_ON hog och vanta pa ST120_VAC_OK",
+      "satt ST120_RB_START hog och vanta pa ST120_RB_BUSY",
+      "satt ST120_RB_CLEAR hog forst nar roboten passerat verktygets ytterkant",
+      "satt ST120_MLD_CLOSE_OK hog nar ST120_RB_CLEAR ar hog",
+      "slapp vakuumet forst nar detaljen ligger an mot avlaggsbandet"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST120": 4.5
+      },
+      "cycle_s": 28.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ST120_MLD_CLOSE_OK far aldrig ga hog nar ST120_RB_CLEAR ar lag",
+      "uttaget far aldrig startas nar ST120_MLD_OPEN ar lag",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 128.0,
+    "runs": 3,
+    "warmup_s": 120.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 30.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST120_MLD_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST120_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST120_RB_CLEAR RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST120 *s req=4.5s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST120 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+formhalva *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SAFETY",
+        "template": "COLLISION gripdon x formhalva t=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

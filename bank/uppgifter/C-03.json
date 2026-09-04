@@ -1,0 +1,317 @@
+{
+  "task_id": "C-03",
+  "title": "Formatbyte i forpackningslinje med kapacitetsmal over bytet",
+  "goal": "Na 500 kartonger i timmen trots ett planerat formatbyte pa atta minuter i varje timme, och komma tillbaka till full takt utan operatorsingrepp.",
+  "grupp": "C",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en driftsattningsmiss i formatbyte: linan startas om med full takt direkt efter bytet, utan att forsta kartongen kontrollerats mot det nya formatet. Ar en installning fel producerar linan en hel minut skrot innan nagon ser det. Den andra missen ar att bytets tid inte raknas bort ur takten, sa kapaciteten ser samre ut an den ar och nagon skruvar upp hastigheten i onodan.",
+  "prompt": "Bygg en forpackningslinje med formatbyte och skriv styrningen till den.\n\nScen: en kartongresare, en bandtransportör med bandbredd 600 mm i 0,5 m/s, en 2D-kamera for\nformatkontroll och en KUKA KR 10 R1100 sixx med rackvidd 1101 mm och nyttolast 10 kg med\nvakuumgripare med fyra sugkoppar om 40 mm. Kartongen ar 400 x 300 x 200 mm i format A och\n600 x 400 x 200 mm i format B, och vager 4,8 kg respektive 8,1 kg. Robotens langsta arbetsradie\ni uppgiften ar 660 mm. Stationen ar ST410.\n\nUppgift: linans takt ar 6,0 s per kartong. Ett formatbyte tar 480 s och sker en gang per timme,\nsa 52 minuter aterstar for produktion; malet ar 500 kartonger i timmen. Efter ett byte ska\nforsta kartongen kontrolleras av kameran innan takten hojs till full fart; ligger matten utanfor\nformatets fonster ska linan stanna. Bytets 480 s ska raknas bort ur takttiden men inte ur\ntimmen.\n\nMat over minst tre korningar med 600 s uppvarmning. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F11"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "full takt startas direkt efter bytet, utan kontroll av forsta kartongen",
+    "bytets 480 s raknas in i takttiden, sa takten ser for lag ut och hojs i onodan",
+    "formatvalet lases en gang vid start i stallet for vid varje byte, sa gamla installningar lever kvar"
+  ],
+  "antaganden": [
+    {
+      "vad": "formatbytets 480 s",
+      "varde": "480 s",
+      "motiv": "atta minuter for verktygsbyte och installning pa en forpackningslinje; talet ar valt inom det som ar vanligt men ar inte matt"
+    },
+    {
+      "vad": "kapacitetsmalet 500 kartonger i timmen",
+      "varde": "500 per timme",
+      "motiv": "52 minuter produktion i 6,0 s takt ger 520 kartonger teoretiskt; malet 500 lamnar knappt 4 procent och ar satt, inte matt"
+    },
+    {
+      "vad": "kartongvikterna 4,8 och 8,1 kg",
+      "varde": "4,8 kg och 8,1 kg",
+      "motiv": "format B har cirka 1,7 ganger format A:s volym och vikten ar skalad efter det; bada ar antagna"
+    },
+    {
+      "vad": "robotvalet mot format B",
+      "varde": "KUKA KR 10 R1100 sixx, 10 kg",
+      "motiv": "format B vager 8,1 kg och gripdonet 1,2 kg, alltsa 9,3 kg; en 7 kg-robot racker inte, sa robotvalet foljer ur talen och ar inte fritt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong format B",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 200,
+      "massa_kg": 8.1
+    },
+    "arbetsradie_mm": 660.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Linan kor en simulerad timme med ett planerat formatbyte pa atta minuter.",
+      "forvantat": "Minst 500 kartonger i timmen, forsta kartongen efter bytet kontrollerad och full takt aterstalld utan operatorsingrepp."
+    },
+    {
+      "id": "fmt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST410_FMT_SEL",
+      "beskrivning": "ST410_FMT_SEL star pa 0 efter ett byte, alltsa inget format valt.",
+      "forvantat": "Linan far inte starta pa ett odefinierat format. Styrningen ska halla ST410_STA_STOP hog och larma tills ett giltigt format valts."
+    },
+    {
+      "id": "fmt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST410_FMT_SEL",
+      "beskrivning": "ST410_FMT_SEL ger 5, ett format som inte finns bland de tva.",
+      "forvantat": "Ett formatnummer utanfor intervallet far inte tolkas som det narmaste. Styrningen ska stoppa linan och larma."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST410_PRD_CNT",
+      "beskrivning": "ST410_PRD_CNT star kvar pa 0 i 300 s trots att bandet gar och kartonger passerar.",
+      "forvantat": "Utan rakning gar kapacitetsmalet inte att pröva. Styrningen ska larma och matningen forkastas hellre an rapporteras som noll."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST410_PRD_CNT",
+      "beskrivning": "ST410_PRD_CNT stiger till 700 pa en timme, over de 520 som takten teoretiskt medger.",
+      "forvantat": "Ett tal over det teoretiska maximum ar ett rakningsfel. Styrningen ska larma och matningen forkastas i stallet for att rapporteras som ett uppnatt mal."
+    },
+    {
+      "id": "cam_uteblir",
+      "typ": "vandning",
+      "signal": "ST410_CAM_OK",
+      "beskrivning": "ST410_CAM_TRIG pulsas efter ett byte men ST410_CAM_OK uteblir i 5,0 s.",
+      "forvantat": "Full takt far inte startas. Styrningen ska satta ST410_STA_STOP hog; en hel minut i full takt pa fel format ar en minut skrot."
+    }
+  ],
+  "core_outputs": [
+    "ST410_CNV_RUN",
+    "ST410_FMT_CHG",
+    "ST410_CAM_TRIG",
+    "ST410_LNE_SPD",
+    "ST410_STA_STOP"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "kartongresare",
+        "uri": "bank://station/kartongresare",
+        "count": 1
+      },
+      {
+        "role": "band",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      },
+      {
+        "role": "robot",
+        "uri": "bank://robot/kuka_kr10_r1100",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_4_sug_40",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "kartongresare",
+        "to_role": "band"
+      },
+      {
+        "from_role": "band",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "band",
+        "to_role": "robot"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST410_FMT_SEL",
+        "dir": "in",
+        "type": "int",
+        "comment": "valt format, 1 for A och 2 for B"
+      },
+      {
+        "name": "ST410_FMT_CHG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "formatbyte pagar"
+      },
+      {
+        "name": "ST410_FMT_RDY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "formatbytet klart och verktygen bytta"
+      },
+      {
+        "name": "ST410_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos formatkontroll"
+      },
+      {
+        "name": "ST410_CAM_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "forsta kartongen stammer med valt format"
+      },
+      {
+        "name": "ST410_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST410_LNE_SPD",
+        "dir": "out",
+        "type": "real",
+        "comment": "linans takt i kartonger per minut"
+      },
+      {
+        "name": "ST410_PRD_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal kartonger sedan matstart"
+      },
+      {
+        "name": "ST410_STA_STOP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "linan stoppad pa formatfel"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "kor linan i full takt, alltsa ST410_LNE_SPD lika med 10,0 kartonger per minut",
+      "vid formatbyte: satt ST410_FMT_CHG hog, stoppa bandet och vanta pa ST410_FMT_RDY",
+      "las ST410_FMT_SEL pa nytt efter varje byte, aldrig bara vid start",
+      "starta linan i halv takt och pulsa ST410_CAM_TRIG pa forsta kartongen",
+      "vid ST410_CAM_OK: hoj till full takt och nollstall ST410_FMT_CHG",
+      "vid utebliven eller lag ST410_CAM_OK: satt ST410_STA_STOP hog",
+      "rakna kapaciteten ur ST410_PRD_CNT over hela timmen, med bytets 480 s inraknade i timmen men inte i takttiden"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST410": 480.0
+      },
+      "cycle_s": 6.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "full takt far aldrig startas innan ST410_CAM_OK ar hog efter ett byte",
+      "bandet far inte ga nar ST410_FMT_CHG ar hog",
+      "ingen rorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 500.0,
+    "runs": 3,
+    "warmup_s": 600.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 12.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST410 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST410_FMT_CHG RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST410_FMT_RDY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST410_CAM_OK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST410 *s req=480.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST410_FMT_CHG+ST410_CNV_RUN dt=*ms"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

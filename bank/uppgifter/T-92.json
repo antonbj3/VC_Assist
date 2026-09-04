@@ -1,0 +1,199 @@
+{
+  "task_id": "T-92",
+  "title": "Trasig variant av T-02: nasta index startas pa timer, inte pa kvittens",
+  "goal": "Visa att ogat faller ett for kort uppehall aven nar ordningen ser riktig ut och inga signaler krockar.",
+  "grupp": "T",
+  "bransch": "lakemedel",
+  "orsak": "Speglar en driftsattningsmiss som overlever provkorning: indexet startas pa en fast timer som stammer sa lange forslutningen ar snabb. Nar varmen sjunker tar forslutningen 180 ms langre, bandet dras undan under verktyget och blistret dras snett. Ingen signal blir lag och ingen kollision sker, sa bara uppehallsmatningen kan avsloja det.",
+  "prompt": "Har ar en ogonrapport fran en korning av uppgift T-02, den indexerade matningen av\nblisterband med 150 mm per index och 1,60 s cykeltid. Kravet var att bandet star stilla i\nminst 0,90 s och att nasta index startas forst pa ST020_SEA_DONE.\n\nLas rapporten och avgor om korningen ar godkand. Om den inte ar det: namnge raden som faller\nden, sag vad som startade nasta index, och klassa fallningen enligt\ndocs/spec/82_felklasser.md. Observera att ordningen mellan handelserna ser riktig ut och att\nRACE star none; det ar inte samma sak som att tiderna haller.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "rapporten godkanns darfor att EDGE-raderna kommer i ratt ordning",
+    "fallningen klassas som sekvensfel trots att ordningen ar riktig och det ar tiden som brister"
+  ],
+  "antaganden": [
+    {
+      "vad": "tiderna i ogonrapporten",
+      "varde": "DWELL 0,720 s mot krav 0,900 s",
+      "motiv": "rapporten ar en handskriven fixtur; 0,720 s ar valt sa att det ligger tydligt under kravet men inom det spann en riktig forslutning kan ge"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "blister med tio kaviteter",
+      "l_mm": 90,
+      "b_mm": 55,
+      "h_mm": 12,
+      "massa_kg": 0.018
+    },
+    "arbetsradie_mm": 1500.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ogonrapporten laser av en 120 sekunder lang korning av T-02.",
+      "forvantat": "Rapporten ska fallas pa DWELL-raden, med felklass F6, trots att ordningen ser riktig ut."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST020_SEA_DONE",
+      "beskrivning": "Kvittensen kommer efter att nasta index redan startat, alltsa i fel ordning mot avsedd sekvens.",
+      "forvantat": "Att RACE star none och EDGE-raderna kommer i stigande tid racker inte. Uppehallet ar det enda mattet som visar att indexet startade for tidigt."
+    }
+  ],
+  "core_outputs": [
+    "ST020_IDX_START",
+    "ST020_SEA_CLOSE"
+  ],
+  "variant_av": "T-02",
+  "scene": {
+    "components": [
+      {
+        "role": "matare",
+        "uri": "bank://transport/indexerad_matare",
+        "count": 1
+      },
+      {
+        "role": "blistermaskin",
+        "uri": "bank://station/blistermaskin",
+        "count": 1
+      },
+      {
+        "role": "hemlagesgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "matare",
+        "to_role": "blistermaskin"
+      },
+      {
+        "from_role": "matare",
+        "to_role": "hemlagesgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST020_IDX_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett index om 150 mm"
+      },
+      {
+        "name": "ST020_IDX_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "matarens hemlage natt"
+      },
+      {
+        "name": "ST020_SEA_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor ner forslutningsverktyget"
+      },
+      {
+        "name": "ST020_SEA_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "forslutningen klar och verktyget uppe"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som T-02"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST020": 0.9
+      },
+      "cycle_s": 1.6,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST020_IDX_START far aldrig ga hog medan ST020_SEA_CLOSE ar hog"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 2250.0,
+    "runs": 3,
+    "warmup_s": 45.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 6.0,
+    "gate": "OGAT",
+    "verdict": "FAIL",
+    "reason_contains": "DWELL ST020",
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST020 0.720s req=0.900s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST020_IDX_START -> matare *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST020 in=74 out=71 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "oga",
+    "artefakt": "EYES v1\nTEMPLATE T-02_index_pa_timer\nRUN 2026-09-04T18:22:31 DUR 120.000s SAMPLES 2400 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST020_IDX_START RISE t=8.000s\n  EDGE ST020_SEA_CLOSE RISE t=8.400s\n  EDGE ST020_SEA_DONE RISE t=9.320s\n  DWELL ST020 0.720s req=0.900s SHORT\n  LATENCY ST020_IDX_START -> matare 180.000ms\n  RACE none\nSECTION THROUGHPUT\n  STATION ST020 in=74 out=71 avg=1.600s min=1.520s max=1.980s\nSECTION SAFETY\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL timing: DWELL ST020 0.720s under kravet 0.900s, indexet startade pa timer 180 ms fore ST020_SEA_DONE\n",
+    "vad_som_ar_fel": "Uppehallet blev 0,720 s mot kravet 0,900 s darfor att nasta index startades av en timer 180 ms innan ST020_SEA_DONE. Ordningen ser riktig ut och RACE star none; bara uppehallsmatningen faller korningen."
+  }
+}

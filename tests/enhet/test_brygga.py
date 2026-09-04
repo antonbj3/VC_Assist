@@ -108,7 +108,7 @@ def test_timeout_ger_degraded_och_lasande_exec_ar_vagen_ut(klient):
 
     klient.kor("print(1)")                        # vagen ut
     assert klient.ping()["degraded"] is False
-    assert klient.godkann(qid)["ok"] is True
+    assert klient.godkann_och_vanta(qid, timeout=10)["state"] == "done"
 
 
 def test_kon_hela_vagen_koa_lista_godkann_kor(klient, tmp_path):
@@ -120,10 +120,9 @@ def test_kon_hela_vagen_koa_lista_godkann_kor(klient, tmp_path):
 
     assert [p["qid"] for p in klient.ko()] == [post["qid"]]
 
-    svar = klient.godkann(post["qid"])
-    assert svar["ok"] is True
+    ut = klient.godkann_och_vanta(post["qid"], timeout=10)
+    assert ut["state"] == "done", ut
     assert open(mal).read() == "kord"
-    assert klient.ko()[0]["state"] == "done"
 
 
 def test_avvisad_post_kors_aldrig(klient, tmp_path):
@@ -138,9 +137,9 @@ def test_avvisad_post_kors_aldrig(klient, tmp_path):
 
 def test_misslyckad_koad_post_markeras_failed(klient):
     post = klient.koa("1/0", desc="trasig")
-    with pytest.raises(BryggFel):
-        klient.godkann(post["qid"])
-    assert klient.ko()[0]["state"] == "failed"
+    ut = klient.godkann_och_vanta(post["qid"], timeout=10)
+    assert ut["state"] == "failed"
+    assert "ZeroDivisionError" in ut["svar"]["error"]["traceback"]
 
 
 def test_okand_operation_namner_vad_bryggan_kan(brygga):
@@ -241,7 +240,7 @@ def test_samma_kod_gar_igenom_kon(klient, tmp_path):
     """Grinden ar en omdirigering, inte ett forbud."""
     mal = str(tmp_path / "via_kon.txt").replace("\\", "/")
     post = klient.koa("open(%r, 'w').write('kord')" % mal, desc="skriv")
-    klient.godkann(post["qid"])
+    assert klient.godkann_och_vanta(post["qid"], timeout=10)["state"] == "done"
     assert open(mal).read() == "kord"
 
 
@@ -292,3 +291,129 @@ def test_en_ny_anslutning_racker_for_att_vacka_pumpen(brygga):
         assert b.nasta_paus() == pump.PAUS_AKTIV
     finally:
         s.close()
+
+
+def test_pumpen_gar_snabbt_sa_lange_ogat_provtar(brygga):
+    """Ogat begar 20 Hz. Den tysta pumpen ar matt till 17,2 Hz (M-03), sa utan
+    detta underprovtar ogat tyst under varje matning."""
+    b, _port, _tf = brygga
+    b._senaste_trafik = 0.0
+    assert b.nasta_paus() == pump.PAUS_TOM
+
+    class Provtagare(object):
+        aktiv = True
+    b.provtagare = Provtagare()
+    assert b.nasta_paus() == pump.PAUS_AKTIV
+    b.provtagare.aktiv = False
+    assert b.nasta_paus() == pump.PAUS_TOM
+
+
+def test_godkannandet_kvitteras_direkt_och_koden_kors_av_pumpen(brygga, klient, tmp_path):
+    """Godkannandet ar en HANDLING, inte en korning. Matt skal: kod som stoppar
+    simuleringen dodar pumpens tasklet mitt i exec, och ett inline-godkannande
+    forsvann da tillsammans med sitt eget svar."""
+    b, _port, _tf = brygga
+    mal = str(tmp_path / "sent.txt").replace("\\", "/")
+    post = klient.koa("open(%r, 'w').write('x')" % mal, desc="sent")
+    svar = klient.godkann(post["qid"])
+    assert svar["ok"] is True and svar["result"]["state"] == "approved"
+    ut = klient.godkann_och_vanta.__self__.post(post["qid"])
+    # posten far ett utfall inom kort, av pumpen
+    for _ in range(200):
+        p = klient.post(post["qid"])
+        if p["state"] == "done":
+            break
+        time.sleep(0.01)
+    assert klient.post(post["qid"])["state"] == "done"
+    assert open(mal).read() == "x"
+
+
+def test_en_avbruten_post_ser_varken_ut_som_pending_eller_done(brygga, klient):
+    """Doden mitt i en korning far inte se ut som nagot annat an vad den var."""
+    b, _port, _tf = brygga
+    post = klient.koa("x = 1", desc="ska avbrytas")
+    klient.godkann(post["qid"])
+    for p in b.ko:
+        if p.qid == post["qid"]:
+            p.state = "running"          # som om pumpen dog just har
+    b._markera_avbrutna()
+    p = klient.post(post["qid"])
+    assert p["state"] == "interrupted"
+    with pytest.raises(BryggFel) as ei:
+        klient.godkann(post["qid"])      # far inte kunna koras en andra gang
+    assert ei.value.kod == P.E_NOT_APPROVED
+
+
+# ---- omstart efter scenandring ------------------------------------------
+
+def test_omstart_begars_hogst_en_gang_at_gangen(brygga):
+    """sim.reset() utloser ett nytt OnStop innan raden efter reset() kors.
+    Utan sparr blev det en omstartsstorm, matt till tusentals varv i sekunden."""
+    b, _p, _t = brygga
+    assert b.begar_omstart() is True
+    assert b.begar_omstart() is False, "andra begaran slapptes igenom"
+    b.pumpen_igang()
+    assert b.begar_omstart() is False, "for tatt inpa forra omstarten"
+
+
+def test_sparren_slapps_forst_nar_pumpen_bevisligen_gar(brygga):
+    b, _p, _t = brygga
+    b.begar_omstart()
+    assert b._startar_om is True
+    b.pumpen_igang()
+    assert b._startar_om is False
+
+
+def test_omstartstaket_stanger_av_sig_sjalvt(brygga):
+    """En brygga som inte kan komma tillbaka ska sluta forsoka, inte mala."""
+    b, _p, _t = brygga
+    for _ in range(pump.OMSTART_TAK_PER_MINUT):
+        b._startar_om = False
+        b._omstartstider.append(time.time() - 2.0)
+    b._startar_om = False
+    assert b.begar_omstart() is False
+    assert b.aterstart_simulering is False, "taket ska stanga av aterstarten"
+
+
+def test_omstart_avstangd_begar_inget(brygga):
+    b, _p, _t = brygga
+    b.aterstart_simulering = False
+    assert b.begar_omstart() is False
+
+
+def test_koden_som_dodar_bryggan_avvisas_med_skalet(klient):
+    """M-13: att skapa ett skriptbeteende stoppar simuleringen och dodar
+    pumpen. Bryggan ska saga det, inte tystna mitt i sitt eget svar."""
+    with pytest.raises(BryggFel) as ei:
+        klient.koa("c.createBehaviour(VC_SCRIPT, 'x')", desc="dodande")
+    assert ei.value.kod == P.E_ARGS
+    assert "M-13" in ei.value.meddelande
+
+
+def test_den_som_anda_vill_kan_men_far_saga_det(klient):
+    post = klient.anrop("exec_queue", {"code": "c.createBehaviour(VC_SCRIPT, 'x')",
+                                       "desc": "med oppna ogon",
+                                       "tillat_skriptbeteende": True})
+    assert post["ok"] is True
+
+
+def test_ett_skriptbeteende_kan_skjutas_upp_i_stallet_for_att_forbjudas(brygga, klient, tmp_path):
+    """Formagan ar inte borttagen, den ar uppskjuten till nasta VC-start."""
+    b, _p, _t = brygga
+    b.uppskjutetfil = str(tmp_path / "uppskjutet.json")
+    r = klient.anrop("exec_queue", {"code": "c.createBehaviour(VC_SCRIPT, 'x')",
+                                    "desc": "egen logik",
+                                    "skjut_upp": True})["result"]
+    assert r["uppskjuten"] is True and r["antal"] == 1
+    poster = klient.anrop("deferred_list")["result"]["poster"]
+    assert poster[0]["desc"] == "egen logik"
+    assert klient.ko() == [], "en uppskjuten post ska INTE ligga i korkon"
+    assert klient.anrop("deferred_clear")["result"]["borttagna"] == 1
+    assert klient.anrop("deferred_list")["result"]["poster"] == []
+
+
+def test_uppskjutet_avvisningsmeddelande_pekar_ut_bada_vagarna(klient):
+    with pytest.raises(BryggFel) as ei:
+        klient.koa("c.createBehaviour(VC_SCRIPT, 'x')", desc="x")
+    assert "skjut_upp" in ei.value.meddelande
+    assert "tillat_skriptbeteende" in ei.value.meddelande

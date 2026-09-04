@@ -1,0 +1,294 @@
+{
+  "task_id": "T-06",
+  "title": "Blockering nedstroms: backtryck utan att detaljer trycks sonder",
+  "goal": "Stoppa produktionen uppstroms i ratt ordning nar nedstroms bana ar blockerad, utan att detaljerna packas mot varandra.",
+  "grupp": "T",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en driftsattningsmiss i backtryckskedjan: uppstroms transportorer stoppas i fel ordning, narmast blockeringen sist. Kartongerna packas da ihop mot stoppet och de nedersta trycks sonder innan bandet hunnit stanna. Felet syns bara nar blockeringen varar langre an nagra sekunder, och det ar just da det kostar.",
+  "prompt": "Bygg en kedja pa tre transportorer med backtryckshantering och skriv styrningen.\n\nScen: tre bandtransportorer i foljd, alla 600 mm breda och 0,5 m/s, kallade ST060, ST070 och\nST080 raknat i flodesriktningen. Varje bana har en reflexfotocell i sitt slut. Produkten ar en\nkartong 400 x 300 x 200 mm som vager 4,8 kg.\n\nUppgift: nar ST080_PEC_END varit hog i mer an 2,0 s ar nedstroms blockerat. Stoppa da banorna i\nordningen ST080 forst, sedan ST070, sedan ST060, med 0,8 s mellan varje stopp, sa att\nkartongerna glesas ut i stallet for att packas ihop. Nar blockeringen slapper ska banorna\nstartas i omvand ordning, ST060 sist, med samma mellanrum.\n\nNormal takt ar 30 kartonger per minut. Ingen kartong far ligga an mot nasta med mer an\n15 mm inpressning; det matas som minsta avstand mellan kartonger. Signalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F11"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "banorna stoppas i flodesordning i stallet for bakifran, sa kartongerna packas ihop",
+    "blockering detekteras pa niva utan tidsvillkor, sa en normal passage stoppar linan",
+    "starten sker samtidigt pa alla banor, sa den forsta kartongen kors in i den som star kvar"
+  ],
+  "antaganden": [
+    {
+      "vad": "kartongens matt och vikt",
+      "varde": "400 x 300 x 200 mm, 4,8 kg",
+      "motiv": "en vanlig ytterkartong for konserv; vikten beror av innehallet och ar antagen"
+    },
+    {
+      "vad": "blockeringsvillkoret 2,0 s",
+      "varde": "2,0 s",
+      "motiv": "vald langre an den tid en kartong normalt skymmer fotocellen vid 0,5 m/s, som ar cirka 0,8 s; marginalen ar antagen"
+    },
+    {
+      "vad": "0,8 s mellan stoppen",
+      "varde": "0,8 s",
+      "motiv": "vald sa att kartongerna hinner glesas ut ett halvt kartonglangd mellan varje stopp; inte matt"
+    },
+    {
+      "vad": "15 mm hogsta inpressning",
+      "varde": "15 mm",
+      "motiv": "en antagen granss for nar wellpapp borjar ta skada; ingen materialprovning ligger bakom talet"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong for konserv",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 200,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 6000.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Linan gar i 30 kartonger per minut och ingen blockering rader.",
+      "forvantat": "Alla tre banorna gar, ST080_BLK_ACT lag och avstandet mellan kartonger over 15 mm."
+    },
+    {
+      "id": "rate_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST060_LNE_RATE",
+      "beskrivning": "ST060_LNE_RATE faller till 6 kartonger per minut, under det lagsta arbetsvardet 12.",
+      "forvantat": "Lag takt ar inte blockering. Styrningen ska halla banorna igang och inte utlosa backtryckskedjan, men markera lagt flode uppat i systemet."
+    },
+    {
+      "id": "rate_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST060_LNE_RATE",
+      "beskrivning": "ST060_LNE_RATE stiger till 40 kartonger per minut, over linans hogsta 36.",
+      "forvantat": "Vid overtakt hinner utgluesningen inte med. Styrningen ska strypa ST060_CNV_RUN forst av alla, sa att kon byggs uppstroms dar det finns plats."
+    },
+    {
+      "id": "blk_flimrar",
+      "typ": "vandning",
+      "signal": "ST080_PEC_END",
+      "beskrivning": "ST080_PEC_END gar hog och lag vaxelvis med 0,3 s mellanrum medan kartonger passerar normalt.",
+      "forvantat": "En passerande kartong ar ingen blockering. Tidsvillkoret om 2,0 s sammanhangande hog niva ska hindra att backtryckskedjan utloses."
+    }
+  ],
+  "core_outputs": [
+    "ST060_CNV_RUN",
+    "ST070_CNV_RUN",
+    "ST080_CNV_RUN",
+    "ST080_BLK_ACT"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "bana1",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "bana2",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "bana3",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "fotocell1",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "fotocell2",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "fotocell3",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana1",
+        "to_role": "bana2"
+      },
+      {
+        "from_role": "bana2",
+        "to_role": "bana3"
+      },
+      {
+        "from_role": "bana1",
+        "to_role": "fotocell1"
+      },
+      {
+        "from_role": "bana2",
+        "to_role": "fotocell2"
+      },
+      {
+        "from_role": "bana3",
+        "to_role": "fotocell3"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST060_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "forsta banan gar"
+      },
+      {
+        "name": "ST070_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "andra banan gar"
+      },
+      {
+        "name": "ST080_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "tredje banan gar"
+      },
+      {
+        "name": "ST060_PEC_END",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartong i forsta banans slut"
+      },
+      {
+        "name": "ST070_PEC_END",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartong i andra banans slut"
+      },
+      {
+        "name": "ST080_PEC_END",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartong i tredje banans slut"
+      },
+      {
+        "name": "ST080_BLK_ACT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "nedstroms blockering bekraftad"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "ST060_LNE_RATE",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt takt i kartonger per minut over linan"
+      }
+    ],
+    "sequence": [
+      "kor alla tre banorna nar EMG_OK ar hog och ingen blockering rader",
+      "starta en tidmatning nar ST080_PEC_END gar hog",
+      "satt ST080_BLK_ACT hog nar tiden natt 2,0 s med signalen fortfarande hog",
+      "stoppa ST080_CNV_RUN, vanta 0,8 s, stoppa ST070_CNV_RUN, vanta 0,8 s, stoppa ST060_CNV_RUN",
+      "nar ST080_PEC_END gar lag: nollstall ST080_BLK_ACT",
+      "starta ST080_CNV_RUN, vanta 0,8 s, starta ST070_CNV_RUN, vanta 0,8 s, starta ST060_CNV_RUN"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST080": 2.0
+      },
+      "cycle_s": 2.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "en uppstroms bana far aldrig ga nar banan nedstroms om den star still",
+      "ingen bana startas nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1800.0,
+    "runs": 3,
+    "warmup_s": 90.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST080_BLK_ACT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST080_CNV_RUN FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST070_CNV_RUN FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST060_CNV_RUN FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST080 *s req=2.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST080 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kartong_n+kartong_n1 *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

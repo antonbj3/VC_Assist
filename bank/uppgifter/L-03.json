@@ -1,0 +1,304 @@
+{
+  "task_id": "L-03",
+  "title": "Avpalletering i omvand ordning fran tre lager",
+  "goal": "Tomma en pall lager for lager uppifran, i omvand ordning mot hur den byggdes, och ta bort mellanlaggen pa ratt stalle i foljden.",
+  "grupp": "L",
+  "bransch": "logistik_pall",
+  "orsak": "Speglar en driftsattningsmiss i avpalletering: hojden till nasta lager raknas fram ur ett antaget lagerantal i stallet for ur den uppmatta lasthojden. Nar pallen inte ar fullbyggd kor gripdonet ner i tomma luften, eller in i lagret under. Mellanlagget missas darfor att det inte finns med i raknaren.",
+  "prompt": "Bygg en avpalleteringsstation och skriv styrningen till den.\n\nScen: en ABB IRB 660-180/3.15 med rackvidd 3150 mm, ett vakuumgripdon med atta sugkoppar om\n80 mm, en kedjetransportor for EUR-pall och en utgaende rullbana. Pallen kommer med hogst tre\nlager om atta kollin 400 x 300 x 200 mm som vager 4,8 kg, med mellanlagg av papp mellan lagren.\nRobotens langsta arbetsradie i uppgiften ar 2400 mm.\n\nUppgift: tom pallen uppifran. Ta atta kollin ur det oversta lagret, sedan mellanlagget under\ndet, sedan nasta atta, och sa vidare tills ST170_PLT_HGT visar pallens egen hojd om 144 mm.\nAntalet lager far inte antas; hojden ska lasas. Efter varje lager ska mellanlagget hamtas om\nST170_SHT_DET ser ett. Takten ar 5,0 s per kolli.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "hojden till nasta lager raknas ur ett antaget lagerantal i stallet for ur ST170_PLT_HGT",
+    "mellanlagget hoppas over darfor att det inte finns med i kolliraknaren",
+    "pallen forklaras tom pa raknaren i stallet for pa hojden, sa ett halvt lager blir kvar"
+  ],
+  "antaganden": [
+    {
+      "vad": "hogst tre lager",
+      "varde": "3 lager",
+      "motiv": "matchar den pall L-02 bygger; att pallen kan vara ofullstandig ar hela poangen och antalet far inte anvandas i styrningen"
+    },
+    {
+      "vad": "takten 5,0 s per kolli",
+      "varde": "5,0 s",
+      "motiv": "nagot snabbare an palletering darfor att avlagget pa utbanan ar enklare an ett monsterlagg; talet ar antaget"
+    },
+    {
+      "vad": "pallens egen hojd 144 mm",
+      "varde": "144 mm",
+      "motiv": "EUR-pallens hojd ar ett standardmatt och star som STANDARDMATT i katalogindexet"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong for konserv",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 200,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "En fullbyggd pall med tre lager och tva mellanlagg tommes uppifran i 5,0 s takt.",
+      "forvantat": "Alla 24 kollin och bada mellanlaggen tagna i omvand ordning, ST170_PLT_EMPTY satt pa hojden."
+    },
+    {
+      "id": "hgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST170_PLT_HGT",
+      "beskrivning": "ST170_PLT_HGT visar 90 mm, alltsa lagre an EUR-pallens egen hojd om 144 mm.",
+      "forvantat": "En hojd under pallens egen ar ett givarfel eller en tom station. Styrningen ska larma och inte kora ner gripdonet."
+    },
+    {
+      "id": "hgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST170_PLT_HGT",
+      "beskrivning": "ST170_PLT_HGT visar 1900 mm, hogre an en fullbyggd pall om 750 mm.",
+      "forvantat": "Styrningen far inte kora upp till en hojd som pallen inte kan ha. Den ska larma och begara manuell kontroll."
+    },
+    {
+      "id": "sht_uteblir",
+      "typ": "vandning",
+      "signal": "ST170_SHT_DET",
+      "beskrivning": "Lagret ar tomt men ST170_SHT_DET gar aldrig hog, trots att ett mellanlagg ligger kvar.",
+      "forvantat": "Nasta lager far inte hamtas genom mellanlagget. Styrningen ska las hojden pa nytt och larma om hojden inte fallit som ett tomt lager kraver."
+    }
+  ],
+  "core_outputs": [
+    "ST170_RB_START",
+    "ST170_SHT_REQ",
+    "ST170_VAC_ON",
+    "ST170_PLT_EMPTY"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_660_180_3150",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "palltransport",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 1
+      },
+      {
+        "role": "utbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "hojdgivare",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "utbana"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "hojdgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST170_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett hamtprogram"
+      },
+      {
+        "name": "ST170_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "hamtprogrammet klart"
+      },
+      {
+        "name": "ST170_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST170_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST170_PLT_HGT",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt lasthojd i mm, pallens overkant inraknad"
+      },
+      {
+        "name": "ST170_SHT_DET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mellanlagg ligger overst"
+      },
+      {
+        "name": "ST170_SHT_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "hamta mellanlagget"
+      },
+      {
+        "name": "ST170_PLT_EMPTY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "pallen tom"
+      },
+      {
+        "name": "ST170_LYR_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kollin tagna ur pagaende lager"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "las ST170_PLT_HGT och rakna fram griphojden ur den, aldrig ur ett antaget lagerantal",
+      "hamta atta kollin ur det oversta lagret och lagg dem pa utbanan",
+      "las ST170_SHT_DET nar lagret ar tomt",
+      "om mellanlagg finns: satt ST170_SHT_REQ hog och hamta det",
+      "las ST170_PLT_HGT pa nytt och upprepa",
+      "satt ST170_PLT_EMPTY hog forst nar ST170_PLT_HGT ar 144 mm plus toleransen"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST170": 0.5
+      },
+      "cycle_s": 5.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "griphojden far aldrig raknas ur ett antaget lagerantal",
+      "ST170_PLT_EMPTY far bara sattas pa hojden, aldrig pa kolliraknaren",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 720.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 12.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST170_SHT_REQ RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST170_PLT_EMPTY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST170 *s req=0.5s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST170 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+lager_under *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP NEVER_FORMED"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION gripdon x lager_under t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

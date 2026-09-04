@@ -1,0 +1,285 @@
+{
+  "task_id": "S-01",
+  "title": "Tva utgangar pa en givarsignal",
+  "goal": "Dela ett flode i tva utgangar pa hojdgivarens besked, en detalj i taget.",
+  "grupp": "S",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en sorteringsmiss som ger fel produkt i fel lada: utskjutaren kommenderas pa hojdgivarens niva i stallet for pa den lagrade bedomningen for just den detalj som star vid utskjutaren. Nar detaljerna kommer tatt sorteras foregaende detaljs besked pa nasta detalj, och felet vandrar en detalj framat genom hela flodet.",
+  "prompt": "Bygg en sorteringsstation med tva utgangar och skriv styrningen till den.\n\nScen: en bandtransportor med bandbredd 400 mm som gar i 0,35 m/s, en genomgaende fotocell som\nhojdgivare 400 mm uppstroms utskjutaren, en pneumatisk utskjutare med 0,4 s slagtid, och tva\nutgangar: rakt fram och at sidan. Produkten ar en burk 73 x 73 x 110 mm som vager 0,33 kg.\nHoga burkar ska rakt fram, laga at sidan.\n\nUppgift: bedom varje burk vid hojdgivaren, lagra beskedet tillsammans med burken och skjut ut\nden forst nar den nar utskjutaren, 400 mm senare. Vid 0,35 m/s ar det 1,14 s. Kom ihag att\nutskjutarens slagtid ar 0,4 s, sa kommandot maste ges i forvag. Takten ar 60 burkar per minut.\n\nSortera aldrig pa givarens ogonblicksniva. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5"
+  ],
+  "stege": "sortering_hojd_enkel",
+  "difficulty": 2,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "utskjutaren kommenderas pa hojdgivarens niva, sa foregaende burks besked hamnar pa nasta burk",
+    "kommandot ges nar burken redan star framfor utskjutaren, sa slagtiden 0,4 s gor att den missas",
+    "skiftregistret nollstalls vid stopp, sa burkarna pa banan tappar sina besked"
+  ],
+  "antaganden": [
+    {
+      "vad": "burkens matt och vikt",
+      "varde": "73 x 73 x 110 mm, 0,33 kg",
+      "motiv": "matten ar en vanlig 33 cl konservburk; vikten ar antagen ur fylld volym plus plat"
+    },
+    {
+      "vad": "avstandet 400 mm mellan givare och utskjutare",
+      "varde": "400 mm",
+      "motiv": "valt sa att det ryms flera burkar mellan dem vid 60 burkar per minut, vilket ar det som gor niva-sortering omojlig; avstandet ar antaget"
+    },
+    {
+      "vad": "takten 60 burkar per minut",
+      "varde": "60 per minut",
+      "motiv": "en burk per sekund ar en vanlig takt for den har sortens sortering; talet ar valt och inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "konservburk 33 cl",
+      "l_mm": 73,
+      "b_mm": 73,
+      "h_mm": 110,
+      "massa_kg": 0.33
+    },
+    "arbetsradie_mm": 2000.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Burkar av bada hojderna kommer blandat i 60 per minut och sorteras till var sin utgang.",
+      "forvantat": "Varje burk hamnar i den utgang dess egen hojdbedomning anger, med ratt forhallning mellan besked och burk."
+    },
+    {
+      "id": "enc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST190_ENC_POS",
+      "beskrivning": "ST190_ENC_POS star still trots att bandet gar, alltsa pulsgivaren ger inget.",
+      "forvantat": "Utan strackning gar skiftregistret inte att fora framat. Styrningen ska stoppa bandet och larma i stallet for att sortera pa tid."
+    },
+    {
+      "id": "enc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST190_ENC_POS",
+      "beskrivning": "ST190_ENC_POS hoppar 3000 mm mellan tva scan, langre an banans synliga langd om 2000 mm.",
+      "forvantat": "Ett hopp langre an banan ar ett overslag i raknaren. Styrningen ska hantera overslaget utan att tappa burkarnas beskeder, och larma om den inte kan."
+    },
+    {
+      "id": "home_uteblir",
+      "typ": "vandning",
+      "signal": "ST190_PSH_HOME",
+      "beskrivning": "ST190_PSH_OUT nollstalls men ST190_PSH_HOME gar aldrig hog; utskjutaren har fastnat ute.",
+      "forvantat": "Nasta burk far inte slappas fram mot en utskjutare som star ute. Styrningen ska stoppa bandet och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST190_PSH_OUT",
+    "ST190_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "hojdgivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utgang_rakt",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "utgang_sida",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "pulsgivare",
+        "uri": "bank://givare/lagesgivare_encoder",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "utgang_rakt"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utgang_sida"
+      },
+      {
+        "from_role": "band",
+        "to_role": "hojdgivare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "pulsgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST190_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST190_HGT_HIGH",
+        "dir": "in",
+        "type": "bool",
+        "comment": "hojdgivaren ser en hog burk"
+      },
+      {
+        "name": "ST190_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "burk passerar hojdgivarens lage"
+      },
+      {
+        "name": "ST190_PSH_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera utskjutaren ut"
+      },
+      {
+        "name": "ST190_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "utskjutaren i hemlage"
+      },
+      {
+        "name": "ST190_ENC_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "bandets strackning i mm"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "hall ST190_CNV_RUN hog nar EMG_OK och AIR_OK ar hoga",
+      "pa stigande flank pa ST190_PEC_PART: lagra ST190_HGT_HIGH och ST190_ENC_POS for den burken",
+      "for skiftregistret framat med ST190_ENC_POS, inte med tiden",
+      "nar en burks lagrade lage nar 400 mm minus utskjutarens slagstracka: las dess besked",
+      "om besked ar lag: satt ST190_PSH_OUT hog i 0,4 s och vanta pa ST190_PSH_HOME",
+      "om besked ar hog: lat burken ga rakt fram"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST190": 0.4
+      },
+      "cycle_s": 1.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "utskjutaren far aldrig kommenderas nar AIR_OK ar lag",
+      "skiftregistret far inte nollstallas vid ett stopp med burkar kvar pa banan"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 3600.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST190_PEC_PART RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST190_PSH_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST190_PSH_OUT -> utskjutare *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST190 *s req=0.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST190 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST utskjutare+burk *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SAFETY",
+        "template": "COLLISION utskjutare x burk t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST190 *s req=0.4s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

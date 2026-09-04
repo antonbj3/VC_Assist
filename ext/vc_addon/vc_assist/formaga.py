@@ -45,6 +45,7 @@ YTOR = [
     # komponenten
     ("comp.Name", "comp", "Name"),
     ("comp.Uri", "comp", "Uri"),
+    ("comp.VCID", "comp", "VCID"),
     ("comp.Category", "comp", "Category"),
     ("comp.Properties", "comp", "Properties"),
     ("comp.getProperty", "comp", "getProperty"),

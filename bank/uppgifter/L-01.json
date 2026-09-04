@@ -1,0 +1,319 @@
+{
+  "task_id": "L-01",
+  "title": "Ett lager om atta kollin i monster pa EUR-pall",
+  "goal": "Bygga ett fullt lager pa en EUR-pall utan att kollit tar i pallkarmen eller i grannkollit.",
+  "grupp": "L",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en driftsattningsmiss i palleteringsmonster: avlaggshojden raknas fran pallens overkant i stallet for fran lagrets overkant, och slappet sker pa robotens lagesignal. Kollit slapps da 40 mm for hogt och studsar snett, och nasta kolli tar i det. Felet syns forst nar lagret ar halvfullt och kollina inte langre har fri sida att falla mot.",
+  "prompt": "Bygg en palleteringsstation och skriv styrningen till den.\n\nScen: en ABB IRB 660-180/3.15 med rackvidd 3150 mm och nyttolast 180 kg, ett vakuumgripdon med\natta sugkoppar om 80 mm som vager 6,5 kg, en kedjetransportor for EUR-pall, en EUR-pall\n1200 x 800 x 144 mm och en inkommande rullbana. Kollit ar en ytterkartong 400 x 300 x 200 mm\nsom vager 4,8 kg. Robotens langsta arbetsradie i uppgiften ar 2400 mm.\n\nUppgift: lagg atta kollin i ett lager pa pallen. Monstret ar 400 mm langs pallens 800 mm-sida,\nalltsa tva i bredd, och 300 mm langs 1200 mm-sidan, alltsa fyra i djup. Lagret tacker da\npallen exakt. Placeringstoleransen pa pall ar 10 mm. Avlaggshojden ska raknas fran lagrets\noverkant, inte fran pallens, och vakuumet slapps forst nar kollit star an mot underlaget.\nTakten ar 5,5 s per kolli, alltsa 44 s per lager.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F9"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "avlaggshojden raknas fran pallens overkant, sa kollit slapps 40 mm for hogt",
+    "vakuumet slapps pa robotens lagesignal i stallet for nar kollit star an",
+    "monstret raknas fran pallens mitt utan hansyn till karmen, sa yttersta kollit hanger over"
+  ],
+  "antaganden": [
+    {
+      "vad": "kollits matt och vikt",
+      "varde": "400 x 300 x 200 mm, 4,8 kg",
+      "motiv": "en vanlig ytterkartong for konserv; vikten beror pa innehallet och ar antagen"
+    },
+    {
+      "vad": "takten 5,5 s per kolli",
+      "varde": "5,5 s",
+      "motiv": "en palleteringscell ligger typiskt pa 4 till 15 s per kolli; 5,5 s ar valt i den snabba anden och ar inte matt"
+    },
+    {
+      "vad": "placeringstoleransen 10 mm",
+      "varde": "10 mm",
+      "motiv": "pallplaceringar ligger typiskt mellan 5 och 20 mm; 10 mm ar valt mitt i det spannet"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong for konserv",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 200,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "En tom EUR-pall star i stationen och atta kollin laggs i monstret med 5,5 s takt.",
+      "forvantat": "Atta kollin i lagret, alla inom 10 mm fran sin position och utan berorning med karm eller grannkolli."
+    },
+    {
+      "id": "hgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST150_PLT_HGT",
+      "beskrivning": "ST150_PLT_HGT visar 0 mm trots att pallen ligger i stationen och ar 144 mm hog.",
+      "forvantat": "En lasthojd under pallens egen hojd ar ett givarfel. Styrningen ska sparra avlagget och larma i stallet for att lagga kollit 144 mm for lagt."
+    },
+    {
+      "id": "hgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST150_PLT_HGT",
+      "beskrivning": "ST150_PLT_HGT visar 2100 mm, over den hogsta tillatna lasthojden om 1800 mm.",
+      "forvantat": "Over hogsta lasthojd far inget mer laggas. Styrningen ska satta ST150_PLT_FULL hog och larma, oavsett vad ST150_LYR_CNT sager."
+    },
+    {
+      "id": "plt_forsvinner",
+      "typ": "vandning",
+      "signal": "ST150_PLT_PRS",
+      "beskrivning": "ST150_PLT_PRS gar lag mitt i ett lager, medan roboten bar ett kolli.",
+      "forvantat": "Kollit far inte slappas over en tom station. Styrningen ska fora tillbaka kollit till hamtlaget eller halla det, och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST150_RB_START",
+    "ST150_VAC_ON",
+    "ST150_PLT_FULL"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_660_180_3150",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "palltransport",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 1
+      },
+      {
+        "role": "inbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "pallgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "pallgivare"
+      },
+      {
+        "from_role": "inbana",
+        "to_role": "robot"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST150_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett avlagg pa nasta position i monstret"
+      },
+      {
+        "name": "ST150_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "avlagget klart"
+      },
+      {
+        "name": "ST150_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST150_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST150_PLT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "pall pa plats i stationen"
+      },
+      {
+        "name": "ST150_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kolli pa plats i hamtlaget"
+      },
+      {
+        "name": "ST150_LYR_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kollin i pagaende lager"
+      },
+      {
+        "name": "ST150_PLT_FULL",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lagret fardigt"
+      },
+      {
+        "name": "ST150_PLT_HGT",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt lasthojd pa pallen i mm"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST150_PLT_PRS och nollstall ST150_LYR_CNT",
+      "vanta pa ST150_PRT_PRS i hamtlaget",
+      "satt ST150_VAC_ON hog och vanta pa ST150_VAC_OK",
+      "rakna fram nasta position i monstret ur ST150_LYR_CNT",
+      "satt avlaggshojden till ST150_PLT_HGT plus kollits hojd",
+      "satt ST150_RB_START hog och vanta pa ST150_RB_DONE",
+      "nollstall ST150_VAC_ON nar kollit star an mot underlaget",
+      "oka ST150_LYR_CNT och satt ST150_PLT_FULL hog vid atta"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST150": 0.5
+      },
+      "cycle_s": 5.5,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "roboten far inte lagga av utan ST150_PLT_PRS",
+      "vakuumet far inte slappas over hojd, bara nar kollit star an",
+      "ingen robotrorelse nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 654.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST150_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST150 *s req=0.5s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST150 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+pallkarm *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+grannkolli *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SAFETY",
+        "template": "COLLISION kolli x pallkarm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION kolli x grannkolli t=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

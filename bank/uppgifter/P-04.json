@@ -1,0 +1,306 @@
+{
+  "task_id": "P-04",
+  "title": "Plock ur gitterbox tills den ar tom",
+  "goal": "Plocka kartongaskar ur en ostrukturerad hog och veta nar hogen ar slut, utan att forvaxla ett misslyckat grepp med en tom box.",
+  "grupp": "P",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar en driftsattningsmiss i plock ur hog: ett misslyckat grepp raknas som en tom box, sa boxen skickas ivag halvfull. Vakuumet ger inte alltid ST130_GRP_HELD i tid, och utan skillnad mellan misslyckat grepp och slut pa material tommer cellen aldrig en box helt.",
+  "prompt": "Bygg en plockcell over en gitterbox och skriv styrningen till den.\n\nScen: en KUKA KR 10 R1100 sixx med rackvidd 1101 mm och nyttolast 10 kg, en tvabackad\npneumatisk parallellgripare som vager 1,5 kg, en gitterbox 1240 x 835 x 970 mm, och en 3D-kamera\nmed 900 ms bildtagning och greppberakning. Detaljen ar en kartongask 240 x 160 x 90 mm som\nvager 1,8 kg. Robotens langsta arbetsradie i uppgiften ar 1050 mm.\n\nUppgift: plocka askar ur boxen och lagg dem pa utgaende bana tills boxen ar tom. Efter varje\ngrepp ska ST130_GRP_HELD bekrafta att en ask sitter i griparen. Ett misslyckat grepp ska ge ett\nnytt forsok pa en annan greppunkt, hogst tre forsok i rad. Boxen far forklaras tom forst nar\nkameran gett noll greppunkter tre bildtagningar i rad. Takten ar 6,5 s per ask.\n\nSkilj pa misslyckat grepp och tom box. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F10"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "ett misslyckat grepp raknas som tom box, sa boxen skickas ivag halvfull",
+    "roboten forsoker om pa samma greppunkt tills tiden gar ut, i stallet for pa en ny",
+    "ST130_GRP_HELD lases direkt efter stangning, innan backarna hunnit fram, och ger falskt nej"
+  ],
+  "antaganden": [
+    {
+      "vad": "askens matt och vikt",
+      "varde": "240 x 160 x 90 mm, 1,8 kg",
+      "motiv": "en vanlig orderplockask; vikten beror pa innehallet och ar antagen, men ligger langt under robotens nyttolast"
+    },
+    {
+      "vad": "takten 6,5 s per ask",
+      "varde": "6,5 s",
+      "motiv": "inkluderar 0,9 s bildtagning och en rorelse over cirka 1,0 m; talet ar antaget och inte matt pa den har cellen"
+    },
+    {
+      "vad": "tre bildtagningar utan traff",
+      "varde": "3 bilder",
+      "motiv": "vald sa att en enstaka skuggning inte tommer boxen for tidigt; antalet ar antaget"
+    },
+    {
+      "vad": "hogst tre greppforsok i rad",
+      "varde": "3 forsok",
+      "motiv": "vald sa att cellen inte later sig lasas av en enda svar ask; antalet ar antaget"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kartongask for orderplock",
+      "l_mm": 240,
+      "b_mm": 160,
+      "h_mm": 90,
+      "massa_kg": 1.8
+    },
+    "arbetsradie_mm": 1050.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Boxen ar full med 48 askar och kameran ger mellan 3 och 9 greppunkter per bild.",
+      "forvantat": "Alla 48 askar plockade, boxen forklarad tom forst efter tre tomma bilder i rad."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST130_CAM_CNT",
+      "beskrivning": "ST130_CAM_CNT ger 0 greppunkter i en enda bild medan boxen fortfarande har askar kvar langst ner i ett horn.",
+      "forvantat": "En tom bild ar inte en tom box. Styrningen ska ta en ny bild och forst efter tre tomma i rad satta ST130_BOX_EMPTY."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST130_CAM_CNT",
+      "beskrivning": "ST130_CAM_CNT ger 64 greppunkter, fler an de 48 askar boxen rymmer.",
+      "forvantat": "Fler greppunkter an boxen rymmer betyder att kameran ser reflexer eller boxens galler. Styrningen ska larma och inte plocka pa en punkt ur den bilden."
+    },
+    {
+      "id": "held_uteblir",
+      "typ": "vandning",
+      "signal": "ST130_GRP_HELD",
+      "beskrivning": "ST130_GRP_CLOSED gar hog men ST130_GRP_HELD uteblir, tre greppforsok i rad.",
+      "forvantat": "Tre misslyckade grepp ar inte en tom box. Styrningen ska larma om upprepade greppmissar och lamna ST130_BOX_EMPTY lag."
+    }
+  ],
+  "core_outputs": [
+    "ST130_RB_START",
+    "ST130_GRP_CLOSE",
+    "ST130_CAM_TRIG",
+    "ST130_BOX_EMPTY"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/kuka_kr10_r1100",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "gitterbox",
+        "uri": "bank://last/gitterbox",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_3d_bin",
+        "count": 1
+      },
+      {
+        "role": "utgang",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "gitterbox",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "utgang"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST130_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos en 3D-bildtagning"
+      },
+      {
+        "name": "ST130_CAM_READY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "greppberakningen klar"
+      },
+      {
+        "name": "ST130_CAM_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal giltiga greppunkter i bilden"
+      },
+      {
+        "name": "ST130_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta plockprogrammet pa vald greppunkt"
+      },
+      {
+        "name": "ST130_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "plocket klart"
+      },
+      {
+        "name": "ST130_GRP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stang griparen"
+      },
+      {
+        "name": "ST130_GRP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "backarna i stangt lage"
+      },
+      {
+        "name": "ST130_GRP_HELD",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ask sitter i griparen"
+      },
+      {
+        "name": "ST130_BOX_EMPTY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "boxen forklarad tom"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "pulsa ST130_CAM_TRIG och vanta pa ST130_CAM_READY",
+      "om ST130_CAM_CNT ar noll: rakna upp tomraknaren, annars nollstall den",
+      "satt ST130_BOX_EMPTY hog nar tomraknaren nar tre",
+      "valj hogsta greppunkten och satt ST130_RB_START hog",
+      "satt ST130_GRP_CLOSE hog och vanta pa ST130_GRP_CLOSED",
+      "las ST130_GRP_HELD forst 0,35 s efter ST130_GRP_CLOSED",
+      "vid uteblivet grepp: oppna griparen, valj nasta greppunkt och forsok om, hogst tre ganger",
+      "vid lyckat grepp: for asken till utgangen och vanta pa ST130_RB_DONE"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST130": 0.35
+      },
+      "cycle_s": 6.5,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ST130_BOX_EMPTY far aldrig ga hog efter ett misslyckat grepp",
+      "roboten far inte ga ner i boxen utan en giltig greppunkt",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 553.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST130_GRP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST130_GRP_CLOSED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST130 *s req=0.35s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST130 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+boxvagg *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP NEVER_FORMED"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION gripdon x boxvagg t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

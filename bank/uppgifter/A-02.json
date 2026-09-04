@@ -1,0 +1,278 @@
+{
+  "task_id": "A-02",
+  "title": "Fyra skruvar i bestamd ordning med momentkontroll",
+  "goal": "Dra fyra skruvar i korsordning, kontrollera momentet efter varje och stoppa vid forsta skruv som inte nar momentfonstret.",
+  "grupp": "A",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar en driftsattningsmiss som slipper igenom slutkontrollen: momentet lases direkt nar spindeln stannar, innan momentgivarens 50 ms svarstid gatt ut. Vardet blir da for lagt och styrningen drar om, eller for hogt darfor att dynamiken inte lagt sig, och skruven overdras. Ordningen bryts ocksa nar ett omdrag laggs sist i stallet for pa sin plats i korsordningen.",
+  "prompt": "Bygg en skruvstation och skriv styrningen till den.\n\nScen: en FANUC M-10iD/12 med rackvidd 1441 mm och nyttolast 12 kg, en robotspindel for\nskruvdragning med momentgivare som vager 5,6 kg, en skruvstation med matare och en fixtur med\npneumatiska spannare. Detaljen ar en fastkonsol 320 x 180 x 60 mm som vager 2,6 kg och skruvarna\nar M8 med atdragningsmoment 22,0 Nm och fonster 20,0 till 24,0 Nm. Robotens langsta arbetsradie\ni uppgiften ar 1300 mm.\n\nUppgift: dra de fyra skruvarna i korsordning, alltsa positionerna 1, 3, 2, 4. Varje dragning tar\n2,8 s. Las ST240_TRQ_VAL forst 0,10 s efter att ST240_SCR_DONE gatt hog, sa att momentgivarens\nsvarstid om 50 ms hunnit ut med marginal. Ligger momentet utanfor fonstret ska ST240_NOK_POS satta\npositionsnumret och stationen stoppa; drag inte om automatiskt. Takten ar 18,0 s per enhet.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "momentet lases direkt pa ST240_SCR_DONE, innan givarens svarstid gatt ut",
+    "en underkand skruv dras om automatiskt sist, sa korsordningen bryts",
+    "ordningen kodas som 1, 2, 3, 4 darfor att det ar den naturliga raknordningen"
+  ],
+  "antaganden": [
+    {
+      "vad": "atdragningsmoment 22,0 Nm med fonster 20 till 24",
+      "varde": "22,0 Nm, 20,0 till 24,0 Nm",
+      "motiv": "en M8-skruv i stal ligger typiskt runt 20 till 25 Nm beroende pa klass och friktion; talet ar valt inom det spannet och inte hamtat ur en ritning"
+    },
+    {
+      "vad": "dragtiden 2,8 s per skruv",
+      "varde": "2,8 s",
+      "motiv": "inkluderar matning av skruv, ansattning och dragning; talet ar antaget"
+    },
+    {
+      "vad": "lasfordrojningen 0,10 s",
+      "varde": "0,10 s",
+      "motiv": "vald till dubbla momentgivarens antagna svarstid om 50 ms, sa att marginalen ar tydlig; ingen matning finns annu"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "fastkonsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 60,
+      "massa_kg": 2.6
+    },
+    "arbetsradie_mm": 1300.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Enheter kommer i 18,0 s takt och alla fyra skruvar hamnar i momentfonstret.",
+      "forvantat": "Ordningen 1, 3, 2, 4 halls, momentet lases 0,10 s efter stopp och ST240_NOK_POS forblir 0."
+    },
+    {
+      "id": "trq_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST240_TRQ_VAL",
+      "beskrivning": "ST240_TRQ_VAL visar 6,5 Nm pa position 3, langt under fonstrets 20,0 Nm.",
+      "forvantat": "Skruven har troligen inte fatt gang. Styrningen ska satta ST240_NOK_POS till 3, satta ST240_STA_STOP hog och inte dra om automatiskt."
+    },
+    {
+      "id": "trq_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST240_TRQ_VAL",
+      "beskrivning": "ST240_TRQ_VAL visar 31,0 Nm pa position 2, over fonstrets 24,0 Nm.",
+      "forvantat": "Overdragning kan ha skadat gangan. Styrningen ska satta ST240_NOK_POS till 2, stoppa stationen och inte slappa ut enheten."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST240_SCR_DONE",
+      "beskrivning": "ST240_SCR_START satts hog men ST240_SCR_DONE uteblir i 6,0 s, mer an dubbla dragtiden.",
+      "forvantat": "Momentet far inte lasas pa en spindel som fortfarande gar. Styrningen ska stoppa spindeln och larma, inte ga vidare till nasta position."
+    }
+  ],
+  "core_outputs": [
+    "ST240_SCR_START",
+    "ST240_SCR_POS",
+    "ST240_NOK_POS",
+    "ST240_STA_STOP"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "spindel",
+        "uri": "bank://gripdon/skruvdragare_spindel",
+        "count": 1
+      },
+      {
+        "role": "skruvstation",
+        "uri": "bank://station/skruvstation",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "spindel"
+      },
+      {
+        "from_role": "skruvstation",
+        "to_role": "spindel"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "narvarogivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST240_SCR_POS",
+        "dir": "out",
+        "type": "int",
+        "comment": "positionsnummer for pagaende skruv, 1 till 4"
+      },
+      {
+        "name": "ST240_SCR_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta dragningen"
+      },
+      {
+        "name": "ST240_SCR_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "spindeln har stannat"
+      },
+      {
+        "name": "ST240_TRQ_VAL",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt atdragningsmoment i Nm"
+      },
+      {
+        "name": "ST240_NOK_POS",
+        "dir": "out",
+        "type": "int",
+        "comment": "positionsnummer for underkand skruv, 0 om ingen"
+      },
+      {
+        "name": "ST240_STA_STOP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen stoppad pa underkant moment"
+      },
+      {
+        "name": "ST240_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "detalj i fixturen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST240_PRT_PRS",
+      "for varje position i ordningen 1, 3, 2, 4: satt ST240_SCR_POS och ST240_SCR_START hog",
+      "vanta pa ST240_SCR_DONE",
+      "vanta ytterligare 0,10 s innan ST240_TRQ_VAL lases",
+      "ligger momentet i fonstret 20,0 till 24,0 Nm: ga vidare till nasta position",
+      "ligger det utanfor: satt ST240_NOK_POS till positionsnumret och ST240_STA_STOP hog",
+      "slapp ut enheten forst nar alla fyra positioner ar godkanda"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST240": 0.1
+      },
+      "cycle_s": 18.0,
+      "tolerance_s": 0.02
+    },
+    "interlocks": [
+      "ingen dragning far startas nar ST240_PRT_PRS ar lag",
+      "en underkand skruv far aldrig dras om automatiskt",
+      "ingen dragning nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 200.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST240_SCR_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST240_SCR_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST240 *s req=0.1s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST240 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST spindel+fixturback *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST240 *s req=0.1s SHORT"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION spindel x fixturback t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

@@ -1,0 +1,326 @@
+{
+  "task_id": "S-04",
+  "title": "Kvalitetskontroll med kamera och utsortering till omarbetning",
+  "goal": "Sortera i tre vagar pa kamerans dom: godkand vidare, omarbetbar till omarbetningsplatsen, kasserad till ladan, utan att en odomd detalj slinker igenom.",
+  "grupp": "S",
+  "bransch": "kvalitetskontroll",
+  "orsak": "Speglar en driftsattningsmiss dar en odomd detalj behandlas som godkand: kamerans dom lases innan ST220_CAM_READY gatt hog, sa den forra detaljens dom galler. Vid ett bildfel gar detaljen rakt fram, alltsa till kunden, i stallet for till omarbetning. Standardvagen ska vara den sakra, inte den bekvama.",
+  "prompt": "Bygg en kvalitetsstation med tre utgangar och skriv styrningen till den.\n\nScen: en bandtransportör med bandbredd 400 mm som gar i 0,30 m/s, en 2D-kamera med 120 ms\nbedomningstid over banan, tva pneumatiska utskjutare med 0,4 s slagtid, en omarbetningsplats med\nmanuell kvittering och en kassationslada med raknare. Detaljen ar en pressad platdetalj\n150 x 90 x 12 mm som vager 0,62 kg.\n\nUppgift: utlos en bild pa varje detalj, vanta pa ST220_CAM_READY och las ST220_CAM_VERDICT, som\nger 1 for godkand, 2 for omarbetbar och 3 for kasserad. Godkanda gar rakt fram, omarbetbara\nskjuts ut vid forsta utgangen och kasserade vid den andra. En detalj utan giltig dom ska ga till\nomarbetning, aldrig rakt fram. Takten ar 20 detaljer per minut.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5",
+    "F8"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "domen lases innan ST220_CAM_READY, sa foregaende detaljs dom galler",
+    "en odomd detalj gar rakt fram i stallet for till omarbetning",
+    "bada utskjutarna kommenderas pa samma detalj nar domen andras mellan tva lasningar"
+  ],
+  "antaganden": [
+    {
+      "vad": "detaljens matt och vikt",
+      "varde": "150 x 90 x 12 mm, 0,62 kg",
+      "motiv": "en liten pressad platdetalj i stal; vikten ar raknad ur ungefarlig volym och stalets densitet, men matten ar valda och inte matta"
+    },
+    {
+      "vad": "takten 20 detaljer per minut",
+      "varde": "20 per minut",
+      "motiv": "3,0 s per detalj lamnar tid for bildtagning och utskjutning; talet ar valt inom det spann en kontrollstation brukar ligga i"
+    },
+    {
+      "vad": "kamerans 120 ms bedomningstid",
+      "varde": "120 ms",
+      "motiv": "star som ANTAGEN i katalogindexet och galler en enkel narvaro- och lageskontroll"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "pressad platdetalj",
+      "l_mm": 150,
+      "b_mm": 90,
+      "h_mm": 12,
+      "massa_kg": 0.62
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer med blandade domar kommer i 20 per minut och sorteras till tre vagar.",
+      "forvantat": "Varje detalj foljer sin egen dom, odomda gar till omarbetning och de tva utskjutarna ar aldrig hoga samtidigt."
+    },
+    {
+      "id": "verdict_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST220_CAM_VERDICT",
+      "beskrivning": "ST220_CAM_VERDICT star pa 0 nar ST220_CAM_READY gar hog, alltsa ingen dom trots klar bedomning.",
+      "forvantat": "Noll ar ingen giltig dom. Detaljen ska ga till omarbetning och styrningen larma; den far aldrig behandlas som godkand."
+    },
+    {
+      "id": "verdict_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST220_CAM_VERDICT",
+      "beskrivning": "ST220_CAM_VERDICT ger 9, utanfor de tre giltiga domarna.",
+      "forvantat": "En dom utanfor intervallet far inte avrundas eller tolkas. Detaljen ska till omarbetning och styrningen larma."
+    },
+    {
+      "id": "ready_uteblir",
+      "typ": "vandning",
+      "signal": "ST220_CAM_READY",
+      "beskrivning": "ST220_CAM_TRIG pulsas men ST220_CAM_READY uteblir i 1,0 s, langre an bedomningens 120 ms.",
+      "forvantat": "Domen far inte lasas anda. Detaljen ska behandlas som odomd och skjutas ut till omarbetning, inte ga rakt fram."
+    },
+    {
+      "id": "enc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST220_ENC_POS",
+      "beskrivning": "ST220_ENC_POS star still i 4,0 s medan ST220_CNV_RUN ar hog, alltsa pulsgivaren ger inga pulser.",
+      "forvantat": "Utan strackning gar domen inte att folja med sin detalj. Styrningen ska stoppa bandet, halla bada utskjutarna laga och larma i stallet for att skjuta ut pa gissad position."
+    },
+    {
+      "id": "enc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST220_ENC_POS",
+      "beskrivning": "ST220_ENC_POS hoppar 3600 mm mellan tva scan, langre an banans langd om 2400 mm.",
+      "forvantat": "Ett hopp langre an banan betyder overslag i raknaren eller givarfel. Styrningen far inte lata en detalj passera odomd; den ska stoppa bandet och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST220_PSH_RWK",
+    "ST220_PSH_SCR",
+    "ST220_CAM_TRIG",
+    "ST220_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      },
+      {
+        "role": "utskjutare_omarbete",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utskjutare_kassation",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "omarbetningsplats",
+        "uri": "bank://station/omarbetningsplats",
+        "count": 1
+      },
+      {
+        "role": "kassationslada",
+        "uri": "bank://station/kassationslada",
+        "count": 1
+      },
+      {
+        "role": "pulsgivare",
+        "uri": "bank://givare/lagesgivare_encoder",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare_omarbete"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare_kassation"
+      },
+      {
+        "from_role": "utskjutare_omarbete",
+        "to_role": "omarbetningsplats"
+      },
+      {
+        "from_role": "utskjutare_kassation",
+        "to_role": "kassationslada"
+      },
+      {
+        "from_role": "band",
+        "to_role": "pulsgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST220_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST220_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos en bild"
+      },
+      {
+        "name": "ST220_CAM_READY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bedomningen klar och domen giltig"
+      },
+      {
+        "name": "ST220_CAM_VERDICT",
+        "dir": "in",
+        "type": "int",
+        "comment": "1 godkand, 2 omarbetbar, 3 kasserad"
+      },
+      {
+        "name": "ST220_PSH_RWK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut till omarbetning"
+      },
+      {
+        "name": "ST220_PSH_SCR",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut till kassation"
+      },
+      {
+        "name": "ST220_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bada utskjutarna i hemlage"
+      },
+      {
+        "name": "ST220_ENC_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "bandets strackning i mm"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "pulsa ST220_CAM_TRIG nar en detalj passerar kameran",
+      "vanta pa ST220_CAM_READY innan ST220_CAM_VERDICT lases",
+      "lagra domen tillsammans med ST220_ENC_POS for den detaljen",
+      "vid dom 2: kommendera ST220_PSH_RWK nar detaljen nar forsta utgangen",
+      "vid dom 3: kommendera ST220_PSH_SCR nar detaljen nar andra utgangen",
+      "vid dom 1: lat detaljen ga rakt fram",
+      "vid utebliven eller ogiltig dom: behandla detaljen som dom 2 och skjut ut till omarbetning",
+      "vanta pa ST220_PSH_HOME innan nasta utskjutning"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST220": 0.4
+      },
+      "cycle_s": 3.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "ST220_PSH_RWK och ST220_PSH_SCR far aldrig vara hoga samtidigt",
+      "en detalj utan giltig dom far aldrig ga rakt fram",
+      "ingen utskjutning nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1200.0,
+    "runs": 3,
+    "warmup_s": 90.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST220_CAM_TRIG RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST220_CAM_READY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST220_PSH_RWK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST220 *s req=0.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST220 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST utskjutare+detalj *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST220_PSH_RWK+ST220_PSH_SCR dt=*ms"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION utskjutare x detalj t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

@@ -1,0 +1,311 @@
+{
+  "task_id": "P-05",
+  "title": "Verktygsbyte i verktygsstall mellan tva detaljtyper",
+  "goal": "Byta gripdon i ett verktygsstall utan att slappa ett verktyg utanfor stallet och utan att starta ett program med fel verktyg monterat.",
+  "grupp": "P",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar en dyr driftsattningsmiss: laset i verktygsvaxlaren oppnas pa en tidssignal i stallet for pa ST140_TCH_LOCKED. Nar lufttrycket sjunker nagot tar lasningen langre tid, och roboten kor ivag med ett verktyg som bara halls av friktion. Verktyget lossnar mitt i en rorelse. Samma miss gor att ett program kan startas med fel verktyg monterat.",
+  "prompt": "Bygg en cell med verktygsbyte och skriv styrningen till den.\n\nScen: en FANUC M-10iD/12 med rackvidd 1441 mm och nyttolast 12 kg, en verktygsvaxlare med\nrobotsida och tva verktygssidor, ett verktygsstall for tva gripdon, ett permanentmagnetgripdon\nfor plat som vager 3,4 kg och en tvabackad elektrisk parallellgripare som vager 1,9 kg.\nDetaljen ar en platkonsol 320 x 180 x 60 mm som vager 2,6 kg. Robotens langsta arbetsradie i\nuppgiften ar 1350 mm.\n\nUppgift: roboten ska hamta ratt verktyg for den detaljtyp som kommer. Vid byte ska den forst\nstalla av det monterade verktyget i sitt fack, bekrafta med ST140_TCH_UNLOCKED och stallets\nnarvarogivare, och sedan hamta det andra. Ett verktyg far aldrig lasas upp utanfor sitt fack.\nBytet ska ta hogst 8,0 s och lasningen tar 1,8 s. Takten med verktygsbyte ar 42,0 s.\n\nST140_TOOL_ID sager vilket verktyg som sitter monterat. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5",
+    "F8"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "laset oppnas pa en tid i stallet for pa ST140_TCH_LOCKED, sa verktyget kan lossna i rorelse",
+    "programmet startas utan att ST140_TOOL_ID kontrollerats, sa fel verktyg anvands",
+    "verktyget stalls av utan att stallets narvarogivare kontrollerats, sa det faller till golvet"
+  ],
+  "antaganden": [
+    {
+      "vad": "verktygsbytet hogst 8,0 s",
+      "varde": "8,0 s",
+      "motiv": "tva rorelser till stallet plus tva lascykler om 1,8 s; talet ar antaget och inte matt"
+    },
+    {
+      "vad": "takten 42,0 s",
+      "varde": "42,0 s",
+      "motiv": "en monteringstakt med verktygsbyte varje cykel; ligger i det spann 8 till 60 s en monteringsstation brukar ha, men ar valt och inte matt"
+    },
+    {
+      "vad": "lascykeln 1,8 s",
+      "varde": "1,8 s",
+      "motiv": "star som ANTAGEN i katalogindexet for verktygsvaxlaren och inkluderar las och luftkoppling"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "platkonsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 60,
+      "massa_kg": 2.6
+    },
+    "arbetsradie_mm": 1350.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljtyperna vaxlar varannan cykel, sa roboten byter verktyg varje takt om 42,0 s.",
+      "forvantat": "Verktyget stalls av i ratt fack, det nya lases och ST140_TOOL_ID stammer innan arbetsprogrammet startas."
+    },
+    {
+      "id": "tool_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST140_TOOL_ID",
+      "beskrivning": "ST140_TOOL_ID star pa 0 efter en lascykel, alltsa inget verktyg identifierat.",
+      "forvantat": "Ett tomt verktygs-id efter lasning betyder att kopplingen inte greppat. Styrningen ska larma och inte starta arbetsprogrammet."
+    },
+    {
+      "id": "tool_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST140_TOOL_ID",
+      "beskrivning": "ST140_TOOL_ID visar 7, ett verktygsnummer som inte finns i stallet med sina tva fack.",
+      "forvantat": "Ett okant verktygs-id far aldrig tolkas som ett av de tva kanda. Styrningen ska larma och sparra ST140_RB_START."
+    },
+    {
+      "id": "locked_uteblir",
+      "typ": "vandning",
+      "signal": "ST140_TCH_LOCKED",
+      "beskrivning": "ST140_TCH_LOCK satts hog men ST140_TCH_LOCKED uteblir i 3,0 s, langre an lascykelns 1,8 s.",
+      "forvantat": "Roboten far inte lamna facket. Styrningen ska sta kvar, halla ST140_TCH_LOCK hog och larma i stallet for att borja rora sig med ett olast verktyg."
+    }
+  ],
+  "core_outputs": [
+    "ST140_TCH_LOCK",
+    "ST140_RB_START",
+    "ST140_TCH_BUSY"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "vaxlare",
+        "uri": "bank://gripdon/verktygsvaxlare",
+        "count": 1
+      },
+      {
+        "role": "magnetgripdon",
+        "uri": "bank://gripdon/magnet_plat",
+        "count": 1
+      },
+      {
+        "role": "parallellgripare",
+        "uri": "bank://gripdon/tvabackad_elektrisk",
+        "count": 1
+      },
+      {
+        "role": "verktygsstall",
+        "uri": "bank://station/verktygsstall",
+        "count": 1
+      },
+      {
+        "role": "stallgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "vaxlare"
+      },
+      {
+        "from_role": "verktygsstall",
+        "to_role": "stallgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST140_TCH_LOCK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "las verktygsvaxlaren"
+      },
+      {
+        "name": "ST140_TCH_LOCKED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vaxlaren lasti lage"
+      },
+      {
+        "name": "ST140_TCH_UNLOCKED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vaxlaren oppen"
+      },
+      {
+        "name": "ST140_TOOL_ID",
+        "dir": "in",
+        "type": "int",
+        "comment": "identitet pa monterat verktyg, 0 om inget"
+      },
+      {
+        "name": "ST140_RCK_PRS1",
+        "dir": "in",
+        "type": "bool",
+        "comment": "verktyg 1 star i sitt fack"
+      },
+      {
+        "name": "ST140_RCK_PRS2",
+        "dir": "in",
+        "type": "bool",
+        "comment": "verktyg 2 star i sitt fack"
+      },
+      {
+        "name": "ST140_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta arbetsprogrammet"
+      },
+      {
+        "name": "ST140_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "arbetsprogrammet klart"
+      },
+      {
+        "name": "ST140_TCH_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "verktygsbyte pagar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "las ST140_TOOL_ID och jamfor med det verktyg detaljtypen kraver",
+      "vid skillnad: satt ST140_TCH_BUSY hog och kor till det monterade verktygets fack",
+      "nollstall ST140_TCH_LOCK och vanta pa ST140_TCH_UNLOCKED och pa fackets narvarogivare",
+      "kor till det andra facket, satt ST140_TCH_LOCK hog och vanta pa ST140_TCH_LOCKED",
+      "kontrollera att ST140_TOOL_ID nu visar det begarda verktyget",
+      "nollstall ST140_TCH_BUSY och satt ST140_RB_START hog",
+      "vanta pa ST140_RB_DONE"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST140": 1.8
+      },
+      "cycle_s": 42.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST140_TCH_LOCK far aldrig nollstallas utanfor ett fack",
+      "ST140_RB_START far aldrig ga hog nar ST140_TOOL_ID inte matchar detaljtypen",
+      "inget verktygsbyte nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 85.0,
+    "runs": 3,
+    "warmup_s": 90.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 25.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST140_TCH_BUSY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST140_TCH_LOCKED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST140_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST140 *s req=1.8s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST140 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST verktyg+stallvagg *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST140_TCH_BUSY+ST140_RB_START dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

@@ -1,0 +1,823 @@
+# -*- coding: utf-8 -*-
+"""Validator: ST-text in, lista av anmärkningar ut.
+
+Tolv kontroller. Var och en står i fel.KONTROLLER med sin felklass ur
+docs/spec/82_felklasser.md, och var och en har minst ett prov i
+tests/enhet/ som visar att den fäller ett verkligt fel — en grind som aldrig
+fällt är oprövad (docs/spec/95_testprotokoll.md, regel S2 i 96_ingen_skuld.md).
+
+Fail-closed hela vägen (I3): kan en typ inte härledas, kan ett namn inte
+slås upp, eller går texten inte att läsa, så är svaret "inte godkänt".
+Tystnad är aldrig ett godkännande.
+
+Dubbelskrivningskontrollen gäller **utgångar**, inte alla variabler. Skälet är
+att felet den letar efter är den klassiska PLC-buggen "två ställen driver
+samma utgång", medan en mellanlagringsvariabel som skrivs om är normal kod.
+Utgång = VAR_OUTPUT, eller en variabel med AT %Q-adress, eller ett namn som
+signalkartan lämnat med i `utgangar`.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+from . import modell as M
+from . import stdbibliotek as SB
+from . import typer as T
+from .fel import Anmarkning, Syntaxfel
+from .lasare import las
+from .lexer import tolka_tidliteral
+
+JAMFORELSER = ("=", "<>", "<", ">", "<=", ">=")
+LOGISKA = ("AND", "OR", "XOR")
+ARITMETIK = ("+", "-", "*", "/")
+
+# Sorter vars innehåll inte får skrivas inifrån POU:n. IEC 61131-3: ingången
+# ägs av anroparen. VAR_EXTERNAL står medvetet INTE här — standarden tillåter
+# att en extern variabel skrivs, och det är just så en utgång ur signalkartan
+# ser ut när deklarationsdelen ligger i en annan fil.
+EJ_SKRIVBARA = {"VAR_INPUT": "en VAR_INPUT ägs av anroparen"}
+
+
+@dataclass(frozen=True)
+class Post:
+    namn: str
+    typ: T.Typ
+    sort: str
+    konstant: bool = False
+    skyddad: bool = False
+    utgang: bool = False
+    rad: int = 0
+
+
+@dataclass(frozen=True)
+class Signatur:
+    """Gemensam form för standardblock, standardfunktioner och POU:er i filen.
+
+    `krav` i en ingång är antingen en typklass ur stdbibliotek ("ANY_NUM")
+    eller en färdig Typ. Att båda ryms i samma kontroll är avsikten: annars
+    hade argumentkontrollen behövt skrivas två gånger, och två kopior av en
+    regel driftar isär.
+    """
+
+    namn: str
+    ingangar: Tuple[Tuple[str, object, bool], ...]
+    utgangar: Tuple[Tuple[str, object], ...]
+    ar_block: bool
+    resultat: object = None
+
+
+@dataclass(frozen=True)
+class Rapport:
+    ok: bool
+    anmarkningar: Tuple[Anmarkning, ...]
+
+    def koder(self):
+        return tuple(a.kod for a in self.anmarkningar)
+
+    def __str__(self):
+        if self.ok:
+            return "GODKAND"
+        return "EJ GODKAND\n" + "\n".join("  " + str(a) for a in self.anmarkningar)
+
+
+def _signatur_av_block(b: SB.Blockdef) -> Signatur:
+    return Signatur(b.namn,
+                    tuple((p.namn, p.klass, False) for p in b.ingangar),
+                    tuple((p.namn, p.klass) for p in b.utgangar),
+                    True)
+
+
+def _signatur_av_funktion(f: SB.Funktionsdef) -> Signatur:
+    return Signatur(f.namn,
+                    tuple((p.namn, p.klass, p.obligatorisk) for p in f.parametrar),
+                    (), False, f.resultat)
+
+
+class Granskning(object):
+    def __init__(self, enhet: M.Enhet, externa: Dict[str, T.Typ],
+                 skyddade, utgangar):
+        self.enhet = enhet
+        self.anm: List[Anmarkning] = []
+        self.strukturer = dict((s.namn.upper(), s) for s in enhet.typer)
+        self.externa = dict((n.upper(), t) for n, t in (externa or {}).items())
+        self.skyddade = set(n.upper() for n in (skyddade or ()))
+        self.extra_utgangar = set(n.upper() for n in (utgangar or ()))
+        self.signaturer = self._bygg_signaturer()
+        self.omf: Dict[str, Post] = {}
+        self.utgangsnamn = set()
+        self.styrvariabler = set()
+        self.slingdjup = 0
+
+    def fel(self, kod, rad, text):
+        self.anm.append(Anmarkning(kod, rad, text))
+
+    # ---- namnrymder -----------------------------------------------------
+
+    def _bygg_signaturer(self) -> Dict[str, Signatur]:
+        sig = {}
+        for namn, b in SB.BLOCK.items():
+            sig[namn] = _signatur_av_block(b)
+        for namn, f in SB.FUNKTIONER.items():
+            sig[namn] = _signatur_av_funktion(f)
+        for p in self.enhet.pouer:
+            if p.sort == "FUNCTION_BLOCK":
+                sig[p.namn.upper()] = Signatur(
+                    p.namn, self._parametrar(p, ("VAR_INPUT", "VAR_IN_OUT"), False),
+                    tuple((d.namn.upper(), d.typ)
+                          for b, d in p.deklarationer()
+                          if b.sort in ("VAR_OUTPUT", "VAR_IN_OUT")),
+                    True)
+            elif p.sort == "FUNCTION":
+                sig[p.namn.upper()] = Signatur(
+                    p.namn, self._parametrar(p, ("VAR_INPUT", "VAR_IN_OUT"), True),
+                    (), False, p.returtyp)
+        return sig
+
+    @staticmethod
+    def _parametrar(p: M.Pou, sorter, obligatorisk):
+        return tuple((d.namn.upper(), d.typ, obligatorisk and d.init is None)
+                     for b, d in p.deklarationer() if b.sort in sorter)
+
+    def _globala_poster(self):
+        ut = {}
+        for b in self.enhet.globala:
+            for d in b.deklarationer:
+                ut[d.namn.upper()] = Post(
+                    d.namn, d.typ, b.sort, "CONSTANT" in b.kvalificerare,
+                    d.skyddad or d.namn.upper() in self.skyddade,
+                    self._ar_utgang(b.sort, d), d.rad)
+        for namn, typ in self.externa.items():
+            ut.setdefault(namn, Post(namn, typ, "VAR_EXTERNAL",
+                                     False, namn in self.skyddade,
+                                     namn in self.extra_utgangar))
+        return ut
+
+    def _ar_utgang(self, sort, d: M.Deklaration) -> bool:
+        if sort == "VAR_OUTPUT":
+            return True
+        if d.adress and d.adress.upper().startswith("%Q"):
+            return True
+        return d.namn.upper() in self.extra_utgangar
+
+    # ---- ingång ---------------------------------------------------------
+
+    def granska(self):
+        if not self.enhet.pouer:
+            # Tystnad är aldrig ett godkännande (I3). En fil utan POU är inte
+            # ett program som råkar vara felfritt, den är ingen leverans.
+            self.fel("SYNTAX", 1, "källan innehåller ingen POU")
+        for sd in self.enhet.typer:
+            for d in sd.falt:
+                self._kontrollera_typ(d.typ, d.rad)
+        for p in self.enhet.pouer:
+            self._granska_pou(p)
+        return self.anm
+
+    def _granska_pou(self, p: M.Pou):
+        self.omf = self._globala_poster()
+        self.utgangsnamn = set(n for n, post in self.omf.items() if post.utgang)
+        self.styrvariabler = set()
+        self.slingdjup = 0
+        sedda = {}
+        for b, d in p.deklarationer():
+            nyckel = d.namn.upper()
+            if nyckel in sedda:
+                self.fel("DUBBELDEKLARATION", d.rad,
+                         "%s är redan deklarerad på rad %d" % (d.namn, sedda[nyckel]))
+                continue
+            sedda[nyckel] = d.rad
+            self._kontrollera_typ(d.typ, d.rad)
+            post = Post(d.namn, d.typ, b.sort, "CONSTANT" in b.kvalificerare,
+                        d.skyddad or nyckel in self.skyddade,
+                        self._ar_utgang(b.sort, d), d.rad)
+            self.omf[nyckel] = post
+            if post.utgang:
+                self.utgangsnamn.add(nyckel)
+            if d.init is not None:
+                init_typ = self.typ_av(d.init)
+                if init_typ is not None:
+                    ok, skal = T.far_tilldelas(d.typ, init_typ)
+                    if not ok:
+                        self.fel("TYP", d.rad,
+                                 "startvärdet för %s: %s" % (d.namn, skal))
+        if p.sort == "FUNCTION":
+            self.omf.setdefault(p.namn.upper(),
+                                Post(p.namn, p.returtyp, "VAR", rad=p.rad))
+        self._satser(p.kropp)
+        self._oatkomlighet(p.kropp)
+        self._sekvens(p.kropp)
+
+    def _kontrollera_typ(self, typ: T.Typ, rad: int):
+        if isinstance(typ, T.Falt):
+            self._kontrollera_typ(typ.element, rad)
+        elif isinstance(typ, T.Strukturtyp):
+            if typ.namn.upper() not in self.strukturer:
+                self.fel("OKANT_NAMN", rad,
+                         "typen %s är varken elementär, en STRUCT i filen "
+                         "eller ett känt funktionsblock" % typ.namn)
+        elif isinstance(typ, T.Blocktyp):
+            if typ.namn.upper() not in self.signaturer:
+                self.fel("OKANT_NAMN", rad, "okänt funktionsblock %s" % typ.namn)
+
+    # ---- satser ---------------------------------------------------------
+
+    def _satser(self, satser):
+        for s in satser:
+            self._sats(s)
+
+    def _sats(self, s: M.Sats):
+        if isinstance(s, M.Kommentar):
+            return
+        if isinstance(s, M.Tilldelning):
+            hoger = self.typ_av(s.uttryck)
+            self._skrivmal(s.mal, s.rad)
+            vanster = self.typ_av(s.mal)
+            if vanster is not None and hoger is not None:
+                ok, skal = T.far_tilldelas(vanster, hoger)
+                if not ok:
+                    self.fel("TYP", s.rad, skal)
+            return
+        if isinstance(s, M.Anropssats):
+            self._anrop(s.anrop, som_sats=True)
+            return
+        if isinstance(s, M.Om):
+            for g in s.grenar:
+                self._villkor(g.villkor, "IF")
+                self._satser(g.satser)
+            if s.annars is not None:
+                self._satser(s.annars)
+            return
+        if isinstance(s, M.Fall):
+            t = self.typ_av(s.uttryck)
+            if t is not None and not T.ar_heltal(t):
+                self.fel("TYP", s.rad,
+                         "CASE kräver ett heltalsuttryck, inte %s" % t.st())
+            for g in s.grenar:
+                if t is not None:
+                    for e in g.etiketter:
+                        for v in (e.fran, e.till):
+                            if v is None:
+                                continue
+                            ok, skal = T.far_tilldelas(t, T.Literaltyp("HELTAL", v))
+                            if not ok:
+                                self.fel("TYP", g.rad, "CASE-etikett: %s" % skal)
+                self._satser(g.satser)
+            if s.annars is not None:
+                self._satser(s.annars)
+            return
+        if isinstance(s, M.ForSats):
+            post = self._slau(s.styrvar, s.rad)
+            if post is not None and not T.ar_heltal(post.typ):
+                self.fel("TYP", s.rad,
+                         "styrvariabeln %s måste vara heltal, inte %s"
+                         % (s.styrvar, post.typ.st()))
+            for u in (s.fran, s.till, s.steg):
+                if u is None:
+                    continue
+                t = self.typ_av(u)
+                if t is not None and not T.ar_heltal(t):
+                    self.fel("TYP", s.rad,
+                             "FOR-gränserna måste vara heltal, inte %s" % t.st())
+            self.styrvariabler.add(s.styrvar.upper())
+            self.slingdjup += 1
+            self._satser(s.satser)
+            self.slingdjup -= 1
+            self.styrvariabler.discard(s.styrvar.upper())
+            return
+        if isinstance(s, M.Medan):
+            self._villkor(s.villkor, "WHILE")
+            self.slingdjup += 1
+            self._satser(s.satser)
+            self.slingdjup -= 1
+            return
+        if isinstance(s, M.Upprepa):
+            self.slingdjup += 1
+            self._satser(s.satser)
+            self.slingdjup -= 1
+            self._villkor(s.villkor, "UNTIL")
+            return
+        if isinstance(s, M.Avbryt):
+            if self.slingdjup == 0:
+                self.fel("SYNTAX", s.rad, "EXIT står utanför alla slingor")
+            return
+        if isinstance(s, M.Retur):
+            return
+        self.fel("SYNTAX", getattr(s, "rad", 0),
+                 "okänd satstyp %s" % type(s).__name__)
+
+    def _villkor(self, u: M.Uttryck, vad: str):
+        t = self.typ_av(u)
+        if t is not None and not T.ar_bitlogisk(t):
+            self.fel("TYP", getattr(u, "rad", 0),
+                     "%s kräver ett booleskt villkor, inte %s" % (vad, t.st()))
+
+    # ---- skrivmål -------------------------------------------------------
+
+    def _skrivmal(self, mal: M.Uttryck, rad: int):
+        rot = mal
+        while isinstance(rot, (M.Medlem, M.Element)):
+            rot = rot.bas
+        if not isinstance(rot, M.Namn):
+            self.fel("SYNTAX", rad, "vänsterledet går inte att skriva till")
+            return
+        post = self._slau(rot.ident, rad)
+        if post is None:
+            return
+        if post.skyddad:
+            self.fel("SAKERHET", rad,
+                     "%s är märkt {SAKERHET} och får inte skrivas av genererad "
+                     "kod (invariant I15)" % post.namn)
+        if post.konstant:
+            self.fel("RIKTNING", rad, "%s är CONSTANT" % post.namn)
+        elif post.sort in EJ_SKRIVBARA:
+            self.fel("RIKTNING", rad,
+                     "%s är %s: %s" % (post.namn, post.sort, EJ_SKRIVBARA[post.sort]))
+        if rot.ident.upper() in self.styrvariabler:
+            self.fel("RIKTNING", rad,
+                     "%s är styrvariabel i en pågående FOR och får inte skrivas"
+                     % post.namn)
+
+    def _slau(self, namn: str, rad: int) -> Optional[Post]:
+        post = self.omf.get(namn.upper())
+        if post is None:
+            self.fel("ODEKLARERAD", rad, "%s är inte deklarerad" % namn)
+        return post
+
+    # ---- uttryckstyper --------------------------------------------------
+
+    def typ_av(self, u: M.Uttryck) -> Optional[T.Typ]:
+        if isinstance(u, M.Namn):
+            post = self._slau(u.ident, u.rad)
+            return None if post is None else post.typ
+        if isinstance(u, M.Literal):
+            return self._literaltyp(u)
+        if isinstance(u, M.Medlem):
+            return self._medlemstyp(u)
+        if isinstance(u, M.Element):
+            return self._elementtyp(u)
+        if isinstance(u, M.Anrop):
+            return self._anrop(u, som_sats=False)
+        if isinstance(u, M.Unar):
+            t = self.typ_av(u.operand)
+            if t is None:
+                return None
+            if u.op == "NOT":
+                if not T.ar_bitlogisk(t):
+                    self.fel("TYP", u.rad, "NOT kräver BOOL eller bitsträng, inte %s"
+                             % t.st())
+                    return None
+                return t
+            if not T.ar_numerisk(t):
+                self.fel("TYP", u.rad, "minustecken kräver ett tal, inte %s" % t.st())
+                return None
+            return t
+        if isinstance(u, M.Binar):
+            return self._binartyp(u)
+        self.fel("TYP", getattr(u, "rad", 0),
+                 "okänd uttrycksform %s" % type(u).__name__)
+        return None
+
+    def _literaltyp(self, u: M.Literal) -> Optional[T.Typ]:
+        if u.klass == "TID":
+            ok, _varde, skal = tolka_tidliteral(u.text)
+            if not ok:
+                self.fel("TIDLITERAL", u.rad, "%s: %s" % (u.text, skal))
+                return None
+            return T.TIME
+        if u.typnamn:
+            typ = T.Elementar(u.typnamn)
+            varde = T.Literaltyp("HELTAL" if u.klass == "HELTAL" else "REAL", u.varde)
+            ok, skal = T.far_tilldelas(typ, varde)
+            if not ok:
+                self.fel("TYP", u.rad, "%s: %s" % (u.text, skal))
+                return None
+            return typ
+        return T.Literaltyp(u.klass, u.varde)
+
+    def _medlemstyp(self, u: M.Medlem) -> Optional[T.Typ]:
+        bas = self.typ_av(u.bas)
+        if bas is None:
+            return None
+        if isinstance(bas, T.Blocktyp):
+            sig = self.signaturer.get(bas.namn.upper())
+            if sig is None:
+                self.fel("OKANT_NAMN", u.rad, "okänt funktionsblock %s" % bas.namn)
+                return None
+            for namn, krav, _obl in sig.ingangar:
+                if namn == u.falt.upper():
+                    return self._som_typ(krav)
+            for namn, krav in sig.utgangar:
+                if namn == u.falt.upper():
+                    return self._som_typ(krav)
+            self.fel("OKANT_NAMN", u.rad,
+                     "%s har ingen anslutning som heter %s" % (bas.namn, u.falt))
+            return None
+        if isinstance(bas, T.Strukturtyp):
+            sd = self.strukturer.get(bas.namn.upper())
+            if sd is None:
+                self.fel("OKANT_NAMN", u.rad, "okänd struktur %s" % bas.namn)
+                return None
+            for d in sd.falt:
+                if d.namn.upper() == u.falt.upper():
+                    return d.typ
+            self.fel("OKANT_NAMN", u.rad,
+                     "strukturen %s har inget fält som heter %s" % (bas.namn, u.falt))
+            return None
+        self.fel("TYP", u.rad, "%s har inga fält" % bas.st())
+        return None
+
+    def _elementtyp(self, u: M.Element) -> Optional[T.Typ]:
+        bas = self.typ_av(u.bas)
+        for i in u.index:
+            it = self.typ_av(i)
+            if it is not None and not T.ar_heltal(it):
+                self.fel("TYP", u.rad, "fältindex måste vara heltal, inte %s" % it.st())
+        if bas is None:
+            return None
+        if not isinstance(bas, T.Falt):
+            self.fel("TYP", u.rad, "%s är inget fält och kan inte indexeras" % bas.st())
+            return None
+        if len(u.index) != len(bas.granser):
+            self.fel("TYP", u.rad,
+                     "fältet har %d dimensioner men indexeras med %d"
+                     % (len(bas.granser), len(u.index)))
+            return None
+        for i, (lo, hi) in zip(u.index, bas.granser):
+            if isinstance(i, M.Literal) and i.klass == "HELTAL":
+                if not (lo <= int(i.varde) <= hi):
+                    self.fel("TYP", u.rad,
+                             "index %d ligger utanför %d..%d" % (int(i.varde), lo, hi))
+        return bas.element
+
+    def _binartyp(self, u: M.Binar) -> Optional[T.Typ]:
+        a = self.typ_av(u.vanster)
+        b = self.typ_av(u.hoger)
+        if a is None or b is None:
+            return None
+        if u.op in LOGISKA:
+            if not (T.ar_bitlogisk(a) and T.ar_bitlogisk(b)):
+                self.fel("TYP", u.rad, "%s kräver BOOL eller bitsträngar, inte %s och %s"
+                         % (u.op, a.st(), b.st()))
+                return None
+            gem = T.gemensam_typ(a, b)
+            if gem is None:
+                self.fel("TYP", u.rad,
+                         "%s och %s går inte ihop i %s" % (a.st(), b.st(), u.op))
+            return gem
+        if u.op == "MOD":
+            if not (T.ar_heltal(a) and T.ar_heltal(b)):
+                self.fel("TYP", u.rad, "MOD kräver heltal, inte %s och %s"
+                         % (a.st(), b.st()))
+                return None
+            return T.gemensam_typ(a, b)
+        if u.op in JAMFORELSER:
+            if T.gemensam_typ(a, b) is None:
+                self.fel("TYP", u.rad, "%s och %s går inte att jämföra"
+                         % (a.st(), b.st()))
+                return None
+            return T.BOOL
+        if u.op in ARITMETIK:
+            if T.ar_tid(a) or T.ar_tid(b):
+                # Tid har egna regler och far inte falla igenom till
+                # talreglerna: da skulle samma fel anmarkas tva ganger.
+                return self._tidsaritmetik(u, a, b)
+            if not (T.ar_numerisk(a) and T.ar_numerisk(b)):
+                self.fel("TYP", u.rad, "%s kräver tal, inte %s och %s"
+                         % (u.op, a.st(), b.st()))
+                return None
+            gem = T.gemensam_typ(a, b)
+            if gem is None:
+                self.fel("TYP", u.rad,
+                         "%s och %s går inte ihop i %s; konvertera uttryckligen"
+                         % (a.st(), b.st(), u.op))
+            return gem
+        self.fel("TYP", u.rad, "okänd operator %s" % u.op)
+        return None
+
+    def _tidsaritmetik(self, u, a, b):
+        """TIME + TIME, TIME - TIME, TIME * tal, TIME / tal. IEC 61131-3."""
+        if u.op in ("+", "-") and T.ar_tid(a) and T.ar_tid(b):
+            return T.TIME
+        if u.op in ("*", "/") and T.ar_tid(a) and T.ar_numerisk(b):
+            return T.TIME
+        self.fel("TYP", u.rad,
+                 "%s %s %s är ingen tillåten tidsoperation" % (a.st(), u.op, b.st()))
+        return None
+
+    def _som_typ(self, krav) -> Optional[T.Typ]:
+        if isinstance(krav, T.Typ):
+            return krav
+        if krav in T.ELEMENTARA:
+            return T.Elementar(krav)
+        return None
+
+    # ---- anrop ----------------------------------------------------------
+
+    def _anrop(self, a: M.Anrop, som_sats: bool) -> Optional[T.Typ]:
+        post = self.omf.get(a.namn.upper())
+        if post is not None:
+            if not isinstance(post.typ, T.Blocktyp):
+                self.fel("TYP", a.rad, "%s är ingen blockinstans och kan inte anropas"
+                         % a.namn)
+                return None
+            sig = self.signaturer.get(post.typ.namn.upper())
+            if sig is None:
+                self.fel("OKANT_NAMN", a.rad, "okänt funktionsblock %s" % post.typ.namn)
+                return None
+            if not som_sats:
+                self.fel("TYP", a.rad,
+                         "blockinstansen %s måste anropas som egen sats; "
+                         "läs utgången med %s.Q efteråt" % (a.namn, a.namn))
+                return None
+            self._argumentkontroll(a, sig, kraven_obligatoriska=False)
+            return None
+        sig = self.signaturer.get(a.namn.upper())
+        if sig is None:
+            self.fel("OKANT_NAMN", a.rad,
+                     "%s är varken en deklarerad blockinstans, en funktion i "
+                     "filen eller en standardfunktion" % a.namn)
+            return None
+        if sig.ar_block:
+            self.fel("OKANT_NAMN", a.rad,
+                     "%s är en blocktyp; anropa en deklarerad instans av den, "
+                     "inte typen" % a.namn)
+            return None
+        if som_sats:
+            self.fel("TYP", a.rad,
+                     "funktionen %s anropas som sats och resultatet försvinner"
+                     % a.namn)
+        argtyper = self._argumentkontroll(a, sig, kraven_obligatoriska=True)
+        return self._resultattyp(sig, argtyper, a.rad)
+
+    def _argumentkontroll(self, a: M.Anrop, sig: Signatur, kraven_obligatoriska):
+        namngivna = [x for x in a.argument if x.namn is not None]
+        positionella = [x for x in a.argument if x.namn is None]
+        if namngivna and positionella:
+            self.fel("ARGUMENT", a.rad,
+                     "%s anropas med både namngivna och positionella argument"
+                     % a.namn)
+        bundna = {}
+        for i, arg in enumerate(positionella):
+            if i >= len(sig.ingangar):
+                if sig.namn in ("MIN", "MAX") and sig.ingangar:
+                    bundna["IN%d" % (i + 1)] = (sig.ingangar[0][1], arg)
+                    continue
+                self.fel("ARGUMENT", arg.rad,
+                         "%s tar %d argument, inte %d"
+                         % (a.namn, len(sig.ingangar), len(positionella)))
+                break
+            bundna[sig.ingangar[i][0]] = (sig.ingangar[i][1], arg)
+        anslutningar = dict((n, k) for n, k, _o in sig.ingangar)
+        utgangar = dict(sig.utgangar)
+        for arg in namngivna:
+            nyckel = arg.namn.upper()
+            if arg.ut:
+                if nyckel not in utgangar:
+                    self.fel("ARGUMENT", arg.rad,
+                             "%s har ingen utgång som heter %s" % (a.namn, arg.namn))
+                    self.typ_av(arg.uttryck)
+                    continue
+                self._skrivmal(arg.uttryck, arg.rad)
+                mal = self.typ_av(arg.uttryck)
+                kalla = self._som_typ(utgangar[nyckel])
+                if mal is not None and kalla is not None:
+                    ok, skal = T.far_tilldelas(mal, kalla)
+                    if not ok:
+                        self.fel("TYP", arg.rad, "%s => : %s" % (arg.namn, skal))
+                continue
+            if nyckel not in anslutningar:
+                self.fel("ARGUMENT", arg.rad,
+                         "%s har ingen ingång som heter %s" % (a.namn, arg.namn))
+                self.typ_av(arg.uttryck)
+                continue
+            if nyckel in bundna:
+                self.fel("ARGUMENT", arg.rad,
+                         "%s binds två gånger i samma anrop" % arg.namn)
+                self.typ_av(arg.uttryck)
+                continue
+            bundna[nyckel] = (anslutningar[nyckel], arg)
+        if kraven_obligatoriska:
+            for namn, _krav, obl in sig.ingangar:
+                if obl and namn not in bundna:
+                    self.fel("ARGUMENT", a.rad,
+                             "%s saknar argumentet %s" % (a.namn, namn))
+        argtyper = {}
+        for namn, (krav, arg) in bundna.items():
+            t = self.typ_av(arg.uttryck)
+            if t is None:
+                continue
+            argtyper[namn] = t
+            if isinstance(krav, T.Typ):
+                ok, skal = T.far_tilldelas(krav, t)
+                if not ok:
+                    self.fel("TYP", arg.rad, "%s.%s: %s" % (a.namn, namn, skal))
+            elif not SB.passar(krav, t):
+                self.fel("TYP", arg.rad,
+                         "%s.%s kräver %s men fick %s" % (a.namn, namn, krav, t.st()))
+        return argtyper
+
+    def _resultattyp(self, sig: Signatur, argtyper, rad) -> Optional[T.Typ]:
+        r = sig.resultat
+        if isinstance(r, T.Typ):
+            return r
+        if r is None:
+            return None
+        if r.startswith("="):
+            return argtyper.get(r[1:])
+        if r == "GEM":
+            gem = None
+            for t in argtyper.values():
+                gem = t if gem is None else T.gemensam_typ(gem, t)
+                if gem is None:
+                    self.fel("TYP", rad,
+                             "argumenten till %s har ingen gemensam typ" % sig.namn)
+                    return None
+            return gem
+        return T.Elementar(r) if r in T.ELEMENTARA else None
+
+    # ---- oåtkomlig kod --------------------------------------------------
+
+    def _oatkomlighet(self, satser):
+        for i, s in enumerate(satser):
+            if isinstance(s, (M.Retur, M.Avbryt)):
+                nasta = [x for x in satser[i + 1:] if not isinstance(x, M.Kommentar)]
+                if nasta:
+                    ord_ = "RETURN" if isinstance(s, M.Retur) else "EXIT"
+                    self.fel("OATKOMLIG", nasta[0].rad,
+                             "koden här nås aldrig; %s på rad %d lämnar alltid först"
+                             % (ord_, s.rad))
+                break
+        for s in satser:
+            if isinstance(s, M.Om):
+                for j, g in enumerate(s.grenar):
+                    k = konstant_bool(g.villkor)
+                    if k is False:
+                        self.fel("OATKOMLIG", g.rad,
+                                 "villkoret är alltid falskt; grenen körs aldrig")
+                    elif k is True and (j + 1 < len(s.grenar) or s.annars is not None):
+                        self.fel("OATKOMLIG", g.rad,
+                                 "villkoret är alltid sant; grenarna efter den "
+                                 "här nås aldrig")
+            if isinstance(s, M.Medan) and konstant_bool(s.villkor) is False:
+                self.fel("OATKOMLIG", s.rad,
+                         "WHILE-villkoret är alltid falskt; kroppen körs aldrig")
+            if isinstance(s, M.Fall):
+                sedda = {}
+                for g in s.grenar:
+                    for e in g.etiketter:
+                        for v in e.varden():
+                            if v in sedda:
+                                self.fel("OATKOMLIG", g.rad,
+                                         "etiketten %d täcks redan av grenen på "
+                                         "rad %d" % (v, sedda[v]))
+                            else:
+                                sedda[v] = g.rad
+            for lista in underlistor(s):
+                self._oatkomlighet(lista)
+
+    # ---- dubbelskrivning ------------------------------------------------
+
+    def _sekvens(self, satser) -> Dict[str, Tuple[bool, int]]:
+        poster: Dict[str, List[Tuple[bool, int]]] = {}
+        for s in satser:
+            for namn, (villkorad, rad) in self._bidrag(s).items():
+                poster.setdefault(namn, []).append((villkorad, rad))
+        ut = {}
+        for namn, lista in poster.items():
+            self._doma_dubbelskrivning(namn, lista)
+            ut[namn] = (any(not v for v, _ in lista), min(r for _, r in lista))
+        return ut
+
+    def _visningsnamn(self, nyckel):
+        post = self.omf.get(nyckel)
+        return post.namn if post is not None else nyckel
+
+    def _doma_dubbelskrivning(self, nyckel, lista):
+        namn = self._visningsnamn(nyckel)
+        ovillkorade = [i for i, (v, _r) in enumerate(lista) if not v]
+        villkorade = [i for i, (v, _r) in enumerate(lista) if v]
+        if len(ovillkorade) >= 2:
+            self.fel("DUBBELSKRIVNING", lista[ovillkorade[1]][1],
+                     "utgången %s skrivs ovillkorat både på rad %d och rad %d; "
+                     "den första skrivningen syns aldrig"
+                     % (namn, lista[ovillkorade[0]][1], lista[ovillkorade[1]][1]))
+        elif ovillkorade and ovillkorade[0] != 0:
+            self.fel("DUBBELSKRIVNING", lista[ovillkorade[0]][1],
+                     "utgången %s skrivs ovillkorat på rad %d efter en villkorad "
+                     "skrivning på rad %d, som därmed är verkningslös"
+                     % (namn, lista[ovillkorade[0]][1], lista[0][1]))
+        if len(villkorade) >= 2:
+            self.fel("DUBBELSKRIVNING", lista[villkorade[1]][1],
+                     "utgången %s skrivs på rad %d och rad %d, och båda kan köras "
+                     "i samma scan; lägg ihop villkoren till en enda skrivning"
+                     % (namn, lista[villkorade[0]][1], lista[villkorade[1]][1]))
+
+    def _bidrag(self, s: M.Sats) -> Dict[str, Tuple[bool, int]]:
+        if isinstance(s, M.Tilldelning):
+            namn = self._utgangsnamn(s.mal)
+            return {namn: (False, s.rad)} if namn else {}
+        if isinstance(s, M.Anropssats):
+            ut = {}
+            for arg in s.anrop.argument:
+                if arg.ut:
+                    namn = self._utgangsnamn(arg.uttryck)
+                    if namn:
+                        ut[namn] = (False, arg.rad)
+            return ut
+        if isinstance(s, M.Om):
+            grenar = [self._sekvens(g.satser) for g in s.grenar]
+            har_annars = s.annars is not None
+            if har_annars:
+                grenar.append(self._sekvens(s.annars))
+            return self._sla_ihop_grenar(grenar, har_annars)
+        if isinstance(s, M.Fall):
+            grenar = [self._sekvens(g.satser) for g in s.grenar]
+            har_annars = s.annars is not None
+            if har_annars:
+                grenar.append(self._sekvens(s.annars))
+            return self._sla_ihop_grenar(grenar, har_annars)
+        if isinstance(s, (M.ForSats, M.Medan, M.Upprepa)):
+            inre = self._sekvens(s.satser)
+            return dict((n, (True, rad)) for n, (_v, rad) in inre.items())
+        return {}
+
+    @staticmethod
+    def _sla_ihop_grenar(grenar, har_annars) -> Dict[str, Tuple[bool, int]]:
+        """Grenar utesluter varandra: två skrivningar i olika grenar är ingen
+        dubbelskrivning. Ovillkorlig blir skrivningen bara om varje gren —
+        inklusive ELSE — skriver namnet ovillkorat."""
+        ut = {}
+        alla = set()
+        for g in grenar:
+            alla |= set(g)
+        for namn in alla:
+            rader = [g[namn][1] for g in grenar if namn in g]
+            i_alla = har_annars and all(namn in g and not g[namn][0] for g in grenar)
+            ut[namn] = (not i_alla, min(rader))
+        return ut
+
+    def _utgangsnamn(self, mal: M.Uttryck) -> Optional[str]:
+        rot = mal
+        while isinstance(rot, (M.Medlem, M.Element)):
+            rot = rot.bas
+        if not isinstance(rot, M.Namn):
+            return None
+        nyckel = rot.ident.upper()
+        return nyckel if nyckel in self.utgangsnamn else None
+
+
+def konstant_bool(u: M.Uttryck) -> Optional[bool]:
+    """TRUE/FALSE-värdet hos ett uttryck som går att avgöra utan att köra.
+
+    Bara literaler och logik över literaler. En variabel som råkar vara
+    konstant räknas inte: den kontrollen ska vara uppenbart rätt, inte smart.
+    """
+    if isinstance(u, M.Literal) and u.klass == "BOOL":
+        return bool(u.varde)
+    if isinstance(u, M.Unar) and u.op == "NOT":
+        inre = konstant_bool(u.operand)
+        return None if inre is None else not inre
+    if isinstance(u, M.Binar) and u.op in ("AND", "OR"):
+        a = konstant_bool(u.vanster)
+        b = konstant_bool(u.hoger)
+        if u.op == "AND":
+            if a is False or b is False:
+                return False
+            return True if (a and b) else None
+        if a is True or b is True:
+            return True
+        return False if (a is False and b is False) else None
+    return None
+
+
+def underlistor(s: M.Sats):
+    if isinstance(s, M.Om):
+        for g in s.grenar:
+            yield g.satser
+        if s.annars is not None:
+            yield s.annars
+    elif isinstance(s, M.Fall):
+        for g in s.grenar:
+            yield g.satser
+        if s.annars is not None:
+            yield s.annars
+    elif isinstance(s, (M.ForSats, M.Medan, M.Upprepa)):
+        yield s.satser
+
+
+def validera(kalla: str, externa=None, skyddade=(), utgangar=()) -> Rapport:
+    """Granskar ST-text. `externa` är namn ur signalkartan som deklareras
+    någon annanstans, `skyddade` de taggar som är säkerhetsmärkta och
+    `utgangar` extra namn som ska räknas som utgångar i dubbelskrivningen."""
+    try:
+        enhet = las(kalla)
+    except Syntaxfel as f:
+        return Rapport(False, (Anmarkning(f.kod, f.rad, f.text),))
+    anm = Granskning(enhet, externa, skyddade, utgangar).granska()
+    # Ett namn som slås upp både som skrivmål och som uttryck ger samma
+    # anmärkning två gånger. Läsaren av rapporten ska se felet, inte
+    # validatorns interna vägar.
+    unika = sorted(set(anm), key=lambda a: (a.rad, a.kod, a.text))
+    anm = tuple(unika)
+    return Rapport(not anm, anm)

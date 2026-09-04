@@ -1,0 +1,297 @@
+{
+  "task_id": "T-03",
+  "title": "Sammanflode av tva rullbanor till en utgang",
+  "goal": "Sla ihop tva inkommande banor av lastbarare till en utgaende bana utan att tva lastbarare nagonsin slapps fram samtidigt.",
+  "grupp": "T",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar den klassiska sammanflodesbuggen: bada banornas slappsignaler beraknas i samma PLC-scan ur var sin fotocell, utan gemensam last. Nar bada banorna har last samtidigt gar bada slappsignalerna hoga i samma scanfonster och tva lastbarare kilas fast i sammanflodet. Felet syns aldrig nar man provkor en bana i taget.",
+  "prompt": "Bygg ett sammanflode och skriv styrningen till det.\n\nScen: tva ackumulerande rullbanor for lastbarare, bada 500 mm breda och 24 m/min, som gar\nsamman till en utgaende rullbana av samma typ. Varje inkommande bana har en stoppgrind och\nen reflexfotocell framfor grinden. Lastbararen ar en VDA KLT 6147, alltsa 600 x 400 x 147 mm,\nmed en fylld massa pa 12 kg.\n\nUppgift: slapp fram en lastbarare i taget till utgangen. Nar bada banorna har last ska de\nturas om, sa att ingen bana svalter ut den andra. En slappt lastbarare behover 1,5 s pa sig\natt lamna sammanflodet innan nasta far slappas; ST030_PEC_MERGE ser nar sammanflodet ar fritt.\n\nKravet ar hart: ST030_STP1_OPEN och ST030_STP2_OPEN far aldrig vara hoga i samma\nPLC-scanfonster. Utgaende takt ar 20 lastbarare per minut. Anvand signalnamnen i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F7"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "bada slappsignalerna beraknas oberoende och gar hoga i samma scan",
+    "turordningen loses med en timer, sa att ena banan svalter nar den andra ar tom",
+    "sammanflodets fotocell lases som niva i stallet for som fallande flank, sa nasta slapps for tidigt"
+  ],
+  "antaganden": [
+    {
+      "vad": "lastbararens massa 12 kg",
+      "varde": "12 kg",
+      "motiv": "en KLT 6147 med blandat smagods; tomvikten ar drygt 1,5 kg och resten ar antaget innehall"
+    },
+    {
+      "vad": "passagetiden 1,5 s",
+      "varde": "1,5 s",
+      "motiv": "vid 24 m/min tar en 600 mm lang lastbarare cirka 1,5 s att lamna sammanflodet med marginal; ingen matning finns annu"
+    },
+    {
+      "vad": "scanfonstret",
+      "varde": "10 ms",
+      "motiv": "typisk PLC-cykel for en sadan har station; det exakta fonstret satts av OpenPLC i fas 6 och ar annu inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6147, fylld",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147,
+      "massa_kg": 12.0
+    },
+    "arbetsradie_mm": 4200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Bada banorna har last och lastbararna slapps vaxelvis till utgangen i 20 per minut.",
+      "forvantat": "En lastbarare i taget, turordning mellan banorna, och de bada slappsignalerna aldrig hoga i samma scan."
+    },
+    {
+      "id": "gap_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST030_MRG_GAP",
+      "beskrivning": "ST030_MRG_GAP faller till 40 mm, under den minsta lucka om 150 mm som kravs for att en ny lastbarare ska rymmas.",
+      "forvantat": "Ingen grind far oppna. Styrningen ska halla bada slappsignalerna laga tills luckan ater ar over 150 mm."
+    },
+    {
+      "id": "gap_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST030_MRG_GAP",
+      "beskrivning": "ST030_MRG_GAP visar 1200 mm, langre an banans langd, vilket betyder att givaren tappat malet.",
+      "forvantat": "Ett orimligt varde ar inte en stor lucka. Styrningen ska behandla det som givarfel, halla grindarna stangda och larma."
+    },
+    {
+      "id": "bada_last",
+      "typ": "vandning",
+      "signal": "ST030_PEC_LANE2",
+      "beskrivning": "ST030_PEC_LANE1 och ST030_PEC_LANE2 gar hoga i samma scan efter att bada banorna fyllts samtidigt.",
+      "forvantat": "Turordningen ska avgora, och exakt en slappsignal far ga hog. Kommer bada hoga i samma scan ar det just den kapplopning uppgiften finns for."
+    }
+  ],
+  "core_outputs": [
+    "ST030_STP1_OPEN",
+    "ST030_STP2_OPEN",
+    "ST030_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "bana1",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "bana2",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "utgang",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "grind1",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "grind2",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "fotocell1",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "fotocell2",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "fotocell_merge",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana1",
+        "to_role": "utgang"
+      },
+      {
+        "from_role": "bana2",
+        "to_role": "utgang"
+      },
+      {
+        "from_role": "bana1",
+        "to_role": "grind1"
+      },
+      {
+        "from_role": "bana2",
+        "to_role": "grind2"
+      },
+      {
+        "from_role": "bana1",
+        "to_role": "fotocell1"
+      },
+      {
+        "from_role": "bana2",
+        "to_role": "fotocell2"
+      },
+      {
+        "from_role": "utgang",
+        "to_role": "fotocell_merge"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST030_PEC_LANE1",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lastbarare star mot grind 1"
+      },
+      {
+        "name": "ST030_PEC_LANE2",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lastbarare star mot grind 2"
+      },
+      {
+        "name": "ST030_PEC_MERGE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "sammanflodet upptaget"
+      },
+      {
+        "name": "ST030_STP1_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "slapp fram fran bana 1"
+      },
+      {
+        "name": "ST030_STP2_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "slapp fram fran bana 2"
+      },
+      {
+        "name": "ST030_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utgaende bana gar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "ST030_MRG_GAP",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt lucka framfor sammanflodet i mm, fran avstandsgivare"
+      }
+    ],
+    "sequence": [
+      "hall ST030_CNV_RUN hog sa lange EMG_OK ar hog",
+      "ta en gemensam last for sammanflodet; bara en bana far ha den",
+      "valj bana efter turordning nar bada har last, annars den som har last",
+      "satt vald banas slappsignal hog och lamna den andras lag i samma scan",
+      "vanta pa fallande flank pa ST030_PEC_MERGE, alltsa att lastbararen lamnat",
+      "vanta ytterligare 1,5 s innan lasten slapps",
+      "vaxla turordning"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST030": 1.5
+      },
+      "cycle_s": 3.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "ST030_STP1_OPEN och ST030_STP2_OPEN far aldrig vara hoga samtidigt",
+      "ingen grind oppnas nar ST030_PEC_MERGE ar hog"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1200.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 25.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST030_STP1_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST030_STP2_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST030 *s req=1.5s OK"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST030 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST lastbarare1+lastbarare2 *mm t=*s"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST030_STP1_OPEN+ST030_STP2_OPEN dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

@@ -1,0 +1,182 @@
+{
+  "task_id": "S-91",
+  "title": "Trasig variant av S-04: agenten anropar ratt verktyg fel och ger sedan upp",
+  "goal": "Visa att en agent som ger upp mitt i ar ett eget fel med egen klass, inte en uppgift som var for svar.",
+  "grupp": "S",
+  "bransch": "kvalitetskontroll",
+  "orsak": "Speglar tva verkliga misslyckanden i samma logg. Agenten forsoker placera en komponent med koordinater, vilket bryter mot regeln att modellen anger relationer och VC raknar geometrin. Nar argumenten inte stammer provar den ett verktyg som inte finns, och levererar till sist en station utan omarbetningsvag utan att saga att den ar ofullstandig.",
+  "prompt": "Har ar en verktygslogg fran ett forsok att losa uppgift S-04, kvalitetsstationen med kamera\noch tre utgangar. Loggen visar agentens anrop mot verktygslagret och svaren den fick. Signalerna\ni uppgiften ar OPC UA-variabler ur OpenPLC Runtime v4.\n\nLas loggen och avgor vad som gick fel. Namnge varje anrop som bryter mot verktygsschemat, sag\nvilket av dem som ocksa bryter mot invarianten att modellen anger relationer och aldrig\nkoordinater, och klassa hela forsoket enligt docs/spec/82_felklasser.md. Bedom sarskilt den sista\nraden: en levererad station utan omarbetningsvag ar inte en delvis losning.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F13"
+  ],
+  "stege": "set_reset",
+  "difficulty": 1,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "forsoket raknas som ett svart problem i stallet for som ett verktygsfel",
+    "den levererade stationen godkanns darfor att den kompilerar, trots att ST220_PSH_RWK saknas helt",
+    "bara det sista anropet granskas, sa koordinatforsoket i borjan slipper igenom"
+  ],
+  "antaganden": [
+    {
+      "vad": "felmeddelandenas ordalydelse",
+      "varde": "svaren i loggen",
+      "motiv": "loggen ar en handskriven fixtur; verktygslagrets exakta felstrangar ar inte matta, men formen med okant argument och okant verktyg foljer verktygsschemat i docs/spec/45_verktyg.md"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "pressad platdetalj",
+      "l_mm": 150,
+      "b_mm": 90,
+      "h_mm": 12,
+      "massa_kg": 0.62
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade verktygsloggen bedoms utan att nagon kod kors.",
+      "forvantat": "Fyra anrop bryter mot verktygsschemat och forsoket avslutas med en ofullstandig leverans; felklassen ar F13."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST220_PSH_RWK",
+      "beskrivning": "Den levererade stationen saknar ST220_PSH_RWK helt, sa omarbetningsvagen finns inte och odomda detaljer skulle ga rakt fram.",
+      "forvantat": "En utgang som saknas ar inte en utgang som aldrig anvands. Bristen ska fallas har, inte upptackas nar en odomd detalj natt kunden."
+    }
+  ],
+  "core_outputs": [
+    "ST220_PSH_RWK",
+    "ST220_PSH_SCR",
+    "ST220_CAM_TRIG",
+    "ST220_CNV_RUN"
+  ],
+  "variant_av": "S-04",
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      },
+      {
+        "role": "utskjutare_omarbete",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utskjutare_kassation",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "omarbetningsplats",
+        "uri": "bank://station/omarbetningsplats",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare_omarbete"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare_kassation"
+      },
+      {
+        "from_role": "utskjutare_omarbete",
+        "to_role": "omarbetningsplats"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST220_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST220_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos en bild"
+      },
+      {
+        "name": "ST220_CAM_READY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bedomningen klar"
+      },
+      {
+        "name": "ST220_PSH_RWK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut till omarbetning"
+      },
+      {
+        "name": "ST220_PSH_SCR",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut till kassation"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som S-04"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST220": 0.4
+      },
+      "cycle_s": 3.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "ST220_PSH_RWK och ST220_PSH_SCR far aldrig vara hoga samtidigt"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": null,
+    "runs": 3,
+    "warmup_s": 0.0,
+    "must_pass": [],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "G4",
+    "verdict": null,
+    "reason_contains": null,
+    "lines": [],
+    "forbidden_lines": [],
+    "gate_code": "F13"
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "logg",
+    "artefakt": "[19:41:02] verktyg=find_component args={\"name\": \"utskjutare_omarbete\"} -> OK vcid=0x1f4a\n[19:41:03] verktyg=set_transform args={\"node\": \"utskjutare_omarbete\", \"x\": 1200, \"y\": 0, \"z\": 850}\n           -> FEL: okant argument 'x'; set_transform tar 'matrix'\n[19:41:06] verktyg=set_transform args={\"node\": \"utskjutare_omarbete\", \"matrix\": [1200, 0, 850]}\n           -> FEL: 'matrix' ska vara en 4x4-lista, fick lista med 3 tal\n[19:41:11] verktyg=set_position args={\"node\": \"utskjutare_omarbete\", \"pos\": [1200, 0, 850]}\n           -> FEL: okant verktyg 'set_position'\n[19:41:15] verktyg=connect args={\"from\": \"band\", \"to\": \"utskjutare_omarbete\"}\n           -> FEL: okanda argument 'from', 'to'; connect tar 'iface_a' och 'iface_b'\n[19:41:22] agent: \"Jag kan inte placera utskjutaren med de verktyg som finns. Jag hoppar over\n           utsorteringen och levererar stationen utan omarbetningsvag.\"\n[19:41:22] kod levererad utan ST220_PSH_RWK\n",
+    "vad_som_ar_fel": "Fyra anrop bryter mot verktygsschemat: set_transform med x, y, z; set_transform med en matris om tre tal; ett verktyg set_position som inte finns; och connect med from och to i stallet for iface_a och iface_b. De tva forsta bryter dessutom mot invariant I8, att modellen anger relationer och aldrig koordinater. Sist ger agenten upp och levererar en station utan omarbetningsvag utan att markera leveransen som ofullstandig."
+  }
+}

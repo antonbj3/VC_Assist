@@ -1,0 +1,368 @@
+{
+  "task_id": "C-05",
+  "title": "Linje med kvalitetsloop och omarbetning tillbaka in i flodet",
+  "goal": "Na 240 kartor i timmen i en linje dar underkanda kartor gar till omarbetning och sedan tillbaka in i flodet, utan att en omarbetad karta gar in i en upptagen station.",
+  "grupp": "C",
+  "bransch": "lakemedel",
+  "orsak": "Speglar en driftsattningsmiss i aterflodesloopar: omarbetade enheter matas tillbaka in framfor produktionsflodet utan forregling mot huvudflodet, darfor att aterflodet ar litet och antas rymmas. Nar omarbetningen tommer sin ko efter ett stopp kommer flera enheter samtidigt och kolliderar med huvudflodet i sammanflodet. Den andra missen ar att omarbetade enheter inte raknas separat, sa kapacitetstalet doljer hur mycket som gors om.",
+  "prompt": "Bygg en produktionslinje med kvalitetsloop och skriv styrningen till den.\n\nScen: en produktionsstation ST430 med en blistermaskin, en 2D-kamera for kontroll, en pneumatisk\nutskjutare mot en omarbetningsplats ST440 med manuell kvittering, och en ackumulerande rullbana\nsom for omarbetade kartor tillbaka in i huvudflodet genom ett sammanflode. Kartan ar 90 x 55 x\n12 mm och vager 0,018 kg och ligger i en VDA KLT 3147.\n\nUppgift: ST430 producerar en karta var 13,0 s. Kameran bedomer varje karta. Underkanda skjuts ut\ntill ST440, dar en operator kvitterar med ST440_RWK_DONE efter i medeltal 90,0 s. En omarbetad\nkarta far matas tillbaka in i huvudflodet forst nar ST430_MRG_FREE ar hog, alltsa nar\nsammanflodet ar fritt, och den ska raknas i ST440_RWK_CNT skilt fran ST430_PRD_CNT. Malet ar\n240 godkanda kartor i timmen, och andelen omarbetade far inte overstiga 8 procent.\n\nMat over minst tre korningar med 600 s uppvarmning. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F11",
+    "F8"
+  ],
+  "stege": "hiss",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "omarbetade kartor matas in utan forregling mot ST430_MRG_FREE och kolliderar med huvudflodet",
+    "omarbetade kartor raknas i samma raknare som nyproducerade, sa andelen omarbete doljs",
+    "malet raknas pa alla kartor ut ur linan i stallet for pa godkanda, sa omarbete raknas tva ganger"
+  ],
+  "antaganden": [
+    {
+      "vad": "takten 13,0 s och malet 240 kartor i timmen",
+      "varde": "13,0 s och 240 per timme",
+      "motiv": "13,0 s ger 277 kartor teoretiskt; malet 240 lamnar cirka 13 procent for omarbete och stopp och ar satt, inte matt"
+    },
+    {
+      "vad": "omarbetningstiden 90,0 s i medeltal",
+      "varde": "90,0 s",
+      "motiv": "manuell omarbetning med kvittering; tiden ar antagen och varierar i verkligheten mycket mer an ett medelvarde antyder"
+    },
+    {
+      "vad": "hogst 8 procent omarbete",
+      "varde": "8 procent",
+      "motiv": "vald sa att aterflodet ryms i sammanflodet vid 13,0 s takt; gransen ar satt och inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "blister med tio kaviteter",
+      "l_mm": 90,
+      "b_mm": 55,
+      "h_mm": 12,
+      "massa_kg": 0.018
+    },
+    "arbetsradie_mm": 1500.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Linjen kor en simulerad timme med cirka 6 procent underkanda kartor som gar till omarbetning och tillbaka.",
+      "forvantat": "Minst 240 godkanda kartor i timmen, omarbetade raknade skilt och varje aterinmatning forreglad mot sammanflodet."
+    },
+    {
+      "id": "que_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST440_RWK_QUE",
+      "beskrivning": "ST440_RWK_QUE star pa 0 hela matperioden trots att kartor skjutits ut till omarbetning.",
+      "forvantat": "En omarbetningsko som aldrig fylls betyder att kartorna forsvinner nagon annanstans. Styrningen ska larma; rakningen far inte sluta stamma."
+    },
+    {
+      "id": "que_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST440_RWK_QUE",
+      "beskrivning": "ST440_RWK_QUE nar 14, over omarbetningsplatsens tio platser.",
+      "forvantat": "Kon far inte vaxa forbi platserna. Styrningen ska sanka produktionstakten eller stoppa linjen och larma, inte fortsatta skjuta ut."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST430_PRD_CNT",
+      "beskrivning": "ST430_PRD_CNT star kvar pa 0 efter 900 s trots att godkanda kartor lamnat linjen.",
+      "forvantat": "Utan rakning gar kapacitetsmalet inte att pröva. Styrningen ska larma och matningen forkastas hellre an rapporteras."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST430_PRD_CNT",
+      "beskrivning": "ST430_PRD_CNT stiger till 320 pa en timme, over de 277 som takten teoretiskt medger.",
+      "forvantat": "Ett tal over det teoretiska maximum betyder troligen att omarbetade kartor raknas dubbelt. Styrningen ska larma och matningen forkastas."
+    },
+    {
+      "id": "free_uteblir",
+      "typ": "vandning",
+      "signal": "ST430_MRG_FREE",
+      "beskrivning": "ST440_RWK_DONE kvitteras tre ganger i rad efter ett stopp, men ST430_MRG_FREE ar lag hela tiden.",
+      "forvantat": "Ingen av de tre kartorna far matas in. De ska ackumulera pa aterflodesbanan tills sammanflodet ar fritt, en i taget."
+    },
+    {
+      "id": "rwk_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST440_RWK_CNT",
+      "beskrivning": "ST440_RWK_CNT star kvar pa 0 efter en timme trots att ST440_RWK_QUE visat kartor i kon och operatoren kvitterat.",
+      "forvantat": "Omarbetade kartor raknas da troligen i ST430_PRD_CNT i stallet, vilket doljer andelen omarbete. Styrningen ska larma och kapacitetsmatningen forkastas hellre an rapporteras som uppnadd."
+    },
+    {
+      "id": "rwk_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST440_RWK_CNT",
+      "beskrivning": "ST440_RWK_CNT nar 42 pa en timme, alltsa over 15 procent av produktionen, mot gransen 8 procent.",
+      "forvantat": "Over gransen ryms aterflodet inte i sammanflodet vid 13,0 s takt. Styrningen ska sanka produktionstakten och larma i stallet for att fortsatta mata in omarbetade kartor."
+    }
+  ],
+  "core_outputs": [
+    "ST430_PRD_START",
+    "ST430_PSH_RWK",
+    "ST430_MRG_OPEN",
+    "ST430_CAM_TRIG"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "produktionsstation",
+        "uri": "bank://station/blistermaskin",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "omarbetningsplats",
+        "uri": "bank://station/omarbetningsplats",
+        "count": 1
+      },
+      {
+        "role": "aterflodesbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "huvudbana",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "lastbarare",
+        "uri": "bank://last/klt_4147",
+        "count": 1
+      },
+      {
+        "role": "mergegivare",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "produktionsstation",
+        "to_role": "huvudbana"
+      },
+      {
+        "from_role": "huvudbana",
+        "to_role": "kamera"
+      },
+      {
+        "from_role": "huvudbana",
+        "to_role": "utskjutare"
+      },
+      {
+        "from_role": "utskjutare",
+        "to_role": "omarbetningsplats"
+      },
+      {
+        "from_role": "omarbetningsplats",
+        "to_role": "aterflodesbana"
+      },
+      {
+        "from_role": "aterflodesbana",
+        "to_role": "huvudbana"
+      },
+      {
+        "from_role": "huvudbana",
+        "to_role": "mergegivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST430_PRD_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta produktion av nasta karta"
+      },
+      {
+        "name": "ST430_PRD_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartan fardig ur maskinen"
+      },
+      {
+        "name": "ST430_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos kvalitetsbedomning"
+      },
+      {
+        "name": "ST430_CAM_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartan godkand"
+      },
+      {
+        "name": "ST430_PSH_RWK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut underkand karta till omarbetning"
+      },
+      {
+        "name": "ST430_MRG_FREE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "sammanflodet fritt for en omarbetad karta"
+      },
+      {
+        "name": "ST430_MRG_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "slapp in en omarbetad karta i huvudflodet"
+      },
+      {
+        "name": "ST430_PRD_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal nyproducerade godkanda kartor"
+      },
+      {
+        "name": "ST440_RWK_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "operatoren har kvitterat en omarbetad karta"
+      },
+      {
+        "name": "ST440_RWK_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal omarbetade kartor"
+      },
+      {
+        "name": "ST440_RWK_QUE",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal kartor i omarbetningskon"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "starta en produktionscykel var 13,0 s med ST430_PRD_START",
+      "pulsa ST430_CAM_TRIG pa varje fardig karta och las ST430_CAM_OK",
+      "vid godkant: lat kartan ga vidare och rakna i ST430_PRD_CNT",
+      "vid underkant: satt ST430_PSH_RWK hog och for kartan till ST440",
+      "nar ST440_RWK_DONE kvitterats: begar inmatning i huvudflodet",
+      "satt ST430_MRG_OPEN hog forst nar ST430_MRG_FREE ar hog",
+      "rakna omarbetade kartor i ST440_RWK_CNT, aldrig i ST430_PRD_CNT",
+      "rakna kapaciteten som godkanda kartor per timme efter 600 s uppvarmning"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST430": 13.0,
+        "ST440": 90.0
+      },
+      "cycle_s": 13.0,
+      "tolerance_s": 0.4
+    },
+    "interlocks": [
+      "ST430_MRG_OPEN far aldrig ga hog nar ST430_MRG_FREE ar lag",
+      "en omarbetad karta far aldrig raknas i ST430_PRD_CNT",
+      "ingen utskjutning nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 240.0,
+    "runs": 5,
+    "warmup_s": 600.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST430 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST440 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST430 *s req=13.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST430_PSH_RWK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST430_MRG_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST omarbetad_karta+huvudflode *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST430_MRG_OPEN+ST430_PRD_START dt=*ms"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION omarbetad_karta x huvudflode t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

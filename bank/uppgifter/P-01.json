@@ -1,0 +1,297 @@
+{
+  "task_id": "P-01",
+  "title": "SCARA plockar kretskort ur KLT till fixtur",
+  "goal": "Flytta ett kretskort fran en lastbarare till en fixtur och slappa det forst nar fixturens narvarogivare bekraftat att kortet ligger ratt.",
+  "grupp": "P",
+  "bransch": "elektronik",
+  "orsak": "Speglar den vanligaste baslinjemissen i plockceller: vakuumet slapps pa robotens lagesignal i stallet for pa fixturens narvarogivare. Kortet slapps nagra millimeter over fixturen, glider och hamnar snett, men robotprogrammet rapporterar klart. Felet syns forst i nasta station, dar kortet inte gar att skruva.",
+  "prompt": "Bygg en plockstation for kretskort och skriv styrningen till den.\n\nScen: en ABB IRB 910SC-3/0.55 SCARA med rackvidd 550 mm och nyttolast 3 kg, en vakuumgripare\nmed fyra sugkoppar om 40 mm, en VDA KLT 4147 om 400 x 300 x 147 mm med kort i fack, och en\nfixtur med narvarogivare. Kortet ar 233 x 160 mm och 1,6 mm tjockt och vager 0,21 kg. Langsta\navstand robotens verktyg behover na ar 480 mm.\n\nUppgift: plocka ett kort ur lastbararen, for det till fixturen och slapp vakuumet forst nar\nST100_FIX_PRS ar hog, alltsa nar fixturen sett kortet. Placeringstoleransen i fixturen ar\n0,5 mm. Takten ar 3,7 s per kort. Vakuumets anslagstid ar 0,15 s och ST100_VAC_OK bekraftar\nundertryck.\n\nSlapp aldrig pa robotens lagesignal ensam. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F10"
+  ],
+  "stege": "sortering_hojd_enkel",
+  "difficulty": 2,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "vakuumet slapps pa robotens lagesignal i stallet for pa ST100_FIX_PRS",
+    "roboten startar nasta plock innan ST100_VAC_OK gatt lag, sa den drar med sig kortet",
+    "narvaron i lastbararen antas i stallet for lasas, sa roboten plockar luft nar facket ar tomt"
+  ],
+  "antaganden": [
+    {
+      "vad": "takten 3,7 s per kort",
+      "varde": "3,7 s",
+      "motiv": "en enkel SCARA-cykel over cirka 480 mm med vakuumgrepp; talet ligger i den storleksordning sadana celler brukar ge men ar inte matt pa den har cellen"
+    },
+    {
+      "vad": "placeringstoleransen 0,5 mm",
+      "varde": "0,5 mm",
+      "motiv": "fixturplaceringar ligger typiskt mellan 0,1 och 1 mm; 0,5 mm ar valt mitt i det spannet for ett kort som styrs av tva styrstift"
+    },
+    {
+      "vad": "kortets vikt 0,21 kg",
+      "varde": "0,21 kg",
+      "motiv": "beror helt av komponentbestyckningen; vikten ar antagen och pavarkar bara marginalen mot robotens nyttolast"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kretskort i dubbelt Eurokort-format",
+      "l_mm": 233,
+      "b_mm": 160,
+      "h_mm": 1.6,
+      "massa_kg": 0.21
+    },
+    "arbetsradie_mm": 480.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Lastbararen ar full, undertrycket ligger pa 62 kPa och takten ar 3,7 s per kort.",
+      "forvantat": "Ett kort per takt, greppet stelt, kortet placerat inom 0,5 mm och vakuumet slappt forst pa ST100_FIX_PRS."
+    },
+    {
+      "id": "vac_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST100_VAC_PRESS",
+      "beskrivning": "ST100_VAC_PRESS faller till 28 kPa, under det lagsta arbetsvardet 45 kPa, medan roboten bar kortet.",
+      "forvantat": "Ett svagt vakuum bar inte kortet genom accelerationen. Styrningen ska stoppa rorelsen i sakert lage och larma i stallet for att fortsatta transporten."
+    },
+    {
+      "id": "vac_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST100_VAC_PRESS",
+      "beskrivning": "ST100_VAC_PRESS visar 95 kPa, over ejektorns hogsta rimliga 80 kPa.",
+      "forvantat": "Ett varde over det fysiskt mojliga ar ett givarfel, inte ett starkt grepp. Styrningen ska larma och inte lita pa ST100_VAC_OK."
+    },
+    {
+      "id": "fix_uteblir",
+      "typ": "vandning",
+      "signal": "ST100_FIX_PRS",
+      "beskrivning": "Roboten star over fixturen men ST100_FIX_PRS gar aldrig hog.",
+      "forvantat": "Vakuumet far inte slappas anda. Efter 2,0 s utan narvaro ska styrningen fora tillbaka kortet till lastbararen och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST100_RB_START",
+    "ST100_VAC_ON"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_910sc_3_0550",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_4_sug_40",
+        "count": 1
+      },
+      {
+        "role": "lastbarare",
+        "uri": "bank://last/klt_4147",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "narvarogivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST100_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens plockprogram"
+      },
+      {
+        "name": "ST100_RB_BUSY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten kor"
+      },
+      {
+        "name": "ST100_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "robotprogrammet klart"
+      },
+      {
+        "name": "ST100_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST100_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST100_VAC_PRESS",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt undertryck i kPa"
+      },
+      {
+        "name": "ST100_FIX_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fixturens narvarogivare ser kortet"
+      },
+      {
+        "name": "ST100_KLT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lastbarare pa plats med kort"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST100_KLT_PRS, EMG_OK och AIR_OK",
+      "satt ST100_VAC_ON hog och vanta pa ST100_VAC_OK",
+      "satt ST100_RB_START hog och vanta pa ST100_RB_BUSY",
+      "vanta pa ST100_RB_DONE, alltsa att kortet star over fixturen",
+      "nollstall ST100_VAC_ON forst nar ST100_FIX_PRS gatt hog",
+      "vanta pa att ST100_VAC_OK gar lag innan nasta plock startas"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST100": 1.0
+      },
+      "cycle_s": 3.7,
+      "tolerance_s": 0.15
+    },
+    "interlocks": [
+      "roboten far inte starta utan ST100_KLT_PRS",
+      "vakuumet far aldrig slappas innan ST100_FIX_PRS ar hog",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 973.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST100_VAC_ON RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST100_FIX_PRS RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST100 *s req=1.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST100 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+klt_vagg *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP NEVER_FORMED"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER VIOLATION dist=*mm t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

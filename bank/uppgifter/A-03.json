@@ -1,0 +1,301 @@
+{
+  "task_id": "A-03",
+  "title": "Forregling mellan tva stationer med kvittens at bada hall",
+  "goal": "Station 2 far aldrig starta pa en enhet som station 1 inte kvitterat klar, och station 1 far aldrig slappa en enhet till en upptagen station 2.",
+  "grupp": "A",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar en forreglingsmiss som ger halvfardiga enheter i lina: station 2 startar pa att enheten ar narvarande i stallet for pa station 1:s klarsignal. Nar station 1 behover ett extra moment star enheten kvar men ar inte fardig, och station 2 borjar arbeta i den. Forreglingen maste ga at bada hall, annars trycker station 1 in en enhet i en upptagen station 2.",
+  "prompt": "Bygg tva stationer i foljd med forregling och skriv styrningen till bada.\n\nScen: tva monteringsstationer med var sin fixtur med pneumatiska spannare, forbundna av en\nackumulerande rullbana for lastbarare 500 mm bred i 24 m/min, med en induktiv narvarogivare i\nvar station. Enheten sitter i en VDA KLT 6147 om 600 x 400 x 147 mm och vager 11 kg fylld.\nStation 1 heter ST250 och station 2 heter ST260.\n\nUppgift: station 1 arbetar i 26,0 s och station 2 i 31,0 s. Station 1 far slappa en enhet forst\nnar ST260_STA_RDY ar hog, alltsa nar station 2 ar tom och klar. Station 2 far starta forst nar\nST250_STA_DONE ar hog for just den enhet som star i stationen. Handskakningen ska nollstallas\ninnan nasta enhet slapps. Linans takt satts av den langsammaste stationen, alltsa 31,0 s.\n\nForreglingen ska halla at bada hall. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "station 2 startar pa narvarosignalen i stallet for pa ST250_STA_DONE",
+    "handskakningen nollstalls inte, sa nasta enhet arver foregaende enhets klarsignal",
+    "station 1 slapper en enhet utan att ST260_STA_RDY ar hog, sa tva enheter moter varandra"
+  ],
+  "antaganden": [
+    {
+      "vad": "arbetstiderna 26,0 och 31,0 s",
+      "varde": "26,0 s och 31,0 s",
+      "motiv": "olika langa med avsikt, sa att takten satts av station 2 och kon byggs mellan stationerna; talen ligger i spannet 8 till 60 s men ar valda"
+    },
+    {
+      "vad": "enhetens vikt 11 kg",
+      "varde": "11 kg",
+      "motiv": "KLT 6147 med en delvis monterad enhet; vikten ar antagen"
+    },
+    {
+      "vad": "bandets 24 m/min",
+      "varde": "24 m/min",
+      "motiv": "star i katalogindexet som ANTAGEN for ackumulerande rullbana for lastbarare, inom det vanliga spannet 6 till 30 m/min"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6147 med delmonterad enhet",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147,
+      "massa_kg": 11.0
+    },
+    "arbetsradie_mm": 2200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Enheter flodar genom bada stationerna och takten satts av station 2:s 31,0 s.",
+      "forvantat": "Station 2 startar alltid efter ST250_STA_DONE, handskakningen nollstalls och ingen enhet slapps mot en upptagen station."
+    },
+    {
+      "id": "rdy_uteblir",
+      "typ": "vandning",
+      "signal": "ST260_STA_RDY",
+      "beskrivning": "ST260_STA_RDY gar lag mitt i station 1:s slappsekvens, medan grinden redan oppnat.",
+      "forvantat": "Enheten far inte fortsatta. Styrningen ska stanga grinden igen och halla enheten kvar tills station 2 ater ar klar."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST250_STA_DONE",
+      "beskrivning": "Enheten star i station 2 och ST260_PRT_PRS ar hog, men ST250_STA_DONE gar aldrig hog.",
+      "forvantat": "Station 2 far inte starta pa narvaron ensam. Den ska vanta och larma efter 10,0 s, sa att ingen halvfardig enhet bearbetas vidare."
+    }
+  ],
+  "core_outputs": [
+    "ST250_STA_DONE",
+    "ST250_REL_OPEN",
+    "ST260_STA_BUSY",
+    "ST260_ACK_RST",
+    "ST260_STA_DONE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "station1",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "station2",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "mellanbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "givare1",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "givare2",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "grind",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "station1",
+        "to_role": "mellanbana"
+      },
+      {
+        "from_role": "mellanbana",
+        "to_role": "station2"
+      },
+      {
+        "from_role": "station1",
+        "to_role": "givare1"
+      },
+      {
+        "from_role": "station2",
+        "to_role": "givare2"
+      },
+      {
+        "from_role": "mellanbana",
+        "to_role": "grind"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST250_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "enhet i station 1"
+      },
+      {
+        "name": "ST250_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 1 arbetar"
+      },
+      {
+        "name": "ST250_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 1 klar med enheten i stationen"
+      },
+      {
+        "name": "ST250_REL_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna grinden och slapp enheten vidare"
+      },
+      {
+        "name": "ST260_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "enhet i station 2"
+      },
+      {
+        "name": "ST260_STA_RDY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "station 2 tom och klar att ta emot"
+      },
+      {
+        "name": "ST260_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 2 arbetar"
+      },
+      {
+        "name": "ST260_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 2 klar"
+      },
+      {
+        "name": "ST260_ACK_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "nollstall handskakningen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "station 1: vanta pa ST250_PRT_PRS, satt ST250_STA_BUSY hog och arbeta 26,0 s",
+      "station 1: satt ST250_STA_DONE hog nar arbetet ar klart",
+      "station 1: satt ST250_REL_OPEN hog forst nar bade ST250_STA_DONE och ST260_STA_RDY ar hoga",
+      "station 2: starta forst nar ST260_PRT_PRS och ST250_STA_DONE bada ar hoga",
+      "station 2: satt ST260_STA_BUSY hog och arbeta 31,0 s",
+      "station 2: satt ST260_ACK_RST hog nar enheten tagits emot, sa att ST250_STA_DONE nollstalls",
+      "station 2: satt ST260_STA_DONE hog och slapp ut enheten"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST250": 26.0,
+        "ST260": 31.0
+      },
+      "cycle_s": 31.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST250_REL_OPEN far aldrig ga hog nar ST260_STA_RDY ar lag",
+      "station 2 far aldrig starta nar ST250_STA_DONE ar lag",
+      "ST250_STA_DONE ska nollstallas av ST260_ACK_RST innan nasta enhet slapps",
+      "ingen stationsrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 116.0,
+    "runs": 3,
+    "warmup_s": 180.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST250_STA_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST260_STA_BUSY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST260_ACK_RST RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST250 *s req=26.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST260 *s req=31.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST250 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST260 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST260 *s req=31.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST250_REL_OPEN+ST260_STA_BUSY dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

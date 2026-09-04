@@ -1,0 +1,326 @@
+{
+  "task_id": "A-01",
+  "title": "Tva delar i fixtur, A fore B, med spannare mellan",
+  "goal": "Lagga in del A, spanna fixturen och forst darefter lagga in del B, sa att B aldrig trycker undan ett ospant A.",
+  "grupp": "A",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar en driftsattningsmiss som ger snedmonterade detaljer: del B laggs in medan fixturen fortfarande spanner. Spannaren tar 0,6 s och robotprogrammet startas pa spannkommandot i stallet for pa ST230_CLP_CLOSED. A skjuts da nagra millimeter ur lage av B, och felet syns forst i skruvstationen dar halen inte moter.",
+  "prompt": "Bygg en monteringsstation med fixtur och skriv styrningen till den.\n\nScen: en ABB IRB 2600-20/1.65 med rackvidd 1650 mm och nyttolast 20 kg, en tvabackad elektrisk\nparallellgripare med lagesaterkoppling som vager 1,9 kg, en fixtur med pneumatiska spannare och\nlagesgivare, och tva matarbanor. Del A ar en fastkonsol 320 x 180 x 60 mm som vager 2,6 kg och\ndel B ar en tackplat 300 x 150 x 4 mm som vager 0,54 kg. Robotens langsta arbetsradie i\nuppgiften ar 1500 mm.\n\nUppgift: lagg in del A i fixturen, satt ST230_CLP_CLOSE hog och vanta pa ST230_CLP_CLOSED, som\nkommer efter spannarens 0,6 s. Forst darefter far del B laggas in. Placeringstoleransen i\nfixturen ar 0,3 mm for A och 0,8 mm for B. Takten ar 24,0 s per enhet.\n\nStarta aldrig B-programmet pa spannkommandot. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "B-programmet startas pa ST230_CLP_CLOSE i stallet for pa ST230_CLP_CLOSED",
+    "spannaren kommenderas innan A ligger an, sa backen trycker A ur lage",
+    "narvaron av A antas efter robotprogrammet i stallet for lases ur ST230_PRT_A_PRS"
+  ],
+  "antaganden": [
+    {
+      "vad": "delarnas matt och vikter",
+      "varde": "A 320 x 180 x 60 mm, 2,6 kg och B 300 x 150 x 4 mm, 0,54 kg",
+      "motiv": "en fastkonsol och en tackplat i tunn stalplat; matten ar valda och vikterna raknade ur ungefarlig volym, inte matta"
+    },
+    {
+      "vad": "takten 24,0 s",
+      "varde": "24,0 s",
+      "motiv": "tva robotcykler plus spanning ryms i 24 s; ligger i det spann 8 till 60 s en monteringsstation brukar ha men ar valt"
+    },
+    {
+      "vad": "spanntiden 0,6 s",
+      "varde": "0,6 s",
+      "motiv": "star som ANTAGEN i katalogindexet for fixturen"
+    },
+    {
+      "vad": "toleranserna 0,3 och 0,8 mm",
+      "varde": "0,3 mm och 0,8 mm",
+      "motiv": "fixturplaceringar ligger typiskt mellan 0,1 och 1 mm; A styrs av tva stift och far darfor den hardare toleransen"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "fastkonsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 60,
+      "massa_kg": 2.6
+    },
+    "arbetsradie_mm": 1500.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Delar A och B kommer pa var sin matarbana och monteras i 24,0 s takt.",
+      "forvantat": "A in, fixturen spand och bekraftad, sedan B in, bada inom sin tolerans och utan att A rort sig."
+    },
+    {
+      "id": "force_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST230_CLP_FORCE",
+      "beskrivning": "ST230_CLP_FORCE stannar pa 180 N, under den lagsta spannkraften 400 N, trots att ST230_CLP_CLOSED gatt hog.",
+      "forvantat": "Lagesgivaren kan ge spant lage utan att kraften finns. Styrningen ska inte lagga in B, utan larma och slappa spannaren."
+    },
+    {
+      "id": "force_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST230_CLP_FORCE",
+      "beskrivning": "ST230_CLP_FORCE nar 1400 N, over den hogsta tillatna 1100 N for konsolen.",
+      "forvantat": "Overkraft deformerar konsolen. Styrningen ska slappa spannaren, larma och inte lagga in B."
+    },
+    {
+      "id": "closed_uteblir",
+      "typ": "vandning",
+      "signal": "ST230_CLP_CLOSED",
+      "beskrivning": "ST230_CLP_CLOSE satts hog men ST230_CLP_CLOSED uteblir i 2,0 s, langre an spannarens 0,6 s.",
+      "forvantat": "B far aldrig laggas in pa ett ospant A. Styrningen ska sta kvar med B i griparen och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST230_RB_START",
+    "ST230_CLP_CLOSE",
+    "ST230_RB_PRG"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_elektrisk",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "matarbana_a",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "matarbana_b",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "lagesgivare_a",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "lagesgivare_b",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "matarbana_a",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "matarbana_b",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "lagesgivare_a"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "lagesgivare_b"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST230_RB_PRG",
+        "dir": "out",
+        "type": "int",
+        "comment": "valt robotprogram, 1 for del A och 2 for del B"
+      },
+      {
+        "name": "ST230_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta valt robotprogram"
+      },
+      {
+        "name": "ST230_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "robotprogrammet klart"
+      },
+      {
+        "name": "ST230_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann fixturen"
+      },
+      {
+        "name": "ST230_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "spannarna i spant lage"
+      },
+      {
+        "name": "ST230_PRT_A_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "del A ligger i fixturen"
+      },
+      {
+        "name": "ST230_PRT_B_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "del B ligger i fixturen"
+      },
+      {
+        "name": "ST230_CLP_FORCE",
+        "dir": "in",
+        "type": "real",
+        "comment": "spannkraft i newton"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "satt ST230_RB_PRG till 1 och ST230_RB_START hog",
+      "vanta pa ST230_RB_DONE och pa ST230_PRT_A_PRS",
+      "satt ST230_CLP_CLOSE hog",
+      "vanta pa ST230_CLP_CLOSED, alltsa efter spannarens 0,6 s",
+      "satt ST230_RB_PRG till 2 och ST230_RB_START hog",
+      "vanta pa ST230_RB_DONE och pa ST230_PRT_B_PRS",
+      "slapp ST230_CLP_CLOSE nar enheten ska ut"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST230": 0.6
+      },
+      "cycle_s": 24.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "del B far aldrig laggas in nar ST230_CLP_CLOSED ar lag",
+      "spannaren far inte kommenderas nar ST230_PRT_A_PRS ar lag",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 150.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 12.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST230_CLP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST230_CLP_CLOSED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST230 *s req=0.6s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST230 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+fixturback *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION gripdon x fixturback t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST230 *s req=0.6s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

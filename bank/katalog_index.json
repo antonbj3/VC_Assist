@@ -1,0 +1,534 @@
+{
+  "index_id": "bank-lokal-v1",
+  "syfte": "Bankens komponentvokabulär. scene.components[].uri måste finnas här (lintkod M4_UNKNOWN_URI).",
+  "harkomst": "MÄTT 2026-09-04: VC-installationen innehåller noll .vcmx-layouter och fem komponentfiler. Det finns alltså inget lokalt scenarkiv att peka på, så banken bär sin egen vokabulär och binds till eCatalog i fas 5. Schemat bank:// är valt just för att ingen ska förväxla en bankpost med en mätt VC-URI.",
+  "stamplar": {
+    "PUBLICERAD_SPEC": "räckvidd, nyttolast och mått kommer ur tillverkarens publicerade datablad för den namngivna modellen",
+    "STANDARDMATT": "måttet är en standard (EUR-pall, VDA KLT, ISO)",
+    "ANTAGEN": "bankens antagande; motivet står i posten"
+  },
+  "poster": [
+    {
+      "uri": "bank://robot/abb_irb_1200_5_0900",
+      "namn": "ABB IRB 1200-5/0.9",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 901,
+      "nyttolast_kg": 5.0,
+      "axlar": 6,
+      "not": "liten monteringsrobot, 6 axlar"
+    },
+    {
+      "uri": "bank://robot/abb_irb_1200_7_0700",
+      "namn": "ABB IRB 1200-7/0.7",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 703,
+      "nyttolast_kg": 7.0,
+      "axlar": 6,
+      "not": "kort räckvidd, högre last än 5/0.9-varianten"
+    },
+    {
+      "uri": "bank://robot/abb_irb_2600_20_1650",
+      "namn": "ABB IRB 2600-20/1.65",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 1650,
+      "nyttolast_kg": 20.0,
+      "axlar": 6,
+      "not": "medelstor hanterings- och svetsrobot"
+    },
+    {
+      "uri": "bank://robot/abb_irb_4600_60_2050",
+      "namn": "ABB IRB 4600-60/2.05",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 2050,
+      "nyttolast_kg": 60.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/abb_irb_6700_235_2650",
+      "namn": "ABB IRB 6700-235/2.65",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 2655,
+      "nyttolast_kg": 235.0,
+      "axlar": 6,
+      "not": "tung karosshantering"
+    },
+    {
+      "uri": "bank://robot/abb_irb_660_180_3150",
+      "namn": "ABB IRB 660-180/3.15",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 3150,
+      "nyttolast_kg": 180.0,
+      "axlar": 4,
+      "not": "4-axlig palleteringsrobot"
+    },
+    {
+      "uri": "bank://robot/abb_irb_360_1_1130",
+      "namn": "ABB IRB 360-1/1130 FlexPicker",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 565,
+      "nyttolast_kg": 1.0,
+      "axlar": 4,
+      "not": "deltarobot, arbetsdiameter 1130 mm; räckvidden här är halva arbetsdiametern"
+    },
+    {
+      "uri": "bank://robot/abb_irb_910sc_3_0550",
+      "namn": "ABB IRB 910SC-3/0.55 SCARA",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 550,
+      "nyttolast_kg": 3.0,
+      "axlar": 4
+    },
+    {
+      "uri": "bank://robot/kuka_kr10_r1100",
+      "namn": "KUKA KR 10 R1100 sixx",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 1101,
+      "nyttolast_kg": 10.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/kuka_kr210_r2700",
+      "namn": "KUKA KR 210 R2700 extra",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 2700,
+      "nyttolast_kg": 210.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/fanuc_m10id_12",
+      "namn": "FANUC M-10iD/12",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 1441,
+      "nyttolast_kg": 12.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/fanuc_m710ic_50",
+      "namn": "FANUC M-710iC/50",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 2050,
+      "nyttolast_kg": 50.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/fanuc_lrmate_200id_7l",
+      "namn": "FANUC LR Mate 200iD/7L",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 911,
+      "nyttolast_kg": 7.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://robot/ur10e",
+      "namn": "Universal Robots UR10e",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 1300,
+      "nyttolast_kg": 12.5,
+      "axlar": 6,
+      "not": "kollaborativ"
+    },
+    {
+      "uri": "bank://robot/yaskawa_gp8",
+      "namn": "Yaskawa MOTOMAN GP8",
+      "kategori": "robot",
+      "stampel": "PUBLICERAD_SPEC",
+      "rackvidd_mm": 727,
+      "nyttolast_kg": 8.0,
+      "axlar": 6
+    },
+    {
+      "uri": "bank://gripdon/vakuum_1_sug_25",
+      "namn": "Enkel vakuumgripare, en sugkopp 25 mm",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 0.28,
+      "anslag_s": 0.08,
+      "not": "latt sugkopp for deltarobot; massan ar antagen och vald sa att den ryms under FlexPickerns nyttolast om 1 kg"
+    },
+    {
+      "uri": "bank://gripdon/vakuum_4_sug_40",
+      "namn": "Vakuumgripare, fyra sugkoppar 40 mm",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 1.2,
+      "anslag_s": 0.15,
+      "not": "massa och anslagstid antagna; ligger i det spann datablad för sugkoppsgripdon brukar ange (0,1-0,3 s)"
+    },
+    {
+      "uri": "bank://gripdon/vakuum_8_sug_80",
+      "namn": "Vakuumgripare, åtta sugkoppar 80 mm",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 6.5,
+      "anslag_s": 0.25,
+      "not": "kolli-gripdon för palletering; massa antagen"
+    },
+    {
+      "uri": "bank://gripdon/tvabackad_pneumatisk",
+      "namn": "Tvåbackad pneumatisk parallellgripare",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 1.5,
+      "anslag_s": 0.35,
+      "not": "massa och slagtid antagna; pneumatiska parallellgripare ligger typiskt 0,2-0,5 s"
+    },
+    {
+      "uri": "bank://gripdon/tvabackad_elektrisk",
+      "namn": "Tvåbackad elektrisk parallellgripare med lägesåterkoppling",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 1.9,
+      "anslag_s": 0.45,
+      "not": "långsammare än pneumatisk men ger greppläge"
+    },
+    {
+      "uri": "bank://gripdon/magnet_plat",
+      "namn": "Permanentmagnetgripdon för plåt",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 3.4,
+      "anslag_s": 0.2
+    },
+    {
+      "uri": "bank://gripdon/verktygsvaxlare",
+      "namn": "Verktygsväxlare, robotsida plus två verktygssidor",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 1.0,
+      "anslag_s": 1.8,
+      "not": "kopplingstiden 1,8 s är antagen och inkluderar lås och luftkoppling"
+    },
+    {
+      "uri": "bank://gripdon/svetspistol_punkt",
+      "namn": "Punktsvetspistol, C-typ",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 78.0,
+      "anslag_s": 0.4,
+      "not": "massa antagen; C-pistoler med transformator ligger i 60-110 kg"
+    },
+    {
+      "uri": "bank://gripdon/limmunstycke",
+      "namn": "Limmunstycke med doseringsventil",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 4.2,
+      "anslag_s": 0.1
+    },
+    {
+      "uri": "bank://gripdon/skruvdragare_spindel",
+      "namn": "Robotspindel för skruvdragning med momentgivare",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 5.6,
+      "anslag_s": 0.3
+    },
+    {
+      "uri": "bank://transport/band_600",
+      "namn": "Bandtransportör, bandbredd 600 mm",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "bredd_mm": 600,
+      "hastighet_mps": 0.5,
+      "not": "bandtransportörer går typiskt 0,2-1,2 m/s"
+    },
+    {
+      "uri": "bank://transport/band_400",
+      "namn": "Bandtransportör, bandbredd 400 mm",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "bredd_mm": 400,
+      "hastighet_mps": 0.35
+    },
+    {
+      "uri": "bank://transport/rullbana_ackumulerande_840",
+      "namn": "Ackumulerande rullbana, 840 mm bred",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "bredd_mm": 840,
+      "hastighet_mmin": 18.0,
+      "not": "ackumulerande rullbanor för pall går typiskt 6-30 m/min"
+    },
+    {
+      "uri": "bank://transport/rullbana_ackumulerande_500",
+      "namn": "Ackumulerande rullbana för lastbärare, 500 mm bred",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "bredd_mm": 500,
+      "hastighet_mmin": 24.0
+    },
+    {
+      "uri": "bank://transport/kedjetransportor_pall",
+      "namn": "Kedjetransportör för EUR-pall",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "bredd_mm": 900,
+      "hastighet_mmin": 12.0
+    },
+    {
+      "uri": "bank://transport/indexerad_matare",
+      "namn": "Indexerad matare med servodrift",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "steg_mm": 150.0,
+      "not": "steglängden sätts per uppgift"
+    },
+    {
+      "uri": "bank://transport/stoppgrind_pneumatisk",
+      "namn": "Pneumatisk stoppgrind",
+      "kategori": "don",
+      "stampel": "ANTAGEN",
+      "slag_s": 0.12
+    },
+    {
+      "uri": "bank://transport/utskjutare_pneumatisk",
+      "namn": "Pneumatisk utskjutare för sidoavlämning",
+      "kategori": "don",
+      "stampel": "ANTAGEN",
+      "slag_s": 0.4
+    },
+    {
+      "uri": "bank://transport/lyftbord",
+      "namn": "Lyftbord med två lägen",
+      "kategori": "don",
+      "stampel": "ANTAGEN",
+      "slag_s": 2.5
+    },
+    {
+      "uri": "bank://transport/vandare_90",
+      "namn": "Vändare, 90 grader",
+      "kategori": "don",
+      "stampel": "ANTAGEN",
+      "slag_s": 1.6
+    },
+    {
+      "uri": "bank://givare/fotocell_genomgaende",
+      "namn": "Genomgående fotocell",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 2.0
+    },
+    {
+      "uri": "bank://givare/reflex_fotocell",
+      "namn": "Reflexfotocell med reflektor",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 3.0
+    },
+    {
+      "uri": "bank://givare/induktiv_narvaro",
+      "namn": "Induktiv närvarogivare",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 1.5
+    },
+    {
+      "uri": "bank://givare/lagesgivare_encoder",
+      "namn": "Lägesgivare, inkrementell pulsgivare på transportör",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "pulser_per_varv": 1024
+    },
+    {
+      "uri": "bank://givare/kamera_2d",
+      "namn": "2D-kamera för kvalitetskontroll",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "bedomningstid_ms": 120.0,
+      "not": "bedömningstiden är antagen och gäller en enkel närvaro- och lägeskontroll"
+    },
+    {
+      "uri": "bank://givare/kamera_3d_bin",
+      "namn": "3D-kamera för plock ur hög",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "bedomningstid_ms": 900.0,
+      "not": "3D-bildtagning plus greppberäkning; antagen"
+    },
+    {
+      "uri": "bank://givare/vagcell",
+      "namn": "Vägcell under station",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 50.0
+    },
+    {
+      "uri": "bank://givare/ljusridla",
+      "namn": "Ljusridå, säkerhetsklassad",
+      "kategori": "sakerhet",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 20.0,
+      "not": "ligger på säkerhets-PLC; agenten får läsa men aldrig skriva (I15)"
+    },
+    {
+      "uri": "bank://sakerhet/nodstoppskrets",
+      "namn": "Nödstoppskrets på säkerhets-PLC",
+      "kategori": "sakerhet",
+      "stampel": "ANTAGEN",
+      "not": "certifierad krets; genererad logik får bara förreglas av den, aldrig skriva i den"
+    },
+    {
+      "uri": "bank://last/eur_pall",
+      "namn": "EUR-pall",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 1200,
+      "b_mm": 800,
+      "h_mm": 144
+    },
+    {
+      "uri": "bank://last/halvpall",
+      "namn": "Halvpall",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 800,
+      "b_mm": 600,
+      "h_mm": 144
+    },
+    {
+      "uri": "bank://last/klt_4147",
+      "namn": "VDA KLT 4147",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 147
+    },
+    {
+      "uri": "bank://last/klt_6147",
+      "namn": "VDA KLT 6147",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147
+    },
+    {
+      "uri": "bank://last/klt_6280",
+      "namn": "VDA KLT 6280",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 280
+    },
+    {
+      "uri": "bank://last/gitterbox",
+      "namn": "Gitterbox",
+      "kategori": "lastbarare",
+      "stampel": "STANDARDMATT",
+      "l_mm": 1240,
+      "b_mm": 835,
+      "h_mm": 970
+    },
+    {
+      "uri": "bank://last/mellanlagg_papp",
+      "namn": "Mellanlägg av papp för EUR-pall",
+      "kategori": "lastbarare",
+      "stampel": "ANTAGEN",
+      "l_mm": 1200,
+      "b_mm": 800,
+      "h_mm": 3
+    },
+    {
+      "uri": "bank://station/fixtur_pneumatisk_spann",
+      "namn": "Fixtur med pneumatiska spännare och lägesgivare",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "spanntid_s": 0.6
+    },
+    {
+      "uri": "bank://station/press_tvahands",
+      "namn": "Press med tvåhandsdon",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "presstid_s": 3.2
+    },
+    {
+      "uri": "bank://station/skruvstation",
+      "namn": "Skruvstation med matare",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/limstation",
+      "namn": "Limstation med uppvärmt lim",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/svetsstation",
+      "namn": "Punktsvetsstation med svetstimer",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/blistermaskin",
+      "namn": "Blistermaskin med formnings- och förslutningsstation",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/formsprutmaskin",
+      "namn": "Formsprutmaskin med tvådelat verktyg",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/kartongresare",
+      "namn": "Kartongresare",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/kassationslada",
+      "namn": "Kassationslåda med räknare",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/omarbetningsplats",
+      "namn": "Omarbetningsplats med manuell kvittering",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/buffert_ackumulerande",
+      "namn": "Ackumulerande buffert med platsräkning",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/agv_lastplats",
+      "namn": "AGV-lastplats med dockningsgivare",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/pallmagasin",
+      "namn": "Pallmagasin med pallutmatare",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/verktygsstall",
+      "namn": "Verktygsställ för två gripdon",
+      "kategori": "station",
+      "stampel": "ANTAGEN"
+    }
+  ]
+}

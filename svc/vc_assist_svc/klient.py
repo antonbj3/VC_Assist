@@ -116,8 +116,66 @@ class Klient(object):
     def ko(self, med_kod=False):
         return self.anrop("queue_list", {"with_code": med_kod})["result"]["queue"]
 
-    def godkann(self, qid):
-        return self.anrop("queue_approve", {"qid": qid})
+    def godkann(self, qid, inline=False):
+        """Godkanner posten. Kvitteras direkt; koden kors av pumpen."""
+        args = {"qid": qid}
+        if inline:
+            args["inline"] = True
+        return self.anrop("queue_approve", args)
+
+    def post(self, qid):
+        for p in self.ko():
+            if p["qid"] == qid:
+                return p
+        return None
+
+    def godkann_och_vanta(self, qid, timeout=60.0, intervall=0.05):
+        """Godkanner och vantar tills posten fatt ett utfall.
+
+        Utfallet lases ur kon, inte ur godkannandets svar. Skalet ar matt: kod
+        som stoppar simuleringen dodar pumpen mitt i korningen, och da finns
+        inget svar att skicka - men posten bar sitt tillstand.
+        """
+        self.godkann(qid)
+        slut = time.time() + timeout
+        sista = None
+        while time.time() < slut:
+            try:
+                sista = self.post(qid)
+            except Exception:
+                # Pumpen kan vara nere ett ogonblick medan simuleringen startas
+                # om. Det ar vantat och inget fel.
+                self.stang()
+                time.sleep(intervall)
+                continue
+            if sista and sista["state"] in ("done", "failed", "interrupted", "rejected"):
+                return sista
+            time.sleep(intervall)
+        raise BryggFel("E_TIMEOUT", "posten %s fick inget utfall inom %.0f s (sist: %r)"
+                       % (qid, timeout, (sista or {}).get("state")))
 
     def avvisa(self, qid):
         return self.anrop("queue_reject", {"qid": qid})["result"]
+
+    # ---- ogat -----------------------------------------------------------
+
+    def oga_start(self, plan, simtid):
+        return self.anrop("eyes_start", {"plan": plan, "simtid": simtid})["result"]
+
+    def oga_status(self):
+        return self.anrop("eyes_status")["result"]
+
+    def oga_stopp(self):
+        return self.anrop("eyes_stop")["result"]
+
+    def simtid(self):
+        """Simuleringstiden last i skriptets scope, dar den ar aktuell (M-08)."""
+        return self.kor("import json\n"
+                        "print(json.dumps({'t': getSimulation().SimTime}))")["result"]["t"]
+
+    def sim(self, do=None, on=True):
+        args = {}
+        if do:
+            args["do"] = do
+            args["on"] = on
+        return self.anrop("sim", args)["result"]

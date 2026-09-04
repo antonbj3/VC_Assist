@@ -1,0 +1,249 @@
+{
+  "task_id": "T-02",
+  "title": "Indexerad matning av blisterband, 150 mm per steg",
+  "goal": "Flytta blisterbandet exakt ett index om 150 mm, halla det stilla under forslutningen och upprepa i takt.",
+  "grupp": "T",
+  "bransch": "lakemedel",
+  "orsak": "Speglar en driftsattningsmiss pa indexerade maskiner: nasta index startas pa en fast timer i stallet for pa forslutningsstationens klarsignal. Nar forslutningen tar 20 ms langre an vanligt dras bandet undan medan verktyget fortfarande ar nere, och blistret dras snett utan att nagon signal blir lag.",
+  "prompt": "Bygg en indexerad matning for ett blisterband och skriv styrningen.\n\nScen: en servodriven indexerad matare som drar blisterbandet, en formnings- och\nforslutningsstation over bandet, och en induktiv narvarogivare som ser matarens hemlage.\nBlistret ar 90 x 55 mm med 10 kaviteter; bandet ar 150 mm brett och varje index ar\n150 mm. Ett fyllt blister vager 0,018 kg.\n\nUppgift: for varje cykel ska mataren dra bandet 150 mm, sedan sta helt stilla i minst\n0,90 s medan ST020_SEA_CLOSE forsluter, och forst nar ST020_SEA_DONE gatt hog far nasta\nindex startas. Indexrorelsen ar 0,35 s. Cykeltiden ar 1,60 s, alltsa 37,5 blister per\nminut. Toleransen pa uppehallet ar 0,05 s.\n\nStarta aldrig ett index pa en timer. Kvitteringen fran forslutningen ar den enda tillatna\nstarten. Anvand signalnamnen i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6"
+  ],
+  "stege": "sortering_hojd_enkel",
+  "difficulty": 2,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "nasta index startas pa timer i stallet for pa ST020_SEA_DONE",
+    "uppehallet raknas fran indexstart i stallet for fran att mataren stannat",
+    "ST020_IDX_START halls hog over hela cykeln, sa mataren far en ny order medan den gar"
+  ],
+  "antaganden": [
+    {
+      "vad": "blistrets matt och vikt",
+      "varde": "90 x 55 mm, 0,018 kg",
+      "motiv": "matten ar ett vanligt tio-kavitetsblister; vikten ar antagen och beror av tabletten, men storleksordningen tiotals gram stammer"
+    },
+    {
+      "vad": "forslutningstiden 0,90 s",
+      "varde": "0,90 s",
+      "motiv": "vald sa att den ligger i det spann varmforslutning brukar krava; ingen matning finns annu och talet ar darfor ett antagande"
+    },
+    {
+      "vad": "indexrorelsens 0,35 s",
+      "varde": "0,35 s",
+      "motiv": "servororelse 150 mm med acceleration och inbromsning; antaget, inte matt pa den har maskinen"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "blister med tio kaviteter",
+      "l_mm": 90,
+      "b_mm": 55,
+      "h_mm": 12,
+      "massa_kg": 0.018
+    },
+    "arbetsradie_mm": 1500.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Bandet indexeras 150 mm per cykel, forslutningen tar 0,90 s och cykeltiden ar 1,60 s.",
+      "forvantat": "Ett index per cykel, uppehall minst 0,90 s, nasta index startas forst pa ST020_SEA_DONE."
+    },
+    {
+      "id": "temp_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST020_SEA_TEMP",
+      "beskrivning": "ST020_SEA_TEMP faller till 148 C, under arbetsfonstret 150 till 210 C.",
+      "forvantat": "Forslutningen haller inte vid for lag temperatur. Styrningen ska inte starta nagot nytt index utan sparra cykeln och larma tills temperaturen ar tillbaka i fonstret."
+    },
+    {
+      "id": "temp_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST020_SEA_TEMP",
+      "beskrivning": "ST020_SEA_TEMP stiger till 218 C, over arbetsfonstret.",
+      "forvantat": "Folien branns vid overtemperatur. Styrningen ska lyfta verktyget, sparra cykeln och larma i stallet for att fortsatta forsluta."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST020_SEA_DONE",
+      "beskrivning": "ST020_SEA_DONE uteblir helt under en cykel medan ST020_SEA_CLOSE ar hog.",
+      "forvantat": "Nasta index far aldrig startas pa en timer. Styrningen ska sta kvar och larma efter 3,0 s i stallet for att dra bandet under ett nedkort verktyg."
+    }
+  ],
+  "core_outputs": [
+    "ST020_IDX_START",
+    "ST020_SEA_CLOSE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "matare",
+        "uri": "bank://transport/indexerad_matare",
+        "count": 1
+      },
+      {
+        "role": "blistermaskin",
+        "uri": "bank://station/blistermaskin",
+        "count": 1
+      },
+      {
+        "role": "hemlagesgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "matare",
+        "to_role": "blistermaskin"
+      },
+      {
+        "from_role": "matare",
+        "to_role": "hemlagesgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST020_IDX_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett index om 150 mm"
+      },
+      {
+        "name": "ST020_IDX_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "matarens hemlage natt, indexet klart"
+      },
+      {
+        "name": "ST020_SEA_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor ner forslutningsverktyget"
+      },
+      {
+        "name": "ST020_SEA_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "forslutningen klar och verktyget uppe"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "ST020_SEA_TEMP",
+        "dir": "in",
+        "type": "real",
+        "comment": "forslutningsverktygets temperatur i grader Celsius"
+      }
+    ],
+    "sequence": [
+      "vanta pa SYS_AUTO och EMG_OK",
+      "pulsa ST020_IDX_START",
+      "vanta pa ST020_IDX_HOME, alltsa att indexet ar fardigt och mataren star still",
+      "satt ST020_SEA_CLOSE hog och hall den i minst 0,90 s",
+      "vanta pa ST020_SEA_DONE",
+      "nollstall ST020_SEA_CLOSE",
+      "starta nasta index forst nu"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST020": 0.9
+      },
+      "cycle_s": 1.6,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST020_IDX_START far aldrig ga hog medan ST020_SEA_CLOSE ar hog",
+      "ingen rorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 2250.0,
+    "runs": 3,
+    "warmup_s": 45.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 6.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST020_IDX_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST020_SEA_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST020 *s req=0.9s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST020_IDX_START -> matare *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST020 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST020 *s req=0.9s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST020_IDX_START+ST020_SEA_CLOSE dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

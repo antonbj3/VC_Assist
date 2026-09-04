@@ -1,0 +1,211 @@
+{
+  "task_id": "L-90",
+  "title": "Trasig variant av L-01: kollit slapps for hogt och tar i pallkarmen",
+  "goal": "Visa att ogat faller en geometrisk overtradelse aven nar greppet och tidsforhallandena ar riktiga.",
+  "grupp": "L",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar palleteringsmissen dar avlaggshojden raknas fran pallens overkant i stallet for fran lagrets. De forsta kollina har fri sida och studsar ratt, sa cellen ser bra ut. Det sjunde kollit har karmen pa tva sidor och tar i den. Felet ar dolt tills lagret ar nastan fullt, vilket ar precis varfor en korning med bara ett par kollin inte mater nagot.",
+  "prompt": "Har ar en ogonrapport fran en korning av uppgift L-01, palleteringsstationen som lagger\natta kollin i ett lager pa en EUR-pall. Rapporten kommer ur vc_eyes och foljer grammatiken i\ndocs/spec/41_ogat_kontrakt.md. Signalerna ar OPC UA-variabler ur OpenPLC Runtime v4.\n\nLas rapporten och avgor om korningen ar godkand. Namnge raden som faller den, sag vilket kolli\ni ordningen som drabbades och varfor just det, och klassa fallningen enligt\ndocs/spec/82_felklasser.md. Se ocksa pa MINDIST-raderna och avgor vad noll millimeter mot\nkarmen betyder i forhallande till PLACE-radens 63,5 mm.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F9"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "rapporten godkanns darfor att greppet var stelt och DWELL star OK",
+    "fallningen klassas som placeringsfel i stallet for som geometrisk overtradelse, trots att COLLISION-raden ar entydig"
+  ],
+  "antaganden": [
+    {
+      "vad": "talen i ogonrapporten",
+      "varde": "err=63,5 mm och MINDIST 0,0 mm",
+      "motiv": "rapporten ar en handskriven fixtur; 63,5 mm ar valt sa att det tydligt overstiger toleransen 10 mm och motsvarar ett kolli som studsat snett efter ett for hogt slapp"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong for konserv",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 200,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ogonrapporten laser av en 60 sekunder lang korning av L-01, ett helt lager.",
+      "forvantat": "Rapporten ska fallas pa COLLISION-raden, med felklass F9, trots att greppet och tiderna haller."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST150_PLT_PRS",
+      "beskrivning": "Pallgivaren ar hog hela korningen, sa ingen signal saknas eller kommer i fel ordning.",
+      "forvantat": "Alla signaler ar riktiga och anda ar korningen underkand. Geometrin ar ett eget matt och kan inte harledas ur signalfoljden."
+    }
+  ],
+  "core_outputs": [
+    "ST150_RB_START",
+    "ST150_VAC_ON"
+  ],
+  "variant_av": "L-01",
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_660_180_3150",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "palltransport",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 1
+      },
+      {
+        "role": "inbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "inbana",
+        "to_role": "robot"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST150_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett avlagg"
+      },
+      {
+        "name": "ST150_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST150_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST150_PLT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "pall pa plats i stationen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som L-01"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST150": 0.5
+      },
+      "cycle_s": 5.5,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 654.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "FAIL",
+    "reason_contains": "COLLISION",
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=63.500mm z=0.348m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION kolli_7 x pallkarm t=5.240s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+pallkarm 0.000mm t=5.240s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST150 in=8 out=7 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST150 0.520s req=0.500s OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "oga",
+    "artefakt": "EYES v1\nTEMPLATE L-01_avlaggshojd_fran_pallens_overkant\nRUN 2026-09-04T20:02:18 DUR 60.000s SAMPLES 1200 RATE 20.00Hz\nSECTION MOTION\n  GRIP FORMED t=2.100s dist=12.400mm\n  CARRY RIGID rot=0.400deg span=3.100s\n  PLACE OFF_TARGET err=63.500mm z=0.348m\nSECTION TIMING\n  EDGE ST150_RB_START RISE t=1.900s\n  EDGE ST150_VAC_ON RISE t=1.960s\n  DWELL ST150 0.520s req=0.500s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST150 in=8 out=7 avg=5.500s min=5.400s max=5.900s\nSECTION SAFETY\n  MINDIST kolli+pallkarm 0.000mm t=5.240s\n  MINDIST kolli+grannkolli 3.100mm t=5.240s\n  COLLISION kolli_7 x pallkarm t=5.240s\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\n  NEVER_GRIPPED OK\nEYES VERDICT FAIL geometri: COLLISION kolli_7 x pallkarm vid t=5.24s, avlaggshojden raknades fran pallens overkant i stallet for fran lagrets\n",
+    "vad_som_ar_fel": "Avlaggshojden raknades fran pallens overkant i stallet for fran lagrets, sa kollit slapptes 63,5 mm for hogt, studsade snett och det sjunde kollit tog i pallkarmen vid t=5,24 s. MINDIST mot karmen ar noll och COLLISION-raden ar entydig."
+  }
+}

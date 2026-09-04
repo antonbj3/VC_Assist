@@ -1,0 +1,298 @@
+{
+  "task_id": "T-04",
+  "title": "Ackumulerande buffert med 12 platser framfor monteringsstation",
+  "goal": "Stoppa inflodet nar bufferten ar full och aterupp ta det nar en plats frigjorts, utan att tappa raknningen.",
+  "grupp": "T",
+  "bransch": "fordonsmontering",
+  "orsak": "Speckar en driftsattningsmiss i buffertstyrning: platsraknaren okas pa inflodesgivarens niva i stallet for pa dess flank, sa att en lastbarare som star still over givaren raknas flera ganger. Bufferten tror sig full vid atta av tolv platser och linan tappar 30 procent av sin kapacitet utan att nagot larm gar.",
+  "prompt": "Bygg en ackumulerande buffert och skriv styrningen till den.\n\nScen: en ackumulerande rullbana for lastbarare, 500 mm bred och 24 m/min, med plats for\n12 VDA KLT 6147 om 600 x 400 x 147 mm. En stoppgrind i inloppet, en stoppgrind i utloppet,\nen reflexfotocell vid varje grind. Lastbararna vager 9,5 kg fyllda.\n\nUppgift: hall reda pa antalet lastbarare i bufferten. Stoppa inflodet nar antalet nar 12 och\nslapp in igen nar det fallit till 11 eller lagre. Rakna pa flanker, aldrig pa nivaer. Slapp ut\nen lastbarare varje gang nedstroms station begar en genom ST040_DEM_REQ, och kvittera med\nST040_DEM_ACK nar lastbararen lamnat utloppet.\n\nUtloppet ska kunna leverera var 8:e sekund, alltsa 450 lastbarare i timmen. Uppehallet vid\nutloppsgrinden ar 0,60 s sa att lastbararen hinner sta stilla innan den slapps.\nSignalnamnen star i kartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8"
+  ],
+  "stege": "nivareglering",
+  "difficulty": 2,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "raknaren okas pa niva i stallet for pa flank, sa en stillastaende lastbarare raknas flera ganger",
+    "inflodet stoppas pa antal 12 men aterupptas ocksa pa 12, sa grinden fladdrar",
+    "ST040_DEM_ACK ges nar utloppsgrinden oppnas i stallet for nar lastbararen faktiskt lamnat"
+  ],
+  "antaganden": [
+    {
+      "vad": "bufferten rymmer 12 lastbarare",
+      "varde": "12 platser",
+      "motiv": "12 platser om 600 mm ger en 7,2 m lang buffert, vilket ar en rimlig langd i en monteringslina; talet ar valt och inte matt"
+    },
+    {
+      "vad": "lastbararens massa 9,5 kg",
+      "varde": "9,5 kg",
+      "motiv": "KLT 6147 med monteringsdetaljer; tomvikten dryga 1,5 kg och resten ar antaget innehall"
+    },
+    {
+      "vad": "uppehallet 0,60 s vid utloppsgrinden",
+      "varde": "0,60 s",
+      "motiv": "satt langre an rullbanans efterslapning vid 24 m/min sa att lastbararen star still innan grinden oppnar; inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6147, fylld",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147,
+      "massa_kg": 9.5
+    },
+    "arbetsradie_mm": 7800.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Bufferten fylls till 12 lastbarare och nedstroms station begar en var attonde sekund.",
+      "forvantat": "Raknaren foljer flankerna, inflodet stoppas vid 12 och aterupptas vid 11, och ST040_DEM_ACK kommer forst nar lastbararen lamnat."
+    },
+    {
+      "id": "wgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST040_WGT_LOAD",
+      "beskrivning": "ST040_WGT_LOAD star pa 2 kg medan ST040_BUF_COUNT sager 7, alltsa langt under de cirka 66 kg sju fyllda lastbarare ska vaga.",
+      "forvantat": "Vikt och rakning motsager varandra. Styrningen ska sluta lita pa raknaren, sparra utloppet och larma i stallet for att slappa ut lastbarare som kanske inte finns."
+    },
+    {
+      "id": "wgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST040_WGT_LOAD",
+      "beskrivning": "ST040_WGT_LOAD nar 150 kg, over banans hogsta tillatna last om 130 kg.",
+      "forvantat": "Inflodet ska stoppas oavsett vad raknaren sager, och ST040_BUF_FULL ska ga hog. Lastgransen ar hardare an platsrakningen."
+    },
+    {
+      "id": "req_uteblir",
+      "typ": "vandning",
+      "signal": "ST040_DEM_REQ",
+      "beskrivning": "ST040_DEM_REQ gar hog och sedan lag igen innan lastbararen hunnit lamna utloppet.",
+      "forvantat": "Kvittensen hor till lastbararen, inte till begaran. Styrningen ska anda fullfolja utsläppet och ge ST040_DEM_ACK pa fallande flank fran ST040_PEC_OUT."
+    }
+  ],
+  "core_outputs": [
+    "ST040_STP_IN_OPEN",
+    "ST040_STP_OUT_OPEN",
+    "ST040_DEM_ACK",
+    "ST040_BUF_FULL"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "buffert",
+        "uri": "bank://station/buffert_ackumulerande",
+        "count": 1
+      },
+      {
+        "role": "bana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "grind_in",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "grind_ut",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "fotocell_in",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "fotocell_ut",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "vagcell",
+        "uri": "bank://givare/vagcell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana",
+        "to_role": "buffert"
+      },
+      {
+        "from_role": "buffert",
+        "to_role": "grind_in"
+      },
+      {
+        "from_role": "buffert",
+        "to_role": "grind_ut"
+      },
+      {
+        "from_role": "grind_in",
+        "to_role": "fotocell_in"
+      },
+      {
+        "from_role": "grind_ut",
+        "to_role": "fotocell_ut"
+      },
+      {
+        "from_role": "buffert",
+        "to_role": "vagcell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST040_PEC_IN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell i inloppet"
+      },
+      {
+        "name": "ST040_PEC_OUT",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell i utloppet"
+      },
+      {
+        "name": "ST040_STP_IN_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna inloppsgrinden"
+      },
+      {
+        "name": "ST040_STP_OUT_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna utloppsgrinden"
+      },
+      {
+        "name": "ST040_BUF_FULL",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bufferten full, meddelas uppstroms"
+      },
+      {
+        "name": "ST040_BUF_COUNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal lastbarare i bufferten"
+      },
+      {
+        "name": "ST040_DEM_REQ",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nedstroms station begar en lastbarare"
+      },
+      {
+        "name": "ST040_DEM_ACK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lastbararen har lamnat utloppet"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "ST040_WGT_LOAD",
+        "dir": "in",
+        "type": "real",
+        "comment": "sammanlagd last pa buffertbanan i kg, fran vagcell"
+      }
+    ],
+    "sequence": [
+      "oka ST040_BUF_COUNT pa stigande flank pa ST040_PEC_IN",
+      "minska ST040_BUF_COUNT pa fallande flank pa ST040_PEC_OUT",
+      "satt ST040_BUF_FULL hog nar ST040_BUF_COUNT nar 12 och lag nar den faller till 11",
+      "hall ST040_STP_IN_OPEN lag sa lange ST040_BUF_FULL ar hog",
+      "vanta pa ST040_DEM_REQ, lat lastbararen sta 0,60 s och oppna sedan ST040_STP_OUT_OPEN",
+      "satt ST040_DEM_ACK hog forst pa fallande flank pa ST040_PEC_OUT",
+      "nollstall ST040_DEM_ACK nar ST040_DEM_REQ gar lag"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST040": 0.6
+      },
+      "cycle_s": 8.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "inloppsgrinden far aldrig oppna nar ST040_BUF_FULL ar hog",
+      "ST040_DEM_ACK far aldrig ga hog innan ST040_PEC_OUT gatt lag",
+      "ingen grind rors nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 450.0,
+    "runs": 3,
+    "warmup_s": 180.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST040_DEM_REQ RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST040_DEM_ACK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST040 *s req=0.6s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST040 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST040 *s req=0.6s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

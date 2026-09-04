@@ -1,0 +1,307 @@
+{
+  "task_id": "L-02",
+  "title": "Tre lager med forskjutning och mellanlagg av papp",
+  "goal": "Bygga tre lager dar vartannat lager ar vridet, med ett mellanlagg mellan lagren, i ratt ordning.",
+  "grupp": "L",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en ordningsmiss som ger rasade pallar: mellanlagget laggs efter att forsta kollit i nasta lager redan laggs av, darfor att lagerraknaren okas fore mellanlaggssteget. Pallen ser hel ut i cellen och rasar pa trucken. Samma raknarfel gor att sista lagret far fel vridning.",
+  "prompt": "Bygg en palleteringsstation for tre lager och skriv styrningen till den.\n\nScen: samma cell som i L-01, alltsa en ABB IRB 660-180/3.15, ett vakuumgripdon med atta\nsugkoppar, kedjetransportor och EUR-pall 1200 x 800 x 144 mm. Till det kommer ett magasin med\nmellanlagg av papp 1200 x 800 x 3 mm. Kollit ar 400 x 300 x 200 mm och vager 4,8 kg.\nRobotens langsta arbetsradie i uppgiften ar 2400 mm.\n\nUppgift: bygg tre lager om atta kollin. Lager 1 och 3 har kollina med 400 mm langs pallens\n800 mm-sida; lager 2 ar vridet 90 grader. Mellan varje lager ska ett mellanlagg laggas. Ordningen\nar: atta kollin, mellanlagg, atta kollin, mellanlagg, atta kollin. Lagerraknaren far okas forst\nnar mellanlagget ligger pa plats. Takten ar 5,5 s per kolli och 7,0 s per mellanlagg, alltsa\n146 s per pall.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F9",
+    "F5"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "lagerraknaren okas fore mellanlaggssteget, sa mellanlagget hamnar ovanpa nasta lagers forsta kolli",
+    "vridningen valjs pa lagernummer som redan hunnit okas, sa lager 3 far lager 2:s monster",
+    "mellanlagget slapps utan att narvaron kontrollerats, sa tva lagg foljer med och hojden blir fel"
+  ],
+  "antaganden": [
+    {
+      "vad": "mellanlaggets tjocklek 3 mm",
+      "varde": "3 mm",
+      "motiv": "papp i den har storleken ligger typiskt mellan 2 och 5 mm; 3 mm ar valt inom spannet och star som ANTAGEN i katalogindexet"
+    },
+    {
+      "vad": "7,0 s per mellanlagg",
+      "varde": "7,0 s",
+      "motiv": "langre an ett kolli darfor att gripdonet maste byta sugmonster och ta ett tunt ark; talet ar antaget"
+    },
+    {
+      "vad": "tre lager",
+      "varde": "3 lager",
+      "motiv": "tre lager om 200 mm ger 600 mm lasthojd plus pall, vilket ar en lag men vanlig pall for tung konserv; antalet ar valt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "ytterkartong for konserv",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 200,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 2400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "En tom pall byggs till tre lager med mellanlagg mellan lagren, 146 s per pall.",
+      "forvantat": "Ratt ordning mellan kollin och mellanlagg, vridning enligt lagernummer och inget mellanlagg ovanpa."
+    },
+    {
+      "id": "hgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST160_PLT_HGT",
+      "beskrivning": "ST160_PLT_HGT visar 350 mm nar lager 2 ar fardigt, langt under de forvantade 547 mm.",
+      "forvantat": "Hojden motsager lagerraknaren. Styrningen ska sluta lita pa raknaren, sparra avlagget och larma i stallet for att lagga lager 3 for lagt."
+    },
+    {
+      "id": "hgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST160_PLT_HGT",
+      "beskrivning": "ST160_PLT_HGT visar 1250 mm efter lager 2, alltsa hogre an en fardig tre lagers pall.",
+      "forvantat": "En hojd over den fardiga pallens ska stoppa avlagget. Styrningen ska larma; troligen har tva mellanlagg foljt med."
+    },
+    {
+      "id": "sht_uteblir",
+      "typ": "vandning",
+      "signal": "ST160_SHT_PRS",
+      "beskrivning": "ST160_SHT_REQ satts hog men ST160_SHT_PRS uteblir; magasinet ar tomt.",
+      "forvantat": "Nasta lager far inte paborjas. Styrningen ska halla ST160_LYR_NO oforandrat och larma tills ett mellanlagg ligger pa plats."
+    }
+  ],
+  "core_outputs": [
+    "ST160_RB_START",
+    "ST160_SHT_REQ",
+    "ST160_VAC_ON",
+    "ST160_PLT_DONE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_660_180_3150",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "mellanlagg",
+        "uri": "bank://last/mellanlagg_papp",
+        "count": 1
+      },
+      {
+        "role": "palltransport",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 1
+      },
+      {
+        "role": "inbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "palltransport",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "inbana",
+        "to_role": "robot"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST160_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett avlagg"
+      },
+      {
+        "name": "ST160_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "avlagget klart"
+      },
+      {
+        "name": "ST160_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST160_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST160_SHT_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "hamta ett mellanlagg ur magasinet"
+      },
+      {
+        "name": "ST160_SHT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mellanlagg ligger pa plats i lagret"
+      },
+      {
+        "name": "ST160_LYR_NO",
+        "dir": "out",
+        "type": "int",
+        "comment": "pagaende lagernummer, 1 till 3"
+      },
+      {
+        "name": "ST160_LYR_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kollin i pagaende lager"
+      },
+      {
+        "name": "ST160_PLT_HGT",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt lasthojd pa pallen i mm"
+      },
+      {
+        "name": "ST160_PLT_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "pallen fardig"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "satt ST160_LYR_NO till 1 nar en tom pall kommer",
+      "lagg atta kollin i det monster ST160_LYR_NO anger",
+      "nar ST160_LYR_CNT nar atta och ST160_LYR_NO ar under 3: satt ST160_SHT_REQ hog",
+      "vanta pa ST160_SHT_PRS, alltsa att mellanlagget ligger",
+      "oka ST160_LYR_NO forst nu och nollstall ST160_LYR_CNT",
+      "nar tredje lagret ar fardigt: satt ST160_PLT_DONE hog utan mellanlagg ovanpa"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST160": 0.5
+      },
+      "cycle_s": 146.0,
+      "tolerance_s": 1.0
+    },
+    "interlocks": [
+      "ST160_LYR_NO far aldrig okas innan ST160_SHT_PRS ar hog",
+      "inget mellanlagg ovanpa det sista lagret",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 591.0,
+    "runs": 3,
+    "warmup_s": 150.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 8.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST160_SHT_REQ RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST160_SHT_PRS RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST160 *s req=0.5s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST160 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+grannkolli *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SAFETY",
+        "template": "COLLISION kolli x mellanlagg t=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE OFF_TARGET err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

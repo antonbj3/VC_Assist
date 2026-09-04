@@ -1,0 +1,295 @@
+{
+  "task_id": "H-01",
+  "title": "Robot lamnar over till band med fullstandig handskakning",
+  "goal": "Lamna over en elektronikmodul fran robot till band med begaran, kvittens, klarsignal och aterstallning, utan att modulen slapps innan bandet tagit emot.",
+  "grupp": "H",
+  "bransch": "elektronik",
+  "orsak": "Speglar en overlamningsmiss som ger tappade detaljer: handskakningen kortas till en enda bool, sa roboten slapper nar bandet sagt att det ar ledigt i stallet for nar det tagit emot. Utan aterstallningssteg arver dessutom nasta overlamning foregaende kvittens, och andra modulen slapps ner pa den forsta.",
+  "prompt": "Bygg en overlamning fran robot till band och skriv styrningen till bada sidor.\n\nScen: en FANUC LR Mate 200iD/7L med rackvidd 911 mm och nyttolast 7 kg, en tvabackad pneumatisk\nparallellgripare som vager 1,5 kg, och en bandtransportör med bandbredd 400 mm som gar i\n0,30 m/s med en reflexfotocell i mottagningslaget. Modulen ar 180 x 120 x 35 mm och vager\n0,85 kg. Robotens langsta arbetsradie i uppgiften ar 880 mm. Roboten ar ST290 och bandet ar\nST300.\n\nUppgift: bygg en fullstandig handskakning i fyra steg. Roboten begar overlamning med\nST290_HS_REQ. Bandet kvitterar med ST300_HS_ACK nar mottagningslaget ar ledigt och bandet star\nstill. Roboten oppnar griparen och bandet bekraftar med ST300_HS_DONE nar fotocellen sett\nmodulen. Roboten nollstaller med ST290_HS_RST, och forst da far bandet nollstalla sina bada\nsignaler. Takten ar 5,0 s per modul.\n\nSlapp aldrig pa kvittensen. Signalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F7",
+    "F10"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "griparen oppnas pa ST300_HS_ACK i stallet for efter att modulen ligger an mot bandet",
+    "aterstallningssteget saknas, sa nasta overlamning arver foregaende kvittens",
+    "bandet startar innan ST290_HS_RST, sa modulen dras undan medan griparen fortfarande ar nere"
+  ],
+  "antaganden": [
+    {
+      "vad": "modulens matt och vikt",
+      "varde": "180 x 120 x 35 mm, 0,85 kg",
+      "motiv": "en kapslad elektronikmodul; matten ar valda och vikten antagen"
+    },
+    {
+      "vad": "takten 5,0 s per modul",
+      "varde": "5,0 s",
+      "motiv": "en robotcykel over cirka 0,9 m plus handskakningen; talet ar antaget"
+    },
+    {
+      "vad": "mottagningslagets langd",
+      "varde": "400 mm",
+      "motiv": "vald som bandbredden, sa att modulen ryms med marginal; matten ar antagna"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kapslad elektronikmodul",
+      "l_mm": 180,
+      "b_mm": 120,
+      "h_mm": 35,
+      "massa_kg": 0.85
+    },
+    "arbetsradie_mm": 880.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Moduler lamnas over i 5,0 s takt och handskakningen gar igenom alla fyra steg varje gang.",
+      "forvantat": "Griparen oppnar forst efter kvittens, bandet startar forst efter aterstallning och ingen modul tappas."
+    },
+    {
+      "id": "ack_uteblir",
+      "typ": "vandning",
+      "signal": "ST300_HS_ACK",
+      "beskrivning": "ST290_HS_REQ satts hog men ST300_HS_ACK uteblir i 4,0 s darfor att en modul ligger kvar i mottagningslaget.",
+      "forvantat": "Roboten far inte oppna griparen. Den ska sta kvar med modulen och larma efter 10,0 s, inte slappa mot ett upptaget lage."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST300_HS_DONE",
+      "beskrivning": "Griparen oppnar och ST290_GRP_OPENED gar hog, men ST300_HS_DONE uteblir; fotocellen ser ingen modul.",
+      "forvantat": "Modulen har troligen fastnat i griparen eller fallit vid sidan om. Roboten far inte ga vidare till nasta cykel; styrningen ska larma och stoppa bandet."
+    }
+  ],
+  "core_outputs": [
+    "ST290_HS_REQ",
+    "ST290_HS_RST",
+    "ST290_GRP_OPEN",
+    "ST300_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_lrmate_200id_7l",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "fotocell",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "band",
+        "to_role": "fotocell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST290_HS_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten begar overlamning"
+      },
+      {
+        "name": "ST300_HS_ACK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bandet kvitterar att mottagningslaget ar ledigt"
+      },
+      {
+        "name": "ST300_HS_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bandet bekraftar mottagen modul"
+      },
+      {
+        "name": "ST290_HS_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten aterstaller handskakningen"
+      },
+      {
+        "name": "ST290_GRP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna griparen"
+      },
+      {
+        "name": "ST290_GRP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "griparen i oppet lage"
+      },
+      {
+        "name": "ST300_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST300_PEC_RCV",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell i mottagningslaget"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "roboten for modulen till overlamningslaget och satter ST290_HS_REQ hog",
+      "bandet stoppar ST300_CNV_RUN och satter ST300_HS_ACK hog nar ST300_PEC_RCV ar lag",
+      "roboten satter ST290_GRP_OPEN hog och vantar pa ST290_GRP_OPENED",
+      "bandet satter ST300_HS_DONE hog nar ST300_PEC_RCV gatt hog",
+      "roboten drar undan griparen och satter ST290_HS_RST hog",
+      "bandet nollstaller ST300_HS_ACK och ST300_HS_DONE och startar ST300_CNV_RUN",
+      "roboten nollstaller ST290_HS_REQ och ST290_HS_RST"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST290": 0.35,
+        "ST300": 0.5
+      },
+      "cycle_s": 5.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST290_GRP_OPEN far aldrig ga hog nar ST300_HS_ACK ar lag",
+      "ST300_CNV_RUN far aldrig ga hog nar ST290_HS_RST ar lag",
+      "ingen overlamning nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 720.0,
+    "runs": 3,
+    "warmup_s": 45.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_HS_REQ RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST300_HS_ACK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST300_HS_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_HS_RST RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST290 *s req=0.35s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST300 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+bandkant *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST290_GRP_OPEN+ST300_CNV_RUN dt=*ms"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

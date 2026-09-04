@@ -1,0 +1,317 @@
+{
+  "task_id": "S-02",
+  "title": "Tre utgangar med tre utskjutare pa samma bana",
+  "goal": "Dela ett flode i tre utgangar utan att tva utskjutare nagonsin ar ute samtidigt pa samma detalj.",
+  "grupp": "S",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar en kapplopning som bara uppstar vid vissa artikellangder: tva utskjutare beraknas ur samma skiftregister i samma scan, och en lastbarare som ligger pa gransen mellan tva utgangar far bada kommandona. Den kilas fast mellan utskjutarna. Med tre utgangar finns tre sadana granser, och alla tre maste vara omsesidigt uteslutande.",
+  "prompt": "Bygg en sorteringsstation med tre utgangar och skriv styrningen till den.\n\nScen: en ackumulerande rullbana for lastbarare, 500 mm bred och 24 m/min, med tre pneumatiska\nutskjutare pa 900 mm inbordes avstand och en inkrementell pulsgivare. En streckkodslasare i\nbanans borjan ger destination 1, 2 eller 3. Lastbararen ar en VDA KLT 4147 om 400 x 300 x 147 mm\nsom vager 6,2 kg.\n\nUppgift: las destinationen, folj lastbararen med pulsgivaren och skjut ut den vid ratt utgang.\nUtskjutarnas slagtid ar 0,4 s. Kravet ar hart: ST200_PSH1_OUT, ST200_PSH2_OUT och\nST200_PSH3_OUT far aldrig vara hoga samtidigt, och heller inte tva av dem i samma PLC-scan.\nTakten ar 30 lastbarare per minut.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F7"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "tva utskjutare beraknas i samma scan och far bada kommandot pa en lastbarare som ligger pa gransen",
+    "destinationen lases om vid varje utgang i stallet for lagras en gang, sa en misslyckad lasning ger fel utgang",
+    "utskjutaren kommenderas pa lastbararens framkant i stallet for pa dess mitt, sa den traffar kanten"
+  ],
+  "antaganden": [
+    {
+      "vad": "avstandet 900 mm mellan utskjutarna",
+      "varde": "900 mm",
+      "motiv": "valt sa att en 400 mm lang lastbarare med marginal ryms mellan tva utgangar; avstandet ar antaget"
+    },
+    {
+      "vad": "lastbararens vikt 6,2 kg",
+      "varde": "6,2 kg",
+      "motiv": "KLT 4147 med orderplockat gods; tomvikten dryga 1 kg och resten ar antaget innehall"
+    },
+    {
+      "vad": "takten 30 per minut",
+      "varde": "30 per minut",
+      "motiv": "vid 24 m/min och 900 mm mellan utgangar ar 30 per minut en rimlig belastning; talet ar valt och inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 4147, fylld",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 147,
+      "massa_kg": 6.2
+    },
+    "arbetsradie_mm": 3600.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Lastbarare med blandade destinationer kommer i 30 per minut och sorteras till tre utgangar.",
+      "forvantat": "Varje lastbarare hamnar i sin destination, hogst en utskjutare hog i taget och inga kapplopningar."
+    },
+    {
+      "id": "dest_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST200_SCN_DEST",
+      "beskrivning": "ST200_SCN_DEST ger 0, alltsa misslyckad streckkodslasning.",
+      "forvantat": "En olast lastbarare far inte skjutas ut nagonstans. Styrningen ska lata den ga rakt igenom till en avvisningsutgang och larma."
+    },
+    {
+      "id": "dest_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST200_SCN_DEST",
+      "beskrivning": "ST200_SCN_DEST ger 7, en destination som inte finns bland de tre utgangarna.",
+      "forvantat": "En destination utanfor intervallet far aldrig avrundas till narmaste giltiga. Styrningen ska behandla den som olast och larma."
+    },
+    {
+      "id": "home_uteblir",
+      "typ": "vandning",
+      "signal": "ST200_PSH_HOME",
+      "beskrivning": "ST200_PSH_HOME uteblir efter en utskjutning; en utskjutare star kvar ute.",
+      "forvantat": "Ingen ny utskjutning far kommenderas och banan ska stoppas, sa att nasta lastbarare inte kilas fast."
+    },
+    {
+      "id": "enc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST200_ENC_POS",
+      "beskrivning": "ST200_ENC_POS star still i 3,0 s trots att ST200_CNV_RUN ar hog, alltsa pulsgivaren ger inga pulser.",
+      "forvantat": "Utan strackning gar skiftregistret inte att fora framat och destinationerna tappar sina lastbarare. Styrningen ska stoppa banan, halla alla tre utskjutarna laga och larma."
+    },
+    {
+      "id": "enc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST200_ENC_POS",
+      "beskrivning": "ST200_ENC_POS hoppar 5400 mm mellan tva scan, langre an banans langd om 3600 mm.",
+      "forvantat": "Ett hopp langre an banan ar ett overslag i raknaren eller ett givarfel. Styrningen ska hantera overslaget utan att flytta lastbarare forbi sin utgang, och larma om den inte kan."
+    }
+  ],
+  "core_outputs": [
+    "ST200_PSH1_OUT",
+    "ST200_PSH2_OUT",
+    "ST200_PSH3_OUT",
+    "ST200_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "bana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "utskjutare1",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utskjutare2",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utskjutare3",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "pulsgivare",
+        "uri": "bank://givare/lagesgivare_encoder",
+        "count": 1
+      },
+      {
+        "role": "lasare",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana",
+        "to_role": "utskjutare1"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "utskjutare2"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "utskjutare3"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "pulsgivare"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "lasare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST200_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "banan gar"
+      },
+      {
+        "name": "ST200_SCN_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos en streckkodslasning"
+      },
+      {
+        "name": "ST200_SCN_DEST",
+        "dir": "in",
+        "type": "int",
+        "comment": "last destination, 1 till 3"
+      },
+      {
+        "name": "ST200_ENC_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "banans strackning i mm"
+      },
+      {
+        "name": "ST200_PSH1_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utskjutare 1 ut"
+      },
+      {
+        "name": "ST200_PSH2_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utskjutare 2 ut"
+      },
+      {
+        "name": "ST200_PSH3_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utskjutare 3 ut"
+      },
+      {
+        "name": "ST200_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "alla utskjutare i hemlage"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "pulsa ST200_SCN_TRIG nar en lastbarare passerar lasaren",
+      "lagra ST200_SCN_DEST tillsammans med ST200_ENC_POS for den lastbararen",
+      "for skiftregistret framat med ST200_ENC_POS",
+      "rakna fram vilken utskjutare som ar aktuell for den lastbarare som star framme",
+      "valj hogst en utskjutare per scan och lamna de tva andra laga i samma scan",
+      "vanta pa ST200_PSH_HOME innan nasta utskjutning tillats"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST200": 0.4
+      },
+      "cycle_s": 2.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "hogst en av ST200_PSH1_OUT, ST200_PSH2_OUT och ST200_PSH3_OUT far vara hog",
+      "ingen utskjutning nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1800.0,
+    "runs": 3,
+    "warmup_s": 90.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST200_PSH1_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST200_PSH2_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST200_PSH3_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST200 *s req=0.4s OK"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST200 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST utskjutare2+lastbarare *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST200_PSH1_OUT+ST200_PSH2_OUT dt=*ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST200_PSH2_OUT+ST200_PSH3_OUT dt=*ms"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION utskjutare2 x lastbarare t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

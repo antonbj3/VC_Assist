@@ -1,0 +1,249 @@
+{
+  "task_id": "T-01",
+  "title": "Stoppgrind pa bandtransportor, en burk per givarflank",
+  "goal": "Slappa fram exakt en konservburk per stigande flank pa fotocellen, med bandet i kontinuerlig drift.",
+  "grupp": "T",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en driftsattningsmiss som ar vanlig pa singuleringsstationer: stoppgrinden kommenderas oppen pa fotocellens niva i stallet for pa dess stigande flank. Sa lange bandet ar tomt ser det ratt ut, men nar burkarna kommer tatt star grinden kvar oppen och slapper tva burkar pa en flank. Felet hittas forst vid full linjefart.",
+  "prompt": "Bygg en singuleringsstation for konservburkar och skriv styrningen till den.\n\nScen: en bandtransportor med bandbredd 600 mm som gar kontinuerligt i 0,5 m/s, en pneumatisk\nstoppgrind vid bandets slut, och en genomgaende fotocell 120 mm uppstroms grinden.\nProdukten ar en konservburk, diameter 99 mm och hojd 119 mm, massa 0,42 kg. Burkarna\nkommer i ojamn foljd med 250 till 900 mm lucka.\n\nUppgift: slapp fram exakt en burk per stigande flank pa ST010_PEC_PART. Grinden ska\noppna forst nar burken statt still mot grinden i minst 0,40 s, sa att den inte glider\nvidare pa bandets efterslapning, och den ska stanga igen innan nasta burk nar fram.\nGrindens slagtid ar 0,12 s och ST010_STP_OPENED bekraftar oppet lage.\n\nTakten ar 45 burkar per minut, alltsa 1,33 s per burk. Anlaggningen far bara kora nar\nEMG_OK och AIR_OK ar hoga. Anvand de signalnamn som star i signalkartan; hitta inte pa\negna.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "grinden kommenderas pa fotocellens niva i stallet for pa flanken, sa tva burkar slapps igenom pa en flank",
+    "grinden stangs pa en timer i stallet for pa andlagesgivaren, och stanger pa en burk",
+    "bandet stoppas i stallet for grinden, vilket ger ratt resultat men fel losning: takten faller"
+  ],
+  "antaganden": [
+    {
+      "vad": "burkens matt och massa",
+      "varde": "99 x 119 mm, 0,42 kg",
+      "motiv": "matten ar en vanlig 400 g konservburk; massan ar antagen ur fylld vikt plus plat och kan avvika nagra tiondelar"
+    },
+    {
+      "vad": "fotocellens avstand till grinden",
+      "varde": "120 mm",
+      "motiv": "avstandet ar antaget; det ska vara kortare an minsta lucka mellan burkar sa att flanken hor till ratt burk"
+    },
+    {
+      "vad": "uppehallskravet 0,40 s",
+      "varde": "0,40 s",
+      "motiv": "satt sa att det med marginal tacker bandets efterslapning vid 0,5 m/s; ingen matning finns annu, se docs/spec/40_ogat.md om DWELL_TOO_SHORT"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "konservburk 400 g",
+      "l_mm": 99,
+      "b_mm": 99,
+      "h_mm": 119,
+      "massa_kg": 0.42
+    },
+    "arbetsradie_mm": 3200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Burkar kommer med 250 till 900 mm lucka, bandet gar i 0,50 m/s och takten ar 45 burkar per minut.",
+      "forvantat": "En burk per stigande flank, uppehall minst 0,40 s, grinden stangd innan nasta burk nar fram."
+    },
+    {
+      "id": "spd_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST010_CNV_SPD",
+      "beskrivning": "Frekvensomriktaren tappar varvtal och ST010_CNV_SPD faller till 0,18 m/s, under det lagsta arbetsvardet 0,20 m/s.",
+      "forvantat": "Styrningen ska halla grinden stangd och satt SYS_ALARM hog; en burk far inte slappas fram pa ett band som inte har fart nog att fora bort den."
+    },
+    {
+      "id": "spd_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST010_CNV_SPD",
+      "beskrivning": "Bandet dras over till 0,84 m/s, over det hogsta arbetsvardet 0,80 m/s.",
+      "forvantat": "Uppehallskravet 0,40 s racker inte langre mot efterslapningen; styrningen ska stoppa bandet och larma i stallet for att fortsatta slappa fram burkar."
+    },
+    {
+      "id": "pec_uteblir",
+      "typ": "vandning",
+      "signal": "ST010_STP_OPENED",
+      "beskrivning": "Grindens andlagesgivare uteblir helt: ST010_STP_OPEN gar hog men ST010_STP_OPENED kommer aldrig.",
+      "forvantat": "Styrningen far inte anta att grinden ar oppen. Efter 1,0 s utan andlage ska den nollstalla ST010_STP_OPEN och larma i stallet for att ga vidare i sekvensen."
+    }
+  ],
+  "core_outputs": [
+    "ST010_STP_OPEN",
+    "ST010_CNV_RUN"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "stoppgrind",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "fotocell",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "stoppgrind"
+      },
+      {
+        "from_role": "band",
+        "to_role": "fotocell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST010_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST010_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell 120 mm uppstroms grinden, hog nar burk bryter stralen"
+      },
+      {
+        "name": "ST010_STP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera stoppgrinden till oppet lage"
+      },
+      {
+        "name": "ST010_STP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar grinden ar helt oppen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, laser fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "ST010_CNV_SPD",
+        "dir": "in",
+        "type": "real",
+        "comment": "bandhastighet fran frekvensomriktaren, m/s"
+      }
+    ],
+    "sequence": [
+      "ST010_CNV_RUN satts hog nar EMG_OK och AIR_OK ar hoga",
+      "vanta pa stigande flank pa ST010_PEC_PART",
+      "rakna 0,40 s uppehall fran flanken, sa att burken star still mot grinden",
+      "satt ST010_STP_OPEN hog",
+      "vanta pa ST010_STP_OPENED",
+      "nollstall ST010_STP_OPEN nar burken passerat, dock senast 0,50 s efter oppning",
+      "vanta pa nasta stigande flank"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST010": 0.4
+      },
+      "cycle_s": 1.333,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "grinden far aldrig kommenderas oppen nar EMG_OK ar lag",
+      "grinden far aldrig kommenderas oppen utan att AIR_OK ar hog"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 2700.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 12.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST010_PEC_PART RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST010_STP_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST010_STP_OPEN -> stoppgrind *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST010 *s req=0.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST010 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST stoppgrind+sidostyrning *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST010 *s req=0.4s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

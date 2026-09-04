@@ -1,0 +1,337 @@
+{
+  "task_id": "C-04",
+  "title": "Nodstopp och kontrollerad aterstart i en cell med tre don",
+  "goal": "Ga till sakert lage pa nodstopp, halla lagesbilden over stoppet och kraven en medveten aterstart som aldrig sker automatiskt.",
+  "grupp": "C",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar den allvarligaste av alla driftsattningsmissar: cellen aterstartar av sig sjalv nar nodstoppet aterstalls, darfor att styrningen bara laser EMG_OK som ett villkor och fortsatter dar den var. En person kan sta kvar i cellen. Den andra missen ar att lagesbilden tappas over stoppet, sa att en halvt utford rorelse aterupptas fran fel steg.",
+  "prompt": "Bygg en cell med nodstopp och kontrollerad aterstart, och skriv styrningen till den.\n\nScen: en cell med en ABB IRB 2600-20/1.65 med rackvidd 1650 mm och nyttolast 20 kg, en\ntvabackad elektrisk parallellgripare, en fixtur med pneumatiska spannare, en pneumatisk\nstoppgrind i inloppet och en sakerhetsklassad ljusrida plus nodstoppskrets pa sakerhets-PLC.\nDetaljen ar en fastkonsol 320 x 180 x 60 mm som vager 2,6 kg. Robotens langsta arbetsradie i\nuppgiften ar 1500 mm. Stationen ar ST420.\n\nUppgift: nar EMG_OK gar lag ska roboten stanna, griparen behalla sitt grepp, stoppgrinden ga\ntill stangt lage och ST420_STA_SAFE ga hog inom 0,30 s. Lagesbilden, alltsa vilket steg cellen\nvar pa, ska behallas over stoppet. Nar EMG_OK ater ar hog far cellen inte starta av sig sjalv.\nAterstart kraver att SYS_RESET pulsas och att ST420_LGT_CLEAR ar hog, alltsa att ljusridan ar\nobruten. Cellen ska da fortsatta fran samma steg. Takten ar 30,0 s per detalj.\n\nNodstoppskretsen och ljusridan ligger pa sakerhets-PLC och ar skrivskyddade for dig. Signalnamnen\nstar i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8"
+  ],
+  "stege": "hiss",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "cellen aterstartar automatiskt nar EMG_OK ater ar hog, utan SYS_RESET",
+    "lagesbilden nollstalls vid stopp, sa cellen borjar om fran steg noll med en detalj i griparen",
+    "griparen oppnas vid stopp sa att detaljen faller, i tron att sakert lage betyder slappt grepp"
+  ],
+  "antaganden": [
+    {
+      "vad": "kravet 0,30 s till sakert lage",
+      "varde": "0,30 s",
+      "motiv": "vald sa att den ligger over ljusridans antagna svarstid om 20 ms med god marginal; den verkliga stopptiden hor till den certifierade kretsen och mats inte har"
+    },
+    {
+      "vad": "takten 30,0 s",
+      "varde": "30,0 s",
+      "motiv": "en monteringstakt inom spannet 8 till 60 s; talet ar valt"
+    },
+    {
+      "vad": "att griparen behaller greppet vid stopp",
+      "varde": "grepp kvar",
+      "motiv": "for en 2,6 kg detalj i en fixtur ar kvarhallet grepp saakrare an ett slapp; for tunga eller heta detaljer kan det vara tvartom, och det valet hor till riskanalysen, inte till styrningen"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "fastkonsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 60,
+      "massa_kg": 2.6
+    },
+    "arbetsradie_mm": 1500.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Cellen kor i 30,0 s takt och traffas av tre nodstopp under matperioden, ett i varje robotsteg.",
+      "forvantat": "Sakert lage inom 0,30 s varje gang, greppet kvar, lagesbilden behallen och ingen aterstart utan SYS_RESET."
+    },
+    {
+      "id": "step_lag",
+      "typ": "vandning",
+      "signal": "ST420_STA_STEP",
+      "beskrivning": "ST420_STA_STEP hoppar till 0 vid ett nodstopp mitt i steg 4.",
+      "forvantat": "Ett nollstallt steg betyder att cellen skulle borja om med en detalj i griparen. Styrningen ska behalla steget; blir det anda noll ska den larma och krava manuell kvittering."
+    },
+    {
+      "id": "step_hog",
+      "typ": "vandning",
+      "signal": "ST420_STA_STEP",
+      "beskrivning": "ST420_STA_STEP visar 12, hogre an sekvensens sista steg 7.",
+      "forvantat": "Ett steg utanfor sekvensen far inte fortsattas fran. Styrningen ska ga till sakert lage och krava manuell kvittering."
+    },
+    {
+      "id": "reset_uteblir",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "EMG_OK gar hog igen men SYS_RESET pulsas aldrig.",
+      "forvantat": "Cellen ska sta kvar i sakert lage hur lange som helst. Att nodstoppet aterstallts ar inte ett startbesked; en person kan fortfarande sta i cellen."
+    },
+    {
+      "id": "force_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST420_GRP_FORCE",
+      "beskrivning": "ST420_GRP_FORCE faller till 30 N under nodstoppet, under den lagsta greppkraft om 120 N som kravs for att halla en konsol pa 2,6 kg.",
+      "forvantat": "Greppet halls av tryckluft som kan sjunka under ett langt stopp. Styrningen ska larma om att detaljen riskerar att falla och krava manuell kontroll fore aterstart, aldrig fortsatta sekvensen."
+    },
+    {
+      "id": "force_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST420_GRP_FORCE",
+      "beskrivning": "ST420_GRP_FORCE nar 640 N, over den hogsta tillatna 500 N for konsolen.",
+      "forvantat": "Overkraft under ett langt stopp deformerar konsolen. Styrningen ska sanka kraften till halllniva och larma, men aldrig slappa greppet helt medan cellen ar i sakert lage."
+    }
+  ],
+  "core_outputs": [
+    "ST420_RB_START",
+    "ST420_RB_HOLD",
+    "ST420_STA_SAFE",
+    "ST420_GRP_CLOSE",
+    "ST420_STP_CLOSE"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_elektrisk",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "grind",
+        "uri": "bank://transport/stoppgrind_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "ljusrida",
+        "uri": "bank://givare/ljusridla",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "grind"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "ljusrida"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "nodstopp"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST420_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotprogrammet"
+      },
+      {
+        "name": "ST420_RB_HOLD",
+        "dir": "out",
+        "type": "bool",
+        "comment": "hall robotrorelsen i sakert lage"
+      },
+      {
+        "name": "ST420_STA_SAFE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "cellen i sakert lage"
+      },
+      {
+        "name": "ST420_STA_STEP",
+        "dir": "out",
+        "type": "int",
+        "comment": "cellens aktuella steg i sekvensen"
+      },
+      {
+        "name": "ST420_GRP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "hall griparen sluten"
+      },
+      {
+        "name": "ST420_STP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stang stoppgrinden i inloppet"
+      },
+      {
+        "name": "ST420_LGT_CLEAR",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ljusridan obruten; ligger pa sakerhets-PLC och ar skrivskyddad"
+      },
+      {
+        "name": "ST420_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "detalj i fixturen"
+      },
+      {
+        "name": "ST420_GRP_FORCE",
+        "dir": "in",
+        "type": "real",
+        "comment": "greppkraft i griparen i newton, last ur griparens lagesaterkoppling"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten; skrivskyddad for agenten"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "kor sekvensen och hall ST420_STA_STEP uppdaterad vid varje steg",
+      "pa fallande flank pa EMG_OK: satt ST420_RB_HOLD hog och ST420_STP_CLOSE hog",
+      "hall ST420_GRP_CLOSE hog, alltsa behall greppet om detaljen",
+      "satt ST420_STA_SAFE hog inom 0,30 s och lamna ST420_STA_STEP oforandrad",
+      "nar EMG_OK ater ar hog: gor ingenting; vanta pa SYS_RESET",
+      "pa stigande flank pa SYS_RESET och med ST420_LGT_CLEAR hog: nollstall ST420_RB_HOLD",
+      "fortsatt sekvensen fran det steg ST420_STA_STEP anger"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST420": 0.3
+      },
+      "cycle_s": 30.0,
+      "tolerance_s": 0.02
+    },
+    "interlocks": [
+      "cellen far aldrig starta av sig sjalv nar EMG_OK ater blir hog",
+      "ST420_STA_STEP far inte nollstallas av ett nodstopp",
+      "aterstart kraver bade SYS_RESET och ST420_LGT_CLEAR",
+      "den genererade logiken far aldrig skriva i EMG_OK eller ST420_LGT_CLEAR"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 120.0,
+    "runs": 3,
+    "warmup_s": 120.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE EMG_OK FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST420_STA_SAFE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE SYS_RESET RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST420_RB_HOLD FALL t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST420 *s req=0.3s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY EMG_OK -> robot *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST420 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST420 *s req=0.3s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

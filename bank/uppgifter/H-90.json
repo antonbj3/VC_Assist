@@ -1,0 +1,221 @@
+{
+  "task_id": "H-90",
+  "title": "Trasig variant av H-01: bandet startar i samma scan som griparen oppnar",
+  "goal": "Visa att ogat faller tva utgangar som gar hoga i samma scanfonster, och att foljden blir en tappad detalj.",
+  "grupp": "H",
+  "bransch": "elektronik",
+  "orsak": "Speglar den kapplopning handskakningens aterstallningssteg finns for att hindra: bandet startas pa samma villkor som griparen oppnar, sa bada utgangarna gar hoga inom 4 ms. Bandet drar undan modulen medan backarna fortfarande slapper, och modulen faller. Utan RACE-matningen skulle rapporten bara visa en tappad detalj utan orsak.",
+  "prompt": "Har ar en ogonrapport fran en korning av uppgift H-01, overlamningen fran robot till band\nmed fyrastegshandskakning. Rapporten kommer ur vc_eyes och foljer grammatiken i\ndocs/spec/41_ogat_kontrakt.md. Signalerna ar OPC UA-variabler ur OpenPLC Runtime v4.\n\nLas rapporten och avgor om korningen ar godkand. Namnge raden som faller den, sag vilka tva\nutgangar som krockar och hur langt isar de ligger, och klassa fallningen enligt\ndocs/spec/82_felklasser.md. Forklara ocksa forhallandet mellan RACE-raden och PLACE DROPPED:\nvilken ar orsaken och vilken ar foljden.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F7"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "fallningen klassas som greppfel darfor att PLACE star DROPPED, i stallet for som kapplopning",
+    "rapporten godkanns delvis darfor att DWELL star OK och handskakningens tre forsta steg kom i ratt ordning"
+  ],
+  "antaganden": [
+    {
+      "vad": "de 4 ms i RACE-raden",
+      "varde": "4 ms",
+      "motiv": "rapporten ar en handskriven fixtur; 4 ms ar valt kortare an det scanfonster om 5 ms vi raknar med i OpenPLC, sa att de tva utgangarna sakert ligger i samma scan"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kapslad elektronikmodul",
+      "l_mm": 180,
+      "b_mm": 120,
+      "h_mm": 35,
+      "massa_kg": 0.85
+    },
+    "arbetsradie_mm": 880.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ogonrapporten laser av en 75 sekunder lang korning av H-01.",
+      "forvantat": "Rapporten ska fallas pa RACE-raden, med felklass F7; PLACE DROPPED ar foljden."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST290_HS_RST",
+      "beskrivning": "Aterstallningssteget uteblir helt: ST290_HS_RST gar aldrig hog, och bandet startas i stallet pa samma villkor som griparen oppnar.",
+      "forvantat": "Handskakningens fjarde steg ar det som skiljer griparens oppning fran bandets start. Utan det hamnar de tva utgangarna i samma scan."
+    }
+  ],
+  "core_outputs": [
+    "ST290_HS_REQ",
+    "ST290_HS_RST",
+    "ST290_GRP_OPEN",
+    "ST300_CNV_RUN"
+  ],
+  "variant_av": "H-01",
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_lrmate_200id_7l",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "fotocell",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "band",
+        "to_role": "fotocell"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST290_HS_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten begar overlamning"
+      },
+      {
+        "name": "ST300_HS_ACK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bandet kvitterar"
+      },
+      {
+        "name": "ST300_HS_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bandet bekraftar mottagen modul"
+      },
+      {
+        "name": "ST290_HS_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten aterstaller handskakningen"
+      },
+      {
+        "name": "ST290_GRP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna griparen"
+      },
+      {
+        "name": "ST300_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som H-01"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST290": 0.35
+      },
+      "cycle_s": 5.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST300_CNV_RUN far aldrig ga hog nar ST290_HS_RST ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 720.0,
+    "runs": 3,
+    "warmup_s": 45.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "FAIL",
+    "reason_contains": "kapplopning",
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST290_GRP_OPEN+ST300_CNV_RUN dt=4.000ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST290_GRP_OPEN RISE t=6.180s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST300_CNV_RUN RISE t=6.184s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=118.000mm z=0.062m"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST300 in=15 out=13 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "oga",
+    "artefakt": "EYES v1\nTEMPLATE H-01_bandet_startar_i_samma_scan\nRUN 2026-09-04T21:48:03 DUR 75.000s SAMPLES 3750 RATE 50.00Hz\nSECTION MOTION\n  GRIP FORMED t=4.100s dist=6.200mm\n  CARRY RIGID rot=0.200deg span=1.900s\n  PLACE DROPPED err=118.000mm z=0.062m\nSECTION TIMING\n  EDGE ST290_HS_REQ RISE t=5.800s\n  EDGE ST300_HS_ACK RISE t=5.940s\n  EDGE ST290_GRP_OPEN RISE t=6.180s\n  EDGE ST300_CNV_RUN RISE t=6.184s\n  DWELL ST290 0.350s req=0.350s OK\n  RACE ST290_GRP_OPEN+ST300_CNV_RUN dt=4.000ms\nSECTION THROUGHPUT\n  STATION ST300 in=15 out=13 avg=5.000s min=4.900s max=5.400s\nSECTION SAFETY\n  MINDIST gripdon+bandkant 11.400mm t=6.184s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\n  NEVER_GRIPPED OK\nEYES VERDICT FAIL kapplopning: ST290_GRP_OPEN och ST300_CNV_RUN hoga inom 4 ms, bandet drog undan modulen medan griparen oppnade och modulen foll\n",
+    "vad_som_ar_fel": "ST290_GRP_OPEN och ST300_CNV_RUN gick hoga inom 4 ms, alltsa inom samma scanfonster. Bandet drog undan modulen medan backarna fortfarande slappte och modulen foll till z=0,062 m, 118 mm fran malet. RACE-raden ar orsaken och PLACE DROPPED foljden."
+  }
+}

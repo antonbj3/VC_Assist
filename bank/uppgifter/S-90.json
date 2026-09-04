@@ -1,0 +1,185 @@
+{
+  "task_id": "S-90",
+  "title": "Trasig variant av S-01: tva taggnamn som inte finns i signalkartan",
+  "goal": "Visa att grind 3 faller ett taggnamn som inte finns, innan koden nar simulatorn.",
+  "grupp": "S",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar den billigaste vinsten i hela grindkedjan: deklarationerna genereras ur scenens signalkarta, sa ett taggnamn kan inte bli fel om agenten haller sig till kartan. Har har den forkortat ST190_HGT_HIGH till ST190_HGT_HI och skrivit ST190_PSH_EXT i stallet for ST190_PSH_OUT. Bada namnen ar rimliga och bada finns inte.",
+  "prompt": "Har ar ett forslag till losning pa uppgift S-01, sorteringsstationen med hojdgivare och\nutskjutare pa ett band i 0,35 m/s.\n\nKor grindkedjan i docs/spec/50_grindar.md pa den bifogade ST-koden och avgor om den far ga\nvidare till ogat. Namnge varje taggnamn som inte finns i signalkartan, den grind som faller dem,\noch den felklass fallningen tillhor enligt docs/spec/82_felklasser.md. Signalerna ar OPC UA-\nvariabler ur OpenPLC Runtime v4 och kartan i uppgiften ar den enda giltiga kallan till namnen.\n\nObservera ocksa att koden laser en variabel som inte ar deklarerad; sag vilken grind som tar den.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F3"
+  ],
+  "stege": "set_reset",
+  "difficulty": 1,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "taggnamnen antas vara riktiga darfor att de ar rimliga och konsekventa i sig",
+    "fallningen skickas vidare till ogat, dar den skulle se ut som en utebliven utskjutning"
+  ],
+  "antaganden": [
+    {
+      "vad": "grind 3 som fallande grind",
+      "varde": "grind 3",
+      "motiv": "specen anger att F3 fangas av grind 3, deklarationsmatchningen mot scenens signalkarta; vilken av de saknade taggarna som rapporteras forst ar inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "konservburk 33 cl",
+      "l_mm": 73,
+      "b_mm": 73,
+      "h_mm": 110,
+      "massa_kg": 0.33
+    },
+    "arbetsradie_mm": 2000.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ST-koden bedoms av grindkedjan innan nagon simulering startas.",
+      "forvantat": "Grind 3 faller ST190_HGT_HI och ST190_PSH_EXT som taggar utanfor signalkartan; felklassen ar F3."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST190_PSH_HOME",
+      "beskrivning": "Nagon foreslar att koden anda ska koras, med argumentet att utskjutaren da helt enkelt aldrig gar ut och att ST190_PSH_HOME forblir hog.",
+      "forvantat": "En tagg som inte finns ar inget beteende. Fallningen hor till grind 3 och far inte flyttas till ogat, dar den skulle se ut som en utebliven utskjutning."
+    }
+  ],
+  "core_outputs": [
+    "ST190_PSH_OUT",
+    "ST190_CNV_RUN"
+  ],
+  "variant_av": "S-01",
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "hojdgivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "utgang_rakt",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "utgang_sida",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "utgang_rakt"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utgang_sida"
+      },
+      {
+        "from_role": "band",
+        "to_role": "hojdgivare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "utskjutare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST190_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST190_HGT_HIGH",
+        "dir": "in",
+        "type": "bool",
+        "comment": "hojdgivaren ser en hog burk"
+      },
+      {
+        "name": "ST190_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "burk passerar hojdgivarens lage"
+      },
+      {
+        "name": "ST190_PSH_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera utskjutaren ut"
+      },
+      {
+        "name": "ST190_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "utskjutaren i hemlage"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som S-01"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST190": 0.4
+      },
+      "cycle_s": 1.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "utskjutaren far aldrig kommenderas nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": null,
+    "runs": 3,
+    "warmup_s": 0.0,
+    "must_pass": [],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "G3",
+    "verdict": null,
+    "reason_contains": null,
+    "lines": [],
+    "forbidden_lines": [],
+    "gate_code": "F3"
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "st",
+    "artefakt": "PROGRAM ST190_SORTERING\nVAR\n    aBesked : ARRAY[0..15] OF BOOL;\n    iHead   : INT;\n    tmrPush : TON;\nEND_VAR\n\nST190_CNV_RUN := EMG_OK AND AIR_OK;\n\nIF ST190_PEC_PART AND NOT ST190_PEC_PART_OLD THEN\n    aBesked[iHead] := ST190_HGT_HI;\n    iHead := (iHead + 1) MOD 16;\nEND_IF;\n\ntmrPush(IN := NOT aBesked[(iHead + 12) MOD 16], PT := T#400MS);\nST190_PSH_EXT := tmrPush.Q AND ST190_PSH_HOME;\nEND_PROGRAM\n",
+    "vad_som_ar_fel": "ST190_HGT_HI och ST190_PSH_EXT finns inte i signalkartan; de riktiga namnen ar ST190_HGT_HIGH och ST190_PSH_OUT. Dessutom laser koden ST190_PEC_PART_OLD, som varken ar deklarerad i VAR eller finns i kartan."
+  }
+}

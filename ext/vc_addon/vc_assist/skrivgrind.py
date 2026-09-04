@@ -26,6 +26,11 @@ MUTERANDE_PREFIX = (
     "rename", "apply", "commit", "kill", "terminate", "send", "trigger",
     "enable", "disable", "makedirs", "mkdir", "rmdir", "unlink", "rename",
     "chmod", "system", "popen", "spawn", "call", "check_output",
+    # Funna av verktygsregistrets korsprov 2026-09-04: clone() ensamt domdes
+    # som LASANDE, sa en komponentkloning hade sluppit forbi kon. De ovriga ar
+    # samma klass av namn som inte borjar pa nagot av prefixen ovan.
+    "clone", "duplicate", "makeunique", "transfer", "attach", "detach",
+    "grab", "drop", "paste", "cut", "undo", "redo", "restore", "halt",
 )
 
 # Namn som gor syntaktisk analys omojlig. Konservativt: de raknas som skrivande.
@@ -102,6 +107,63 @@ def _oppnar_for_skrivning(nod):
     return any(t in varde for t in SKRIVLAGEN)
 
 
+BEHALLARANROP = ("dict", "list", "set", "OrderedDict", "defaultdict", "Counter")
+
+
+def _lokala_behallare(trad):
+    """Namn som binds till en behallare koden SJALV skapat.
+
+    Att skriva i en ordbok man nyss byggt ar bokforing, inte en scenandring.
+    Utan den skillnaden faller varje lasande skript som samlar sitt svar i en
+    dict - alltsa nastan alla, eftersom svaret gar tillbaka som JSON.
+
+    Konservativt: binds namnet nagon gang till nagot ANNAT stryks det, sa
+    d = {} foljt av d = comp.Properties inte oppnar en lucka.
+    """
+    behallare, smutsiga = set(), set()
+    for nod in ast.walk(trad):
+        if not isinstance(nod, ast.Assign):
+            continue
+        egen = isinstance(nod.value, (ast.Dict, ast.List, ast.Set))
+        if not egen:
+            for k in ("DictComp", "ListComp", "SetComp"):
+                if hasattr(ast, k) and isinstance(nod.value, getattr(ast, k)):
+                    egen = True
+        if not egen and isinstance(nod.value, ast.Call):
+            egen = _sista_namnet(nod.value.func) in BEHALLARANROP
+        for m in nod.targets:
+            if isinstance(m, ast.Name):
+                (behallare if egen else smutsiga).add(m.id)
+    return behallare - smutsiga
+
+
+def _rotnamn(nod):
+    while isinstance(nod, (ast.Subscript, ast.Attribute)):
+        nod = nod.value
+    return nod.id if isinstance(nod, ast.Name) else None
+
+
+def _doma_mal(mal, egna, rad, skal):
+    """Domer ETT tilldelningsmal.
+
+    Strukturellt, inte med ast.walk: en walk over malet besoker aven
+    INDEXUTTRYCKET, sa ut[c.Name] = v anklagades for att skriva till .Name.
+    """
+    if isinstance(mal, ast.Attribute):
+        skal.append("rad %s: tilldelning till attributet .%s" % (rad, mal.attr))
+    elif isinstance(mal, ast.Subscript):
+        rot = _rotnamn(mal)
+        if rot not in egna:
+            skal.append("rad %s: tilldelning till ett index i %s"
+                        % (rad, rot or "ett okant uttryck"))
+    elif isinstance(mal, (ast.Tuple, ast.List)):
+        for e in mal.elts:
+            _doma_mal(e, egna, rad, skal)
+    elif hasattr(ast, "Starred") and isinstance(mal, ast.Starred):
+        _doma_mal(mal.value, egna, rad, skal)
+    # Ett rent Name binder en lokal variabel och ar ingen andring.
+
+
 def granska(kod):
     """Returnerar en Dom. Kod som inte gar att tolka raknas som skrivande."""
     skal = []
@@ -111,24 +173,24 @@ def granska(kod):
         return Dom(True, ["gar inte att tolka som Python, rad %s: %s"
                           % (getattr(e, "lineno", "?"), e.msg)])
 
+    egna = _lokala_behallare(trad)
+
     for nod in ast.walk(trad):
         rad = getattr(nod, "lineno", None)
 
         if isinstance(nod, (ast.Assign, ast.AugAssign)):
             mal = nod.targets if isinstance(nod, ast.Assign) else [nod.target]
             for m in mal:
-                for u in ast.walk(m):
-                    if isinstance(u, ast.Attribute):
-                        skal.append("rad %s: tilldelning till attributet .%s"
-                                    % (rad, u.attr))
-                    elif isinstance(u, ast.Subscript):
-                        skal.append("rad %s: tilldelning till ett index" % rad)
+                _doma_mal(m, egna, rad, skal)
 
         elif isinstance(nod, ast.Delete):
             skal.append("rad %s: del-sats" % rad)
 
         elif isinstance(nod, ast.Call):
             namn = _sista_namnet(nod.func)
+            if (isinstance(nod.func, ast.Attribute)
+                    and _rotnamn(nod.func.value) in egna):
+                continue    # metodanrop pa en egen behallare, t.ex. rader.append()
             if namn in OGENOMSKINLIGA:
                 skal.append("rad %s: %s() gor syntaktisk analys omojlig" % (rad, namn))
             elif _oppnar_for_skrivning(nod):
@@ -140,3 +202,30 @@ def granska(kod):
             skal.append("rad %s: exec-sats" % rad)
 
     return Dom(bool(skal), skal)
+
+
+# Skriptbeteenden ar en egen klass av fara: att skapa ett STOPPAR den korande
+# simuleringen, och pumpen bor i simuleringen (M-13). Koden kors, men bryggan
+# dor mitt i sitt eget svar och kommer inte tillbaka.
+
+SKRIPTTYPER = ("VC_SCRIPT", "VC_PYTHONSCRIPT")
+
+
+def skapar_skriptbeteende(kod):
+    """Returnerar en lista skal, tom om koden inte ror skriptbeteenden."""
+    skal = []
+    try:
+        trad = ast.parse(kod)
+    except SyntaxError:
+        return skal          # otolkbar kod fangas redan av granska()
+    for nod in ast.walk(trad):
+        rad = getattr(nod, "lineno", None)
+        if isinstance(nod, ast.Call) and _sista_namnet(nod.func) == "createBehaviour":
+            for a in nod.args:
+                if isinstance(a, ast.Name) and a.id in SKRIPTTYPER:
+                    skal.append("rad %s: createBehaviour(%s, ...)" % (rad, a.id))
+        if isinstance(nod, ast.Assign):
+            for m in nod.targets:
+                if isinstance(m, ast.Attribute) and m.attr == "Script":
+                    skal.append("rad %s: tilldelning till .Script" % rad)
+    return skal

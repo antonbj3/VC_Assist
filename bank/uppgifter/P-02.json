@@ -1,0 +1,322 @@
+{
+  "task_id": "P-02",
+  "title": "Deltarobot plockar kex fran rorligt band",
+  "goal": "Plocka kex fran ett band i 0,45 m/s utan att missa och utan att detaljen vrider sig i sugkoppen.",
+  "grupp": "P",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar en driftsattningsmiss i bandfoljning: greppet tas pa den position kameran gav, utan att kompensera for den strackan bandet hunnit rora sig under bildbehandlingens 120 ms. Vid 0,45 m/s ar det 54 mm. Sugkoppen tar da i kexets kant i stallet for mitt, kexet vrider sig och hamnar snett i formen.",
+  "prompt": "Bygg en plockcell over ett rorligt band och skriv styrningen till den.\n\nScen: en ABB IRB 360-1/1130 FlexPicker med nyttolast 1 kg, en enkel vakuumgripare med en\nsugkopp om 25 mm som vager 0,28 kg, en bandtransportor med bandbredd 400 mm som gar i\n0,45 m/s, en inkrementell pulsgivare pa bandet och en 2D-kamera med 120 ms bedomningstid.\nKexet ar 62 x 62 mm och 9 mm tjockt och vager 0,045 kg. Robotens langsta arbetsradie i\nuppgiften ar 520 mm.\n\nUppgift: plocka varje kex kameran hittar och lagg det i formen. Greppunkten ska raknas fram\nur kamerans position plus den strackning ST110_ENC_POS visar sedan bilden togs, inte ur\npositionen som den var. Sugkoppen ska ta mitt pa kexet med hogst 6 mm avvikelse, och kexet\nfar inte vrida sig mer an 5 grader under transporten. Takten ar 0,625 s per kex, alltsa\n96 kex per minut.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F10",
+    "F6"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "greppunkten tas ur kamerabilden utan att kompensera for bandets rorelse under bedomningen",
+    "vakuumet slas pa forst nar sugkoppen redan ar nere, sa anslagstiden 0,08 s ater upp marginalen",
+    "roboten plockar pa tid i stallet for pa pulsgivarens lage, sa varje hastighetsandring ger miss"
+  ],
+  "antaganden": [
+    {
+      "vad": "kexets matt och vikt",
+      "varde": "62 x 62 x 9 mm, 0,045 kg",
+      "motiv": "storleken pa ett vanligt fyrkantigt kex; vikten ar antagen och ligger i den storleksordning som gor att en 25 mm sugkopp racker"
+    },
+    {
+      "vad": "kamerans 120 ms bedomningstid",
+      "varde": "120 ms",
+      "motiv": "en enkel narvaro- och lagesbedomning i 2D; talet ar antaget och star i katalogindexet som ANTAGEN"
+    },
+    {
+      "vad": "greppnoggrannheten 6 mm",
+      "varde": "6 mm",
+      "motiv": "vald som en tredjedel av sugkoppens diameter, sa att koppen sakert tacker material; ingen provning ligger bakom talet"
+    },
+    {
+      "vad": "vridningsgransen 5 grader",
+      "varde": "5 grader",
+      "motiv": "vald sa att kexet fortfarande ryms i formens fack; formens spel ar inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "fyrkantigt kex",
+      "l_mm": 62,
+      "b_mm": 62,
+      "h_mm": 9,
+      "massa_kg": 0.045
+    },
+    "arbetsradie_mm": 520.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Bandet gar i 0,45 m/s, kameran hittar 96 kex per minut och roboten plockar alla.",
+      "forvantat": "Varje kex greppat inom 6 mm fran mitten, vridning under 5 grader och placering i formen inom toleransen."
+    },
+    {
+      "id": "enc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST110_ENC_POS",
+      "beskrivning": "ST110_ENC_POS star kvar pa 0 mm mellan tva bilder trots att bandet gar, alltsa pulsgivaren ger inget.",
+      "forvantat": "Utan strackning gar greppunkten inte att rakna fram. Styrningen ska sluta plocka och larma i stallet for att greppa pa kamerapositionen."
+    },
+    {
+      "id": "enc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST110_ENC_POS",
+      "beskrivning": "ST110_ENC_POS hoppar till 4200 mm mellan tva bilder, langre an bandets synliga langd om 2500 mm.",
+      "forvantat": "Ett hopp storre an banans langd ar ett givarfel eller ett overslag i raknaren. Styrningen ska nollstalla foljningen och larma, inte plocka mot ett lage utanfor bandet."
+    },
+    {
+      "id": "spd_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST110_CNV_SPD",
+      "beskrivning": "ST110_CNV_SPD faller till 0,05 m/s, under det lagsta arbetsvardet 0,20 m/s.",
+      "forvantat": "Vid krypfart hinner kon byggas upp och roboten plockar mot gamla positioner. Styrningen ska pausa plocken och tomma kon innan den startar om."
+    },
+    {
+      "id": "spd_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST110_CNV_SPD",
+      "beskrivning": "ST110_CNV_SPD stiger till 0,72 m/s, over cellens hogsta 0,60 m/s.",
+      "forvantat": "Over hogsta hastigheten hinner roboten inte fram innan kexet lamnat arbetsomradet. Styrningen ska sluta koa nya plock och larma."
+    },
+    {
+      "id": "found_uteblir",
+      "typ": "vandning",
+      "signal": "ST110_CAM_FOUND",
+      "beskrivning": "ST110_CAM_TRIG pulsas men ST110_CAM_FOUND gar aldrig hog under fem bilder i rad.",
+      "forvantat": "Uteblivna traffar ar inte samma sak som tomt band. Styrningen ska fortsatta utlosa bilder och larma efter fem tomma bilder i rad, utan att starta ett plock."
+    }
+  ],
+  "core_outputs": [
+    "ST110_RB_PICK",
+    "ST110_VAC_ON",
+    "ST110_CAM_TRIG"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_360_1_1130",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_1_sug_25",
+        "count": 1
+      },
+      {
+        "role": "band",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "pulsgivare",
+        "uri": "bank://givare/lagesgivare_encoder",
+        "count": 1
+      },
+      {
+        "role": "kamera",
+        "uri": "bank://givare/kamera_2d",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "band",
+        "to_role": "pulsgivare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "kamera"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST110_RB_PICK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta ett plock pa den kotade positionen"
+      },
+      {
+        "name": "ST110_RB_BUSY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten kor"
+      },
+      {
+        "name": "ST110_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "plocket klart"
+      },
+      {
+        "name": "ST110_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuum"
+      },
+      {
+        "name": "ST110_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "undertryck uppnatt"
+      },
+      {
+        "name": "ST110_CAM_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utlos en bild"
+      },
+      {
+        "name": "ST110_CAM_FOUND",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kamera hittade ett kex"
+      },
+      {
+        "name": "ST110_ENC_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "bandets strackning i mm sedan senaste bild"
+      },
+      {
+        "name": "ST110_CNV_SPD",
+        "dir": "in",
+        "type": "real",
+        "comment": "bandhastighet i m/s"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "utlos ST110_CAM_TRIG med fast intervall sa lange EMG_OK ar hog",
+      "las ST110_CAM_FOUND och lagra kexets position tillsammans med ST110_ENC_POS vid bildogonblicket",
+      "rakna fram greppunkten som lagrad position plus skillnaden i ST110_ENC_POS fram till greppogonblicket",
+      "satt ST110_VAC_ON hog 0,08 s innan sugkoppen nar kexet",
+      "satt ST110_RB_PICK hog och vanta pa ST110_RB_BUSY",
+      "vanta pa ST110_RB_DONE innan nasta position tas ur kon"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST110": 0.3
+      },
+      "cycle_s": 0.625,
+      "tolerance_s": 0.03
+    },
+    "interlocks": [
+      "roboten far inte plocka nar ST110_CNV_SPD ar noll",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 5760.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 4.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST110_VAC_ON RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST110_RB_PICK -> robot *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST110 *s req=0.3s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST110 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST sugkopp+band *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "CARRY SLIPPING rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP NEVER_FORMED"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

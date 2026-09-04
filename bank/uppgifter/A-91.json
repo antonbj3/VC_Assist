@@ -1,0 +1,228 @@
+{
+  "task_id": "A-91",
+  "title": "Trasig variant av A-03: station 2 startar pa narvaron, inte pa klarsignalen",
+  "goal": "Visa att ogat faller en bruten forregling aven nar bada stationernas genomflode ser felfritt ut.",
+  "grupp": "A",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar forreglingsmissen i sin farligaste form: bada stationerna slapper igenom tio enheter av tio och station 2:s uppehall haller sitt krav. Bara forhallandet mellan ST260_STA_BUSY och ST250_STA_DONE avslojar att station 2 borjade arbeta 7,45 s innan station 1 var klar. Enheterna ar halvfardiga och ingen raknare visar det.",
+  "prompt": "Har ar en ogonrapport fran en korning av uppgift A-03, de tva stationerna med forregling.\nRapporten kommer ur vc_eyes och foljer grammatiken i docs/spec/41_ogat_kontrakt.md. Signalerna\nar OPC UA-variabler ur OpenPLC Runtime v4.\n\nLas rapporten och avgor om korningen ar godkand. Bada stationerna slapper tio enheter av tio och\nRACE star none. Namnge anda raden eller radparet som faller korningen, rakna ut hur langt fore\nklarsignalen station 2 startade, och klassa fallningen enligt docs/spec/82_felklasser.md. Sag\nocksa vad DWELL ST250 SHORT betyder i det har sammanhanget: ar det orsaken eller en foljd?\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8"
+  ],
+  "stege": "sortering_hojd_avancerad",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "rapporten godkanns darfor att in ar lika med out i bada stationerna",
+    "fallningen klassas som timingfel pa DWELL ST250 i stallet for som bruten forregling"
+  ],
+  "antaganden": [
+    {
+      "vad": "tiderna i ogonrapporten",
+      "varde": "7,45 s mellan ST260_STA_BUSY och ST250_STA_DONE",
+      "motiv": "rapporten ar en handskriven fixtur; skillnaden ar vald sa stor att den inte gar att forvaxla med ett scanfonster eller en matosakerhet"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6147 med delmonterad enhet",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147,
+      "massa_kg": 11.0
+    },
+    "arbetsradie_mm": 2200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Den bifogade ogonrapporten laser av en 300 sekunder lang korning av A-03.",
+      "forvantat": "Rapporten ska fallas pa forhallandet mellan ST260_STA_BUSY och ST250_STA_DONE; felklassen ar F8."
+    },
+    {
+      "id": "vandning",
+      "typ": "vandning",
+      "signal": "ST260_PRT_PRS",
+      "beskrivning": "Narvarosignalen i station 2 kommer 7,6 s fore klarsignalen fran station 1, alltsa i motsatt ordning mot den avsedda.",
+      "forvantat": "Narvaron ar inte ett startvillkor. Kommer den fore klarsignalen ar det just den vandning uppgiften finns for, och station 2 maste vanta."
+    }
+  ],
+  "core_outputs": [
+    "ST250_STA_DONE",
+    "ST250_REL_OPEN",
+    "ST260_STA_BUSY",
+    "ST260_ACK_RST"
+  ],
+  "variant_av": "A-03",
+  "scene": {
+    "components": [
+      {
+        "role": "station1",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "station2",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "mellanbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "givare1",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "givare2",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "station1",
+        "to_role": "mellanbana"
+      },
+      {
+        "from_role": "mellanbana",
+        "to_role": "station2"
+      },
+      {
+        "from_role": "station1",
+        "to_role": "givare1"
+      },
+      {
+        "from_role": "station2",
+        "to_role": "givare2"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST250_STA_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 1 klar med enheten"
+      },
+      {
+        "name": "ST250_REL_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "slapp enheten vidare"
+      },
+      {
+        "name": "ST260_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "enhet i station 2"
+      },
+      {
+        "name": "ST260_STA_BUSY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "station 2 arbetar"
+      },
+      {
+        "name": "ST260_ACK_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "nollstall handskakningen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "samma avsedda ordning som A-03"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST250": 26.0,
+        "ST260": 31.0
+      },
+      "cycle_s": 31.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "station 2 far aldrig starta nar ST250_STA_DONE ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 116.0,
+    "runs": 3,
+    "warmup_s": 180.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "FAIL",
+    "reason_contains": "forregling",
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST260_STA_BUSY RISE t=64.350s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST250_STA_DONE RISE t=71.800s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST250 19.400s req=26.000s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST250 in=10 out=10 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST260 in=10 out=10 avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "broken": {
+    "artefakt_typ": "oga",
+    "artefakt": "EYES v1\nTEMPLATE A-03_station2_startar_pa_narvaron\nRUN 2026-09-04T21:15:40 DUR 300.000s SAMPLES 6000 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST260_PRT_PRS RISE t=64.200s\n  EDGE ST260_STA_BUSY RISE t=64.350s\n  EDGE ST250_STA_DONE RISE t=71.800s\n  EDGE ST260_ACK_RST RISE t=95.400s\n  DWELL ST250 19.400s req=26.000s SHORT\n  DWELL ST260 31.050s req=31.000s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST250 in=10 out=10 avg=26.100s min=25.900s max=26.400s\n  STATION ST260 in=10 out=10 avg=31.050s min=30.900s max=31.300s\nSECTION SAFETY\n  MINDIST enhet+stationsvagg 34.000mm t=64.350s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL forregling: ST260_STA_BUSY steg 7.45 s fore ST250_STA_DONE, station 2 borjade arbeta i en enhet som station 1 inte var klar med\n",
+    "vad_som_ar_fel": "ST260_STA_BUSY steg vid 64,350 s och ST250_STA_DONE forst vid 71,800 s, alltsa 7,45 s senare. Station 2 startade pa ST260_PRT_PRS i stallet for pa klarsignalen. DWELL ST250 SHORT ar en foljd: station 1 fick sin enhet bortslapp innan arbetet var klart. Genomflodet ser felfritt ut i bada stationerna."
+  }
+}

@@ -1,0 +1,299 @@
+{
+  "task_id": "A-05",
+  "title": "Punktsvetscell med svetstimer och elektrodkontroll",
+  "goal": "Kora atta punktsvetsar i bestamd ordning, med svetstimerns klarsignal som enda tillatna start pa nasta punkt, och stoppa vid elektrodslitage.",
+  "grupp": "A",
+  "bransch": "svetsning",
+  "orsak": "Speglar en driftsattningsmiss i svetsceller: roboten flyttar till nasta punkt pa en fast tid i stallet for pa ST280_WLD_DONE fran svetstimern. Nar svetsen behover langre tid drar roboten pistolen medan strommen fortfarande gar, och svetsen blir kall. En kall svets syns inte i cellen, bara i provbrottet veckor senare.",
+  "prompt": "Bygg en punktsvetscell och skriv styrningen till den.\n\nScen: en ABB IRB 2600-20/1.65 med rackvidd 1650 mm och nyttolast 20 kg, en punktsvetspistol av\nC-typ, en svetsstation med svetstimer och en fixtur med pneumatiska spannare. Detaljen ar en\nplatkonsol 320 x 180 x 60 mm som vager 2,6 kg. Robotens langsta arbetsradie i uppgiften ar\n1450 mm.\n\nAnmarkning om last: svetspistolen vager 78 kg och overstiger den har robotens nyttolast om\n20 kg. I den har uppgiften ar pistolen darfor stationar och roboten for detaljen till pistolen,\ninte tvartom. Det ar en vanlig losning for sma detaljer och den ar avsiktlig har.\n\nUppgift: svetsa atta punkter i ordningen 1 till 8. Nasta punkt far paborjas forst nar\nST280_WLD_DONE gatt hog fran svetstimern. Halltiden efter varje svets ar 0,25 s innan pistolen\noppnar. ST280_ELC_CNT raknar svetsar sedan senaste elektrodfrasning och elektroderna ska frasas\nvid 200 svetsar. Takten ar 34,0 s per detalj.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F8"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "nasta punkt paborjas pa en fast tid i stallet for pa ST280_WLD_DONE",
+    "pistolen oppnar direkt efter strommen, sa halltiden 0,25 s uteblir och svetsen blir kall",
+    "elektrodraknaren nollstalls vid varje detalj i stallet for vid frasning, sa frasningen sker aldrig"
+  ],
+  "antaganden": [
+    {
+      "vad": "atta svetspunkter och 34,0 s takt",
+      "varde": "8 punkter, 34,0 s",
+      "motiv": "atta punkter med rorelse och halltid ryms i 34 s; bade antalet och takten ar valda inom det spann 8 till 60 s en station brukar ha"
+    },
+    {
+      "vad": "halltiden 0,25 s",
+      "varde": "0,25 s",
+      "motiv": "efterhallning sa att smaltan stelnar under kraft; talet ar antaget och inte hamtat ur en svetsdatablad"
+    },
+    {
+      "vad": "frasning vid 200 svetsar",
+      "varde": "200 svetsar",
+      "motiv": "elektrodfrasning sker typiskt efter nagra hundra punkter beroende pa material; 200 ar valt och inte matt"
+    },
+    {
+      "vad": "svetspistolens massa 78 kg",
+      "varde": "78 kg",
+      "motiv": "star som ANTAGEN i katalogindexet; C-pistoler med transformator ligger i 60 till 110 kg, och det ar just darfor pistolen ar stationar har"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "platkonsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 60,
+      "massa_kg": 2.6
+    },
+    "arbetsradie_mm": 1450.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer kommer i 34,0 s takt och alla atta punkter svetsas i ordning.",
+      "forvantat": "Varje punkt startad pa sluten pistol, avslutad pa ST280_WLD_DONE och hallen 0,25 s innan pistolen oppnar."
+    },
+    {
+      "id": "elc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST280_ELC_CNT",
+      "beskrivning": "ST280_ELC_CNT star pa 0 flera detaljer i rad, trots att svetsar utforts.",
+      "forvantat": "En raknare som inte rors ar ett givarfel, inte nyfrasade elektroder. Styrningen ska larma; annars frasas elektroderna aldrig."
+    },
+    {
+      "id": "elc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST280_ELC_CNT",
+      "beskrivning": "ST280_ELC_CNT nar 260, over gransen 200.",
+      "forvantat": "Styrningen ska begara frasning genom ST280_DRS_REQ och inte starta en ny detalj forran raknaren nollstallts."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST280_WLD_DONE",
+      "beskrivning": "ST280_WLD_START satts hog men ST280_WLD_DONE uteblir i 2,5 s pa punkt 5.",
+      "forvantat": "Roboten far aldrig flytta detaljen med sluten pistol och gaende strom. Styrningen ska sta kvar, hall pistolen sluten och larma."
+    }
+  ],
+  "core_outputs": [
+    "ST280_WLD_START",
+    "ST280_GUN_CLOSE",
+    "ST280_WLD_POS",
+    "ST280_DRS_REQ"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_elektrisk",
+        "count": 1
+      },
+      {
+        "role": "svetsstation",
+        "uri": "bank://station/svetsstation",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "svetsstation",
+        "to_role": "fixtur"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "narvarogivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST280_WLD_POS",
+        "dir": "out",
+        "type": "int",
+        "comment": "punktnummer, 1 till 8"
+      },
+      {
+        "name": "ST280_WLD_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "begar svets av aktuell punkt"
+      },
+      {
+        "name": "ST280_WLD_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "svetstimern klar med punkten"
+      },
+      {
+        "name": "ST280_GUN_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stang svetspistolen"
+      },
+      {
+        "name": "ST280_GUN_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "pistolen sluten mot detaljen"
+      },
+      {
+        "name": "ST280_ELC_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal svetsar sedan senaste elektrodfrasning"
+      },
+      {
+        "name": "ST280_DRS_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "begar elektrodfrasning"
+      },
+      {
+        "name": "ST280_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "detalj i fixturen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST280_PRT_PRS och kontrollera ST280_ELC_CNT",
+      "om ST280_ELC_CNT ar 200 eller mer: satt ST280_DRS_REQ hog och vanta pa frasning",
+      "for varje punkt 1 till 8: satt ST280_WLD_POS och kor roboten till pistolen",
+      "satt ST280_GUN_CLOSE hog och vanta pa ST280_GUN_CLOSED",
+      "satt ST280_WLD_START hog och vanta pa ST280_WLD_DONE",
+      "hall pistolen sluten ytterligare 0,25 s efter ST280_WLD_DONE",
+      "nollstall ST280_GUN_CLOSE och ga forst nu till nasta punkt"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST280": 0.25
+      },
+      "cycle_s": 34.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "roboten far aldrig flytta detaljen nar ST280_GUN_CLOSED ar hog",
+      "ST280_WLD_START far aldrig ga hog nar ST280_GUN_CLOSED ar lag",
+      "ingen svets nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 105.0,
+    "runs": 3,
+    "warmup_s": 120.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST280_GUN_CLOSED RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST280_WLD_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST280_WLD_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST280 *s req=0.25s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST280 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST pistol+fixturback *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST280 *s req=0.25s SHORT"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION pistol x fixturback t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}

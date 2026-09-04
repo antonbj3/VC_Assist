@@ -1,0 +1,308 @@
+{
+  "task_id": "H-03",
+  "title": "Robot lastar AGV med dockningskontroll",
+  "goal": "Lasta fyra kollin pa en AGV som star dockad, och avbryta omedelbart om dockningen slapper mitt i lastningen.",
+  "grupp": "H",
+  "bransch": "logistik_pall",
+  "orsak": "Speglar en driftsattningsmiss med personskaderisk i narheten: dockningsgivaren lases en gang vid lastningens borjan i stallet for varje cykel. Om AGV:n rullar nagra centimeter under lastningen laggs resten av kollina bredvid, eller pa golvet. Dockningen ar ett villkor som maste halla hela tiden, inte ett startvillkor.",
+  "prompt": "Bygg en AGV-lastplats och skriv styrningen till den.\n\nScen: en ABB IRB 4600-60/2.05 med rackvidd 2050 mm och nyttolast 60 kg, ett vakuumgripdon med\natta sugkoppar om 80 mm som vager 6,5 kg, en AGV-lastplats med dockningsgivare och en\nackumulerande rullbana som matar kollin. Kollit ar 600 x 400 x 280 mm och vager 22 kg. Robotens\nlangsta arbetsradie i uppgiften ar 1900 mm. Lastplatsen ar ST330.\n\nUppgift: lasta fyra kollin pa AGV:n i ett tva gange tva monster. ST330_DCK_OK ska lasas fore\nvarje enskilt kolli, inte bara vid lastningens borjan. Gar den lag ska pagaende rorelse avbrytas\ni sakert lage over lastplatsen och kollit foras tillbaka. Handskakningen mot AGV:n ar\nST330_HS_REQ, ST330_HS_ACK, ST330_HS_DONE och ST330_HS_RST. Takten ar 12,0 s per kolli.\n\nSignalnamnen star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F10"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "ST330_DCK_OK lases en gang vid lastningens borjan i stallet for fore varje kolli",
+    "ST330_HS_DONE ges nar roboten ar klar i stallet for nar alla fyra kollin ligger pa AGV:n",
+    "roboten fortsatter rorelsen efter en tappad dockning i stallet for att avbryta i sakert lage"
+  ],
+  "antaganden": [
+    {
+      "vad": "kollits vikt 22 kg",
+      "varde": "22 kg",
+      "motiv": "en fylld VDA KLT 6280; vikten beror pa innehallet och ar antagen, men ligger under robotens nyttolast med gripdonet inraknat"
+    },
+    {
+      "vad": "takten 12,0 s per kolli",
+      "varde": "12,0 s",
+      "motiv": "en rorelse over cirka 1,9 m med 28,5 kg last; talet ar antaget och inte matt"
+    },
+    {
+      "vad": "monstret tva gange tva",
+      "varde": "4 kollin",
+      "motiv": "fyra kollin om 600 x 400 mm tacker en AGV-lastyta pa cirka 1200 x 800 mm; monstret ar valt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6280, fylld",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 280,
+      "massa_kg": 22.0
+    },
+    "arbetsradie_mm": 1900.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "AGV:er dockar i foljd och lastas med fyra kollin var i 12,0 s takt per kolli.",
+      "forvantat": "Dockningen kontrollerad fore varje kolli, alla fyra pa plats innan klarsignalen och handskakningen aterstalld."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST330_AGV_WGT",
+      "beskrivning": "ST330_AGV_WGT star kvar pa 0 kg efter att tva kollin om 22 kg vardera lagts pa flaket.",
+      "forvantat": "Vikten motsager ST330_LOD_CNT. Styrningen ska stoppa lastningen och larma i stallet for att lita pa raknaren; ett kolli kan ha hamnat bredvid flaket."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST330_AGV_WGT",
+      "beskrivning": "ST330_AGV_WGT nar 132 kg efter fyra kollin, over AGV:ns hogsta lastvikt om 100 kg.",
+      "forvantat": "Styrningen far inte lasta mer och far inte heller slappa ivag AGV:n. Den ska satta ST330_HS_DONE lag, larma och begara manuell kontroll av lasten."
+    },
+    {
+      "id": "dck_uteblir",
+      "typ": "vandning",
+      "signal": "ST330_DCK_OK",
+      "beskrivning": "ST330_DCK_OK gar lag mitt i det tredje kollits rorelse; AGV:n har rullat nagra centimeter.",
+      "forvantat": "Rorelsen ska avbrytas i sakert lage over lastplatsen och kollit foras tillbaka till hamtlaget. Lastningen far inte fortsatta pa gissad position."
+    }
+  ],
+  "core_outputs": [
+    "ST330_RB_START",
+    "ST330_HS_REQ",
+    "ST330_HS_DONE",
+    "ST330_HS_RST"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_4600_60_2050",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "lastplats",
+        "uri": "bank://station/agv_lastplats",
+        "count": 1
+      },
+      {
+        "role": "inbana",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "dockningsgivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "inbana",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "lastplats",
+        "to_role": "dockningsgivare"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST330_HS_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "roboten begar lastning"
+      },
+      {
+        "name": "ST330_HS_ACK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "AGV:n kvitterar att den star still och ar redo"
+      },
+      {
+        "name": "ST330_HS_DONE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "lastningen klar, AGV:n far kora"
+      },
+      {
+        "name": "ST330_HS_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "aterstall handskakningen infor nasta AGV"
+      },
+      {
+        "name": "ST330_DCK_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "AGV:n dockad i lastlaget"
+      },
+      {
+        "name": "ST330_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta lastprogrammet for nasta kolli"
+      },
+      {
+        "name": "ST330_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kollit avlagt"
+      },
+      {
+        "name": "ST330_LOD_CNT",
+        "dir": "out",
+        "type": "int",
+        "comment": "antal kollin lastade pa pagaende AGV"
+      },
+      {
+        "name": "ST330_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kolli i hamtlaget"
+      },
+      {
+        "name": "ST330_AGV_WGT",
+        "dir": "in",
+        "type": "real",
+        "comment": "sammanlagd last pa AGV:ns flak i kg, fran AGV:ns egen vagcell"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten"
+      }
+    ],
+    "sequence": [
+      "vanta pa ST330_DCK_OK och satt ST330_HS_REQ hog",
+      "vanta pa ST330_HS_ACK",
+      "for varje kolli: kontrollera ST330_DCK_OK och ST330_PRT_PRS pa nytt",
+      "satt ST330_RB_START hog och vanta pa ST330_RB_DONE",
+      "oka ST330_LOD_CNT",
+      "avbryt i sakert lage och for tillbaka kollit om ST330_DCK_OK gar lag under rorelsen",
+      "satt ST330_HS_DONE hog forst nar ST330_LOD_CNT ar fyra",
+      "satt ST330_HS_RST hog nar AGV:n lamnat och nollstall ST330_LOD_CNT"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST330": 0.5
+      },
+      "cycle_s": 12.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ingen robotrorelse over lastplatsen nar ST330_DCK_OK ar lag",
+      "ST330_HS_DONE far aldrig ga hog nar ST330_LOD_CNT ar under fyra",
+      "ingen robotrorelse nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 300.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "MOTION",
+      "TIMING",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 25.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST330_HS_ACK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST330_HS_DONE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST330_HS_RST RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST330 *s req=0.5s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST330 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+agvkant *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION kolli x agvkant t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null
+}
