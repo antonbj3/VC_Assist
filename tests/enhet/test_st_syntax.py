@@ -394,3 +394,104 @@ def test_varje_kontroll_bar_sin_felklass_eller_en_uttalad_lucka():
         assert klass is None or klass in kanda, kod
     utan = [k for k, (klass, _v) in KONTROLLER.items() if klass is None]
     assert set(utan) == {"OATKOMLIG", "SAKERHET"}
+
+
+# ---- M-51: formerna som var falska rödgrindar ----------------------------
+#
+# Svepet i tests/enhet/test_st_svep_mot_strucpp.py mäter dem mot den riktiga
+# kompilatorn. De här proven kostar ingen kompilator och fäller lika säkert;
+# svepet svarar på VARFÖR formen ska accepteras, de här på ATT den gör det.
+
+SEMIKOLONFRIA_BLOCK = [
+    ("END_IF", " IF a = 1 THEN\n  a := 2;\n END_IF\n"),
+    ("END_CASE", " CASE a OF\n  1: a := 2;\n END_CASE\n"),
+    ("END_WHILE", " WHILE a < 3 DO\n  a := a + 1;\n END_WHILE\n"),
+    ("END_REPEAT", " REPEAT\n  a := a + 1;\n UNTIL a > 3\n END_REPEAT\n"),
+    ("END_FOR", " FOR a := 1 TO 3 DO\n  b := b + 1;\n END_FOR\n"),
+]
+
+
+@pytest.mark.parametrize("slutord,kropp", SEMIKOLONFRIA_BLOCK,
+                         ids=[s for s, _k in SEMIKOLONFRIA_BLOCK])
+def test_semikolon_efter_blockslut_ar_valfritt(slutord, kropp):
+    """MÄTT i M-51: STruC++ 0.6.6 bygger alla fem både med och utan
+    semikolon. Vårt lager svarade OLÄSLIG på formen utan, och grind 2 och 3
+    kör före grind 1 — så kompilatorn fick aldrig se koden."""
+    kalla = "PROGRAM P\nVAR\n a : INT;\n b : INT;\nEND_VAR\n%sEND_PROGRAM\n" % kropp
+    r = validera(kalla)
+    assert r.ok is True, "%s utan semikolon: %s" % (slutord, r)
+    med = kalla.replace(slutord + "\n", slutord + ";\n")
+    assert validera(med).ok is True, "%s MED semikolon slutade fungera" % slutord
+
+
+def test_semikolon_far_avsluta_men_ar_aldrig_en_sats():
+    """Regeln som blev kvar när semikolonet gjordes valfritt.
+
+    Ett ensamt `;` i satsläge fälls fortfarande. T7 i fas7_stationen.md är
+    precis den kroppen, och M-48 mätte att grind 3 fäller den."""
+    assert validera("PROGRAM P\nVAR\n a : INT;\nEND_VAR\n ;\nEND_PROGRAM\n").ok is False
+    # ... men ett semikolon PÅ END_VAR:s egen rad hör till deklarationsblocket
+    assert validera("PROGRAM P\nVAR\n a : INT;\nEND_VAR;\n a := 1;\n"
+                    "END_PROGRAM\n").ok is True
+
+
+def test_end_var_raden_ater_inte_upp_kroppens_forsta_tecken():
+    """Fällan som uppstod när semikolonet gjordes valfritt: END_VAR åt upp
+    kroppens ensamma `;`, och ett program utan innehåll blev godkänt."""
+    r = validera("PROGRAM P\nVAR\n a : INT;\nEND_VAR\n ;\nEND_PROGRAM\n")
+    assert r.ok is False
+    assert "SYNTAX" in r.koder()
+
+
+BASERADE_LITERALER = [
+    ("WORD#16#FF", 255), ("INT#16#7F", 127), ("BYTE#2#1010", 10),
+    ("DWORD#8#777", 511), ("16#FF", 255), ("INT#5", 5), ("INT#-5", -5),
+]
+
+
+@pytest.mark.parametrize("text,varde", BASERADE_LITERALER,
+                         ids=[t for t, _v in BASERADE_LITERALER])
+def test_typprefix_far_folias_av_en_bas(text, varde):
+    """`WORD#16#FF` är EN literal. Kroppsscanningen släppte inte in `#`, så
+    basdelen blev ett oväntat tecken och hela filen OLÄSLIG. MÄTT i M-51."""
+    tokens = [t for t in tokenisera("x := %s;" % text) if t.sort == "HELTAL"]
+    assert len(tokens) == 1, "literalen delades upp: %s" % text
+    assert tokens[0].varde == varde
+
+
+def test_en_bas_som_inte_finns_sager_samma_sak_i_bada_formerna():
+    """Basvalideringen delas nu av `16#FF` och `WORD#16#FF`. Två kopior av
+    samma regel driftar isär; en kopia gör det inte."""
+    for text in ("x := 3#12;", "x := INT#3#12;"):
+        with pytest.raises(Syntaxfel) as fel:
+            tokenisera(text)
+        assert "bas" in str(fel.value)
+
+
+EXPONENTFORMER = [
+    ("a ** b", "a ** b"),
+    ("a ** b ** c", "a ** b ** c"),
+    ("(a ** b) ** c", "(a ** b) ** c"),
+    ("-a ** b", "-a ** b"),
+    ("(-a) ** b", "(-a) ** b"),
+    ("a * b ** c", "a * b ** c"),
+    ("(a * b) ** c", "(a * b) ** c"),
+    ("a + b ** c", "a + b ** c"),
+]
+
+
+@pytest.mark.parametrize("in_text,ut_text", EXPONENTFORMER,
+                         ids=[i for i, _u in EXPONENTFORMER])
+def test_exponentoperatorn_binder_och_skrivs_tillbaka_likadant(in_text, ut_text):
+    """`**` är IEC 61131-3:s exponentoperator. Den binder hårdare än unärt
+    minus och är högerassociativ — båda tvärtemot allt i NIVAER, vilket är
+    skälet att den ligger utanför tabellen.
+
+    Provet är tur-och-retur: parenteserna som skrivs ut måste ge samma träd
+    tillbaka, annars har läsaren och skrivaren skilda uppfattningar om vad
+    `a ** b ** c` betyder."""
+    kalla = ("PROGRAM P\nVAR\n a, b, c, r : REAL;\nEND_VAR\n r := %s;\n"
+             "END_PROGRAM\n" % in_text)
+    text = skriv_enhet(las(kalla))
+    assert " r := %s;" % ut_text in text, text
+    assert skriv_enhet(las(text)) == text

@@ -44,7 +44,9 @@ AVSLUTARE = {
     "END_STRUCT": "STRUCT",
 }
 
-TVATECKEN = ("<=", ">=", "<>", ":=", "=>", "..")
+# Tvateckenoperatorer. "**" ar IEC 61131-3:s exponentoperator och binder
+# hardare an allt utom parentes och funktionsanrop (tabell 71).
+TVATECKEN = ("<=", ">=", "<>", ":=", "=>", "..", "**")
 ENTECKEN = "+-*/<>=(),;:.[]&"
 
 # Tidsenheter, störst först. IEC 61131-3 (3:e utg.) tillåter d h m s ms us ns.
@@ -111,6 +113,47 @@ def tolka_tidliteral(text: str) -> Tuple[bool, Optional[float], str]:
         sett.append(enhet)
     summa = sum(float(tal) * _TILL_MS[enhet] for tal, enhet in delar)
     return True, -summa if m.group(2) == "-" else summa, ""
+
+
+# Baserna ST kanner. IEC 61131-3: bara 2, 8 och 16, aldrig en fri bas.
+BASER = (2, 8, 16)
+
+
+def tolka_baserat_heltal(bas_text: str, siffror: str, rad: int) -> int:
+    """`16#FF` -> 255. Kastar Syntaxfel med samma ordalydelse oavsett var
+    literalen stod, sa `16#FF` och `WORD#16#FF` inte kan svara olika."""
+    try:
+        bas = int(bas_text)
+    except ValueError:
+        bas = None
+    if bas not in BASER:
+        raise Syntaxfel("SYNTAX", rad,
+                        "basen %s finns inte i ST; bara 2, 8 och 16" % bas_text)
+    try:
+        return int(siffror, bas)
+    except ValueError:
+        raise Syntaxfel("SYNTAX", rad,
+                        "%r är inte ett tal i bas %s" % (siffror, bas_text))
+
+
+def tolka_heltalskropp(kropp: str, rad: int) -> int:
+    """Kroppen efter ett typprefix: `5`, `-5` eller `16#FF`.
+
+    Den baserade formen (`WORD#16#FF`, `INT#16#7F`) star i IEC 61131-3 och
+    accepteras av STruC++ 0.6.6. MATT i M-51: utan den har grenen svarade vart
+    lager OLASLIG pa `WORD#16#FF` medan kompilatorn kompilerade den.
+    """
+    ren = kropp.replace("_", "")
+    if "#" in ren:
+        tecken = 1
+        if ren.startswith("-"):
+            tecken, ren = -1, ren[1:]
+        bas_text, _, siffror = ren.partition("#")
+        return tecken * tolka_baserat_heltal(bas_text, siffror, rad)
+    try:
+        return int(ren)
+    except ValueError:
+        raise Syntaxfel("SYNTAX", rad, "%r är inget heltal" % kropp)
 
 
 def tolka_strangliteral(text: str) -> str:
@@ -285,14 +328,7 @@ class Lexer(object):
             while self._kika().isalnum() or self._kika() == "_":
                 self._fram()
             siffror = self.s[sif_start:self.i].replace("_", "")
-            if bas_text not in ("2", "8", "16"):
-                raise Syntaxfel("SYNTAX", rad,
-                                "basen %s finns inte i ST; bara 2, 8 och 16" % bas_text)
-            try:
-                varde = int(siffror, int(bas_text))
-            except ValueError:
-                raise Syntaxfel("SYNTAX", rad,
-                                "%r är inte ett tal i bas %s" % (siffror, bas_text))
+            varde = tolka_baserat_heltal(bas_text, siffror, rad)
             return Token("HELTAL", self.s[start:self.i], rad, kol, varde)
         if self._kika() == "." and self._kika(1) != ".":
             self._fram()
@@ -331,7 +367,9 @@ class Lexer(object):
         krop_start = self.i
         if self._kika() == "-":
             self._fram()
-        while self._kika().isalnum() or self._kika() in "_.":
+        # '#' ingar: `WORD#16#FF` ar EN literal, inte en literal foljd av
+        # ett skrapptecken. Utan det har blev basdelen ett oväntat tecken.
+        while self._kika().isalnum() or self._kika() in "_.#":
             self._fram()
         kropp = self.s[krop_start:self.i]
         text = self.s[start:self.i]
@@ -357,12 +395,11 @@ class Lexer(object):
         if stor in NYCKELORD or stor in ("SINT", "INT", "DINT", "LINT", "USINT",
                                          "UINT", "UDINT", "ULINT", "BYTE",
                                          "WORD", "DWORD", "LWORD"):
-            try:
-                varde = int(kropp.replace("_", ""), 0) if "#" in kropp \
-                    else int(kropp.replace("_", ""))
-            except ValueError:
-                raise Syntaxfel("SYNTAX", rad, "%s är ingen giltig heltalsliteral" % text)
-            return Token("HELTAL", text, rad, kol, varde)
+            # Ingen omslagning av felet: tolka_heltalskropp sager VILKEN
+            # bas som inte finns, och "%s ar ingen giltig heltalsliteral"
+            # hade slangt bort just den upplysningen.
+            return Token("HELTAL", text, rad, kol,
+                         tolka_heltalskropp(kropp, rad))
         raise Syntaxfel("SYNTAX", rad, "okänt literalprefix %s#" % namn)
 
 

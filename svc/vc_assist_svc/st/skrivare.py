@@ -32,10 +32,17 @@ PRIORITET = {
     "<": 5, ">": 5, "<=": 5, ">=": 5,
     "+": 6, "-": 6,
     "*": 7, "/": 7, "MOD": 7,
+    # Exponent binder hardare an unart minus (IEC 61131-3 tabell 71), darfor
+    # 9 och inte 8: `-a ** b` ar `-(a ** b)`.
+    "**": 9,
 }
 # Ett steg over den hardast bindande operatorn i tabellen ovan (MOD = 7):
 # NOT och unart minus binder hardare an all tvastallig aritmetik.
 UNAR_PRIORITET = 8
+
+# De hogerassociativa operatorerna. Alla andra ar vansterassociativa, och
+# skillnaden syns i VILKEN sida som maste parentesera vid samma prioritet.
+HOGERASSOCIATIVA = ("**",)
 
 
 def _ascii(text: str, vad: str) -> str:
@@ -78,6 +85,13 @@ def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
             # sa turen-och-retur star kvar.
             text = "%s %s %s" % (_logikled(u.vanster, p), u.op,
                                  _logikled(u.hoger, p + 1))
+            return "(%s)" % text if yttre > p else text
+        if u.op in HOGERASSOCIATIVA:
+            # Spegelvant mot fallet nedan: har ar det VANSTER operand som
+            # maste parentesera vid samma prioritet, annars laser laesaren
+            # (a ** b) ** c som a ** (b ** c).
+            text = "%s %s %s" % (skriv_uttryck(u.vanster, p + 1),
+                                 u.op, skriv_uttryck(u.hoger, p))
             return "(%s)" % text if yttre > p else text
         # Vänsterassociativt: höger operand måste parentesera vid samma
         # prioritet, annars läses a - (b - c) som (a - b) - c.

@@ -204,7 +204,13 @@ class Lasare(object):
                 raise Syntaxfel("SYNTAX", f.rad,
                                 "%s (inne i %s-blocket fran rad %d; saknas END_VAR?)"
                                 % (f.text, start.nyckel, start.rad))
-        self._ta()
+        slut = self._ta()
+        # Bara ett semikolon som star PA SAMMA RAD som END_VAR hor till
+        # blocket. Utan den avgransningen at END_VAR-raden upp kroppens
+        # forsta tecken: ett program vars hela kropp ar `;` blev plotsligt
+        # godkant, och just den kroppen ar T7 i fas7_stationen.md.
+        if self._ar("OP", ";") and self._kika().rad == slut.rad:
+            self._ta()
         return M.Varblock(start.nyckel, tuple(dekl), tuple(kval), start.rad)
 
     def _las_deklarationsrad(self) -> List[M.Deklaration]:
@@ -363,6 +369,23 @@ class Lasare(object):
         if not self._ar("NYCKELORD", vantad):
             raise self._obalans(oppnare, rad, vantad)
         self._ta()
+        self._valfritt_semikolon()
+
+    def _valfritt_semikolon(self):
+        """Semikolonet efter END_IF, END_CASE, END_FOR, END_WHILE, END_REPEAT
+        och END_VAR är valfritt.
+
+        MÄTT i M-51: STruC++ 0.6.6 kompilerar alla fem blockslut både med och
+        utan semikolon, medan vårt lager svarade OLÄSLIG på formen utan. Det är
+        en falsk rödgrind på något en modell rimligen skriver, och den är dyr:
+        grind 2 och 3 kör FÖRE grind 1 (stationsgrind.granska_station), så en
+        falsk röd här betyder att kompilatorn aldrig ens får se koden.
+
+        Regeln som blev kvar: ett semikolon FÅR avsluta ett block, men det får
+        aldrig stå ensamt som sats. Ett `;` som avslutar något är en
+        avslutare; ett `;` som står för sig självt är ingen sats.
+        """
+        self._ta_om("OP", ";")
 
     def _om(self) -> M.Om:
         start = self._ta()
@@ -384,7 +407,6 @@ class Lasare(object):
                 raise Syntaxfel("BALANS", self._kika().rad,
                                 "IF på rad %d har två ELSE" % start.rad)
         self._kroppsslut("IF", start.rad, "END_IF")
-        self._krav("OP", ";")
         self.blockstack.pop()
         return M.Om(tuple(grenar), annars, start.rad)
 
@@ -409,7 +431,6 @@ class Lasare(object):
         if self._ta_om("NYCKELORD", "ELSE"):
             annars = self._satser(stopp)
         self._kroppsslut("CASE", start.rad, "END_CASE")
-        self._krav("OP", ";")
         self.blockstack.pop()
         if not grenar:
             raise Syntaxfel("SYNTAX", start.rad, "CASE utan en enda gren")
@@ -433,7 +454,6 @@ class Lasare(object):
         self._krav("NYCKELORD", "DO")
         kropp = self._satser({"END_FOR"})
         self._kroppsslut("FOR", start.rad, "END_FOR")
-        self._krav("OP", ";")
         self.blockstack.pop()
         return M.ForSats(var.text, fran, till, steg, kropp, start.rad)
 
@@ -444,7 +464,6 @@ class Lasare(object):
         self._krav("NYCKELORD", "DO")
         kropp = self._satser({"END_WHILE"})
         self._kroppsslut("WHILE", start.rad, "END_WHILE")
-        self._krav("OP", ";")
         self.blockstack.pop()
         return M.Medan(villkor, kropp, start.rad)
 
@@ -457,7 +476,6 @@ class Lasare(object):
         self._ta()
         villkor = self._uttryck()
         self._kroppsslut("REPEAT", start.rad, "END_REPEAT")
-        self._krav("OP", ";")
         self.blockstack.pop()
         return M.Upprepa(kropp, villkor, start.rad)
 
@@ -498,7 +516,24 @@ class Lasare(object):
         if t.sort == "OP" and t.text == "+":
             self._ta()
             return self._unar()
-        return self._primar()
+        return self._potens()
+
+    def _potens(self) -> M.Uttryck:
+        """`a ** b`, IEC 61131-3:s exponentoperator.
+
+        Den ligger utanför NIVAER av två skäl. Den binder HÅRDARE än unärt
+        minus — `-a ** b` är `-(a ** b)` — och den är högerassociativ, medan
+        alla nivåer i NIVAER är vänsterassociativa. Att lägga den i tabellen
+        hade alltså krävt två undantag i tabellens egen tolkning.
+
+        MÄTT i M-51: STruC++ 0.6.6 kompilerar `**`; vårt lager svarade
+        OLÄSLIG.
+        """
+        v = self._primar()
+        if self._ar("OP", "**"):
+            t = self._ta()
+            return M.Binar("**", v, self._unar(), t.rad)
+        return v
 
     def _primar(self) -> M.Uttryck:
         t = self._ta()
