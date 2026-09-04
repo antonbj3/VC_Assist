@@ -1,0 +1,227 @@
+# -*- coding: utf-8 -*-
+"""Fas 7: kör grind 1-4 över en stationskandidat och producerar guldgrindens cell.
+
+Kedjan i docs/spec/50_grindar.md har fyra förgrindar före ögat, och
+`guldgrind.py` läser dem ur en cell:
+
+    cell["forgrindar"] = {"kompilering": ..., "statisk_analys": ...,
+                          "deklarationsmatchning": ..., "anropsvalidering": ...}
+
+Ingen producerade den cellen. Grindarna fanns var för sig, guldgrinden väntade
+på deras svar, och ingenting band ihop dem. Den här filen är bandet.
+
+**Varje grind rapporterar sin EGEN utdata.** Ett värde i `forgrindar` är `True`
+eller den fällande grindens ord, ordagrant. Det är invariant I1, och den är
+motiverad av en mätt incident: en omimplementerad positionsdom underkände 2 av 4
+medan ögat visade 4 av 4. En grind som skriver om observatörens svar mäter till
+slut sig själv.
+
+## Ordningen är billigast först, inte 1 2 3 4
+
+Grind 2 och 3 läser samma träd och körs i ett anrop. Grind 4 parsar Python.
+Grind 1 startar en kompilator. En tagg som inte finns i kartan ska aldrig hinna
+bli C++; samma skäl som `matning.py` redan följer.
+
+## Varför "ingen kod" aldrig är ett godkännande
+
+En kandidat utan scenkod ger inte `anropsvalidering: True`. Den ger skälet till
+att grinden inte kunde köras, och guldgrinden fäller på det.
+
+Detsamma gäller när kompilatorn saknas: det är inte ett grönt i väntan på
+besked, det är ett rött (I3).
+
+Och strängare än så: grind 4 räknar hur många namn den faktiskt kontrollerade.
+Kontrollerade den noll namn har den inte mätt något, och då är svaret inte
+`True` heller — en grind som blir billig slutar mäta sin egen storhet.
+"""
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Tuple
+
+from ..api_index import Granskning
+from .deklarationsgrind import granska as granska_deklarationer
+from .signalkarta import Signalkarta
+
+# Guldgrindens namn på förgrindarna. Importeras inte därifrån: guldgrinden är
+# py2-giltig och ska inte dras in i tjänstelagret. Provet nedan håller ihop dem.
+NAMN_KOMPILERING = "kompilering"
+NAMN_STATISK = "statisk_analys"
+NAMN_DEKLARATION = "deklarationsmatchning"
+NAMN_ANROP = "anropsvalidering"
+
+# Ordningen grindarna körs i. Billigast först; se modulens huvud.
+KORORDNING = (NAMN_STATISK, NAMN_DEKLARATION, NAMN_ANROP, NAMN_KOMPILERING)
+
+
+class Stationsfel(Exception):
+    """Kandidaten går inte att döma alls; skilt från att den underkänns."""
+
+
+@dataclass(frozen=True)
+class Kandidat:
+    """Det en modell levererar för en station.
+
+    st_kalla    hela ST-texten, skelettet med modellens kropp isatt
+    scenkod     Python-koden som bygger stationen i scenen, eller None
+    """
+
+    station: str
+    st_kalla: str
+    scenkod: Optional[str] = None
+
+
+@dataclass
+class Stationsdom:
+    forgrindar: Dict[str, object] = field(default_factory=dict)
+    utdata: Dict[str, str] = field(default_factory=dict)
+
+    @property
+    def ok(self) -> bool:
+        """Alla fyra körda och alla fyra True. Saknad grind är inte grönt."""
+        for namn in KORORDNING:
+            if self.forgrindar.get(namn) is not True:
+                return False
+        return True
+
+    @property
+    def forsta_fallande(self) -> Optional[str]:
+        for namn in KORORDNING:
+            if namn not in self.forgrindar:
+                return namn
+            if self.forgrindar[namn] is not True:
+                return namn
+        return None
+
+    def text(self) -> str:
+        rader = []
+        for namn in KORORDNING:
+            utfall = self.forgrindar.get(namn, "EJ KORD")
+            if utfall is True:
+                rader.append("%-22s GODKAND" % namn)
+            else:
+                rader.append("%-22s FALLDE: %s" % (namn, utfall))
+                egen = self.utdata.get(namn)
+                if egen:
+                    rader.extend("    | " + r for r in egen.splitlines())
+        return "\n".join(rader)
+
+    def till_cell(self, namn: str, klass: str,
+                  eyes: Optional[str] = None) -> Dict[str, object]:
+        """Cellen som `guldgrind.Guldgrind.doma_cell` läser.
+
+        `eyes` lämnas None när ögat inte körts. Guldgrinden fäller då på
+        "ingen ogonrapport", vilket är rätt: grind 5 är den som avgör.
+        """
+        # Alla fyra nycklarna fylls, aven de som hoppades over. Guldgrinden
+        # gar igenom dem i SIN ordning, och en saknad nyckel gjorde att den
+        # rapporterade "kompilering ar inte kord" nar det i sjalva verket var
+        # anropsvalideringen som fallde. Skalet ska namna orsaken, inte den
+        # forsta grinden som rakade sta tom.
+        forgrindar = dict(self.forgrindar)
+        forst = self.forsta_fallande
+        for gnamn in KORORDNING:
+            if gnamn not in forgrindar:
+                forgrindar[gnamn] = ("ej kord; %s fallde forst" % forst
+                                     if forst else "ej kord")
+        cell = {"namn": namn, "klass": klass, "forgrindar": forgrindar}
+        if eyes is not None:
+            cell["eyes"] = eyes
+        return cell
+
+
+def _grind_2_och_3(dom: Stationsdom, kandidat: Kandidat,
+                   karta: Signalkarta) -> None:
+    """Ett anrop ger båda: deklarationsgrinden bär ST-lagrets rapport bredvid."""
+    rapport = granska_deklarationer(kandidat.st_kalla, karta, aven_grind2=True)
+
+    st = rapport.st_rapport
+    if st is None:
+        dom.forgrindar[NAMN_STATISK] = "grind 2 kordes inte"
+    elif st.ok:
+        dom.forgrindar[NAMN_STATISK] = True
+    else:
+        dom.forgrindar[NAMN_STATISK] = "%d anmarkningar: %s" % (
+            len(st.anmarkningar), ", ".join(sorted(set(st.koder()))))
+    dom.utdata[NAMN_STATISK] = str(st) if st is not None else ""
+
+    if rapport.ok:
+        dom.forgrindar[NAMN_DEKLARATION] = True
+    else:
+        dom.forgrindar[NAMN_DEKLARATION] = "%d anmarkningar: %s" % (
+            len(rapport.anmarkningar), ", ".join(sorted(set(rapport.koder()))))
+    dom.utdata[NAMN_DEKLARATION] = str(rapport)
+
+
+def _grind_4(dom: Stationsdom, kandidat: Kandidat, index) -> None:
+    if index is None:
+        dom.forgrindar[NAMN_ANROP] = "API-indexet saknas; grinden kunde inte kora"
+        dom.utdata[NAMN_ANROP] = ""
+        return
+    if not (kandidat.scenkod or "").strip():
+        # Inte ett godkännande. En station byggs av verktygsanrop, och en
+        # kandidat utan dem har inte visat att den kan bygga stationen.
+        dom.forgrindar[NAMN_ANROP] = "kandidaten bar ingen scenkod att validera"
+        dom.utdata[NAMN_ANROP] = ""
+        return
+
+    granskning: Granskning = index.granska(kandidat.scenkod)
+    dom.utdata[NAMN_ANROP] = granskning.rapport()
+    if not granskning.godkand:
+        dom.forgrindar[NAMN_ANROP] = "%d fel, %d obestambara" % (
+            len(granskning.fel), len(granskning.obestambara))
+        return
+    if granskning.kontrollerade_namn <= 0:
+        # En grind som inte kontrollerade ett enda namn har inte mätt sin egen
+        # storhet, och dess grona ar innehallslost.
+        dom.forgrindar[NAMN_ANROP] = ("granskningen kontrollerade noll namn; "
+                                      "ingenting blev provat")
+        return
+    dom.forgrindar[NAMN_ANROP] = True
+
+
+def _grind_1(dom: Stationsdom, kandidat: Kandidat, strucpp_paket: Optional[str],
+             byggkatalog: Optional[str], node: str) -> None:
+    if not strucpp_paket or not byggkatalog:
+        dom.forgrindar[NAMN_KOMPILERING] = ("kompilatorn ar inte uppsatt; "
+                                            "grind 1 kunde inte kora")
+        dom.utdata[NAMN_KOMPILERING] = ""
+        return
+    from . import paket  # lat: grind 1 ska inte tvinga in bygglagret
+    try:
+        paket.kompilera(kandidat.st_kalla,
+                        os.path.join(byggkatalog, kandidat.station),
+                        strucpp_paket, node=node)
+    except Exception as fel:
+        dom.forgrindar[NAMN_KOMPILERING] = "%s" % type(fel).__name__
+        dom.utdata[NAMN_KOMPILERING] = str(fel)
+        return
+    dom.forgrindar[NAMN_KOMPILERING] = True
+    dom.utdata[NAMN_KOMPILERING] = ""
+
+
+def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
+                    strucpp_paket: Optional[str] = None,
+                    byggkatalog: Optional[str] = None,
+                    node: str = "node",
+                    stanna_vid_forsta: bool = True) -> Stationsdom:
+    """Kör grind 1-4 över kandidaten och lämna varje grinds egen dom.
+
+    `stanna_vid_forsta` sparar en byggcykel i drift. Sätt False när hela
+    grindbilden behövs, till exempel när bänken räknar fel per klass.
+    """
+    if kandidat.station.upper() != karta.station.upper():
+        raise Stationsfel("kandidaten galler %r men kartan galler %r"
+                          % (kandidat.station, karta.station))
+
+    dom = Stationsdom()
+    _grind_2_och_3(dom, kandidat, karta)
+    if stanna_vid_forsta and not dom.ok and dom.forsta_fallande in (
+            NAMN_STATISK, NAMN_DEKLARATION):
+        return dom
+    _grind_4(dom, kandidat, index)
+    if stanna_vid_forsta and dom.forgrindar.get(NAMN_ANROP) is not True:
+        return dom
+    _grind_1(dom, kandidat, strucpp_paket, byggkatalog, node)
+    return dom
