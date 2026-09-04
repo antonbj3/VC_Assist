@@ -47,7 +47,7 @@ from .harkomst import granska_alla
 from .layoutport import Layoutport
 from .layoutmotor import harled_fotavtryck
 from .planering import Planerare
-from .spec import Antagande, Grundbegaran
+from .spec import Antagande, Grundbegaran, MAX_FRAGERUNDOR
 from .storheter import Faktarum
 
 BYGGBAR = "BYGGBAR"
@@ -57,8 +57,8 @@ OFULLSTANDIG = "OFULLSTANDIG"
 # Grindarna i ordning, med sina koder. Listan ar sluten och lases av
 # provprotokollet: en grind som inte star har kors inte, och en grind som star
 # har utan att kora ar ett fel i sig.
-GRINDAR = ("B1_HARKOMST", "B2_PROCESSORDNING", "B3_MOTSAGELSE", "B4_FRAGOR",
-           "B5_LAYOUT", "B6_PLANEN")
+GRINDAR = ("B0_FRAGERUNDOR", "B1_HARKOMST", "B2_PROCESSORDNING",
+           "B3_MOTSAGELSE", "B4_FRAGOR", "B5_LAYOUT", "B6_PLANEN")
 
 
 class Besked(object):
@@ -122,16 +122,23 @@ class Besked(object):
 
 
 def bestall(begaran, katalogindex=None, urikarta=None, motor=None,
-            datablad=None, geometri=True):
+            datablad=None, geometri=True, svar=None, fragerunda=None):
     """Grundbegaran (eller ren text) -> Besked. Kastar aldrig ett Planfel.
 
     `motor` ar en layoutmotor som uppfyller layoutport-kontraktet. Utan motor
     hoppas grind 5 over och det SKRIVS UT: en grind som inte kordes far aldrig
     se ut som en grind som gick.
+
+    `svar` ar {fraga_id: text} med operatorens svar pa tidigare fragor. Svaren
+    blir en del av BEGARAN - de ar hans ord - sa att samma monster som laser
+    den forsta meningen ocksa laser dem, och sa att harkomsten pekar pa text
+    som faktiskt star dar. `fragerunda` raknar turerna och gar mot K4:s tak.
     """
     if isinstance(begaran, str):
         begaran = Grundbegaran("bestallning", begaran, "operator")
-    forfinare = Forfinare(katalogindex, urikarta)
+    if fragerunda is None:
+        fragerunda = 1 if svar else 0
+    forfinare = Forfinare(katalogindex, urikarta, svar, fragerunda)
     try:
         spec = forfinare.ur_fritext(begaran)
     except Planfel as fel:
@@ -152,6 +159,22 @@ def doma(spec, datablad=None, motor=None, geometri=True):
     """
     datablad = dict(datablad or {})
     roller = [d.roll for d in spec.delar]
+
+    # -- 0. frageruntorna ------------------------------------------------
+    # K4: hogst tva rundor per plan, sedan avbryt och rapportera vad som
+    # saknas. En loop som fragar i evighet ar inte en klarifiering; den ar ett
+    # satt att aldrig behova svara.
+    if spec.fragerunda > MAX_FRAGERUNDOR:
+        return Besked(
+            OFULLSTANDIG, spec, grind="B0_FRAGERUNDOR",
+            problem=([("B0_FOR_MANGA_RUNDOR",
+                       "%d frageruntor, taket ar %d (K4). Det som fortfarande "
+                       "saknas star nedan; bestallningen behover skrivas om i "
+                       "stallet for att fragas vidare"
+                       % (spec.fragerunda, MAX_FRAGERUNDOR))]
+                      + [("B0_SAKNAS", "%s: %s" % (f.id, f.vad))
+                         for f in spec.blockerande_fragor()]),
+            datablad=datablad)
 
     # -- 1. harkomsten ---------------------------------------------------
     problem = granska_alla(spec.harkomster(), spec.begaran.text,

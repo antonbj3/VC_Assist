@@ -35,10 +35,18 @@ from .villkorssprak import Prosakrav, Relation, Typvillkor, granska_roller
 
 # Formatversionen. Hojs den ska lasaren falla pa en aldre fil i stallet for
 # att gissa, precis som ogats "EYES v1" (docs/spec/41_ogat_kontrakt.md).
-# Hojd fran 1 till 2 av M-63: specen bar nu omrade, typade villkor,
-# relationer, processordning och prosakrav. En fil skriven i version 1 saknar
-# de falten och ska falla pa versionen i stallet for att lasas halv.
-SPECVERSION = 2   # formatversion, ingen troskel: hojd av M-63 nar specen fick fem nya falt
+# Hojd fran 1 till 3 av M-63: specen bar nu omrade, typade villkor,
+# relationer, processordning, prosakrav och fragerunda. En fil skriven i en
+# aldre version saknar de falten och ska falla pa versionen i stallet for att
+# lasas halv.
+SPECVERSION = 3   # formatversion, ingen troskel: hojd av M-63 nar specen fick sex nya falt
+
+# Hogsta antal frageruntor per plan. K4 i docs/spec/22_planeringslagret.md:
+# "clarify_round <= 2 per plan, annars avbryt och rapportera vad som saknas".
+# Kallans loopsparr laste den foregaende turens TEXT och matchade pa en
+# svensk-engelsk fras (orchestrator.py:783). Det ar skort; talet bars i
+# artefakten i stallet.
+MAX_FRAGERUNDOR = 2   # K4 i docs/spec/22_planeringslagret.md
 
 # Ett motiv kortare an sa har hinner inte saga VARFOR. Talet ags av
 # bank/schema.py (MIN_MOTIV_TECKEN) och importeras darifran sa att ett
@@ -480,12 +488,12 @@ class DetaljeradSpec(object):
 
     __slots__ = ("id", "begaran", "delar", "kopplingar", "signaler", "takt",
                  "villkor", "antaganden", "fragor", "verifiering", "omrade",
-                 "relationer", "processordning", "prosakrav")
+                 "relationer", "processordning", "prosakrav", "fragerunda")
 
     def __init__(self, id, begaran, delar=(), kopplingar=(), signaler=(),
                  takt=None, villkor=(), antaganden=(), fragor=(),
                  verifiering=None, omrade=None, relationer=(),
-                 processordning=None, prosakrav=()):
+                 processordning=None, prosakrav=(), fragerunda=0):
         self.id = id
         self.begaran = begaran
         self.delar = list(delar)
@@ -501,6 +509,7 @@ class DetaljeradSpec(object):
         self.processordning = (processordning if processordning is not None
                                else Processordning())
         self.prosakrav = list(prosakrav)
+        self.fragerunda = fragerunda
         self._granska()
 
     def _granska(self):
@@ -550,6 +559,10 @@ class DetaljeradSpec(object):
                 problem.append("%r ar inget Prosakrav" % (k,))
         if not isinstance(self.processordning, Processordning):
             problem.append("processordning ar ingen Processordning")
+        if (not isinstance(self.fragerunda, int)
+                or isinstance(self.fragerunda, bool) or self.fragerunda < 0):
+            problem.append("fragerunda %r ar inget heltal fran och med noll"
+                           % (self.fragerunda,))
         # Roller ar namn, och ett krav som pekar pa ett namn som inte finns ar
         # ett skrivfel som annars upptacks forst i layouten.
         if not problem:
@@ -632,6 +645,7 @@ class DetaljeradSpec(object):
             "relationer": [r.till_json() for r in self.relationer],
             "processordning": self.processordning.till_json(),
             "prosakrav": [k.till_json() for k in self.prosakrav],
+            "fragerunda": self.fragerunda,
         }
 
     @classmethod
@@ -639,7 +653,8 @@ class DetaljeradSpec(object):
         granska_nycklar(data, ("v", "niva", "id", "begaran", "delar", "kopplingar",
                         "signaler", "takt", "villkor", "antaganden", "fragor",
                         "verifiering", "omrade", "relationer",
-                        "processordning", "prosakrav"), "detaljerad spec")
+                        "processordning", "prosakrav", "fragerunda"),
+                        "detaljerad spec")
         if data["v"] != SPECVERSION:
             raise Specfel("detaljerad spec",
                           ["formatversion %r, lasaren kan %d"
@@ -664,4 +679,5 @@ class DetaljeradSpec(object):
             [Relation.fran_json(r) for r in data["relationer"]],
             Processordning.fran_json(data["processordning"]),
             [Prosakrav.fran_json(k) for k in data["prosakrav"]],
+            data["fragerunda"],
         )

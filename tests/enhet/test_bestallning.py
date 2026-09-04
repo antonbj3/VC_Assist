@@ -1176,6 +1176,7 @@ def test_varje_grind_i_listan_har_ett_prov_som_faller_pa_den():
         "B4_FRAGOR": test_T5_en_bestallning_utan_topologi_blir_ofullstandig,
         "B5_LAYOUT": test_T4e_bestallningen_stoppas_pa_layoutgrinden,
         "B6_PLANEN": None,
+        "B0_FRAGERUNDOR": test_en_tredje_frageruna_avbryts_och_rapporterar_vad_som_saknas,
     }
     saknade = [g for g in B.GRINDAR if g not in fall]
     assert not saknade, "grindar utan trasig fixtur: %s" % saknade
@@ -1244,7 +1245,7 @@ def test_specen_gar_att_rundgangas_genom_json_med_alla_nya_falt():
     spec, _blad = _spec()
     ut = spec.till_json()
     assert DetaljeradSpec.fran_json(ut).till_json() == ut
-    assert ut["v"] == 2
+    assert ut["v"] == 3
     assert ut["processordning"]["processer"]
     assert ut["villkor"] and ut["relationer"] and ut["omrade"]
 
@@ -1714,3 +1715,103 @@ def test_samma_fotavtryck_raknas_bara_EN_gang():
     besked = _besked()
     vad = [a.vad for a in besked.spec.antaganden]
     assert vad.count("fotavtryck for robot") == 1, vad
+
+
+# ======================================================================
+# SAMTALET: FRAGA, SVAR, PLAN - OCH ETT TAK PA ANTALET RUNDOR
+# ======================================================================
+#
+# K4: "clarify_round <= 2 per plan, annars avbryt och rapportera vad som
+# saknas." Kallans loopsparr laste den foregaende turens TEXT och matchade pa
+# en svensk-engelsk fras (orchestrator.py:783). Det ar skort; talet bars i
+# artefakten i stallet.
+
+TVA_FRAGOR = ("Bygg en plockstation som klarar 400 detaljer i timmen, med ett "
+              "inmatningsband, en robot och en utlastningslåda.")
+
+
+def _katalog_med_kassation():
+    katalog = dict(KATALOG)
+    katalog["file:///kass.vcm"] = {
+        "uri": "file:///kass.vcm", "namn": "Kassationslåda",
+        "kategori": "station", "l_mm": 800.0, "b_mm": 600.0, "h_mm": 800.0}
+    return katalog
+
+
+SVAREN = {"okant_ord:utlastningslada": "en kassationslada",
+          "kopplingar": "bandet matar roboten och roboten matar kassationsladan",
+          "cellyta": "cellen ar 8x8 meter, gangstrak minst 800 mm"}
+
+
+def test_forsta_turen_fragar_och_lamnar_ingen_plan():
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor())
+    assert besked.status == B.OFULLSTANDIG
+    assert besked.plan is None
+    assert len(besked.problem) >= 2
+
+
+def test_andra_turen_med_svaren_ger_en_byggbar_plan():
+    """Detaljeringen fran grundbegaran, hela vagen: fraga, svar, plan."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar=SVAREN)
+    assert besked.status == B.BYGGBAR, besked.text()
+    assert len(besked.plan) >= 20
+
+
+def test_svaren_blir_en_del_av_begaran_ordagrant():
+    """Svaren ar operatorens ord lika mycket som den forsta meningen, och
+    harkomstgrinden ska kunna hitta dem dar."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar=SVAREN)
+    assert "kassationsladan" in normalisera(besked.spec.begaran.text)
+    for k in besked.spec.kopplingar:
+        assert normalisera(k.harkomst.belagg) in normalisera(
+            besked.spec.begaran.text)
+
+
+def test_en_besvarad_fraga_star_kvar_men_blockerar_inte():
+    """Att ta bort fragan hade gjort skillnaden mellan 'vi fragade aldrig' och
+    'vi fragade och fick svar' osynlig."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar=SVAREN)
+    besvarade = [f for f in besked.spec.fragor if not f.oppen]
+    assert [f.id for f in besvarade] == ["okant_ord:utlastningslada"]
+    assert besvarade[0].svar == "en kassationslada"
+    assert besked.spec.blockerande_fragor() == []
+
+
+def test_ett_svar_som_inte_namner_nagot_kant_loser_ingenting():
+    """Motprovet. Ett svar som inte gar att lasa ar inget svar."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar={"okant_ord:utlastningslada": "en sådan där grej"})
+    assert besked.status == B.OFULLSTANDIG
+    assert any("okant_ord" in t for _k, t in besked.problem)
+
+
+def test_en_tredje_frageruna_avbryts_och_rapporterar_vad_som_saknas():
+    """K4:s tak. En loop som fragar i evighet ar inte en klarifiering; den ar
+    ett satt att aldrig behova svara."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar={"kopplingar": "vet inte"}, fragerunda=3)
+    assert besked.status == B.OFULLSTANDIG
+    assert besked.grind == "B0_FRAGERUNDOR"
+    koder = [k for k, _t in besked.problem]
+    assert "B0_FOR_MANGA_RUNDOR" in koder
+    assert "B0_SAKNAS" in koder
+
+
+def test_tva_rundor_ar_tillatna():
+    """Motprovet at andra hallet: taket ar tva, inte en."""
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar=SVAREN, fragerunda=2)
+    assert besked.grind != "B0_FRAGERUNDOR", besked.text()
+
+
+def test_fragerundan_star_i_specen_och_i_artefakten(tmp_path):
+    import json as _json
+    besked = B.bestall(TVA_FRAGOR, _katalog_med_kassation(), motor=_motor(),
+                       svar=SVAREN)
+    assert besked.spec.fragerunda == 1
+    filer = A.skriv(besked, str(tmp_path))
+    with open(filer["spec"], encoding="utf-8") as f:
+        assert _json.load(f)["fragerunda"] == 1

@@ -207,9 +207,16 @@ def signalnamn(text):
 class Forfinare(object):
     """Bygger en detaljerad spec, och bokfor varje val den gor pa vagen."""
 
-    def __init__(self, katalogindex=None, urikarta=None):
+    def __init__(self, katalogindex=None, urikarta=None, svar=None,
+                 fragerunda=0):
         self.katalogindex = dict(katalogindex or {})
         self.urikarta = dict(urikarta or {})
+        # Operatorens svar pa tidigare fragor, {fraga_id: text}. En besvarad
+        # fraga blockerar inte, och svarets ORD blir en del av begaran - det
+        # ar operatorens text lika mycket som den forsta meningen, och
+        # harkomstgrinden ska kunna hitta dem dar.
+        self.svar = dict(svar or {})
+        self.fragerunda = int(fragerunda)
         self.antaganden = []
         self.fragor = []
         # Den femte artefakten i 22_planeringslagret.md: celldatabladet, per
@@ -225,6 +232,19 @@ class Forfinare(object):
         return varde
 
     def fraga(self, id, vad, varfor, blockerar=True):
+        """Fragan, och den star ALLTID som obesvarad nar den stalls igen.
+
+        Regeln ar viktigare an den later: en fraga som stalls om ar en fraga
+        som inte blev besvarad. Loste operatorens svar den, sa stalls den inte
+        alls - svaret lades till i begaran, och samma monster som laser den
+        forsta meningen plockade upp det. Kommer fragan tillbaka betyder det
+        att svaret inte gick att lasa, och att da marka den som besvarad hade
+        gjort ett obrukbart svar till ett tyst ja.
+        """
+        if id in self.svar:
+            varfor = ("%s. Du svarade %r pa den har fragan, och det svaret "
+                      "gick inte att lasa ut nagot ur - fragan star darfor "
+                      "kvar" % (varfor, self.svar[id]))
         self.fragor.append(Fraga(id, vad, varfor, blockerar))
         return None
 
@@ -458,6 +478,7 @@ class Forfinare(object):
         """
         if not isinstance(begaran, Grundbegaran):
             raise Specfel("forfiningen", ["ur_fritext kraver en Grundbegaran"])
+        begaran = self._med_svaren(begaran)
         text = begaran.text
         delar = self._delar_ur_fritext(text)
         kopplingar = self._kopplingar_ur_fritext(delar, text)
@@ -470,7 +491,23 @@ class Forfinare(object):
         verifiering = self._verifiering_ur_fritext()
         return DetaljeradSpec(begaran.id, begaran, delar, kopplingar, signaler,
                               takt, villkor, self.antaganden, self.fragor,
-                              verifiering, omrade, relationer, processordning)
+                              verifiering, omrade, relationer, processordning,
+                              fragerunda=self.fragerunda)
+
+    def _med_svaren(self, begaran):
+        """Begaran med operatorens svar tillagda, ordagrant.
+
+        Svaren ar hans ord och hor darfor till begaran. Det ar ocksa det enda
+        som gor dem lasbara: mattet, kopplingen eller processordningen i ett
+        svar plockas upp av samma monster som laser den forsta meningen, och
+        harkomsten pekar pa text som faktiskt star dar.
+        """
+        if not self.svar:
+            return begaran
+        rader = ["%s: %s" % (id_, self.svar[id_]) for id_ in sorted(self.svar)]
+        return Grundbegaran(begaran.id,
+                            begaran.text + "\nSvar:\n" + "\n".join(rader),
+                            begaran.kalla)
 
     # -- de fyra formerna som gor texten till KRAV ------------------------
 
@@ -661,8 +698,21 @@ class Forfinare(object):
         for bit, ord_ in lasning.komponentupprakning(text):
             if any(_namner(set(ord_), k) for k in kanda):
                 continue
+            id_ = "okant_ord:%s" % "_".join(ord_)
+            if id_ in self.svar:
+                # Operatoren har sagt vad ordet ar. Svaret lades till i
+                # begaran av _med_svaren, sa komponenten plockas upp av samma
+                # ordlista som allt annat - och om svaret INTE namner nagot
+                # kant star fragan kvar, obesvarad i sak.
+                if any(_namner(set(_tokens(self.svar[id_])), k)
+                       for k in kanda):
+                    self.fragor.append(Fraga(
+                        id_, "vilken komponent i katalogen ar %r?" % bit,
+                        "operatoren har svarat %r, och det ordet finns i "
+                        "ordlistan" % self.svar[id_], False, self.svar[id_]))
+                    continue
             self.fraga(
-                "okant_ord:%s" % "_".join(ord_),
+                id_,
                 "vilken komponent i katalogen ar %r?" % bit,
                 "begaran raknar upp %r bland komponenterna, och inget ord i "
                 "den slutna ordlistan matchar det. Att hoppa over det vore "
@@ -753,5 +803,6 @@ def ur_bankuppgift(data, katalogindex=None, urikarta=None):
     return Forfinare(katalogindex, urikarta).ur_bankuppgift(data)
 
 
-def ur_fritext(begaran, katalogindex=None, urikarta=None):
-    return Forfinare(katalogindex, urikarta).ur_fritext(begaran)
+def ur_fritext(begaran, katalogindex=None, urikarta=None, svar=None,
+               fragerunda=0):
+    return Forfinare(katalogindex, urikarta, svar, fragerunda).ur_fritext(begaran)
