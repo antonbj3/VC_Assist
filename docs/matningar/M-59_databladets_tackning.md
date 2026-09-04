@@ -62,7 +62,8 @@ datan — det är en fråga som inte har ett värde. De två svaren blandas aldr
 | gränssnitt | 3 201 | 2 963 | 0 | 238 |
 | monteringsgränssnitt | 73 | 73 | 0 | 0 |
 
-**Läst mot härledd: 20 162 avlästa fält mot 1 730 härledda.** Bara två storheter
+**Läst mot härledd: 23 857 avlästa fält mot 1 730 härledda**, av 36 423
+tillämpliga — resten, 10 836, är `saknas`. Bara två storheter
 är någonsin härledda — räckvidden (1 693 av 1 693 härledda, aldrig läst) och
 frihetsgraderna för de 37 verktyg som har leder men ingen robotstyrning som
 listar dem.
