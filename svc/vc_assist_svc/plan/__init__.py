@@ -30,6 +30,11 @@ har lagret.
     planering.py    detaljerad spec -> byggplan
     layoutport.py   porten mot layoutmotorn; det enda stalle koordinater
                     kommer in i en plan
+    bestallning.py  operatorens text -> ett besked: BYGGBAR, AVVISAD eller
+                    OFULLSTANDIG. Sex grindar i ordning, och ett nej lamnar
+                    aldrig ut en plan
+    artefakter.py   de fyra artefakterna pa disk, och hashen som binder
+                    anropssekvensen
     korning.py      koraren: kor stegen, for protokoll, kan aterupptas
     provplaner.py   tio och fler provplaner ur banken, med matning
 
@@ -46,6 +51,8 @@ Endast standardbiblioteket. Kors utan VC (L0/L1 i docs/spec/95_testprotokoll.md)
 """
 from __future__ import annotations
 
+from .artefakter import anropssekvens, hash_av, las_sekvens, skriv_artefakter
+from .bestallning import AVVISAD, BYGGBAR, Besked, OFULLSTANDIG, bestall, doma
 from .byggplan import Byggplan, LINTKODER, OMFATTNINGAR
 from .fel import (Graffel, Korningsfel, Layoutfel, Planfel, Specfel,
                   Verifieringsfel)
@@ -63,12 +70,15 @@ from .spec import (Antagande, Del, DetaljeradSpec, Fraga, Grundbegaran,
                    Koppling, Omrade, Signal, Takt)
 from .storheter import Faktarum, Varde
 from .villkorssprak import Prosakrav, Relation, Typvillkor
-from .steg import Bindning, Kontroll, Steg
+from .steg import Bindning, Efterkontroll, Kontroll, Steg
 from .verifiering import (Krav, Uppskjutet, Verifieringsdom, Verifieringskrav)
 
 __all__ = [
     "Antagande", "Bindning", "Byggplan", "Del", "DetaljeradSpec", "EJ_UTFORD",
-    "Faktarum", "Harkomst", "Krock", "Motsagelsedom", "Omrade",
+    "AVVISAD", "BYGGBAR", "Besked", "Efterkontroll", "Faktarum", "Harkomst",
+    "Krock", "Motsagelsedom", "OFULLSTANDIG", "Omrade",
+    "anropssekvens", "bestall", "doma", "hash_av", "las_sekvens",
+    "skriv_artefakter",
     "Ordningskrav", "Process", "Processordning", "Prosakrav", "Relation",
     "Typvillkor", "Varde",
     "FALLEN", "Forfinare", "Forvillkor", "Fraga", "Graffel", "Grundbegaran",

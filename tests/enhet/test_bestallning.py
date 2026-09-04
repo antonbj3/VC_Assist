@@ -1367,7 +1367,6 @@ def test_en_planterad_for_stor_arbetsradie_falls_i_en_riktig_bankuppgift():
     bestallning. Skillnaden ar botemedlet: byt robot, inte krav.
     """
     import copy
-    import json
     index, karta = _bankindex()
     data = next(d for d in _bankuppgifter() if d["task_id"] == "A-01")
     frisk = Forfinare(index, karta)
@@ -1391,3 +1390,127 @@ def test_de_matta_kraven_skjuts_upp_till_efter_bygget_i_varje_uppgift():
     for task_id, _spec, besked in _banksvep():
         storheter = [s for s, _i in besked.motsagelsedom.att_mata]
         assert "scen.kollisioner" in storheter, task_id
+
+
+# ======================================================================
+# DE FYRA ARTEFAKTERNA PA DISK
+# ======================================================================
+#
+# 22_planeringslagret.md: "Alla fyra ar JSON pa disk under
+# bank/plans/<plan_id>/. Ingen artefakt far existera enbart som text i en
+# modellprompt." Skalet star i samma dokument: en plan som bara finns i en
+# prompt gar inte att granska, versionera eller mata mot.
+
+from vc_assist_svc.plan import artefakter as A                # noqa: E402
+
+
+def test_alla_fyra_artefakterna_skrivs(tmp_path):
+    filer = A.skriv(_besked(), str(tmp_path))
+    assert sorted(filer) == ["layout", "plan", "sekvens", "spec"]
+    for sokvag in filer.values():
+        assert os.path.exists(sokvag)
+        assert os.path.getsize(sokvag) > 0
+
+
+def test_artefakterna_hamnar_under_plan_id(tmp_path):
+    besked = _besked()
+    filer = A.skriv(besked, str(tmp_path))
+    for sokvag in filer.values():
+        assert os.path.basename(os.path.dirname(sokvag)) == besked.plan.id
+
+
+def test_ett_nej_skriver_inga_artefakter(tmp_path):
+    """En artefaktkatalog med tre av fyra filer ser ut som en plan."""
+    with pytest.raises(Planfel):
+        A.skriv(_besked(MOTSAGELSE), str(tmp_path))
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_sekvensen_ar_densamma_byte_for_byte_over_tre_korningar(tmp_path):
+    """K22: determinism mätt, inte påstådd."""
+    hashar = set()
+    for varv in range(3):
+        filer = A.skriv(_besked(), str(tmp_path / str(varv)))
+        hashar.add(A.las_sekvens(filer["sekvens"])["hash"])
+    assert len(hashar) == 1, hashar
+
+
+def test_en_andrad_artefakt_avvisas_pa_hashen(tmp_path):
+    """Trasig fixtur for hashen sjalv. En artefakt som andrats efter att den
+    skrevs ar inte den artefakt planen godkandes som."""
+    import json
+    filer = A.skriv(_besked(), str(tmp_path))
+    with open(filer["sekvens"], encoding="utf-8") as f:
+        data = json.load(f)
+    data["anrop"][0]["verktyg"] = "delete_component"
+    with open(filer["sekvens"], "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    with pytest.raises(Planfel) as fel:
+        A.las_sekvens(filer["sekvens"])
+    assert "andrats" in str(fel.value)
+
+
+def test_en_sekvens_utan_hash_gar_inte_att_lita_pa(tmp_path):
+    import json
+    sokvag = str(tmp_path / "utan.json")
+    with open(sokvag, "w", encoding="utf-8") as f:
+        json.dump({"v": 1, "anrop": []}, f)
+    with pytest.raises(Planfel):
+        A.las_sekvens(sokvag)
+
+
+def test_sekvensen_bar_lage_ur_REGISTRET_inte_ur_planen():
+    """I12: routingen read -> exec och write -> exec_queue ags av utforaren.
+    Planen bar inget falt for den, och sekvenseraren skriver ut den."""
+    sekvens = A.anropssekvens(_besked().plan)
+    lagen = set(a.get("lage") for a in sekvens["anrop"]
+                if a["sort"] == "verktyg")
+    assert lagen == {"read", "write"}
+    assert "OKANT" not in lagen
+
+
+def test_sekvensen_bar_bindningarna_olosta():
+    """En sekvens som bar ett gissat gransnittsnamn hade sett korbar ut och
+    varit ett pahitt (I9). Bindningen loses forst ur scenens EGET svar."""
+    sekvens = A.anropssekvens(_besked().plan)
+    bundna = [a for a in sekvens["anrop"] if a["sort"] == "verktyg"
+              and any(isinstance(v, dict) and "$bindning" in v
+                      for v in a["argument"].values())]
+    assert bundna, "ingen bindning overlevde till sekvensen"
+
+
+def test_layoutartefakten_bar_harkomst_per_tal():
+    """K9: varje tal i LAYOUT bar {value, method, gate}. Ett tal utan grind
+    ar ett lintfel."""
+    besked = _besked()
+    layout = A.layoutartefakt(besked.plan, besked.layoutsvar)
+    assert layout["stations"]
+    for station in layout["stations"]:
+        for falt in ("anchor", "yaw_deg"):
+            assert set(station[falt]) == {"value", "method", "gate"}
+            assert station[falt]["method"]
+            assert station[falt]["gate"] == A.LAYOUTGRIND
+
+
+def test_arbetsutrymmet_skrivs_som_OKANT_aldrig_som_noll():
+    """K12: `work_area_mm` null far inte tyst tolkas som noll."""
+    besked = _besked()
+    layout = A.layoutartefakt(besked.plan, besked.layoutsvar)
+    assert all(s["work_area"] == "UNKNOWN" for s in layout["stations"])
+
+
+def test_utan_layoutmotor_skrivs_artefakten_anda_med_skal():
+    """En artefakt som inte finns lases som 'ingen layout behovdes'."""
+    besked = _besked(motor=False)
+    layout = A.layoutartefakt(besked.plan, besked.layoutsvar)
+    assert layout["status"] == "EJ_KORD"
+    assert layout["stations"] == []
+    assert "plug and play" in layout["skal"]
+
+
+def test_specartefakten_gar_att_lasa_tillbaka(tmp_path):
+    filer = A.skriv(_besked(), str(tmp_path))
+    import json as _json
+    with open(filer["spec"], encoding="utf-8") as f:
+        data = _json.load(f)
+    assert DetaljeradSpec.fran_json(data).id == "bestallning"
