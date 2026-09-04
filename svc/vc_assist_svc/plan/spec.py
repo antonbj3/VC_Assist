@@ -27,12 +27,18 @@ Endast standardbiblioteket.
 from __future__ import annotations
 
 from .fel import Specfel
+from .harkomst import Harkomst
 from .kallor import bankschema
+from .processer import Processordning
 from .verifiering import Verifieringskrav
+from .villkorssprak import Prosakrav, Relation, Typvillkor, granska_roller
 
 # Formatversionen. Hojs den ska lasaren falla pa en aldre fil i stallet for
 # att gissa, precis som ogats "EYES v1" (docs/spec/41_ogat_kontrakt.md).
-SPECVERSION = 1   # formatversion, ingen troskel: forsta formen, ingen aldre fil finns
+# Hojd fran 1 till 2 av M-63: specen bar nu omrade, typade villkor,
+# relationer, processordning och prosakrav. En fil skriven i version 1 saknar
+# de falten och ska falla pa versionen i stallet for att lasas halv.
+SPECVERSION = 2   # formatversion, ingen troskel: hojd av M-63 nar specen fick fem nya falt
 
 # Ett motiv kortare an sa har hinner inte saga VARFOR. Talet ags av
 # bank/schema.py (MIN_MOTIV_TECKEN) och importeras darifran sa att ett
@@ -47,9 +53,7 @@ MIN_KORNINGAR = 3   # harkomst: I5 i docs/spec/90_invarianter.md, minst tre korn
 RIKTNINGAR = bankschema.SIGNALRIKTNINGAR      # ("in", "out")
 SIGNALTYPER = bankschema.SIGNALTYPER          # ("bool", "int", "real")
 
-# Vad ett villkor i specen handlar om. Sluten lista: en sort som inte gar att
-# prova mot nagot hor inte hemma i en spec.
-VILLKORSSORTER = ("forregling", "geometri", "kapacitet", "sakerhet", "ordning")
+# VILLKORSSORTER bor numera i villkorssprak.py, dar villkoret sjalvt bor.
 
 # Varifran ett antagande kommer. Sluten lista, sa att en matning kan svara pa
 # fragan "hur manga antaganden var vara egna och hur manga stod redan i
@@ -401,39 +405,59 @@ class Takt(object):
                    data["uppvarmning_s"])
 
 
-class Villkor(object):
-    """Ett villkor den byggda cellen ska uppfylla.
+class Omrade(object):
+    """Ytan cellen far ta, och det minsta gangstraket i den.
 
-    Skilt fran stegens forvillkor i graf.py: DET har ar ett krav pa
-    RESULTATET, till exempel en forregling eller ett kapacitetsmal. Ett
-    forvillkor ar ett krav for att ett STEG ska koras.
+    K11 i docs/spec/22_planeringslagret.md: `aisle_min_mm` har INGET forval.
+    Saknas det ar det ett hart slot, och ett hart slot ar fail-closed (K2).
+    Darfor ar gang_min_mm None tills nagon sagt vad det ska vara - aldrig noll,
+    for noll gangstrak ar ett krav och inte en tystnad.
+
+    Matten ar millimeter, som allt annat i VC (docs/spec/33_varldsenheten... se
+    M-33). Bredd och djup ar golvets, hojden ar den fria hojden.
     """
 
-    __slots__ = ("id", "sort", "text")
+    __slots__ = ("bredd_mm", "djup_mm", "hojd_mm", "gang_min_mm", "harkomst")
 
-    def __init__(self, id, sort, text):
-        self.id = id
-        self.sort = sort
-        self.text = text
+    def __init__(self, bredd_mm=None, djup_mm=None, hojd_mm=None,
+                 gang_min_mm=None, harkomst=None):
+        self.bredd_mm = bredd_mm
+        self.djup_mm = djup_mm
+        self.hojd_mm = hojd_mm
+        self.gang_min_mm = gang_min_mm
+        self.harkomst = harkomst
         problem = []
-        _text(id, "id", problem)
-        _text(text, "text", problem)
-        if sort not in VILLKORSSORTER:
-            problem.append("sorten %r ar inte en av %s"
-                           % (sort, ", ".join(VILLKORSSORTER)))
+        for namn in ("bredd_mm", "djup_mm", "hojd_mm", "gang_min_mm"):
+            _tal(getattr(self, namn), namn, problem, tillat_none=True, minst=0)
+        if bredd_mm is None and djup_mm is None and hojd_mm is None:
+            problem.append("ett omrade utan ett enda matt ar inget omrade; "
+                           "lamna None i stallet")
+        if not isinstance(harkomst, Harkomst):
+            problem.append("omradet bar ingen harkomst; cellens matt styr hela "
+                           "layouten och far inte komma fran ingenstans")
         if problem:
-            raise Specfel("villkoret %r" % (id,), problem)
+            raise Specfel("omradet", problem)
 
     def __repr__(self):
-        return "Villkor(%s, %s)" % (self.id, self.sort)
+        return "Omrade(%s x %s mm)" % (self.bredd_mm, self.djup_mm)
+
+    def rad(self):
+        return ("omrade %s x %s mm, fri hojd %s mm, gangstrak %s mm [%s]"
+                % (self.bredd_mm, self.djup_mm, self.hojd_mm,
+                   self.gang_min_mm if self.gang_min_mm is not None
+                   else "OKANT (hart slot, K11)", self.harkomst.text()))
 
     def till_json(self):
-        return {"id": self.id, "sort": self.sort, "text": self.text}
+        return {"bredd_mm": self.bredd_mm, "djup_mm": self.djup_mm,
+                "hojd_mm": self.hojd_mm, "gang_min_mm": self.gang_min_mm,
+                "harkomst": self.harkomst.till_json()}
 
     @classmethod
     def fran_json(cls, data):
-        granska_nycklar(data, ("id", "sort", "text"), "villkor")
-        return cls(data["id"], data["sort"], data["text"])
+        granska_nycklar(data, ("bredd_mm", "djup_mm", "hojd_mm", "gang_min_mm",
+                        "harkomst"), "omrade")
+        return cls(data["bredd_mm"], data["djup_mm"], data["hojd_mm"],
+                   data["gang_min_mm"], Harkomst.fran_json(data["harkomst"]))
 
 
 # --------------------------------------------------------------- niva 2
@@ -447,11 +471,13 @@ class DetaljeradSpec(object):
     """
 
     __slots__ = ("id", "begaran", "delar", "kopplingar", "signaler", "takt",
-                 "villkor", "antaganden", "fragor", "verifiering")
+                 "villkor", "antaganden", "fragor", "verifiering", "omrade",
+                 "relationer", "processordning", "prosakrav")
 
     def __init__(self, id, begaran, delar=(), kopplingar=(), signaler=(),
                  takt=None, villkor=(), antaganden=(), fragor=(),
-                 verifiering=None):
+                 verifiering=None, omrade=None, relationer=(),
+                 processordning=None, prosakrav=()):
         self.id = id
         self.begaran = begaran
         self.delar = list(delar)
@@ -462,6 +488,11 @@ class DetaljeradSpec(object):
         self.antaganden = list(antaganden)
         self.fragor = list(fragor)
         self.verifiering = verifiering
+        self.omrade = omrade
+        self.relationer = list(relationer)
+        self.processordning = (processordning if processordning is not None
+                               else Processordning())
+        self.prosakrav = list(prosakrav)
         self._granska()
 
     def _granska(self):
@@ -495,13 +526,36 @@ class DetaljeradSpec(object):
         if (self.verifiering is not None
                 and not isinstance(self.verifiering, Verifieringskrav)):
             problem.append("verifiering ar inte ett Verifieringskrav")
+        if self.omrade is not None and not isinstance(self.omrade, Omrade):
+            problem.append("omrade ar inget Omrade")
+        for v in self.villkor:
+            if not isinstance(v, Typvillkor):
+                problem.append(
+                    "%r ar inget Typvillkor. Villkorsspraket ar slutet (K6): "
+                    "fri text i ett villkor ar ett lintfel, inte en varning"
+                    % (v,))
+        for r in self.relationer:
+            if not isinstance(r, Relation):
+                problem.append("%r ar ingen Relation" % (r,))
+        for k in self.prosakrav:
+            if not isinstance(k, Prosakrav):
+                problem.append("%r ar inget Prosakrav" % (k,))
+        if not isinstance(self.processordning, Processordning):
+            problem.append("processordning ar ingen Processordning")
+        # Roller ar namn, och ett krav som pekar pa ett namn som inte finns ar
+        # ett skrivfel som annars upptacks forst i layouten.
+        if not problem:
+            problem += ["%s: %s" % p for p in granska_roller(
+                self.villkor, self.relationer, roller)]
         if problem:
             raise Specfel("specen %r" % (self.id,), problem)
 
     def __repr__(self):
-        return ("DetaljeradSpec(%s, %d delar, %d kopplingar, %d antaganden, "
-                "%d fragor)" % (self.id, len(self.delar), len(self.kopplingar),
-                                len(self.antaganden), len(self.fragor)))
+        return ("DetaljeradSpec(%s, %d delar, %d villkor, %d processer, "
+                "%d antaganden, %d fragor)"
+                % (self.id, len(self.delar), len(self.villkor),
+                   len(self.processordning), len(self.antaganden),
+                   len(self.fragor)))
 
     # -- fragor och antaganden ------------------------------------------
 
@@ -523,6 +577,29 @@ class DetaljeradSpec(object):
                 return d
         raise Specfel("specen %s" % self.id, ["ingen del har rollen %r" % (namn,)])
 
+    # -- harkomsten -------------------------------------------------------
+
+    def harkomster(self):
+        """[(vad, Harkomst)] over varje krav specen bar.
+
+        Listan ar det harkomstgrinden gar igenom. Star ett krav inte har kan
+        det inte provas, sa varje ny kravsort maste laggas till bade i specen
+        och har - och det ar avsiktligt samma stalle."""
+        ut = []
+        if self.omrade is not None:
+            ut.append(("omradet", self.omrade.harkomst))
+        for v in self.villkor:
+            ut.append(("villkoret %s" % v.id, v.harkomst))
+        for r in self.relationer:
+            ut.append(("relationen %s" % r.id, r.harkomst))
+        for k in self.prosakrav:
+            ut.append(("prosakravet %s" % k.id, k.harkomst))
+        for p in self.processordning.processer:
+            ut.append(("processen %s" % p.id, p.harkomst))
+        for k in self.processordning.krav:
+            ut.append(("ordningskravet %s" % k.id, k.harkomst))
+        return ut
+
     # -- serialisering ---------------------------------------------------
 
     def till_json(self):
@@ -540,13 +617,18 @@ class DetaljeradSpec(object):
             "fragor": [f.till_json() for f in self.fragor],
             "verifiering": (self.verifiering.till_json()
                             if self.verifiering else None),
+            "omrade": self.omrade.till_json() if self.omrade else None,
+            "relationer": [r.till_json() for r in self.relationer],
+            "processordning": self.processordning.till_json(),
+            "prosakrav": [k.till_json() for k in self.prosakrav],
         }
 
     @classmethod
     def fran_json(cls, data):
         granska_nycklar(data, ("v", "niva", "id", "begaran", "delar", "kopplingar",
                         "signaler", "takt", "villkor", "antaganden", "fragor",
-                        "verifiering"), "detaljerad spec")
+                        "verifiering", "omrade", "relationer",
+                        "processordning", "prosakrav"), "detaljerad spec")
         if data["v"] != SPECVERSION:
             raise Specfel("detaljerad spec",
                           ["formatversion %r, lasaren kan %d"
@@ -562,9 +644,13 @@ class DetaljeradSpec(object):
             [Koppling.fran_json(k) for k in data["kopplingar"]],
             [Signal.fran_json(s) for s in data["signaler"]],
             Takt.fran_json(data["takt"]) if data["takt"] else None,
-            [Villkor.fran_json(v) for v in data["villkor"]],
+            [Typvillkor.fran_json(v) for v in data["villkor"]],
             [Antagande.fran_json(a) for a in data["antaganden"]],
             [Fraga.fran_json(f) for f in data["fragor"]],
             (Verifieringskrav.fran_json(data["verifiering"])
              if data["verifiering"] else None),
+            Omrade.fran_json(data["omrade"]) if data["omrade"] else None,
+            [Relation.fran_json(r) for r in data["relationer"]],
+            Processordning.fran_json(data["processordning"]),
+            [Prosakrav.fran_json(k) for k in data["prosakrav"]],
         )

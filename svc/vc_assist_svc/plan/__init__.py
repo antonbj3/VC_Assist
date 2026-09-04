@@ -7,6 +7,14 @@ har lagret.
 
     spec.py         de tre nivaerna: grundbegaran, detaljerad spec, och
                     vardeobjekten daremellan. JSON in och ut, identiskt.
+    harkomst.py     varifran varje krav kom, i en form som gar att sla upp
+    lasning.py      vad som gar att lasa UR operatorens text, med belagg
+    storheter.py    den slutna listan av storheter ett villkor far handla om
+    villkorssprak.py  villkoret sjalvt: typat, relation eller markt prosakrav
+    processer.py    ordningen av processer i cellen, med samma cykelkrav
+    motsagelse.py   nar bestallningen inte gar att uppfylla, och VILKA villkor
+                    som krockar
+    ordning.py      cykler och kanonisk topologisk ordning, delad
     forfining.py    grundbegaran -> detaljerad spec. Allt som behovs men inte
                     star i begaran blir ett ANTAGANDE med motiv eller en
                     FRAGA. Aldrig ett tyst val.
@@ -48,19 +56,27 @@ from .korning import (EJ_UTFORD, FALLEN, HOPPAD, KOAD, KORD, Korare, Post,
 from .layoutport import Layoutport, Layoutsvar, Placering, begaran_ur_spec
 from .planering import Planerare, planera
 from .predikat import Forvillkor, Korlage, Predikat
+from .harkomst import Harkomst
+from .motsagelse import Motsagelsedom, Krock
+from .processer import Ordningskrav, Process, Processordning
 from .spec import (Antagande, Del, DetaljeradSpec, Fraga, Grundbegaran,
-                   Koppling, Signal, Takt, Villkor)
+                   Koppling, Omrade, Signal, Takt)
+from .storheter import Faktarum, Varde
+from .villkorssprak import Prosakrav, Relation, Typvillkor
 from .steg import Bindning, Kontroll, Steg
 from .verifiering import (Krav, Uppskjutet, Verifieringsdom, Verifieringskrav)
 
 __all__ = [
     "Antagande", "Bindning", "Byggplan", "Del", "DetaljeradSpec", "EJ_UTFORD",
+    "Faktarum", "Harkomst", "Krock", "Motsagelsedom", "Omrade",
+    "Ordningskrav", "Process", "Processordning", "Prosakrav", "Relation",
+    "Typvillkor", "Varde",
     "FALLEN", "Forfinare", "Forvillkor", "Fraga", "Graffel", "Grundbegaran",
     "HOPPAD", "KOAD", "KORD", "Kontroll", "Koppling", "Korare", "Korlage",
     "Korningsfel", "Krav", "LINTKODER", "Layoutfel", "Layoutport",
     "Layoutsvar", "OMFATTNINGAR", "Placering", "Planerare",
     "Planfel", "Post", "Predikat", "Protokoll", "Signal", "Specfel", "Steg", "Takt",
     "Uppgiftsgraf", "Uppskjutet", "Verifieringsdom", "Verifieringsfel",
-    "Verifieringskrav", "Villkor", "begaran_ur_spec", "godkann_aldrig",
+    "Verifieringskrav", "begaran_ur_spec", "godkann_aldrig",
     "planera", "ur_bankuppgift", "ur_fritext",
 ]

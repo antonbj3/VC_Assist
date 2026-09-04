@@ -30,11 +30,21 @@ from __future__ import annotations
 
 import re
 
+from . import lasning
 from .fel import Specfel
+from .harkomst import Harkomst, normalisera as _normalisera
 from .kallor import bankschema
+from .processer import Ordningskrav, Process, Processordning
 from .spec import (Antagande, Del, DetaljeradSpec, Fraga, Grundbegaran,
-                   Koppling, MIN_KORNINGAR, Signal, Takt, Villkor)
+                   Koppling, MIN_KORNINGAR, Omrade, Signal, Takt)
 from .verifiering import Krav, Uppskjutet, Verifieringskrav
+from .villkorssprak import Prosakrav, Relation, Typvillkor
+
+# Vem som provar ett krav vi inte kan typa. Ett prosakrav utan konsument ar
+# samma dodkott som det gamla Villkor.text var (M-63), sa konsumenten ar ett
+# formkrav i villkorssprak.Prosakrav och inte en artighet.
+KONSUMENT_FORREGLING = ("grind 3 (deklarationsmatchning) och ST-lagrets "
+                        "sekvensgranskare, docs/spec/50_grindar.md")
 
 # Sektionerna en scenbyggplan kan bevisa med en korning i VC utan att
 # styrkoden finns: att bygget inte kolliderar och att inget ohederligt sker.
@@ -71,17 +81,9 @@ MOTIV_UPPVARMNING = (
 
 # --------------------------------------------------------------- fritext
 
-def _normalisera(text):
-    """Gemener och a/o for a-ring, a-prickar och o-prickar.
-
-    Banken skriver 'transportor' och katalogen 'transportör'. Utan den har
-    normaliseringen hittar ett ord i den ena aldrig sin post i den andra.
-    """
-    text = (text or "").lower()
-    for fran, till in (("å", "a"), ("ä", "a"), ("ö", "o"),
-                       ("é", "e")):
-        text = text.replace(fran, till)
-    return text
+# Normaliseringen bor i harkomst.py: samma funktion maste avgora bade om ett
+# ord finns i katalogen och om ett belagg finns i begaran. Tva normaliseringar
+# hade gjort en harkomst falsk pa ett a-ring.
 
 
 _ORD = re.compile(r"[a-z0-9]+")
@@ -193,6 +195,11 @@ class Forfinare(object):
         self.urikarta = dict(urikarta or {})
         self.antaganden = []
         self.fragor = []
+        # Den femte artefakten i 22_planeringslagret.md: celldatabladet, per
+        # ROLL. Bara falt katalogen faktiskt bar hamnar har. Ett falt som
+        # saknas skrivs inte som noll - det skrivs inte alls, och lases da som
+        # OKANT (K0: null ar inte noll).
+        self.datablad = {}
 
     # -- de tva enda vagarna in ------------------------------------------
 
@@ -203,6 +210,21 @@ class Forfinare(object):
     def fraga(self, id, vad, varfor, blockerar=True):
         self.fragor.append(Fraga(id, vad, varfor, blockerar))
         return None
+
+    def _blad(self, roll, post):
+        """For in de storheter katalogposten faktiskt bar i databladet."""
+        for falt in ("rackvidd_mm", "nyttolast_kg", "massa_kg", "l_mm",
+                     "b_mm", "h_mm"):
+            if post.get(falt) is None:
+                continue
+            namn = {"l_mm": "langd_mm", "b_mm": "bredd_mm",
+                    "h_mm": "hojd_mm"}.get(falt, falt)
+            self.datablad.setdefault(roll, {})[namn] = post[falt]
+
+    def _robotroll(self, delar):
+        """Den enda rollen med kategorin robot, eller None om det inte ar en."""
+        robotar = [d.roll for d in delar if d.kategori == "robot"]
+        return robotar[0] if len(robotar) == 1 else None
 
     # -- katalogen --------------------------------------------------------
 
@@ -282,6 +304,7 @@ class Forfinare(object):
             matt = None
             if all(post.get(n) for n in ("l_mm", "b_mm", "h_mm")):
                 matt = [post["l_mm"], post["b_mm"], post["h_mm"]]
+            self._blad(roll, post)
             delar.append(Del(roll, uri, komponent.get("count", 1),
                              post.get("kategori"), matt, post.get("massa_kg")))
         if anvand_karta:
@@ -300,12 +323,12 @@ class Forfinare(object):
                     for s in data["control"]["signals"]]
 
         takt = self._takt_ur_bank(data)
-        villkor = self._villkor_ur_bank(data)
+        villkor, prosakrav = self._villkor_ur_bank(data, delar)
         verifiering = self._verifiering_ur_bank(data)
 
         return DetaljeradSpec(tid, begaran, delar, kopplingar, signaler, takt,
                               villkor, self.antaganden, self.fragor,
-                              verifiering)
+                              verifiering, prosakrav=prosakrav)
 
     def _takt_ur_bank(self, data):
         timing = data["control"].get("timing") or {}
@@ -315,25 +338,62 @@ class Forfinare(object):
                     max(expect.get("runs") or MIN_KORNINGAR, MIN_KORNINGAR),
                     expect.get("warmup_s") or 0.0)
 
-    def _villkor_ur_bank(self, data):
-        ut = []
+    def _villkor_ur_bank(self, data, delar):
+        """(typade villkor, prosakrav). Uppgiftens krav, var och en typad.
+
+        Fore M-63 blev alla fyra sorterna prosa i ett Villkor.text som ingen
+        rad kod laste. Nu blir de tal som gar att jamfora - och forreglingarna,
+        som spraket i K6 INTE kan uttrycka (de ar villkorade forbud, inte
+        jamforelser), blir prosakrav med en utskriven konsument i stallet for
+        att tyst forsvinna.
+        """
+        tid = data["task_id"]
+        villkor = []
+        prosa = []
+
+        def bank(falt):
+            return Harkomst("bank", "%s#%s" % (tid, falt))
+
         for n, text in enumerate(data["control"].get("interlocks") or [], 1):
-            ut.append(Villkor("forregling_%d" % n, "forregling", text))
+            prosa.append(Prosakrav(
+                "forregling_%d" % n, "forregling", text,
+                KONSUMENT_FORREGLING, bank("control.interlocks[%d]" % (n - 1))))
         expect = data["expect"]
         if expect.get("max_collisions") is not None:
-            ut.append(Villkor(
-                "kollisioner", "geometri",
+            villkor.append(Typvillkor(
+                "kollisioner", "geometri", "scen.kollisioner", "le",
+                float(expect["max_collisions"]), bank("expect.max_collisions"),
                 "hogst %d kollisioner i cellen" % expect["max_collisions"]))
         if expect.get("min_clearance_mm") is not None:
-            ut.append(Villkor(
-                "frigang", "geometri",
+            villkor.append(Typvillkor(
+                "frigang", "geometri", "scen.min_avstand_mm", "ge",
+                float(expect["min_clearance_mm"]), bank("expect.min_clearance_mm"),
                 "minsta fria avstand %.1f mm" % expect["min_clearance_mm"]))
         if expect.get("throughput_per_h"):
-            ut.append(Villkor(
-                "kapacitet", "kapacitet",
+            villkor.append(Typvillkor(
+                "kapacitet", "kapacitet", "takt.genomflode_per_h", "ge",
+                float(expect["throughput_per_h"]), bank("expect.throughput_per_h"),
                 "minst %.1f enheter i timmen vid stationar drift"
                 % expect["throughput_per_h"]))
-        return ut
+        radie = (data.get("fysik") or {}).get("arbetsradie_mm")
+        if radie is not None:
+            roll = self._robotroll(delar)
+            if roll is None:
+                self.fraga(
+                    "arbetsradie",
+                    "vilken robot ska na %g mm? uppgiften anger en arbetsradie "
+                    "men scenen bar %d robotar" % (radie,
+                        len([d for d in delar if d.kategori == "robot"])),
+                    "arbetsradien ar ett krav pa EN robots rackvidd. Med flera "
+                    "robotar gar kravet inte att binda utan att valja at "
+                    "operatoren, och den rackvidd som inte racker upptacks da "
+                    "forst i scenen", blockerar=False)
+            else:
+                villkor.append(Typvillkor(
+                    "rackvidd", "geometri", "del.%s.rackvidd_mm" % roll, "ge",
+                    float(radie), bank("fysik.arbetsradie_mm"),
+                    "roboten maste na %g mm" % radie))
+        return villkor, prosa
 
     def _verifiering_ur_bank(self, data):
         """Uppgiftens facit, delat i det planen bevisar och det den skjuter upp.
@@ -384,10 +444,137 @@ class Forfinare(object):
         kopplingar = self._kopplingar_ur_fritext(delar)
         signaler = self._signaler_ur_fritext(text)
         takt = self._takt_ur_fritext(text)
+        omrade, villkor = self._omrade_ur_fritext(text)
+        villkor += self._rackvidd_ur_fritext(text, delar)
+        relationer = self._relationer_ur_fritext(text, delar)
+        processordning = self._processer_ur_fritext(text)
         verifiering = self._verifiering_ur_fritext()
         return DetaljeradSpec(begaran.id, begaran, delar, kopplingar, signaler,
-                              takt, (), self.antaganden, self.fragor,
-                              verifiering)
+                              takt, villkor, self.antaganden, self.fragor,
+                              verifiering, omrade, relationer, processordning)
+
+    # -- de fyra formerna som gor texten till KRAV ------------------------
+
+    def _omrade_ur_fritext(self, text):
+        """(Omrade eller None, [Typvillkor]) for cellens matt och gangstrak.
+
+        Varje tal blir BADE ett villkor och, nar det ar ett tak eller ett
+        konstaterande, ett matt pa den yta layouten far anvanda. Skillnaden
+        mellan 'hogst 2x2 m' och 'minst 3 m bred' bevaras: den forsta bygger
+        cellen, den andra kan gora den omojlig.
+        """
+        villkor = []
+        matt = lasning.cellmatt(text)
+        tak = {}
+        belagg_for_tak = {}
+        for n, (falt, operator, mm, belagg) in enumerate(matt, 1):
+            villkor.append(Typvillkor(
+                "cell_%s_%d" % (falt.split("_")[0], n), "geometri",
+                "cell.%s" % falt, operator, mm,
+                Harkomst("begaran", belagg),
+                "cellens %s %s %g mm" % (falt, operator, mm)))
+            if operator in ("le", "eq") and falt not in tak:
+                tak[falt] = mm
+                belagg_for_tak[falt] = belagg
+        gang = lasning.gangstrak(text)
+        if gang is not None:
+            villkor.append(Typvillkor(
+                "gangstrak", "geometri", "cell.gang_min_mm", "ge", gang.varde,
+                Harkomst("begaran", gang.belagg),
+                "minsta gangstrak %g mm" % gang.varde))
+        if not tak:
+            if matt or gang is not None:
+                self.fraga(
+                    "cellyta",
+                    "hur stor yta far cellen ta? ange bredd x djup",
+                    "begaran satter en undre grans eller ett gangstrak men "
+                    "ingen yta. Utan en yta gar varken passformen eller "
+                    "ytkravet att prova, och en yta vi valde sjalva skulle "
+                    "bestamma hela layouten", blockerar=False)
+            return None, villkor
+        if gang is None:
+            self.fraga(
+                "gangstrak",
+                "vilket minsta gangstrak ska galla mellan tva komponenter?",
+                "K11 i docs/spec/22_planeringslagret.md ger gangstraket INGET "
+                "forval: ett gangstrak vi valde sjalva skulle bestamma bade "
+                "cellens yta och vad som senare raknas som en for trang "
+                "passage", blockerar=False)
+        belagg = belagg_for_tak.get("bredd_mm") or list(belagg_for_tak.values())[0]
+        omrade = Omrade(tak.get("bredd_mm"), tak.get("djup_mm"),
+                        tak.get("hojd_mm"),
+                        gang.varde if gang is not None else None,
+                        Harkomst("begaran", belagg))
+        return omrade, villkor
+
+    def _rackvidd_ur_fritext(self, text, delar):
+        """Rackvidder ur texten, bundna till robotrollen."""
+        utlasta = lasning.rackvidd(text)
+        if not utlasta:
+            return []
+        roll = self._robotroll(delar)
+        if roll is None:
+            self.fraga(
+                "rackvidd",
+                "vilken komponent galler rackvidden %s?"
+                % ", ".join("%g mm" % u.varde for u in utlasta),
+                "begaran namner en rackvidd men scenen bar ingen entydig "
+                "robot att binda den till. Att binda den at operatoren vore "
+                "ett tyst val som avgor om cellen alls gar att lagga ut",
+                blockerar=False)
+            return []
+        ut = []
+        for n, u in enumerate(utlasta, 1):
+            if u.vad == "krav":
+                ut.append(Typvillkor(
+                    "rackviddskrav_%d" % n, "geometri",
+                    "del.%s.rackvidd_mm" % roll, "ge", u.varde,
+                    Harkomst("begaran", u.belagg),
+                    "%s maste na %g mm" % (roll, u.varde)))
+            else:
+                # Operatoren uppger robotens rackvidd. Det ar ett pastaende om
+                # komponenten, och det skrivs bade som ett villkor (sa att en
+                # motsagelse mot ett krav gar att hitta) och in i databladet
+                # (sa att andra kontroller kan lasa talet).
+                self.datablad.setdefault(roll, {})["rackvidd_mm"] = u.varde
+                ut.append(Typvillkor(
+                    "rackvidd_%d" % n, "geometri",
+                    "del.%s.rackvidd_mm" % roll, "eq", u.varde,
+                    Harkomst("begaran", u.belagg),
+                    "%s har rackvidden %g mm" % (roll, u.varde)))
+        return ut
+
+    def _relationer_ur_fritext(self, text, delar):
+        """'X ska na Y' blir en typad relation, aldrig en gissad koppling."""
+        roller = [d.roll for d in delar]
+        ut = []
+        for fran, till, belagg in lasning.nakrav(text, roller):
+            ut.append(Relation("nar", fran, till,
+                               Harkomst("begaran", belagg)))
+        return ut
+
+    def _processer_ur_fritext(self, text):
+        """Processerna och deras ordning, var och en med sin mening som belagg.
+
+        En cykel avvisas INTE har. Specen ska kunna bara det operatoren
+        faktiskt bad om, ocksa nar det ar omojligt - annars gar det inte att
+        visa honom vad som krockade. Domen faller i bestallning.py.
+        """
+        funna, ordningar = lasning.processer(text)
+        processer = [Process(pid, vad, None, Harkomst("begaran", belagg))
+                     for pid, vad, belagg in funna]
+        krav = [Ordningskrav(fore, efter, Harkomst("begaran", belagg))
+                for fore, efter, belagg in ordningar]
+        if len(processer) > 1 and not krav:
+            self.fraga(
+                "processordning",
+                "i vilken ordning ska %s utforas?"
+                % ", ".join(p.id for p in processer),
+                "begaran namner flera processer men ingen ordning mellan dem. "
+                "Ordningen orden rakade sta i texten ar inget belagg for vad "
+                "som ska ske forst, och en gissad ordning styr hela "
+                "styrkoden", blockerar=False)
+        return Processordning(processer, krav)
 
     def _delar_ur_fritext(self, text):
         tokens = set(_tokens(text))
