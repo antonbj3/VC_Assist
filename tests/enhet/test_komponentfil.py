@@ -158,6 +158,28 @@ def test_hornlistan_lases_och_ger_blobbens_egen_lada(tmp_path):
     assert g.horn == 2
 
 
+def test_strukturprovet_godkanner_en_hel_blobb():
+    horn = A.lada_horn(100.0, 100.0, 100.0)
+    blobb = A.tds_geometri(horn, trianglar=[(0, 1, 2), (5, 6, 7)])
+    assert K.tds_kontroll(blobb) == (1, 0)
+
+
+def test_strukturprovet_faller_pa_ett_index_utanfor_hornlistan():
+    """TRASIG FIXTUR: en triangel som pekar pa ett horn som inte finns.
+
+    Index och koordinater ligger i OLIKA chunkar, sa provet gar inte att lura
+    genom att lasa fel: en felavlast hornlista ger index utanfor. Over 300
+    slumpade komponenter var 71 903 av 71 903 meshar hela (M-61).
+    """
+    horn = A.lada_horn(100.0, 100.0, 100.0)      # atta horn
+    blobb = A.tds_geometri(horn, trianglar=[(0, 1, 2), (5, 6, 99)])
+    assert K.tds_kontroll(blobb) == (1, 1)
+
+
+def test_strukturprovet_pa_nagot_som_inte_ar_3ds():
+    assert K.tds_kontroll(b"inte 3ds") == (0, 0)
+
+
 def test_en_blobb_som_inte_ar_3ds_ger_ingen_lada(tmp_path):
     sokvag = A.skriv(tmp_path / "g.vcmx",
                      A.modelxml(Name="G", Type="Machines", Manufacturer="A"),

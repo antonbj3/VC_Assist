@@ -65,6 +65,32 @@ def test_ingen_komponent_bar_sin_omslutande_volym(urval):
 
 
 @kraver_bibliotek
+def test_varje_triangel_pekar_pa_ett_horn_som_finns(urval):
+    """Enda beviset for att hornlistan lases pa ratt plats.
+
+    Index och koordinater ligger i olika chunkar, sa en felavlast hornlista
+    ger index utanfor. Over 300 slumpade komponenter var 71 903 av 71 903
+    meshar hela (M-61); har provas urvalet igen sa att en andring i
+    avkodningen blir rod och inte tyst.
+    """
+    import zipfile
+
+    meshar = 0
+    trasiga = 0
+    for f in urval:
+        with zipfile.ZipFile(f) as z:
+            for n in z.namelist():
+                if n in K.POSTER_UTAN_GEOMETRI:
+                    continue
+                m, t = K.tds_kontroll(z.read(n))
+                meshar += m
+                trasiga += t
+    assert meshar > 0, "urvalet innehall ingen 3DS-mesh alls"
+    assert trasiga == 0, "%d av %d meshar har index utanfor sin hornlista" % (
+        trasiga, meshar)
+
+
+@kraver_bibliotek
 def test_varje_granssnitt_i_biblioteket_har_ett_namn(urval):
     """Ett namnlost granssnitt gar inte att koppla mot, och skulle gora
     `kopplingsbara` till en lista med tomma rader."""

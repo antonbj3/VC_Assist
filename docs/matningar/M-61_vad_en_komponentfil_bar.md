@@ -285,6 +285,19 @@ Geometriblobbarna är **Autodesk 3DS**. Samma chunktaggar (`0x4D4D` huvud,
 De som inte ger en låda är punktmoln (`VCPointCloud`), spårkurvor, textformade
 profiler och de geometrier som ligger utanför arkivet.
 
+### Att hörnen läses rätt är prövat, inte antaget
+
+Ett hörntal som läses på fel plats ger ändå tal, och de talen ser ut som mått.
+Provet som inte går att lura: **triangellistan `0x4120` ligger i en annan
+chunk än hörnlistan `0x4110`** och pekar in i den med index. Läses hörnlistan
+med fel offset eller fel längd hamnar index utanför.
+
+> Över 300 slumpade komponenter: **71 903 meshar, 24 446 704 trianglar, noll
+> index utanför sin egen hörnlista.**
+
+Provet finns kvar som `tds_kontroll()`, med en trasig fixtur i L1 och en
+körning över urvalet i L2.
+
 Blobbens låda är en annan storhet än komponentens, och frestelsen att blanda
 ihop dem är störst när komponenten har **en enda** blobb. Provet
 `test_ingen_lada_uppstar_ens_nar_geometrin_ar_en_enda_blobb` finns för det.
@@ -311,14 +324,15 @@ bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
 
 | Nivå | Fil | Antal |
 |---|---|---:|
-| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 36 |
+| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 39 |
 | L1, bryggan | `tests/enhet/test_layout_komponent.py` | 17 |
-| L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 5 |
+| L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 6 |
 
-Trasiga fixturer, sju stycken: en komponent vars mått saknas, en avhuggen
-3DS-blobb, en profil som inte går att avkoda, en profilnyttolast som inte går
-jämnt ut, en ram under en nod utan `Offset`, ett tomt uttryck utan matris —
-och en layout som lådorna löser och de riktiga måtten inte löser.
+Trasiga fixturer, åtta stycken: en komponent vars mått saknas, en avhuggen
+3DS-blobb, en triangel som pekar utanför sin hörnlista, en profil som inte går
+att avkoda, en profilnyttolast som inte går jämnt ut, en ram under en nod utan
+`Offset`, ett tomt uttryck utan matris — och en layout som lådorna löser och
+de riktiga måtten inte löser.
 
 Till dem kommer tre par som `kopplingsbara` ska **avvisa**: två robotar som
 båda vill monteras på något, två transportöringångar mot varandra, och en

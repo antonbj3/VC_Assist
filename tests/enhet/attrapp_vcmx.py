@@ -21,12 +21,21 @@ def modelxml(**egenskaper):
     return MODELXML % rader
 
 
-def tds_geometri(horn, namn="Prov"):
-    """En Autodesk 3DS-blobb med en enda hornlista."""
+def tds_geometri(horn, namn="Prov", trianglar=None):
+    """En Autodesk 3DS-blobb med en hornlista och valfri triangellista.
+
+    `trianglar` ar [(a, b, c), ...] med index in i hornlistan. Ett index
+    utanfor listan ar precis det som `tds_kontroll` ska fanga.
+    """
     kropp = struct.pack("<H", len(horn))
     for p in horn:
         kropp += struct.pack("<3f", *p)
     v = struct.pack("<HI", 0x4110, 6 + len(kropp)) + kropp
+    if trianglar is not None:
+        tk = struct.pack("<H", len(trianglar))
+        for a, b, c in trianglar:
+            tk += struct.pack("<4H", a, b, c, 7)
+        v += struct.pack("<HI", 0x4120, 6 + len(tk)) + tk
     mesh = struct.pack("<HI", 0x4100, 6 + len(v)) + v
     n = namn.encode("latin-1") + b"\0"
     obj = struct.pack("<HI", 0x4000, 6 + len(n) + len(mesh)) + n + mesh

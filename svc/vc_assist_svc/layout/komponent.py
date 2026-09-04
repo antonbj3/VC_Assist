@@ -120,30 +120,16 @@ class Bounds(object):
 
 
 def rackvidd_ur_fakta(fakta):
-    """Robotens rackvidd, med harkomst. Aldrig gissad ur nagot annat matt.
+    """Robotens rackvidd som ett `Matt`, med harkomst och kalla.
 
-    Tre lagen, i den ordningen:
-
-    * `Reach` i model.xml ar POSITIVT  -> LAST
-    * faltet ar tomt eller noll men `envelopeprofile` finns -> HARLEDD ur
-      profilens storsta radie
-    * ingetdera -> SAKNAS
-
-    Ordningen ar inte godtycklig: det deklarerade faltet ar tillverkarens
-    uppgift och profilen ar geometrins. Nar bada finns stammer de (M-61), och
-    da ska den deklarerade vinna, for det ar den som star i databladet.
+    Sjalva avgorandet ligger i `Komponentfakta.rackvidd`, for det ar en
+    egenskap hos FILEN och inte hos layouten. Har byts bara millimetern mot
+    en `Langd`, sa att motorns enhetsskydd galler aven for den.
     """
     if not isinstance(fakta, Komponentfakta):
         raise Layoutfel("rackvidd_ur_fakta tar en Komponentfakta")
-    if fakta.rackvidd_mm and fakta.rackvidd_mm > 0.0:
-        return Matt(Langd.mm(fakta.rackvidd_mm), Harkomst.LAST,
-                    "model.xml, egenskapen Reach")
-    if fakta.profil is not None and fakta.profil.radie_mm > 0.0:
-        return Matt(Langd.mm(fakta.profil.radie_mm), Harkomst.HARLEDD,
-                    "storsta |x| i envelopeprofile, %d segment"
-                    % len(fakta.profil))
-    return Matt(None, Harkomst.SAKNAS,
-                "Reach saknas eller ar noll och ingen envelopeprofile finns")
+    mm, harkomst, kalla = fakta.rackvidd()
+    return Matt(None if mm is None else Langd.mm(mm), harkomst, kalla)
 
 
 def saknade_matt(fakta, bounds=None):
