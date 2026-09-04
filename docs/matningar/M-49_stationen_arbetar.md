@@ -1,4 +1,4 @@
-# M-49 — stationen som arbetar, och de två klockorna som inte går lika
+# M-49 — stationen arbetar, och mätinstrumentet som låg i mätvägen
 
 **Datum:** 2026-09-04 · VC Premium 4.10 · Wine 11.16 · testprefixet
 `~/.wine-vc-test`, headless `:99` · OpenPLC v4.2.1 · STruC++ 0.6.6

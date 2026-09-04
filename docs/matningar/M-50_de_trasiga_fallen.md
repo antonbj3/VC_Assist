@@ -1,6 +1,6 @@
 # M-50 — de trasiga fallen, och vad som fällde vad
 
-**Datum:** 2026-09-04 · samma rigg som [M-49](M-49_stationen_som_arbetar.md)
+**Datum:** 2026-09-04 · samma rigg som [M-49](M-49_stationen_arbetar.md)
 **Körs av:** `tests/protocol/kor_fas7_station.py`
 **Protokollet:** `tests/protocol/fas7_stationen.md`
 
