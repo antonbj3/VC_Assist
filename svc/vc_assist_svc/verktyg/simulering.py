@@ -375,7 +375,10 @@ def _kod_sim_step(argument):
             "matning konsekvent och trovardigt med ett gammalt tal."),
         "_svara(lage)",
     ]
-    return _mall(["_app", "_svara"], ["_sim"], rader)
+    hjalpare = ["_svara"]
+    if argument["render"]:
+        hjalpare.append("_app")
+    return _mall(hjalpare, ["_sim"], rader)
 
 
 _lagg(
@@ -458,7 +461,18 @@ def _kod_sim_warmup(argument):
             raise Argumentfel("sim_warmup",
                               ["%s ar %r; en tid kan inte vara negativ"
                                % (namn, argument[namn])])
-    rader = ["sim = _sim()", "satta = []", "vagrade = []"]
+    rader = [
+        "sim = _sim()",
+        # Uppvarmning och korlangd hor till UPPSTALLNINGEN, inte till en
+        # pagaende korning. Kallan sager dessutom att SimulationRunTime bara
+        # far andras i OnRun-handelsen, och bryggan ar inte OnRun.
+        "if bool(sim.IsRunning):",
+        '    raise ValueError("simuleringen kor; stoppa den med sim_halt '
+        'innan uppvarmning och korlangd stalls om, annars mater statistiken '
+        'tva olika uppstallningar i samma korning")',
+        "satta = []",
+        "vagrade = []",
+    ]
     if "warmup_seconds" in argument:
         v = tal(argument["warmup_seconds"])
         rader += [
