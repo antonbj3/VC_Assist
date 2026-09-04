@@ -1,0 +1,214 @@
+# -*- coding: utf-8 -*-
+"""L3: fas 5:s grind - mallayouter byggda i VC med NOLL kollisioner.
+
+70_faser.md: "N mallayouter byggda: noll kollisioner, alla granssnitt kopplade."
+
+Layoutmotorn loser scenerna utanfor VC och sager noll overlapp. Det ar dess EGEN
+matning. Den har korningen bygger samma layouter i VC med verklig geometri och
+later VC:s kollisionsdetektor doma - en oberoende domare pa samma fraga.
+
+Och det trasiga fallet: tva objekt flyttas medvetet in i varandra. Upptacker
+detektorn inte det ar den ingen grind, och da betyder de grona svaren ingenting.
+
+    python3 tests/protocol/kor_fas5_layout.py [--scener N]
+"""
+import argparse
+import json
+import os
+import sys
+
+_ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.join(_ROT, "svc"))
+sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
+
+from vc_assist_svc.klient import Klient, BryggFel          # noqa: E402
+from vc_assist_svc.layout import provscener as PS          # noqa: E402
+
+M_PER_VC = 1000.0          # meter -> VC:s varldsenhet. MATT i M-33.
+
+
+def _bygg_kod(namn_prefix, objekt):
+    """Python 2.7-kod som bygger objekten som block i VC.
+
+    Blocket vaxer fran sitt ursprung i +X, +Y, +Z (matt: ett 1200x800x144-block
+    far BoundCenter [600, 400, 72]). Layoutmotorns pose ar objektets MITT, sa
+    ursprunget laggs en halv utstrackning bakom.
+    """
+    rader = ["import json", "app = getApplication()", "byggda = []"]
+    for o in objekt:
+        rader += [
+            "for _c in list(app.Components):",
+            "    if _c.Name == %r:" % str(o["namn"]),
+            "        app.deleteComponent(_c)",
+            "_k = app.createComponent()",
+            "_k.Name = %r" % str(o["namn"]),
+            "_f = _k.RootFeature.createFeature(VC_BLOCK, str('kropp'))",
+            "for _p in _f.Properties:",
+            "    if _p.Name == 'Length':",
+            "        _p.Value = %.3f" % o["langd_mm"],
+            "    elif _p.Name == 'Width':",
+            "        _p.Value = %.3f" % o["bredd_mm"],
+            "    elif _p.Name == 'Height':",
+            "        _p.Value = %.3f" % o["hojd_mm"],
+            "_m = _k.PositionMatrix",
+            "_m.setWPR(0.0, 0.0, %.3f)" % o["gir"],
+            "_k.PositionMatrix = _m",
+            "_m = _k.PositionMatrix",
+            "_m.translateAbs(%.3f - _m.P.X, %.3f - _m.P.Y, %.3f - _m.P.Z)"
+            % (o["x_mm"], o["y_mm"], o["z_mm"]),
+            "_k.PositionMatrix = _m",
+            "byggda.append(_k.Name)",
+        ]
+    rader.append("print(json.dumps({'byggda': byggda}))")
+    return "\n".join(rader)
+
+
+DETEKTORKOD = """import json
+app = getApplication()
+sim = getSimulation()
+namn = %r
+noder = []
+for n in namn:
+    c = app.findComponent(str(n))
+    if c is not None:
+        noder.append(c)
+traffar = []
+avstand = []
+for i in range(len(noder)):
+    for j in range(i + 1, len(noder)):
+        det = sim.newCollisionDetector()
+        det.NodeListA = [noder[i]]
+        det.NodeListB = [noder[j]]
+        det.Tolerance = 0.0
+        det.DisplayMinimumDistance = False
+        # StopOnCollision star i dokumentationen men FINNS INTE pa objektet
+        # (AttributeError i VC 4.10). Satts darfor bara om den gar.
+        try:
+            det.StopOnCollision = False
+        except Exception:
+            pass
+        det.Active = True
+        par = noder[i].Name + '+' + noder[j].Name
+        try:
+            traff = bool(det.testAllCollisions(0.0))
+        except Exception as e:
+            traff = 'FEL ' + type(e).__name__
+        d = None
+        try:
+            if det.testMinimumDistance(1000000.0):
+                d = det.getMinimumDistanceDistance(0)
+        except Exception:
+            d = None
+        if traff:
+            traffar.append(par)
+        avstand.append({'par': par, 'traff': traff,
+                        'avstand_mm': None if d is None else round(float(d), 2)})
+        det.Active = False
+print(json.dumps({'traffar': traffar, 'par': avstand}))
+"""
+
+
+def _objekt_ur(scen, los):
+    ut = []
+    for namn, pose in sorted(los.placeringar.items()):
+        o = scen.objekt(namn)
+        ut.append({
+            "namn": namn,
+            "langd_mm": o.langd.som_mm, "bredd_mm": o.bredd.som_mm, "hojd_mm": o.hojd.som_mm,
+            # motorns pose ar mitten; blocket vaxer fran ursprunget
+            "x_mm": pose.x_m * M_PER_VC - o.langd.som_mm / 2.0,
+            "y_mm": pose.y_m * M_PER_VC - o.bredd.som_mm / 2.0,
+            "z_mm": pose.z_m * M_PER_VC,
+            "gir": pose.vridning_grader,
+        })
+    return ut
+
+
+def _kor(k, kod, desc, t=90):
+    post = k.anrop("exec_queue", {"code": kod, "desc": desc,
+                                  "tillat_skriptbeteende": True})["result"]
+    ut = k.godkann_och_vanta(post["qid"], timeout=t)
+    if ut["state"] != "done":
+        sv = ut.get("svar") or {}
+        tb = (sv.get("error") or {}).get("traceback") or ""
+        rad = (tb.strip().splitlines() or ["?"])[-1]
+        raise RuntimeError("%s: %s (%s)" % (desc, ut["state"], rad[:140]))
+    return ((ut.get("svar") or {}).get("result") or {}).get("result") or {}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--port", type=int, default=8901)
+    ap.add_argument("--token", default=os.path.expanduser(
+        "~/.wine-vc-test/drive_c/users/anton/vc_assist_token"))
+    ap.add_argument("--scener", type=int, default=4)
+    ap.add_argument("--json", default=None)
+    a = ap.parse_args()
+
+    k = Klient(port=a.port, tokenfil=a.token, timeout=120.0).anslut()
+    k.kor("print(1)")          # lamnar degraded om bryggan star dar
+
+    losta = []
+    for ps in PS.PROVSCENER:
+        scen, los = ps.kor()
+        if str(los.status).endswith("LOST"):
+            losta.append((ps, scen, los))
+        if len(losta) >= a.scener:
+            break
+
+    utfall = []
+    fel = 0
+    print("  === mallayouter byggda i VC, kollisioner matta av VC ===")
+    for ps, scen, los in losta:
+        objekt = _objekt_ur(scen, los)
+        try:
+            _kor(k, _bygg_kod(ps.id, objekt), "bygg %s" % ps.id)
+            d = _kor(k, DETEKTORKOD % [o["namn"] for o in objekt],
+                     "mat kollisioner i %s" % ps.id)
+            traffar = d.get("traffar") or []
+            minsta = [p for p in (d.get("par") or []) if p.get("avstand_mm") is not None]
+            minsta_v = min([p["avstand_mm"] for p in minsta]) if minsta else None
+            ok = not traffar
+            if not ok:
+                fel += 1
+            print("    %s %-6s %d objekt, %d par, %d traffar, minsta avstand %s mm"
+                  % ("OK  " if ok else "FEL ", ps.id, len(objekt),
+                     len(d.get("par") or []), len(traffar), minsta_v))
+            utfall.append({"scen": ps.id, "objekt": len(objekt),
+                           "traffar": traffar, "minsta_mm": minsta_v, "ok": ok})
+        except Exception as e:
+            fel += 1
+            print("    FEL  %-6s %s" % (ps.id, str(e)[:110]))
+            utfall.append({"scen": ps.id, "fel": str(e)[:200]})
+
+    print("\n  === det trasiga fallet: tva objekt flyttas in i varandra ===")
+    try:
+        ps, scen, los = losta[0]
+        objekt = _objekt_ur(scen, los)
+        objekt[1]["x_mm"] = objekt[0]["x_mm"]
+        objekt[1]["y_mm"] = objekt[0]["y_mm"]
+        objekt[1]["z_mm"] = objekt[0]["z_mm"]
+        _kor(k, _bygg_kod("trasig", objekt), "bygg overlappande")
+        d = _kor(k, DETEKTORKOD % [o["namn"] for o in objekt], "mat overlappet")
+        traffar = d.get("traffar") or []
+        if traffar:
+            print("    OK   detektorn faller overlappet: %s" % ", ".join(traffar))
+            utfall.append({"trasigt_fall": "fallt", "traffar": traffar})
+        else:
+            print("    FEL  detektorn sag INGET overlapp - da ar den ingen grind")
+            fel += 1
+            utfall.append({"trasigt_fall": "slapptes igenom", "par": d.get("par")})
+    except Exception as e:
+        fel += 1
+        print("    FEL  %s" % str(e)[:130])
+
+    print("\n  %d av %d prov gick igenom" % (len(utfall) - fel, len(utfall)))
+    if a.json:
+        with open(a.json, "w") as f:
+            json.dump(utfall, f, indent=2, ensure_ascii=False)
+    k.stang()
+    return 1 if fel else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

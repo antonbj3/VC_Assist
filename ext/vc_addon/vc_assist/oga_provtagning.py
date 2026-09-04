@@ -427,7 +427,14 @@ class VcScen(Scen):
             # StopOnCollision maste vara av: ett stopp river simuleringen och
             # med den pumpen (M-13), och da finns ingen som kan rapportera
             # traffen.
-            det.StopOnCollision = False
+            # MATT 2026-09-04: StopOnCollision star i api.xml men finns INTE
+            # pa objektet VC returnerar (AttributeError i 4.10). Satts darfor
+            # bara om den gar - men den maste forsokas, for ett stopp river
+            # simuleringen och med den pumpen (M-13).
+            try:
+                det.StopOnCollision = False
+            except Exception:
+                pass
             det.Active = True
         except Exception as e:
             self._saknas(namn, "kunde inte satta upp detektorn: %s" % type(e).__name__)
