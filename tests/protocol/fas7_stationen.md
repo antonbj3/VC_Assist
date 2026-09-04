@@ -55,12 +55,13 @@ En trasig lösning som passerar är ett fasfel, inte ett provfel.
 | # | Trasigt fall | Ska fällas av | Varför just detta |
 |---|---|---|---|
 | T1 | tagg som inte finns i kartan | grind 3 | den felklass genererade deklarationer ska ha utplånat; om T1 passerar är skelettet kringgått |
+| | *mätt (M-48): fälls av **tre** grindar — grind 2 `ODEKLARERAD`, grind 3 `ORORD_SIGNAL`, kompilatorn kod 1* | | |
 | T2 | skrivning till en `skyddad` signal | grind 2 | I15 är inte en stilregel |
 | T3 | nivåläsning där en flank krävs | **grind 5** | fungerar i nio scan av tio och är osynlig för 1–3; det är hela skälet till att ögat finns |
 | T4 | timer som nollställs av sitt eget villkor | grind 5 | kompilerar, ser rätt ut, fäller aldrig |
 | T5 | förregling skriven som kommentar | grind 5 | två rörelser samtidigt; ögat ska se överlappet |
 | T6 | rätt på första varvet, fel efter stopp mitt i sekvensen | grind 5 | återstart är där de flesta lösningar går sönder |
-| T7 | tom kropp (`;`) | grind 5 | om en tom lösning passerar mäter facit ingenting |
+| T7 | tom kropp (`;`) | ~~grind 5~~ **grind 2 och 3** | om en tom lösning passerar mäter facit ingenting |
 
 T3 till T6 måste fällas av **ögat**, inte av en tidigare grind. Om en statisk
 regel råkar fånga T3 är det inte ett bevis på att ögat fungerar, och fallet ska
@@ -68,6 +69,17 @@ skrivas om tills bara ögat kan se det.
 
 T7 är facitets egen nollpunkt. Ett facit som inte fäller en tom kropp har ingen
 undre gräns, och alla tal ur det är oläsbara.
+
+> **RÄTTAT av M-48.** Raden ovan sa att T7 måste fällas av ögat eftersom en tom
+> kropp kompilerar. Den kompilerar mycket riktigt — kompilatorn godkänner både
+> `;` och en tom sträng — men den fälls ändå av förgrindarna, av ett skäl jag
+> inte hade tänkt på: kartan deklarerar signaler, och en kropp som inte rör dem
+> får `ORORD_SIGNAL` av grind 3.
+>
+> Nollpunkten flyttas därför. Den ska inte pröva om en **tom** kropp passerar,
+> utan om ett program som *rör* alla signaler utan att göra något meningsfullt
+> gör det — till exempel `don := don;`. Det är den lösning som är osynlig för
+> alla fyra förgrindarna och som bara facit kan fälla.
 
 ## Ärlighetskravet på körningen
 

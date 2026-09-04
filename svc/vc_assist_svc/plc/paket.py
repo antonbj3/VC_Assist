@@ -164,6 +164,61 @@ def for_kompilator(st_text: str) -> str:
     return st_text.replace(" " + SAKERHETSPRAGMA, "").replace(SAKERHETSPRAGMA, "")
 
 
+@dataclass(frozen=True)
+class Kompileringsdom:
+    """Grind 1:s svar, och kompilatorns EGNA ord (I1).
+
+    `ok` är kompilatorns utgångskod, inte vår tolkning av dess text.
+    """
+
+    ok: bool
+    utdata: str
+    returkod: int
+
+    def __str__(self) -> str:
+        return ("GRIND 1 GODKAND" if self.ok
+                else "GRIND 1 FALLDE (kod %d)\n%s" % (self.returkod, self.utdata))
+
+
+def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
+                        tidsgrans: float = 300.0) -> Kompileringsdom:
+    """Grind 1 med STruC++:s CLI: kompilerar koden, ja eller nej.
+
+    **Detta är inte `kompilera`.** CLI:t i 0.6.6 skriver bara generated.cpp och
+    generated.hpp; det skriver aldrig generated_debug.cpp eller debug-map.json,
+    och båda behövs för att LADDA koden i OpenPLC (se strucpp_bygg.mjs). Den
+    här funktionen svarar alltså på grind 1:s fråga — *går den att bygga?* —
+    och på ingenting mer. Att låta den svara på driftsättningsfrågan hade varit
+    en grind som blir billig och slutar mäta sin egen storhet.
+
+    Skälet att den ändå finns: grind 1 ska kunna köras av var och en som har
+    kompilatorn, utan npm-paketet och utan en OpenPLC-container. En grind som
+    kräver hela driftmiljön körs sällan, och en grind som körs sällan mäter
+    ingenting.
+
+    **MÄTT (M-48):** CLI:t returnerar 0 vid lyckad kompilering och 1 vid fel,
+    och skriver ingen utdatafil när det faller. Utgångskoden är alltså läsbar,
+    och texten behöver inte tolkas.
+    """
+    if not os.path.exists(strucpp_cli):
+        raise Byggfel("hittar inte STruC++-CLI:t på %s" % strucpp_cli)
+    os.makedirs(utkatalog, exist_ok=True)
+    stfil = os.path.join(utkatalog, "program.st")
+    with open(stfil, "w", encoding="ascii", newline="\n") as f:
+        f.write(for_kompilator(st_text))
+    try:
+        korning = subprocess.run(
+            [strucpp_cli, stfil, "-o", os.path.join(utkatalog, "generated.cpp")],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=tidsgrans)
+    except OSError as fel:
+        raise Byggfel("kunde inte starta %s: %s" % (strucpp_cli, fel))
+    except subprocess.TimeoutExpired:
+        raise Byggfel("STruC++ svarade inte inom %.0f s" % tidsgrans)
+    return Kompileringsdom(korning.returncode == 0,
+                           korning.stdout.decode("utf-8", "replace").strip(),
+                           korning.returncode)
+
+
 def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
               node: str = "node", tidsgrans: float = 300.0) -> Debugkarta:
     """Grind 1: kompilera ST till C++ och skriv de fyra artefakterna.

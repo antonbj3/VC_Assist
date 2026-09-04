@@ -195,7 +195,28 @@ def _grind_4(dom: Stationsdom, kandidat: Kandidat, index) -> None:
 
 
 def _grind_1(dom: Stationsdom, kandidat: Kandidat, strucpp_paket: Optional[str],
-             byggkatalog: Optional[str], node: str) -> None:
+             byggkatalog: Optional[str], node: str,
+             strucpp_cli: Optional[str] = None) -> None:
+    """Kompilatorn, via CLI:t om det finns och annars via npm-paketet.
+
+    CLI-vagen svarar bara pa grind 1:s fraga och kan inte driftsatta; se
+    `paket.granska_kompilering`. Den foredras anda nar bada finns, darfor att
+    den ar den billiga vagen och en grind som kors sallan mater ingenting.
+    """
+    if strucpp_cli and byggkatalog:
+        from . import paket
+        try:
+            kdom = paket.granska_kompilering(
+                kandidat.st_kalla, os.path.join(byggkatalog, kandidat.station),
+                strucpp_cli)
+        except Exception as fel:
+            dom.forgrindar[NAMN_KOMPILERING] = "%s" % type(fel).__name__
+            dom.utdata[NAMN_KOMPILERING] = str(fel)
+            return
+        dom.utdata[NAMN_KOMPILERING] = kdom.utdata
+        dom.forgrindar[NAMN_KOMPILERING] = (
+            True if kdom.ok else "kompilatorn foll med kod %d" % kdom.returkod)
+        return
     if not strucpp_paket or not byggkatalog:
         dom.forgrindar[NAMN_KOMPILERING] = ("kompilatorn ar inte uppsatt; "
                                             "grind 1 kunde inte kora")
@@ -218,6 +239,7 @@ def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
                     strucpp_paket: Optional[str] = None,
                     byggkatalog: Optional[str] = None,
                     node: str = "node",
+                    strucpp_cli: Optional[str] = None,
                     stanna_vid_forsta: bool = True) -> Stationsdom:
     """Kör grind 1-4 över kandidaten och lämna varje grinds egen dom.
 
@@ -236,5 +258,5 @@ def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
     _grind_4(dom, kandidat, index)
     if stanna_vid_forsta and dom.forgrindar.get(NAMN_ANROP) is not True:
         return dom
-    _grind_1(dom, kandidat, strucpp_paket, byggkatalog, node)
+    _grind_1(dom, kandidat, strucpp_paket, byggkatalog, node, strucpp_cli)
     return dom
