@@ -276,6 +276,69 @@ def moduler_utan_prov(rot: str) -> Dict[str, List[Tuple[str, int]]]:
     return ut
 
 
+# En senare matning som sager sig ratta en tidigare. Monstret ar skrivet med
+# diakriter OCH normaliseras, av ett matt skal: M-70 fann att atta av elva
+# grenar i det har filens forsta monster var doda for att de var skrivna i
+# ASCII mot text pa svenska. En gren som aldrig fyrar rapporterar noll traffar,
+# och noll traffar ser ut som "det finns inget att hitta".
+_RATTAR = re.compile(
+    r"(r\u00e4ttar|rattar|motbevisar|r\u00e4ttad av|rattad av|falsifierar|"
+    r"korrigerar)\s+\[?(M-\d+)", re.I)
+_NAMNER_M = re.compile(r"\bM-(\d+)\b")
+
+
+def _mnr(text: str) -> str:
+    """M-numret ur ett filnamn eller en hanvisning, alltid tvasiffrigt.
+
+    Ratt regex och inte split("-"): filnamnen ar M-01_tillaggsmekanismen.md, sa
+    ett enkelt split ger '01_tillaggsmekanismen.md'. Det ar ett litet fel med en
+    stor foljd - funktionen kastar, och den som fangar undantaget far en tom
+    lista som ser ut som "inga rattelser saknar framatpekare".
+    """
+    m = re.match(r"M-0*(\d+)", text.strip())
+    if not m:
+        raise ValueError("inget M-nummer i %r" % text)
+    return "M-%02d" % int(m.group(1))
+
+
+def rattelser_utan_framatpekare(katalog: str) -> List[Tuple[str, List[str]]]:
+    """Matningar som en SENARE sager sig ratta, utan att sjalva peka framat.
+
+    En rattelse som bara star i den nyare filen ar en rattelse for den som redan
+    vet. Den som slar upp den gamla matningen far det gamla svaret med full
+    trovardighet - samma fel som fas 6:s rubrik gjorde i ett dygn, och som
+    M-34:s tabellrad gjorde tills den flyttades upp till pastaendet.
+    """
+    filer = sorted(f for f in os.listdir(katalog)
+                   if f.startswith("M-") and f.endswith(".md"))
+    text = {}
+    for f in filer:
+        try:
+            with open(os.path.join(katalog, f), "r", encoding="utf-8") as fh:
+                text[f] = fh.read()
+        except (OSError, UnicodeDecodeError):
+            text[f] = ""
+    per_nummer = {}
+    for f in filer:
+        per_nummer[_mnr(f)] = f
+
+    rattade: Dict[str, List[str]] = {}
+    for f, t in text.items():
+        for m in _RATTAR.finditer(t):
+            rattade.setdefault(_mnr(m.group(2)), []).append(_mnr(f))
+
+    ut: List[Tuple[str, List[str]]] = []
+    for gammal, nyare in sorted(rattade.items()):
+        fil = per_nummer.get(gammal)
+        if fil is None:
+            continue
+        namnda = set("M-%02d" % int(x) for x in _NAMNER_M.findall(text[fil]))
+        saknade = sorted(set(nyare) - namnda)
+        if saknade:
+            ut.append((gammal, saknade))
+    return ut
+
+
 def bygg(rot: str) -> Dict[str, object]:
     matningar = os.path.join(rot, "docs", "matningar")
     poster: List[Post] = []
@@ -292,6 +355,7 @@ def bygg(rot: str) -> Dict[str, object]:
         "kodposter": kodposter,
         "utan_arlighetsavsnitt": matningar_utan_arlighetsavsnitt(matningar),
         "moduler_utan_prov": moduler_utan_prov(rot),
+        "rattelser_utan_framatpekare": rattelser_utan_framatpekare(matningar),
         "antal_punkter": sum(p.antal for p in poster),
         "antal_kodmarkorer": sum(p.antal for p in kodposter),
     }

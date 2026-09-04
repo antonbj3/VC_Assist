@@ -57,6 +57,16 @@ av oss**, inte hittas.
 
 VC vet vilken **form** en kollisionskropp har. Den vet inte vad den **väger**.
 
+> **FÖRDJUPAD av M-59, och slutsatsen håller åt båda hållen.** Den här mätningen
+> gäller Python-**API:t**. Filformatet bär faktiskt fälten `Mass`,
+> `CenterOfGravity` och `Inertia` — men de sitter på **verktygsramar**, inte på
+> komponenten, och de är i praktiken tomma: 392 av 3201 har ett värde skilt från
+> noll, och **351 av de 392 har värdet −1000**, en sentinel för "ingen last
+> satt". Den som läser raden rakt av får en robot med minus ett kilos
+> verktygslast. Efter rensning: **46 av 2202 robotar**.
+>
+> Det finns alltså ingen massa att hämta, varken genom API:t eller ur filen.
+
 Följden är exakt avgränsad: en export från VC skulle bli geometriskt och
 kinematiskt trogen men **inte dynamikfärdig**. URDF kräver `<inertial>` med
 massa och tröghetstensor; Isaac behöver massa och friktion för att simulera

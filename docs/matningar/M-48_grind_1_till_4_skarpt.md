@@ -46,6 +46,11 @@ Det ändrar inte att facit behöver en nollpunkt. Det ändrar var nollpunkten
 ligger: den provar inte om en tom kropp kan passera, utan om ett program som
 *rör* alla signaler men inte gör något meningsfullt kan passera.
 
+> **ANVÄND av M-50.** Nollpunkten är byggd där: hela kroppen ersatt med två
+> självtilldelningar som rör alla fem taggarna. Den passerar alla fyra
+> förgrindarna, precis som den här mätningen förutsade, och kan därför bara
+> fällas av facit.
+
 ## Kompilatorns beteende, mätt
 
 | Fråga | Svar |

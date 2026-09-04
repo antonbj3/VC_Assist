@@ -4,13 +4,9 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 1
+## Mätningar utan ärlighetsavsnitt: 0
 
-En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
-
-* `M-50_de_trasiga_fallen.md`
-
-## Vad mätningarna säger att de inte vet: 319 punkter
+## Vad mätningarna säger att de inte vet: 330 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -324,6 +320,13 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Hur ofta det lyckas.** Ett grönt varv är inte en frekvens. Fas 9.
 * Windows.**
 
+### M-50_de_trasiga_fallen.md — Vad som INTE är prövat
+
+* Att en modell skriver kropparna.** Alla sex är handskrivna. Fas 7 påstår
+* Reparationsvarv.** Protokollet ber om antalet, och det är noll här av
+* Nödstoppet.** `nodstopp` går inte att driva över OPC UA (M-49) och stod
+* Fler trasiga fall än fem.** Felklasserna i protokollet är slut, men
+
 ### M-51_svepet_over_st_lagret.md — Vad som INTE är mätt
 
 * Runtime-semantiken.** Svepet frågar *går det att bygga?*, aldrig *gör det
@@ -389,9 +392,10 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 
 * Om `get_bounds` täcker hela komponenten.** Verktyget läser rotnodens
 * Om en katalogkomponent alls går att ladda.** `app.load()` mot en `.vcmx` är
-* Om lådan beror på ställningen och på parametrarna.** Sannolikt ja, för båda,
+* Om lådan beror på ställningen och på parametrarna.** Sannolikt ja för båda,
 * Om VC:s gränssnittsnamn är samma som filens.** Läsningen här är oprövad mot
 * De 75 flödesfälten med port 2–6.**
+* Om `Name` någonsin ligger efter byte 181** — M-58:s öppna rad står kvar,
 * Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
 
 ### M-62_baslinjen.md — 12. Vad som INTE är prövat
@@ -401,11 +405,13 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Ingen uppgift är körd i VC.** Ögat har inte sett en enda av de 37
 * Ingen uppgift är körd i OpenPLC.** Tolken och runtimen är fortfarande inte
 * Grind 4 är inte körd, 0 av 37.** Baslinjen skriver ingen scenkod. En
-* Grammatiken är skriven av mig, mot bankens egna rader.** Att den läser 89 av
+* Grammatiken är skriven av mig, mot bankens egna rader.** Att den läser 134
 * `mager` och `prosa` är svagare än de behöver vara.** En bättre I/O-listnivå
 * Ablationen prövar fyra varianter, inte alla.** Att `S-05` klarar sig utan
 * Reparationstabellen har två poster därför att bara två grindkoder pekar ut
-* Tidsmätningen är en enda körning per nivå** på en maskin som samtidigt kör
+* Tidsmätningen är tre körningar per nivå** på en maskin som samtidigt kör
+* Orakeljämförelsen är mot STruC++, inte mot OpenPLC.** Noll avvikelser över
+* Ablationen och kalibreringen körs bara på de fyra uppgifter som har
 * Ingen mätning av vad baslinjen gör med en uppgift utanför banken.**
 * 
 
@@ -492,6 +498,13 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * En maskin utan nät.** Hämtningen förutsätter åtkomst till GitHub och npm.
 * En maskin utan docker.** OpenPLC-avbilden dras av docker, inte av oss.
 * Klonen är lokal.** `git clone --local` från samma disk, inte över nätet.
+
+### M-72_kvaternionens_ordning_pa_tre_axlar.md — Vad som INTE är mätt
+
+* Bara rena rotationer.** Tre enaxliga fall. En sammansatt rotation kring två
+* Inget tecken är prövat mot en känd riktning.** Provet visar vilken
+* Bara `getQuaternion()`.** `setQuaternion()` är inte prövad, och att läsa
+* Bara VC 4.10.**
 
 ## Produktionsmoduler som ingen provfil nämner: 1 (143 rader)
 
