@@ -52,6 +52,7 @@ halv plan ser körbar ut, och det är farligare än inget svar (I3).
 | A10 | varje skrivande steg har en efterkontroll som kan falla | 8 av 8 |
 | A11 | de fyra artefakterna skrivs på disk | `spec/layout/plan/anropssekvens.json` |
 | A12 | sekvensen är densamma byte för byte | en hash över tre körningar |
+| A13 | två turer räcker: fråga, svar, plan | `OFULLSTANDIG` → `BYGGBAR` |
 
 Beställningstexten är operatörens, ordagrant, och står i provfilen.
 
@@ -62,6 +63,7 @@ och en grind som står där utan att köra är ett fel i sig.
 
 | Grind | Faller på | Trasig fixtur |
 |---|---|---|
+| `B0_FRAGERUNDOR` | fler än två frågerundor (K4) | T10 |
 | `B1_HARKOMST` | ett krav vars härkomst inte går att slå upp | **T3** nedan |
 | `B2_PROCESSORDNING` | cykel, okänd process, självordning | **T2** nedan |
 | `B3_MOTSAGELSE` | villkor som inte kan gälla samtidigt | **T1** nedan |
@@ -195,6 +197,17 @@ den tysta nedgradering lagret finns för att undvika.
 
 **Krav på svaret:** `Planfel`. Utan den formen kan en avvisad beställning ändå
 byggas, och då är hela grinden en rekommendation.
+
+### T10. En tredje frågerunda
+
+Samma beställning ställs med `fragerunda=3`.
+
+**Krav på svaret:** status `OFULLSTANDIG`, grind `B0_FRAGERUNDOR`, koderna
+`B0_FOR_MANGA_RUNDOR` och `B0_SAKNAS` — det senare listar vad som fortfarande
+saknas. En loop som frågar i evighet är inte en klarifiering; den är ett sätt
+att aldrig behöva svara.
+
+**Motprovet:** två rundor är tillåtna.
 
 ---
 

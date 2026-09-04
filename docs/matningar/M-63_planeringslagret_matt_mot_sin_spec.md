@@ -51,9 +51,9 @@ varje rad pekar på fil och funktion.
 
 | | Före | Efter |
 |---|---:|---:|
-| **uppfyllt** | 9 | **22** |
+| **uppfyllt** | 9 | **23** |
 | **delvis** | 8 | 4 |
-| **saknas** | 13 | 3 |
+| **saknas** | 13 | 2 |
 | ej tillämpligt | 0 | 1 |
 
 ### 2.1 Det som redan fanns, och som är bra
@@ -117,7 +117,6 @@ de fanns inte som begrepp.
 | Krav | Vad som saknas | Varför det inte gjordes nu |
 |---|---|---|
 | `K1` | `needed_for` per spec-fält, lintkod `S1_SLOT_WITHOUT_NEED` | kräver att varje grind namnger sina indata; hör ihop med P1–P2 och är en egen runda |
-| `K4` | `spec.clarify_round`, högst två frågerundor | det finns ingen samtalsloop att räkna rundor i (`24_samtalsloopen.md` är inte byggd) |
 | `K10` | taket på fyra rättningsvarv | lösaren har i stället en **mätt** nodbudget och en rasterstege; se §5 och förslag F4 |
 
 Fyra är delvis: `K11` (gångstråket är ett hårt slot och mäts av lösarens
@@ -158,7 +157,7 @@ grinden är lösarens **egen oberoende** efterhandsgranskning.
 
 | Grind | Läge | Vad som gjordes |
 |---|---|---|
-| P1 Specfullständighet | delvis | blockerande frågor stoppar planen; `clarify_round` saknas |
+| P1 Specfullständighet | **grön** | blockerande frågor stoppar planen, och `fragerunda` bärs i artefakten med taket två |
 | P2 Specformslint | delvis | `VS1`–`VS7` mekaniserar S2; S1 kräver `needed_for` |
 | P3 Katalogförankring | delvis | URI:er kommer ur indexet eller blir en fråga; databladet som artefakt saknas |
 | P4 Layoutdom, statisk | **grön** | `layoutmotor.py` → `layout/losare.losa`, fail-closed |
@@ -372,6 +371,38 @@ Samma kontroll finns sedan tidigare i `bank/schema.py` som lintkoden
 `M23_ROBOT_KAPACITET`. Att två oberoende vägar ger samma svar på samma data är
 ett svagt men äkta belägg för att ingen av dem räknar fel.
 
+## 6.55 Samtalet: fråga, svar, plan
+
+Efter §6.6:s rättelser gav operatörens exempeltext **två precisa frågor och
+ingen plan**. Det är rätt svar, men utan ett sätt att **svara** är det en
+återvändsgränd: han hade fått skriva om hela beställningen.
+
+Mekaniken är en rad: `svar` är `{fraga_id: text}`, och svaren blir en del av
+**begäran**, ordagrant. Det är hans ord lika mycket som den första meningen —
+och det är också det enda som gör dem läsbara: samma mönster som läser
+meningen läser svaret, och härkomsten pekar på text som faktiskt står där.
+
+```
+TUR 1  OFULLSTANDIG · B4_FRAGOR
+       okant_ord:utlastningslada: vilken komponent i katalogen ar 'en utlastningslåda'?
+       kopplingar: hur ska band, robot kopplas ihop med resten?
+
+TUR 2  svar = {"okant_ord:utlastningslada": "en kassationslada",
+               "kopplingar": "bandet matar roboten och roboten matar kassationsladan",
+               "cellyta": "cellen ar 8x8 meter, gangstrak minst 800 mm"}
+       BYGGBAR · 22 steg
+```
+
+**En fråga som ställs OM är en fråga som inte blev besvarad.** Löste svaret den
+ställs den inte alls — den försvinner för att extraktorn hittade det den
+behövde. Kommer den tillbaka gick svaret inte att läsa, och att då märka den
+som besvarad hade gjort ett obrukbart svar till ett tyst ja. Regeln har ett eget
+prov åt båda hållen.
+
+`K4`s tak är två rundor, och `spec.fragerunda` bärs i artefakten. Källans
+loopspärr läste den föregående turens **text** och matchade på en
+svensk-engelsk fras (`orchestrator.py:783`); det ärvs inte.
+
 ## 6.6 Att spela som operatören hittade fyra tysta bortfall
 
 Alla proven var gröna. Sedan körde jag operatörens **egen** exempeltext ur
@@ -482,6 +513,13 @@ alltid säger okänt har slutat mäta. Koden gör skillnaden;
 inte gälla samtidigt"* och *"kraven går, men inte med den här komponenten"* är
 **botemedlet**. Den ena rättas genom att ändra ett krav, den andra genom att
 byta komponent. Ett svar som inte skiljer dem lämnar operatören att gissa.
+
+**F9. Räckviddsrelationen behöver en tredje form: "vilken läsning?"**
+`InomRackvidd` har två läsningar och specen nämner ingen av dem. Mätt: med den
+hårda kan en robot på 1 650 mm inte nå ett 2 m långt band, så varje cell med en
+transportör blev röd. Vi räknar nu båda och gör skillnaden till en fråga
+(§6.6, F4). Specen bör säga att en relation får ha en **parameter som
+operatören äger**, och att båda utfallen ska räknas innan frågan ställs.
 
 **F8. `K23` har två halvor, och bara den ena är en ordningsregel.** *"Alla
 `post`-anrop och all mätning som L3 behöver är `read` och får aldrig ligga i
