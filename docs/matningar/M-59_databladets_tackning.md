@@ -88,7 +88,7 @@ täcker de mindre än en femtedel:
 | Rotvariabel | träffar | Quantity |
 |---|---:|---|
 | `MaxLoad` | 341 | `Mass` |
-| `Payload` | 124 | `Mass` (i 121 av 124) |
+| `Payload` | 124 | `Mass` i 81 av 124, inget alls i 43 |
 | `MaxPayload` | 3 | `Mass` |
 
 De 1 849 övriga får `saknas`. Frestelsen var att räkna fram ett tal — ur
@@ -202,9 +202,9 @@ fyra av fem transportörer.
 
 `Length`, `Width` och `Height` finns i nästan varje komponent. De sitter till
 överväldigande del i **geometriprimitiver** (`rPrimitiveBoxFeature`,
-`rExtrudeFeature`), där de är en lådas mått. I `Prorunner mk1` finns
-`Length`/`Width`/`Height` i **fjorton** lådor och noll gånger som komponentens
-egenskap.
+`rExtrudeFeature`), där de är en lådas mått. `Prorunner mk1` har namnet
+`Length` **24 gånger** i sina 16 geometrilådor och **noll** gånger som
+komponentens egen egenskap. `Height` står där 23 gånger, också noll i roten.
 
 Databladet läser därför bara **rotnodens egen variabelrymd** — den användaren
 ser i egenskapspanelen. Det befintliga `katalogindex._parametrar` gör inte det,
@@ -229,7 +229,7 @@ VC skriver `Quantity` bredvid de flesta tal. Avbildningen till enhet:
 | `Mass` | gram *(se nedan)* |
 | `Time` / `Percentage` | s, % |
 
-Där `Quantity` saknas — `ConveyorSpeed` i 99 av 115 — sägs det i källan, och
+Där `Quantity` saknas — `ConveyorSpeed` i 100 av 116 — sägs det i källan, och
 enheten tas då från VC:s världsenhet (M-33) i stället för att antas tyst.
 
 ### Massenheten är gram, och det är mätt
@@ -291,7 +291,7 @@ Avbildningen storhet → parameternamn, med träffar:
 | längd | `ConveyorLength` | 63 |
 | bredd | `ConveyorWidth` | 113 |
 | höjd | `ConveyorHeight` | 115 |
-| hastighet | `ConveyorSpeed` | 116 |
+| hastighet | `ConveyorSpeed` | 116 (varav 100 utan `Quantity`) |
 | kapacitet | `Advanced::ConveyorCapacity`, `Advanced::Capacity_Section1` | 89 / 20 |
 
 Resten läses ur strukturen i stället för ur en namngiven variabel:
