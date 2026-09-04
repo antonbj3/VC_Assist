@@ -1,0 +1,1489 @@
+{
+  "task_id": "L-05",
+  "title": "Palletering med lyftbord, handkorning och omsesidig uteslutning",
+  "goal": "Lagga fem lager kolli pa en EUR-pall, sanka lyftbordet ett lager i taget, och halla handkorningen och automatiken atskilda sa att lyftbordet aldrig kommenderas at bada hallen.",
+  "grupp": "L",
+  "bransch": "logistik_pall",
+  "orsak": "Speglar tre missar pa palleteringsceller. Den forsta: handkorningen skrivs som en latchad rorelse i stallet for hall-for-att-kora, sa lyftbordet fortsatter uppat nar operatoren slappt knappen och redan tagit ett steg in mot pallen. Den andra: handkorningen tillats parallellt med automatiken, sa uppat och nedat kan bli hoga i samma scan och kontaktorerna kortsluter varandra. Den tredje: lyftbordets andlage vantas in utan tidsgrans, sa ett bord som fastnat mot en snedstalld pall star kvar tills nagon undrar varfor takten sjunkit.",
+  "prompt": "Bygg en palleteringscell med lyftbord och skriv styrningen till den.\n\nScen: en palleteringsrobot med attkoppigt vakuumgripdon, en ackumulerande rullbana som\nmatar fram kolli, ett lyftbord med EUR-pall, ett pallmagasin och en kedjetransportor som\nfor ut fardiga pallar. Kollit ar 400 x 300 x 250 mm och vager 12,0 kg. Robotens\narbetsradie i cellen ar 2800 mm.\n\nUppgift, automatiken:\n1. Nar ST260_PRT_PRS ar hog och ST260_LAY_CNT ar under 5: satt ST260_RB_START hog.\n2. Vid ST260_RB_DONE: nollstall ST260_RB_START och satt ST260_VAC_ON hog.\n3. Vid ST260_VAC_OK: lagret ar lagt. Nollstall ST260_VAC_ON och satt ST260_LFT_DOWN hog.\n4. Vid ST260_LFT_BOT: nollstall ST260_LFT_DOWN och borja om.\nVid ST260_LAY_CNT lika med 5 ar pallen full och ingen ny cykel far startas.\n\nUppgift, de fyra kraven som gor cellen driftsatt:\n* Omsesidig uteslutning. ST260_LFT_UP och ST260_LFT_DOWN far aldrig sta hoga samtidigt.\n  Bordet har en kontaktor per riktning och tva hoga signaler ar en kortslutning.\n* Lagesvaljaren delar cellen. Nar SYS_AUTO ar hog kor automatiken och handkorningen ar\n  spardd. Nar SYS_AUTO ar lag star automatiken helt still och bara handkorningen finns.\n  Bada lagena far aldrig vara aktiva samtidigt.\n* Handkorning ar hall-for-att-kora. ST260_LFT_UP ska folja ST260_MAN_JOG scan for scan:\n  slapps knappen ska rorelsen upphora i samma scan, inte pa nasta andlage. Handkorningen\n  gar bara uppat och stannar vid ST260_LFT_TOP.\n* Tidsovervakning. Nar lyftbordet ar kommenderat at nagot hall ska ett andlage nas inom\n  4,0 s. Annars ska SYS_ALARM latchas och cellen stanna. Vakten ska falla tidigast 3,8 s\n  och senast 4,4 s efter att rorelsen kommenderats.\n\nVakuumet ST260_VAC_PRS ska ligga mellan 40 och 85 kPa undertryck nar ST260_VAC_ON ar hog.\nUtanfor det har greppet slappt eller en sugkopp sugit fast mot pallkarmen: larma.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga.\n\nTakttiden ar 9,0 s per kolli. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F6",
+    "F15"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "handkorningen latchas i stallet for att folja knappen, sa bordet gar vidare nar knappen slappts",
+    "handkorningen tillats parallellt med automatiken, sa upp och ned blir hoga i samma scan",
+    "automatiken kors aven nar lagesvaljaren star i handlage",
+    "lyftbordets andlage vantas in utan tidsgrans",
+    "vakuumets undertryck lases aldrig, sa ett slappt grepp ser ut som ett lagt lager"
+  ],
+  "antaganden": [
+    {
+      "vad": "lyftvakten 4,0 s",
+      "varde": "4,0 s",
+      "motiv": "ett lyftbord sanker en lagerhojd pa ett par sekunder; 4,0 s lamnar marginal utan att dolja ett bord som fastnat. Talet ar satt, och fonstret 3,8 till 4,4 s i facit gor domen okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "vakuumomradet 40 till 85 kPa undertryck",
+      "varde": "40 till 85 kPa",
+      "motiv": "undre gransen ar satt sa att atta sugkoppar orkar 12 kg med marginal, ovre sa att en fastsugen kopp mot pallkarmen syns; bada talen ar antagna och inte matta mot ett datablad for det har gripdonet"
+    },
+    {
+      "vad": "fem lager per pall",
+      "varde": "5 lager",
+      "motiv": "kollit ar 250 mm hogt, sa fem lager ger 1250 mm plus pallens 144 mm och hamnar under den vanliga lastprofilen; antalet ar satt och inte hamtat ur en kundspec"
+    },
+    {
+      "vad": "kollits matt och massa",
+      "varde": "400 x 300 x 250 mm, 12,0 kg",
+      "motiv": "en halv KLT-modul i kartong med blandat innehall; matten ar valda sa att fyra kolli tacker en EUR-pall och massan ar antagen"
+    },
+    {
+      "vad": "takttiden 9,0 s per kolli",
+      "varde": "9,0 s",
+      "motiv": "en robotcykel plus ett lyftsteg ryms i nio sekunder for en palleteringsrobot i den har storleken; talet ar satt och inte matt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "kolli i kartong",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 250,
+      "massa_kg": 12.0
+    },
+    "arbetsradie_mm": 2800.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Kolli kommer med 9,0 s takt, roboten lagger ett lager i taget och lyftbordet sanks en lagerhojd mellan lagren.",
+      "forvantat": "Fem lager per pall, lyftbordet aldrig kommenderat at bada hallen, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "vac_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST260_VAC_PRS",
+      "beskrivning": "ST260_VAC_PRS faller till 18,0 kPa undertryck medan ST260_VAC_ON ar hog, alltsa under undre gransen 40 kPa.",
+      "forvantat": "For lagt undertryck betyder att en sugkopp tappat tatningen och att kollit kan falla. Styrningen ska larma och stanna innan roboten ror sig vidare."
+    },
+    {
+      "id": "vac_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST260_VAC_PRS",
+      "beskrivning": "ST260_VAC_PRS stiger till 92,0 kPa undertryck, alltsa over ovre gransen 85 kPa.",
+      "forvantat": "For hogt undertryck betyder att en kopp sugit fast mot pallkarmen i stallet for mot kollit. Styrningen ska larma; roboten drar annars med sig pallkarmen."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST260_LAY_CNT",
+      "beskrivning": "ST260_LAY_CNT star kvar pa 0 efter sex lagda lager.",
+      "forvantat": "En lagerraknare som inte rors betyder att lagren staplas pa varandra utan att bordet sanks i takt. Styrningen ska larma och matningen forkastas hellre an rapporteras som en full pall."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST260_LAY_CNT",
+      "beskrivning": "ST260_LAY_CNT nar 5, alltsa pallens hogsta antal lager.",
+      "forvantat": "Vid fem lager ar pallen full. Ingen ny cykel far startas; cellen ska vanta pa att pallen kors ut och raknaren nollstalls."
+    },
+    {
+      "id": "jog_slapps",
+      "typ": "vandning",
+      "signal": "ST260_MAN_JOG",
+      "beskrivning": "Operatoren slapper handkorningsknappen mitt i en uppatrorelse.",
+      "forvantat": "ST260_LFT_UP ska falla i samma scan som knappen. En latchad handkorning fortsatter till andlaget med operatoren kvar vid bordet."
+    },
+    {
+      "id": "lagesvaljaren_slas_om",
+      "typ": "vandning",
+      "signal": "SYS_AUTO",
+      "beskrivning": "Lagesvaljaren slas fran auto till hand mitt i en automatcykel.",
+      "forvantat": "Automatikens alla utsignaler ska nollstallas i samma scan och sekvensen borja om fran noll. Handkorningen far inte arva ett halvfardigt automatlage."
+    }
+  ],
+  "core_outputs": [
+    "ST260_RB_START",
+    "ST260_VAC_ON",
+    "ST260_LFT_UP",
+    "ST260_LFT_DOWN",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_660_180_3150",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_8_sug_80",
+        "count": 1
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_840",
+        "count": 1
+      },
+      {
+        "role": "lyftbord",
+        "uri": "bank://transport/lyftbord",
+        "count": 1
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "pallmagasin",
+        "uri": "bank://station/pallmagasin",
+        "count": 1
+      },
+      {
+        "role": "utmatning",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "lyftbord"
+      },
+      {
+        "from_role": "pallmagasin",
+        "to_role": "lyftbord"
+      },
+      {
+        "from_role": "lyftbord",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "lyftbord",
+        "to_role": "utmatning"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST260_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kolli framme pa inmatningsbanan"
+      },
+      {
+        "name": "ST260_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens plockcykel"
+      },
+      {
+        "name": "ST260_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten star over pallen"
+      },
+      {
+        "name": "ST260_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuumet"
+      },
+      {
+        "name": "ST260_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vakuumvakt, hog nar greppet haller"
+      },
+      {
+        "name": "ST260_VAC_PRS",
+        "dir": "in",
+        "type": "real",
+        "comment": "undertryck i gripdonet, kPa"
+      },
+      {
+        "name": "ST260_LFT_UP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor lyftbordet uppat"
+      },
+      {
+        "name": "ST260_LFT_DOWN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor lyftbordet nedat"
+      },
+      {
+        "name": "ST260_LFT_TOP",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lyftbordet i ovre andlaget"
+      },
+      {
+        "name": "ST260_LFT_BOT",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lyftbordet i nedre andlaget for lagret"
+      },
+      {
+        "name": "ST260_LAY_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal lagda lager pa pallen"
+      },
+      {
+        "name": "ST260_MAN_JOG",
+        "dir": "in",
+        "type": "bool",
+        "comment": "handkorningsknapp, hall for att kora uppat"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "i automatlage: satt ST260_RB_START hog nar ST260_PRT_PRS ar hog och ST260_LAY_CNT ar under 5",
+      "vid ST260_RB_DONE: nollstall ST260_RB_START och satt ST260_VAC_ON hog",
+      "vid ST260_VAC_OK: nollstall ST260_VAC_ON och satt ST260_LFT_DOWN hog",
+      "vid ST260_LFT_BOT: nollstall ST260_LFT_DOWN och borja om",
+      "starta lyftvakten 4,0 s sa fort nagon av lyftriktningarna ar hog",
+      "i handlage: lat ST260_LFT_UP folja ST260_MAN_JOG scan for scan, upp till ST260_LFT_TOP",
+      "nollstall automatikens utsignaler i samma scan som lagesvaljaren lamnar automatlaget"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST260": 4.0
+      },
+      "cycle_s": 9.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST260_LFT_UP och ST260_LFT_DOWN far aldrig sta hoga samtidigt",
+      "handkorningen far aldrig vara aktiv nar SYS_AUTO ar hog",
+      "automatiken far aldrig kommendera nagot nar SYS_AUTO ar lag",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ingen ny cykel nar ST260_LAY_CNT ar 5 eller mer"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 400.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "MOTION",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST260_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST260_LFT_DOWN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST260_LFT_DOWN -> lyftbord *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kolli+pallkarm *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST260_LFT_UP+ST260_LFT_DOWN dt=*ms"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "M-45",
+    "standard": "hall-for-att-kora enligt IEC 60204-1 kapitel 9.2.5 om manoverdon som kraver sammanhangande manovrering, manuell aterstallning efter nodstopp enligt ISO 13850:2015 4.1.4, och TON for lyftvakten enligt IEC 61131-3",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Undertrycket utanfor 40 till 85 kPa nar vakuumet ar pa: antingen har greppet\n   slappt eller sa har en sugkopp fastnat mot pallkarmen. *)\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa lyftbordet: ett andlage ska nas inom 4,0 s. *)\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nST260_LFT_UP := xHand AND ST260_MAN_JOG AND NOT ST260_LFT_TOP;\n\n(* Omsesidig uteslutning: bordet kan inte ga at bada hallen. Uppat vinner bara\n   for att handkorningen aldrig ar aktiv samtidigt som automatiken. *)\nIF ST260_LFT_UP THEN\n    ST260_LFT_DOWN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "ett_lager_i_automatlage",
+        "beskrivning": "Ett kolli plockas och lyftbordet sanks en lagerhojd.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": true,
+              "ST260_VAC_ON": false,
+              "ST260_LFT_UP": false,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "cykeln startar pa narvaron; ingenting annat far vara kommenderat an"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true,
+              "ST260_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": true
+            },
+            "varfor": "vakuumet slas pa forst nar roboten star over pallen"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST260_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST260_VAC_ON": false,
+              "ST260_LFT_DOWN": true,
+              "ST260_LFT_UP": false
+            },
+            "varfor": "lagret ar lagt och bordet ska sankas; uppatriktningen far inte vara hog i samma scan"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST260_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_DOWN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "andlaget stoppar sankningen innan lyftvakten hinner falla"
+          }
+        ]
+      },
+      {
+        "id": "handkorning_ar_hall_for_att_kora",
+        "beskrivning": "Lagesvaljaren i handlage. Knappen halls, slapps och halls igen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": false,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_MAN_JOG": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": true,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "handkorningen gar uppat sa lange knappen halls"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST260_MAN_JOG": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": false
+            },
+            "varfor": "knappen slapps och rorelsen ska upphora i samma scan; en latchad handkorning gar vidare med operatoren kvar vid bordet"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST260_MAN_JOG": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": true
+            },
+            "varfor": "knappen halls igen och bordet gar igen"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST260_LFT_TOP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": false
+            },
+            "varfor": "ovre andlaget stoppar handkorningen aven med knappen kvar nedtryckt"
+          }
+        ]
+      },
+      {
+        "id": "jog_trycks_i_automatlage",
+        "beskrivning": "Handkorningsknappen trycks ned mitt i en automatcykel medan bordet sanks.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true,
+              "ST260_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST260_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST260_MAN_JOG": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": false,
+              "ST260_LFT_DOWN": true
+            },
+            "varfor": "handkorningsknappen ar spardd i automatlage; gar den fram har blir bada lyftriktningarna hoga i samma scan och kontaktorerna kortsluter varandra"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST260_MAN_JOG": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "automatiken_star_still_i_handlage",
+        "beskrivning": "Lagesvaljaren i handlage med kolli framme. Automatiken far inte rora sig.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": false,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true,
+              "ST260_RB_DONE": true,
+              "ST260_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "i handlage star automatiken helt still, aven med alla dess villkor uppfyllda; annars kor cellen med nagon inne i den"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST260_MAN_JOG": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_UP": true,
+              "ST260_LFT_DOWN": false,
+              "ST260_RB_START": false
+            },
+            "varfor": "bara handkorningen finns i handlage, och den gar bara uppat"
+          }
+        ]
+      },
+      {
+        "id": "lagesvaljaren_slas_om_mitt_i",
+        "beskrivning": "Automatcykeln avbryts av att lagesvaljaren gar till handlage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST260_VAC_ON": true
+            },
+            "varfor": "cykeln har natt vakuumsteget"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST260_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST260_VAC_ON": false,
+              "ST260_RB_START": false,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "automatikens alla utsignaler nollstalls i samma scan; ett halvfardigt automatlage far inte lamnas kvar at handkorningen"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": true
+            },
+            "varfor": "tillbaka i automatlage borjar sekvensen om fran noll, inte mitt i"
+          }
+        ]
+      },
+      {
+        "id": "lyftet_fastnar_tidsovervakning",
+        "beskrivning": "ST260_LFT_BOT kommer aldrig. Lyftvakten ska falla i fonstret 3,8 till 4,4 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST260_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST260_LFT_DOWN": true
+            },
+            "varfor": "3,7 s efter att sankningen kommenderats far vakten annu inte ha fallit; en for kort lyftvakt stoppar cellen pa normal drift"
+          },
+          {
+            "t_ms": 5500,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST260_LFT_DOWN": false,
+              "ST260_LFT_UP": false
+            },
+            "varfor": "4,5 s efter kommandot ska vakten ha fallit och bordet sta stilla"
+          },
+          {
+            "t_ms": 5700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att rorelsen upphort"
+          }
+        ]
+      },
+      {
+        "id": "vakuumet_slapper",
+        "beskrivning": "ST260_VAC_PRS faller till 18 kPa medan vakuumet ar pa.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST260_VAC_PRS": 18.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false
+            },
+            "varfor": "under 40 kPa haller atta sugkoppar inte 12 kg; kollit kan falla och cellen ska stanna i stallet for att fortsatta rorelsen"
+          }
+        ]
+      },
+      {
+        "id": "vakuumet_suger_fast",
+        "beskrivning": "ST260_VAC_PRS stiger till 92 kPa medan vakuumet ar pa.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST260_VAC_PRS": 92.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST260_VAC_ON": false
+            },
+            "varfor": "over 85 kPa har en kopp sugit fast mot pallkarmen i stallet for mot kollit, och roboten drar med sig karmen om den far ga vidare"
+          }
+        ]
+      },
+      {
+        "id": "full_pall_startar_ingen_cykel",
+        "beskrivning": "ST260_LAY_CNT star pa 5 och ett nytt kolli kommer.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "pallen ar full; ingen ny cykel far startas, och det ar inget larm utan ett normalt vantelage"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": true
+            },
+            "varfor": "nar en tom pall kommit in och raknaren nollstallts far cellen ga igen"
+          }
+        ]
+      },
+      {
+        "id": "lagerraknaren_star_still",
+        "beskrivning": "ST260_LAY_CNT star kvar pa 0 medan cykler kors. Facit provar att ingen cykel beror pa att raknaren rort sig.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST260_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST260_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST260_LFT_DOWN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "med raknaren pa 0 fortsatter cellen lagga lager; att raknaren star stilla ar ett fel langre upp i kedjan och inte styrningens sak att gissa sig ur"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i en cykel, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false,
+              "ST260_LFT_UP": false,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true,
+              "ST260_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta cellen (ISO 13850:2015 4.1.4: urkopplingen far bara mojliggora omstart, inte utfora den)"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": true
+            },
+            "varfor": "forst kvittensen far ta cellen tillbaka i drift"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "lyftbordet_gar_aldrig_at_bada_hallen",
+        "sekvens": "*",
+        "nar": {
+          "ST260_LFT_UP": true
+        },
+        "kraver": {
+          "ST260_LFT_DOWN": false
+        },
+        "varfor": "bordet har en kontaktor per riktning; tva hoga signaler ar en kortslutning i stallet for en rorelse"
+      },
+      {
+        "namn": "handkorningen_ar_spardd_i_automatlage",
+        "sekvens": "*",
+        "nar": {
+          "SYS_AUTO": true
+        },
+        "kraver": {
+          "ST260_LFT_UP": false
+        },
+        "varfor": "handkorningen far bara finnas i handlage; nar den gar parallellt med automatiken ar bada riktningarna en scan fran varandra"
+      },
+      {
+        "namn": "automatiken_star_still_i_handlage",
+        "sekvens": "*",
+        "nar": {
+          "SYS_AUTO": false
+        },
+        "kraver": {
+          "ST260_RB_START": false,
+          "ST260_VAC_ON": false,
+          "ST260_LFT_DOWN": false
+        },
+        "varfor": "lagesvaljaren ar operatorens enda garanti for att cellen inte startar medan hen star i den"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST260_RB_START": false,
+          "ST260_VAC_ON": false,
+          "ST260_LFT_UP": false,
+          "ST260_LFT_DOWN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larm_stoppar_lyftet",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST260_LFT_DOWN": false,
+          "ST260_RB_START": false
+        },
+        "varfor": "ett larm som lamnar bordet i rorelse ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_robotcykel_per_lager",
+        "sekvens": "ett_lager_i_automatlage",
+        "signal": "ST260_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1400,
+        "antal": 1,
+        "varfor": "ett kolli ska ge exakt en robotcykel; tva betyder att cykeln startas pa niva i stallet for pa flank och att roboten hamtar tomt"
+      },
+      {
+        "namn": "tva_uppatrorelser_pa_tva_knapptryck",
+        "sekvens": "handkorning_ar_hall_for_att_kora",
+        "signal": "ST260_LFT_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1600,
+        "antal": 2,
+        "varfor": "tva knapptryck ska ge tva rorelser; en latchad handkorning ger bara en och slutar aldrig"
+      },
+      {
+        "namn": "ingen_uppatrorelse_i_automatlage",
+        "sekvens": "ett_lager_i_automatlage",
+        "signal": "ST260_LFT_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1400,
+        "antal": 0,
+        "varfor": "i automatlage far handkorningens riktning aldrig kommenderas"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "handkorningen_latchas",
+        "st": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Undertrycket utanfor 40 till 85 kPa nar vakuumet ar pa: antingen har greppet\n   slappt eller sa har en sugkopp fastnat mot pallkarmen. *)\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa lyftbordet: ett andlage ska nas inom 4,0 s. *)\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nIF xHand AND ST260_MAN_JOG THEN\n    ST260_LFT_UP := TRUE;\nEND_IF;\nIF ST260_LFT_TOP OR NOT xHand THEN\n    ST260_LFT_UP := FALSE;\nEND_IF;\n\n(* Omsesidig uteslutning: bordet kan inte ga at bada hallen. Uppat vinner bara\n   for att handkorningen aldrig ar aktiv samtidigt som automatiken. *)\nIF ST260_LFT_UP THEN\n    ST260_LFT_DOWN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Handkorningen satter ST260_LFT_UP pa knappen och nollstaller den forst pa andlaget. Det ser ut att fungera i en provkorning dar operatoren haller knappen hela vagen, och blir farligt forsta gangen hen slapper.",
+        "faller_pa": [
+          "handkorning_ar_hall_for_att_kora@1000ms:ST260_LFT_UP",
+          "flank:tva_uppatrorelser_pa_tva_knapptryck"
+        ]
+      },
+      {
+        "namn": "handkorning_parallellt_med_automatiken",
+        "st": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Undertrycket utanfor 40 till 85 kPa nar vakuumet ar pa: antingen har greppet\n   slappt eller sa har en sugkopp fastnat mot pallkarmen. *)\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa lyftbordet: ett andlage ska nas inom 4,0 s. *)\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nST260_LFT_UP := xHand AND ST260_MAN_JOG AND NOT ST260_LFT_TOP;\n\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Handkorningen tillats aven i automatlage, och den omsesidiga uteslutningen mellan riktningarna tas bort. Sa lange ingen trycker pa knappen under automatik ser cellen felfri ut.",
+        "faller_pa": [
+          "invariant:lyftbordet_gar_aldrig_at_bada_hallen@jog_trycks_i_automatlage",
+          "invariant:handkorningen_ar_spardd_i_automatlage@jog_trycks_i_automatlage",
+          "jog_trycks_i_automatlage@1300ms:ST260_LFT_UP"
+        ]
+      },
+      {
+        "namn": "automatiken_kor_i_handlage",
+        "st": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Undertrycket utanfor 40 till 85 kPa nar vakuumet ar pa: antingen har greppet\n   slappt eller sa har en sugkopp fastnat mot pallkarmen. *)\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa lyftbordet: ett andlage ska nas inom 4,0 s. *)\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nST260_LFT_UP := xHand AND ST260_MAN_JOG AND NOT ST260_LFT_TOP;\n\n(* Omsesidig uteslutning: bordet kan inte ga at bada hallen. Uppat vinner bara\n   for att handkorningen aldrig ar aktiv samtidigt som automatiken. *)\nIF ST260_LFT_UP THEN\n    ST260_LFT_DOWN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret slapper lagesvaljaren, sa automatiken kor vidare aven i handlage. Cellen fungerar perfekt i automatlage och startar av sig sjalv nar nagon staller om till hand for att ga in och rensa.",
+        "faller_pa": [
+          "invariant:automatiken_star_still_i_handlage@automatiken_star_still_i_handlage",
+          "automatiken_star_still_i_handlage@600ms:ST260_LFT_DOWN",
+          "lagesvaljaren_slas_om_mitt_i@1100ms:ST260_VAC_ON"
+        ]
+      },
+      {
+        "namn": "utan_lyftvakt",
+        "st": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Undertrycket utanfor 40 till 85 kPa nar vakuumet ar pa: antingen har greppet\n   slappt eller sa har en sugkopp fastnat mot pallkarmen. *)\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nST260_LFT_UP := xHand AND ST260_MAN_JOG AND NOT ST260_LFT_TOP;\n\n(* Omsesidig uteslutning: bordet kan inte ga at bada hallen. Uppat vinner bara\n   for att handkorningen aldrig ar aktiv samtidigt som automatiken. *)\nIF ST260_LFT_UP THEN\n    ST260_LFT_DOWN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lyftbordets andlage vantas in utan tidsgrans. Ett bord som fastnat mot en snedstalld pall star kvar med kontaktorn dragen och ingen far veta det forran nagon undrar varfor takten sjunkit.",
+        "faller_pa": [
+          "lyftet_fastnar_tidsovervakning@5500ms:SYS_ALARM",
+          "lyftet_fastnar_tidsovervakning@5500ms:ST260_LFT_DOWN"
+        ]
+      },
+      {
+        "namn": "vakuumtrycket_lases_aldrig",
+        "st": "PROGRAM ST260_PALLETERING\nVAR\n    steg        : INT := 0;\n    tmrLyft     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xAuto       : BOOL := FALSE;\n    xHand       : BOOL := FALSE;\n    xLyftRor    : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa lyftbordet: ett andlage ska nas inom 4,0 s. *)\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\n(* Lagesvaljaren delar cellen i tva lagen som aldrig far vara aktiva samtidigt. *)\nxAuto := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxHand := EMG_OK AND AIR_OK AND NOT SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xAuto THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* Ett lager lagt. Sank bordet en lagerhojd. *)\n            ST260_VAC_ON := FALSE;\n            ST260_LFT_DOWN := TRUE;\n            steg := 4;\n        4:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Handkorning ar hall-for-att-kora. Knappen slapps, rorelsen slutar i samma\n   scan. Den far bara ga uppat, och bara nar automatiken star still. *)\nST260_LFT_UP := xHand AND ST260_MAN_JOG AND NOT ST260_LFT_TOP;\n\n(* Omsesidig uteslutning: bordet kan inte ga at bada hallen. Uppat vinner bara\n   for att handkorningen aldrig ar aktiv samtidigt som automatiken. *)\nIF ST260_LFT_UP THEN\n    ST260_LFT_DOWN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar pa vakuumvakten ST260_VAC_OK och laser aldrig sjalva undertrycket. En vakt som hanger hog rapporterar grepp pa ett kolli som redan glidit, och en fastsugen kopp mot pallkarmen syns inte alls.",
+        "faller_pa": [
+          "vakuumet_slapper@1100ms:SYS_ALARM",
+          "vakuumet_suger_fast@1100ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}

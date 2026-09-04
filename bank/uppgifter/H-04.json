@@ -1,0 +1,1157 @@
+{
+  "task_id": "H-04",
+  "title": "Overlamning mellan tva robotar med fullstandig handskakning och kvittensvakt",
+  "goal": "Lamna over en svetsad konsol fran ST310 till ST320 med handskakningen begaran-kvittens-klar-aterstallning, med tidsovervakning pa kvittensen, och utan att nagon av robotarna nagonsin ror sig samtidigt som den andra.",
+  "grupp": "H",
+  "bransch": "svetsning",
+  "orsak": "Speglar tva verkliga missar i robot-till-robot-overlamning. Den forsta: avlamnaren oppnar sitt gripdon nar mottagaren star i lage, i stallet for nar mottagaren bekraftat greppet, sa konsolen faller de fa millimetrarna mellan backarna. Den andra: handskakningen skrivs som en enda bool i stallet for fyra signaler, sa ingen kan skilja pa att mottagaren inte har svarat och att den har svarat och redan aterstallt.",
+  "prompt": "Bygg en overlamningsstation mellan tva robotar och skriv styrningen till den.\n\nScen: ST310 ar en avlamnande hanteringsrobot med elektriskt tvabackat gripdon, ST320 ar\nen mottagande robot med samma sorts gripdon och kraftaterkoppling, och mellan dem finns\nen overlamningszon med en zonvakt. Detaljen ar en svetsad konsol 320 x 180 x 90 mm som\nvager 4,8 kg.\n\nUppgift, handskakningen. Den ar fyra signaler, inte en bool:\n  ST310_HSK_REQ  begaran fran avlamnaren\n  ST310_HSK_ACK  mottagarens kvittens\n  ST310_HSK_DONE mottagaren klar\n  ST310_HSK_RST  avlamnaren aterstaller handskakningen\nBegaran gar hog nar avlamnaren star i overlamningslaget. Aterstallningen gar hog nar\nST310_HSK_DONE kommit, och nollstalls forst nar ST310_HSK_ACK gatt lag igen.\n\nUppgift, sekvensen:\n1. ST310_RB_START till overlamningslaget nar ST310_PRT_PRS ar hog.\n2. Vid ST310_RB_DONE: nollstall ST310_RB_START och satt ST310_HSK_REQ hog.\n3. Vid ST310_HSK_ACK: satt ST320_RB_START hog.\n4. Vid ST320_RB_DONE: nollstall ST320_RB_START och satt ST320_GRP_CLOSE hog.\n5. Forst vid ST320_GRP_CLOSED: satt ST310_GRP_OPEN hog.\n6. Vid ST310_GRP_OPENED och ST310_HSK_DONE: nollstall ST310_HSK_REQ, satt\n   ST310_HSK_RST hog, och nollstall den nar ST310_HSK_ACK gatt lag.\n\nUppgift, de fyra kraven som gor overlamningen driftsatt:\n* Kvittensvakt. Kommer inte ST310_HSK_ACK inom 3,0 s efter att ST310_HSK_REQ gatt hog\n  ska SYS_ALARM latchas och bada robotarna stanna. Vakten ska falla tidigast 2,8 s och\n  senast 3,4 s efter flanken.\n* Omsesidig uteslutning. ST310_RB_START och ST320_RB_START far aldrig sta hoga samtidigt.\n  Bada robotarna nar overlamningszonen.\n* Greppordning. ST310_GRP_OPEN far aldrig ga hog innan ST320_GRP_CLOSED ar hog.\n* Gripkraft. Nar ST320_GRP_CLOSED ar hog ska ST320_GRP_FRC ligga mellan 40 och 260 N.\n  Utanfor det har greppet slappt eller sa klams konsolen sonder: larma och stanna.\n\nZonvakten ST310_ZON_FREE ar lag nar nagon ar i zonen; da far ingen robot kommenderas.\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion, bara vara forreglad av den. Efter spanningspaslag och\nefter ett nodstopp kravs en stigande flank pa SYS_RESET innan nagot far ga.\n\nTakttiden ar 12,0 s per konsol. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F10",
+    "F6"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "avlamnaren oppnar sitt gripdon nar mottagaren star i lage i stallet for nar den bekraftat greppet",
+    "bada robotarna kommenderas samtidigt for att spara takttid, och motes i overlamningszonen",
+    "handskakningen kortas till en bool, sa uteblivet svar och avslutat svar ser likadana ut",
+    "ingen kvittensvakt: uteblir ST310_HSK_ACK star cellen tyst och taktvakten langre fram far skulden"
+  ],
+  "antaganden": [
+    {
+      "vad": "kvittensvakten 3,0 s",
+      "varde": "3,0 s",
+      "motiv": "en mottagande robot som ar ledig svarar pa hundradelar, men den kan sta i slutet av sin egen cykel; 3,0 s ar satt for att rymma det utan att dolja en dod motpart. Fonstret 2,8 till 3,4 s i facit gor domen okanslig for ett scan"
+    },
+    {
+      "vad": "gripkraftsomradet 40 till 260 N",
+      "varde": "40 till 260 N",
+      "motiv": "undre gransen ar satt sa att en konsol pa 4,8 kg inte kan glida ur greppet, ovre sa att godset inte deformeras; bada talen ar antagna och inte matta mot ett datablad for det har gripdonet"
+    },
+    {
+      "vad": "konsolens matt och massa",
+      "varde": "320 x 180 x 90 mm, 4,8 kg",
+      "motiv": "en svetsad plastkonsol i 4 mm gods av den har storleken hamnar kring fem kilo; matten ar antagna for att ge en detalj som kraver tvahandsgrepp men ryms i ett tvabackat gripdon"
+    },
+    {
+      "vad": "takttiden 12,0 s",
+      "varde": "12,0 s",
+      "motiv": "tva robotrorelser, en handskakning och tva gripdonsslag ryms i tolv sekunder med marginal; talet ar satt och inte matt mot en verklig cell"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "svetsad konsol",
+      "l_mm": 320,
+      "b_mm": 180,
+      "h_mm": 90,
+      "massa_kg": 4.8
+    },
+    "arbetsradie_mm": 1550.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Konsoler kommer med 12,0 s takt, bada robotarna ar friska och mottagaren kvitterar inom en halv sekund.",
+      "forvantat": "En overlamning per konsol, gripdonen i ratt ordning, robotarna aldrig i rorelse samtidigt och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "frc_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST320_GRP_FRC",
+      "beskrivning": "ST320_GRP_FRC faller till 22,0 N medan ST320_GRP_CLOSED ar hog, alltsa under undre gransen 40 N.",
+      "forvantat": "En bekraftad stangning med for lag kraft betyder att backarna gatt ihop utan gods emellan, eller att greppet slappt. Styrningen ska larma och stanna innan avlamnaren slapper."
+    },
+    {
+      "id": "frc_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST320_GRP_FRC",
+      "beskrivning": "ST320_GRP_FRC stiger till 310,0 N, alltsa over ovre gransen 260 N.",
+      "forvantat": "For hog kraft deformerar konsolen och doljer sig som ett matt fel langre fram i linjen. Styrningen ska larma och stanna i stallet for att lamna over."
+    },
+    {
+      "id": "ack_uteblir",
+      "typ": "vandning",
+      "signal": "ST310_HSK_ACK",
+      "beskrivning": "ST310_HSK_REQ gar hog men ST310_HSK_ACK kommer aldrig; mottagarens styrning har stannat i ett eget larm.",
+      "forvantat": "Kvittensvakten ska falla mellan 2,8 och 3,4 s, latcha SYS_ALARM och stanna bada robotarna. Avlamnaren far inte slappa konsolen pa en obesvarad begaran."
+    },
+    {
+      "id": "zon_bruten",
+      "typ": "vandning",
+      "signal": "ST310_ZON_FREE",
+      "beskrivning": "Zonvakten bryts mitt i overlamningen darfor att nagon gar in i cellen.",
+      "forvantat": "Bada robotarnas startsignaler ska nollstallas i samma scan, men gripdonen ska sta kvar som de ar: ett gripdon som oppnar pa en zonbrytning tappar konsolen."
+    }
+  ],
+  "core_outputs": [
+    "ST310_RB_START",
+    "ST320_RB_START",
+    "ST310_GRP_OPEN",
+    "ST320_GRP_CLOSE",
+    "ST310_HSK_REQ",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "avlamnare",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "mottagare",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_elektrisk",
+        "count": 2
+      },
+      {
+        "role": "svetsstation",
+        "uri": "bank://station/svetsstation",
+        "count": 1
+      },
+      {
+        "role": "utband",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "zonvakt",
+        "uri": "bank://givare/ljusridla",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "svetsstation",
+        "to_role": "avlamnare"
+      },
+      {
+        "from_role": "avlamnare",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "mottagare",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "avlamnare",
+        "to_role": "mottagare"
+      },
+      {
+        "from_role": "mottagare",
+        "to_role": "utband"
+      },
+      {
+        "from_role": "avlamnare",
+        "to_role": "zonvakt"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST310_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "konsol i avlamnarens gripdon"
+      },
+      {
+        "name": "ST310_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta avlamnaren mot overlamningslaget"
+      },
+      {
+        "name": "ST310_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "avlamnaren star i overlamningslaget"
+      },
+      {
+        "name": "ST310_GRP_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna avlamnarens gripdon"
+      },
+      {
+        "name": "ST310_GRP_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "avlamnarens gripdon helt oppet"
+      },
+      {
+        "name": "ST310_HSK_REQ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "begaran om overlamning till ST320"
+      },
+      {
+        "name": "ST310_HSK_ACK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ST320 kvitterar begaran"
+      },
+      {
+        "name": "ST310_HSK_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ST320 anmaler overlamningen klar"
+      },
+      {
+        "name": "ST310_HSK_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "aterstall handskakningen mot ST320"
+      },
+      {
+        "name": "ST310_ZON_FREE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "overlamningszonen fri, fran zonvakten"
+      },
+      {
+        "name": "ST320_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta mottagaren mot overlamningslaget"
+      },
+      {
+        "name": "ST320_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mottagaren star i overlamningslaget"
+      },
+      {
+        "name": "ST320_GRP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stang mottagarens gripdon"
+      },
+      {
+        "name": "ST320_GRP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mottagarens gripdon haller"
+      },
+      {
+        "name": "ST320_GRP_FRC",
+        "dir": "in",
+        "type": "real",
+        "comment": "mottagarens gripkraft, N"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "satt ST310_RB_START hog nar ST310_PRT_PRS ar hog och zonvakten ar fri",
+      "vid ST310_RB_DONE: nollstall ST310_RB_START och satt ST310_HSK_REQ hog",
+      "starta kvittensvakten 3,0 s pa ST310_HSK_REQ utan ST310_HSK_ACK",
+      "vid ST310_HSK_ACK: satt ST320_RB_START hog, aldrig samtidigt med ST310_RB_START",
+      "vid ST320_RB_DONE: nollstall ST320_RB_START och satt ST320_GRP_CLOSE hog",
+      "forst vid ST320_GRP_CLOSED: satt ST310_GRP_OPEN hog",
+      "vid ST310_GRP_OPENED och ST310_HSK_DONE: nollstall ST310_HSK_REQ och satt ST310_HSK_RST hog",
+      "nollstall ST310_HSK_RST nar ST310_HSK_ACK gatt lag, och borja om"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST310": 3.0
+      },
+      "cycle_s": 12.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST310_RB_START och ST320_RB_START far aldrig sta hoga samtidigt",
+      "ST310_GRP_OPEN far aldrig ga hog innan ST320_GRP_CLOSED ar hog",
+      "ingen robot far kommenderas nar ST310_ZON_FREE ar lag",
+      "ingen robot far kommenderas nar EMG_OK ar lag",
+      "SYS_ALARM hogt stoppar bada robotarna"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 300.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "MOTION",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 25.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST310_HSK_REQ RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST320_GRP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST310_GRP_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST310_HSK_REQ -> ST310_HSK_ACK *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST avlamnare+mottagare *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST310_RB_START+ST320_RB_START dt=*ms"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION avlamnare x mottagare t=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "M-45",
+    "standard": "handskakningen begaran-kvittens-klar-aterstallning enligt bankens egen konvention i bank/README.md, kvittensvakten som TON enligt IEC 61131-3, och manuell aterstallning efter nodstopp enligt IEC 60204-1",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST310_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrAck      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\n(* Ett brutet nodstopp kraver manuell kvittering. EMG_OK lases bara. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Griptkraften utanfor 40 till 260 N nar mottagaren haller: antingen har\n   greppet slappt eller sa klammer den sonder detaljen. *)\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa kvittensen: mottagaren ska svara inom 3,0 s. *)\ntmrAck(IN := ST310_HSK_REQ AND NOT ST310_HSK_ACK, PT := T#3s);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND ST310_ZON_FREE\n               AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    (* Gripdonen star kvar som de ar: att slappa en detalj darfor att\n       zonvakten brots ar precis hur detaljer hamnar pa golvet. *)\n    IF NOT EMG_OK OR xLarm THEN\n        steg := 0;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            IF ST310_PRT_PRS THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n        3:\n            ST320_RB_START := TRUE;\n            steg := 4;\n        4:\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Avlamnaren slapper FORST nar mottagaren bekraftat greppet. *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST310_GRP_OPENED THEN\n                steg := 7;\n            END_IF;\n        7:\n            IF ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "hel_overlamning",
+        "beskrivning": "En konsol lamnas over hela vagen med fullstandig handskakning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": true,
+              "ST320_RB_START": false,
+              "ST310_HSK_REQ": false
+            },
+            "varfor": "avlamnaren gar mot overlamningslaget; mottagaren star still och ingen begaran har skickats an"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": false,
+              "ST310_HSK_REQ": true,
+              "ST320_RB_START": false
+            },
+            "varfor": "begaran skickas forst nar avlamnaren star i lage, och mottagaren far inte rora sig pa en obesvarad begaran"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST310_HSK_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST320_RB_START": true,
+              "ST310_RB_START": false,
+              "ST320_GRP_CLOSE": false
+            },
+            "varfor": "mottagaren far rora sig forst efter kvittensen, och aldrig samtidigt som avlamnaren"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST320_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST320_RB_START": false,
+              "ST320_GRP_CLOSE": true,
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "mottagaren stanger sitt gripdon; avlamnaren haller kvar tills greppet ar bekraftat"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "forst nar mottagaren bekraftat greppet far avlamnaren slappa"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST310_GRP_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST310_HSK_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST310_HSK_REQ": false,
+              "ST310_HSK_RST": true
+            },
+            "varfor": "klarsignalen tar ner begaran och satter aterstallningen; en handskakning som inte aterstalls gar bara att kora en gang"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST310_HSK_ACK": false,
+              "ST310_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST310_HSK_RST": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "aterstallningen slapper nar motparten tagit ner sin kvittens, och cellen star redo for nasta konsol"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_uteblir",
+        "beskrivning": "ST310_HSK_ACK kommer aldrig. Kvittensvakten ska falla i fonstret 2,8 till 3,4 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST310_HSK_REQ": true
+            },
+            "varfor": "2,7 s efter begaran far vakten annu inte ha fallit; en for kort kvittensvakt stoppar cellen varje gang motparten ar upptagen"
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST310_HSK_REQ": false,
+              "ST320_RB_START": false,
+              "ST310_RB_START": false
+            },
+            "varfor": "3,5 s efter begaran ska vakten ha fallit, larmet sta latchat och bada robotarna sta stilla"
+          },
+          {
+            "t_ms": 4300,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "avlamnaren far under inga omstandigheter slappa konsolen pa en obesvarad begaran"
+          }
+        ]
+      },
+      {
+        "id": "zonvakten_bryts_mitt_i",
+        "beskrivning": "Zonvakten bryts efter kvittensen. Robotarna ska sta, gripdonen sta kvar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST310_HSK_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST310_ZON_FREE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST320_RB_START": false,
+              "ST310_RB_START": false
+            },
+            "varfor": "ingen robot far kommenderas in i en zon dar nagon star"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "gripdonet ska sta kvar som det ar; ett gripdon som oppnar pa en zonbrytning tappar konsolen i huvudet pa den som star dar"
+          }
+        ]
+      },
+      {
+        "id": "gripkraft_over_granesn",
+        "beskrivning": "ST320_GRP_FRC gar till 310 N nar greppet ar bekraftat.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST310_HSK_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST320_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST310_GRP_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST320_GRP_FRC": 310.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "over 260 N deformeras konsolen, och felet dyker upp som ett mattfel tre stationer senare"
+          }
+        ]
+      },
+      {
+        "id": "gripkraft_under_gransen",
+        "beskrivning": "ST320_GRP_FRC faller till 22 N nar greppet ar bekraftat.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST310_HSK_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST320_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST310_GRP_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST320_GRP_FRC": 22.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "under 40 N haller greppet inte 4,8 kg; en bekraftad stangning utan kraft betyder att backarna gick ihop tomma"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i overlamningen, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": false,
+              "ST320_RB_START": false,
+              "ST310_HSK_REQ": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderad rorelse i samma scan"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true,
+              "ST310_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": false,
+              "ST320_RB_START": false
+            },
+            "varfor": "ett aterstallt nodstopp ar ingen startorder (IEC 60204-1); cellen star tills nagon kvitterar"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "robotarna_ror_sig_aldrig_samtidigt",
+        "sekvens": "*",
+        "nar": {
+          "ST310_RB_START": true
+        },
+        "kraver": {
+          "ST320_RB_START": false
+        },
+        "varfor": "bada robotarna nar overlamningszonen; tva samtidiga rorelser dit ar en kollision som bara undviks av att den ena rakar vara langsammare"
+      },
+      {
+        "namn": "greppordningen_haller",
+        "sekvens": "*",
+        "nar": {
+          "ST310_GRP_OPEN": true
+        },
+        "kraver": {
+          "ST320_GRP_CLOSED": true
+        },
+        "varfor": "avlamnaren far slappa forst nar mottagaren bekraftat greppet; slapper den pa lagesbekraftelsen faller konsolen de fa millimetrarna mellan backarna"
+      },
+      {
+        "namn": "ingen_rorelse_i_bruten_zon",
+        "sekvens": "*",
+        "nar": {
+          "ST310_ZON_FREE": false
+        },
+        "kraver": {
+          "ST310_RB_START": false,
+          "ST320_RB_START": false
+        },
+        "varfor": "zonvakten ar cellens forregling mot att nagon star i overlamningslaget"
+      },
+      {
+        "namn": "ingen_rorelse_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST310_RB_START": false,
+          "ST320_RB_START": false,
+          "ST310_HSK_REQ": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larm_stoppar_bada",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST310_RB_START": false,
+          "ST320_RB_START": false
+        },
+        "varfor": "ett larm som lamnar en robot i rorelse ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_begaran_per_konsol",
+        "sekvens": "hel_overlamning",
+        "signal": "ST310_HSK_REQ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "en konsol ska ge exakt en begaran; tva betyder att handskakningen aterstalls mitt i och begars om"
+      },
+      {
+        "namn": "ett_gripdonsslag_per_konsol",
+        "sekvens": "hel_overlamning",
+        "signal": "ST320_GRP_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "mottagaren ska stanga sitt gripdon en gang; tva stangningar betyder att greppet slappte och togs om utan att nagon larmade"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "slapper_pa_lagesbekraftelsen",
+        "st": "PROGRAM ST310_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrAck      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\n(* Ett brutet nodstopp kraver manuell kvittering. EMG_OK lases bara. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Griptkraften utanfor 40 till 260 N nar mottagaren haller: antingen har\n   greppet slappt eller sa klammer den sonder detaljen. *)\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa kvittensen: mottagaren ska svara inom 3,0 s. *)\ntmrAck(IN := ST310_HSK_REQ AND NOT ST310_HSK_ACK, PT := T#3s);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND ST310_ZON_FREE\n               AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    (* Gripdonen star kvar som de ar: att slappa en detalj darfor att\n       zonvakten brots ar precis hur detaljer hamnar pa golvet. *)\n    IF NOT EMG_OK OR xLarm THEN\n        steg := 0;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            IF ST310_PRT_PRS THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n        3:\n            ST320_RB_START := TRUE;\n            steg := 4;\n        4:\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            ST310_GRP_OPEN := TRUE;\n            steg := 6;\n        6:\n            IF ST310_GRP_OPENED THEN\n                steg := 7;\n            END_IF;\n        7:\n            IF ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Avlamnaren oppnar sitt gripdon sa fort mottagaren star i lage, utan att vanta pa ST320_GRP_CLOSED. Sekvensen ser riktig ut och gar igenom i normal drift dar gripdonet rakar hinna stanga forst, men konsolen ar utan grepp under gripdonets hela slagtid.",
+        "faller_pa": [
+          "invariant:greppordningen_haller@hel_overlamning",
+          "hel_overlamning@1300ms:ST310_GRP_OPEN"
+        ]
+      },
+      {
+        "namn": "bada_robotarna_startas_samtidigt",
+        "st": "PROGRAM ST310_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrAck      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\n(* Ett brutet nodstopp kraver manuell kvittering. EMG_OK lases bara. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Griptkraften utanfor 40 till 260 N nar mottagaren haller: antingen har\n   greppet slappt eller sa klammer den sonder detaljen. *)\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa kvittensen: mottagaren ska svara inom 3,0 s. *)\ntmrAck(IN := ST310_HSK_REQ AND NOT ST310_HSK_ACK, PT := T#3s);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND ST310_ZON_FREE\n               AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    (* Gripdonen star kvar som de ar: att slappa en detalj darfor att\n       zonvakten brots ar precis hur detaljer hamnar pa golvet. *)\n    IF NOT EMG_OK OR xLarm THEN\n        steg := 0;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            IF ST310_PRT_PRS THEN\n                ST310_RB_START := TRUE;\n                ST320_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n        3:\n            ST320_RB_START := TRUE;\n            steg := 4;\n        4:\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Avlamnaren slapper FORST nar mottagaren bekraftat greppet. *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST310_GRP_OPENED THEN\n                steg := 7;\n            END_IF;\n        7:\n            IF ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bada robotarna kommenderas mot overlamningslaget i samma scan for att spara takttid. Det gar bra sa lange den ena ar langsammare, och blir en kollision den dagen cykeltiderna jamnar ut sig.",
+        "faller_pa": [
+          "invariant:robotarna_ror_sig_aldrig_samtidigt@hel_overlamning",
+          "hel_overlamning@500ms:ST320_RB_START"
+        ]
+      },
+      {
+        "namn": "utan_kvittensvakt",
+        "st": "PROGRAM ST310_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrAck      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\n(* Ett brutet nodstopp kraver manuell kvittering. EMG_OK lases bara. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Griptkraften utanfor 40 till 260 N nar mottagaren haller: antingen har\n   greppet slappt eller sa klammer den sonder detaljen. *)\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND ST310_ZON_FREE\n               AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    (* Gripdonen star kvar som de ar: att slappa en detalj darfor att\n       zonvakten brots ar precis hur detaljer hamnar pa golvet. *)\n    IF NOT EMG_OK OR xLarm THEN\n        steg := 0;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            IF ST310_PRT_PRS THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n        3:\n            ST320_RB_START := TRUE;\n            steg := 4;\n        4:\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Avlamnaren slapper FORST nar mottagaren bekraftat greppet. *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST310_GRP_OPENED THEN\n                steg := 7;\n            END_IF;\n        7:\n            IF ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Handskakningen ar fullstandig men obevakad. Uteblir ST310_HSK_ACK star avlamnaren kvar med konsolen i handen i all evighet, och ingen far veta det forran taktvakten langre fram i linjen slar.",
+        "faller_pa": [
+          "kvittensen_uteblir@4100ms:SYS_ALARM",
+          "kvittensen_uteblir@4100ms:ST310_HSK_REQ"
+        ]
+      },
+      {
+        "namn": "gripkraften_provas_inte",
+        "st": "PROGRAM ST310_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrAck      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\n(* Ett brutet nodstopp kraver manuell kvittering. EMG_OK lases bara. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsovervakning pa kvittensen: mottagaren ska svara inom 3,0 s. *)\ntmrAck(IN := ST310_HSK_REQ AND NOT ST310_HSK_ACK, PT := T#3s);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND ST310_ZON_FREE\n               AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    (* Gripdonen star kvar som de ar: att slappa en detalj darfor att\n       zonvakten brots ar precis hur detaljer hamnar pa golvet. *)\n    IF NOT EMG_OK OR xLarm THEN\n        steg := 0;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            IF ST310_PRT_PRS THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n        3:\n            ST320_RB_START := TRUE;\n            steg := 4;\n        4:\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Avlamnaren slapper FORST nar mottagaren bekraftat greppet. *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST310_GRP_OPENED THEN\n                steg := 7;\n            END_IF;\n        7:\n            IF ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar pa ST320_GRP_CLOSED och laser aldrig ST320_GRP_FRC. Ett gripdon som gatt ihop utan gods emellan rapporterar stangt lage, och avlamnaren slapper en konsol som ingen haller.",
+        "faller_pa": [
+          "gripkraft_under_gransen@1900ms:SYS_ALARM",
+          "gripkraft_over_granesn@1900ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}

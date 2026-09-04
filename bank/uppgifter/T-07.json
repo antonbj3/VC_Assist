@@ -1,0 +1,1080 @@
+{
+  "task_id": "T-07",
+  "title": "Indexerad matare med tidsovervakning och kvitterad omstart",
+  "goal": "Mata insatsdetaljer ett index i taget till formsprutmaskinen, fella pa tidsovervakning nar indexet fastnar, och kraeva en manuell kvittens innan stationen gar igen efter ett nodstopp.",
+  "grupp": "T",
+  "bransch": "plastformsprutning",
+  "orsak": "Speglar den vanligaste driftsattningsmissen pa matarstationer: styrningen vantar pa ST050_IDX_DONE utan tidsgrans, sa en matare som fastnat star kvar och ingen far veta det forran taktvakten langre fram i linjen slar. Den andra missen ar allvarligare: driftsvillkoret skrivs som EMG_OK AND AIR_OK, sa stationen startar av sig sjalv i samma stund nagon drar upp nodstoppsdonet, med en operator kvar i cellen.",
+  "prompt": "Bygg en indexerad matarstation for insatsdetaljer till en formsprutmaskin och skriv\nstyrningen till den.\n\nScen: en indexerad matare med 300 mm slaglangd, en pneumatisk klamma som haller\ndetaljen under indexet, en encoder som ger matarens lage i mm, en induktiv givare\nsom ser att en detalj ligger pa plats, och ett utmatningsband. Detaljen ar en\nmetallbussning 40 x 40 x 25 mm som vager 0,12 kg.\n\nUppgift, sekvensen:\n1. Stationen far ga forst nar EMG_OK, AIR_OK och SYS_AUTO ar hoga OCH ingen\n   omstartskvittens star ute. Efter spanningspaslag star kvittensen ute: satt\n   ST050_CNV_RUN hog forst efter en stigande flank pa SYS_RESET.\n2. Nar ST050_PRT_PRS gar hog: satt ST050_CLP_CLOSE hog.\n3. Nar ST050_CLP_CLOSED bekraftar: satt ST050_IDX_START hog.\n4. Nar ST050_IDX_DONE kommer: nollstall ST050_IDX_START och ST050_CLP_CLOSE.\n\nUppgift, de fyra kraven som gor stationen driftsatt:\n* Tidsovervakning. Kommer inte ST050_IDX_DONE inom 2,0 s efter att\n  ST050_IDX_START gatt hog ska SYS_ALARM ga hog och stationen stanna. Larmet ska\n  falla tidigast 1,9 s och senast 2,4 s efter flanken.\n* Latchat larm. SYS_ALARM ska sta kvar tills nagon kvitterar. Ett larm som slapper\n  av sig sjalvt nar orsaken forsvinner har ingen sett.\n* Kvitterad omstart. Larm och omstartskvittens nollstalls bara pa en stigande flank\n  pa SYS_RESET, och bara nar EMG_OK och AIR_OK ar hoga. Att nodstoppet aterstalls\n  far ALDRIG i sig starta stationen. Tryckluft som kommer tillbaka far daremot\n  aterta driften utan kvittens: AIR_OK ar inget skyddsstopp.\n* Forregling. ST050_IDX_START far aldrig sta hog nar ST050_CLP_CLOSED ar lag.\n  Slapper klamman mitt i indexet ar detaljen los: larma och stanna.\n\nEncodern ST050_IDX_POS ska ligga mellan 0 och 300 mm. Ett varde utanfor det\narbetsomradet ar ett givarfel och ska larma.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas. Din logik far\ninte innehalla nagon sakerhetsfunktion; den ska vara forreglad av den.\n\nTakten ar 5,0 s per detalj. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F8",
+    "F15"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "styrningen vantar pa ST050_IDX_DONE utan tidsgrans, sa en fastnad matare star kvar tyst",
+    "driftsvillkoret ar EMG_OK AND AIR_OK, sa stationen startar sjalv nar nodstoppet aterstalls",
+    "SYS_ALARM speglar tidsvakten direkt i stallet for att latchas, sa larmet blinkar till och forsvinner",
+    "ST050_IDX_START star kvar hog nar klamman slappt, sa den losa detaljen dras med i indexet"
+  ],
+  "antaganden": [
+    {
+      "vad": "tidsgransen 2,0 s for indexet",
+      "varde": "2,0 s",
+      "motiv": "matarens slaglangd ar 300 mm och en indexerad matare gar den pa storleksordningen en sekund; 2,0 s lamnar marginal utan att dolja ett verkligt stopp. Talet ar satt, inte matt, och fonstret 1,9 till 2,4 s i facit ar valt sa att ett scan hit eller dit inte avgor domen"
+    },
+    {
+      "vad": "arbetsomradet 0 till 300 mm",
+      "varde": "0 till 300 mm",
+      "motiv": "slaglangden ar antagen ur vad en indexerad matare for smadetaljer brukar ha; gransen anvands bara for att gora encodern till en riktig gransvardessignal"
+    },
+    {
+      "vad": "detaljens matt och massa",
+      "varde": "40 x 40 x 25 mm, 0,12 kg",
+      "motiv": "en metallbussning som insatsdetalj i formsprutning; matten ar antagna och massan raknad ur en massiv stalbussning av ungefar den storleken"
+    },
+    {
+      "vad": "takten 5,0 s per detalj",
+      "varde": "5,0 s",
+      "motiv": "formsprutcykeln styr takten och ligger typiskt over fem sekunder for en liten detalj; talet ar satt och inte matt mot en verklig maskin"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "metallbussning som insatsdetalj",
+      "l_mm": 40,
+      "b_mm": 40,
+      "h_mm": 25,
+      "massa_kg": 0.12
+    },
+    "arbetsradie_mm": 1800.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer kommer med 5,0 s takt, klamman stanger, indexet gar och ST050_IDX_DONE kommer inom en sekund.",
+      "forvantat": "En indexrorelse per detalj, ingen ST050_IDX_START utan bekraftad klamma, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "pos_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST050_IDX_POS",
+      "beskrivning": "Encodern rapporterar -5,0 mm, alltsa under arbetsomradets nedre grans 0 mm.",
+      "forvantat": "Ett lage matarens mekanik inte kan sta i ar ett givarfel. Styrningen ska larma och stanna i stallet for att fortsatta indexera pa ett varde den inte kan lita pa."
+    },
+    {
+      "id": "pos_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST050_IDX_POS",
+      "beskrivning": "Encodern rapporterar 340,0 mm, alltsa over slaglangden 300 mm.",
+      "forvantat": "Ett lage bortom slaglangden betyder att encodern glidit eller tappat nollan. Styrningen ska larma och stanna; en matare som indexerar pa ett falskt lage kor in i sitt eget andlage."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST050_IDX_DONE",
+      "beskrivning": "ST050_IDX_START gar hog men ST050_IDX_DONE kommer aldrig; matarens andlagesgivare har lossnat.",
+      "forvantat": "Tidsovervakningen ska falla mellan 1,9 och 2,4 s, latcha SYS_ALARM och stanna stationen. Styrningen far inte anta att indexet gick igenom."
+    },
+    {
+      "id": "nodstopp_aterstalls",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "Nagon slar nodstopp mitt i ett index och drar upp donet igen tio sekunder senare, utan att trycka pa aterstallningsknappen.",
+      "forvantat": "Stationen ska sta kvar stilla. Ett aterstallt nodstopp ar inte en startorder; forst en stigande flank pa SYS_RESET far ta stationen tillbaka i drift."
+    },
+    {
+      "id": "klamman_slapper",
+      "typ": "vandning",
+      "signal": "ST050_CLP_CLOSED",
+      "beskrivning": "ST050_CLP_CLOSED faller mitt under indexet, exempelvis pa ett tryckfall i klamcylindern.",
+      "forvantat": "ST050_IDX_START ska nollstallas i samma scan och SYS_ALARM ga hog. En los detalj som foljer med indexet hamnar under formverktyget."
+    }
+  ],
+  "core_outputs": [
+    "ST050_IDX_START",
+    "ST050_CLP_CLOSE",
+    "ST050_CNV_RUN",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "matare",
+        "uri": "bank://transport/indexerad_matare",
+        "count": 1
+      },
+      {
+        "role": "klamma",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "lagesgivare",
+        "uri": "bank://givare/lagesgivare_encoder",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "formsprutmaskin",
+        "uri": "bank://station/formsprutmaskin",
+        "count": 1
+      },
+      {
+        "role": "utmatningsband",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "matare",
+        "to_role": "klamma"
+      },
+      {
+        "from_role": "matare",
+        "to_role": "lagesgivare"
+      },
+      {
+        "from_role": "matare",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "matare",
+        "to_role": "formsprutmaskin"
+      },
+      {
+        "from_role": "formsprutmaskin",
+        "to_role": "utmatningsband"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST050_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utmatningsbandet gar"
+      },
+      {
+        "name": "ST050_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "induktiv givare, hog nar en detalj ligger i mataren"
+      },
+      {
+        "name": "ST050_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera klamman till stangt lage"
+      },
+      {
+        "name": "ST050_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar klamman haller"
+      },
+      {
+        "name": "ST050_IDX_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera ett index"
+      },
+      {
+        "name": "ST050_IDX_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar indexet ar fardigt"
+      },
+      {
+        "name": "ST050_IDX_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "matarens lage fran encodern, mm"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute; ingenting gar forran SYS_RESET fatt en stigande flank",
+      "satt ST050_CNV_RUN hog nar EMG_OK, AIR_OK och SYS_AUTO ar hoga och inget larm star",
+      "vanta pa ST050_PRT_PRS och satt darefter ST050_CLP_CLOSE hog",
+      "vanta pa ST050_CLP_CLOSED och satt darefter ST050_IDX_START hog",
+      "starta tidsovervakningen 2,0 s pa ST050_IDX_START",
+      "vanta pa ST050_IDX_DONE och nollstall da ST050_IDX_START och ST050_CLP_CLOSE",
+      "vid tidsoverdrag, lagesfel eller slappt klamma: latcha SYS_ALARM och stanna stationen",
+      "nollstall larm och omstartskvittens bara pa stigande flank pa SYS_RESET"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST050": 2.0
+      },
+      "cycle_s": 5.0,
+      "tolerance_s": 0.25
+    },
+    "interlocks": [
+      "ST050_IDX_START far aldrig sta hog nar ST050_CLP_CLOSED ar lag",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ST050_CNV_RUN far aldrig sta hog nar SYS_ALARM ar hog",
+      "ett aterstallt nodstopp far aldrig i sig starta stationen"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 720.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST050_PRT_PRS RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST050_CLP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST050_IDX_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST050_IDX_START -> matare *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST050 *s req=2.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST050 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST klamma+matare *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST050 *s req=2.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST050_IDX_START+ST050_CLP_CLOSE dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "M-45",
+    "standard": "IEC 60204-1 om manuell aterstallning efter nodstopp och IEC 61131-3 TON for tidsovervakningen; sekvensen ar stationens egen",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST050_INDEXMATARE\nVAR\n    steg        : INT := 0;\n    tmrIndex    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* --- alla larmkallor samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan stationen far ga\n   igen. Att slappa upp nodstoppsdonet startar ingenting. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Lagesgivaren utanfor arbetsomradet 0 till 300 mm ar i sig ett larm: en\n   matare som rapporterar ett lage den inte kan sta i har tappat sin givare. *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakningen. Indexet ska vara klart inom 2,0 s; kommer inte\n   ST050_IDX_DONE har nagot fastnat och stationen far inte fortsatta. *)\ntmrIndex(IN := ST050_IDX_START, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Klamman far inte slappa mitt i rorelsen. Gor den det ar detaljen los. *)\nIF steg = 2 AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstoppet ar\n   aterstallt. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_IDX_START := FALSE;\n    ST050_CLP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    ST050_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST050_IDX_START := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST050_CLP_CLOSED THEN\n                ST050_IDX_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST050_CLP_CLOSED THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_kraver_kvittens",
+        "beskrivning": "Spanning pa med allt friskt. Stationen far inte starta av sig sjalv.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; en station som startar sig sjalv vid uppstart ar den klassiska driftsattningsmissen"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false,
+              "ST050_IDX_START": false
+            },
+            "varfor": "efter kvittensen ska bandet ga, men ingenting far ha indexerat"
+          }
+        ]
+      },
+      {
+        "id": "en_detalj_hela_vagen",
+        "beskrivning": "En detalj klamms, indexeras och slapps. Exakt ett index ska ske.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST050_CLP_CLOSE": true,
+              "ST050_IDX_START": false
+            },
+            "varfor": "klamman ska stanga pa narvaron, men indexet far inte starta forran andlagesgivaren bekraftat att den haller"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST050_IDX_START": true,
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "forst nar klamman bekraftat haller far indexet kommenderas"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_IDX_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST050_IDX_START": false,
+              "ST050_CLP_CLOSE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "kvittensen fran andlaget ska nollstalla bade index och klamma, och ingen tidsvakt far ha last ut"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST050_CLP_CLOSED": false,
+              "ST050_IDX_DONE": false,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "ST050_IDX_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "stationen ska sta redo for nasta detalj, inte i larm"
+          }
+        ]
+      },
+      {
+        "id": "index_fastnar_tidsovervakning",
+        "beskrivning": "ST050_IDX_DONE kommer aldrig. Tidsvakten ska falla i fonstret 1,9 till 2,4 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST050_IDX_START": true
+            },
+            "varfor": "1,8 s efter indexflanken far tidsvakten annu inte ha fallit; en for kort tidsgrans stoppar linjen pa normal drift"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_IDX_START": false,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "2,4 s efter indexflanken ska tidsvakten ha fallit, larmet sta och stationen vara stoppad"
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST050_PRT_PRS": false,
+              "ST050_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat: det slapper inte for att orsaken forsvann"
+          },
+          {
+            "t_ms": 3500,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "en stigande flank pa SYS_RESET, och bara den, tar stationen tillbaka"
+          },
+          {
+            "t_ms": 3800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_utan_automatisk_omstart",
+        "beskrivning": "Nodstopp mitt i indexet, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_IDX_START": false,
+              "ST050_CLP_CLOSE": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true,
+              "ST050_PRT_PRS": false,
+              "ST050_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_IDX_START": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; stationen ska sta kvar tills nagon kvitterar (IEC 60204-1, manuell aterstallning)"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "forst kvittensen far ta stationen tillbaka i drift"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "klamman_slapper_under_index",
+        "beskrivning": "ST050_CLP_CLOSED faller mitt i indexet. Detaljen ar los.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_IDX_START": false,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "en los detalj far inte foljda med indexet in under formverktyget"
+          }
+        ]
+      },
+      {
+        "id": "lagesgivare_over_arbetsomradet",
+        "beskrivning": "Encodern rapporterar 340 mm, over slaglangden 300 mm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_IDX_POS": 340.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "ett lage bortom slaglangden ar ett givarfel, inte ett driftlage"
+          }
+        ]
+      },
+      {
+        "id": "lagesgivare_under_arbetsomradet",
+        "beskrivning": "Encodern rapporterar -5,0 mm, under nedre gransen 0 mm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_IDX_POS": -5.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "ett negativt lage kan mataren inte sta i; encodern har tappat nollan"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_och_kommer_tillbaka",
+        "beskrivning": "AIR_OK faller och kommer tillbaka. Det ar inget skyddsstopp och kraver ingen kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST050_CLP_CLOSE": false,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "utan tryckluft haller klamman inte, sa ingenting far kommenderas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "tryckluft ar ingen skyddsfunktion; driften far atertas utan kvittens, till skillnad fran efter ett nodstopp"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "inget_index_utan_klamma",
+        "sekvens": "*",
+        "nar": {
+          "ST050_IDX_START": true
+        },
+        "kraver": {
+          "ST050_CLP_CLOSED": true
+        },
+        "varfor": "en detalj som inte ar klammad foljer inte med indexet, den glider - och hamnar under formverktyget"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST050_IDX_START": false,
+          "ST050_CLP_CLOSE": false,
+          "ST050_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen, men den maste vara forreglad av den: inget don kommenderat medan kretsen ar bruten"
+      },
+      {
+        "namn": "larm_stoppar_stationen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST050_CNV_RUN": false
+        },
+        "varfor": "ett larm som lamnar bandet igang ar ett larm ingen behover bry sig om"
+      },
+      {
+        "namn": "ingen_klamma_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST050_CLP_CLOSE": false
+        },
+        "varfor": "att kommendera en pneumatisk klamma utan tryck ger ett kommando utan rorelse, och logiken tror sedan att detaljen halls"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ett_index_per_detalj",
+        "sekvens": "en_detalj_hela_vagen",
+        "signal": "ST050_IDX_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1400,
+        "antal": 1,
+        "varfor": "en detalj ska ge exakt en indexrorelse; tva flanker betyder att styrningen kommenderar pa niva i stallet for pa flank"
+      },
+      {
+        "namn": "ingen_klamma_utan_detalj",
+        "sekvens": "kallstart_kraver_kvittens",
+        "signal": "ST050_CLP_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 600,
+        "antal": 0,
+        "varfor": "utan detalj i mataren far klamman inte stanga; en klamma som stanger tomt slar ihop backarna"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "utan_tidsovervakning",
+        "st": "PROGRAM ST050_INDEXMATARE\nVAR\n    steg        : INT := 0;\n    tmrIndex    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* --- alla larmkallor samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan stationen far ga\n   igen. Att slappa upp nodstoppsdonet startar ingenting. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Lagesgivaren utanfor arbetsomradet 0 till 300 mm ar i sig ett larm: en\n   matare som rapporterar ett lage den inte kan sta i har tappat sin givare. *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Klamman far inte slappa mitt i rorelsen. Gor den det ar detaljen los. *)\nIF steg = 2 AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstoppet ar\n   aterstallt. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_IDX_START := FALSE;\n    ST050_CLP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    ST050_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST050_IDX_START := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST050_CLP_CLOSED THEN\n                ST050_IDX_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST050_CLP_CLOSED THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Losningen ar i ovrigt riktig men saknar tidsovervakningen pa ST050_IDX_START. En matare som fastnar star kvar for evigt utan att nagon far veta det, och stationen ser ut att arbeta.",
+        "faller_pa": [
+          "index_fastnar_tidsovervakning@3000ms:SYS_ALARM",
+          "index_fastnar_tidsovervakning@3000ms:ST050_IDX_START",
+          "index_fastnar_tidsovervakning@3000ms:ST050_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "automatisk_omstart_efter_nodstopp",
+        "st": "PROGRAM ST050_INDEXMATARE\nVAR\n    steg        : INT := 0;\n    tmrIndex    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* --- alla larmkallor samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lagesgivaren utanfor arbetsomradet 0 till 300 mm ar i sig ett larm: en\n   matare som rapporterar ett lage den inte kan sta i har tappat sin givare. *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakningen. Indexet ska vara klart inom 2,0 s; kommer inte\n   ST050_IDX_DONE har nagot fastnat och stationen far inte fortsatta. *)\ntmrIndex(IN := ST050_IDX_START, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Klamman far inte slappa mitt i rorelsen. Gor den det ar detaljen los. *)\nIF steg = 2 AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstoppet ar\n   aterstallt. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm;\n\nIF NOT xDriftsklar THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_IDX_START := FALSE;\n    ST050_CLP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    ST050_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST050_IDX_START := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST050_CLP_CLOSED THEN\n                ST050_IDX_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST050_CLP_CLOSED THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret ar EMG_OK AND AIR_OK AND SYS_AUTO utan omstartskvittens. Stationen startar i samma scan som nodstoppsdonet dras upp, med en operator kvar i cellen.",
+        "faller_pa": [
+          "nodstopp_utan_automatisk_omstart@1800ms:ST050_CNV_RUN",
+          "kallstart_kraver_kvittens@200ms:ST050_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "index_fortsatter_nar_klamman_slapper",
+        "st": "PROGRAM ST050_INDEXMATARE\nVAR\n    steg        : INT := 0;\n    tmrIndex    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* --- alla larmkallor samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan stationen far ga\n   igen. Att slappa upp nodstoppsdonet startar ingenting. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Lagesgivaren utanfor arbetsomradet 0 till 300 mm ar i sig ett larm: en\n   matare som rapporterar ett lage den inte kan sta i har tappat sin givare. *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakningen. Indexet ska vara klart inom 2,0 s; kommer inte\n   ST050_IDX_DONE har nagot fastnat och stationen far inte fortsatta. *)\ntmrIndex(IN := ST050_IDX_START, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstoppet ar\n   aterstallt. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_IDX_START := FALSE;\n    ST050_CLP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    ST050_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST050_IDX_START := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST050_CLP_CLOSED THEN\n                ST050_IDX_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST050_CLP_CLOSED THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Losningen kontrollerar klamman nar indexet startas men inte medan det pagar. Slapper klamman fortsatter indexet med en los detalj, och forreglingen ar i praktiken bara ett startvillkor.",
+        "faller_pa": [
+          "invariant:inget_index_utan_klamma@klamman_slapper_under_index",
+          "klamman_slapper_under_index@1200ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "larmet_slapper_av_sig_sjalvt",
+        "st": "PROGRAM ST050_INDEXMATARE\nVAR\n    steg        : INT := 0;\n    tmrIndex    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* --- alla larmkallor samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan stationen far ga\n   igen. Att slappa upp nodstoppsdonet startar ingenting. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Lagesgivaren utanfor arbetsomradet 0 till 300 mm ar i sig ett larm: en\n   matare som rapporterar ett lage den inte kan sta i har tappat sin givare. *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakningen. Indexet ska vara klart inom 2,0 s; kommer inte\n   ST050_IDX_DONE har nagot fastnat och stationen far inte fortsatta. *)\ntmrIndex(IN := ST050_IDX_START, PT := T#2s);\nxLarm := tmrIndex.Q;\n\n(* Klamman far inte slappa mitt i rorelsen. Gor den det ar detaljen los. *)\nIF steg = 2 AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstoppet ar\n   aterstallt. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_IDX_START := FALSE;\n    ST050_CLP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    ST050_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST050_IDX_START := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST050_CLP_CLOSED THEN\n                ST050_IDX_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST050_CLP_CLOSED THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "SYS_ALARM speglar tidsvaktens utgang direkt i stallet for att latchas. Nar tidsvakten faller nollstalls ST050_IDX_START, tidsvakten slapper, och larmet forsvinner igen inom ett scan. Ingen operator hinner se det.",
+        "faller_pa": [
+          "index_fastnar_tidsovervakning@3300ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}

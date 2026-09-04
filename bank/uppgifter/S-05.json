@@ -1,0 +1,1919 @@
+{
+  "task_id": "S-05",
+  "title": "PackML-tillstandsmaskin pa en hojdsorterande kontrollstation",
+  "goal": "Kora sorteringsstationen genom PackML:s tillstandsmaskin i Production Mode, med ratt overgang for varje kommando, ratt vag ut ur ABORTED, och bandet igang bara i EXECUTE.",
+  "grupp": "S",
+  "bransch": "kvalitetskontroll",
+  "orsak": "Speglar tre missar som gar igen nar en maskin ska tala PackML mot en overordnad linjestyrning. Den forsta: ABORT genvagas till STOPPED, sa ABORTING och ABORTED aldrig uppstar och linjestyrningen ser ett normalt stopp dar det var ett maskinfel. Den andra: RESET accepteras ur ABORTED, sa maskinen tas i drift utan att nagon atgardat felet. Den tredje: bandet kopplas till en samlad driftsflagga i stallet for till EXECUTE, sa det gar aven i STARTING och HELD.",
+  "prompt": "Bygg en hojdsorterande kontrollstation ST200 och skriv PackML-styrningen till den.\n\nScen: ett bandtransportband, en hojdmatande givare som ger hojden i mm, en 90-graders\nvandare som sorterar av for hoga enheter till en kassationslada. Detaljen ar ett lock till\nen kopplingsdosa, 120 x 80 x 35 mm, 0,09 kg.\n\nUppgift: styrningen ska implementera tillstandsmaskinen i ISA-TR88.00.02 (PackML),\nProduction Mode, med de sjutton tillstanden och deras standardnummer i PackTags v3.0:\n  1 Clearing  2 Stopped   3 Starting     4 Idle        5 Suspended  6 Execute\n  7 Stopping  8 Aborting  9 Aborted     10 Holding    11 Held      12 Unholding\n 13 Suspending 14 Unsuspending 15 Resetting 16 Completing 17 Complete\nNumret skrivs ut pa ST200_PML_STATE. Efter spanningspaslag star maskinen i STOPPED (2).\n\nKommandot kommer som ett tal pa ST200_PML_CMD, CntrlCmd 1 till 9:\n  1 Reset  2 Start  3 Stop  4 Hold  5 Unhold  6 Suspend  7 Unsuspend  8 Abort  9 Clear\nLinjestyrningen skriver kommandot och nollstaller det sedan till 0. Ett kommando som inte\nar giltigt i det aktuella tillstandet ska inte flytta maskinen alls. Talen 0 och 10 och\nuppat ar inga kommandon och ska ignoreras.\n\nDe verkande tillstanden lamnas pa State Complete: en stigande flank pa ST200_PML_SC\nbetyder att det aktuella verkande tillstandets arbete ar klart. Overgangarna ar\nResetting till Idle, Starting till Execute, Execute till Completing, Completing till\nComplete, Holding till Held, Unholding till Execute, Suspending till Suspended,\nUnsuspending till Execute, Stopping till Stopped, Aborting till Aborted och Clearing\ntill Stopped.\n\nFyra krav som facit provar sarskilt:\n* ABORT far aldrig genvagas. Den gar till ABORTING, och forst pa State Complete till\n  ABORTED. ABORT ar giltigt i alla tillstand utom ABORTING och ABORTED.\n* Enda vagen ut ur ABORTED ar CLEAR, som ger CLEARING och pa State Complete STOPPED.\n  RESET och STOP gor ingenting i ABORTED.\n* STOP ar ogiltigt i STOPPING, STOPPED, ABORTING, ABORTED och CLEARING.\n* ST200_CNV_RUN far vara hog ENBART i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar\n  drift.\n\nEtt maskinfel ska ta maskinen till ABORTING oavsett vilket tillstand den star i: brutet\nEMG_OK, eller en hojd ST200_HGT_MM utanfor matomradet 0 till 250 mm. Felet nollstalls\nforst nar orsaken ar borta och CLEAR ges i ABORTED.\n\nI EXECUTE ska ST200_DIV_OPEN vara hog for enheter over 120,0 mm och lag annars. SYS_ALARM\nar hog i ABORTING och ABORTED. EMG_OK kommer fran en certifierad sakerhets-PLC och ska\nbara lasas; din logik far inte innehalla nagon sakerhetsfunktion.\n\nTakttiden ar 2,0 s per enhet. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5",
+    "F8"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "ABORT genvagas till STOPPED, sa ABORTING och ABORTED aldrig uppstar",
+    "RESET accepteras ur ABORTED, sa maskinen tas i drift utan att felet atgardats",
+    "STOP accepteras i ABORTING och ABORTED och kastar om abortsekvensen",
+    "bandet kopplas till en samlad driftsflagga i stallet for till EXECUTE och gar i STARTING",
+    "HOLD och SUSPEND behandlas som samma sak, sa internt och externt stopp inte gar att skilja"
+  ],
+  "antaganden": [
+    {
+      "vad": "matomradet 0 till 250 mm",
+      "varde": "0 till 250 mm",
+      "motiv": "hojdgivarens matomrade ar antaget; det behovs for att gora ST200_HGT_MM till en gransvardessignal och for att ge ett maskinfel som inte ar nodstoppet"
+    },
+    {
+      "vad": "sorteringsgransen 120,0 mm",
+      "varde": "120,0 mm",
+      "motiv": "locket ar 35 mm hogt, sa en enhet over 120 mm ar en felstaplad eller felvand enhet; gransen ar satt och inte matt mot en verklig produktkatalog"
+    },
+    {
+      "vad": "takttiden 2,0 s per enhet",
+      "varde": "2,0 s",
+      "motiv": "en hojdmatning och en vandarrorelse ryms i tva sekunder; talet ar satt for att ge stationen en kapacitet att jamfora mot och ar inte matt"
+    },
+    {
+      "vad": "lockets matt och massa",
+      "varde": "120 x 80 x 35 mm, 0,09 kg",
+      "motiv": "ett lock till en kopplingsdosa i plast av den har storleken vager under hundra gram; matten ar antagna"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "lock till kopplingsdosa",
+      "l_mm": 120,
+      "b_mm": 80,
+      "h_mm": 35,
+      "massa_kg": 0.09
+    },
+    "arbetsradie_mm": 1200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Linjestyrningen kor RESET, START, later stationen ga en produktionsorder och avslutar med State Complete till COMPLETING och COMPLETE.",
+      "forvantat": "Tillstanden ska folja ISA-TR88.00.02:s Production Mode-matris exakt, och ST200_CNV_RUN ska vara hog enbart under EXECUTE."
+    },
+    {
+      "id": "cmd_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST200_PML_CMD",
+      "beskrivning": "Linjestyrningen skriver 0 pa ST200_PML_CMD, alltsa Undefined, under normal drift.",
+      "forvantat": "0 ar inget kommando i PackTags och far inte flytta maskinen. Tillstandet ska sta kvar oforandrat tills ett giltigt kommando kommer."
+    },
+    {
+      "id": "cmd_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST200_PML_CMD",
+      "beskrivning": "Linjestyrningen skriver 12 pa ST200_PML_CMD, alltsa over det hogsta giltiga kommandot 9.",
+      "forvantat": "Ett tal utanfor 1 till 9 ar inget kommando och ska ignoreras. Maskinen far inte gissa vilket kommando som avsags."
+    },
+    {
+      "id": "hgt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST200_HGT_MM",
+      "beskrivning": "Hojdgivaren rapporterar -12,0 mm, alltsa under matomradets nedre grans 0 mm.",
+      "forvantat": "En negativ hojd ar ett givarfel. Maskinen ska ga till ABORTING oavsett vilket tillstand den star i, och SYS_ALARM ga hog."
+    },
+    {
+      "id": "hgt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST200_HGT_MM",
+      "beskrivning": "Hojdgivaren rapporterar 310,0 mm, alltsa over matomradets ovre grans 250 mm.",
+      "forvantat": "En hojd over matomradet ar ett givarfel och inte en hog enhet. Maskinen ska ga till ABORTING, inte sortera av enheten som for hog."
+    },
+    {
+      "id": "reset_ur_aborted",
+      "typ": "vandning",
+      "signal": "ST200_PML_CMD",
+      "beskrivning": "Nagon skickar RESET medan maskinen star i ABORTED, i tron att det ar samma sak som att kvittera.",
+      "forvantat": "RESET ar ogiltigt i ABORTED och far inte flytta maskinen. Enda vagen ut ar CLEAR efter att felet atgardats; annars tas maskinen i drift med felet kvar."
+    },
+    {
+      "id": "clear_utan_atgard",
+      "typ": "vandning",
+      "signal": "ST200_HGT_MM",
+      "beskrivning": "CLEAR ges i ABORTED medan hojdgivaren fortfarande star utanfor matomradet.",
+      "forvantat": "Maskinen far ga till CLEARING, men maskinfelet star kvar och ska omedelbart ta den till ABORTING igen. Ett kvitterat men oatgardat fel far inte se ut som ett atgardat fel."
+    }
+  ],
+  "core_outputs": [
+    "ST200_PML_STATE",
+    "ST200_CNV_RUN",
+    "ST200_DIV_OPEN",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "band",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "hojdgivare",
+        "uri": "bank://givare/kamera_3d_bin",
+        "count": 1
+      },
+      {
+        "role": "vandare",
+        "uri": "bank://transport/vandare_90",
+        "count": 1
+      },
+      {
+        "role": "kassation",
+        "uri": "bank://station/kassationslada",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "band",
+        "to_role": "hojdgivare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "band",
+        "to_role": "vandare"
+      },
+      {
+        "from_role": "vandare",
+        "to_role": "kassation"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST200_PML_CMD",
+        "dir": "in",
+        "type": "int",
+        "comment": "PackML CntrlCmd 1..9 fran linjestyrningen"
+      },
+      {
+        "name": "ST200_PML_SC",
+        "dir": "in",
+        "type": "bool",
+        "comment": "State Complete: det verkande tillstandets arbete ar klart"
+      },
+      {
+        "name": "ST200_PML_STATE",
+        "dir": "out",
+        "type": "int",
+        "comment": "PackML StateCurrent 1..17"
+      },
+      {
+        "name": "ST200_HGT_MM",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt hojd i mm fran hojdgivaren"
+      },
+      {
+        "name": "ST200_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandet gar"
+      },
+      {
+        "name": "ST200_DIV_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "vandaren sorterar av enheten till kassation"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm, hog i ABORTING och ABORTED"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star ST200_PML_STATE pa 2, STOPPED",
+      "RESET i STOPPED ger RESETTING, och State Complete ger IDLE",
+      "START i IDLE ger STARTING, och State Complete ger EXECUTE",
+      "State Complete i EXECUTE ger COMPLETING, och darefter COMPLETE",
+      "HOLD i EXECUTE ger HOLDING och sedan HELD; UNHOLD ger UNHOLDING och ater EXECUTE",
+      "SUSPEND i EXECUTE ger SUSPENDING och sedan SUSPENDED; UNSUSPEND ger UNSUSPENDING och ater EXECUTE",
+      "STOP ger STOPPING och sedan STOPPED, utom i STOPPING, STOPPED, ABORTING, ABORTED och CLEARING",
+      "ABORT ger ABORTING och sedan ABORTED, giltigt i alla tillstand utom ABORTING och ABORTED",
+      "CLEAR i ABORTED ger CLEARING och sedan STOPPED",
+      "ett maskinfel ger ABORTING oavsett tillstand",
+      "ST200_CNV_RUN ar hog enbart i EXECUTE"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST200": 0.1
+      },
+      "cycle_s": 2.0,
+      "tolerance_s": 0.06
+    },
+    "interlocks": [
+      "ST200_CNV_RUN far vara hog enbart nar ST200_PML_STATE ar 6",
+      "ST200_DIV_OPEN far vara hog enbart nar ST200_PML_STATE ar 6",
+      "inget band far ga nar EMG_OK ar lag",
+      "RESET och STOP far inte flytta maskinen ur ABORTED"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1800.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST200_CNV_RUN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST200_DIV_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST200_DIV_OPEN -> vandare *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST200 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST vandare+band *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SAFETY",
+        "template": "COLLISION lock x vandare t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST200_CNV_RUN+ST200_DIV_OPEN dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "M-45",
+    "standard": "ISA-TR88.00.02 (PackML) Production Mode: tillstandsnumren 1..17 ur PackTags v3.0, kommandona CntrlCmd 1..9, och overgangsmatrisen i TR88.00.02 kapitel 6.1",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 13;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "hel_produktionscykel",
+        "beskrivning": "STOPPED - RESET - RESETTING - IDLE - START - STARTING - EXECUTE - COMPLETING - COMPLETE - RESET - RESETTING - IDLE.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 60,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 2,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "efter spanningspaslag star maskinen i STOPPED (2)"
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 15
+            },
+            "varfor": "RESET i STOPPED ger RESETTING (15), inte IDLE direkt"
+          },
+          {
+            "t_ms": 460,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 4,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "State Complete i RESETTING ger IDLE (4); bandet gar inte i IDLE"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 660,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 3,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "START i IDLE ger STARTING (3); STARTING ar inte drift, sa bandet far inte ga an"
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6,
+              "ST200_CNV_RUN": true
+            },
+            "varfor": "State Complete i STARTING ger EXECUTE (6), och forst da gar bandet"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1060,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 16,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "State Complete i EXECUTE ger COMPLETING (16); ordern ar slut och bandet ska sta"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 17
+            },
+            "varfor": "State Complete i COMPLETING ger COMPLETE (17)"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1460,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 15
+            },
+            "varfor": "RESET ar giltigt i COMPLETE och ger RESETTING"
+          },
+          {
+            "t_ms": 1660,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 4
+            },
+            "varfor": "och State Complete tar maskinen tillbaka till IDLE"
+          }
+        ]
+      },
+      {
+        "id": "hold_ar_internt_suspend_ar_externt",
+        "beskrivning": "HOLD ger HOLDING och HELD; UNHOLD ger UNHOLDING och EXECUTE. Sedan SUSPEND, som ar en annan gren.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_PML_CMD": 4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1060,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 10,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "HOLD i EXECUTE ger HOLDING (10); internt villkor, inte externt"
+          },
+          {
+            "t_ms": 1260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 11
+            },
+            "varfor": "State Complete i HOLDING ger HELD (11)"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1460,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 12
+            },
+            "varfor": "UNHOLD i HELD ger UNHOLDING (12), inte EXECUTE direkt"
+          },
+          {
+            "t_ms": 1660,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6,
+              "ST200_CNV_RUN": true
+            },
+            "varfor": "State Complete i UNHOLDING ger EXECUTE"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST200_PML_CMD": 6
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1860,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 13
+            },
+            "varfor": "SUSPEND i EXECUTE ger SUSPENDING (13) - en annan gren an HOLD; HOLD ar internt villkor, SUSPEND externt"
+          },
+          {
+            "t_ms": 2060,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 5,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "State Complete i SUSPENDING ger SUSPENDED (5); en svalt maskin ar inte i drift"
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST200_PML_CMD": 7
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 14
+            },
+            "varfor": "UNSUSPEND i SUSPENDED ger UNSUSPENDING (14)"
+          },
+          {
+            "t_ms": 2460,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6,
+              "ST200_CNV_RUN": true
+            },
+            "varfor": "och State Complete ger EXECUTE igen"
+          }
+        ]
+      },
+      {
+        "id": "abort_ur_execute_och_vagen_tillbaka",
+        "beskrivning": "ABORT ger ABORTING och ABORTED. RESET och STOP ska inte gora nagot dar. CLEAR ar enda vagen ut.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_PML_CMD": 8
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1060,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 8,
+              "SYS_ALARM": true,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "ABORT far aldrig genvagas till STOPPED; den gar till ABORTING (8)"
+          },
+          {
+            "t_ms": 1260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 9,
+              "SYS_ALARM": true
+            },
+            "varfor": "State Complete i ABORTING ger ABORTED (9)"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 9
+            },
+            "varfor": "RESET ar ogiltigt i ABORTED och far inte flytta maskinen; annars tas den i drift utan att nagon atgardat felet"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST200_PML_CMD": 3
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 9
+            },
+            "varfor": "STOP ar ogiltigt i ABORTED och far inte kasta om abortsekvensen"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST200_PML_CMD": 9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2060,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 1
+            },
+            "varfor": "CLEAR i ABORTED ger CLEARING (1) - enda vagen ut"
+          },
+          {
+            "t_ms": 2260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 2,
+              "SYS_ALARM": false
+            },
+            "varfor": "State Complete i CLEARING ger STOPPED (2), och larmet slapper"
+          }
+        ]
+      },
+      {
+        "id": "ogiltiga_kommandon_flyttar_ingenting",
+        "beskrivning": "0 och 12 pa ST200_PML_CMD, samt UNHOLD i EXECUTE. Ingenting far handa.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "maskinen star i EXECUTE innan de ogiltiga kommandona provas"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "0 ar Undefined i PackTags och ar inget kommando"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_PML_CMD": 12
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "12 ligger over det hogsta giltiga kommandot 9 och ska ignoreras"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "UNHOLD ar giltigt bara i HELD; i EXECUTE ska det inte gora nagot"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST200_PML_CMD": 7
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "UNSUSPEND ar giltigt bara i SUSPENDED"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST200_PML_CMD": 9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 6,
+              "ST200_CNV_RUN": true
+            },
+            "varfor": "CLEAR ar giltigt bara i ABORTED; maskinen ska sta kvar i EXECUTE"
+          }
+        ]
+      },
+      {
+        "id": "maskinfel_hojd_over_matomradet",
+        "beskrivning": "Hojden gar till 310 mm i EXECUTE. Maskinfel ska ge ABORTING oavsett tillstand.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_HGT_MM": 310.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 8,
+              "SYS_ALARM": true,
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "ett maskinfel tar maskinen till ABORTING utan kommando; det ar inte en hog enhet utan ett givarfel"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1260,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 9
+            },
+            "varfor": "och State Complete ger ABORTED"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 8,
+              "SYS_ALARM": true
+            },
+            "varfor": "CLEAR med felet kvar tar maskinen till CLEARING, men maskinfelet star kvar och tar den direkt tillbaka till ABORTING"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 9
+            },
+            "varfor": "maskinen star i ABORTED med orsaken atgardad, men star kvar tills CLEAR ges"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST200_PML_CMD": 9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2160,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 1
+            },
+            "varfor": "nu tar CLEAR maskinen till CLEARING"
+          },
+          {
+            "t_ms": 2360,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 2,
+              "SYS_ALARM": false
+            },
+            "varfor": "och vidare till STOPPED; forst nu ar maskinen ren"
+          }
+        ]
+      },
+      {
+        "id": "maskinfel_hojd_under_matomradet",
+        "beskrivning": "Hojden gar till -12 mm i EXECUTE.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_HGT_MM": -12.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 8,
+              "SYS_ALARM": true
+            },
+            "varfor": "en negativ hojd ar ett givarfel och ska ge ABORTING, inte en sorteringsdom"
+          }
+        ]
+      },
+      {
+        "id": "nodstoppet_bryts_i_execute",
+        "beskrivning": "EMG_OK faller i EXECUTE.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST200_PML_STATE": 8,
+              "ST200_CNV_RUN": false,
+              "SYS_ALARM": true
+            },
+            "varfor": "ett brutet nodstopp ar ett maskinfel i PackML-mening och ska ge ABORTING; bandet ska sta i samma scan"
+          }
+        ]
+      },
+      {
+        "id": "sortering_i_execute",
+        "beskrivning": "En hog enhet i EXECUTE ska ge ST200_DIV_OPEN, en lag ska inte.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST200_HGT_MM": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST200_DIV_OPEN": true,
+              "ST200_PML_STATE": 6
+            },
+            "varfor": "en enhet over 120,0 mm sorteras av i EXECUTE"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST200_HGT_MM": 60.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST200_DIV_OPEN": false
+            },
+            "varfor": "en enhet under gransen far inte sorteras av"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST200_PML_SC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST200_HGT_MM": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST200_DIV_OPEN": false,
+              "ST200_PML_STATE": 11
+            },
+            "varfor": "i HELD far vandaren inte rora sig, hur hog enheten an ar"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "bandet_gar_bara_i_execute",
+        "sekvens": "*",
+        "nar": {
+          "ST200_CNV_RUN": true
+        },
+        "kraver": {
+          "ST200_PML_STATE": 6
+        },
+        "varfor": "EXECUTE ar det enda tillstandet som ar drift; ett band som gar i STARTING eller HELD gor tillstandsmaskinen till dekoration"
+      },
+      {
+        "namn": "vandaren_ror_sig_bara_i_execute",
+        "sekvens": "*",
+        "nar": {
+          "ST200_DIV_OPEN": true
+        },
+        "kraver": {
+          "ST200_PML_STATE": 6
+        },
+        "varfor": "en vandare som slar till i HELD sorterar av en enhet ingen bad om"
+      },
+      {
+        "namn": "inget_band_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST200_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larmet_speglar_abortgrenen",
+        "sekvens": "*",
+        "nar": {
+          "ST200_CNV_RUN": true
+        },
+        "kraver": {
+          "SYS_ALARM": false
+        },
+        "varfor": "SYS_ALARM ar hog i ABORTING och ABORTED; att bandet gar samtidigt betyder att larmet och tillstandet raknats fram ur olika kallor"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_bandstart_per_order",
+        "sekvens": "hel_produktionscykel",
+        "signal": "ST200_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1700,
+        "antal": 1,
+        "varfor": "en produktionsorder ska ge exakt en overgang in i EXECUTE; tva betyder att maskinen passerat EXECUTE en gang for mycket"
+      },
+      {
+        "namn": "tva_bandstarter_over_hold_och_suspend",
+        "sekvens": "hold_ar_internt_suspend_ar_externt",
+        "signal": "ST200_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2500,
+        "antal": 3,
+        "varfor": "EXECUTE nas tre ganger: fran STARTING, fran UNHOLDING och fran UNSUSPENDING"
+      },
+      {
+        "namn": "ingen_bandstart_efter_abort",
+        "sekvens": "abort_ur_execute_och_vagen_tillbaka",
+        "signal": "ST200_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 1000,
+        "till_ms": 2400,
+        "antal": 0,
+        "varfor": "efter ABORT far bandet aldrig starta igen utan att maskinen gatt hela vagen genom CLEARING, STOPPED, RESETTING, IDLE och STARTING"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "abort_genvagas_till_stopped",
+        "st": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 13;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 2;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ABORT tar maskinen direkt till STOPPED. Sekvensen ser rimlig ut och maskinen stannar, men ABORTING och ABORTED uppstar aldrig, sa den overordnade linjestyrningen ser ett normalt stopp dar det var ett maskinfel och startar om utan ingrepp.",
+        "faller_pa": [
+          "abort_ur_execute_och_vagen_tillbaka@1060ms:ST200_PML_STATE",
+          "abort_ur_execute_och_vagen_tillbaka@1060ms:SYS_ALARM",
+          "abort_ur_execute_och_vagen_tillbaka@1260ms:ST200_PML_STATE"
+        ]
+      },
+      {
+        "namn": "reset_tar_maskinen_ur_aborted",
+        "st": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 13;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "RESET accepteras i ABORTED och ger RESETTING. Det ar den bekvamaste av alla genvagar och tar maskinen tillbaka i drift utan att nagon atgardat felet; TR88 sager att enda vagen ut ur ABORTED gar genom CLEAR efter manuellt ingrepp.",
+        "faller_pa": [
+          "abort_ur_execute_och_vagen_tillbaka@1500ms:ST200_PML_STATE"
+        ]
+      },
+      {
+        "namn": "stop_kastar_om_abortsekvensen",
+        "st": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 13;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1;\n        ELSIF kmd = 3 THEN tillstand := 7; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "STOP accepteras i ABORTING och ABORTED. Maskinen hamnar da i STOPPING och sedan STOPPED, och abortsekvensen avbryts halvvags - felet ar kvar men tillstandet sager normalt stopp.",
+        "faller_pa": [
+          "abort_ur_execute_och_vagen_tillbaka@1800ms:ST200_PML_STATE"
+        ]
+      },
+      {
+        "namn": "bandet_gar_redan_i_starting",
+        "st": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 13;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand >= 3 AND tillstand <= 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST200_CNV_RUN kopplas till ett intervall av tillstandsnummer i stallet for till EXECUTE. Bandet gar da aven i STARTING, IDLE och SUSPENDED. Det ser ratt ut i en normalkorning eftersom EXECUTE ingar i intervallet.",
+        "faller_pa": [
+          "invariant:bandet_gar_bara_i_execute@hel_produktionscykel",
+          "hel_produktionscykel@460ms:ST200_CNV_RUN",
+          "hel_produktionscykel@660ms:ST200_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "hold_och_suspend_ar_samma_gren",
+        "st": "PROGRAM ST200_PACKML\nVAR\n    tillstand : INT := 2;\n    trigSc    : R_TRIG;\n    xMaskinfel: BOOL := FALSE;\n    kmd       : INT := 0;\n    xOmradeOk : BOOL := FALSE;\nEND_VAR\n\n(* Tillstandsnumren ar PackTags v3.0 / ISA-TR88.00.02:\n   1 Clearing  2 Stopped   3 Starting     4 Idle       5 Suspended\n   6 Execute   7 Stopping  8 Aborting     9 Aborted   10 Holding\n  11 Held     12 Unholding 13 Suspending 14 Unsuspending\n  15 Resetting 16 Completing 17 Complete\n   Kommandona ar CntrlCmd 1..9:\n   1 Reset 2 Start 3 Stop 4 Hold 5 Unhold 6 Suspend 7 Unsuspend 8 Abort 9 Clear *)\n\ntrigSc(CLK := ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := ST200_HGT_MM >= 0.0 AND ST200_HGT_MM <= 250.0;\n\n(* CLEAR i ABORTED nollstaller maskinfelet, men bara nar orsaken ar borta.\n   TR88: vagen ut ur ABORTED gar bara genom CLEAR efter manuellt ingrepp. *)\nIF tillstand = 9 AND kmd = 9 AND EMG_OK AND xOmradeOk THEN\n    xMaskinfel := FALSE;\nEND_IF;\n\n(* ABORTING kan nas nar som helst pa ett maskinfel, inte bara pa kommando. *)\nIF NOT EMG_OK OR NOT xOmradeOk THEN\n    xMaskinfel := TRUE;\nEND_IF;\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE tillstand OF\n    1:  (* Clearing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    2:  (* Stopped *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\n    3:  (* Starting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    4:  (* Idle *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 2 THEN tillstand := 3; END_IF;\n    5:  (* Suspended *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 7 THEN tillstand := 14; END_IF;\n    6:  (* Execute *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 4 THEN tillstand := 10;\n        ELSIF kmd = 6 THEN tillstand := 10;\n        ELSIF trigSc.Q THEN tillstand := 16; END_IF;\n    7:  (* Stopping *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF trigSc.Q THEN tillstand := 2; END_IF;\n    8:  (* Aborting *)\n        IF trigSc.Q THEN tillstand := 9; END_IF;\n    9:  (* Aborted *)\n        IF kmd = 9 THEN tillstand := 1; END_IF;\n    10: (* Holding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 11; END_IF;\n    11: (* Held *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 5 THEN tillstand := 12; END_IF;\n    12: (* Unholding *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    13: (* Suspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 5; END_IF;\n    14: (* Unsuspending *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 6; END_IF;\n    15: (* Resetting *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 4; END_IF;\n    16: (* Completing *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF trigSc.Q THEN tillstand := 17; END_IF;\n    17: (* Complete *)\n        IF kmd = 8 THEN tillstand := 8;\n        ELSIF kmd = 3 THEN tillstand := 7;\n        ELSIF kmd = 1 THEN tillstand := 15; END_IF;\nEND_CASE;\n\nST200_PML_STATE := tillstand;\n\n(* Bandet gar bara i EXECUTE. Varken STARTING, HELD eller SUSPENDED ar drift. *)\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "SUSPEND leder till HOLDING i stallet for SUSPENDING. Maskinen stannar bade nar den svalter och nar den har ett internt fel, men linjestyrningen kan inte langre skilja pa ett externt och ett internt villkor, och OEE-rakningen laggs pa fel konto.",
+        "faller_pa": [
+          "hold_ar_internt_suspend_ar_externt@1860ms:ST200_PML_STATE",
+          "hold_ar_internt_suspend_ar_externt@2060ms:ST200_PML_STATE"
+        ]
+      }
+    ]
+  }
+}

@@ -414,6 +414,87 @@ def test_lintern_faller_varje_kod_den_lutar_sig_mot(bank, kod, bryt):
     assert kod in koder, "väntade %s, fick %s" % (kod, sorted(koder) or "inget alls")
 
 
+# ------------------------------------------------ M33: sparfacit, tillagt av M-45
+
+def _med_sparfacit(bank):
+    """T-07 ar den forsta uppgiften med sparfacit. Den giltiga posten provas
+    for sig: en linter som avvisar allt klarar annars varje fallning nedan."""
+    return copy.deepcopy(bank["T-07"].data)
+
+
+def test_en_giltig_uppgift_med_sparfacit_slapps_igenom(bank):
+    assert _koder(_med_sparfacit(bank), bank) == set()
+
+
+def _flytta_krav_intill_en_andring(post):
+    """Ett krav som ligger ett scan efter en insignalandring mater hur manga
+    scan implementationen rakar ta pa sig, inte om styrlogiken ar riktig."""
+    sekv = post["facit_spar"]["sekvenser"][0]
+    satt = [s for s in sekv["steg"] if s["satt"]][0]
+    sekv["steg"].append({"t_ms": satt["t_ms"] + 20, "satt": {},
+                         "krav": {"ST050_CNV_RUN": False}, "varfor": "for nara"})
+
+
+TRASIGT_SPARFACIT = [
+    ("saknat falt", lambda p: p["facit_spar"].pop("motbevis")),
+    ("inget motbevis", lambda p: p["facit_spar"].update({"motbevis": []})),
+    ("motbevis utan namngiven brist",
+     lambda p: p["facit_spar"]["motbevis"][0].update({"faller_pa": []})),
+    ("motbevis utan kod",
+     lambda p: p["facit_spar"]["motbevis"][0].update({"st": "   "})),
+    ("tom referens", lambda p: p["facit_spar"].update({"referens": ""})),
+    ("harkomst utan matning",
+     lambda p: p["facit_spar"].update({"harkomst": "kanns rimligt"})),
+    ("standard som inte namnger nagot",
+     lambda p: p["facit_spar"].update({"standard": ""})),
+    ("inga sekvenser", lambda p: p["facit_spar"].update({"sekvenser": []})),
+    ("krav pa en signal som inte finns",
+     lambda p: p["facit_spar"]["sekvenser"][0]["steg"][1]["krav"].update(
+         {"ST050_FINNS_EJ": True})),
+    ("satter en utsignal",
+     lambda p: p["facit_spar"]["sekvenser"][0]["steg"][0]["satt"].update(
+         {"SYS_ALARM": True})),
+    ("krav utan skal",
+     lambda p: p["facit_spar"]["sekvenser"][0]["steg"][1].update({"varfor": ""})),
+    ("tid utanfor scanrutnatet",
+     lambda p: p["facit_spar"]["sekvenser"][0]["steg"][1].update({"t_ms": 205})),
+    ("krav for nara en insignalandring", _flytta_krav_intill_en_andring),
+    ("invariant utan villkor",
+     lambda p: p["facit_spar"]["invarianter"][0].update({"nar": {}})),
+    ("invariant pa en sekvens som inte finns",
+     lambda p: p["facit_spar"]["invarianter"][0].update({"sekvens": "hittepa"})),
+    ("flankkrav pa en insignal",
+     lambda p: p["facit_spar"]["flanker"][0].update({"signal": "ST050_PRT_PRS"})),
+    ("okand flanktyp",
+     lambda p: p["facit_spar"]["flanker"][0].update({"typ": "BADA"})),
+    ("flankfonster som inte ar ett fonster",
+     lambda p: p["facit_spar"]["flanker"][0].update({"fran_ms": 900,
+                                                     "till_ms": 100})),
+    ("referensen lacker in i uppgiftstexten",
+     lambda p: p.update({"prompt": p["prompt"] + "\n"
+                         + p["facit_spar"]["referens"].strip()[:80]})),
+]
+
+
+@pytest.mark.parametrize("vad,bryt", TRASIGT_SPARFACIT,
+                         ids=[v.replace(" ", "_") for v, _ in TRASIGT_SPARFACIT])
+def test_m33_faller_ett_sparfacit_som_inte_gar_att_doma(bank, vad, bryt):
+    post = _med_sparfacit(bank)
+    bryt(post)
+    koder = _koder(post, bank)
+    assert "M33_SPARFACIT" in koder, (
+        "%s slapptes igenom; fick %s" % (vad, sorted(koder) or "inget alls"))
+
+
+def test_en_gammal_uppgift_utan_sparfacit_ar_fortfarande_giltig(bank):
+    """Bakatkompatibiliteten ar inte en avsikt utan ett prov: de 47 uppgifter
+    som fanns fore M-45 saknar faltet och ska ga igenom oforandrade."""
+    utan = [u for u in bank if not u.data.get("facit_spar")]
+    assert len(utan) >= 47
+    for u in utan:
+        assert _koder(copy.deepcopy(u.data), bank) == set(), u.id
+
+
 def test_m2_faller_nar_filnamnet_inte_matchar(bank):
     post = _giltig(bank)
     koder = set(k for k, _t in schema.validera(
