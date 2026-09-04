@@ -372,6 +372,66 @@ Samma kontroll finns sedan tidigare i `bank/schema.py` som lintkoden
 `M23_ROBOT_KAPACITET`. Att två oberoende vägar ger samma svar på samma data är
 ett svagt men äkta belägg för att ingen av dem räknar fel.
 
+## 6.6 Att spela som operatören hittade fyra tysta bortfall
+
+Alla proven var gröna. Sedan körde jag operatörens **egen** exempeltext ur
+`27_operatorsflodet.md` genom lagret:
+
+> *"Bygg en plockstation som klarar 400 detaljer i timmen, med ett
+> inmatningsband, en robot och en utlastningslåda. Skriv PLC-koden."*
+
+Svaret var `BESKED BYGGBAR` — med en plan på **tre steg och en komponent**.
+
+**F1. Sammansatta ord kändes inte igen.** `_namner` matchade exakta tokens, så
+`inmatningsband` var inte `band`. Ett sammansatt ord bestäms av sitt
+**efterled**: ett inmatningsband är ett band. Prefix vore fel åt andra hållet,
+och det stod redan i `ORDBOK`s egen kommentar — den hade läst `pallmagasin` som
+`pall`. Båda riktningarna har nu en fixtur.
+
+**F2. Ord som ingen kände igen försvann tyst.** `utlastningslåda` finns inte i
+den slutna ordlistan, och den hoppades över utan ett ord. Nu läses
+uppräkningen efter *"med"* för sig, och ett ord som ingen rad matchar blir en
+**blockerande fråga**. Att bygga två tredjedelar av en cell är inte att bygga
+den halvt; det är att bygga en annan cell.
+
+**F3. Processorden matchades som delsträngar.** `inmatningsband` gav **både**
+processen `inmatning` och processen `matning`. Beställningen fick två processer
+den aldrig nämnde — och båda bar en härkomst som pekade rakt in i operatörens
+text. **Belägget var äkta, tolkningen var påhittad.** Det är den obehagligaste
+av de fyra, eftersom härkomstgrinden inte kan fånga den: orden *stod* där.
+Ordgränser är grinden mot precis det.
+
+**F4. Räckviddens hårda läsning gjorde nästan varje cell röd.**
+`layout/relationer.py` säger själv att `InomRackvidd` har två läsningar:
+`helt=True` (hela fotavtrycket inom radien — den hårda, och den enda som håller
+när greppunkten inte är känd) och `helt=False` (någon del inom radien — rätt
+för ett långt band där bara plockläget behöver nås). Jag valde den hårda, och
+mätte sedan: en robot på 1 650 mm kan **inte** täcka ett 2 m långt band helt,
+så varenda beställning med en transportör blev `AVVISAD`.
+
+Ett falskt rött är den värsta sorten, för det ser ut som ett svar. Att i
+stället tyst välja den mjuka läsningen vore lika fel: då lovar planen att
+roboten når något den kanske inte når. Nu **räknas båda**, och skillnaden blir
+en fråga med båda svaren i sig:
+
+```
+BESKED OFULLSTANDIG · GRIND B5_LAYOUT
+INOM_RACKVIDD fixtur ligger helt inom robotens räckvidd från robot
+FRAGA layout:rackviddens_lasning: ska roboten nå HELA robot -> fixtur, eller
+      räcker det att den når en del av det?
+      med den hårda läsningen finns ingen layout. Med den mjuka finns en
+      (sökraster 1000 mm). Skillnaden är var greppunkten sitter, och det vet
+      bara du.
+```
+
+Och statusen är `OFULLSTANDIG`, inte `AVVISAD`: **ingenting är bevisat
+omöjligt — något är obestämt**, och det rättas av ett svar, inte av en ny
+beställning.
+
+Alla fyra hade passerat 141 gröna prov. Ingen av dem hade hittats av ett prov
+till, eftersom jag skrev proven mot det jag byggt. Den enda som hittade dem var
+att skriva som en människa skriver.
+
 ## 7. En krock jag hittade och lämnade
 
 Specens grindnamn `P1`–`P8` och `byggplan.LINTKODER`s `P1_`–`P8_` är två olika
@@ -453,9 +513,12 @@ fel, tyst. Det är fas 5a:s arbete (`P5`), inte det här protokollets.
 
 **Att textläsningen förstår svenska.** `lasning.py` läser slutna mönster.
 Beställningar formulerade utanför dem ger **färre** krav, inte fel krav — det
-som inte lästes blir en fråga. **Hur ofta det händer är inte mätt.** En sådan
-mätning kräver en samling verkliga beställningar, och den finns inte. Det är den
-största oprövade ytan i det här arbetet.
+som inte lästes blir en fråga, och ett ord i komponentuppräkningen som ingen rad
+känner igen blir en **blockerande** fråga (§6.6). **Hur ofta det händer är inte
+mätt.** En sådan mätning kräver en samling verkliga beställningar, och den finns
+inte: jag har prövat operatörens ena exempel och mina egna. Det är den största
+oprövade ytan i det här arbetet, och §6.6 visar precis hur den ytan ser ut när
+den brister.
 
 **Att processlistan täcker en verklig cell.** `PROCESSORD` är 28 ord. En process
 som inte står där blir ingen process alls, och beställningen tappar den halvan
