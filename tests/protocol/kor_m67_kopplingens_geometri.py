@@ -29,7 +29,8 @@ import sys
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 
-from vc_assist_svc.klient import BryggFel, Klient, tokenfil      # noqa: E402
+from vc_assist_svc.klient import BryggFel, Klient                # noqa: E402
+from vc_assist_svc.tokenplats import tokenfil                    # noqa: E402
 
 # Lagena komponenterna byggs pa. Atskilda i alla tre riktningar och vridna, sa
 # att bade en flytt och en vridning syns. Talen ar godtyckliga och styr ingen
@@ -72,8 +73,12 @@ def bygg(namn, kontakttyp, x, y, z):
             app.deleteComponent(c)
     c = app.createComponent()
     c.Name = namn
+    # MATT: vcMatrix har ingen setP ("NameError: Attribute or method 'setP'
+    # not found."). Laget satts som byggrecepten satter det: translateAbs ar
+    # RELATIV i absoluta axlar (M-11), sa en absolut position ar skillnaden
+    # mot nuvarande lage.
     m = c.PositionMatrix
-    m.setP(x, y, z)
+    m.translateAbs(x - m.P.X, y - m.P.Y, z - m.P.Z)
     c.PositionMatrix = m
     stig = c.createBehaviour(VC_ONEWAYPATH, str('Stig'))
     ifc = c.createBehaviour(VC_ONETOONEINTERFACE, str('Flow'))
