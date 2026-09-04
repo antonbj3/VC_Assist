@@ -40,13 +40,45 @@ ASCII genomgående, av samma skäl som signalkartan kräver det.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from .signalkarta import Signalkarta
 
 BORJAN = "(* VC_ASSIST KROPP BORJAR *)"
 SLUTET = "(* VC_ASSIST KROPP SLUTAR *)"
+
+# Ett ANDRA fack, for modellens egna arbetsvariabler.
+#
+# VARFOR DET BEHOVS - MATT I M-62. Ramen var last nar slingan startade, sa en
+# reparation som behovde en ny arbetsvariabel (en TON, en flankdetektor, en
+# diagnosbit) inte gick att gora inifran slingan. Grind 2 fallde nasta varv pa
+# ODEKLARERAD. Pa den snava ramen slutade 16 AV 24 slingor sa - en kod som inte
+# handlar om styrlogik alls, utan om att ramen saknade en variabel.
+#
+# Med andra ord: den snava ramen matte RAMENS STYVHET och inte metoden. Och det
+# galler en sprakmodell precis lika hart som baslinjen.
+#
+# VAD SOM INTE ANDRAS. Modellen far fortfarande ALDRIG skriva en signal.
+# Signalernas deklarationer kommer ur kartan och ligger i ramen; det har facket
+# tar bara variabler som ar lokala for programmet. Skillnaden ar mekanisk och
+# provas: en adress (AT %IX0.0) eller ett namn som krockar med en tagg avvisas.
+ARBETSVAR_BORJAN = "(* VC_ASSIST ARBETSVARIABLER BORJAR *)"
+ARBETSVAR_SLUTET = "(* VC_ASSIST ARBETSVARIABLER SLUTAR *)"
+
+# De typer en arbetsvariabel far ha. Elementara typer ur ST-lagret plus
+# standardfunktionsblocken - listorna ags dar och speglas har genom import, sa
+# de inte kan glida isar.
+def _tillatna_typer():
+    from ..st import stdbibliotek as SB
+    from ..st import typer as T
+    return frozenset(T.ELEMENTARA) | frozenset(SB.BLOCK)
+
+
+# En rad i arbetsvariabelfacket: NAMN : TYP ;
+_ARBETSRAD = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*;\s*$")
+_HAR_ADRESS = re.compile(r"\bAT\s+%", re.I)
 
 
 class Skelettfel(Exception):
@@ -68,12 +100,21 @@ class Skelett:
     station: str
     huvud: str
     svans: str
+    # Mellan arbetsvariabelfacket och kroppsfacket. Tom nar skelettet byggts
+    # utan arbetsvariabelfack (aldre form; las_svar tar da bara en kropp).
+    mitt: str = ""
 
     # ---- byggande ------------------------------------------------------
 
     @staticmethod
-    def av_karta(karta: Signalkarta, extra_deklarationer: str = "") -> "Skelett":
+    def av_karta(karta: Signalkarta, extra_deklarationer: str = "",
+                 arbetsvariabler: bool = False) -> "Skelett":
         """Skelettet för en karta.
+
+        `arbetsvariabler=True` ger modellen ett **eget** VAR-fack. Skälet är
+        mätt (M-62): med en låst ram slutade 16 av 24 reparationsslingor i
+        `ODEKLARERAD` — inte för att logiken var fel, utan för att reparationen
+        behövde en variabel ramen inte hade. Den ramen mätte sin egen styvhet.
 
         `extra_deklarationer` är arbetsvariabler som stationen behöver men som
         inte är signaler — timers till exempel. De hör till ramen och inte till
@@ -85,27 +126,99 @@ class Skelett:
             if not extra_deklarationer.endswith("\n"):
                 extra_deklarationer += "\n"
             delar.append(extra_deklarationer)
-        delar.append(BORJAN + "\n")
+        if not arbetsvariabler:
+            delar.append(BORJAN + "\n")
+            return Skelett(karta.station, "".join(delar),
+                           SLUTET + "\nEND_PROGRAM\n")
+        delar.append("VAR\n" + ARBETSVAR_BORJAN + "\n")
         return Skelett(karta.station, "".join(delar),
-                       SLUTET + "\nEND_PROGRAM\n")
+                       SLUTET + "\nEND_PROGRAM\n",
+                       mitt=ARBETSVAR_SLUTET + "\nEND_VAR\n" + BORJAN + "\n")
+
+    @property
+    def har_arbetsvariabler(self) -> bool:
+        return bool(self.mitt)
 
     def text(self) -> str:
-        """Skelettet som det visas för modellen, med ett tomt fack."""
-        return self.huvud + self.svans
+        """Skelettet som det visas för modellen, med tomma fack."""
+        return self.huvud + self.mitt + self.svans
 
     # ---- isättning -----------------------------------------------------
 
-    def satt_in(self, kropp: str) -> str:
-        """Lägg kroppen i facket och lämna hela ST-källan.
+    def satt_in(self, kropp: str, arbetsvariabler: str = "") -> str:
+        """Lägg kroppen (och arbetsvariablerna) i sina fack.
 
-        Avvisar en kropp som bär markörerna: den skulle sluta facket tidigt.
+        Avvisar text som bär markörerna: den skulle sluta ett fack tidigt.
         """
         _vagra_markorer(kropp)
         if kropp and not kropp.endswith("\n"):
             kropp += "\n"
-        return self.huvud + kropp + self.svans
+        if not self.har_arbetsvariabler:
+            if arbetsvariabler.strip():
+                raise Skelettfel("skelettet har inget arbetsvariabelfack; "
+                                 "bygg det med arbetsvariabler=True")
+            return self.huvud + kropp + self.svans
+        _vagra_markorer(arbetsvariabler)
+        if arbetsvariabler and not arbetsvariabler.endswith("\n"):
+            arbetsvariabler += "\n"
+        return self.huvud + arbetsvariabler + self.mitt + kropp + self.svans
 
     # ---- uttagning -----------------------------------------------------
+
+    def granska_arbetsvariabler(self, text: str, karta: Signalkarta) -> None:
+        """Fäller ett arbetsvariabelfack som inte är arbetsvariabler.
+
+        Fyra fall, alla fail-closed. Facket finns för att modellen ska kunna ge
+        sig själv en timer — inte för att smyga in en signal genom bakdörren.
+
+        1. **En adress.** `AT %IX0.0` gör variabeln till en plats i bildtabellen,
+           alltså en signal. Signaler kommer ur kartan, punkt.
+        2. **Ett namn kartan redan äger.** ST är skiftlägesokänsligt, så `Don`
+           och `don` är samma variabel; en lokal med samma namn hade skuggat
+           signalen och koden hade sett rätt ut medan ingenting nådde scenen.
+        3. **En okänd typ.** Bara elementära typer och standardfunktionsblocken.
+           Listorna ägs av ST-lagret och speglas hit genom import.
+        4. **En rad som inte är en deklaration.** Det som inte går att läsa
+           avvisas; att hoppa över den vore ett tyst bortfall.
+        """
+        if _HAR_ADRESS.search(text):
+            raise Skelettfel("en arbetsvariabel far ingen adress (AT %...); "
+                             "det gor den till en signal, och signaler kommer "
+                             "ur kartan")
+        taggar = set(s.tagg.upper() for s in karta.signaler)
+        tillatna = _tillatna_typer()
+        sedda = set()
+        for n, rad in enumerate(text.splitlines(), 1):
+            if not rad.strip() or rad.strip().startswith("(*"):
+                continue
+            m = _ARBETSRAD.match(rad)
+            if not m:
+                raise Skelettfel("rad %d i arbetsvariablerna gar inte att lasa "
+                                 "som en deklaration: %r" % (n, rad.strip()), n)
+            namn, typ = m.group(1), m.group(2)
+            if namn.upper() in taggar:
+                raise Skelettfel("arbetsvariabeln %s har samma namn som en "
+                                 "signal i kartan; ST ar skiftlagesokansligt "
+                                 "och den hade skuggat signalen" % namn, n)
+            if namn.upper() in sedda:
+                raise Skelettfel("arbetsvariabeln %s deklareras tva ganger"
+                                 % namn, n)
+            sedda.add(namn.upper())
+            if typ.upper() not in tillatna:
+                raise Skelettfel(
+                    "okand typ %s for arbetsvariabeln %s; tillatna ar de "
+                    "elementara typerna och standardfunktionsblocken"
+                    % (typ, namn), n)
+
+    def plocka_arbetsvariabler(self, kalla: str) -> str:
+        """Arbetsvariabelfackets innehåll ur en hel ST-källa."""
+        if not self.har_arbetsvariabler:
+            return ""
+        i = kalla.find(ARBETSVAR_BORJAN)
+        j = kalla.find(ARBETSVAR_SLUTET, i + len(ARBETSVAR_BORJAN)) if i >= 0 else -1
+        if i < 0 or j < 0:
+            raise Skelettfel("svaret saknar arbetsvariabelfackets markorer")
+        return kalla[i + len(ARBETSVAR_BORJAN) + 1:j]
 
     def plocka_ur(self, kalla: str) -> str:
         """Kroppen ur en hel ST-källa, efter att ramen bevisats orörd.
@@ -126,10 +239,20 @@ class Skelett:
         if kalla.find(SLUTET, j + len(SLUTET)) >= 0:
             raise Skelettfel("svaret bar %s mer an en gang" % SLUTET)
 
-        fatt_huvud = kalla[:i + len(BORJAN) + 1]
         fatt_svans = kalla[j:]
-        _jamfor("huvudet", self.huvud, fatt_huvud)
         _jamfor("svansen", self.svans, fatt_svans)
+        if not self.har_arbetsvariabler:
+            _jamfor("huvudet", self.huvud, kalla[:i + len(BORJAN) + 1])
+            return kalla[i + len(BORJAN) + 1:j]
+        # Med ett arbetsvariabelfack delas ramen i tva: huvudet fram till
+        # arbetsvariabelmarkoren, och mitten mellan facken. Det som ligger
+        # DAREMELLAN ar modellens, och jamfors inte - det ar hela poangen.
+        a = kalla.find(ARBETSVAR_BORJAN)
+        b = kalla.find(ARBETSVAR_SLUTET, a + len(ARBETSVAR_BORJAN)) if a >= 0 else -1
+        if a < 0 or b < 0:
+            raise Skelettfel("svaret saknar arbetsvariabelfackets markorer")
+        _jamfor("huvudet", self.huvud, kalla[:a + len(ARBETSVAR_BORJAN) + 1])
+        _jamfor("mitten", self.mitt, kalla[b:i + len(BORJAN) + 1])
         return kalla[i + len(BORJAN) + 1:j]
 
     # ---- modellsvar ----------------------------------------------------
@@ -142,6 +265,9 @@ class Skelett:
         kroppen får den kontrollerad genom att markörerna avvisas i `satt_in`.
         """
         if BORJAN in svar or SLUTET in svar:
+            if self.har_arbetsvariabler:
+                return self.satt_in(self.plocka_ur(svar),
+                                    self.plocka_arbetsvariabler(svar))
             return self.satt_in(self.plocka_ur(svar))
         if "END_PROGRAM" in svar.upper() or svar.upper().lstrip().startswith(
                 "PROGRAM "):

@@ -159,3 +159,117 @@ def test_en_kropp_med_uppfunnen_tagg_slipper_igenom_skelettet_men_falls_av_grind
     k = karta()
     kalla = S.Skelett.av_karta(k).satt_in("    don := givare AND hittepa;\n")
     assert granska(kalla, k).ok is False
+
+
+# ---- arbetsvariabelfacket (M-62) -------------------------------------------
+
+def sk_arb():
+    return S.Skelett.av_karta(karta(), arbetsvariabler=True)
+
+
+ARB = "    t : TON;\n"
+
+
+def test_utan_facket_ser_skelettet_ut_som_forut():
+    """Aldre form ar oforandrad: ett fack, ingen mitt."""
+    s = sk()
+    assert not s.har_arbetsvariabler
+    assert s.mitt == ""
+    assert s.plocka_ur(s.satt_in(KROPP)) == KROPP
+
+
+def test_med_facket_finns_tva_fack_i_ratt_ordning():
+    t = sk_arb().text()
+    assert t.index(S.ARBETSVAR_BORJAN) < t.index(S.ARBETSVAR_SLUTET) < t.index(S.BORJAN)
+    assert "END_VAR" in t.split(S.ARBETSVAR_SLUTET)[1].split(S.BORJAN)[0]
+
+
+def test_bada_facken_ar_varandras_motsats():
+    s = sk_arb()
+    hel = s.satt_in(KROPP, ARB)
+    assert s.plocka_ur(hel) == KROPP
+    assert s.plocka_arbetsvariabler(hel) == ARB
+
+
+def test_arbetsvariabler_i_ett_skelett_utan_fack_avvisas():
+    with pytest.raises(S.Skelettfel) as e:
+        sk().satt_in(KROPP, ARB)
+    assert "inget arbetsvariabelfack" in str(e.value)
+
+
+def test_ramen_kontrolleras_fortfarande_med_facket_pa_plats():
+    """Modellens tva fack ar fria. Allt annat ar det inte."""
+    s = sk_arb()
+    hel = s.satt_in(KROPP, ARB).replace("givare AT %IX0.0", "givare AT %IX0.7")
+    with pytest.raises(S.Skelettfel):
+        s.plocka_ur(hel)
+
+
+def test_las_svar_tar_hela_filen_med_bada_facken():
+    s = sk_arb()
+    assert s.las_svar(s.satt_in(KROPP, ARB)) == s.satt_in(KROPP, ARB)
+
+
+# ---- grinden pa arbetsvariablerna -------------------------------------------
+
+def test_en_arbetsvariabel_med_adress_avvisas():
+    """En adress gor variabeln till en signal, och signaler kommer ur kartan."""
+    with pytest.raises(S.Skelettfel) as e:
+        sk_arb().granska_arbetsvariabler("    x AT %IX0.1 : BOOL;\n", karta())
+    assert "signal" in str(e.value)
+
+
+@pytest.mark.parametrize("namn", ["don", "Don", "DON", "givare"])
+def test_ett_namn_kartan_ager_avvisas_oavsett_skiftlage(namn):
+    """ST ar skiftlagesokansligt; en lokal hade skuggat signalen tyst."""
+    with pytest.raises(S.Skelettfel) as e:
+        sk_arb().granska_arbetsvariabler("    %s : BOOL;\n" % namn, karta())
+    assert "skugga" in str(e.value)
+
+
+def test_en_okand_typ_avvisas():
+    with pytest.raises(S.Skelettfel) as e:
+        sk_arb().granska_arbetsvariabler("    t : HITTEPA;\n", karta())
+    assert "okand typ" in str(e.value)
+
+
+def test_en_rad_som_inte_gar_att_lasa_avvisas():
+    """Att hoppa over den vore ett tyst bortfall."""
+    with pytest.raises(S.Skelettfel) as e:
+        sk_arb().granska_arbetsvariabler("    det har ar ingen deklaration\n",
+                                         karta())
+    assert "gar inte att lasa" in str(e.value)
+
+
+def test_samma_variabel_tva_ganger_avvisas():
+    with pytest.raises(S.Skelettfel) as e:
+        sk_arb().granska_arbetsvariabler("    t : TON;\n    T : TON;\n", karta())
+    assert "tva ganger" in str(e.value)
+
+
+@pytest.mark.parametrize("rad", [
+    "    t : TON;\n", "    n : INT;\n", "    f : R_TRIG;\n",
+    "    v : REAL;\n", "    c : CTU;\n",
+    "    (* en kommentar *)\n    t : TOF;\n",
+    "\n    t : SR;\n\n",
+])
+def test_giltiga_arbetsvariabler_slapps_igenom(rad):
+    sk_arb().granska_arbetsvariabler(rad, karta())
+
+
+def test_typlistan_agas_av_ST_lagret_och_speglas_inte_for_hand():
+    """Tva listor som ska vara samma lista gar isar tyst."""
+    from vc_assist_svc.st import stdbibliotek as SB
+    from vc_assist_svc.st import typer as T
+    tillatna = S._tillatna_typer()
+    assert set(T.ELEMENTARA) <= tillatna
+    assert set(SB.BLOCK) <= tillatna
+
+
+def test_hela_vagen_gar_genom_grind_3():
+    """Ett skelett med arbetsvariabler ska fortfarande vara giltig ST."""
+    k = karta()
+    s = S.Skelett.av_karta(k, arbetsvariabler=True)
+    kalla = s.satt_in("    vakt(IN := givare, PT := T#100ms);\n"
+                      "    don := vakt.Q;\n", "    vakt : TON;\n")
+    assert granska(kalla, k).ok, str(granska(kalla, k))

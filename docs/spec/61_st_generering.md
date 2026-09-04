@@ -36,11 +36,57 @@ tillbaka i sitt skelett avvisas, oavsett hur bra den ser ut.
 
 Sekvensen, timers och förreglingar mellan de deklarerade taggarna.
 
+## Modellen får deklarera sina egna arbetsvariabler
+
+**Rättat 2026-09-05 av M-62.** Den tidigare formen gav modellen ett enda fack:
+kroppen. Ramen var därmed låst när arbetet började, och en lösning som **insåg
+att den behövde en timer** kunde inte ge sig själv en.
+
+Följden var mätt och stor: på den snäva ramen slutade **16 av 24
+reparationsslingor** i `ODEKLARERAD` — en kod som inte handlar om styrlogik
+alls, utan om att ramen saknade en variabel. Den ramen mätte alltså **sin egen
+styvhet**, inte metoden. Och det gäller en språkmodell precis lika hårt som
+baslinjen.
+
+Skelettet har därför **två** fack:
+
+```
+PROGRAM Press
+VAR ... END_VAR                              <- signalerna, ur kartan
+VAR
+(* VC_ASSIST ARBETSVARIABLER BORJAR *)
+    vakt : TON;                              <- modellens, fack 1
+(* VC_ASSIST ARBETSVARIABLER SLUTAR *)
+END_VAR
+(* VC_ASSIST KROPP BORJAR *)
+    modellens rader                          <- modellens, fack 2
+(* VC_ASSIST KROPP SLUTAR *)
+END_PROGRAM
+```
+
+### Invarianten är oförändrad, och den är mekanisk
+
+Modellen får fortfarande **aldrig** skriva en signal. Fyra kontroller, alla
+fail-closed:
+
+| Avvisas | Varför |
+|---|---|
+| en adress (`AT %IX0.0`) | den gör variabeln till en plats i bildtabellen, alltså en signal |
+| ett namn kartan äger | ST är skiftlägesokänsligt, så `Don` skuggar `don` — koden hade sett rätt ut medan ingenting nådde scenen |
+| en okänd typ | bara elementära typer och standardfunktionsblocken; listorna ägs av ST-lagret och speglas genom import |
+| en rad som inte går att läsa | att hoppa över den vore ett tyst bortfall |
+| samma variabel två gånger | |
+
+Ramen kontrolleras fortfarande tecken för tecken — men i **två** delar, med
+modellens fack emellan. Det som ligger däremellan jämförs inte, och det är hela
+poängen.
+
 ## Vad modellen aldrig får skriva
 
 | Förbud | Upprätthålls av |
 |---|---|
-| variabeldeklarationer och taggnamn | skelettet + grind 3 |
+| **signalers** deklarationer och taggnamn | skelettet + grind 3 |
+| en arbetsvariabel med adress, eller med en signals namn | skelettets fyra kontroller, se ovan |
 | skrivning till en `skyddad` signal | signalkartans märkning, grind 2 (I15) |
 | någonting i en säkerhetsfunktion | `50_grindar.md`, säkerhetsgränsen |
 | direkt adressering förbi kartan (`%QX` i kroppen) | grind 2 |
