@@ -1,7 +1,7 @@
 {
   "id": "matta_fallor",
   "titel": "Mätta fällor i Visual Components",
-  "version": 1,
+  "version": 2,
   "prioritet": 4,
   "kapbar": true,
   "prioritet_skal": "Kapas sist av de kapbara. Var och en av de här fällorna är MÄTT och ingen av dem fångas av någon annan mekanism: kvaternionens ordning och världsmatrisens eftersläpning ger tal som ser rimliga ut, och VC som sväljer ett fel tyst ger ett anrop som rapporterar framgång. Ett block som är den enda spärren mot en osynlig fälla kapas efter block vars regler dessutom har en grind bakom sig.",
@@ -18,9 +18,9 @@
     },
     {
       "id": "FAL-002",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "WorldPositionMatrix släpar ett scensteg. Har du just flyttat något är den lokala matrisen aktuell men den globala gammal, och bara sim.update() hämtar hem den. Varken app.render() eller app.flush() gör det.",
       "skal": "Mätt M-11: efter en tilldelning stod lokal matris på 52,5 medan världsmatrisen stod på 10,5, och den stod kvar där genom render, flush och omläsning. Ett avstånd läst direkt efter en flytt är alltså ett avstånd före flytten.",
       "harkomst": ["M-11"]
@@ -36,18 +36,18 @@
     },
     {
       "id": "FAL-004",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "save_layout stoppar simuleringen och bryggan svarar inte efteråt. Anropet tillåts, men det kommer inget utfall: påstå aldrig något om vad som hände efter en sparning, och lägg sparningen sist.",
       "skal": "Mätt M-13: app.save() dödade bryggan mitt i fas 5:s verktygsprov. Varningen måste komma före körningen, för efteråt finns ingen pump som kan svara och en anropare som väntar på utfall väntar för evigt.",
       "harkomst": ["M-13"]
     },
     {
       "id": "FAL-005",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "VC sväljer fel tyst och rapporterar ibland att något gick bra fastän ingenting kördes. Ett anrop som inte kastade är inget bevis på att åtgärden tog: läs tillbaka det du ändrade.",
       "skal": "Mätt M-09: en syntaktiskt trasig kommandomodul laddades, loadCommand returnerade ett objekt, execute kastade ingenting och kroken loggade executed, medan modulkroppen aldrig kördes. Tre gånger har VC svalt ett fel tyst, och mönstret är en egenskap hos plattformen.",
       "harkomst": ["M-09", "M-01", "M-06"]

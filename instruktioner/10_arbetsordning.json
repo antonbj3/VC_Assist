@@ -1,7 +1,7 @@
 {
   "id": "arbetsordning",
   "titel": "Arbetsordning",
-  "version": 1,
+  "version": 2,
   "prioritet": 6,
   "kapbar": true,
   "prioritet_skal": "Kapas näst först. Reglerna här styr effektiviteten i turen, inte sanningshalten i svaret: en modell utan dem tar fler rundor och läser tillbaka mindre, men varje enskilt anrop prövas av samma grindar ändå.",
@@ -9,9 +9,9 @@
   "regler": [
     {
       "id": "ARB-001",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "Läs scenen innan du ändrar den. Lista komponenterna och läs gränssnitten på det du tänker koppla, innan du kopplar något.",
       "skal": "Modellen får bara välja ur det som finns (I9), och det enda sättet att veta vad som finns är att läsa. Läsande verktyg går direkt utan kö och kostar en runda.",
       "harkomst": ["docs/spec/45_verktyg.md", "docs/spec/90_invarianter.md"]
@@ -27,9 +27,9 @@
     },
     {
       "id": "ARB-003",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "Gör en ändring i taget och läs tillbaka utfallet innan du gör nästa. Skicka aldrig en kedja skrivningar och anta att alla tog.",
       "skal": "VC sväljer fel tyst (M-09), och en skrivning som inte tog syns bara vid återläsning. Kön godkänns dessutom post för post, så en kedja utan återläsning kan halvt genomföras.",
       "harkomst": ["M-09", "docs/spec/30_arkitektur.md"]
@@ -54,9 +54,9 @@
     },
     {
       "id": "ARB-006",
-      "version": 1,
-      "allvar": "regel",
-      "tvingas_av": null,
+      "version": 2,
+      "allvar": "block",
+      "tvingas_av": "turordning",
       "text": "Lägg sparningen sist i turen och räkna inte med något efter den.",
       "skal": "app.save stoppar simuleringen och bryggan svarar inte efteråt (M-13). Allt som skulle göras efter en sparning blir ogjort utan att någon får veta det.",
       "harkomst": ["M-13"]

@@ -4,9 +4,13 @@
 Loopen ar det enda stalle dar mekanismerna moter varandra, och ordningen dem
 emellan ar ett beslut, inte en slump.
 
-FORE KORNING provas varje anrop av forgranskning.Forgranskare. Foll det, far
-modellen avslaget i klartext och far forsoka igen - avslaget ar en RUNDA, och
-det raknas som ett misslyckande i taken nedan.
+FORE KORNING provas varje anrop av forgranskning.Forgranskare och sedan av
+turordning.Turlage. Foll det, far modellen avslaget i klartext och far forsoka
+igen - avslaget ar en RUNDA, och det raknas som ett misslyckande i taken nedan.
+
+Turordningsgrindarna domer SIST av grindarna fore korning, och skalet star i
+turordning.py: de fragar om ett anrop som redan ar giltigt i sig, och de
+behover den genererade koden for att kunna fraga.
 
 EFTER MODELLENS SLUTSVAR provas svaret i den har ordningen, och ordningen ar
 82_felklasser.md sorteringsregel 1 ("forsta grinden som faller bestammer
@@ -52,9 +56,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from .. import verktyg as V
 from . import arlighet as A
 from . import oga as O
+from . import turordning as T
 from . import verifiering as Vf
 from .fel import Modellfel
-from .forgranskning import Forgranskare
+from .forgranskning import Avvisning, Forgranskare
 from .instruktioner import Korpus, las_korpus
 from .kanal import Anropsutfall, Verktygskanal
 from .modell import Meddelande, Modell, Modellsvar, Verktygsanrop
@@ -190,6 +195,7 @@ class Harness(object):
             grund.lagg_text(ogonrapport, "ogat")
 
         verktygslista = [self.register[n] for n in self.urval.pa_namn()]
+        turlage = T.Turlage()
         raka_fel = 0
         omskrivningar = 0
         fallda_nycklar: Dict[str, int] = {}
@@ -215,7 +221,7 @@ class Harness(object):
                     % len(svar.anrop)))
                 stoppkod, raka_fel = self._kor_anrop(
                     svar, runda, protokoll, historik, grund, uppgift,
-                    fallda_nycklar, raka_fel)
+                    fallda_nycklar, raka_fel, turlage)
                 if stoppkod is not None:
                     return protokoll
                 if raka_fel >= self.max_raka_misslyckanden:
@@ -261,7 +267,8 @@ class Harness(object):
     def _kor_anrop(self, svar: Modellsvar, runda: int,
                    protokoll: Turprotokoll, historik: List[Meddelande],
                    grund: Vf.Grund, uppgift: str,
-                   fallda_nycklar: Dict[str, int], raka_fel: int):
+                   fallda_nycklar: Dict[str, int], raka_fel: int,
+                   turlage: "T.Turlage"):
         """Kor rundans anrop. Returnerar (stoppkod, raka_fel).
 
         raka_fel raknas over HELA turen och inte per runda: en modell som
@@ -286,8 +293,14 @@ class Harness(object):
                 return "upprepat_anrop", raka_fel
 
             dom = self.forgranskare.granska_anrop(anrop, uppgift)
-            if not dom.slapps:
-                avvisning = dom.avvisning
+            avvisning = dom.avvisning
+            if avvisning is None:
+                turdom = turlage.domer(dom.verktyg, dom.argument, dom.kod)
+                if turdom.nekas:
+                    avvisning = Avvisning(grind=turdom.grind,
+                                          skal=turdom.skal,
+                                          vad=anrop.beskrivning())
+            if avvisning is not None:
                 protokoll.lagg("AVVISAD", avvisning.grind, avvisning.text(),
                                runda)
                 historik.append(Meddelande(
@@ -305,6 +318,7 @@ class Harness(object):
                                            anrop.namn))
 
             utfall = self.kanal.utfor(anrop.namn, dom.argument)
+            turlage.lagg(anrop.namn, dom.kod, utfall.ok, utfall.resultat)
             utfall = Anropsutfall(
                 verktyg=utfall.verktyg, argument=utfall.argument,
                 ok=utfall.ok, resultat=utfall.resultat, fel=utfall.fel,

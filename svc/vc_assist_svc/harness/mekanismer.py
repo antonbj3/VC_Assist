@@ -60,6 +60,12 @@ MEKANISMER = MappingProxyType({
         "verktygsloopens tak och stoppregler: rundtak, raka misslyckanden, "
         "upprepat identiskt anrop och tystnad",
         "harness/loop.py"),
+    "turordning": (
+        "turordningsgrindarna: ett anrop efter en sparning, en varldsmatris "
+        "last efter en flytt utan uppdatering, ett scenandrande anrop mot en "
+        "olast komponent och en andring som inte lasts tillbaka avvisas fore "
+        "korning",
+        "harness/turordning.py via harness/loop.py"),
     "ratkod": (
         "ra kod fran modellen avvisas: kod smugglad i ett argument och kod "
         "som foreslas for korning utanfor verktygen",

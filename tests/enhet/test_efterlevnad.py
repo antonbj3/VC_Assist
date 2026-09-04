@@ -43,6 +43,7 @@ from vc_assist_svc.harness import loop as L             # noqa: E402
 from vc_assist_svc.harness import mekanismer as Mk      # noqa: E402
 from vc_assist_svc.harness import arlighet as A         # noqa: E402
 from vc_assist_svc.harness import oga as Og             # noqa: E402
+from vc_assist_svc.harness import turordning as T       # noqa: E402
 
 # Krav ur uppdraget: minst 25 fällor. Talet står här och inte i en kommentar
 # någon annanstans, så att en bortglömd fälla syns som ett testfel.
@@ -137,6 +138,7 @@ def test_facit_ar_verkliga_utfallskoder():
     """
     giltiga = set(["SLAPPT", Fa.EJ_MEKANISK])
     giltiga |= set("AVVISAD:%s" % g for g in Fg.GRINDAR)
+    giltiga |= set("AVVISAD:%s" % g for g in T.GRINDAR)
     giltiga |= set("STOPP:%s" % s for s in L.STOPPREGLER)
     giltiga |= set("OMSKRIVNING:%s" % k for k in A.KODER)
     giltiga |= set("OMSKRIVNING:%s" % k for k in Og.KODER)

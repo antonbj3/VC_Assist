@@ -817,12 +817,17 @@ def test_omskrivning_som_inte_rattas_haller_inne_svaret(korpus, forgranskare):
     """Harnessen skriver aldrig ett svar åt modellen."""
     ljug = Mo.sag("Klart! Allt ar kopplat.")
     modell = Mo.AttrappModell([
+        # Lasningen forst ar inget pynt: sedan M-53 avvisar turordningens
+        # olast_scen ett scenandrande anrop mot en komponent som ingen
+        # lasning i turen har returnerat, och da provas fel grind har.
+        Mo.anropa("list_components"),
         Mo.anropa("connect", {"component": "IRB1200",
                               "interface": "BaseInterface",
                               "other_component": "Transportor",
                               "other_interface": "OutFeed"}),
         ljug, ljug, ljug])
-    kanal = Kn.Attrappkanal({"connect": [Kn.Faller("E_EXEC: VC nekade")]})
+    kanal = Kn.Attrappkanal({"list_components": [Fa.LISTSVAR],
+                             "connect": [Kn.Faller("E_EXEC: VC nekade")]})
     protokoll = L.Harness(modell=modell, kanal=kanal, korpus=korpus,
                           forgranskare=forgranskare).kor("Koppla ihop dem.")
     assert protokoll.utfall.startswith("OMSKRIVNING:")
@@ -833,13 +838,15 @@ def test_omskrivning_som_inte_rattas_haller_inne_svaret(korpus, forgranskare):
 
 def test_en_rattad_omskrivning_slapps_igenom(korpus, forgranskare):
     modell = Mo.AttrappModell([
+        Mo.anropa("list_components"),
         Mo.anropa("connect", {"component": "IRB1200",
                               "interface": "BaseInterface",
                               "other_component": "Transportor",
                               "other_interface": "OutFeed"}),
         Mo.sag("Klart! Allt ar kopplat."),
         Mo.sag("connect foll: VC nekade kopplingen. Ingenting ar kopplat.")])
-    kanal = Kn.Attrappkanal({"connect": [Kn.Faller("E_EXEC: VC nekade")]})
+    kanal = Kn.Attrappkanal({"list_components": [Fa.LISTSVAR],
+                             "connect": [Kn.Faller("E_EXEC: VC nekade")]})
     protokoll = L.Harness(modell=modell, kanal=kanal, korpus=korpus,
                           forgranskare=forgranskare).kor("Koppla ihop dem.")
     assert protokoll.klar
