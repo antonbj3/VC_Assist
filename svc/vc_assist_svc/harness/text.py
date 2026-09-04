@@ -162,11 +162,28 @@ OGONMARKORER = (
 # riktningen den andra: svenska sammansattningar limmar ihop orden
 # ("nodstoppskrets"), och den grinden ska hellre neka for mycket. Har ska den
 # hellre anklaga for lite.
-_MONSTER: Dict[int, Any] = {}
+# Cachen nycklas pa ORDLISTANS INNEHALL, aldrig pa id().
+#
+# BEVISAT AV M-53, och M-46 lamnade det som en gissning: CPython aterbrukar
+# adresser ur sin frilista, sa tva olika ordlistor kan fa samma id och den
+# andra far da den forstas monster. Korningen som visar det:
+#
+#     a = tuple(["alpha"]); bar_ord("alpha beta", a) -> "alpha"
+#     del a
+#     b = tuple(["gamma"]); bar_ord("alpha beta", b) -> "alpha"   FEL
+#
+# M-46 forsokte och misslyckades framkalla krocken, och skalet ar lardomen:
+# forsoket anvande TUPELLITERALER, och en literal ligger i funktionens
+# co_consts och frigors aldrig. Med tuple([...]) frigors den, adressen
+# aterbrukas, och grinden svarar med fel ordlista. Alla verkliga anropare
+# skickar modulkonstanter, sa felet kunde inte bita - men en cache vars
+# riktighet vilar pa att ingen anropare bygger sin lista pa plats ar en
+# fella, inte en optimering.
+_MONSTER: Dict[Tuple[str, ...], Any] = {}
 
 
 def _monster(markorer: Sequence[str]):
-    nyckel = id(markorer)
+    nyckel = tuple(markorer)
     monster = _MONSTER.get(nyckel)
     if monster is None:
         delar = sorted((re.escape(m.strip()) for m in markorer if m.strip()),

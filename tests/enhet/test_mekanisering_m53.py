@@ -716,3 +716,149 @@ def test_de_ej_mekaniska_fallorna_tacker_varje_bedd_regel():
     assert not saknas, (
         "bedda regler utan ett skrivet skal i nagon EJ_MEKANISK-falla: %s"
         % ", ".join(saknas))
+
+
+# ---- 16. M-46:s fyra obevisade fynd ------------------------------------
+
+def test_obevisat_1_monstercachen_far_inte_nyckla_pa_id():
+    """BEVISAT av M-53. M-46 gissade och misslyckades framkalla krocken.
+
+    CPython aterbrukar adresser ur sin frilista. Fore lagningen svarade
+    grinden sa har:
+
+        a = tuple(["alpha"]); bar_ord("alpha beta", a) -> "alpha"
+        del a
+        b = tuple(["gamma"]); bar_ord("alpha beta", b) -> "alpha"   FEL
+
+    M-46:s forsok anvande TUPELLITERALER, och en literal ligger i
+    funktionens co_consts och frigors darfor aldrig - det var hela skalet
+    till att krocken inte gick att framkalla.
+    """
+    forst = tuple(["alpha"])
+    assert Tx.bar_ord("alpha beta", forst) == "alpha"
+    adress = id(forst)
+    del forst
+    sedan = tuple(["gamma"])
+    assert Tx.bar_ord("alpha beta", sedan) is None, (
+        "cachen svarade med en ANNAN ordlistas monster; adress ateranvand: %s"
+        % (adress == id(sedan)))
+
+
+def test_monstercachen_delar_monster_pa_innehall_och_skiljer_pa_olikt():
+    a = tuple(["alfa", "beta"])
+    b = tuple(["alfa", "beta"])
+    assert a is not b
+    assert Tx._monster(a) is Tx._monster(b)
+    assert Tx._monster(a) is not Tx._monster(tuple(["gamma"]))
+
+
+def test_obevisat_2_pumpvarningen_nar_modellen_och_anropet_efterat_stoppas(
+        korpus, forgranskare):
+    """M-46 kunde inte mata om varningen nar modellen. Den gor det.
+
+    Halvan som fortfarande INTE gar att mata utan en levande brygga ar om
+    modellen AGERAR pa varningen. Det som daremot ar avgjort sedan M-53 ar
+    att anropet efter en pumpdodare inte langre kors alls.
+    """
+    modell = Mo.AttrappModell([
+        Mo.anropa("save_layout", {"uri": "file:///tmp/a.vcmx"}),
+        Mo.anropa("get_transform", LAS),
+        Mo.sag("Sparad.")])
+    kanal = Kn.Attrappkanal({"save_layout": [{"saved": True,
+                                              "uri": "file:///tmp/a.vcmx"}],
+                             "get_transform": [Fa.TRANSFORMSVAR]})
+    protokoll = L.Harness(modell=modell, kanal=kanal, korpus=korpus,
+                          forgranskare=forgranskare).kor("Spara layouten.")
+
+    varningar = [h for h in protokoll.handelser if h.sort == "VARNING"]
+    assert varningar, "ingen pumpvarning alls"
+    assert "M-13" in varningar[0].text
+
+    # Nadde den modellen? Historiken ar det modellen far se i nasta runda.
+    sett = [m for h in modell.sedda_historiker for m in h
+            if m.roll == "grind" and "M-13" in m.text]
+    assert sett, "varningen lades i protokollet men nadde aldrig modellen"
+
+    # Och anropet efter sparningen kordes inte.
+    assert protokoll.utfall == "AVVISAD:efter_sparning"
+    assert [u.verktyg for u in protokoll.utfallen] == ["save_layout"]
+
+
+def test_obevisat_3_ett_andra_forsok_kan_lyckas_och_taket_tva_ar_darfor_ratt(
+        korpus, forgranskare):
+    """M-46 noterade att MAX_LIKA_ANROP=2 ar mildare an VRK-008:s ordalydelse
+    och lat fragan sta oprovad.
+
+    Sedan M-53 gar den att avgora, och svaret ar att taket tva ar RATT:
+    forgranskningens dom ar inte langre en ren funktion av anropet, eftersom
+    turordningsgrindarna laser turens tillstand. Ett IDENTISKT anrop som
+    nyss avvisades kan alltsa lyckas efter en lasning emellan - och ett tak
+    pa ett hade last modellen ute ur sin egen rattning.
+    """
+    kopplingen = Mo.anropa("connect", {"component": "IRB1200",
+                                       "interface": "BaseInterface",
+                                       "other_component": "Transportor",
+                                       "other_interface": "OutFeed"})
+    modell = Mo.AttrappModell([
+        kopplingen,                       # avvisas: olast_scen
+        Mo.anropa("list_components"),     # modellen rattar sig
+        kopplingen,                       # SAMMA anrop, nu giltigt
+        Mo.sag("Jag laste layouten och kopplade sedan ihop dem.")])
+    kanal = Kn.Attrappkanal({"list_components": [Fa.LISTSVAR],
+                             "connect": [Fa.KOPPLINGSSVAR]})
+    protokoll = L.Harness(modell=modell, kanal=kanal, korpus=korpus,
+                          forgranskare=forgranskare).kor("Koppla ihop dem.")
+    assert [h.kod for h in protokoll.avvisningar] == ["olast_scen"]
+    # Turens utfall bar den FORSTA avgorande handelsen, alltsa avvisningen -
+    # men anropet kordes den andra gangen, och turen blev klar.
+    assert protokoll.klar
+    kopplingar = [u for u in protokoll.utfallen if u.verktyg == "connect"]
+    assert len(kopplingar) == 1 and kopplingar[0].ok
+    assert L.MAX_LIKA_ANROP >= 2
+
+
+def test_obevisat_4_textlinten_ar_blind_och_importerna_provas_mot_en_lista():
+    """M-46 skrev att socketprovet ar textbaserat och lat det sta oprovat.
+
+    Forsta halvan visar blindheten pa en syntetisk kalla: den bar tre vagar
+    ut och passerar alla tre textprov. Andra halvan ar lagningen, och den ar
+    en VITLISTA i stallet for en svartlista - samma vandning som M-46:s fynd
+    1 gjorde pa sprakmarkningen. Ett godkannande ur tystnad ar inget
+    godkannande (I3).
+    """
+    smugglad = ("import http.client\n"
+                "import asyncio\n"
+                "s = __import__('soc' + 'ket')\n")
+    assert "import socket" not in smugglad
+    assert "urllib" not in smugglad
+    assert "requests" not in smugglad
+
+    tillatna = {
+        "__future__", "ast", "dataclasses", "hashlib", "json", "os", "re",
+        "sys", "types", "typing", "unicodedata",
+        # Repots egna, ur ext/ och bank/. De nas via sys.path och ar inte
+        # tredjepart.
+        "skrivgrind", "oga_kontrakt", "lasare",
+    }
+    import ast as _ast
+    katalog = os.path.join(_ROT, "svc", "vc_assist_svc", "harness")
+    okanda = []
+    for filnamn in sorted(os.listdir(katalog)):
+        if not filnamn.endswith(".py"):
+            continue
+        with open(os.path.join(katalog, filnamn), encoding="utf-8") as f:
+            trad = _ast.parse(f.read())
+        for nod in _ast.walk(trad):
+            namn = []
+            if isinstance(nod, _ast.Import):
+                namn = [a.name.split(".")[0] for a in nod.names]
+            elif isinstance(nod, _ast.ImportFrom) and not nod.level:
+                namn = [(nod.module or "").split(".")[0]]
+            elif (isinstance(nod, _ast.Call)
+                  and getattr(nod.func, "id", "") == "__import__"):
+                okanda.append((filnamn, "__import__()"))
+            for n in namn:
+                if n and n not in tillatna:
+                    okanda.append((filnamn, n))
+    assert not okanda, (
+        "harnessen importerar nagot som inte star pa vitlistan: %s" % okanda)
