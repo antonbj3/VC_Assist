@@ -60,6 +60,7 @@ behövdes. Ingen av dem är en idé; varje rad pekar på talet som föranledde d
 | 14 | **Harnessens hårdhet** | `M-46`: **17 av 46 regler är mekaniserade, 29 är bara bedda**. Blocket om mätta fällor är sämst, 2 av 8 — och det är fällor som ger tal som *ser rimliga ut* | Kvoten mekaniserat/bett mätt om vid varje körning, med ett **golv som bara får gå uppåt** (samma spärr som tröskelskulden). Varje mekanism har en trasig fixtur som föll före den fanns. En regel som ärligt inte går att mekanisera står som `EJ_MEKANISK` med skäl |
 | 15 | **Ögat på djupet** | Operatörens krav: *"programmatiskt kunna förstå vad som pågår i en scen … detta måste bli riktigt jävla bra"*, och tidsserier över **alla objekts positioner**. `M-42` lade PLC-värdena på ögats tidsaxel; resten av `42_ogat_utbyggt.md` är ospecificerat i faser | Tidsserie över varje objekt i scenen, PLC-värdena på samma axel, och domar som fäller på sekvens, timing, grepp, kollision och genomflöde — var och en med en trasig cell som måste fällas. Hopfogningens osäkerhet mätt, inte antagen |
 | 16 | **Planeringslagret** | Operatörens krav, ordagrant: *"Man ska kunna sätta upp instruktioner, bygga denna scen, med dessa, med villkor och ordning av processer osv, där spec ska kunna detaljeras från grundrequest"*. `22_planeringslagret.md` är 384 rader spec utan en fas som bygger den | En grundbeställning i fritext blir en detaljerad, körbar byggplan med villkor och processordning — och planen **avvisas** när den är omöjlig, i stället för att byggas halvt. Trasigt fall: en beställning som motsäger sig själv måste fällas med vilket villkor som krockar |
+| 18 | **Befintlig kod in** | Operatörens fråga, och ett verkligt driftproblem: originalkoden till en anläggning är ofta borttappad. Att generera ny kod hjälper inte den som vill veta vad den **nuvarande** logiken gör. Kedjan har redan tolken, ögat och kopplaren; det som saknas är läsare för de format koden faktiskt kommer i | Ett befintligt PLC-program läses in, körs mot en VC-scen, och ögat visar vad det gör — utan att någon skrivit om det. Trasigt fall: en fil i ett format vi inte kan läsa **fullt ut** måste avvisas med vad som inte gick att läsa, aldrig läsas halvt och köras ändå |
 | 17 | **Vad användaren ser** | Operatörens krav: *"användaren vill förmodligen också gärna kunna veta vad som händer också när saker arbetar"*. Hela systemet rapporterar i dag till loggar och mätfiler, alltså till oss, inte till användaren | Medan en körning pågår kan användaren se vad som händer, vilken grind som fällde och varför, och vad systemet **inte** vet. Trasigt fall: ett fällt läge får aldrig se ut som ett arbetande |
 
 ## Varför djupstegen ligger i den ordningen
@@ -78,6 +79,20 @@ precis det läge där prosa är svagast.
 
 **17 sist, men inte minst.** Den är den enda fasen som riktar sig till någon
 utanför det här bygget.
+
+**18 är den enda fasen som inte handlar om att generera något.** Den handlar om
+att förstå kod någon annan skrev, och den delar nästan hela sin mekanik med
+resten: tolken, ögat, kopplaren och bänkens spårfacit fungerar likadant oavsett
+om koden kom från en modell eller ur en anläggning.
+
+Ett förbehåll som hör till fasen och som inte får glömmas bort: **maskinkod går
+inte tillbaka till structured text.** STruC++ kompilerar bara åt ena hållet, och
+dekompilering är inte vägen. Det som går att läsa är tillverkarens
+uppladdningsformat, och hur mycket det bär skiljer sig kraftigt mellan fabrikat
+— Rockwell lagrar hela projektet med symbolnamn, Siemens S7-300/400 ger
+bytekod som ligger nära STL men utan kommentarer, nyare optimerade block ger
+mindre, och CODESYS bär källan bara om någon kryssat i rutan. Vilka format som
+faktiskt går att läsa ska **mätas mot riktiga filer** innan fasen lovar något.
 
 ## Vad som ännu inte har en fas, och varför
 
