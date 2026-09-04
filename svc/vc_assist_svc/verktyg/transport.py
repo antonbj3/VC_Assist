@@ -281,6 +281,19 @@ _Y_BETLISTA = _Y_KOMP + ("comp.Behaviours",)
 
 # ---- list_transport_behaviours -------------------------------------------
 
+_BETEENDEPOST = {
+    "type": "object",
+    "description": "Ett transport-, flodes- eller processbeteende.",
+    "properties": {
+        "component": {"type": "string",
+                      "description": "Komponenten det sitter pa."},
+        "behaviour": {"type": "string", "description": "Beteendets namn."},
+        "kinds": RET_SLAG,
+        "enabled": {"type": "boolean", "description": "Om beteendet ar pa."},
+    },
+}
+
+
 def _kod_list_transport_behaviours(argument):
     rader = _komponentkalla(argument)
     rader += [
@@ -327,17 +340,8 @@ _lagg(
             "kind": {"type": "string", "enum": list(SLAGNAMN),
                      "description": ("Ta bara med beteenden av det har slaget. "
                                      "Utelamnad tar med alla.")}}),
-    returns({"behaviours": {
-                 "type": "array", "description": "Beteendena.",
-                 "items": {"type": "object", "description": "Ett beteende.",
-                           "properties": {
-                               "component": {"type": "string",
-                                             "description": "Komponenten det sitter pa."},
-                               "behaviour": {"type": "string",
-                                             "description": "Beteendets namn."},
-                               "kinds": RET_SLAG,
-                               "enabled": {"type": "boolean",
-                                           "description": "Om beteendet ar pa."}}}},
+    returns({"behaviours": {"type": "array", "description": "Beteendena.",
+                            "items": _BETEENDEPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["behaviours", "antal", "avkortad"]),
     ("app.Components", "app.findComponent", "comp.Name", "comp.Behaviours"),
@@ -390,15 +394,21 @@ _lagg(
              "property_count": {"type": "integer",
                                 "description": "Antal parametrar pa beteendet."},
              "capacity": {"type": "integer",
-                          "description": "Hur manga komponenter det rymmer. Utelamnas om beteendet inte haller nagot."},
+                          "description": ("Hur manga komponenter det rymmer. "
+                                          "Utelamnas om beteendet inte haller "
+                                          "nagot.")},
              "component_count": {"type": "integer",
                                  "description": "Hur manga som ligger i det nu."},
              "fill_ratio": {"type": ["number", "null"],
-                            "description": "component_count delat med capacity. null nar kapaciteten ar obegransad."},
+                            "description": ("component_count delat med "
+                                            "capacity. null nar kapaciteten "
+                                            "ar obegransad.")},
              "capacity_available": {"type": "boolean",
                                     "description": "Om det finns plats kvar."},
              "connector_count": {"type": "integer",
-                                 "description": "Antal flodesportar. Utelamnas om beteendet inte ar ett flode."},
+                                 "description": ("Antal flodesportar. "
+                                                 "Utelamnas om beteendet inte "
+                                                 "ar ett flode.")},
              "has_statistics": {"type": "boolean",
                                 "description": "Om beteendet har ett statistikobjekt."}},
             ["component", "behaviour", "kinds", "enabled", "property_count"]),
@@ -513,8 +523,10 @@ _lagg(
                       "description": "VC:s typupprakning."},
              "writable_when_simulating": {"type": "boolean",
                                           "description": "Om den gar att andra under korning."},
-             "writable_when_connected": {"type": "boolean",
-                                         "description": "Om den gar att andra nar komponenten ar kopplad."}},
+             "writable_when_connected": {
+                 "type": "boolean",
+                 "description": ("Om den gar att andra nar komponenten ar "
+                                 "kopplad.")}},
             ["found", "component", "owner", "parameter"]),
     _Y_KOMP + ("comp.Properties", "comp.findBehaviour"),
     _kod_get_transport_parameter,
@@ -569,6 +581,30 @@ _lagg(
 
 # ---- get_capacity --------------------------------------------------------
 
+_BEHALLARPOST = {
+    "type": "object",
+    "description": "Ett beteende som haller komponenter, med sin fyllnadsgrad.",
+    "properties": {
+        "behaviour": {"type": "string", "description": "Beteendets namn."},
+        "capacity": {"type": "integer",
+                     "description": "Hur manga komponenter det rymmer."},
+        "component_count": {"type": "integer",
+                            "description": "Hur manga som ligger i det nu."},
+        "fill_ratio": {"type": ["number", "null"],
+                       "description": ("Antal delat med kapacitet, null vid "
+                                       "obegransad kapacitet.")},
+        "capacity_available": {"type": "boolean",
+                               "description": "Om det finns plats kvar."},
+        "head": {"type": ["string", "null"],
+                 "description": ("Namnet pa komponenten langst fram, null om "
+                                 "behallaren ar tom.")},
+        "tail": {"type": ["string", "null"],
+                 "description": ("Namnet pa komponenten langst bak, null om "
+                                 "behallaren ar tom.")},
+    },
+}
+
+
 def _kod_get_capacity(argument):
     rader = _hamta_komponent(argument["component"])
     if "behaviour" in argument:
@@ -611,18 +647,9 @@ _lagg(
                 "komponenter."))},
            ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
-             "containers": {
-                 "type": "array", "description": "Beteendena som haller komponenter.",
-                 "items": {"type": "object", "description": "En behallare.",
-                           "properties": {
-                               "behaviour": {"type": "string", "description": "Beteendets namn."},
-                               "capacity": {"type": "integer", "description": "Hur manga det rymmer."},
-                               "component_count": {"type": "integer", "description": "Hur manga som ligger i det nu."},
-                               "fill_ratio": {"type": ["number", "null"],
-                                              "description": "Antal delat med kapacitet, null vid obegransad kapacitet."},
-                               "capacity_available": {"type": "boolean", "description": "Om det finns plats kvar."},
-                               "head": {"type": ["string", "null"], "description": "Namnet pa komponenten langst fram, null om tom."},
-                               "tail": {"type": ["string", "null"], "description": "Namnet pa komponenten langst bak, null om tom."}}}},
+             "containers": {"type": "array",
+                            "description": "Beteendena som haller komponenter.",
+                            "items": _BEHALLARPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "containers", "antal", "avkortad"]),
     _Y_BETLISTA + ("comp.findBehaviour",),
@@ -670,6 +697,20 @@ _lagg(
 
 # ---- list_buffer_contents ------------------------------------------------
 
+_INNEHALLSPOST = {
+    "type": "object",
+    "description": "En komponent som ligger i behallaren.",
+    "properties": {
+        "name": {"type": "string", "description": "Komponentens namn."},
+        "uri": {"type": ["string", "null"],
+                "description": "URI den laddades fran."},
+        "product_type": {"type": ["string", "null"],
+                         "description": ("Produkttypens namn, null om "
+                                         "komponenten inte ar en produkt.")},
+    },
+}
+
+
 def _kod_list_buffer_contents(argument):
     rader = _hamta_komponent(argument["component"])
     rader += _hamta_beteende(argument["behaviour"])
@@ -701,14 +742,9 @@ _lagg(
     returns({"component": {"type": "string", "description": "Komponenten."},
              "behaviour": {"type": "string", "description": "Beteendet."},
              "capacity": {"type": "integer", "description": "Hur manga beteendet rymmer."},
-             "contents": {
-                 "type": "array", "description": "Innehallet i VC:s egen ordning.",
-                 "items": {"type": "object", "description": "En komponent i behallaren.",
-                           "properties": {
-                               "name": {"type": "string", "description": "Komponentens namn."},
-                               "uri": {"type": ["string", "null"], "description": "URI den laddades fran."},
-                               "product_type": {"type": ["string", "null"],
-                                                "description": "Produkttypens namn, null om komponenten inte ar en produkt."}}}},
+             "contents": {"type": "array",
+                          "description": "Innehallet i VC:s egen ordning.",
+                          "items": _INNEHALLSPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "behaviour", "contents", "antal", "avkortad"]),
     _Y_BET + ("comp.Uri",),
@@ -717,6 +753,26 @@ _lagg(
 
 
 # ---- list_flow_connectors ------------------------------------------------
+
+_PORTPOST = {
+    "type": "object",
+    "description": "En flodesport och vad den ar kopplad till.",
+    "properties": {
+        "component": {"type": "string", "description": "Komponenten."},
+        "behaviour": {"type": "string", "description": "Flodesbeteendet."},
+        "connector": {"type": "string", "description": "Portens namn."},
+        "index": {"type": "integer",
+                  "description": "Portens index i beteendet."},
+        "connected_to": {"type": ["string", "null"],
+                         "description": ("Motpartens portnamn, null om porten "
+                                         "ar okopplad.")},
+        "connected_behaviour": {"type": ["string", "null"],
+                                "description": "Motpartens beteende."},
+        "connected_component": {"type": ["string", "null"],
+                                "description": "Motpartens komponent."},
+    },
+}
+
 
 def _kod_list_flow_connectors(argument):
     rader = _komponentkalla(argument)
@@ -761,17 +817,9 @@ _lagg(
     "snabbaste bilden av vagvalen i linan.",
     "read",
     params({"component": ARG_KOMPONENT_VALFRI}),
-    returns({"connectors": {
-                 "type": "array", "description": "Flodesportarna.",
-                 "items": {"type": "object", "description": "En flodesport.",
-                           "properties": {
-                               "component": {"type": "string", "description": "Komponenten."},
-                               "behaviour": {"type": "string", "description": "Flodesbeteendet."},
-                               "connector": {"type": "string", "description": "Portens namn."},
-                               "index": {"type": "integer", "description": "Portens index i beteendet."},
-                               "connected_to": {"type": ["string", "null"], "description": "Motpartens portnamn, null om okopplad."},
-                               "connected_behaviour": {"type": ["string", "null"], "description": "Motpartens beteende."},
-                               "connected_component": {"type": ["string", "null"], "description": "Motpartens komponent."}}}},
+    returns({"connectors": {"type": "array",
+                            "description": "Flodesportarna.",
+                            "items": _PORTPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["connectors", "antal", "avkortad"]),
     ("app.Components", "app.findComponent", "comp.Name", "comp.Behaviours"),
@@ -780,6 +828,37 @@ _lagg(
 
 
 # ---- get_routing_rule ----------------------------------------------------
+
+_UTGANGSPOST = {
+    "type": "object",
+    "description": "En utgang ur en dirigeringsregel.",
+    "properties": {
+        "connector": {"type": "string", "description": "Portens namn."},
+        "index": {"type": "integer",
+                  "description": "Portens index, det setTarget tar."},
+    },
+}
+_REGELPOST = {
+    "type": "object",
+    "description": "En dirigeringsregel med sina utgangar.",
+    "properties": {
+        "behaviour": {"type": "string",
+                      "description": "Regelbeteendets namn."},
+        "rule": {"type": ["string", "number", "integer", "null"],
+                 "description": "VC:s upprakningsvarde for regeln."},
+        "connector_count": {"type": "integer",
+                            "description": "Antal utgangar."},
+        "capacity": {"type": "integer",
+                     "description": "Hur manga regeln rymmer."},
+        "component_count": {"type": "integer",
+                            "description": "Hur manga som ligger i den nu."},
+        "flow_proxy": {"type": ["string", "null"],
+                       "description": "Flodesproxyns namn, null om ingen."},
+        "targets": {"type": "array", "description": "Utgangarna.",
+                    "items": _UTGANGSPOST},
+    },
+}
+
 
 def _kod_get_routing_rule(argument):
     rader = _hamta_komponent(argument["component"])
@@ -821,22 +900,9 @@ _lagg(
                 "Begransa till en regel. Utelamnad tar alla pa komponenten."))},
            ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
-             "rules": {
-                 "type": "array", "description": "Dirigeringsreglerna.",
-                 "items": {"type": "object", "description": "En dirigeringsregel.",
-                           "properties": {
-                               "behaviour": {"type": "string", "description": "Regelbeteendets namn."},
-                               "rule": {"type": ["string", "number", "integer", "null"],
-                                        "description": "VC:s upprakningsvarde for regeln."},
-                               "connector_count": {"type": "integer", "description": "Antal utgangar."},
-                               "capacity": {"type": "integer", "description": "Hur manga regeln rymmer."},
-                               "component_count": {"type": "integer", "description": "Hur manga som ligger i den nu."},
-                               "flow_proxy": {"type": ["string", "null"], "description": "Flodesproxyns namn, null om ingen."},
-                               "targets": {"type": "array", "description": "Utgangarna.",
-                                           "items": {"type": "object", "description": "En utgang.",
-                                                     "properties": {
-                                                         "connector": {"type": "string", "description": "Portens namn."},
-                                                         "index": {"type": "integer", "description": "Portens index, det setTarget tar."}}}}}}},
+             "rules": {"type": "array",
+                       "description": "Dirigeringsreglerna.",
+                       "items": _REGELPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "rules", "antal", "avkortad"]),
     _Y_BETLISTA + ("comp.findBehaviour",),
@@ -883,6 +949,32 @@ _lagg(
 
 # ---- list_path_sensors ---------------------------------------------------
 
+_SENSORPOST = {
+    "type": "object",
+    "description": "En sensor pa banan.",
+    "properties": {
+        "component": {"type": "string", "description": "Komponenten."},
+        "sensor": {"type": "string", "description": "Sensorbeteendets namn."},
+        "enabled": {"type": "boolean", "description": "Om sensorn ar pa."},
+        "trigger_at": {"type": ["string", "number", "integer", "null"],
+                       "description": ("VC:s upprakningsvarde for nar sensorn "
+                                       "loser ut.")},
+        "process_at": {"type": ["string", "number", "integer", "null"],
+                       "description": ("VC:s upprakningsvarde for nar sensorn "
+                                       "bearbetar.")},
+        "rule": {"type": ["string", "number", "integer", "null"],
+                 "description": ("VC:s upprakningsvarde for vilken komponent "
+                                 "regeln galler.")},
+        "frame": {"type": ["string", "null"],
+                  "description": ("Ramens namn, alltsa var pa banan sensorn "
+                                  "sitter.")},
+        "signal": {"type": ["string", "null"], "description": "Signalens namn."},
+        "value": {"type": ["boolean", "string", "number", "integer", "null"],
+                  "description": "Signalens varde just nu."},
+    },
+}
+
+
 def _kod_list_path_sensors(argument):
     rader = _komponentkalla(argument)
     rader += [
@@ -927,23 +1019,8 @@ _lagg(
     "statistikbeteendet (station_statistics).",
     "read",
     params({"component": ARG_KOMPONENT_VALFRI}),
-    returns({"sensors": {
-                 "type": "array", "description": "Sensorerna.",
-                 "items": {"type": "object", "description": "En sensor pa banan.",
-                           "properties": {
-                               "component": {"type": "string", "description": "Komponenten."},
-                               "sensor": {"type": "string", "description": "Sensorbeteendets namn."},
-                               "enabled": {"type": "boolean", "description": "Om sensorn ar pa."},
-                               "trigger_at": {"type": ["string", "number", "integer", "null"],
-                                              "description": "VC:s upprakningsvarde for nar sensorn loser ut."},
-                               "process_at": {"type": ["string", "number", "integer", "null"],
-                                              "description": "VC:s upprakningsvarde for nar den bearbetar."},
-                               "rule": {"type": ["string", "number", "integer", "null"],
-                                        "description": "VC:s upprakningsvarde for vilken komponent regeln galler."},
-                               "frame": {"type": ["string", "null"], "description": "Ramens namn, alltsa var pa banan sensorn sitter."},
-                               "signal": {"type": ["string", "null"], "description": "Signalens namn."},
-                               "value": {"type": ["boolean", "string", "number", "integer", "null"],
-                                         "description": "Signalens varde just nu."}}}},
+    returns({"sensors": {"type": "array", "description": "Sensorerna.",
+                         "items": _SENSORPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["sensors", "antal", "avkortad"]),
     ("app.Components", "app.findComponent", "comp.Name", "comp.Behaviours"),
@@ -952,6 +1029,84 @@ _lagg(
 
 
 # ---- get_feeder_info -----------------------------------------------------
+
+# De fyra matningslagena var for sig. Hoppade ur returschemat for att ett
+# schema som ar sju niva djupt inte gar att lasa - och det ar modellens enda
+# beskrivning av vad den far tillbaka.
+_ENKELT_LAGE = {
+    "type": ["object", "null"],
+    "description": "Enkelt lage: takt, grans och produkttyp.",
+    "properties": {
+        "interval": {"type": ["string", "number", "null"],
+                     "description": ("Fordelningsuttryck for tiden mellan tva "
+                                     "produkter.")},
+        "limit": {"type": "integer",
+                  "description": "Hogsta antal produkter, 0 for obegransat."},
+        "product_type": {"type": ["string", "null"],
+                         "description": "Produkttypens namn."},
+    },
+}
+_FORDELNINGSLAGE = {
+    "type": ["object", "null"],
+    "description": "Fordelningslage: flera produkttyper med sannolikheter.",
+    "properties": {
+        "interval": {"type": ["string", "number", "null"],
+                     "description": "Fordelningsuttryck for takten."},
+        "limit": {"type": "integer",
+                  "description": "Hogsta antal produkter."},
+        "random_stream": {"type": "integer",
+                          "description": "Vilken slumpstrom fordelningen drar ur."},
+        "entries": {
+            "type": "array",
+            "description": "Produkttyperna och deras sannolikheter.",
+            "items": {"type": "object", "description": "En rad i fordelningen.",
+                      "properties": {
+                          "product_type": {"type": ["string", "null"],
+                                           "description": "Produkttypens namn."},
+                          "probability": {"type": "number",
+                                          "description": "Sannolikhet for raden."}}},
+        },
+    },
+}
+_BATCHLAGE = {
+    "type": ["object", "null"],
+    "description": "Batchlage: en lista batcher som matas i tur och ordning.",
+    "properties": {
+        "batch_interval": {"type": "number",
+                           "description": "Tid mellan batcher i sekunder."},
+        "loop": {"type": "boolean",
+                 "description": "Om batchlistan borjar om fran borjan."},
+        "batch_count": {"type": "integer",
+                        "description": "Antal batcher i listan."},
+    },
+}
+_TABELLAGE = {
+    "type": ["object", "null"],
+    "description": "Tabellage: matningen lases ur en fil.",
+    "properties": {
+        "file": {"type": ["string", "null"],
+                 "description": "Filen tabellen lases ur."},
+        "row_count": {"type": "integer",
+                      "description": "Antal rader i tabellen."},
+    },
+}
+_MATARPOST = {
+    "type": "object",
+    "description": "En produktskapare med alla fyra matningslagen.",
+    "properties": {
+        "behaviour": {"type": "string", "description": "Beteendets namn."},
+        "feed_mode": {"type": ["string", "number", "integer", "null"],
+                      "description": ("VC:s upprakningsvarde for vilket "
+                                      "matningslage som ar valt.")},
+        "part_pooling": {"type": "boolean",
+                         "description": "Om skaparen ateranvander produkter."},
+        "single": _ENKELT_LAGE,
+        "distribution": _FORDELNINGSLAGE,
+        "batch": _BATCHLAGE,
+        "table": _TABELLAGE,
+    },
+}
+
 
 def _kod_get_feeder_info(argument):
     rader = _hamta_komponent(argument["component"])
@@ -1018,38 +1173,8 @@ _lagg(
                 "komponenten."))},
            ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
-             "feeders": {
-                 "type": "array", "description": "Produktskaparna.",
-                 "items": {"type": "object", "description": "En produktskapare.",
-                           "properties": {
-                               "behaviour": {"type": "string", "description": "Beteendets namn."},
-                               "feed_mode": {"type": ["string", "number", "integer", "null"],
-                                             "description": "VC:s upprakningsvarde for vilket matningslage som ar valt."},
-                               "part_pooling": {"type": "boolean", "description": "Om skaparen ateranvander produkter."},
-                               "single": {"type": ["object", "null"], "description": "Enkelt lage: takt, gras och produkttyp.",
-                                          "properties": {
-                                              "interval": {"type": ["string", "number", "null"], "description": "Fordelningsuttryck for tiden mellan tva produkter."},
-                                              "limit": {"type": "integer", "description": "Hogsta antal produkter, 0 for obegransat."},
-                                              "product_type": {"type": ["string", "null"], "description": "Produkttypens namn."}}},
-                               "distribution": {"type": ["object", "null"], "description": "Fordelningslage.",
-                                                "properties": {
-                                                    "interval": {"type": ["string", "number", "null"], "description": "Fordelningsuttryck for takten."},
-                                                    "limit": {"type": "integer", "description": "Hogsta antal produkter."},
-                                                    "random_stream": {"type": "integer", "description": "Vilken slumpstrom fordelningen drar ur."},
-                                                    "entries": {"type": "array", "description": "Produkttyperna och deras sannolikheter.",
-                                                                "items": {"type": "object", "description": "En rad i fordelningen.",
-                                                                          "properties": {
-                                                                              "product_type": {"type": ["string", "null"], "description": "Produkttypens namn."},
-                                                                              "probability": {"type": "number", "description": "Sannolikhet for raden."}}}}}},
-                               "batch": {"type": ["object", "null"], "description": "Batchlage.",
-                                         "properties": {
-                                             "batch_interval": {"type": "number", "description": "Tid mellan batcher i sekunder."},
-                                             "loop": {"type": "boolean", "description": "Om batchlistan borjar om."},
-                                             "batch_count": {"type": "integer", "description": "Antal batcher i listan."}}},
-                               "table": {"type": ["object", "null"], "description": "Tabellage.",
-                                         "properties": {
-                                             "file": {"type": ["string", "null"], "description": "Filen tabellen lases ur."},
-                                             "row_count": {"type": "integer", "description": "Antal rader i tabellen."}}}}}},
+             "feeders": {"type": "array", "description": "Produktskaparna.",
+                         "items": _MATARPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "feeders", "antal", "avkortad"]),
     _Y_BETLISTA + ("comp.findBehaviour",),
@@ -1100,7 +1225,8 @@ _lagg(
     returns({"set": {"type": "boolean", "description": "Alltid true; ett misslyckande kastar."},
              "component": {"type": "string", "description": "Komponenten."},
              "behaviour": {"type": "string", "description": "Produktskaparen."},
-             "interval": {"type": ["string", "number", "null"], "description": "Intervallet efterat, last ur VC."},
+             "interval": {"type": ["string", "number", "null"],
+                          "description": "Intervallet efterat, last ur VC."},
              "limit": {"type": "integer", "description": "Gransen efterat, last ur VC."}},
             ["set", "component", "behaviour", "interval", "limit"]),
     _Y_BET,
@@ -1109,6 +1235,33 @@ _lagg(
 
 
 # ---- get_component_creator_info ------------------------------------------
+
+_SKAPARPOST = {
+    "type": "object",
+    "description": "En komponentskapare med sin takt och sin mall.",
+    "properties": {
+        "behaviour": {"type": "string", "description": "Beteendets namn."},
+        "interval": {"type": "number",
+                     "description": ("Tid mellan tva skapade komponenter, i "
+                                     "sekunder.")},
+        "limit": {"type": "integer",
+                  "description": "Hogsta antal, 0 for obegransat."},
+        "part": {"type": ["string", "null"],
+                 "description": "Namnet pa delen som skapas."},
+        "part_pooling": {"type": "boolean",
+                         "description": "Om skaparen ateranvander komponenter."},
+        "blocking_optimization": {"type": "boolean",
+                                  "description": ("Om VC:s blockeringsoptimering "
+                                                  "ar pa.")},
+        "capacity": {"type": "integer",
+                     "description": "Hur manga skaparen rymmer."},
+        "component_count": {"type": "integer",
+                            "description": "Hur manga som ligger i den nu."},
+        "template": {"type": ["string", "null"],
+                     "description": "Mallkomponentens namn, null om ingen."},
+    },
+}
+
 
 def _kod_get_component_creator_info(argument):
     rader = _hamta_komponent(argument["component"])
@@ -1141,19 +1294,9 @@ _lagg(
     "read",
     params({"component": ARG_KOMPONENT}, ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
-             "creators": {
-                 "type": "array", "description": "Komponentskaparna.",
-                 "items": {"type": "object", "description": "En komponentskapare.",
-                           "properties": {
-                               "behaviour": {"type": "string", "description": "Beteendets namn."},
-                               "interval": {"type": "number", "description": "Tid mellan tva skapade komponenter, i sekunder."},
-                               "limit": {"type": "integer", "description": "Hogsta antal, 0 for obegransat."},
-                               "part": {"type": ["string", "null"], "description": "Namnet pa delen som skapas."},
-                               "part_pooling": {"type": "boolean", "description": "Om skaparen ateranvander komponenter."},
-                               "blocking_optimization": {"type": "boolean", "description": "Om VC:s blockeringsoptimering ar pa."},
-                               "capacity": {"type": "integer", "description": "Hur manga skaparen rymmer."},
-                               "component_count": {"type": "integer", "description": "Hur manga som ligger i den nu."},
-                               "template": {"type": ["string", "null"], "description": "Mallkomponentens namn, null om ingen."}}}},
+             "creators": {"type": "array",
+                          "description": "Komponentskaparna.",
+                          "items": _SKAPARPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "creators", "antal", "avkortad"]),
     _Y_BETLISTA,
@@ -1206,6 +1349,39 @@ _lagg(
 
 # ---- list_transport_nodes ------------------------------------------------
 
+_LANKPOST = {
+    "type": "object",
+    "description": "En transportlank: en tillaten flytt mellan tva noder.",
+    "properties": {
+        "source": {"type": ["string", "null"], "description": "Kallnodens namn."},
+        "destination": {"type": ["string", "null"], "description": "Malnodens namn."},
+        "implementer": {"type": ["string", "null"],
+                        "description": "Transportregulatorn som utfor flytten."},
+        "group": {"type": ["string", "null"],
+                  "description": "Flodesgruppen lanken bar."},
+    },
+}
+_TRANSPORTNODPOST = {
+    "type": "object",
+    "description": "En transportnod med sina lankar.",
+    "properties": {
+        "component": {"type": "string",
+                      "description": "Komponenten noden sitter pa."},
+        "node": {"type": "string", "description": "Nodbeteendets namn."},
+        "enabled": {"type": "boolean", "description": "Om noden ar pa."},
+        "reset_at": {"type": ["string", "number", "integer", "null"],
+                     "description": ("VC:s upprakningsvarde for nar noden "
+                                     "nollstalls.")},
+        "trigger_at": {"type": ["string", "number", "integer", "null"],
+                       "description": ("VC:s upprakningsvarde for nar noden "
+                                       "loser ut.")},
+        "links": {"type": "array",
+                  "description": "Lankarna ut ur och in i noden.",
+                  "items": _LANKPOST},
+    },
+}
+
+
 def _kod_list_transport_nodes(argument):
     rader = _komponentkalla(argument)
     rader += [
@@ -1250,22 +1426,8 @@ _lagg(
     "kartan over transportsystemet i en processlayout.",
     "read",
     params({"component": ARG_KOMPONENT_VALFRI}),
-    returns({"nodes": {
-                 "type": "array", "description": "Transportnoderna.",
-                 "items": {"type": "object", "description": "En transportnod.",
-                           "properties": {
-                               "component": {"type": "string", "description": "Komponenten noden sitter pa."},
-                               "node": {"type": "string", "description": "Nodbeteendets namn."},
-                               "enabled": {"type": "boolean", "description": "Om noden ar pa."},
-                               "reset_at": {"type": ["string", "number", "integer", "null"], "description": "VC:s upprakningsvarde for nar noden nollstalls."},
-                               "trigger_at": {"type": ["string", "number", "integer", "null"], "description": "VC:s upprakningsvarde for nar noden loser ut."},
-                               "links": {"type": "array", "description": "Lankarna ut ur och in i noden.",
-                                         "items": {"type": "object", "description": "En transportlank.",
-                                                   "properties": {
-                                                       "source": {"type": ["string", "null"], "description": "Kallnodens namn."},
-                                                       "destination": {"type": ["string", "null"], "description": "Malnodens namn."},
-                                                       "implementer": {"type": ["string", "null"], "description": "Transportregulatorn som utfor flytten."},
-                                                       "group": {"type": ["string", "null"], "description": "Flodesgruppen lanken bar."}}}}}}},
+    returns({"nodes": {"type": "array", "description": "Transportnoderna.",
+                       "items": _TRANSPORTNODPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["nodes", "antal", "avkortad"]),
     ("app.Components", "app.findComponent", "comp.Name", "comp.Behaviours"),
@@ -1274,6 +1436,21 @@ _lagg(
 
 
 # ---- list_process_flow_groups --------------------------------------------
+
+_FLODESGRUPPPOST = {
+    "type": "object",
+    "description": "En flodesgrupp och produkttyperna i den.",
+    "properties": {
+        "group": {"type": "string", "description": "Gruppens namn."},
+        "visible": {"type": "boolean",
+                    "description": "Om gruppen visas i granssnittet."},
+        "product_types": {"type": "array",
+                          "description": "Produkttyperna i gruppen.",
+                          "items": {"type": "string",
+                                    "description": "Produkttypens namn."}},
+    },
+}
+
 
 def _kod_list_process_flow_groups(argument):
     rader = _hamta_komponent(argument["component"])
@@ -1318,14 +1495,9 @@ _lagg(
            ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
              "behaviour": {"type": "string", "description": "Processregulatorns namn."},
-             "groups": {
-                 "type": "array", "description": "Flodesgrupperna.",
-                 "items": {"type": "object", "description": "En flodesgrupp.",
-                           "properties": {
-                               "group": {"type": "string", "description": "Gruppens namn."},
-                               "visible": {"type": "boolean", "description": "Om gruppen visas i granssnittet."},
-                               "product_types": {"type": "array", "description": "Produkttyperna i gruppen.",
-                                                 "items": {"type": "string", "description": "Produkttypens namn."}}}}},
+             "groups": {"type": "array",
+                        "description": "Flodesgrupperna.",
+                        "items": _FLODESGRUPPPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "behaviour", "groups", "antal", "avkortad"]),
     _Y_BETLISTA,
@@ -1334,6 +1506,29 @@ _lagg(
 
 
 # ---- list_product_types --------------------------------------------------
+
+_PRODUKTTYPPOST = {
+    "type": "object",
+    "description": "En produkttyp som processregulatorn kanner.",
+    "properties": {
+        "product_type": {"type": "string", "description": "Typens namn."},
+        "uri": {"type": ["string", "null"],
+                "description": "Komponent-URI typen bygger pa."},
+        "is_assembly": {"type": "boolean",
+                        "description": "Om typen ar en sammansattning."},
+        "is_system": {"type": "boolean",
+                      "description": "Om typen ar en av VC:s egna."},
+        "flow_group": {"type": ["string", "null"],
+                       "description": "Flodesgruppens namn."},
+        "product_property_count": {"type": "integer",
+                                   "description": ("Antal egenskaper pa "
+                                                   "produkten.")},
+        "component_property_count": {"type": "integer",
+                                     "description": ("Antal egenskaper pa "
+                                                     "komponenten typen skapar.")},
+    },
+}
+
 
 def _kod_list_product_types(argument):
     rader = _hamta_komponent(argument["component"])
@@ -1381,17 +1576,9 @@ _lagg(
            ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
              "behaviour": {"type": "string", "description": "Processregulatorns namn."},
-             "product_types": {
-                 "type": "array", "description": "Produkttyperna.",
-                 "items": {"type": "object", "description": "En produkttyp.",
-                           "properties": {
-                               "product_type": {"type": "string", "description": "Typens namn."},
-                               "uri": {"type": ["string", "null"], "description": "Komponent-URI typen bygger pa."},
-                               "is_assembly": {"type": "boolean", "description": "Om typen ar en sammansattning."},
-                               "is_system": {"type": "boolean", "description": "Om typen ar en av VC:s egna."},
-                               "flow_group": {"type": ["string", "null"], "description": "Flodesgruppens namn."},
-                               "product_property_count": {"type": "integer", "description": "Antal egenskaper pa produkten."},
-                               "component_property_count": {"type": "integer", "description": "Antal egenskaper pa komponenten typen skapar."}}}},
+             "product_types": {"type": "array",
+                               "description": "Produkttyperna.",
+                               "items": _PRODUKTTYPPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "behaviour", "product_types", "antal", "avkortad"]),
     _Y_BETLISTA,
@@ -1400,6 +1587,26 @@ _lagg(
 
 
 # ---- product_type_info ---------------------------------------------------
+
+_EGENSKAPSPOST = {
+    "type": "object",
+    "description": "En egenskap pa produkttypen.",
+    "properties": {
+        "name": {"type": "string", "description": "Egenskapens namn."},
+        "value": RET_VARDE,
+    },
+}
+_STEGPOST = {
+    "type": "object",
+    "description": "Ett sammansattningssteg, alltsa en rad i stycklistan.",
+    "properties": {
+        "step": {"type": "string", "description": "Stegets namn."},
+        "parent": {"type": ["string", "null"],
+                   "description": "Foraldrastegets namn."},
+        "children": {"type": "integer", "description": "Antal understeg."},
+    },
+}
+
 
 def _kod_product_type_info(argument):
     typ = lit(argument["product_type"])
@@ -1465,18 +1672,13 @@ _lagg(
              "product_type": {"type": "string", "description": "Typens namn."},
              "uri": {"type": ["string", "null"], "description": "Komponent-URI typen bygger pa."},
              "is_assembly": {"type": "boolean", "description": "Om typen ar en sammansattning."},
-             "properties": {"type": "array", "description": "Produktens egenskaper.",
-                            "items": {"type": "object", "description": "En egenskap.",
-                                      "properties": {
-                                          "name": {"type": "string", "description": "Egenskapens namn."},
-                                          "value": RET_VARDE}}},
+             "properties": {"type": "array",
+                            "description": "Produktens egenskaper.",
+                            "items": _EGENSKAPSPOST},
              "bom": {"type": "array",
-                     "description": "Stycklistan som sammansattningssteg, tom for en typ som inte ar en sammansattning.",
-                     "items": {"type": "object", "description": "Ett sammansattningssteg.",
-                               "properties": {
-                                   "step": {"type": "string", "description": "Stegets namn."},
-                                   "parent": {"type": ["string", "null"], "description": "Foraldrastegets namn."},
-                                   "children": {"type": "integer", "description": "Antal understeg."}}}},
+                     "description": ("Stycklistan som sammansattningssteg, tom "
+                                     "for en typ som inte ar en sammansattning."),
+                     "items": _STEGPOST},
              "avkortad": RET_AVKORTAD},
             ["found", "component", "product_type", "properties", "bom",
              "avkortad"]),
@@ -1486,6 +1688,35 @@ _lagg(
 
 
 # ---- list_processes ------------------------------------------------------
+
+_PROCESSPOST = {
+    "type": "object",
+    "description": "En process som stationen kan utfora.",
+    "properties": {
+        "process": {"type": "string", "description": "Processens namn."},
+        "description": {"type": ["string", "null"],
+                        "description": "Processens beskrivning."},
+        "statements": {"type": "integer",
+                       "description": "Antal steg i processen."},
+    },
+}
+_EXEKVERARPOST = {
+    "type": "object",
+    "description": "En processexekverare med sina processer i ordning.",
+    "properties": {
+        "behaviour": {"type": "string", "description": "Beteendets namn."},
+        "enabled": {"type": "boolean", "description": "Om exekveraren ar pa."},
+        "looping": {"type": "boolean", "description": "Om programmet borjar om."},
+        "current_statement": {"type": ["string", "null"],
+                              "description": ("Steget som kors just nu, null "
+                                              "nar inget kors.")},
+        "transport_node": {"type": ["string", "null"],
+                           "description": "Transportnoden exekveraren hor till."},
+        "processes": {"type": "array", "description": "Processerna i ordning.",
+                      "items": _PROCESSPOST},
+    },
+}
+
 
 def _kod_list_processes(argument):
     rader = _hamta_komponent(argument["component"])
@@ -1523,21 +1754,9 @@ _lagg(
     "read",
     params({"component": ARG_KOMPONENT}, ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
-             "executors": {
-                 "type": "array", "description": "Processexekverarna pa komponenten.",
-                 "items": {"type": "object", "description": "En processexekverare.",
-                           "properties": {
-                               "behaviour": {"type": "string", "description": "Beteendets namn."},
-                               "enabled": {"type": "boolean", "description": "Om exekveraren ar pa."},
-                               "looping": {"type": "boolean", "description": "Om programmet borjar om."},
-                               "current_statement": {"type": ["string", "null"], "description": "Steget som kors just nu, null nar inget kors."},
-                               "transport_node": {"type": ["string", "null"], "description": "Transportnoden exekveraren hor till."},
-                               "processes": {"type": "array", "description": "Processerna i ordning.",
-                                             "items": {"type": "object", "description": "En process.",
-                                                       "properties": {
-                                                           "process": {"type": "string", "description": "Processens namn."},
-                                                           "description": {"type": ["string", "null"], "description": "Processens beskrivning."},
-                                                           "statements": {"type": "integer", "description": "Antal steg i processen."}}}}}}},
+             "executors": {"type": "array",
+                           "description": "Processexekverarna pa komponenten.",
+                           "items": _EXEKVERARPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "executors", "antal", "avkortad"]),
     _Y_BETLISTA,
@@ -1546,6 +1765,29 @@ _lagg(
 
 
 # ---- list_process_statements ---------------------------------------------
+
+_SATSPARAMETER = {
+    "type": "object",
+    "description": "En parameter pa ett processteg.",
+    "properties": {
+        "name": {"type": "string", "description": "Parameterns namn."},
+        "value": RET_VARDE,
+    },
+}
+_SATSPOST = {
+    "type": "object",
+    "description": "Ett steg i processen med sina parametrar.",
+    "properties": {
+        "statement": {"type": "string", "description": "Stegets namn."},
+        "type": {"type": ["string", "number", "integer", "null"],
+                 "description": "VC:s upprakningsvarde for stegets slag."},
+        "parameters": {"type": "array",
+                       "description": ("Stegets parametrar, dar processtiden "
+                                       "ligger."),
+                       "items": _SATSPARAMETER},
+    },
+}
+
 
 def _kod_list_process_statements(argument):
     process = lit(argument["process"])
@@ -1593,18 +1835,9 @@ _lagg(
     returns({"component": {"type": "string", "description": "Komponenten."},
              "behaviour": {"type": "string", "description": "Processexekveraren."},
              "process": {"type": "string", "description": "Processens namn."},
-             "statements": {
-                 "type": "array", "description": "Stegen i ordning.",
-                 "items": {"type": "object", "description": "Ett steg i processen.",
-                           "properties": {
-                               "statement": {"type": "string", "description": "Stegets namn."},
-                               "type": {"type": ["string", "number", "integer", "null"],
-                                        "description": "VC:s upprakningsvarde for stegets slag."},
-                               "parameters": {"type": "array", "description": "Stegets parametrar, dar processtiden ligger.",
-                                              "items": {"type": "object", "description": "En parameter.",
-                                                        "properties": {
-                                                            "name": {"type": "string", "description": "Parameterns namn."},
-                                                            "value": RET_VARDE}}}}}},
+             "statements": {"type": "array",
+                            "description": "Stegen i ordning.",
+                            "items": _SATSPOST},
              "antal": RET_ANTAL, "avkortad": RET_AVKORTAD},
             ["component", "behaviour", "process", "statements", "antal",
              "avkortad"]),
@@ -1728,6 +1961,20 @@ _lagg(
 
 # ---- station_state_times -------------------------------------------------
 
+_TIDSPOST = {
+    "type": "object",
+    "description": "Ett tillstands ackumulerade tid.",
+    "properties": {
+        "state": {"type": "string", "description": "Tillstandets namn."},
+        "percentage": {"type": "number",
+                       "description": ("Andel av total tid, i procent som VC "
+                                       "raknar den.")},
+        "seconds": {"type": "number",
+                    "description": "Ackumulerad tid i sekunder."},
+    },
+}
+
+
 def _kod_station_state_times(argument):
     rader = _hamta_komponent(argument["component"])
     rader += _hamta_beteende(argument["behaviour"])
@@ -1789,12 +2036,9 @@ _lagg(
                             "items": {"type": "string",
                                       "description": "Ett tillstand som VC beskriver det."}},
              "times": {"type": "array",
-                       "description": "Tid per efterfragat tillstand. Tom nar states inte gavs.",
-                       "items": {"type": "object", "description": "Ett tillstands tid.",
-                                 "properties": {
-                                     "state": {"type": "string", "description": "Tillstandets namn."},
-                                     "percentage": {"type": "number", "description": "Andel av total tid, i procent som VC raknar den."},
-                                     "seconds": {"type": "number", "description": "Ackumulerad tid i sekunder."}}}},
+                       "description": ("Tid per efterfragat tillstand. Tom nar "
+                                       "states inte gavs."),
+                       "items": _TIDSPOST},
              "antal": RET_ANTAL,
              "avkortad": dict(RET_AVKORTAD, description=(
                  "True om states_raw klipptes vid taket. Da ar listan over "

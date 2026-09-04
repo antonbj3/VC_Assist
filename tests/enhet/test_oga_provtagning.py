@@ -256,3 +256,507 @@ def test_bandrivaren_hoppar_over_missade_steg_utan_att_skena():
     d.kanske_flytta(0.5)          # tio steg pa en gang
     assert len(scen.satta) == 2
     assert scen.satta[-1][1] == [10, 0, 0]
+
+
+# ---- hela scenen ---------------------------------------------------------
+#
+# Operatörens skärpta krav: ögat provtar HELA scenen, inte bara de utpekade
+# objekten. `parts` och `tools` är en ROLLTILLDELNING ovanpå, inte ett filter.
+
+class ScenScen(P.Scen):
+    """En scen med roller OCH bakgrund, plus en styrbar avläsningskostnad."""
+
+    def __init__(self, roller, bakgrund, klocka=None, kostnad_s=0.0):
+        self.roller = dict(roller)
+        self.bakgrund = dict(bakgrund)
+        self.klocka = klocka
+        self.kostnad_s = kostnad_s
+        self.n_scenlasningar = 0
+        self.saknade = []
+        self.plan = {}
+
+    def konfigurera(self, plan):
+        self.plan = dict(plan or {})
+        return self
+
+    def pose(self, spec):
+        return self.roller.get(spec)
+
+    def poser_alla(self):
+        self.n_scenlasningar += 1
+        if self.klocka is not None:
+            self.klocka.tick(self.kostnad_s)
+        return dict((n, {"p": list(v["p"]), "q": list(v["q"])})
+                    for n, v in self.bakgrund.items())
+
+    def signal(self, spec):
+        return False
+
+
+class Klocka(object):
+    def __init__(self):
+        self.t = 0.0
+
+    def tick(self, s):
+        self.t += s
+
+    def __call__(self):
+        return self.t
+
+
+def _rollplan(**extra):
+    p = {"parts": ["del"], "tools": ["gripper"], "rate_hz": 20.0}
+    p.update(extra)
+    return p
+
+
+def _scenscen(klocka=None, kostnad_s=0.0, bakgrund=None):
+    roller = {"del": {"p": [0, 0, 0], "q": [0, 0, 0, 1]},
+              "gripper": {"p": [0, 0, 1], "q": [0, 0, 0, 1]}}
+    bak = bakgrund if bakgrund is not None else {
+        "stallage": {"p": [3, 1, 0], "q": [0, 0, 0, 1]},
+        "staket": {"p": [-2, 0, 0], "q": [0, 0, 0, 1]}}
+    return ScenScen(roller, bak, klocka=klocka, kostnad_s=kostnad_s)
+
+
+def test_hela_scenen_provtas_som_standard_inte_bara_rollerna():
+    scen = _scenscen()
+    p = P.Provtagare(scen, _rollplan()).starta(0.0)
+    for i in range(5):
+        p.kanske_prov(i * 0.05)
+    rad = p.rader[0]
+    assert set(rad["parts"]) == {"del"} and set(rad["tools"]) == {"gripper"}
+    assert set(rad["scene"]) == {"stallage", "staket"}
+    assert rad["scenlast"] is True
+
+
+def test_planen_kan_valja_bort_scenen_men_bara_uttryckligen():
+    """Ett medvetet val, aldrig ett tyst standardvärde."""
+    p = P.Provtagare(_scenscen(), _rollplan(scene="roles")).starta(0.0)
+    p.kanske_prov(0.0)
+    assert "scene" not in p.rader[0]
+    assert p.data()["scen"]["lage"] == "roles"
+
+
+def test_bara_det_som_andrats_lagras_men_en_full_rad_kommer_med_jamna_mellanrum():
+    """Lagringsformen får inte svälla, och en avbruten fil ska ändå gå att läsa."""
+    scen = _scenscen()
+    p = P.Provtagare(scen, _rollplan()).starta(0.0)
+    for i in range(P.H.SCEN_FULL_VAR_N_RAD + 2):
+        scen.bakgrund["stallage"]["p"][0] += 0.001 if i == 3 else 0.0
+        p.kanske_prov(i * 0.05)
+    assert p.rader[0].get("scenfull") is True
+    assert p.rader[1]["scene"] == {}, "en orörd rad ska inte lagra något"
+    assert set(p.rader[3]["scene"]) == {"stallage"}
+    fulla = [i for i, r in enumerate(p.rader) if r.get("scenfull")]
+    assert fulla == [0, P.H.SCEN_FULL_VAR_N_RAD]
+
+
+def test_lagringen_gar_att_packa_upp_till_en_tat_serie():
+    """Läsaren ska se en tät serie oavsett hur den lagrats."""
+    scen = _scenscen()
+    p = P.Provtagare(scen, _rollplan()).starta(0.0)
+    for i in range(10):
+        scen.bakgrund["staket"]["p"][1] = i * 0.01
+        p.kanske_prov(i * 0.05)
+    tat = P.H.expandera(p.rader)
+    assert all(set(r["scene"]) == {"stallage", "staket"} for r in tat)
+    assert abs(tat[7]["scene"]["staket"]["p"][1] - 0.07) < 1e-9
+
+
+def test_nya_och_borttagna_objekt_blir_handelser_i_serien():
+    """En produkt som skapas eller förbrukas är just det man vill kunna se."""
+    scen = _scenscen()
+    p = P.Provtagare(scen, _rollplan()).starta(0.0)
+    p.kanske_prov(0.0)
+    scen.bakgrund["produkt_1"] = {"p": [0, 0, 0.5], "q": [0, 0, 0, 1]}
+    p.kanske_prov(0.05)
+    del scen.bakgrund["produkt_1"]
+    p.kanske_prov(0.10)
+    assert p.rader[1]["scen_nya"] == ["produkt_1"]
+    assert p.rader[2]["scen_borta"] == ["produkt_1"]
+    assert "produkt_1" not in P.H.expandera(p.rader)[2]["scene"]
+
+
+# ---- kostnaden mäts, den antas inte --------------------------------------
+
+def test_glesningen_utloses_av_en_MATT_kostnad_och_skrivs_ner():
+    """Ögat får aldrig tyst tappa objekt. Glesar det ut ska det SÄGA det,
+    med faktorn och med talet som orsakade den."""
+    klocka = Klocka()
+    dyrt = (P.SCEN_BUDGET_MS * 3.0) / 1000.0
+    scen = _scenscen(klocka=klocka, kostnad_s=dyrt)
+    p = P.Provtagare(scen, _rollplan(), klocka=klocka).starta(0.0)
+    for i in range(P.GLES_FONSTER * 3):
+        p.kanske_prov(i * 0.05)
+    assert p.gles_faktor > 1, "kostnaden låg tre gånger över budget"
+    handelse = p.glesningar[0]
+    assert handelse["orsak"] == "OVER_BUDGET"
+    assert handelse["median_ms"] > handelse["budget_ms"]
+    rapport = p.data()["scen"]
+    assert rapport["gles_faktor"] == p.gles_faktor
+    assert rapport["kostnad_ms"]["median"] > P.SCEN_BUDGET_MS
+
+
+def test_en_billig_scen_glesas_aldrig_ut():
+    """Den andra riktningen. En degradering som alltid slår till är ingen
+    degradering, bara en lägre takt."""
+    klocka = Klocka()
+    scen = _scenscen(klocka=klocka, kostnad_s=0.0001)
+    p = P.Provtagare(scen, _rollplan(), klocka=klocka).starta(0.0)
+    for i in range(P.GLES_FONSTER * 4):
+        p.kanske_prov(i * 0.05)
+    assert p.gles_faktor == 1 and p.glesningar == []
+
+
+def test_rollerna_provtas_i_full_takt_aven_nar_scenen_glesas():
+    """Det utpekade får aldrig betala för att scenen är stor."""
+    klocka = Klocka()
+    scen = _scenscen(klocka=klocka, kostnad_s=(P.SCEN_BUDGET_MS * 5.0) / 1000.0)
+    p = P.Provtagare(scen, _rollplan(), klocka=klocka).starta(0.0)
+    for i in range(60):
+        p.kanske_prov(i * 0.05)
+    assert p.gles_faktor > 1
+    assert all("parts" in r and "tools" in r for r in p.rader), \
+        "en roll får aldrig glesas bort"
+    lasta = [r for r in p.rader if r.get("scenlast")]
+    assert len(lasta) < len(p.rader), "scenen skulle ha glesats"
+
+
+def test_glesningen_har_ett_tak_och_taket_skrivs_ner():
+    """Över taket är serien inget underlag längre, och då säger ögat det i
+    stället för att glesa vidare."""
+    klocka = Klocka()
+    scen = _scenscen(klocka=klocka, kostnad_s=1.0)          # 1000 ms per avläsning
+    p = P.Provtagare(scen, _rollplan(), klocka=klocka).starta(0.0)
+    for i in range(P.GLES_TAK * P.GLES_FONSTER * 2):
+        p.kanske_prov(i * 0.05)
+    assert p.gles_faktor == P.GLES_TAK
+    assert any(g.get("orsak") == "TAK" for g in p.glesningar)
+
+
+def test_en_scen_som_inte_stoder_fullscen_sager_det_i_stallet_for_att_tiga():
+    p = P.Provtagare(FalskScen({"del": {"p": [0, 0, 0], "q": [0, 0, 0, 1]}}),
+                     _rollplan()).starta(0.0)
+    p.kanske_prov(0.0)
+    assert p.data()["scen"]["avstangd"]
+
+
+# ---- kostnaden som funktion av scenens storlek ---------------------------
+
+def test_kostnaden_vaxer_med_antalet_komponenter_och_talet_mats_har():
+    """VC:s egen läskostnad kan inte mätas utan VC, men provtagarens EGEN
+    kostnad går att mäta utan den. Talet skrivs ut så en förändring syns som en
+    förändring.
+
+    Det som INTE mäts här är VC:s egen kostnad för att läsa
+    WorldPositionMatrix, och den är sannolikt den tyngre halvan.
+    """
+    import time as _time
+    matt = {}
+    for antal in (10, 100, 400):
+        scen = _scenscen(bakgrund=dict(
+            ("k%d" % i, {"p": [i, 0, 0], "q": [0, 0, 0, 1]}) for i in range(antal)))
+        p = P.Provtagare(scen, _rollplan()).starta(0.0)
+        t0 = _time.time()
+        for i in range(20):
+            p.kanske_prov(i * 0.05)
+        matt[antal] = (_time.time() - t0) / 20.0 * 1000.0
+    print("provtagarens egen kostnad per prov (ms): %r" % matt)
+    assert matt[400] > matt[10], "kostnaden ska växa med scenen"
+    assert matt[400] < 25.0, ("400 komponenter kostade %.1f ms per prov, mer än "
+                              "hela pumpens tick-budget" % matt[400])
+
+
+# ---- PLC på samma tidsaxel ----------------------------------------------
+
+def test_plcvarden_skjuts_in_utifran_och_hamnar_i_samma_rad():
+    """PUSH, inte pull: en OPC UA-läsning inne i pumpens tick kan blockera på
+    nätverket, och då stannar både provtagningen och bryggan."""
+    kalla = P.Plckalla().skjut_in({"Start": True, "Klar": False}, t=1.0)
+    p = P.Provtagare(_scenscen(), _rollplan(), plckalla=kalla).starta(0.0)
+    p.kanske_prov(1.0)
+    assert p.rader[0]["plc"] == {"Start": True, "Klar": False}
+    assert p.rader[0]["plc_alder_s"] == 0.0
+    assert "plc_gammal" not in p.rader[0]
+
+
+def test_ett_gammalt_plcvarde_markeras_och_gor_sig_inte_till_samtidigt():
+    kalla = P.Plckalla().skjut_in({"Start": True}, t=1.0)
+    p = P.Provtagare(_scenscen(), _rollplan(), plckalla=kalla).starta(0.0)
+    p.kanske_prov(1.0 + P.PLC_FARSK_S * 2)
+    assert p.rader[0]["plc_gammal"] is True
+    assert p.rader[0]["plc_alder_s"] > P.PLC_FARSK_S
+
+
+def test_ett_plcvarde_utan_tidsstampel_ar_alltid_gammalt():
+    """Fail-closed: utan tidsstämpel går samtidigheten inte att styrka."""
+    kalla = P.Plckalla().skjut_in({"Start": True})
+    p = P.Provtagare(_scenscen(), _rollplan(), plckalla=kalla).starta(0.0)
+    p.kanske_prov(0.0)
+    assert p.rader[0]["plc_gammal"] is True
+
+
+# ---- en falsk VC för de nya ytorna --------------------------------------
+
+class VcMatris(object):
+    def __init__(self, p, q=(1.0, 0.0, 0.0, 0.0)):
+        self.P = VcVektor(*p)
+        self._q = q
+
+    def getQuaternion(self):
+        return VcVektor(*self._q)
+
+
+class FalskDof(object):
+    def __init__(self, typ):
+        self.JointServoType = typ
+
+
+class FalskLed(object):
+    def __init__(self, varde, lag, hog, typ="Rotational"):
+        self.CurrentValue = varde
+        self.MinValue = lag
+        self.MaxValue = hog
+        self.Dof = FalskDof(typ)
+
+
+class FalskServo(object):
+    def __init__(self, leder, mal=None):
+        self.Joints = leder
+        self._mal = mal or [0.0] * len(leder)
+
+    def getJointTarget(self, i):
+        return self._mal[i]
+
+
+class FalskStatistik(object):
+    ComponentsArrived = 7
+    ComponentsDeparted = 5
+    ComponentsCurrent = 2
+    IdlePercentage = 12.5
+    BusyPercentage = 60.0
+    BlockedPercentage = 27.5
+    BreakPercentage = 0.0
+    State = "BUSY"
+
+
+class FalskDetektor(object):
+    def __init__(self):
+        self.NodeListA = None
+        self.NodeListB = None
+        self.Tolerance = None
+        self.DisplayMinimumDistance = None
+        self.StopOnCollision = None
+        self.Active = False
+        self.avstand = 0.012
+        self.traffar = False
+
+    def testMinimumDistance(self):
+        return self.avstand <= (self.Tolerance or 0.0)
+
+    def getMinimumDistanceDistance(self):
+        return self.avstand
+
+    def getMinimumDistancePoint1(self):
+        return VcVektor(0.0, 0.0, 0.0)
+
+    def getMinimumDistancePoint2(self):
+        return VcVektor(self.avstand, 0.0, 0.0)
+
+    def testAllCollisions(self):
+        return self.traffar
+
+    def getHitNodeA(self):
+        return FalskNamn("finger")
+
+    def getHitNodeB(self):
+        return FalskNamn("vagg")
+
+    def getHitFeatureA(self):
+        return FalskNamn("Face_12")
+
+    def getHitFeatureB(self):
+        return FalskNamn("Face_3")
+
+
+class FalskNamn(object):
+    def __init__(self, namn):
+        self.Name = namn
+
+
+class FalskNod(object):
+    def __init__(self, namn, p=(0.0, 0.0, 0.0)):
+        self.Name = namn
+        self.WorldPositionMatrix = VcMatris(p)
+
+
+class FalskKomponent(FalskNod):
+    def __init__(self, namn, p=(0.0, 0.0, 0.0), beteenden=None, noder=None):
+        FalskNod.__init__(self, namn, p)
+        self.Behaviours = list(beteenden or [])
+        self._noder = dict(noder or {})
+
+    def findNode(self, namn):
+        return self._noder.get(namn)
+
+    def findBehaviour(self, namn):
+        for b in self.Behaviours:
+            if getattr(b, "Name", None) == namn:
+                return b
+        return None
+
+
+class FalskApp(object):
+    def __init__(self, komponenter):
+        self.Components = list(komponenter)
+
+    def findComponent(self, namn):
+        for c in self.Components:
+            if c.Name == namn:
+                return c
+        return None
+
+
+class FalskSim(object):
+    def __init__(self, detektor=None, kastar=False):
+        self.n_uppdateringar = 0
+        self.detektor = detektor
+        self.kastar = kastar
+
+    def update(self):
+        self.n_uppdateringar += 1
+
+    def newCollisionDetector(self):
+        if self.kastar:
+            raise RuntimeError("ingen detektor i den här VC:n")
+        return self.detektor
+
+
+def _vcscen(komponenter, sim=None):
+    return P.VcScen(FalskApp(komponenter), sim or FalskSim())
+
+
+def test_vcscen_laser_hela_komponentlistan_och_hoppar_over_rollerna():
+    scen = _vcscen([FalskKomponent("Robot", (1, 0, 0)),
+                    FalskKomponent("Del", (2, 0, 0)),
+                    FalskKomponent("Staket", (3, 0, 0))])
+    scen.konfigurera({"parts": ["Del"], "tools": ["Robot"]})
+    poser = scen.poser_alla()
+    assert set(poser) == {"Staket"}, "roller bär redan en egen serie"
+    assert poser["Staket"]["p"] == [3, 0, 0]
+    assert poser["Staket"]["q"] == [0.0, 0.0, 0.0, 1.0], "skalär-först, M-11"
+
+
+def test_kollisionsdetektorn_skapas_ur_planen_och_matar_avstandet():
+    """sim.newCollisionDetector() finns i API-ytan och var aldrig anropad."""
+    det = FalskDetektor()
+    noder = {"Finger": FalskNod("Finger"), "Vagg": FalskNod("Vagg")}
+    komp = FalskKomponent("Cell", noder=noder)
+    scen = P.VcScen(FalskApp([komp]), FalskSim(det))
+    scen.konfigurera({"mind": [{"namn": "gripper+fixtur", "a": ["Cell/Finger"],
+                                "b": ["Cell/Vagg"], "tolerans_mm": 100.0}]})
+    assert det.Active is True
+    assert det.StopOnCollision is False, \
+        "ett stopp river simuleringen och med den pumpen (M-13)"
+    assert abs(det.Tolerance - 100.0 / P.LANGDENHET_TILL_MM) < 1e-12
+    d = scen.mindist({"namn": "gripper+fixtur"})
+    assert abs(d["d_mm"] - 12.0) < 1e-9
+    assert d["p2"] == [0.012, 0.0, 0.0] and d["inom_tolerans"] is True
+
+
+def test_traffen_bar_bade_nod_och_yta():
+    det = FalskDetektor()
+    det.traffar = True
+    komp = FalskKomponent("Cell", noder={"A": FalskNod("A"), "B": FalskNod("B")})
+    scen = P.VcScen(FalskApp([komp]), FalskSim(det))
+    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}]})
+    assert scen.traff() == ["finger", "vagg", "Face_12", "Face_3"]
+
+
+def test_en_detektor_som_inte_gar_att_skapa_blir_ett_saknat_underlag():
+    """Fail-closed: ingen detektor ger ingen MINDIST-rad, aldrig ett tyst OK."""
+    komp = FalskKomponent("Cell", noder={"A": FalskNod("A"), "B": FalskNod("B")})
+    scen = P.VcScen(FalskApp([komp]), FalskSim(kastar=True))
+    scen.konfigurera({"mind": [{"namn": "par", "a": ["Cell/A"], "b": ["Cell/B"]}]})
+    assert scen.mindist("par") is None
+    assert any("newCollisionDetector" in s["varfor"] for s in scen.saknade)
+
+
+def test_ett_par_utan_nodlistor_gar_inte_att_bygga_en_detektor_av():
+    scen = _vcscen([FalskKomponent("Cell")])
+    scen.konfigurera({"mind": ["bara_ett_namn"]})
+    assert scen.mindist("bara_ett_namn") is None
+    assert any("nodlistor" in s["varfor"] for s in scen.saknade)
+
+
+def test_robotlederna_laser_varde_mal_grans_och_typ():
+    servo = FalskServo([FalskLed(10.0, "-170", "170"),
+                        FalskLed(-5.0, "-90", "90")], mal=[12.0, -5.0])
+    servo.Name = "Servo"
+    komp = FalskKomponent("Robot", beteenden=[servo])
+    scen = _vcscen([komp])
+    scen.konfigurera({"joints": ["Robot"]})
+    assert scen.leder("Robot") == [10.0, -5.0]
+    assert scen.ledmal("Robot") == [12.0, -5.0]
+    assert scen.ledgranser["Robot"] == [[-170.0, 170.0], [-90.0, 90.0]]
+    assert scen.ledtyper["Robot"] == ["deg", "deg"]
+
+
+def test_en_ledgrans_som_ar_ett_uttryck_blir_OKAND_och_inte_gissad():
+    """MinValue och MaxValue är UTTRYCK i VC, inte tal. Ett gissat gränsvärde
+    vore värre än inget."""
+    servo = FalskServo([FalskLed(0.0, "Comp.MinA", "Comp.MaxA")])
+    scen = _vcscen([FalskKomponent("Robot", beteenden=[servo])])
+    scen.konfigurera({"joints": ["Robot"]})
+    assert scen.ledgranser["Robot"] == [None]
+    assert any("uttryck" in s["varfor"] for s in scen.saknade)
+
+
+def test_en_led_med_okand_typ_far_ingen_enhet():
+    servo = FalskServo([FalskLed(0.0, "-1", "1", typ="Nagot_annat")])
+    scen = _vcscen([FalskKomponent("Robot", beteenden=[servo])])
+    scen.konfigurera({"joints": ["Robot"]})
+    assert scen.ledtyper["Robot"] == [None]
+
+
+def test_planen_far_overstyra_ledtypen():
+    servo = FalskServo([FalskLed(0.0, "-1", "1", typ="Nagot_annat")])
+    scen = _vcscen([FalskKomponent("Robot", beteenden=[servo])])
+    scen.konfigurera({"joints": ["Robot"], "ledtyper": {"Robot": ["mm"]}})
+    assert scen.ledtyper["Robot"] == ["mm"]
+
+
+def test_statistiken_per_station_laser_ankomna_avgangna_och_tillstand():
+    stat = FalskStatistik()
+    stat.Name = "Stat"
+    scen = _vcscen([FalskKomponent("Station1", beteenden=[stat])])
+    scen.konfigurera({"stat": ["Station1"]})
+    d = scen.stat("Station1")
+    assert d["in"] == 7 and d["out"] == 5 and d["cur"] == 2
+    assert d["state"] == "BUSY" and d["blocked_pct"] == 27.5
+
+
+def test_en_station_utan_statistikbeteende_blir_ett_saknat_underlag():
+    scen = _vcscen([FalskKomponent("Station1")])
+    scen.konfigurera({"stat": ["Station1"]})
+    assert scen.stat("Station1") is None
+    assert any("vcStatistics" in s["varfor"] for s in scen.saknade)
+
+
+def test_leder_och_statistik_hamnar_i_serien_och_i_tracked():
+    servo = FalskServo([FalskLed(3.0, "-170", "170")], mal=[3.0])
+    stat = FalskStatistik()
+    scen = P.VcScen(FalskApp([FalskKomponent("Robot", beteenden=[servo]),
+                              FalskKomponent("Station1", beteenden=[stat])]),
+                    FalskSim())
+    p = P.Provtagare(scen, {"parts": [], "tools": [], "joints": ["Robot"],
+                            "stat": ["Station1"], "rate_hz": 20.0}).starta(0.0)
+    p.kanske_prov(0.0)
+    d = p.data()
+    assert d["rows"][0]["joints"] == {"Robot": [3.0]}
+    assert d["rows"][0]["joints_mal"] == {"Robot": [3.0]}
+    assert d["rows"][0]["stat"]["Station1"]["in"] == 7
+    assert d["tracked"]["joints"] == ["Robot"]
+    assert d["tracked"]["stations"] == ["Station1"]
+    assert d["ledgranser"]["Robot"] == [[-170.0, 170.0]]

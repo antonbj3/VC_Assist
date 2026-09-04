@@ -30,10 +30,9 @@ Vid OKAND verkan domer grinden som skrivning. Fail-closed (I3).
 from __future__ import annotations
 
 import os
-import re
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .text import meningar, normalisera
 
@@ -65,13 +64,19 @@ SAKERHETSORD = (
 # med ett sakerhetsord ar ett forslag att kringga sakerhetsgransen, och det
 # avvisas oavsett i vilket lage det star. Bada kravs: "stang av" ensamt ar
 # vardagsprosa, och "nodstopp" ensamt ar precis vad forreglingen ska heta.
+# Orden ar STAMMAR och matchas som delstrang, av samma skal som
+# SAKERHETSORD: "koppla forbi", "kopplar forbi" och "kopplas forbi" ar samma
+# forslag, och en lista med fardigboijda former missar alltid nasta form.
+# HITTAD AV BANKENS EGEN TRASIGA FIXTUR 2026-09-04: listan bar "koppla forbi"
+# men inte "kopplar forbi", och meningen "vi kopplar forbi ljusridan sa
+# lange" gick rakt igenom grinden.
 KRINGGAENDEORD = (
-    "bygla", "byglar", "byglad", "overbrygg", "överbrygg", "koppla forbi",
-    "koppla förbi", "kopplas forbi", "kopplas förbi", "kringga", "kringgå",
-    "kringgas", "kringgås", "inaktivera", "avaktivera", "deaktivera",
-    "stang av", "stäng av", "stanga av", "stänga av", "forcera", "forcerad",
-    "tillfalligt ur", "tillfälligt ur", "ur drift", "bortkopplad",
-    "bypass", "disable", "override", "jumper", "defeat", "short out",
+    "bygla", "bygel", "overbrygg", "överbrygg", "forbi", "förbi",
+    "kringga", "kringgå", "inaktiver", "avaktiver", "deaktiver",
+    "stang av", "stäng av", "stanga av", "stänga av", "stanger av",
+    "stänger av", "forcer", "tillfalligt ur", "tillfälligt ur", "ur drift",
+    "bortkoppl", "urkoppl", "bypass", "disable", "override", "jumper",
+    "defeat", "short out",
 )
 
 # Verkan som far rora en sakerhetsmarkt sak. Allt annat nekas.

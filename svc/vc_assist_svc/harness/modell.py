@@ -3,9 +3,10 @@
 
 Harnessen kanner bara det som star har. Ingen leverantor namns i nagon annan
 modul i harnessen an oversattning.py, och det provas mekaniskt i
-tests/enhet/test_harness.py. Skalet ar rakt: operatoren har sagt att Gemini
-kan komma att anvanda verktyget, och en harness som ar byggd runt en
-leverantors svarsform gar inte att flytta.
+tests/enhet/test_harness.py. Skalet ar rakt: operatoren har sagt att en annan
+leverantors modell kan komma att anvanda verktyget, och en harness som ar
+byggd runt EN leverantors svarsform gar inte att flytta. Leverantorsnamnen
+star darfor bara i oversattning.py, dar de hor hemma.
 
 Kontraktet ar tre typer och en metod:
 

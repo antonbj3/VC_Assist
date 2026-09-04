@@ -75,7 +75,9 @@ ROBOT_FRI_HOJD_MM = 500.0  # ANTAGET: fritt över roboten för armens svep uppå
 MARGINAL_ROBOT_MM = 800.0      # ANTAGET: åtkomst till robotfot och kablage
 MARGINAL_STATION_MM = 700.0    # ANTAGET: lucköppning på en stationskåpa
 MARGINAL_TRANSPORT_MM = 400.0  # ANTAGET: åtkomst längs en transportör
-MARGINAL_LASTBARARE_MM = 0.0   # en pall behöver inget eget underhållsutrymme
+# ANTAGET: en pall är gods, inte en maskin, och behöver inget eget
+# underhållsutrymme. Den ska tvärtom gå att ställa tätt.
+MARGINAL_LASTBARARE_MM = 0.0
 
 # Transportörens höjd över golv. ANTAGET: arbetshöjd för manuell hantering.
 TRANSPORTHOJD_MM = 900.0
@@ -146,10 +148,10 @@ class Byggare:
             kravd_fri_hojd=Langd.mm(ROBOT_FRI_HOJD_MM),
             rackvidd=Langd.mm(float(p["rackvidd_mm"])),
             kategori="robot", enhet=self._enhet(enhet),
-            tillatna_vridningar=(0.0, 90.0, 180.0, 270.0)))
+            tillatna_vridningar_grader=(0.0, 90.0, 180.0, 270.0)))
 
     def transport(self, namn, uri, langd_mm, enhet=None,
-                  vridningar=(0.0, 90.0, 180.0, 270.0)):
+                  vridningar_grader=(0.0, 90.0, 180.0, 270.0)):
         """Transportör. BREDDEN kommer ur banken, LÄNGDEN ur uppgiften."""
         p = self._post(uri)
         return self.lagg(Objekt(
@@ -157,19 +159,19 @@ class Byggare:
             Langd.mm(TRANSPORTHOJD_MM),
             underhallsmarginal=Langd.mm(MARGINAL_TRANSPORT_MM),
             kategori="transport", barande=True, enhet=self._enhet(enhet),
-            tillatna_vridningar=vridningar))
+            tillatna_vridningar_grader=vridningar_grader))
 
     def station(self, namn, uri, enhet=None,
-                vridningar=(0.0, 90.0, 180.0, 270.0)):
+                vridningar_grader=(0.0, 90.0, 180.0, 270.0)):
         p = self._post(uri)
         l, b, h = STATIONSMATT_MM[p["uri"]]
         return self.lagg(Objekt(
             namn, Langd.mm(l), Langd.mm(b), Langd.mm(h),
             underhallsmarginal=Langd.mm(MARGINAL_STATION_MM),
             kategori="station", barande=True, enhet=self._enhet(enhet),
-            tillatna_vridningar=vridningar))
+            tillatna_vridningar_grader=vridningar_grader))
 
-    def lastbarare(self, namn, uri, enhet=None, vridningar=(0.0, 90.0)):
+    def lastbarare(self, namn, uri, enhet=None, vridningar_grader=(0.0, 90.0)):
         """Pall eller låda. Alla tre måtten kommer ur banken."""
         p = self._post(uri)
         return self.lagg(Objekt(
@@ -177,14 +179,14 @@ class Byggare:
             Langd.mm(float(p["h_mm"])),
             underhallsmarginal=Langd.mm(MARGINAL_LASTBARARE_MM),
             kategori="lastbarare", barande=True, enhet=self._enhet(enhet),
-            tillatna_vridningar=vridningar))
+            tillatna_vridningar_grader=vridningar_grader))
 
     def givare(self, namn, uri, enhet=None):
         self._post(uri)
         l, b, h = SMADON_MM
         return self.lagg(Objekt(namn, Langd.mm(l), Langd.mm(b), Langd.mm(h),
                                 kategori="givare", enhet=self._enhet(enhet),
-                                tillatna_vridningar=(0.0,)))
+                                tillatna_vridningar_grader=(0.0,)))
 
     def lagg(self, objekt):
         self.scen.lagg_till(objekt)
@@ -250,10 +252,10 @@ def _t01(kat):
     b = Byggare(_hall("T-01", 14.0, 9.0,
                       zoner=[_gang("gang", 0.0, 6.0, 14.0, 9.0)]),
                 kat, enhet="ST010")
-    b.transport("band", "bank://transport/band_600", 6000.0, vridningar=(0.0,))
+    b.transport("band", "bank://transport/band_600", 6000.0, vridningar_grader=(0.0,))
     b.givare("fotocell", "bank://givare/fotocell_genomgaende")
     b.station("kassation", "bank://station/kassationslada", enhet="",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.kraver(MotVagg("band", Vagg.SODER, marginal=Langd.mm(500.0)),
              Bredvid("fotocell", "band", mellanrum=Langd.mm(100.0)),
              Framfor("kassation", "band", avstand=Langd.m(1.0)),
@@ -264,10 +266,10 @@ def _t01(kat):
 def _t02(kat):
     """T-02: indexerad matning som matar en fixtur."""
     b = Byggare(_hall("T-02", 12.0, 8.0), kat, enhet="ST020")
-    b.transport("matare", "bank://transport/band_400", 3000.0, vridningar=(0.0,))
+    b.transport("matare", "bank://transport/band_400", 3000.0, vridningar_grader=(0.0,))
     b.givare("lagesgivare", "bank://givare/lagesgivare_encoder")
     b.station("fixtur", "bank://station/fixtur_pneumatisk_spann", enhet="",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.kraver(MotVagg("matare", Vagg.VASTER, marginal=Langd.m(1.0)),
              Framfor("fixtur", "matare", avstand=Langd.m(1.0)),
              Bredvid("lagesgivare", "matare", mellanrum=Langd.mm(150.0)))
@@ -277,10 +279,10 @@ def _t02(kat):
 def _t03(kat):
     """T-03: två banor som flyter samman i en tredje."""
     b = Byggare(_hall("T-03", 16.0, 12.0), kat)
-    b.transport("bana_a", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
-    b.transport("bana_b", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
+    b.transport("bana_a", "bank://transport/band_600", 5000.0, vridningar_grader=(0.0,))
+    b.transport("bana_b", "bank://transport/band_600", 5000.0, vridningar_grader=(0.0,))
     b.transport("samlingsbana", "bank://transport/band_600", 4000.0,
-                vridningar=(0.0,))
+                vridningar_grader=(0.0,))
     b.kraver(MotVagg("bana_a", Vagg.SODER, marginal=Langd.m(1.5)),
              IRad(("bana_a", "bana_b"), Riktning.NORR, Langd.m(2.0)),
              Framfor("samlingsbana", "bana_a", avstand=Langd.m(1.0)))
@@ -291,11 +293,11 @@ def _t04(kat):
     """T-04: ackumulerande buffert mellan inflöde och utflöde."""
     b = Byggare(_hall("T-04", 18.0, 10.0), kat)
     b.transport("inflode", "bank://transport/rullbana_ackumulerande_500",
-                4000.0, vridningar=(0.0,))
+                4000.0, vridningar_grader=(0.0,))
     b.station("buffert", "bank://station/buffert_ackumulerande",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.transport("utflode", "bank://transport/rullbana_ackumulerande_500",
-                4000.0, vridningar=(0.0,))
+                4000.0, vridningar_grader=(0.0,))
     b.kraver(MotVagg("inflode", Vagg.VASTER, marginal=Langd.m(1.0)),
              Framfor("buffert", "inflode", avstand=Langd.mm(800.0)),
              Framfor("utflode", "buffert", avstand=Langd.mm(800.0)))
@@ -320,7 +322,7 @@ def _p02(kat):
     """P-02: robot plockar från ett rörligt band, med låda bredvid."""
     b = Byggare(_hall("P-02", 14.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/fanuc_m10id_12")
-    b.transport("band", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
+    b.transport("band", "bank://transport/band_600", 5000.0, vridningar_grader=(0.0,))
     b.lastbarare("klt", "bank://last/klt_6147")
     b.kraver(MotVagg("band", Vagg.SODER, marginal=Langd.m(2.0)),
              Framfor("robot", "band", avstand=Langd.m(1.0)),
@@ -356,10 +358,10 @@ def _l01(kat):
     assert u["fysik"]["arbetsradie_mm"] > 0
     b = Byggare(_hall("L-01", 14.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_660_180_3150")
-    b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
-    b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
+    b.lastbarare("pall", "bank://last/eur_pall", vridningar_grader=(0.0,))
+    b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar_grader=(0.0,))
     for i in range(4):
-        b.lastbarare("kolli_%d" % i, "bank://last/klt_4147", vridningar=(0.0,))
+        b.lastbarare("kolli_%d" % i, "bank://last/klt_4147", vridningar_grader=(0.0,))
     b.kraver(CentreradI("robot"),
              InomRackvidd("pall", "robot"),
              InomRackvidd("inbana", "robot", helt=False),
@@ -375,9 +377,9 @@ def _l02(kat):
     """L-02: två lager med mellanlägg, alltså stapling i höjd."""
     b = Byggare(_hall("L-02", 12.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_660_180_3150")
-    b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
-    b.lastbarare("lager_1", "bank://last/mellanlagg_papp", vridningar=(0.0,))
-    b.lastbarare("lager_2", "bank://last/mellanlagg_papp", vridningar=(0.0,))
+    b.lastbarare("pall", "bank://last/eur_pall", vridningar_grader=(0.0,))
+    b.lastbarare("lager_1", "bank://last/mellanlagg_papp", vridningar_grader=(0.0,))
+    b.lastbarare("lager_2", "bank://last/mellanlagg_papp", vridningar_grader=(0.0,))
     b.kraver(CentreradI("robot"),
              InomRackvidd("pall", "robot"),
              Pa("lager_1", "pall"),
@@ -390,9 +392,9 @@ def _l03(kat):
     b = Byggare(_hall("L-03", 16.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_4600_60_2050")
     b.transport("pallbana", "bank://transport/kedjetransportor_pall", 3000.0,
-                vridningar=(0.0,))
-    b.transport("utbana", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
-    b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
+                vridningar_grader=(0.0,))
+    b.transport("utbana", "bank://transport/band_600", 4000.0, vridningar_grader=(0.0,))
+    b.lastbarare("pall", "bank://last/eur_pall", vridningar_grader=(0.0,))
     b.kraver(MotVagg("pallbana", Vagg.SODER, marginal=Langd.m(2.0)),
              Pa("pall", "pallbana"),
              Framfor("robot", "pallbana", avstand=Langd.m(1.2)),
@@ -404,12 +406,12 @@ def _l03(kat):
 def _s01(kat):
     """S-01: två utgångar, en givare, avlämning åt två håll."""
     b = Byggare(_hall("S-01", 16.0, 12.0), kat, enhet="ST100")
-    b.transport("inbana", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
+    b.transport("inbana", "bank://transport/band_600", 5000.0, vridningar_grader=(0.0,))
     b.givare("fotocell", "bank://givare/reflex_fotocell")
     b.transport("utbana_ok", "bank://transport/band_400", 3000.0, enhet="",
-                vridningar=(0.0,))
+                vridningar_grader=(0.0,))
     b.transport("utbana_nok", "bank://transport/band_400", 3000.0, enhet="",
-                vridningar=(90.0,))
+                vridningar_grader=(90.0,))
     b.kraver(MotVagg("inbana", Vagg.SODER, marginal=Langd.m(2.0)),
              Framfor("utbana_ok", "inbana", avstand=Langd.mm(500.0)),
              TillVanster("utbana_nok", "inbana", avstand=Langd.mm(500.0)),
@@ -420,10 +422,10 @@ def _s01(kat):
 def _s02(kat):
     """S-02: tre utgångar i rad, alla matade från samma inbana."""
     b = Byggare(_hall("S-02", 18.0, 14.0), kat)
-    b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
+    b.transport("inbana", "bank://transport/band_600", 4000.0, vridningar_grader=(0.0,))
     for i in range(3):
         b.transport("ut_%d" % i, "bank://transport/band_400", 2500.0,
-                    vridningar=(0.0,))
+                    vridningar_grader=(0.0,))
     b.kraver(MotVagg("inbana", Vagg.VASTER, marginal=Langd.m(1.0)),
              Framfor("ut_0", "inbana", avstand=Langd.mm(500.0)),
              IRad(("ut_0", "ut_1", "ut_2"), Riktning.NORR, Langd.m(1.2)))
@@ -441,8 +443,8 @@ def _a01(kat):
     b = Byggare(_hall("A-01", 14.0, 12.0), kat, enhet="ST230")
     b.robot("robot", roller["robot"])
     b.station("fixtur", roller["fixtur"])
-    b.transport("matarbana_a", roller["matarbana_a"], 3000.0, vridningar=(0.0,))
-    b.transport("matarbana_b", roller["matarbana_b"], 3000.0, vridningar=(0.0,))
+    b.transport("matarbana_a", roller["matarbana_a"], 3000.0, vridningar_grader=(0.0,))
+    b.transport("matarbana_b", roller["matarbana_b"], 3000.0, vridningar_grader=(0.0,))
     b.givare("lagesgivare_a", roller["lagesgivare_a"])
     b.kraver(CentreradI("robot"),
              InomRackvidd("fixtur", "robot", helt=False),
@@ -458,11 +460,11 @@ def _a03(kat):
     b = Byggare(_hall("A-03", 20.0, 12.0,
                       zoner=[_gang("gang", 0.0, 9.0, 20.0, 12.0)]), kat)
     b.station("st250", "bank://station/fixtur_pneumatisk_spann",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.station("st260", "bank://station/fixtur_pneumatisk_spann",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.transport("rullbana", "bank://transport/rullbana_ackumulerande_500",
-                4000.0, vridningar=(0.0,))
+                4000.0, vridningar_grader=(0.0,))
     b.kraver(MotVagg("st250", Vagg.SODER, marginal=Langd.m(1.0)),
              IRad(("st250", "st260"), Riktning.OSTER, Langd.m(5.0)),
              Bakom("rullbana", "st250", avstand=Langd.m(1.0)),
@@ -475,7 +477,7 @@ def _h01(kat):
     """H-01: robot lämnar över till band, med verktygsställ bredvid."""
     b = Byggare(_hall("H-01", 14.0, 12.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/kuka_kr10_r1100")
-    b.transport("band", "bank://transport/band_400", 4000.0, vridningar=(0.0,))
+    b.transport("band", "bank://transport/band_400", 4000.0, vridningar_grader=(0.0,))
     b.station("verktygsstall", "bank://station/verktygsstall")
     b.kraver(CentreradI("robot"),
              InomRackvidd("band", "robot", helt=False),
@@ -499,14 +501,14 @@ def _c01(kat):
                          Pelare("p2", Vek2.m(16.0, 6.0), Langd.mm(400.0),
                                 Langd.mm(400.0))])
     b = Byggare(hall, kat)
-    b.transport("inbana", "bank://transport/band_600", 5000.0, vridningar=(0.0,))
-    b.station("station_1", "bank://station/press_tvahands", vridningar=(0.0,))
+    b.transport("inbana", "bank://transport/band_600", 5000.0, vridningar_grader=(0.0,))
+    b.station("station_1", "bank://station/press_tvahands", vridningar_grader=(0.0,))
     b.station("buffert", "bank://station/buffert_ackumulerande",
-              vridningar=(0.0,))
-    b.station("station_2", "bank://station/skruvstation", vridningar=(0.0,))
+              vridningar_grader=(0.0,))
+    b.station("station_2", "bank://station/skruvstation", vridningar_grader=(0.0,))
     b.robot("robot", "bank://robot/abb_irb_2600_20_1650", enhet="CELL")
     b.lastbarare("utpall", "bank://last/eur_pall", enhet="CELL",
-                 vridningar=(0.0,))
+                 vridningar_grader=(0.0,))
     b.kraver(MotVagg("inbana", Vagg.SODER, marginal=Langd.m(1.0)),
              Framfor("station_1", "inbana", avstand=Langd.m(1.0)),
              IRad(("station_1", "buffert", "station_2"), Riktning.OSTER,
@@ -524,7 +526,7 @@ def _t01_pelarhall(kat):
                  pelare=[Pelare("mitt", Vek2.m(7.0, 2.0), Langd.mm(500.0),
                                 Langd.mm(500.0))])
     b = Byggare(hall, kat, enhet="ST010")
-    b.transport("band", "bank://transport/band_600", 6000.0, vridningar=(0.0,))
+    b.transport("band", "bank://transport/band_600", 6000.0, vridningar_grader=(0.0,))
     b.givare("fotocell", "bank://givare/fotocell_genomgaende")
     b.kraver(MotVagg("band", Vagg.NORR, marginal=Langd.m(1.0)),
              Bredvid("fotocell", "band", mellanrum=Langd.mm(100.0)))
@@ -543,8 +545,8 @@ def _under_travers(kat):
                                          Langd.m(7.0), Langd.m(10.0)),
                             takhojd=Langd.m(2.0))])
     b = Byggare(hall, kat)
-    b.station("press", "bank://station/press_tvahands", vridningar=(0.0,))
-    b.transport("band", "bank://transport/band_600", 4000.0, vridningar=(0.0,))
+    b.station("press", "bank://station/press_tvahands", vridningar_grader=(0.0,))
+    b.transport("band", "bank://transport/band_600", 4000.0, vridningar_grader=(0.0,))
     b.kraver(Framfor("band", "press", avstand=Langd.m(1.0)))
     return b.klar()
 
@@ -554,7 +556,7 @@ def _under_travers(kat):
 def _ob_horn_och_mitt(kat):
     """Överbestämd: pallen ska stå både i hörnet och mitt i hallen."""
     b = Byggare(_hall("OB-horn-mitt", 10.0, 8.0), kat)
-    b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
+    b.lastbarare("pall", "bank://last/eur_pall", vridningar_grader=(0.0,))
     b.kraver(IHorn("pall", Horn.SYDVAST), CentreradI("pall"))
     return b.klar()
 
@@ -565,7 +567,7 @@ def _ob_rackvidd(kat):
     b = Byggare(_hall("OB-rackvidd", 20.0, 10.0), kat, enhet="CELL")
     b.robot("robot", "bank://robot/abb_irb_1200_5_0900")
     b.station("fixtur", "bank://station/fixtur_pneumatisk_spann",
-              vridningar=(0.0,))
+              vridningar_grader=(0.0,))
     b.kraver(MotVagg("robot", Vagg.VASTER, marginal=Langd.mm(500.0)),
              MotVagg("fixtur", Vagg.OSTER, marginal=Langd.mm(500.0)),
              InomRackvidd("fixtur", "robot", helt=False))
@@ -575,7 +577,7 @@ def _ob_rackvidd(kat):
 def _ob_tva_vaggar(kat):
     """Överbestämd: bandet ska stå mot både södra och norra väggen."""
     b = Byggare(_hall("OB-tva-vaggar", 12.0, 9.0), kat)
-    b.transport("band", "bank://transport/band_600", 6000.0, vridningar=(0.0,))
+    b.transport("band", "bank://transport/band_600", 6000.0, vridningar_grader=(0.0,))
     b.kraver(MotVagg("band", Vagg.SODER, marginal=Langd.mm(200.0)),
              MotVagg("band", Vagg.NORR, marginal=Langd.mm(200.0)))
     return b.klar()
@@ -584,8 +586,8 @@ def _ob_tva_vaggar(kat):
 def _ob_pa_for_liten(kat):
     """Överbestämd: en EUR-pall ska stå på en KLT-låda."""
     b = Byggare(_hall("OB-pa", 10.0, 8.0), kat)
-    b.lastbarare("klt", "bank://last/klt_4147", vridningar=(0.0,))
-    b.lastbarare("pall", "bank://last/eur_pall", vridningar=(0.0,))
+    b.lastbarare("klt", "bank://last/klt_4147", vridningar_grader=(0.0,))
+    b.lastbarare("pall", "bank://last/eur_pall", vridningar_grader=(0.0,))
     b.kraver(CentreradI("klt"), Pa("pall", "klt"))
     return b.klar()
 
@@ -599,7 +601,7 @@ def _ob_gangen(kat):
     """
     b = Byggare(_hall("OB-gang", 12.0, 10.0,
                       zoner=[_gang("gang", 0.0, 4.0, 12.0, 6.0)]), kat)
-    b.station("press", "bank://station/press_tvahands", vridningar=(0.0,))
+    b.station("press", "bank://station/press_tvahands", vridningar_grader=(0.0,))
     b.kraver(IZon("press", "gang"))
     return b.klar()
 
@@ -614,7 +616,7 @@ def _ryms_inte(kat):
     b = Byggare(_hall("RYMS-INTE", 2.5, 1.0), kat)
     for i in range(3):
         b.lastbarare("pall_%d" % i, "bank://last/eur_pall",
-                     vridningar=(0.0, 180.0))
+                     vridningar_grader=(0.0, 180.0))
     return b.klar()
 
 

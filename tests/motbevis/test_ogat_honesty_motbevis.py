@@ -82,12 +82,18 @@ def test_greppgrinden_och_never_gripped_ar_inte_samma_grind():
 
 # ---- 2. placeringsgränsen är obestämd ----------------------------------
 
-def _modul_med_bytt_operator(rad_nr, gammal, ny):
-    """Laddar oga_analys på nytt med EN operator utbytt. Mätning, inte fix."""
+def _modul_med_bytt_operator(gammal, ny):
+    """Laddar oga_analys på nytt med EN operator utbytt. Mätning, inte fix.
+
+    Raden slås upp på sitt INNEHÅLL, inte på ett radnummer: modulen växer, och
+    ett prov som bygger på ett radnummer mäter fel sak efter nästa commit.
+    """
     stig = os.path.join(_ROT, "ext", "vc_addon", "vc_assist", "oga_analys.py")
     rader = open(stig, encoding="utf-8").read().split("\n")
-    i = rad_nr - 1
-    assert gammal in rader[i], "rad %d: %r" % (rad_nr, rader[i])
+    traff = [i for i, r in enumerate(rader) if gammal in r]
+    assert len(traff) == 1, ("hittade %d rader med %r; provet måste peka ut "
+                             "exakt en" % (len(traff), gammal))
+    i = traff[0]
     rader[i] = rader[i].replace(gammal, ny, 1)
     kalla = "\n".join(rader)
     ast.parse(kalla)
@@ -98,11 +104,11 @@ def _modul_med_bytt_operator(rad_nr, gammal, ny):
 
 
 def test_placeringsgransen_ar_bestamd_av_minst_en_cell():
-    """`if plac["fel_mm"] > plac["tol_mm"]` (rad 529). Byts `>` mot `>=`
+    """`if plac["fel_mm"] > plac["tol_mm"]` . Byts `>` mot `>=`
     ändras ingen dom i någon av bankens elva celler: gränsen är obestämd.
     """
     mut = _modul_med_bytt_operator(
-        529, 'plac["fel_mm"] > plac["tol_mm"]', 'plac["fel_mm"] >= plac["tol_mm"]')
+        'plac["fel_mm"] > plac["tol_mm"]', 'plac["fel_mm"] >= plac["tol_mm"]')
     fore, efter = {}, {}
     for namn, bygg in sorted(celler.ALLA.items()):
         b, plan = bygg()
@@ -115,9 +121,9 @@ def test_placeringsgransen_ar_bestamd_av_minst_en_cell():
 
 
 def test_barstrackans_troskel_ar_bestamd_av_minst_en_cell():
-    """Samma sak för `carry["span_s"] < CARRY_MIN_SPAN_S` (rad 522)."""
+    """Samma sak för `carry["span_s"] < CARRY_MIN_SPAN_S` ."""
     mut = _modul_med_bytt_operator(
-        522, 'carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S',
+        'carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S',
         'carry.get("span_s", 0.0) <= CARRY_MIN_SPAN_S')
     fore, efter = {}, {}
     for namn, bygg in sorted(celler.ALLA.items()):

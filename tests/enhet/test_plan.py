@@ -43,8 +43,9 @@ from test_verktyg import Attrappbrygga, svar_for         # noqa: E402
 from vc_assist_svc import verktyg as V                   # noqa: E402
 from vc_assist_svc.plan import (Antagande, Bindning, Byggplan,  # noqa: E402
                                 Del, DetaljeradSpec, Fraga,
-                                Grundbegaran, Kontroll, Koppling, Korare,
-                                Krav, Layoutport, Protokoll, Signal,
+                                Forvillkor, Grundbegaran, Kontroll, Koppling,
+                                Korare, Krav, Layoutport, Predikat, Protokoll,
+                                Signal,
                                 Steg, Takt, Uppgiftsgraf, Uppskjutet,
                                 Verifieringskrav, planera, ur_bankuppgift,
                                 ur_fritext)
@@ -413,7 +414,7 @@ def _oga_steg(beroenden=()):
 
 
 def test_ett_steg_med_okant_verktyg_avvisas_vid_planeringen():
-    plan = _plan_med_steg([Steg.verktygssteg("a", "spawna_robot", {},
+    plan = _plan_med_steg([Steg.verktygssteg("a", "detta_verktyg_finns_inte", {},
                                              "ett verktyg som inte finns"),
                            _oga_steg(("a",))])
     koder = [kod for kod, _ in plan.granska()]
@@ -614,6 +615,61 @@ def test_sammanfattningen_bar_talen_en_matning_vill_ha():
     assert s["steg"] == 19 and s["kontrollsteg"] == 8
     assert s["skrivande_steg"] == 5     # tre inlasningar och tva kopplingar
     assert s["verifieringskrav"] == 5 and s["uppskjutna_krav"] == 7
+
+
+def test_en_tom_plan_ar_ingen_plan():
+    plan = Byggplan("tom", DetaljeradSpec(
+        "tom", Grundbegaran("tom", "en tom plan", "test"),
+        verifiering=Verifieringskrav("PASS", [Krav("SAFETY", "COLLISION none")])),
+        Uppgiftsgraf([]))
+    assert "P8_TOM_PLAN" in [kod for kod, _ in plan.granska()]
+
+
+def test_ett_predikat_som_laser_en_vag_verktyget_aldrig_svarar_med_avvisas():
+    steg = [Steg.verktygssteg("a", "list_components", {}, "listar scenen"),
+            Steg.kontrollsteg("k", Kontroll("villkor", villkor=Forvillkor(
+                [Predikat("resultat", steg="a", vag="komponenter",
+                          operator="finns")])),
+                "laser fel nyckel", beroenden=("a",)),
+            _oga_steg(("k",))]
+    problem = _plan_med_steg(steg).granska()
+    assert "P9_PREDIKATVAG" in [kod for kod, _ in problem]
+    assert any("components" in text for kod, text in problem
+               if kod == "P9_PREDIKATVAG")
+
+
+def test_samma_predikat_med_ratt_nyckel_slapps_igenom():
+    steg = [Steg.verktygssteg("a", "list_components", {}, "listar scenen"),
+            Steg.kontrollsteg("k", Kontroll("villkor", villkor=Forvillkor(
+                [Predikat("resultat", steg="a", vag="antal",
+                          operator=">", varde=0)])),
+                "laser ratt nyckel", beroenden=("a",)),
+            _oga_steg(("k",))]
+    assert _plan_med_steg(steg).granska() == []
+
+
+# Varje lintkod ska ha en TRASIG FIXTUR som faller pa den. En grind som aldrig
+# fallt ar oprovad (docs/spec/95_testprotokoll.md, regel S2 i 96_ingen_skuld.md).
+TRASIGA_FIXTURER = {
+    "P1_OKANT_VERKTYG": "test_ett_steg_med_okant_verktyg_avvisas_vid_planeringen",
+    "P2_ARGUMENTFEL": "test_fel_argument_avvisas_vid_planeringen_inte_vid_korningen",
+    "P3_ROUTING_I_PLANEN": "test_ett_argument_som_heter_som_routingen_fangas_ocksa",
+    "P4_AVSTANGT_VERKTYG": "test_ett_avstangt_verktyg_avvisas_vid_planeringen_med_skalet",
+    "P5_BINDNING": "test_en_bindning_till_en_vag_verktyget_aldrig_svarar_med_avvisas",
+    "P6_INGEN_VERIFIERING": "test_en_plan_utan_verifiering_ar_en_kandidat_aldrig_en_leverans",
+    "P7_OBESVARAD_FRAGA": "test_en_blockerande_fraga_gor_planen_ej_leverabel_tills_den_ar_besvarad",
+    "P8_TOM_PLAN": "test_en_tom_plan_ar_ingen_plan",
+    "P9_PREDIKATVAG": "test_ett_predikat_som_laser_en_vag_verktyget_aldrig_svarar_med_avvisas",
+    "P10_INGEN_OGONKONTROLL": "test_en_plan_med_verifiering_men_utan_kontrollsteg_avvisas",
+}
+
+
+def test_varje_lintkod_har_en_trasig_fixtur_som_faller_pa_den():
+    from vc_assist_svc.plan.byggplan import LINTKODER
+    assert set(TRASIGA_FIXTURER) == set(LINTKODER)
+    egna = dict(globals())
+    for kod, testnamn in sorted(TRASIGA_FIXTURER.items()):
+        assert testnamn in egna, "%s pekar pa ett test som inte finns" % kod
 
 
 # ======================================================================

@@ -248,10 +248,21 @@ def test_trasig_fixtur_uppfunnen_konstant_faller(validator):
 # ---- 3. grinden ------------------------------------------------------------------
 
 @pytest.mark.parametrize("namn,arg", ANROP, ids=ANROP_ID)
-def test_skrivgrinden_domer_recepten_som_skrivande(namn, arg):
+def test_skrivgrinden_domer_recepten_efter_effekt(namn, arg):
+    """Skrivande recept MASTE domas som skrivande; las_flode MASTE slippa
+    igenom som lasande, annars hamnar en ren lasning i godkannandekon."""
     dom = skrivgrind.granska(B.generera(namn, arg))
-    assert dom.skriver, "%s slapp forbi skrivgrinden som lasande" % namn
-    assert any("create" in s or "connect" in s for s in dom.skal), dom.skal
+    if B.EFFEKT[namn] == "write":
+        assert dom.skriver, "%s slapp forbi skrivgrinden som lasande" % namn
+        assert any("create" in s or "connect" in s for s in dom.skal), dom.skal
+    else:
+        assert not dom.skriver, "%s domdes som skrivande: %s" % (namn, dom.skal)
+
+
+def test_effekten_ar_deklarerad_for_varje_recept():
+    assert set(B.EFFEKT) == set(B.RECEPT)
+    assert B.EFFEKT["las_flode"] == "read"
+    assert all(B.EFFEKT[n] == "write" for n in B.RECEPT if n != "las_flode")
 
 
 @pytest.mark.parametrize("namn,arg", ANROP, ids=ANROP_ID)
@@ -291,7 +302,7 @@ def test_provordningen_ar_entydig_per_fraga():
         # ordningen total, och det provas har for B, dar allt hanger.
         if fraga == "B":
             assert ranger == sorted(ranger) and len(set(ranger)) == len(ranger)
-    assert B.provordning("B") == ("B1", "B2", "B3", "B4", "B5", "B6")
+    assert B.provordning("B") == ("B7", "B8", "B9", "B10", "B6")
 
 
 def test_varje_hypotes_ar_namnd_i_specen():
@@ -306,8 +317,10 @@ def test_varje_vc_namn_i_hypotestexten_finns(index):
     for h in B.HYPOTESER:
         for konst in re.findall(r"\bVC_[A-Z0-9_]+\b", h.text + " " + h.kalla):
             assert konst in index.konstanter, (h.id, konst)
-        for typ in re.findall(r"\bvc[A-Z][A-Za-z0-9]+\b", h.text):
-            assert typ in index.typer, (h.id, typ)
+        for typ in re.findall(r"\b(?:vc|r)[A-Z][A-Za-z0-9]+\b", h.text):
+            # Matta klassnamn ur bindningen (vcSimContainer) ar inte
+            # API-typer; de ar deklarerade i MATTA_KLASSNAMN och bara dar.
+            assert typ in index.typer or typ in B.MATTA_KLASSNAMN, (h.id, typ)
 
 
 def test_recepten_bokfor_bara_kanda_hypotesid():
@@ -315,15 +328,21 @@ def test_recepten_bokfor_bara_kanda_hypotesid():
     pekar matningen pa en hypotes som inte star nagonstans."""
     for namn, arg in ANROP:
         kod = B.generera(namn, arg)
-        for hid in set(re.findall(r'_s\(u"([A-G]\d)"\)', kod)):
+        for hid in set(re.findall(r'_s\(u"([A-G]\d+)"\)', kod)):
+            assert hid in B.PER_ID, (namn, hid)
+        for hid in set(re.findall(r'"hypotes": "([A-G]\d+)"', kod)):
             assert hid in B.PER_ID, (namn, hid)
 
 
 def test_bindstegen_i_koden_foljer_provordningen():
-    """Rangordningen ar data i hypoteser.py. Koden far inte ha en egen."""
+    """Rangordningen ar data i hypoteser.py. Koden far inte ha en egen.
+    Port binds utan stege (B3 ar MATT); Container provas B7, B8, B9."""
     kod = B.generera("transportor", {"name": "x"})
-    steg = re.findall(r'\("(B\d)", ', kod)
-    assert steg == ["B1", "B2", "B3", "B4"], steg
+    steg = re.findall(r'\("(B\d+)", ', kod)
+    assert steg == list(B.BEHALLARSTEG) == ["B7", "B8", "B9"], steg
+    assert B.provordning("B")[:3] == ("B7", "B8", "B9")
+    for matt in ("B1", "B2", "B3", "B5"):
+        assert B.PER_ID[matt].status == B.MATT
 
 
 def test_falttyperna_pekar_pa_kanda_konstanter(index):
@@ -331,4 +350,34 @@ def test_falttyperna_pekar_pa_kanda_konstanter(index):
         assert konst in index.konstanter, konst
     for konst in B.FALTKONSTANTER + B.BETEENDEKONSTANTER:
         assert konst in index.konstanter, konst
-    assert B.FALTTYPER["flow"] == "VC_FLOWFIELD"      # rang 1 (B1)
+    assert B.FALTTYPER["flow"] == "VC_FLOWFIELD"      # matt: bar Container+Port
+
+
+def test_koppla_valjer_pa_typ_over_alla_beteenden():
+    """Uppgift A: kontakten valjs pa Type over comp.Behaviours, aldrig pa
+    index och aldrig pa beteendenamn. Utan filter far koden inte ens namna
+    ett beteendenamn; med filter ar namnet ett FILTER till _valj_kontakt."""
+    kod = B.generera("koppla", {"a": "A", "b": "B"})
+    assert "VC_CONNECTOR_OUTPUT, None" in kod and "VC_CONNECTOR_INPUT, None" in kod
+    assert 'findBehaviour(_s(u"Path"))' not in kod
+    assert "Connectors[" not in kod
+    kod = B.generera("koppla", {"a": "A", "b": "B", "beteende_a": "Creator"})
+    assert 'VC_CONNECTOR_OUTPUT, _s(u"Creator")' in kod
+
+
+def test_matare_satter_och_laser_tillbaka(index):
+    """Uppgift B: Interval, Limit och mallen satts alltid och lases tillbaka."""
+    kod = B.generera("matare", {"name": "M", "mall": "P"})
+    assert "skapare.Limit = 1000000" in kod
+    assert "skapare.Interval = 5.0" in kod
+    assert "skapare.TemplateComponent = mall" in kod
+    for nyckel in ('"interval_tog"', '"limit_tog"', '"template_tog"', '"creator_properties"'):
+        assert nyckel in kod, nyckel
+    assert "mallen kan inte vara mataren sjalv" in kod
+
+
+def test_las_flode_laser_det_som_avgor_om_nagot_rort_sig():
+    kod = B.generera("las_flode", {})
+    for namn in ("WorldPositionMatrix", "Container", "getPathDistance",
+                 "CreationTime", "ComponentCount", "SimTime", "Components"):
+        assert namn in kod, namn

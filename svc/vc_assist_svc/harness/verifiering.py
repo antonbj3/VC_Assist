@@ -35,8 +35,8 @@ TVA SORTERS AVVIKELSE, med olika text tillbaka:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .text import Namnpastaende, Talpastaende, namn_i, normalisera, tal_i
 
@@ -77,18 +77,25 @@ class Grund(object):
         self._tal: List[float] = []
         self.kallor: List[str] = []
 
+        # NAMN, men inte TAL, ur de har tre kallorna. Skalet ar matt i
+        # efterlevnadsbanken 2026-09-04: med katalogens tal i grunden stoddes
+        # ett pahittat avstand pa 0,45 m av rackvidden i en robotpost som
+        # modellen aldrig slagit upp (falla F-10). Ett namn ur katalogen ar
+        # ett namn som finns; ett TAL ur katalogen ar ingen matning av DEN
+        # HAR scenen. Samma sak for uppgiftstexten: att operatoren namner ett
+        # matt gor inte att det ar uppmatt.
         for namn in verktygsnamn:
-            self._lagg_strang(namn)
+            self._lagg_strang(namn, med_tal=False)
         for uri, post in self.katalogindex.items():
-            self._lagg_strang(uri)
+            self._lagg_strang(uri, med_tal=False)
             if post.get("namn"):
-                self._lagg_strang(post["namn"])
+                self._lagg_strang(post["namn"], med_tal=False)
         if self.uppgiftstext:
-            self.lagg_text(self.uppgiftstext, "uppgiften")
+            self.lagg_text(self.uppgiftstext, "uppgiften", med_tal=False)
 
     # ---- fylla pa -------------------------------------------------------
 
-    def _lagg_strang(self, text: str) -> None:
+    def _lagg_strang(self, text: str, med_tal: bool = True) -> None:
         if not isinstance(text, str) or not text.strip():
             return
         self._strangar.append(text)
@@ -96,42 +103,48 @@ class Grund(object):
         for bit in re.split(r"[\s/,;]+", text):
             if bit:
                 self._normaliserade.add(normalisera(bit))
+        if not med_tal:
+            return
         for m in _TAL_I_STRANG.finditer(text):
             try:
                 self._tal.append(float(m.group(0)))
             except ValueError:
                 continue
 
-    def _lagg_varde(self, varde: Any) -> None:
+    def _lagg_varde(self, varde: Any, med_tal: bool = True) -> None:
         if isinstance(varde, bool):
             return
         if isinstance(varde, (int, float)):
-            self._tal.append(float(varde))
+            if med_tal:
+                self._tal.append(float(varde))
         elif isinstance(varde, str):
-            self._lagg_strang(varde)
+            self._lagg_strang(varde, med_tal)
         elif isinstance(varde, dict):
             for n, v in varde.items():
-                self._lagg_strang(str(n))
-                self._lagg_varde(v)
+                self._lagg_strang(str(n), med_tal=False)
+                self._lagg_varde(v, med_tal)
         elif isinstance(varde, (list, tuple)):
             for v in varde:
-                self._lagg_varde(v)
+                self._lagg_varde(v, med_tal)
 
-    def lagg_resultat(self, verktyg: str, resultat: Any) -> None:
-        """Ett verktygssvar. Bara LYCKADE svar hor hemma i grunden."""
+    def lagg_resultat(self, verktyg: str, argument: Any, resultat: Any) -> None:
+        """Ett LYCKAT verktygsanrop: argumenten OCH svaret.
+
+        Argumenten hor hit darfor att de ar fakta om vad som gjordes. Bad
+        modellen om en flytt pa 500 mm och anropet gick igenom, sa ar 500 mm
+        ett tal den har ratt att skriva. Argumenten till ett anrop som FOLL
+        laggs aldrig hit: da hande ingenting.
+        """
         self.kallor.append(verktyg)
+        self._lagg_varde(argument)
         self._lagg_varde(resultat)
 
-    def lagg_text(self, text: str, kalla: str) -> None:
+    def lagg_text(self, text: str, kalla: str, med_tal: bool = True) -> None:
         """En textkalla, t.ex. ogats rapport eller operatorens uppgift."""
         self.kallor.append(kalla)
-        self._lagg_strang(text)
+        self._lagg_strang(text, med_tal)
 
     # ---- prova ----------------------------------------------------------
-
-    @property
-    def har_matningar(self) -> bool:
-        return any(k not in ("uppgiften",) for k in self.kallor)
 
     def stodjer_tal(self, tal: Talpastaende) -> Optional[str]:
         """None om talet stods, annars skalet det inte gor det."""

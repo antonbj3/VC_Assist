@@ -125,11 +125,13 @@ EXEMPEL = {
         {"component": "Bana", "map": "BoolMap", "port": 3, "signal": "S1",
          "port_name": "ST010_CNV_RUN"}],
     "signal_map_clear_port": [{"component": "Bana", "map": "BoolMap", "port": 2}],
+    "signal_map_connect": [{"component": "A", "map": "BoolMap", "port": 0,
+                            "other_component": "B", "other_map": "BoolMap",
+                            "other_port": 1}],
     "set_signal_map_direction": [
         {"component": "Bana", "map": "BoolMap", "direction": "input"},
         {"component": "Bana", "map": "BoolMap", "direction": "output"},
         {"component": "Bana", "map": "BoolMap", "direction": "undefined"}],
-    "create_property_adapter": [{"component": "Bana", "name": "Adapter1"}],
     "set_behaviour_property": [
         {"component": "Bana", "behaviour": "Adapter1", "property": "Signal",
          "value": "S1"},
@@ -607,6 +609,50 @@ def test_varje_skrivande_verktyg_avvisar_en_sakerhetstagg_i_varje_taggargument()
     assert provade >= 15, "korsprovet ska tacka hela domanen, inte ett fall"
 
 
+def test_domanen_skapar_ingen_egenskapsadapter():
+    """M-15 provade skapandet: VC_PROPERTYSIGNALADAPTER ar inte bland de 80.
+
+    Ett verktyg som bara kan misslyckas ar en stubbe (S1). Provet laser
+    MATNINGEN och inte en kommentar, sa raden faller den dag adaptern blir
+    skapbar - och da SKA verktyget byggas.
+    """
+    skapbara = _skapbara_ur_m15()
+    assert "VC_BOOLEANSIGNAL" in skapbara, "M-15 har bytt form"
+    assert S.ADAPTERTYP not in skapbara, (
+        "M-15 sager numera att adaptern gar att skapa; bygg verktyget")
+    assert not [n for n in REGISTER if "adapter" in n and n.startswith("create")]
+    for namn in REGISTER:
+        if REGISTER[namn].effect != "write":
+            continue
+        assert S.ADAPTERTYP not in kod_for(
+            namn, V.validera_argument(REGISTER[namn], EXEMPEL[namn][0])), namn
+
+
+def test_alla_signaltyper_domanen_erbjuder_ar_provade_skapbara():
+    """create_signal star pa en MATNING, inte bara pa en konstantlista."""
+    skapbara = _skapbara_ur_m15()
+    for konstant, _b in S.SIGNALTYPER:
+        assert konstant in skapbara, konstant
+    for konstant, _b in S.KARTTYPER:
+        assert konstant in skapbara, konstant
+    # Motprovet: skripttyperna ar ocksa skapbara, och det ar just darfor de
+    # aldrig far sta i ett enum har (M-13).
+    assert "VC_SCRIPT" in skapbara
+    for konstant, _b in S.SIGNALTYPER + S.KARTTYPER:
+        assert "SCRIPT" not in konstant
+
+
+def _skapbara_ur_m15():
+    """Konstanterna M-15 matte som skapbara, lasta ur matningsfilen."""
+    sokvag = os.path.join(_ROT, "docs", "matningar",
+                          "M-15_skapbara_beteenden.md")
+    with open(sokvag, encoding="utf-8") as f:
+        text = f.read()
+    ut = set(re.findall(r"^\| `(VC_[A-Z0-9_]+)` \|", text, re.M))
+    assert len(ut) >= 60, "M-15 gav %d konstanter; filen har bytt form" % len(ut)
+    return ut
+
+
 def test_samma_anrop_utan_sakerhetstagg_gar_igenom():
     """Andra halvan av grinden: den slapper igenom det korrekta (S2)."""
     for namn in _skrivande():
@@ -634,7 +680,7 @@ def test_sakerhetstagg_i_ett_egenskapsvarde_stoppas_ocksa():
 
 
 KARTSKRIVARE = ("signal_map_set_port", "signal_map_clear_port",
-                "set_signal_map_direction")
+                "signal_map_connect", "set_signal_map_direction")
 
 
 @pytest.mark.parametrize("namn", KARTSKRIVARE)
@@ -1253,6 +1299,7 @@ def test_connectivity_status_ar_ett_data_verktyg_som_inte_ror_bryggan(utf, brygg
     assert r.resultat["role"] == "client"
     assert r.resultat["readable_from_python"] is False
     assert r.resultat["python_api_hits"] == 0
+    assert r.resultat["python_api_symbols"] == []
 
 
 def test_connectivity_status_svarar_pa_alla_tre_fragorna():
@@ -1302,7 +1349,7 @@ def test_python_luckan_ar_matt_och_inte_pastadd():
     traffar = sorted({s.fullnamn for s in INDEX.symboler
                       if monster.search(s.namn)})
     assert traffar == [], traffar
-    assert S.PYTHON_TRAFFAR == len(traffar)
+    assert list(S.PYTHONLUCKA_TRAFFAR) == traffar
 
 
 def test_svaret_bar_monstret_siffran_raknades_med():
@@ -1310,6 +1357,8 @@ def test_svaret_bar_monstret_siffran_raknades_med():
     svar = DATA["connectivity_status"]({"question": "allt"})
     assert svar["python_api_pattern"] == S.PYTHONLUCKA_MONSTER
     re.compile(svar["python_api_pattern"], re.I)
+    assert svar["python_api_symbols"] == []
+    assert svar["python_api_hits"] == len(svar["python_api_symbols"])
 
 
 def test_luckmonstret_kan_traffa():

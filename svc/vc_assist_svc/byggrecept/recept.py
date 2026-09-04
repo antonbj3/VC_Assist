@@ -23,6 +23,7 @@ vill att varje VC-namn i recepten ska vara kontrollerat mot indexet.
 """
 from __future__ import annotations
 
+from ..verktyg.bas import tak
 from ..verktyg.kodmall import bygg, lit, tal
 from .hypoteser import provordning
 
@@ -36,16 +37,18 @@ FALTTYPER = {
     "transport": "VC_TRANSPORTFIELD",
 }
 
-# Kandidatnamn pa faltets referensegenskap, i den ordning de provas. "Port"
-# ar .NET-namnet pa flodesfaltets referens (B0); "Transport" ar det matta
-# namnet pa transportfaltets (matning 4). Resten ar reserv for att koden
-# ska rapportera vad som fanns i stallet for att falla.
-REFERENSNAMN = ("Port", "Transport", "Connector", "Behaviour", "Behavior")
+# MATT 2026-09-04 (B00): flodesfaltet bar Name, Container, Port, PortName;
+# transportfaltet Name, Transport, Connection. Tva referenser per falt:
+# BETEENDET (Container / Transport) och KONTAKTEN i det (Port / Connection).
+BETEENDENAMN = ("Container", "Transport")
+KONTAKTNAMN = ("Port", "Connection")
+KONTAKTNAMN_TEXT = ("PortName",)
 
-# Bindningsstegen som recepten faktiskt kor, ur hypoteser.py. B5 och B6 ar
-# inte bindningar av ett falt utan andra vagar; de provas i receptet koppla.
-_BINDSTEG = tuple(h for h in provordning("B") if h in ("B1", "B2", "B3", "B4"))
-assert _BINDSTEG == ("B1", "B2", "B3", "B4"), _BINDSTEG
+# Kontakten binds som HELTAL (B3, MATT ok; B1/B2 MATT fel). Beteendet ar
+# obundet an: stegen B7-B9 ur hypoteser.py, i rangordning. B10 (PortName)
+# satts alltid, utover Port.
+BEHALLARSTEG = tuple(h for h in provordning("B") if h in ("B7", "B8", "B9"))
+assert BEHALLARSTEG == ("B7", "B8", "B9"), BEHALLARSTEG
 
 
 # ---- gemensamma hjalpare i den genererade koden ----------------------------
@@ -54,7 +57,7 @@ assert _BINDSTEG == ("B1", "B2", "B3", "B4"), _BINDSTEG
 # ar en fast tabell och bygg() kastar KeyError pa okanda namn. Den tabellen
 # ar de lasande verktygens; de har raderna ar receptens egna.
 
-_HJALP = '''
+_HJALP_BAS = '''
 def _typnamn(o):
     return type(o).__name__
 
@@ -68,8 +71,9 @@ def _egenskaper(o):
     for p in o.Properties:
         ut.append(_egen(p))
     return ut
+'''
 
-
+_HJALP_BYGG = '''
 def _forsok(logg, hypotes, funk):
     # Kor ett osakert steg och bokfor utfallet under hypotesens id. Ett
     # undantag ar ett MATT utfall och stoppar inte resten av receptet.
@@ -91,7 +95,8 @@ def _hitta_egenskap(o, namn):
 
 
 def _kontakt(logg, beh, typ):
-    # Hypotes C1: valj kontakt pa Type, aldrig pa index.
+    # C1 (MATT): valj kontakt pa Type, aldrig pa index -- skaparen bar
+    # Output pa index 0 och Input pa index 1, banan tvartom.
     forsta = None
     for c in beh.Connectors:
         if forsta is None:
@@ -115,40 +120,65 @@ def _kontakter(beh):
     return ut
 
 
-def _bind(logg, falt, kontakt, agare):
-    # Binder ett falts referensegenskap enligt B1-B4 i rangordning. Returnerar
-    # namnet pa egenskapen som bands, eller None.
-    p = None
-    for namn in REFERENSNAMN:
-        p = _hitta_egenskap(falt, namn)
-        if p is not None:
+def _bind(logg, falt, kontakt, agare, agarindex):
+    # Binder flodesfaltets tva referenser. Kontakten: Port = Index (B3,
+    # MATT). Beteendet: Container enligt B7-B9 i rangordning. PortName
+    # satts alltid (B10). Returnerar namnen pa egenskaperna som bands.
+    bundna = []
+    kontaktegenskap = None
+    for namn in KONTAKTNAMN:
+        kontaktegenskap = _hitta_egenskap(falt, namn)
+        if kontaktegenskap is not None:
             break
-    if p is None:
-        logg.append({"hypotes": "B0", "utfall": "fel",
+    if kontaktegenskap is not None and kontakt is not None:
+        def satt_port():
+            kontaktegenskap.Value = kontakt.Index
+            return _enkelt(kontaktegenskap.Value)
+        ok, _ = _forsok(logg, "B3", satt_port)
+        if ok and kontaktegenskap.Value is not None:
+            bundna.append(kontaktegenskap.Name)
+    for namn in KONTAKTNAMN_TEXT:
+        textegenskap = _hitta_egenskap(falt, namn)
+        if textegenskap is not None and kontakt is not None:
+            def satt_portnamn(textegenskap=textegenskap):
+                textegenskap.Value = kontakt.Name
+                return _enkelt(textegenskap.Value)
+            ok, _ = _forsok(logg, "B10", satt_portnamn)
+            if ok:
+                bundna.append(textegenskap.Name)
+    beteendeegenskap = None
+    for namn in BETEENDENAMN:
+        beteendeegenskap = _hitta_egenskap(falt, namn)
+        if beteendeegenskap is not None:
+            break
+    if beteendeegenskap is None:
+        logg.append({"hypotes": "B00", "utfall": "fel",
                      "fel": "faltet " + falt.Name + " har ingen egenskap med nagot av namnen "
-                            + repr(REFERENSNAMN),
+                            + repr(BETEENDENAMN),
                      "egenskaper": _egenskaper(falt)})
-        return None
-    kandidater = [("B1", kontakt), ("B2", agare)]
-    if kontakt is not None:
-        kandidater.append(("B3", kontakt.Index))
-        kandidater.append(("B4", kontakt.Name))
+        return bundna
+    agarnamn = None if agare is None else agare.Name
+    kandidater = [("B7", agare), ("B8", agarindex), ("B9", agarnamn)]
     for hyp, varde in kandidater:
         if varde is None:
             continue
-        def satt(varde=varde):
-            p.Value = varde
-            return _enkelt(p.Value)
-        ok, _ = _forsok(logg, hyp, satt)
-        if ok and p.Value is not None:
-            if hyp == "B2" and kontakt is not None:
-                anslutning = _hitta_egenskap(falt, "Connection")
-                if anslutning is not None:
-                    def satt_index():
-                        anslutning.Value = kontakt.Index
-                        return _enkelt(anslutning.Value)
-                    _forsok(logg, "E4", satt_index)
-            return p.Name
+        def satt_beteende(varde=varde):
+            beteendeegenskap.Value = varde
+            return _enkelt(beteendeegenskap.Value)
+        ok, _ = _forsok(logg, hyp, satt_beteende)
+        if ok and beteendeegenskap.Value is not None:
+            bundna.append(beteendeegenskap.Name)
+            break
+    return bundna
+
+
+def _beteendeindex(k, beh):
+    # Beteendets plats i komponentens lista (hypotes B8).
+    i = 0
+    for b in k.Behaviours:
+        if b.Name == beh.Name:
+            return i
+        i = i + 1
     return None
 
 
@@ -175,12 +205,13 @@ def _granssnitt(logg, k, namn, ram, falttyp, kontakt, agare, abstrakt):
     if falt is None:
         raise ValueError("createField gav None for " + namn)
     fore = _egenskaper(falt)
-    bunden = _bind(logg, falt, kontakt, agare)
+    agarindex = None if agare is None else _beteendeindex(k, agare)
+    bundna = _bind(logg, falt, kontakt, agare, agarindex)
     return {"name": g.Name, "is_abstract": bool(g.IsAbstract),
             "section": sek.Name, "frame": None if ram is None else ram.Name,
             "field": falt.Name, "field_type": _enkelt(falt.Type),
             "properties_before": fore, "properties_after": _egenskaper(falt),
-            "bound_property": bunden}
+            "bound_properties": bundna}
 
 
 def _beteenden(k):
@@ -188,10 +219,59 @@ def _beteenden(k):
     for b in k.Behaviours:
         ut.append({"name": b.Name, "type": _enkelt(b.Type), "class": _typnamn(b)})
     return ut
+
+
+def _alla_kontakter(k, filter_namn):
+    # Varje kontakt i varje beteende som har kontakter. Ett beteende utan
+    # Connectors (granssnitt, signaler) ger AttributeError och hoppas over.
+    ut = []
+    for b in k.Behaviours:
+        if filter_namn is not None and b.Name != filter_namn:
+            continue
+        try:
+            kontakter = b.Connectors
+        except AttributeError:
+            continue
+        for c in kontakter:
+            ut.append((b, c))
+    return ut
+
+
+def _valj_kontakt(logg, k, typ, filter_namn, etikett):
+    # Uppgift A: valj pa Type over ALLA beteenden, aldrig pa index eller
+    # beteendenamn. En okopplad kontakt gar fore en kopplad.
+    kandidater = []
+    for b, c in _alla_kontakter(k, filter_namn):
+        if c.Type == typ:
+            kandidater.append((b, c))
+    if not kandidater:
+        logg.append({"hypotes": "C1", "utfall": "fel",
+                     "fel": etikett + ": " + k.Name + " har ingen kontakt med typ "
+                            + str(typ) + " (filter " + repr(filter_namn) + ")"})
+        return None
+    vald = kandidater[0]
+    for b, c in kandidater:
+        if c.Connection is None:
+            vald = (b, c)
+            break
+    logg.append({"hypotes": "C1", "utfall": "ok",
+                 "resultat": etikett + ": " + vald[0].Name + " / " + vald[1].Name
+                             + " index " + str(vald[1].Index)
+                             + " typ " + str(_enkelt(vald[1].Type))
+                             + (" (redan kopplad)" if vald[1].Connection is not None else "")})
+    return vald[1]
 '''
 
-_REFERENSNAMN_RAD = "REFERENSNAMN = (%s)" % ", ".join(lit(n) for n in REFERENSNAMN)
-_FALTNAMN_RAD = "FALTNAMN = %s" % lit(FALTNAMN)
+def _tupelrad(namn, varden):
+    return "%s = (%s,)" % (namn, ", ".join(lit(v) for v in varden))
+
+
+_NAMNRADER = [
+    _tupelrad("BETEENDENAMN", BETEENDENAMN),
+    _tupelrad("KONTAKTNAMN", KONTAKTNAMN),
+    _tupelrad("KONTAKTNAMN_TEXT", KONTAKTNAMN_TEXT),
+    "FALTNAMN = %s" % lit(FALTNAMN),
+]
 
 
 # _s kommer ur bryggans exec-globaler (pump.py:_kor). Recepten ar ocksa
@@ -212,7 +292,14 @@ except NameError:
 
 
 def _inledning():
-    return _S_RESERV.split("\n") + [_REFERENSNAMN_RAD, _FALTNAMN_RAD] + _HJALP.split("\n")
+    return (_S_RESERV.split("\n") + _NAMNRADER + _HJALP_BAS.split("\n")
+            + _HJALP_BYGG.split("\n"))
+
+
+def _inledning_lasande():
+    """Bara det ett lasande recept behover. Bygghjalparna bar append() pa
+    parametrar, och det domer skrivgrinden som skrivande."""
+    return _S_RESERV.split("\n") + _HJALP_BAS.split("\n")
 
 
 def _nyko(namn):
@@ -406,6 +493,9 @@ def matare(argument):
     en produkt (t.ex. med transportor-receptets block) och namnge den."""
     namn = argument["name"]
     intervall = float(argument.get("intervall", 5.0))
+    # D5: Limit satts ALLTID. En skapare byggd utan Limit skapade noll
+    # produkter pa 6 s simtid (MATT 2026-09-04).
+    grans = int(argument.get("grans", 1000000))
     abstrakt = bool(argument.get("abstrakt", False))
     falttyp = _falttyp(argument)
     hojd = float(argument.get("hojd", 700.0))
@@ -419,18 +509,31 @@ def matare(argument):
         "skapare = k.createBehaviour(VC_COMPONENTCREATOR, %s)" % lit("Creator"),
         "if skapare is None:",
         '    raise ValueError("createBehaviour(VC_COMPONENTCREATOR) gav None")',
+        "skapare.Enabled = True",
         "skapare.Interval = %s" % tal(intervall),
+        "skapare.Limit = %d" % grans,
+        "mallnamn = None",
     ]
-    if "grans" in argument:
-        rader.append("skapare.Limit = %d" % int(argument["grans"]))
     if "mall" in argument:
         rader += [
             "mall = _komp(%s)" % lit(argument["mall"]),
+            "if mall.Name == k.Name:",
+            '    raise ValueError("mallen kan inte vara mataren sjalv")',
             "skapare.TemplateComponent = mall",
+            "if skapare.TemplateComponent is not None:",
+            "    mallnamn = skapare.TemplateComponent.Name",
         ]
     elif "del_uri" in argument:
         rader.append("skapare.Part = %s" % lit(argument["del_uri"]))
     rader += [
+        # Las tillbaka ALLT som sattes (uppgift B): vardet i svaret ar det
+        # VC har, inte det vi skickade.
+        'aterlast = {"interval": skapare.Interval, "limit": skapare.Limit,',
+        '            "part": skapare.Part, "template": mallnamn,',
+        '            "enabled": bool(skapare.Enabled),',
+        '            "interval_tog": skapare.Interval == %s,' % tal(intervall),
+        '            "limit_tog": skapare.Limit == %d,' % grans,
+        '            "template_tog": mallnamn is not None or bool(skapare.Part)}',
         "kontakt_ut = _kontakt(forsok, skapare, VC_CONNECTOR_OUTPUT)",
         "granssnitt = []",
         "def bygg_ut():",
@@ -440,7 +543,8 @@ def matare(argument):
         "if ok:",
         "    granssnitt.append(r)",
         '_svara({"built": True, "component": k.Name, "kind": %s,' % lit("matare"),
-        '        "interval": skapare.Interval, "template": skapare.Part,',
+        '        "creator": aterlast,',
+        '        "creator_properties": _egenskaper(skapare),',
         '        "body_properties": kroppens_egenskaper,',
         '        "connectors": _kontakter(skapare), "behaviours": _beteenden(k),',
         '        "interfaces": granssnitt, "forsok": forsok})',
@@ -496,48 +600,55 @@ def koppla(argument):
 
       E0  canConnect + connect pa granssnitten (den riktiga vagen)
       G0  app.connectComponents(a, b)          (VC matchar sjalv)
-      B5  kontakt mot kontakt, utanfor granssnitten (connect, sedan Connection)
+      B5  kontakt mot kontakt, utanfor granssnitten (MATT: fungerar)
 
+    Kontakterna valjs over ALLA beteenden i komponenten pa Type (uppgift A):
+    Output i a, Input i b; okopplad fore kopplad; aldrig pa index eller
+    beteendenamn. beteende_a/beteende_b ar valfria FILTER, inte uppslag.
     Stannar vid forsta steg som ger en verklig koppling."""
     a = lit(argument["a"])
     b = lit(argument["b"])
     g_a = lit(argument.get("granssnitt_a", "OutInterface"))
     g_b = lit(argument.get("granssnitt_b", "InInterface"))
-    beh_a = lit(argument.get("beteende_a", "Path"))
-    beh_b = lit(argument.get("beteende_b", "Path"))
+    filter_a = lit(argument["beteende_a"]) if "beteende_a" in argument else "None"
+    filter_b = lit(argument["beteende_b"]) if "beteende_b" in argument else "None"
     rader = _inledning() + [
         "app = getApplication()",
         "forsok = []",
         "ka = _komp(%s)" % a,
         "kb = _komp(%s)" % b,
-        "ga = _grans(ka, %s)" % g_a,
-        "gb = _grans(kb, %s)" % g_b,
+        "ga = ka.findBehaviour(%s)" % g_a,
+        "gb = kb.findBehaviour(%s)" % g_b,
         "vag = None",
-        "def via_granssnitt():",
-        "    kan = bool(ga.canConnect(gb))",
-        "    if not kan:",
-        '        raise ValueError("canConnect ar False")',
-        "    if not ga.connect(gb):",
-        '        raise ValueError("connect gav False fast canConnect var True")',
-        "    return _anslutna(ga)",
-        "ok, r = _forsok(forsok, %s, via_granssnitt)" % lit("E0"),
-        "if ok:",
-        "    vag = %s" % lit("E0"),
+        "if ga is not None and gb is not None:",
+        "    def via_granssnitt():",
+        "        kan = bool(ga.canConnect(gb))",
+        "        if not kan:",
+        '            raise ValueError("canConnect ar False")',
+        "        if not ga.connect(gb):",
+        '            raise ValueError("connect gav False fast canConnect var True")',
+        "        return _anslutna(ga)",
+        "    ok, r = _forsok(forsok, %s, via_granssnitt)" % lit("E0"),
+        "    if ok:",
+        "        vag = %s" % lit("E0"),
+        "else:",
+        '    forsok.append({"hypotes": %s, "utfall": "fel",' % lit("E0"),
+        '                   "fel": "granssnittet saknas: " + repr(ga is None) + " / " + repr(gb is None)})',
         "if vag is None:",
         "    def via_app():",
         "        if not app.connectComponents(ka, kb):",
         '            raise ValueError("connectComponents gav False")',
-        "        return _anslutna(ga)",
+        "        return True",
         "    ok, r = _forsok(forsok, %s, via_app)" % lit("G0"),
         "    if ok:",
         "        vag = %s" % lit("G0"),
+        "ut = None",
+        "inn = None",
         "if vag is None:",
-        "    ba = ka.findBehaviour(%s)" % beh_a,
-        "    bb = kb.findBehaviour(%s)" % beh_b,
-        "    if ba is None or bb is None:",
-        '        raise ValueError("beteendet for kontaktkoppling saknas")',
-        "    ut = _kontakt(forsok, ba, VC_CONNECTOR_OUTPUT)",
-        "    inn = _kontakt(forsok, bb, VC_CONNECTOR_INPUT)",
+        "    ut = _valj_kontakt(forsok, ka, VC_CONNECTOR_OUTPUT, %s, %s)" % (filter_a, lit("ut")),
+        "    inn = _valj_kontakt(forsok, kb, VC_CONNECTOR_INPUT, %s, %s)" % (filter_b, lit("in")),
+        "    if ut is None or inn is None:",
+        '        raise ValueError("ingen kontakt att koppla: ut=" + repr(ut is None) + " in=" + repr(inn is None))',
         "    def via_kontakt():",
         "        ut.connect(inn)",
         "        if ut.Connection is None:",
@@ -555,15 +666,70 @@ def koppla(argument):
         "        ok, r = _forsok(forsok, %s, via_egenskap)" % lit("B5"),
         "        if ok:",
         "            vag = %s" % lit("B5"),
+        "kontaktpar = None",
+        "if ut is not None and inn is not None:",
+        '    kontaktpar = {"ut": ut.Name, "ut_index": ut.Index,',
+        '                  "ut_connected": ut.Connection is not None,',
+        '                  "in": inn.Name, "in_index": inn.Index,',
+        '                  "in_connected": inn.Connection is not None}',
         '_svara({"connected": vag is not None, "via": vag,',
-        '        "a": ka.Name, "b": kb.Name,',
-        '        "a_connected_to": _anslutna(ga), "b_connected_to": _anslutna(gb),',
-        '        "a_is_connected": bool(ga.IsConnected),',
-        '        "b_is_connected": bool(gb.IsConnected),',
+        '        "a": ka.Name, "b": kb.Name, "connectors": kontaktpar,',
+        '        "a_connected_to": _anslutna(ga) if ga is not None else None,',
+        '        "b_connected_to": _anslutna(gb) if gb is not None else None,',
+        '        "a_is_connected": bool(ga.IsConnected) if ga is not None else None,',
+        '        "b_is_connected": bool(gb.IsConnected) if gb is not None else None,',
         '        "forsok": forsok})',
     ]
-    return bygg(["_komp", "_grans", "_anslutna", "_enkelt", "_svara"],
-                rader, ["vcVector"])
+    return bygg(["_komp", "_anslutna", "_enkelt", "_svara"], rader, ["vcVector"])
+
+
+# ---- las_flode (uppgift C) -------------------------------------------------------
+
+def las_flode(argument):
+    """LASANDE. Svarar pa den enda fraga som raknas: rorde sig nagot?
+
+    Per komponent: lage i varlden, vilken behallare den ligger i, avstand pa
+    banan, skapelsetid (>0 = skapad under simuleringen). Per beteende som
+    lagrar: antal och namn. Plus simtid och totalt antal komponenter. Kor
+    fore och efter en simulering och jamfor."""
+    rader = _inledning_lasande() + [
+        "app = getApplication()",
+        "sim = app.getSimulation()",
+        "komponenter = []",
+        "innehall = []",
+        "avkortad = False",
+        "for k in app.Components:",
+    ] + tak("komponenter") + [
+        "    m = k.WorldPositionMatrix",
+        "    behallare = k.Container",
+        "    avstand = None",
+        "    if behallare is not None:",
+        "        try:",
+        "            avstand = k.getPathDistance()",
+        "        except Exception:",
+        "            avstand = None",
+        '    komponenter.append({"name": k.Name,',
+        '                        "position": [m.P.X, m.P.Y, m.P.Z],',
+        '                        "creation_time": k.CreationTime,',
+        '                        "container": None if behallare is None else behallare.Name,',
+        '                        "container_of": None if behallare is None else behallare.Component.Name,',
+        '                        "path_distance": avstand})',
+        "    for b in k.Behaviours:",
+        "        try:",
+        "            lagrade = b.Components",
+        "            antal = b.ComponentCount",
+        "        except AttributeError:",
+        "            continue",
+        "        namn = []",
+        "        for c in lagrade:",
+        "            namn.append(c.Name)",
+        '        innehall.append({"component": k.Name, "behaviour": b.Name,',
+        '                         "class": _typnamn(b), "count": antal, "contents": namn})',
+        '_svara({"sim_time": sim.SimTime, "running": bool(sim.IsRunning),',
+        '        "component_count": len(app.Components), "components": komponenter,',
+        '        "containers": innehall, "avkortad": avkortad})',
+    ]
+    return bygg(["_enkelt", "_svara"], rader)
 
 
 # ---- registret ---------------------------------------------------------------------------------
@@ -575,7 +741,13 @@ RECEPT = {
     "matare": matare,
     "sanka": sanka,
     "koppla": koppla,
+    "las_flode": las_flode,
 }
+
+# Vilka recept som SKRIVER. Skrivgrinden maste doma dem sa, och las_flode
+# maste slippa igenom som lasande (test_byggrecept.py).
+EFFEKT = {namn: "write" for namn in RECEPT}
+EFFEKT["las_flode"] = "read"
 
 # Ett minsta och ett storsta anrop per recept. Testerna kor ALLA, sa ett
 # recept utan exempel far inte finnas.
@@ -595,6 +767,7 @@ EXEMPEL = {
                {"a": "Matare1", "b": "Bana1", "granssnitt_a": "OutInterface",
                 "granssnitt_b": "InInterface", "beteende_a": "Creator",
                 "beteende_b": "Path"}],
+    "las_flode": [{}],
 }
 
 

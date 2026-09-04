@@ -182,7 +182,7 @@ def _rasterkandidater(scen, namn, raster_m):
     golv = scen.hall.golv
     nx = int(golv.bredd_m / raster_m) + 1
     ny = int(golv.djup_m / raster_m) + 1
-    for vridning in o.tillatna_vridningar:
+    for vridning in o.tillatna_vridningar_grader:
         for j in range(ny):
             y = min(golv.y0_m + j * raster_m, golv.y1_m)
             for i in range(nx):
@@ -257,11 +257,19 @@ def _sok(scen, relationer, ordning, raster_m, budget):
 
     Varför bakåtjump och inte enkel backtracking: när ett objekt inte kan stå
     NÅGONSTANS av skäl som inte beror på objektet strax före, är det slöseri
-    att pröva om det objektets alla rasterlägen. Mätt i provscenerna: en scen
-    där en robots underhållsmarginal gör en räckviddsrelation omöjlig gick
-    från över 40 000 prövade lägen (budgeten slut, svaret OBESTAMBART) till
-    under 300 (svaret OVERBESTAMD med rätt två relationer utpekade). Skillnaden
-    är inte hastighet utan om motorn kan svara alls.
+    att pröva om det objektets alla rasterlägen.
+
+    MÄTT 2026-09-04 på en scen där en robots underhållsmarginal gör en
+    räckviddsrelation omöjlig (robot centrerad, band framför, pall inom
+    räckvidd, 12 x 8 m hall). Med bakåtjump: 0,45 s och konfliktmängden
+    {CENTRERAD_I, INOM_RACKVIDD}. Utan: 0,89 s och konfliktmängden
+    {CENTRERAD_I, FRAMFOR, INOM_RACKVIDD} - en oskyldig relation pekas ut,
+    därför att delsökningen som skulle frikänt den slog i sin budget.
+    Vinsten är alltså inte främst hastighet utan att SVARET BLIR RÄTT.
+
+    Över bänkens 24 provscener syns ingen skillnad i vare sig tid eller svar:
+    de är lösbara nog att aldrig behöva jumpet. Det är också ett mätt
+    resultat, och det står här för att ingen ska tro att jumpet bär dem.
 
     Varje avvisning bär vilka REDAN PLACERADE objekt som orsakade den. Är den
     mängden tom beror felet inte på något val längre upp, och då finns ingen

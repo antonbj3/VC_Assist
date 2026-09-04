@@ -75,41 +75,70 @@ HYPOTESER: Tuple[Hypotes, ...] = (
             "ingen satt-metod pa vcSimInterfaceField.",
             _NET + ": ISimInterfaceFlowField.Port; " + _PY +
             ": vcSimInterfaceField (Index, Name, Properties, Section, Type)"),
-    Hypotes("B1", "B", 1, HYPOTES,
-            "p.Value = objekt av EXAKT den typ referensen vantar: en "
-            "vcConnector till flodesfaltets Port. Matningen med vcMotionPath "
-            "gjordes mot Transport-faltet, vars typ ar en annan.",
+    Hypotes("B00", "B", 0, MATT,
+            "Faltens egenskaper i VC 4.10 (sondera_falt): flodesfalt = "
+            "Name, Container, Port, PortName; transportfalt = Name, "
+            "Transport, Connection; signalfalt = Name, Signal, Connection; "
+            "hierarkifalt = Name, Node, Frame, Parent; processorfalt = Name, "
+            "Path, Sensor, Parent. Flodesfaltet bar alltsa TVA referenser: "
+            "Container (beteendet) och Port (kontakten i det).",
+            "sondera_falt, korning 2026-09-04 kvall"),
+    Hypotes("B1", "B", 0, MATT,
+            "FEL. Port.Value = vcConnector ger 'RuntimeError: Expected "
+            "integer value.' Port ar ett HELTAL, inte en objektreferens.",
             _NET + ": ISimInterfaceFlowField.Port 'Gets or sets the instance "
             "of [ISimConnector] that will be connected when the interface "
             "will be connected'"),
-    Hypotes("B2", "B", 2, HYPOTES,
-            "p.Value = det AGANDE beteendet (vcMotionPath, vcContainer) och "
-            "darefter Connection = kontaktens index i beteendet. Galler "
-            "Transport-faltet (se A1).",
+    Hypotes("B2", "B", 0, MATT,
+            "FEL pa Port: Port.Value = beteendet ger 'RuntimeError: Expected "
+            "integer value.' Iden (beteende + portindex) lever vidare som "
+            "Container + Port, se B7-B9.",
             _NET + ": ISimInterfaceTransportField; " + _PY +
             ": vcConnector.Index 'position of the connector in its "
             "behavior's list of connectors'"),
-    Hypotes("B3", "B", 3, HYPOTES,
-            "p.Value = heltal (kontaktens Index).",
+    Hypotes("B3", "B", 0, MATT,
+            "OK. Port.Value = kontaktens Index (heltal) tas emot och lases "
+            "tillbaka. Recepten binder Port sa, utan stege.",
             _PY + ": vcConnector.Index"),
-    Hypotes("B4", "B", 4, HYPOTES,
-            "p.Value = kontaktens eller beteendets Name som bytestrang. "
-            "Redan MATT till SystemError pa Transport-faltet; kvar bara for "
-            "flodesfaltet.",
+    Hypotes("B4", "B", 0, MATT,
+            "Bortlagd: Port tar heltal (B3), och Name som bytestrang gav "
+            "SystemError pa Transport-faltet. Provas inte langre.",
             "uppdraget 2026-09-04, matning 5"),
-    Hypotes("B5", "B", 5, HYPOTES,
-            "Hoppa over granssnittet: koppla kontakterna direkt, "
-            "ut.connect(inn) eller ut.Connection = inn. Risk: .NET sager att "
-            "malkontakten maste ligga i SAMMA komponent; Python-doken sager "
-            "inget sadant.",
+    Hypotes("B5", "B", 0, MATT,
+            "OK. ut.connect(inn) over komponentgransen kopplar tva "
+            "transportorer (ut.Connection = Input-kontakten i nasta bana). "
+            ".NET-varningen 'not in this component' galler inte "
+            "Python-bindningen. Granssnitten forblir okopplade "
+            "(IsConnected False), sa det ar flode utan PnP.",
             _PY + ": vcConnector.connect, vcConnector.Connection (RW); " +
             _NET + ": ISimConnector.Connect 'Thrown when connector is not "
             "in this component'"),
-    Hypotes("B6", "B", 6, HYPOTES,
+    Hypotes("B6", "B", 9, HYPOTES,
             "Om B1-B5 faller gar bindningen INTE via Python: falten maste "
             "sattas en gang i GUI:t (eller .NET) och komponenten sparas med "
             "comp.save(uri); recepten laddar och klonar darefter.",
             _PY + ": vcComponent.save, vcApplication.load, vcComponent.clone"),
+    Hypotes("B7", "B", 1, HYPOTES,
+            "Container.Value = det agande beteendet (vcMotionPath, "
+            "vcContainer) som objekt. Ref-typen ar densamma som Transport-"
+            "faltets, dar ett vcMotionPath-objekt gav SystemError -- men det "
+            "ar aldrig matt pa Container, och .NET-referensen ar ett "
+            "beteende.",
+            _NET + ": ISimInterfaceFlowField 'material flow between "
+            "component containers'; B00"),
+    Hypotes("B8", "B", 2, HYPOTES,
+            "Container.Value = heltal: beteendets index i comp.Behaviours. "
+            "Samma monster som Port (B3): bindningen adresserar per index.",
+            "B3 (Port tar heltal); " + _PY + ": vcNode.Behaviours"),
+    Hypotes("B9", "B", 3, HYPOTES,
+            "Container.Value = beteendets Name som bytestrang. Gav "
+            "SystemError pa Transport-faltet (matning 5); provas sist.",
+            "uppdraget matning 5"),
+    Hypotes("B10", "B", 4, HYPOTES,
+            "PortName.Value = kontaktens Name (strang) ar en oberoende "
+            "bindning som GUI:t kan anvanda i stallet for Port-index. Satts "
+            "alltid, utover Port.",
+            "B00 (egenskapen PortName finns pa flodesfaltet)"),
     # ---- C. Transportor -------------------------------------------------
     Hypotes("C0", "C", 0, BELAGT,
             "vcMotionPath arver vcFlow OCH vcContainer: den tar emot "
@@ -119,21 +148,25 @@ HYPOTESER: Tuple[Hypotes, ...] = (
             _PY + ": vcMotionPath <parents>vcBehaviour vcFlow vcContainer"
             "</parents> (rad 7894), Path; " + _NET + ": IFrameFeature 'Frames are used "
             "as glue ... to outline conveyor paths'"),
-    Hypotes("C1", "C", 1, HYPOTES,
-            "En nyskapad VC_ONEWAYPATH bar fardiga kontakter, en med Type "
-            "VC_CONNECTOR_INPUT och en med VC_CONNECTOR_OUTPUT. Valj kontakt "
-            "pa Type, aldrig pa index.",
+    Hypotes("C1", "C", 0, MATT,
+            "OK. VC_ONEWAYPATH, VC_COMPONENTCONTAINER (vcSimContainer), "
+            "VC_TRANSPORT, VC_CONTAINERFILLER och VC_ONEDIRECTIONALPATH "
+            "(vcMovementPath) bar Input (index 0, typ 1) och Output (index "
+            "1, typ 2). VC_COMPONENTCREATOR (rResourceCreator) bar dem i "
+            "OMVAND ordning: Output index 0, Input index 1. Valj kontakt pa "
+            "Type, aldrig pa index.",
             _PY + ": vcFlow.Connectors, vcConnector.Type 'Input, Output or "
             "Input/Output type port'; " + _KONST +
             ": VC_CONNECTOR_INPUT, VC_CONNECTOR_OUTPUT"),
-    Hypotes("C2", "C", 2, HYPOTES,
-            "Banan far inga kontakter av sig sjalv. Da finns ingen Python-vag "
+    Hypotes("C2", "C", 0, MATT,
+            "Motbevisad av C1: alla flodesbeteenden bar kontakter. "
+            "Ursprunglig text: banan far inga kontakter av sig sjalv. Da finns ingen Python-vag "
             "att skapa dem: createConnector finns bara pa "
             "vcComponentFlowProxy, och IFlowBehavior.CreateConnector kastar "
             "nar beteendet inte stoder dynamiska kontakter.",
             _PY + ": vcComponentFlowProxy.createConnector; " + _NET +
             ": IFlowBehavior.SupportsDynamicConnectors"),
-    Hypotes("C3", "C", 3, HYPOTES,
+    Hypotes("C3", "C", 1, HYPOTES,
             "Minsta transportor: VC_ONEWAYPATH + tva VC_FRAME (start, slut) "
             "+ tva VC_ONETOONEINTERFACE med varsin sektion (Frame satt) och "
             "ett VC_FLOWFIELD bundet till in- respektive utkontakten. Inga "
@@ -153,10 +186,24 @@ HYPOTESER: Tuple[Hypotes, ...] = (
             "Matare: VC_COMPONENTCREATOR (Interval, Limit, TemplateComponent "
             "eller Part) + ett ut-granssnitt bundet till skaparens "
             "utkontakt. Skaparen skjuter sjalv till kopplad utkontakt nar "
-            "kapacitet finns.",
+            "kapacitet finns. MATT 2026-09-04: byggd utan fel men NOLL "
+            "produkter pa 6 s simtid -- utkontakten var da okopplad "
+            "(koppla foll pa beteendeuppslaget) och Limit var aldrig satt. "
+            "Receptet satter nu Limit och laser tillbaka alla tre.",
             _PY + ": vcComponentCreator.Interval, Limit, TemplateComponent, "
             "BlockingOptimization 'the creator will not check for capacity "
             "rather listen for event'"),
+    Hypotes("D5", "D", 2, HYPOTES,
+            "Skaparen skapar ingenting nar Limit star pa sitt "
+            "skapelsevarde. Receptet satter Limit uttryckligen (standard "
+            "1000000) och rapporterar det lasta vardet.",
+            _PY + ": vcComponentCreator.Limit 'maximum number of components "
+            "that can be created by creator during a simulation'"),
+    Hypotes("D6", "D", 3, HYPOTES,
+            "Skaparen skapar ingenting nar utkontakten ar okopplad: den "
+            "vantar pa kapacitet i nasta flode. Koppla forst, simulera sen.",
+            _PY + ": vcComponentCreator.create '[wait] the creator waits "
+            "for capacity'"),
     Hypotes("D2", "D", 1, HYPOTES,
             "Sanka: VC_COMPONENTCONTAINER med stor Capacity och "
             "ContentVisible=False + ett in-granssnitt bundet till "
@@ -196,10 +243,18 @@ HYPOTESER: Tuple[Hypotes, ...] = (
             _NET + ": AutoPlugFlowDirection.Downstream 'Connect only to the "
             "components defining an material flow output'"),
     Hypotes("E2", "E", 2, HYPOTES,
-            "Ett falt utan bunden referens (Port/Transport = None) matchar "
-            "aldrig. Det ar darfor canConnect gav False i alla nio matta "
-            "uppstallningarna: inget falt var bundet.",
-            "uppdraget matning 4 och 7"),
+            "Ett falt utan bunden referens matchar aldrig. Forsta nio "
+            "matningarna: inget falt bundet. Kvallens matning: Port bundet "
+            "(B3) men Container = None -- canConnect FORTFARANDE False och "
+            "connectComponents False. Kvar att prova: Container bundet "
+            "(B7-B9).",
+            "uppdraget matning 7; koppla-korning 2026-09-04 kvall (E0 fel, "
+            "G0 fel, B5 ok)"),
+    Hypotes("E6", "E", 6, HYPOTES,
+            "canConnect kraver att flodesfaltets Container pekar pa "
+            "beteendet; Port ensamt racker inte. Om E0 blir sant forst nar "
+            "B7/B8 lyckats ar E6 belagd.",
+            "koppla-korning 2026-09-04 kvall; B00"),
     Hypotes("E3", "E", 3, HYPOTES,
             "Faltens NAMN maste vara lika pa bada sidor. Recepten ger bada "
             "sidor namnet Flow sa att variabeln ar eliminerad.",
@@ -251,6 +306,16 @@ HYPOTESER: Tuple[Hypotes, ...] = (
 )
 
 PER_ID = {h.id: h for h in HYPOTESER}
+
+# Klassnamn som VC:s py2-bindning RAPPORTERAR vid korning (type(b).__name__),
+# matta med sondera_falt 2026-09-04. De ar inte typer i api.xml -- indexet
+# kanner vcContainer och vcComponentCreator, bindningen svarar vcSimContainer
+# och rResourceCreator. Testet slapper igenom dem har och bara har; ett
+# klassnamn som inte star har och inte finns i indexet ar uppfunnet.
+MATTA_KLASSNAMN = frozenset((
+    "vcOneWayPath", "vcSimContainer", "vcTransport", "vcContainerFiller",
+    "vcMovementPath", "rResourceCreator",
+))
 
 
 def per_fraga(fraga: str) -> Tuple[Hypotes, ...]:

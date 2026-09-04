@@ -26,7 +26,7 @@ bada halvorna star i text.py.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Sequence, Tuple
 
 from .text import framgangspastaenden, namner_fel
 

@@ -60,9 +60,11 @@ GRINDAR = ("tomt_anrop", "sakerhet", "ratkod", "okant_verktyg", "avstangt",
 # Bryggan lagger _s i exec-globalerna vid varje korning (pump.py:_kor), sa
 # mallarna kallar en funktion som inte star i deras egen kod. Validatorn ser
 # bara koden, och maste darfor fa _s deklarerad. MATT 2026-09-04 over
-# registrets alla 21 verktyg: utan raden blir 19 av 21 mallar OBESTAMBARA pa
-# sitt eget hjalpanrop, med raden 0 av 21. Provet star i
-# test_harness.test_alla_verktygsmallar_passerar_api_grinden.
+# registrets da 66 kodgenererande verktyg: utan raden blir 55 av 66 mallar
+# OBESTAMBARA pa sitt eget hjalpanrop, med raden 0 av 66. Provet raknar om
+# talen vid varje korning i stallet for att lita pa dem
+# (test_harness.test_alla_verktygsmallar_passerar_api_grinden), eftersom
+# registret vaxer.
 BRYGGANS_GLOBALER = "def _s(text):\n    return text\n"
 _STUBRADER = BRYGGANS_GLOBALER.count("\n")
 
@@ -77,6 +79,28 @@ KODARGUMENT = ("code", "kod", "script", "skript", "python", "source",
 KODSPAR = ("getapplication(", "getsimulation(", "import ", "exec(", "eval(",
            "createbehaviour(", "lambda ", "def ", "__import__", "os.system",
            "subprocess")
+
+# Vilka (verktyg, argument) som bar en URI, och om URI:n ar en KALLA (nagot
+# som redan ska finnas) eller ett MAL (nagot som ska skrivas). Bara kallor
+# provas mot katalogindexet: att krava att en sparsokvag redan star i
+# katalogen vore att krava att filen finns innan den har skrivits.
+#
+# Ett verktyg som INTE star har och anda bar en URI behandlas som kalla.
+# Fail-closed, och test_harness.test_varje_uriargument_ar_klassat faller sa
+# fort registret far ett nytt uri-argument - sa att ett nytt verktyg tvingar
+# fram ett beslut i stallet for att arva ett.
+URIMAL = frozenset((("save_layout", "uri"),))
+
+# (verktyg, argument) dar en URI ar en FRAGA till indexet i stallet for ett
+# bruk av det. Katalogverktygen svarar sjalva found=false med verkliga
+# alternativ ur indexet, och det svaret ar arligare an ett avslag: en modell
+# maste kunna FRAGA om en URI finns utan att grinden domer fragan.
+URIFRAGOR = frozenset((("catalog_item", "uri"), ("search_catalog", "query")))
+
+# (verktyg, argument) dar URI:n ar en KALLA. Listan star har for att den ska
+# ga att lasa, men den ar inte det som styr: allt som varken ar mal eller
+# fraga behandlas som kalla. Fail-closed.
+URIKALLOR = frozenset((("load_component", "uri"),))
 
 # Sprakmarkning pa ett kodblock i modellens text -> hur blocket domes.
 _PYTHONSPRAK = ("python", "py", "python2", "python27", "vc", "")
@@ -126,6 +150,22 @@ def _uri_i(varde: Any) -> List[str]:
     elif isinstance(varde, (list, tuple)):
         for v in varde:
             ut.extend(_uri_i(v))
+    return ut
+
+
+def uriargument(register) -> List[Tuple[str, str]]:
+    """Alla (verktyg, argument) i registret vars beskrivning ror en URI.
+
+    Anvands av provet som kraver att varje uri-argument ar klassat som mal,
+    fraga eller kalla. Ett nytt verktyg med en URI ska tvinga fram ett
+    beslut, inte arva ett.
+    """
+    ut = []
+    for namn, verktyg in sorted(register.items()):
+        for arg, schema in sorted(verktyg.parameters["properties"].items()):
+            text = "%s %s" % (arg, schema.get("description", ""))
+            if "uri" in text.lower():
+                ut.append((namn, arg))
     return ut
 
 
@@ -188,7 +228,7 @@ class Forgranskare(object):
         except Argumentfel as e:
             return self._nej("argument", vad, e.problem)
 
-        uri_skal = self._uri_problem(argument, uppgiftstext)
+        uri_skal = self._uri_problem(namn, argument, uppgiftstext)
         if uri_skal:
             return self._nej("katalog_uri", vad, uri_skal)
 
@@ -285,23 +325,29 @@ class Forgranskare(object):
                     break
         return skal
 
-    def _uri_problem(self, argument: Dict[str, Any],
+    def _uri_problem(self, verktyg: str, argument: Dict[str, Any],
                      uppgiftstext: str) -> List[str]:
         skal = []
-        for uri in _uri_i(argument):
-            if uri in self.katalogindex:
+        for arg in sorted(argument):
+            if (verktyg, arg) in URIMAL or (verktyg, arg) in URIFRAGOR:
                 continue
-            if uppgiftstext and uri in uppgiftstext:
-                # Operatorens egen URI. Modellen har inte hittat pa den, och
-                # katalogen ar matt tom pa laddbara VC-URI:er - att neka den
-                # vore att neka det enda satt en verklig fil kan komma in.
-                continue
-            skal.append(
-                "%r star varken i katalogindexet (%d poster) eller i "
+            for uri in _uri_i(argument[arg]):
+                skal.extend(self._en_uri(uri, uppgiftstext))
+        return skal
+
+    def _en_uri(self, uri: str, uppgiftstext: str) -> List[str]:
+        """Skalen mot EN kall-URI. Tom lista betyder att den far anvandas."""
+        if uri in self.katalogindex:
+            return []
+        if uppgiftstext and uri in uppgiftstext:
+            # Operatorens egen URI. Modellen har inte hittat pa den, och
+            # katalogen ar matt tom pa laddbara VC-URI:er - att neka den vore
+            # att stanga enda vagen in for en verklig fil.
+            return []
+        return ["%r star varken i katalogindexet (%d poster) eller i "
                 "uppgiften; en uppfunnen URI ar ett hart fel, inte en varning "
                 "(I9). Valj ur katalogverktygets trafflista."
-                % (uri, len(self.katalogindex)))
-        return skal
+                % (uri, len(self.katalogindex))]
 
     def _api_problem(self, kod: str) -> List[str]:
         granskning = self.validator.granska(BRYGGANS_GLOBALER + kod)

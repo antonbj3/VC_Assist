@@ -20,13 +20,17 @@
 Instruktionerna ligger som DATA i instruktioner/ i repots rot och laddas med
 instruktioner.las_korpus(). Ingen regel ar hardkodad har.
 
+efterlevnad.py exporteras INTE harifran, med flit: den ar ett korbart verktyg
+(python3 -m vc_assist_svc.harness.efterlevnad) och inte en del av harnessens
+API. Importerades den har skulle paketets __init__ kora fore modulen vid -m
+och ge en RuntimeWarning om dubbelinlasning.
+
 Ingenting i harnessen oppnar en socket. Vagen ut gar genom kanal.py, som far
 en fardig verktyg.Utforare av den som startar tjansten.
 """
 from __future__ import annotations
 
 from .arlighet import granska as granska_arlighet
-from .efterlevnad import Bankresultat, kor_bank
 from .fallor import FALLOR, KLASSER, KONTROLLFALL
 from .fel import (Budgetfel, Harnessfel, Instruktionsfel, Kanalfel, Modellfel)
 from .forgranskning import Avvisning, Forgranskare, GRINDAR, kodblock
@@ -35,8 +39,7 @@ from .instruktioner import (Block, Diff, Korpus, Regel, diffa, granska_korpus,
 from .kanal import (Anropsutfall, Attrappkanal, Faller, Utforarkanal,
                     Verktygskanal)
 from .loop import (Handelse, Harness, MAX_LIKA_ANROP, MAX_OMSKRIVNINGAR,
-                   MAX_RAKA_MISSLYCKANDEN, MAX_RUNDOR, Turprotokoll,
-                   bygg_harness)
+                   MAX_RAKA_MISSLYCKANDEN, MAX_RUNDOR, Turprotokoll)
 from .mekanismer import MEKANISMER
 from .modell import (AttrappModell, Meddelande, Modell, Modellsvar,
                      Verktygsanrop, anropa, sag)
@@ -49,14 +52,14 @@ from .verifiering import granska as granska_verifiering
 
 __all__ = [
     "Anropsutfall", "AttrappModell", "Attrappkanal", "Avvisning",
-    "Bankresultat", "Block", "Budgetfel", "Diff", "FALLOR", "Faller",
+    "Block", "Budgetfel", "Diff", "FALLOR", "Faller",
     "Forgranskare", "GRINDAR", "Grund", "Handelse", "Harness", "Harnessfel",
     "Instruktionsfel", "KLASSER", "KONTROLLFALL", "Kanalfel", "Korpus",
     "MAX_LIKA_ANROP", "MAX_OMSKRIVNINGAR", "MAX_RAKA_MISSLYCKANDEN",
     "MAX_RUNDOR", "MEKANISMER", "Meddelande", "Modell", "Modellfel",
     "Modellsvar", "OKAPBARA", "Regel", "STANDARDBUDGET", "Sakerhetsgrind",
     "Systemprompt", "Turprotokoll", "Utforarkanal", "Verktygsanrop",
-    "Verktygskanal", "anropa", "bygg_harness", "bygg_systemprompt", "diffa",
+    "Verktygskanal", "anropa", "bygg_systemprompt", "diffa",
     "granska_arlighet", "granska_korpus", "granska_oga",
-    "granska_verifiering", "kodblock", "kor_bank", "las_korpus", "sag",
+    "granska_verifiering", "kodblock", "las_korpus", "sag",
 ]

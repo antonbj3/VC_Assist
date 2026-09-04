@@ -348,6 +348,37 @@ def test_nar_forsta_alternativet_faller_kors_det_andra():
     assert prot.status("alt_b") == KORD
 
 
+def _efter_steget():
+    """Ett steg efter alternativgruppen, med ett EGET verktyg sa att provet
+    mater beroendet och inte vilket verktyg som rakade falla."""
+    return Steg.verktygssteg("efter", "list_nodes", {"component": "X"},
+                             "kors nar nagot av alternativen lyckats",
+                             beroenden=("alt_a", "alt_b"))
+
+
+def test_ett_steg_kan_bero_pa_en_alternativgrupp_och_ett_lyckat_racker():
+    steg = _alternativpar() + [_efter_steget()]
+    prot = Korare(Tomutforare()).kor(_plan_med(steg))
+    assert prot.status("alt_a") == KORD and prot.status("alt_b") == HOPPAD
+    assert prot.status("efter") == KORD
+
+
+def test_samma_steg_kors_nar_det_ANDRA_alternativet_ar_det_som_lyckades():
+    steg = _alternativpar() + [_efter_steget()]
+    prot = Korare(Falandeutforare(fall={"list_components"})).kor(_plan_med(steg))
+    assert prot.status("alt_a") == FALLEN and prot.status("alt_b") == KORD
+    assert prot.status("efter") == KORD
+
+
+def test_men_faller_bada_alternativen_kors_inte_steget_efter():
+    steg = _alternativpar() + [_efter_steget()]
+    utf = Falandeutforare(fall={"list_components", "list_connections"})
+    prot = Korare(utf).kor(_plan_med(steg))
+    post = prot.post("efter")
+    assert post.status == EJ_UTFORD
+    assert "inget alternativ i gruppen" in post.skal
+
+
 def test_en_alternativgrupp_med_ett_enda_steg_ar_ingen_grupp():
     g = G.Uppgiftsgraf([Steg.verktygssteg("ensam", "list_components", {},
                                           "ensam", alternativ_grupp="grupp")])
@@ -479,3 +510,42 @@ def test_alla_permutationer_av_en_liten_graf_ger_samma_ordning():
     facit = G.Uppgiftsgraf(steg).ordning()
     for perm in itertools.permutations(steg):
         assert G.Uppgiftsgraf(list(perm)).ordning() == facit
+
+
+# ---- 10. varje lintkod har en trasig fixtur -----------------------------
+
+# En grind som aldrig fallt ar oprovad (docs/spec/95_testprotokoll.md).
+# Tabellen binder varje kod i graf.LINTKODER till provet som faller pa den.
+TRASIGA_FIXTURER = {
+    "G1_OKANT_BEROENDE": "test_okant_beroende_rapporteras_och_ordningen_vagrar",
+    "G2_CYKEL": "test_tva_steg_i_ring_upptacks_med_bada_stegen",
+    "G3_LASNING_UTAN_BEROENDE":
+        "test_ett_steg_som_laser_ett_annat_svar_maste_bero_pa_det",
+    "G4_ALTERNATIV_ENSAM":
+        "test_en_alternativgrupp_med_ett_enda_steg_ar_ingen_grupp",
+    "G5_ALTERNATIV_BEROENDE":
+        "test_ett_alternativ_far_inte_bero_pa_sitt_eget_alternativ",
+    "G6_PARALLELL_MOTSAGELSE":
+        "test_samtidighet_mellan_steg_med_beroendevag_ar_en_motsagelse",
+    "G7_PARALLELL_ENSAM":
+        "test_en_parallellgrupp_med_ett_steg_mater_ingenting",
+}
+
+
+def test_varje_lintkod_i_grafen_har_en_trasig_fixtur():
+    assert set(TRASIGA_FIXTURER) == set(G.LINTKODER)
+    egna = dict(globals())
+    for kod, testnamn in sorted(TRASIGA_FIXTURER.items()):
+        assert testnamn in egna, "%s pekar pa ett test som inte finns" % kod
+
+
+def test_varje_kod_som_grafen_kan_lamna_star_i_tabellen():
+    """En kod utan text i LINTKODER gar inte att sla upp for den som laser."""
+    trasig = G.Uppgiftsgraf([
+        v("a", ("saknas",), parallell_grupp="p"),
+        v("b", ("a",), parallell_grupp="p"),
+        v("ensam", alternativ_grupp="g"),
+        k("laser", [Predikat("resultat", steg="a", vag="antal",
+                             operator="finns")])])
+    koder = set(kod for kod, _ in trasig.problem())
+    assert koder and koder <= set(G.LINTKODER)

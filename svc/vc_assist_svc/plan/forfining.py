@@ -23,7 +23,7 @@ uppfunnen URI ar alltid en fraga: I9 gor det till ett hart fel.
 Tva vagar in:
 
     ur_bankuppgift()  en uppgift ur bank/uppgifter/ - strukturerad, med facit
-    ur_fritext()      operatorens korta text - alit som inte gar att lasa ur
+    ur_fritext()      operatorens korta text - allt som inte gar att lasa ur
                       texten blir ett antagande eller en fraga
 """
 from __future__ import annotations
@@ -479,24 +479,23 @@ class Forfinare(object):
                 "ett tal vi hittade pa skulle bli det mal bygget senare mats "
                 "mot", blockerar=False)
             return None
-        tolerans = None
         if cykel is not None:
+            # Ett tidskrav utan tolerans gar inte att prova (samma regel som
+            # bankens M10). Tiden bars darfor inte in i takten forran
+            # operatoren svarat - att valja en tolerans sjalva hade bestamt
+            # vad som raknas som godkant.
             self.fraga(
                 "tolerans",
                 "vilken tolerans galler for cykeltiden %.2f s?" % cykel,
                 "ett tidskrav utan tolerans gar inte att prova, och en "
                 "tolerans vi valde sjalva hade bestamt vad som raknas som "
                 "godkant", blockerar=False)
+        if per_h is None:
+            return None
         korningar = self.anta("antal korningar", MIN_KORNINGAR,
                               MOTIV_KORNINGAR)
         uppvarmning = self.anta("uppvarmning", 0.0, MOTIV_UPPVARMNING)
-        if cykel is not None and tolerans is None:
-            # Utan tolerans gar cykeltiden inte att bara i en Takt; kravet
-            # stannar i fragan ovan tills operatoren svarat.
-            cykel = None
-        if per_h is None and cykel is None:
-            return None
-        return Takt(cykel, tolerans, per_h, korningar, uppvarmning)
+        return Takt(None, None, per_h, korningar, uppvarmning)
 
     def _verifiering_ur_fritext(self):
         self.anta("verifieringskrav",

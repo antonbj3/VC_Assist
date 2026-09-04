@@ -47,7 +47,7 @@ FORSLAGSRASTER_M = 0.25
 
 # ANTAGET. Sätts av mätning M-20. Tak på antalet förslag EN relation får lämna
 # för ETT objekt. 600 räcker för ett fullt väggsvep i en 30 m lång hall vid
-# 0,25 m raster (120 lägen) gånger fyra vridningar, med marginal. Taket finns
+# 0,25 m raster (120 lägen) gånger fyra vridningar_grader, med marginal. Taket finns
 # för att en enda relation inte ska kunna dränka sökningen.
 MAX_FORSLAG = 600
 
@@ -280,7 +280,7 @@ class Sidorelation(Relation):
             tvars = _tvarsriktning(axel)
             r_ref = radie_langs(ref, axel)
             r_ref_t = radie_langs(ref, tvars)
-            for vridning in o.tillatna_vridningar:
+            for vridning in o.tillatna_vridningar_grader:
                 prov = scen.kropp_for(self.mal, Pose.meter(0.0, 0.0, z_m, vridning))
                 r_mal = radie_langs(prov, axel)
                 r_mal_t = radie_langs(prov, tvars)
@@ -440,7 +440,7 @@ class MotVagg(Relation):
         langd_langs = (scen.hall.djup.som_m if axel == "x"
                        else scen.hall.bredd.som_m)
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             prov = scen.kropp_for(self.mal, Pose.meter(0.0, 0.0, 0.0, vridning))
             lada = prov.aabb()
             halv_x, halv_y = lada.bredd_m / 2.0, lada.djup_m / 2.0
@@ -512,7 +512,7 @@ class IHorn(Relation):
             return None
         o = scen.objekt(self.mal)
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             prov = scen.kropp_for(self.mal, Pose.meter(0.0, 0.0, 0.0, vridning))
             lada = prov.aabb()
             x = y = None
@@ -588,7 +588,7 @@ class Pa(Relation):
         o = scen.objekt(self.mal)
         z_m = under.z1_m
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             prov = scen.kropp_for(self.mal, Pose.meter(0.0, 0.0, z_m, vridning))
             lada = prov.aabb()
             halv_x, halv_y = lada.bredd_m / 2.0, lada.djup_m / 2.0
@@ -676,7 +676,7 @@ class Under(Relation):
         yta = ovan.aabb()
         mx, my = yta.mitt_m
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             ut.append(Pose.meter(mx, my, 0.0, vridning))
             for x, y in _rasterpunkter(yta, raster_m):
                 ut.append(Pose.meter(x, y, 0.0, vridning))
@@ -739,7 +739,7 @@ class CentreradI(Relation):
         mx, my = rekt.mitt_m
         o = scen.objekt(self.mal)
         return tuple(Pose.meter(mx, my, 0.0, v)
-                     for v in o.tillatna_vridningar)
+                     for v in o.tillatna_vridningar_grader)
 
     def prova(self, scen):
         self._kontrollera(scen)
@@ -780,7 +780,7 @@ class IZon(Relation):
         yta = scen.hall.zon(self.zon).yta
         o = scen.objekt(self.mal)
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             prov = scen.kropp_for(self.mal, Pose.meter(0.0, 0.0, 0.0, vridning))
             lada = prov.aabb()
             hx, hy = lada.bredd_m / 2.0, lada.djup_m / 2.0
@@ -894,11 +894,11 @@ class IRad(Relation):
         z_m = scen.pose(forra).z_m
         # Föregående objekts vridning först: en rad brukar ha samma vridning
         # hela vägen, och ordningen ska vara förutsägbar.
-        vridningar = [ref.vridning_grader] if any(
-            abs(v - ref.vridning_grader) < 1e-9 for v in o.tillatna_vridningar) else []
-        vridningar += [v for v in o.tillatna_vridningar if v not in vridningar]
+        vridningar_grader = [ref.vridning_grader] if any(
+            abs(v - ref.vridning_grader) < 1e-9 for v in o.tillatna_vridningar_grader) else []
+        vridningar_grader += [v for v in o.tillatna_vridningar_grader if v not in vridningar_grader]
         ut = []
-        for vridning in vridningar:
+        for vridning in vridningar_grader:
             prov = scen.kropp_for(namn, Pose.meter(0.0, 0.0, z_m, vridning))
             langs = (radie_langs(ref, axel) + self.mellanrum_m
                      + radie_langs(prov, axel))
@@ -1072,7 +1072,7 @@ class InomRackvidd(Relation):
         ruta = Rektangel(mitt[0] - r, mitt[1] - r, mitt[0] + r, mitt[1] + r)
         o = scen.objekt(self.mal)
         ut = []
-        for vridning in o.tillatna_vridningar:
+        for vridning in o.tillatna_vridningar_grader:
             for x, y in _rasterpunkter(ruta, raster_m):
                 pose = Pose.meter(x, y, 0.0, vridning)
                 if self._matt_m(scen, scen.kropp_for(self.mal, pose), mitt) <= r:

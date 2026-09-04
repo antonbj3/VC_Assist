@@ -239,7 +239,7 @@ def storsta_lediga_rektangel(scen, hojd, raster_m=None, omrade=None,
     return karta.storsta_rektangel()
 
 
-def far_plats(scen, objekt, raster_m=None, omrade=None, vridningar=None,
+def far_plats(scen, objekt, raster_m=None, omrade=None, vridningar_grader=None,
               z=None):
     """Får objektet plats någonstans, och i så fall var?
 
@@ -261,8 +261,8 @@ def far_plats(scen, objekt, raster_m=None, omrade=None, vridningar=None,
         raise Layoutfel("%s står redan någonstans; ta bort läget först" % namn)
     z0_m = 0.0 if z is None else krav(z, "z").som_m
     hojd_m = z0_m + o.hojd.som_m + o.kravd_fri_hojd.som_m
-    vr = (o.tillatna_vridningar if vridningar is None
-          else tuple(sorted(set(float(v) % 360.0 for v in vridningar))))
+    vr = (o.tillatna_vridningar_grader if vridningar_grader is None
+          else tuple(sorted(set(float(v) % 360.0 for v in vridningar_grader))))
 
     karta = Rasterkarta(scen, hojd_m, raster_m=raster_m, omrade=omrade,
                         bortse_fran=(namn,),

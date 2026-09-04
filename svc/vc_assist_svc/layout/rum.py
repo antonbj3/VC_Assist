@@ -49,8 +49,9 @@ class Layoutfel(ValueError):
 # fixturen, inte maskinens läge på golvet; golvlägen i banken anges i hela
 # millimeter). En layouttolerans under 1 mm hade mätt flyttalsbrus.
 LAGE_TOL_M = 0.001
-# VINKEL_TOL_GRADER: samma skäl. En tiondels grad över en 3 m lång bana ger
-# 5 mm avvikelse i änden, alltså samma storleksordning som lägestoleransen.
+# VINKEL_TOL_GRADER: ANTAGEN av samma skäl, och sätts av samma mätning M-20.
+# En tiondels grad över en 3 m lång bana ger 5 mm avvikelse i änden, alltså
+# samma storleksordning som lägestoleransen.
 VINKEL_TOL_GRADER = 0.1
 
 
@@ -278,7 +279,7 @@ class Ankare:
         return "Ankare(%s)" % self.stampel
 
 
-#: Förvalda tillåtna vridningar. Fyra räta lägen räcker för nästan all
+#: Förvalda tillåtna vridningar_grader. Fyra räta lägen räcker för nästan all
 #: fabrikslayout, och en fri vinkel gör sökrummet kontinuerligt. Ett objekt
 #: som ska stå snett får sina vinklar angivna uttryckligen.
 VRIDNINGAR_RATA = (0.0, 90.0, 180.0, 270.0)
@@ -288,12 +289,12 @@ class Objekt:
     """Ett fysiskt objekt med axelriktad utsträckning i sin egen ram."""
 
     __slots__ = ("namn", "langd", "bredd", "hojd", "underhallsmarginal",
-                 "kravd_fri_hojd", "tillatna_vridningar", "barande",
+                 "kravd_fri_hojd", "tillatna_vridningar_grader", "barande",
                  "ankare", "kategori", "rackvidd", "enhet")
 
     def __init__(self, namn, langd, bredd, hojd,
                  underhallsmarginal=None, kravd_fri_hojd=None,
-                 tillatna_vridningar=VRIDNINGAR_RATA, barande=False,
+                 tillatna_vridningar_grader=VRIDNINGAR_RATA, barande=False,
                  ankare=None, kategori="", rackvidd=None, enhet=""):
         self.namn = str(namn)
         if not self.namn:
@@ -312,12 +313,12 @@ class Objekt:
             raise Layoutfel("underhållsmarginalen kan inte vara negativ")
         self.kravd_fri_hojd = (Langd.noll() if kravd_fri_hojd is None
                                else krav(kravd_fri_hojd, "kravd_fri_hojd"))
-        vr = tuple(krav_vinkel(v, "vridning") for v in tillatna_vridningar)
+        vr = tuple(krav_vinkel(v, "vridning") for v in tillatna_vridningar_grader)
         if not vr:
             raise Layoutfel("%s måste ha minst en tillåten vridning" % self.namn)
         # Sorterad och avdubblad: sökordningen ska inte bero på hur listan
         # råkade skrivas. Determinism, uppdragets krav på lösaren.
-        self.tillatna_vridningar = tuple(sorted(set(vr)))
+        self.tillatna_vridningar_grader = tuple(sorted(set(vr)))
         self.barande = bool(barande)
         self.ankare = ankare if ankare is not None else Ankare.antagen_mitt_golv()
         self.kategori = str(kategori)
@@ -534,7 +535,7 @@ class Scen:
         self._lasta = set()
         for p in hall.pelare:
             o = Objekt(PELARPREFIX + p.namn, p.tvarsnitt_x, p.tvarsnitt_y,
-                       p.hojd, tillatna_vridningar=(0.0,), kategori="pelare")
+                       p.hojd, tillatna_vridningar_grader=(0.0,), kategori="pelare")
             self._objekt[o.namn] = o
             self._placering[o.namn] = Pose.meter(p.mitt.x_m, p.mitt.y_m, 0.0, 0.0)
             self._lasta.add(o.namn)
@@ -580,10 +581,10 @@ class Scen:
         if namn in self._lasta:
             raise Layoutfel("%s är låst och går inte att flytta" % namn)
         v = round(pose.vridning_grader, 4)
-        if v not in tuple(round(x, 4) for x in o.tillatna_vridningar):
+        if v not in tuple(round(x, 4) for x in o.tillatna_vridningar_grader):
             raise Layoutfel("%s får inte stå vriden %.4g grader; tillåtna är %s"
                             % (namn, pose.vridning_grader,
-                               ", ".join("%g" % x for x in o.tillatna_vridningar)))
+                               ", ".join("%g" % x for x in o.tillatna_vridningar_grader)))
         self._placering[namn] = pose
 
     def las(self, namn):

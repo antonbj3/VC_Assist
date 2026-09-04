@@ -21,7 +21,7 @@ Rangordningen foljer en enda fraga: VAD FANGAS INTE AV NAGON ANNAN MEKANISM?
   3 systemroll        okapbar, och avsiktligt bara tre regler lang. Utan
                       rollen gissar modellen bade verktygsvag och domsratt.
   4 matta_fallor      kapas sist av de kapbara. Kvaternionens ordning och
-                      varldsmatrisens eftersslapning ger TAL SOM SER RIMLIGA
+                      varldsmatrisens efterslapning ger TAL SOM SER RIMLIGA
                       UT; ingen grind i kedjan fangar dem.
   5 verktygsbruk      varje regel har en grind bakom sig. Tappas blocket
                       kostar det rundor och avvisningar, inte en tyst fel
@@ -33,7 +33,7 @@ Rangordningen foljer en enda fraga: VAD FANGAS INTE AV NAGON ANNAN MEKANISM?
 **2. Vad budgeten mats i.**
 TECKEN, inte tokens. Ingen leverantors tokenisering ar tillganglig i
 standardbiblioteket, och att lasa in en ar att lasa in en leverantor. Tecken
-ar deterministiska och lika for alla adaptrar. Den som bara ett tokentak far
+ar deterministiska och lika for alla adaptrar. Den som bara har ett tokentak far
 rakna om det med budget_ur_tokentak(), som ar ANTAGEN och markt som sadan.
 
 Fail-closed: far inte ens de okapbara blocken plats kastas Budgetfel. En
@@ -42,7 +42,7 @@ prompt dar sakerhetsgransen tystnat far aldrig skickas.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Tuple
 
 from .fel import Budgetfel
 from .instruktioner import Korpus
@@ -67,7 +67,7 @@ HUVUD = (
 # ofarliga felet. Overskattas den skickas en prompt som inte far plats, och
 # det ar det farliga. Ersatts av en matning nar en tokenisering finns pa
 # tjanstesidan.
-TECKEN_PER_TOKEN = 3.0
+TECKEN_PER_TOKEN = 3.0    # ANTAGET, ingen matning. 01_kalldisciplin.md
 
 # Standardbudget i tecken. Ur 45_verktyg.md: under ungefar hundra verktyg
 # skickas alla, och verktygsschemat tar da storst plats i turen. 12000 tecken
@@ -75,7 +75,7 @@ TECKEN_PER_TOKEN = 3.0
 # test_hela_korpusen_far_plats_i_standardbudgeten) med marginal for att
 # korpusen vaxer. Talet ar en STANDARD, inte en grans: den som kanner sin
 # modells fonster skickar sitt eget.
-STANDARDBUDGET = 12000
+STANDARDBUDGET = 12000    # 45_verktyg.md, promptens utrymme
 
 
 def budget_ur_tokentak(tokentak: int) -> int:

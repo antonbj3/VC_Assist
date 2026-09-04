@@ -9,12 +9,13 @@ halla. Tre av dem gar INTE att halla ordagrant, och skalen ar matta:
     ett objekt i VC:s Python-scope, och bryggan kor varje anrop i sitt EGET
     scope (pump.py:_kor bygger nya exec-globaler per korning,
     31_brygga_protokoll.md). Ett mal som skapas i ett anrop finns alltsa inte
-    i nasta. Det som DERSISTERAR ar styrenhetens mallista. Darfor blev
+    i nasta. Det som OVERLEVER ar styrenhetens mallista. Darfor blev
     `create_target` + `add_target` ett verktyg som bygger malet OCH lagger det
     i listan, och `move_targets` som kor hela listan i EN korning.
   * `clear_targets` som eget verktyg vore ett tredje kobesok for samma
-    rorelse. `move_targets` tommer listan sjalv innan den fyller den, och
-    `clear_targets` finns som lage i samma verktyg.
+    rorelse. `move_targets` tommer ALLTID listan innan den fyller den, och
+    en TOM lista med run=false ar spec-tabellens clear_targets: den tommer
+    och gor inget mer.
   * `get_joints` och `robot_limits` ar kvar med sina spec-namn.
 
 VAD SOM AR OPROVAT, SAGT RAKT
@@ -75,9 +76,11 @@ lattlast, men det har en MATT kostnad: api_index.Validator foljer inte typer
 genom en egendefinierad funktion, sa `_komp("R").Uri` blir OKAND for den.
 Matt 2026-09-04 over de befintliga mallarna: 1 kontrollerat namn per mall.
 Samma kod med kedjan utskriven - getApplication().findComponent(...) - ger
-12 och uppat, och en uppfunnen medlem FALLER. Robotmallarna skriver darfor
-kedjan rakt ut. Matt over den har domanens tjugofyra mallar: se
-tests/enhet/test_verktyg_robotik.py, som raknar om talet vid varje korning.
+tio gangen fler, och en uppfunnen medlem FALLER. Robotmallarna skriver darfor
+kedjan rakt ut. MATT over den har domanens 47 provanrop: 1293 kontrollerade
+namn, minst 13 och i snitt 27,5 per anrop. Talet raknas om vid varje
+testkorning i tests/enhet/test_verktyg_robotik.py, och det har ett golv - en
+grind som slutar na fram slutar mata.
 
 SKRIVGRINDEN AVGOR VAD SOM AR LASNING
 --------------------------------------
@@ -91,23 +94,33 @@ tvartom. Bada verktygens beskrivning sager rakt ut att de gar genom kon.
 """
 from __future__ import annotations
 
-from .bas import (RET_ANTAL, RET_AVKORTAD, TIMEOUT_MS, XYZ, laggare, params,
-                  returns, tak)
+from .bas import (RET_ANTAL, RET_AVKORTAD, TIMEOUT_MS_FIL, XYZ, laggare,
+                  params, returns, tak)
 from .fel import Argumentfel
 from .kodmall import bygg, lit, tal
 
 DOMAN = "robot"
 _lagg = laggare(DOMAN)
 
-# Tak for en korning som far VC att RORA sig eller att kora program.
-# PRELIMINART. Harkomsten ar en matning som inte gar att gora: MATT
-# 2026-09-04 finns noll komponenter i den lokala katalogen, alltsa ingen
-# robot vars rorelsetid gar att tidta. Talet ar satt lika med bas.
-# TIMEOUT_MS_FIL (60 s), som ar samma slag av grans - en operation som tar
-# sekunder snarare an millisekunder - och ska ersattas av en matning sa snart
-# en robot finns i layouten (fas 5, 70_faser.md). Ett overskridande ar inte
-# tyst: bryggan svarar E_TIMEOUT och markerar sig degraded.
-TIMEOUT_MS_RORELSE = 60000
+# Tak for en korning som far VC att RORA sig eller att kora ett program.
+#
+# Talet ar med FLIT inget eget tal. Det ar bas.TIMEOUT_MS_FIL, av tre skal:
+#
+#   1. Harkomsten gar inte att skaffa har. Rorelsetid kraver en robot att
+#      tidta, och MATT 2026-09-04 finns NOLL komponenter i den lokala
+#      katalogen. Ett eget tal hade varit en andra gissning som ser ut som en
+#      matning.
+#   2. Storheten ar densamma i den enda meningen som styr valet: en operation
+#      som tar sekunder i stallet for millisekunder, till skillnad fran
+#      bas.TIMEOUT_MS pa 5 s.
+#   3. Ett tal pa ett stalle. Tva kopior av samma gissning blir tva trosklar
+#      sa fort nagon andrar den ena.
+#
+# Det ar anda TVA storheter pa en parameter, och det ar en skuld som ska
+# betalas: den dag en robot finns i layouten ska rorelsen fa sitt EGET matta
+# tak och raden delas i tva. Ett overskridande ar inte tyst - bryggan svarar
+# E_TIMEOUT och markerar sig degraded - sa felet syns nar det intraffar.
+TIMEOUT_MS_RORELSE = TIMEOUT_MS_FIL
 
 # ---- ytor som formagegrinden faktiskt kan prova -------------------------
 #
@@ -553,7 +566,7 @@ _KONFIGPOST = {
     "properties": {
         "config": {"type": "integer", "description": "Konfigurationens nummer."},
         "warning": {"type": "integer",
-                    "description": ("VC:s rada varningstal, 0 till 7. Bitarna "
+                    "description": ("VC:s eget varningstal, 0 till 7. Bitarna "
                                     "ar singularitet, ledgrans och nabarhet.")},
         "ok": {"type": "boolean", "description": "Sant nar varningstalet ar noll."},
         "unreachable": {"type": "boolean",
@@ -771,6 +784,27 @@ def _rader_hitta_ram(namn, kalla, variabel, slag):
     ]
 
 
+def _rader_position(argument):
+    """Satter rorelsesatsens position, som ledvarden eller som matris."""
+    rader = [
+        # En ny rorelsesats far normalt en position av VC sjalv. Ar listan
+        # anda tom skapas en, sa att satsen aldrig blir en rorelse utan mal.
+        "if len(sats.Positions) > 0:",
+        "    pos = sats.Positions[0]",
+        "else:",
+        "    pos = sats.createPosition(%s)" % lit("P1"),
+        "if pos is None:",
+        '    raise ValueError("rorelsesatsen fick ingen position")',
+    ]
+    if "joint_values" in argument:
+        varden = ", ".join(tal(v) for v in argument["joint_values"])
+        rader.append("pos.setJoints([%s])" % varden)
+    else:
+        rader += _rader_matris(argument, "mm")
+        rader.append("pos.PositionInReference = mm")
+    return rader
+
+
 def _rader_typkarta():
     """En karta satstyp -> lasbart namn, byggd sa att en saknad konstant syns."""
     rader = ["typkarta = {}", "typkarta_kand = False", "try:",
@@ -881,6 +915,17 @@ def _granska_egenskapsvarden(varden, var):
                        % (namn, v, type(v).__name__))
     if fel:
         raise Argumentfel(var, fel)
+
+
+def _index_uttryck(argument):
+    """Var satsen HAMNADE. Utan index lades den sist; med index ligger den dar.
+
+    len(Statements) - 1 hade varit fel sa fort ett index gavs, och felet hade
+    synts forst nar nagon foljde svaret och rorde en annan sats.
+    """
+    if "index" in argument:
+        return "%d" % argument["index"]
+    return "len(ru.Statements) - 1"
 
 
 def _rader_satt_egenskaper(varden, variabel="sats"):
@@ -1483,7 +1528,6 @@ def _kod_program_state(argument):
     rader += [
         "aktiv = {}",
         "har_aktiv = False",
-        "kor = False",
         "looping = None",
         "aktiverat = None",
         "extern = None",
@@ -1629,8 +1673,8 @@ def _kod_move_to(argument):
         '_svara({"robot": k.Name, "controller": r.Name, "moved": True,',
         '        "mode": %s, "joint_values": varden})' % lit(argument["mode"]),
     ]
-    return bygg(["_svara"], rader, ["vcMatrix", "vcVector"]
-                if "joint_values" not in spec else [])
+    importer = [] if "joint_values" in spec else ["vcMatrix", "vcVector"]
+    return bygg(["_svara"], rader, importer)
 
 
 _lagg(
@@ -1666,6 +1710,10 @@ _lagg(
 
 def _kod_move_targets(argument):
     mal = argument["targets"]
+    if not mal and argument["run"]:
+        raise Argumentfel("move_targets",
+                          ["en tom mallista gar inte att kora; run=false "
+                           "tommer listan och gor inget mer"])
     for nr, spec in enumerate(mal):
         _granska_mal(spec, "move_targets[%d]" % nr)
     rader = _rader_styrenhet(argument)
@@ -1696,14 +1744,16 @@ _lagg(
     "Bygger en hel bana i EN korning: tommer styrenhetens mallista, lagger "
     "dit malen i ordning och kor dem. Anvand det nar zonerna ska vara "
     "annat an noll, sa att roboten glider genom mellanpunkterna i stallet "
-    "for att stanna i var och en. run=false lagger malen utan att kora dem.",
+    "for att stanna i var och en. run=false lagger malen utan att kora dem, "
+    "och en tom lista med run=false tommer bara listan.",
     "write",
     params({"component": ARG_ROBOT, "controller": ARG_STYRENHET,
             "targets": {"type": "array",
                         "description": ("Malen i den ordning roboten ska ta "
-                                        "dem."),
+                                        "dem. En TOM lista med run=false "
+                                        "tommer bara styrenhetens mallista."),
                         "items": _MALSCHEMA,
-                        "minItems": 1, "maxItems": 100},
+                        "minItems": 0, "maxItems": 100},
             "run": {"type": "boolean", "default": True,
                     "description": ("true kor listan direkt. false lagger bara "
                                     "dit malen, och da behovs ett nytt anrop "
@@ -1759,8 +1809,8 @@ def _kod_check_reach(argument):
         '        "configurations": konf, "reachable_configs": nabara,',
         '        "chosen_config": vald, "joint_values": varden})',
     ]
-    return bygg(["_svara"], rader,
-                ["vcMatrix", "vcVector"] if "joint_values" not in spec else [])
+    importer = [] if "joint_values" in spec else ["vcMatrix", "vcVector"]
+    return bygg(["_svara"], rader, importer)
 
 
 _lagg(
@@ -2169,34 +2219,13 @@ def _kod_add_motion_statement(argument):
         rader += _rader_satt_egenskaper(argument["properties"])
     rader += [
         '_svara({"robot": k.Name, "routine": ru.Name, "added": True,',
-        '        "statement": sats.Name, "index": len(ru.Statements) - 1,',
+        '        "statement": sats.Name, "index": %s,' % _index_uttryck(argument),
         '        "motion": %s, "positions": len(sats.Positions)})'
         % lit(argument["motion"]),
     ]
     behover_matris = "position" in argument or "wpr" in argument
     return bygg(["_svara"], rader,
                 ["vcMatrix", "vcVector"] if behover_matris else [])
-
-
-def _rader_position(argument):
-    """Satter rorelsesatsens position, som ledvarden eller som matris."""
-    rader = [
-        # En ny rorelsesats far normalt en position av VC sjalv. Ar listan
-        # anda tom skapas en, sa att satsen aldrig blir en rorelse utan mal.
-        "if len(sats.Positions) > 0:",
-        "    pos = sats.Positions[0]",
-        "else:",
-        "    pos = sats.createPosition(%s)" % lit("P1"),
-        "if pos is None:",
-        '    raise ValueError("rorelsesatsen fick ingen position")',
-    ]
-    if "joint_values" in argument:
-        varden = ", ".join(tal(v) for v in argument["joint_values"])
-        rader.append("pos.setJoints([%s])" % varden)
-    else:
-        rader += _rader_matris(argument, "mm")
-        rader.append("pos.PositionInReference = mm")
-    return rader
 
 
 _lagg(
@@ -2278,7 +2307,7 @@ def _kod_add_statement(argument):
         '    egenskaper.append({"name": pp.Name, "value": _enkelt(pp.Value)})',
         '_svara({"robot": k.Name, "routine": ru.Name, "added": True,',
         '        "statement": sats.Name, "type": %s,' % lit(argument["type"]),
-        '        "index": len(ru.Statements) - 1,',
+        '        "index": %s,' % _index_uttryck(argument),
         '        "properties": egenskaper})',
     ]
     return bygg(["_enkelt", "_svara"], rader)

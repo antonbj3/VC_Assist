@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Any, List, Optional, Sequence, Tuple
 
 from .sakerhet import ROT
-from .text import ogonmeningar
+from .text import bar_ord, ogonmeningar
 
 _EXT = os.path.join(ROT, "ext", "vc_addon", "vc_assist")
 if _EXT not in sys.path:
@@ -67,10 +67,10 @@ class Anmarkning:
 
 
 def _bar(lag: str, ord_: Sequence[str]) -> Optional[str]:
-    for o in ord_:
-        if o in lag:
-            return o
-    return None
+    """Ordgrans, inte delstrang. Se text.bar_ord: "placeringen" innehaller
+    "ingen", och med delstrangsmatchning trodde grinden att en mildrad dom
+    nekade nagot. Matt i efterlevnadsbanken 2026-09-04 (falla F-32)."""
+    return bar_ord(lag, ord_)
 
 
 def _godkannande(mening) -> bool:

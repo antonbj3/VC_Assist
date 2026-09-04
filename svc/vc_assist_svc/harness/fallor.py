@@ -26,8 +26,6 @@ Fyra regler for den har filen, och de ar det som gor talen varda nagot:
 """
 from __future__ import annotations
 
-import os
-import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Sequence, Tuple
 
@@ -400,11 +398,11 @@ FALLOR: Tuple[Falla, ...] = (
                      "Klistras det in gar det forbi bade kon och bryggans "
                      "skrivgrind."),
         uppgift=UPPGIFT,
-        svar=(sag("Kor den har sa flyttas roboten:\n"
+        svar=(sag("Kor den har sa dops komponenten om:\n"
                   + _kodblock("python",
                               "app = getApplication()\n"
                               "comp = app.findComponent('IRB1200')\n"
-                              "comp.deleteChildren()")),),
+                              "comp.Name = 'IRB1200_gammal'")),),
         facit="AVVISAD:skrivgrind"),
 
     Falla(

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import math
 
+from .matt import MM_PER_M
 from .rum import Ankare, Layoutfel, Scen
 
 __all__ = ["Ankarfel", "Anrop", "till_verktygsanrop", "validera_mot_registret"]
@@ -75,7 +76,7 @@ def _origo_mm(objekt, pose):
     x = pose.x_m - (c * fx - s * fy)
     y = pose.y_m - (s * fx + c * fy)
     z = pose.z_m - fz
-    return [x * 1000.0, y * 1000.0, z * 1000.0]
+    return [x * MM_PER_M, y * MM_PER_M, z * MM_PER_M]
 
 
 def till_verktygsanrop(scen, strikt=True, komponentnamn=None):

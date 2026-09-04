@@ -225,7 +225,7 @@ class Korare(object):
         return klara
 
     def _kor_steg(self, plan, steg, lage):
-        blockerad = self._blockerad(steg, lage)
+        blockerad = self._blockerad(plan, steg, lage)
         if blockerad:
             return Post(steg.id, EJ_UTFORD, blockerad, verktyg=steg.verktyg)
 
@@ -248,16 +248,37 @@ class Korare(object):
             return self._kor_kontroll(plan, steg, lage)
         return self._kor_verktyg(steg, lage)
 
-    def _blockerad(self, steg, lage):
-        """Skalet steget inte gar att kora, eller None."""
+    def _blockerad(self, plan, steg, lage):
+        """Skalet steget inte gar att kora, eller None.
+
+        Ett vanligt beroende maste vara KORD. Aven ett HOPPAT beroende
+        blockerar: dess svar finns inte, och ett steg som laser ett svar som
+        inte finns far inte koras.
+
+        Beror steget pa flera steg i SAMMA alternativgrupp racker det att ETT
+        av dem lyckades - det ar just vad ett alternativ betyder. Utan den
+        regeln gick det inte att bero pa ett alternativ alls, eftersom det
+        forlorande alternativet alltid ar hoppat.
+        """
+        grupper = {}
         for beroende in steg.beroenden:
+            grupp = None
+            if beroende in plan.graf:
+                grupp = plan.graf.steg(beroende).alternativ_grupp
+            if grupp and grupp != steg.alternativ_grupp:
+                grupper.setdefault(grupp, []).append(beroende)
+                continue
             status = lage.statusar.get(beroende)
             if status is None:
                 return "beroendet %s har inget utfall" % beroende
             if status != KORD:
-                # Aven ett HOPPAT beroende blockerar: dess svar finns inte, och
-                # ett steg som laser ett svar som inte finns far inte koras.
                 return "beroendet %s ar %s" % (beroende, status)
+        for grupp, medlemmar in sorted(grupper.items()):
+            if not any(lage.statusar.get(m) == KORD for m in medlemmar):
+                return ("inget alternativ i gruppen %s lyckades (%s)"
+                        % (grupp, ", ".join(
+                            "%s=%s" % (m, lage.statusar.get(m, "utan utfall"))
+                            for m in sorted(medlemmar))))
         return None
 
     # -- kontrollstegen ---------------------------------------------------

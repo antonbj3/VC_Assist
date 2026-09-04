@@ -7,7 +7,8 @@ deklarera" - och den ar darfor ravaran till grind 3 i 50_grindar.md:
 deklarationerna GENERERAS ur scenens signalkarta, modellen skriver dem
 aldrig sjalv (I10).
 
-Tjugoen verktyg. Tjugo ar kodgenererande, ett (connectivity_status) ar data.
+Tjugoett verktyg, tio lasande och elva skrivande. Tjugo ar kodgenererande,
+ett (connectivity_status) ar data.
 Skalet till uppdelningen star i 45_verktyg.md: allt som ror SCENEN maste ga
 in i VC och fraga, medan det som ror index och matt arkitektur kor i
 tjansten och svarar aven nar VC ar nere.
@@ -22,7 +23,7 @@ skrivskyddade for agenten." Har ar den mekanisk:
   * VARJE skrivande verktyg i domanen kor _sparra() over sina namnbarande
     argument INNAN nagon kod genereras. Ett traffat namn ger Sakerhetsavslag,
     bryggan ror sig inte, och skalet namner markoren.
-  * De tre verktyg som skriver i en SIGNALKARTA bar dessutom en andra halva
+  * De fyra verktyg som skriver i en SIGNALKARTA bar dessutom en andra halva
     inne i mallen: _sparra_karta() gar igenom kartans portar och kastar om
     nagon av dem bar en sakerhetstagg. Skalet ar en matt lucka i den forsta
     halvan - tjansten domer NAMN, och en karta som heter BoolMap men bar
@@ -89,10 +90,47 @@ Konstanter (constants.xml), och exakt dessa:
 MATT ASYMMETRI som verktygen bar: det finns TYPER for vcIntergerSignalMap
 och vcStringSignalMap men INGA konstanter att skapa dem med, och det finns
 KONSTANTER for VC_REALSIGNALMAP, VC_FRAMESIGNAL, VC_BEHAVIOURSIGNAL och
-VC_PROPERTYSIGNALADAPTER utan att nagon typ beskriver deras yta. Darfor:
-create_signal_map kan bara skapa de tva kartor som har en konstant, och
-egenskapsadaptern konfigureras aldrig med paghittade faltnamn utan genom
-sina EGNA vcProperty-poster, som list_property_adapters visar upp.
+VC_PROPERTYSIGNALADAPTER utan att nagon typ beskriver deras yta. Darfor kan
+create_signal_map bara skapa de tva kartor som har en konstant.
+
+
+VAD SOM AR KORT I VC, OCH VAD SOM INTE AR DET
+---------------------------------------------
+Domanens API-yta ar last ur dokumentationen. Tva matningar har dessutom kort
+den i en levande VC 4.10 under Wine, och de styr tre beslut har:
+
+  M-13  createBehaviour(VC_BOOLEANSIGNAL, ...) kordes genom kon mot en
+        levande simulering: done, simuleringen gick vidare, bryggan svarade.
+        createBehaviour(VC_SCRIPT, ...) daremot STOPPADE simuleringen och
+        tog ned pumpen mitt i dess eget svar. Darfor: create_signal tar bara
+        SIGNALTYPER, aldrig en skripttyp, och tests provar att ingen mall i
+        domanen kan skapa ett skriptbeteende.
+
+  M-15  varje beteendekonstant provades med createBehaviour pa en farsk
+        komponent. 80 av 244 gick. ALLA atta signaltyper och BADA
+        signalkartetyperna finns bland de 80 - det ar matt, inte antaget.
+        VC_REALSIGNALMAP kom tillbaka som en bar vcBehaviour, alltsa utan
+        egen bindningsklass; om den saknar PortCount, input och output ser
+        list_signal_maps den inte, och det ar en oprovad kant.
+
+  M-15  VC_PROPERTYSIGNALADAPTER ar INTE bland de 80 som gick. Antingen
+        gav den None som de 164 ovriga, eller sa foll den utanfor svepets
+        244 konstanter - matningen skiljer inte pa de tva. At bada hallen ar
+        skapandet OPROVAT, och oprovat raknas som saknat (36_versioner.md,
+        I3). Domanen har darfor INGET verktyg som skapar en egenskapsadapter:
+        ett skrivande verktyg vars centrala anrop troligen ger None skulle
+        kosta operatoren ett godkannande per forsok utan att kunna lyckas.
+        Adaptern hanteras i stallet som den redan finns i scenen:
+        list_property_adapters visar dess EGNA vcProperty-falt, och
+        set_behaviour_property satter dem. Faltnamnen kommer alltid ur VC,
+        aldrig ur en gissning. Blir adaptern nagon gang matt skapbar ska
+        verktyget byggas, och testet som laser M-15 faller den dagen.
+
+Resten av domanen ar INTE kord mot VC. Signalens connect/disconnect, kartans
+portmetoder och riktningen ar lasta ur api.xml och oprovade i drift. Att det
+inte ar en formalitet visar M-16: canConnect pa ett simuleringsgranssnitt tog
+ned bryggan, och det var ett LASANDE anrop. Domanen ar alltsa klar pa
+skrivbordet och oprovad i VC, precis som I17 kraver att det uttalas.
 
 
 VARFOR YTORNA PROVAS PER OBJEKT
@@ -218,6 +256,7 @@ TAGGARGUMENT = (
     "signal",
     "other_signal",
     "map",
+    "other_map",
     "port_name",
     "behaviour",
     "property",
@@ -275,6 +314,8 @@ def _krav_ickenegativ(verktyg, argument, nyckel):
 # (konstantnamn, kort beskrivning). Exakt de som star i
 # docs/referens/vc_api/constants.xml. Inga andra, och ingen harledd form:
 # VC_INTEGERSIGNALMAP och VC_STRINGSIGNALMAP LATER rimliga och finns inte.
+# Alla atta ar dessutom PROVADE skapbara i VC 4.10 (M-15), sa create_signal
+# star pa en matning och inte bara pa en konstantlista.
 SIGNALTYPER = (
     ("VC_BOOLEANSIGNAL", "boolesk signal, vcBoolSignal"),
     ("VC_REALSIGNAL", "flyttalssignal, vcRealSignal"),
@@ -286,11 +327,16 @@ SIGNALTYPER = (
     ("VC_BEHAVIOURSIGNAL", "signal som bar ett beteende; ingen typ beskriver ytan"),
 )
 
+# Bada provade skapbara i VC 4.10 (M-15). VC_REALSIGNALMAP kom dar tillbaka
+# som en bar vcBehaviour, alltsa utan egen bindningsklass - se docstringen.
 KARTTYPER = (
     ("VC_BOOLEANSIGNALMAP", "boolesk signalkarta, vcBooleanSignalMap"),
     ("VC_REALSIGNALMAP", "flyttalssignalkarta; ingen typ beskriver ytan"),
 )
 
+# Adaptern gar att KANNA IGEN, men skapandet ar oprovat: M-15 provade
+# beteendetyperna och den ar inte bland de 80 som gick. Konstanten anvands
+# darfor bara lasande, av signal_types och list_property_adapters.
 ADAPTERTYP = "VC_PROPERTYSIGNALADAPTER"
 
 # Allt signal_types provar, i den ordning det redovisas.
@@ -453,7 +499,11 @@ _ROLLMEDLEM = "P:VisualComponents.Connectivity.OpcUA.IOpcUAServer.Session"
 # stangd ut. Ett monster som mater fel ar varre an inget monster.
 PYTHONLUCKA_MONSTER = (r"opcua|connectivity|variablegroup|valueitem"
                        r"|connectionplugin|connectionstate|\bserver|server\b")
-PYTHON_TRAFFAR = 0
+
+# Traffarna, inte antalet: en tom lista SAGER vad matningen fann, och ett
+# framtida VC som far en Python-uppkopplingsyta far en rad har i stallet for
+# att bara flytta en siffra. Antalet foljer av listan (I2, siffrans harkomst).
+PYTHONLUCKA_TRAFFAR = ()
 
 NOTERING_UPPKOPPLING = (
     "VC:s uppkopplingslager finns BARA i .NET. %d av symbolerna i VC:s "
@@ -466,7 +516,7 @@ NOTERING_UPPKOPPLING = (
     "resten av den har domanen: list_signals, signal_inventory och "
     "set_signal ror de simuleringsvariabler som uppkopplingslagret mappar "
     "mot OPC UA-noder."
-    % (PYTHON_TRAFFAR, _ROLLMEDLEM.split(":", 1)[1])
+    % (len(PYTHONLUCKA_TRAFFAR), _ROLLMEDLEM.split(":", 1)[1])
 )
 
 
@@ -1062,9 +1112,11 @@ def _kod_signal_types(argument):
         '        "notering": %s})' % _txt(
             "Listan ar PROVAD i den har VC:n, inte antagen: en konstant som "
             "saknas star inte med (36_versioner.md). can_create=false betyder "
-            "att komponenten saknar createBehaviour, och da kan varken "
-            "create_signal, create_signal_map eller create_property_adapter "
-            "koras mot den."),
+            "att komponenten saknar createBehaviour, och da gar varken "
+            "create_signal eller create_signal_map att kora mot den. Att "
+            "VC_PROPERTYSIGNALADAPTER star i listan betyder att KONSTANTEN "
+            "finns, inte att adaptern gar att skapa: M-15 provade skapandet "
+            "och adaptern ar inte bland de 80 beteenden som gick."),
     ]
     return _mall(["_komp", "_enkelt", "_svara"], [], rader)
 
@@ -1309,7 +1361,10 @@ def _kod_list_property_adapters(argument):
             "set_behaviour_property - namnen kommer ur den har listan, aldrig "
             "ur en gissning (I9). constant_present=false betyder att den har "
             "VC:n saknar konstanten och att adaptrar da inte gar att "
-            "identifiera alls."),
+            "identifiera alls. Adaptern maste redan finnas i scenen: M-15 "
+            "provade att skapa beteendetyper och VC_PROPERTYSIGNALADAPTER ar "
+            "INTE bland de 80 som gick, sa skapandet ar oprovat och domanen "
+            "har inget verktyg for det."),
     ]
     return _mall(["_komp", "_enkelt", "_svara"], ["_egenskaper"], rader)
 
@@ -1318,7 +1373,9 @@ _lagg(
     "list_property_adapters",
     "Listar komponentens egenskapsadaptrar och visar varje adapters egna "
     "installningsegenskaper med namn och varde. Det ar sa man ser hur en "
-    "signal ar bunden till en komponentegenskap, utan att gissa faltnamn.",
+    "signal ar bunden till en komponentegenskap, utan att gissa faltnamn. "
+    "Adaptern maste redan finnas i scenen - att skapa en ar oprovat i VC "
+    "(M-15) och domanen har inget verktyg for det.",
     "read",
     params({"component": ARG_KOMPONENT}, ["component"]),
     returns({"component": {"type": "string", "description": "Komponenten."},
@@ -1489,7 +1546,8 @@ def _hamta_uppkoppling(argument):
     return {
         "role": "client",
         "role_evidence": _dotnet(_ROLLMEDLEM),
-        "python_api_hits": PYTHON_TRAFFAR,
+        "python_api_hits": len(PYTHONLUCKA_TRAFFAR),
+        "python_api_symbols": list(PYTHONLUCKA_TRAFFAR),
         "python_api_pattern": PYTHONLUCKA_MONSTER,
         "readable_from_python": False,
         "sections": avsnitt,
@@ -1536,6 +1594,11 @@ registrera(
                 "type": "integer",
                 "description": ("Antal symboler i VC:s Python-API som ror "
                                 "uppkoppling. Matt, och noll.")},
+            "python_api_symbols": {
+                "type": "array",
+                "description": ("De symboler monstret traffade. Tom, och det ar "
+                                "sjalva matningen."),
+                "items": {"type": "string", "description": "Symbolnamn."}},
             "python_api_pattern": {
                 "type": "string",
                 "description": ("Monstret siffran ovan raknades med. Ett tal "
@@ -1558,7 +1621,8 @@ registrera(
                           "description": "Verktygen som ar den oppna vagen i stallet.",
                           "items": {"type": "string", "description": "Verktygsnamn."}},
             "notering": RET_NOTERING},
-            ["role", "role_evidence", "python_api_hits", "python_api_pattern",
+            ["role", "role_evidence", "python_api_hits",
+             "python_api_symbols", "python_api_pattern",
              "readable_from_python", "sections", "open_path", "notering"]),
         since=SINCE,
         # KRAVER for ett data-verktyg. Schemat kraver minst en yta ur
@@ -1984,6 +2048,84 @@ _lagg(
 )
 
 
+# ---- signal_map_connect --------------------------------------------------
+
+def _kod_signal_map_connect(argument):
+    _sparra("signal_map_connect", argument)
+    _krav_ickenegativ("signal_map_connect", argument, "port")
+    _krav_ickenegativ("signal_map_connect", argument, "other_port")
+    port, annan = argument["port"], argument["other_port"]
+    rader = [
+        "k = _komp(%s)" % lit(argument["component"]),
+        "m = _karta(k, %s)" % lit(argument["map"]),
+        "k2 = _komp(%s)" % lit(argument["other_component"]),
+        "m2 = _karta(k2, %s)" % lit(argument["other_map"]),
+        "_sparra_karta(m, %s)" % _txt("signal_map_connect"),
+        "_sparra_karta(m2, %s)" % _txt("signal_map_connect"),
+    ]
+    rader += _krav_yta("m", "connect", "signal_map_connect")
+    rader += _krav_yta("m", "getAllConnectedPorts", "signal_map_connect")
+    rader += [
+        "if %d >= int(m.PortCount) or %d >= int(m2.PortCount):" % (port, annan),
+        '    raise ValueError("porten finns inte; kartorna har "',
+        '                     + str(int(m.PortCount)) + " respektive "',
+        '                     + str(int(m2.PortCount)) + " portar")',
+        "m.connect(%d, m2, %d)" % (port, annan),
+        # connect() lamnar inget returvarde (api.xml: None), sa utfallet maste
+        # LASAS. En fjarrkoppling som VC tyst inte gjorde far aldrig se ut som
+        # en lyckad (S1).
+        "if %d not in m.getAllConnectedPorts():" % port,
+        "    raise ValueError(%s)" % _txt(
+            "VC gjorde ingen fjarrkoppling; porten star kvar som okopplad"),
+        "yttre = []",
+        'if hasattr(m, "getConnectedExternalSignals"):',
+        "    for e in m.getConnectedExternalSignals(%d):" % port,
+        "        ke = e.Component",
+        '        yttre.append({"component": ke.Name if ke is not None else None,',
+        '                      "behaviour": e.Name})',
+        '_svara({"connected": True, "component": k.Name, "map": m.Name,',
+        '        "port": %d, "other_component": k2.Name,' % port,
+        '        "other_map": m2.Name, "other_port": %d,' % annan,
+        '        "external": yttre})',
+    ]
+    return _mall(["_komp", "_svara"], ["_karta", "_sparra_karta"], rader)
+
+
+_lagg(
+    "signal_map_connect",
+    "Fjarrkopplar en port i en signalkarta till en port i en annan komponents "
+    "signalkarta. Det ar sa tva stationer kopplas ihop pa signalniva utan att "
+    "en signal behover finnas i bada komponenterna. VC lamnar inget svar pa "
+    "kopplingen, sa verktyget laser tillbaka portens kopplingslista och kastar "
+    "om den star kvar okopplad.",
+    "write",
+    params({"component": ARG_KOMPONENT, "map": ARG_KARTA, "port": ARG_PORT,
+            "other_component": dict(ARG_KOMPONENT,
+                                    description="Den andra komponentens namn."),
+            "other_map": dict(ARG_KARTA,
+                              description="Signalkartans namn pa den andra komponenten."),
+            "other_port": dict(ARG_PORT,
+                               description="Portens index i den andra kartan.")},
+           ["component", "map", "port", "other_component", "other_map",
+            "other_port"]),
+    returns({"connected": {"type": "boolean",
+                           "description": "Alltid true; en utebliven koppling kastar."},
+             "component": {"type": "string", "description": "Forsta komponenten."},
+             "map": {"type": "string", "description": "Forsta kartan."},
+             "port": {"type": "integer", "description": "Porten i forsta kartan."},
+             "other_component": {"type": "string", "description": "Andra komponenten."},
+             "other_map": {"type": "string", "description": "Andra kartan."},
+             "other_port": {"type": "integer", "description": "Porten i andra kartan."},
+             "external": {"type": "array",
+                          "description": "Signalerna porten nu ar kopplad till.",
+                          "items": _ANSLUTNINGSPOST}},
+            ["connected", "component", "map", "port", "other_component",
+             "other_map", "other_port", "external"]),
+    _YTOR_BETEENDE,
+    _kod_signal_map_connect,
+)
+
+
 # ---- set_signal_map_direction --------------------------------------------
 
 def _kod_set_signal_map_direction(argument):
@@ -2039,63 +2181,6 @@ _lagg(
 )
 
 
-# ---- create_property_adapter ---------------------------------------------
-
-def _kod_create_property_adapter(argument):
-    _sparra("create_property_adapter", argument)
-    namn = lit(argument["name"])
-    rader = [
-        "k = _komp(%s)" % lit(argument["component"]),
-    ] + _krav_yta("k", "createBehaviour", "create_property_adapter") + [
-        "if k.findBehaviour(%s) is not None:" % namn,
-        '    raise ValueError(k.Name + " har redan ett beteende som heter "'
-        ' + %s)' % namn,
-        "try:",
-        "    typ = %s" % ADAPTERTYP,
-        "except NameError:",
-        "    raise ValueError(%s)" % _txt(
-            "den har VC:n saknar konstanten " + ADAPTERTYP),
-        "b = k.createBehaviour(typ, %s)" % namn,
-        "if b is None:",
-        '    raise ValueError("VC skapade ingen adapter som heter " + %s)' % namn,
-        '_svara({"created": True, "component": k.Name, "name": b.Name,',
-        '        "type": %s, "type_id": _enkelt(b.Type),' % _txt(ADAPTERTYP),
-        '        "properties": _egenskaper(b),',
-        '        "notering": %s})' % _txt(
-            "Adaptern ar SKAPAD men inte konfigurerad. Dess faltnamn finns "
-            "inte i VC:s matta Python-API och gissas darfor inte: "
-            "properties ovan ar adapterns egna installningsegenskaper som de "
-            "ser ut nu. Bind signal och komponentegenskap genom att satta dem "
-            "med set_behaviour_property, med namnen ur den listan."),
-    ]
-    return _mall(["_komp", "_enkelt", "_svara"], ["_egenskaper"], rader)
-
-
-_lagg(
-    "create_property_adapter",
-    "Skapar en egenskapsadapter pa en komponent - beteendet som binder en "
-    "signal till en komponentegenskap. Svaret listar adapterns egna "
-    "installningsegenskaper, som ar det du sedan satter med "
-    "set_behaviour_property. Faltnamnen kommer ur VC, aldrig ur en gissning.",
-    "write",
-    params({"component": ARG_KOMPONENT,
-            "name": dict(ARG_BETEENDE, description="Namnet den nya adaptern ska fa.")},
-           ["component", "name"]),
-    returns({"created": {"type": "boolean", "description": "Alltid true; ett misslyckande kastar."},
-             "component": {"type": "string", "description": "Komponenten."},
-             "name": {"type": "string", "description": "Adapterns namn."},
-             "type": {"type": "string", "description": "Alltid VC_PROPERTYSIGNALADAPTER."},
-             "type_id": RET_TYP_ID,
-             "properties": {"type": "array",
-                            "description": "Adapterns installningsegenskaper.",
-                            "items": _EGENSKAPSPOST},
-             "notering": RET_NOTERING},
-            ["created", "component", "name", "type", "properties", "notering"]),
-    _YTOR_BETEENDE,
-    _kod_create_property_adapter,
-)
-
-
 # ---- set_behaviour_property ----------------------------------------------
 
 def _kod_set_behaviour_property(argument):
@@ -2121,8 +2206,8 @@ _lagg(
     "set_behaviour_property",
     "Satter en installningsegenskap pa ett beteende - det ar sa en "
     "egenskapsadapter binds till sin signal och sin komponentegenskap. "
-    "Egenskapsnamnet maste komma ur list_property_adapters eller ur svaret "
-    "fran create_property_adapter; ett uppfunnet namn kastar (I9).",
+    "Egenskapsnamnet maste komma ur list_property_adapters; ett uppfunnet "
+    "namn kastar (I9).",
     "write",
     params({"component": ARG_KOMPONENT, "behaviour": ARG_BETEENDE,
             "property": {"type": "string",

@@ -10,18 +10,21 @@ hypoteser.py, recepten ar kodgeneratorer i recept.py:
     generera("matare", {...})               skapare med utgranssnitt
     generera("sanka", {...})                osynlig behallare med ingranssnitt
     generera("koppla", {"a": ..., "b": ...})  provar kopplingsvagarna i ordning
+    generera("las_flode", {})               LASANDE: rorde sig nagot?
 
 Koden ar Python 2.7 och 3.x, lamnar JSON pa sista raden av stdout och gar
 rakt in i bryggan som ett exec_queue-anrop (den ar skrivande).
 """
-from .hypoteser import (BELAGT, HYPOTES, HYPOTESER, MATT, PER_ID, Hypotes,
+from .hypoteser import (BELAGT, HYPOTES, HYPOTESER, MATT, MATTA_KLASSNAMN, PER_ID, Hypotes,
                         per_fraga, provordning)
-from .recept import (BETEENDEKONSTANTER, EXEMPEL, FALTKONSTANTER, FALTNAMN,
-                     FALTTYPER, RECEPT, REFERENSNAMN, generera)
+from .recept import (BEHALLARSTEG, BETEENDEKONSTANTER, BETEENDENAMN, EFFEKT,
+                     EXEMPEL, FALTKONSTANTER, FALTNAMN, FALTTYPER, KONTAKTNAMN,
+                     RECEPT, generera)
 
 __all__ = [
-    "BELAGT", "HYPOTES", "HYPOTESER", "MATT", "PER_ID", "Hypotes",
+    "BELAGT", "HYPOTES", "HYPOTESER", "MATT", "MATTA_KLASSNAMN", "PER_ID", "Hypotes",
     "per_fraga", "provordning",
-    "BETEENDEKONSTANTER", "EXEMPEL", "FALTKONSTANTER", "FALTNAMN",
-    "FALTTYPER", "RECEPT", "REFERENSNAMN", "generera",
+    "BEHALLARSTEG", "BETEENDEKONSTANTER", "BETEENDENAMN", "EFFEKT", "EXEMPEL",
+    "FALTKONSTANTER", "FALTNAMN", "FALTTYPER", "KONTAKTNAMN", "RECEPT",
+    "generera",
 ]

@@ -45,8 +45,9 @@ hallits inne levereras inte.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .. import verktyg as V
 from . import arlighet as A
@@ -57,12 +58,12 @@ from .forgranskning import Forgranskare
 from .instruktioner import Korpus, las_korpus
 from .kanal import Anropsutfall, Verktygskanal
 from .modell import Meddelande, Modell, Modellsvar, Verktygsanrop
-from .sammansattning import STANDARDBUDGET, bygg_systemprompt
+from .sammansattning import STANDARDBUDGET, bygg_systemprompt, regelrad
 
 MAX_RUNDOR = 10                 # arvt, 20_arv.md
 MAX_RAKA_MISSLYCKANDEN = 6      # arvt, 20_arv.md
-MAX_LIKA_ANROP = 2              # vart, se modulens docstring
-MAX_OMSKRIVNINGAR = 2           # vart, se modulens docstring
+MAX_LIKA_ANROP = 2              # vart tillagg till 20_arv.md:s tak
+MAX_OMSKRIVNINGAR = 2           # vart tillagg till 20_arv.md:s tak
 
 STOPPREGLER = ("tystnad", "rundtak", "raka_misslyckanden", "upprepat_anrop",
                "omskrivning_misslyckades")
@@ -208,7 +209,7 @@ class Harness(object):
                                "tystnad ar aldrig ett godkannande (I3)", runda)
                 return protokoll
 
-            if svar.anrop:
+            if not svar.ar_slutsvar:
                 historik.append(Meddelande(
                     "modell", svar.text or "(bad om %d verktygsanrop)"
                     % len(svar.anrop)))
@@ -226,7 +227,8 @@ class Harness(object):
                     return protokoll
                 continue
 
-            # Slutsvar.
+            # Slutsvar: ingen begaran om verktyg, alltsa det modellen vill
+            # lamna ifran sig. Har, och bara har, provas grindarna pa texten.
             krav = self._granska_slutsvar(svar.text, protokoll, grund,
                                           ogonrapport, guldbeslut, runda)
             if krav is None:
@@ -236,6 +238,7 @@ class Harness(object):
                                "slutsvaret passerade samtliga grindar", runda)
                 return protokoll
 
+            krav = self._med_regeltext(krav)
             omskrivningar += 1
             if omskrivningar > self.max_omskrivningar:
                 protokoll.lagg(
@@ -311,7 +314,7 @@ class Harness(object):
             if utfall.ok:
                 protokoll.lagg("VERKTYG_OK", anrop.namn, utfall.beskrivning(),
                                runda)
-                grund.lagg_resultat(anrop.namn, utfall.resultat)
+                grund.lagg_resultat(anrop.namn, utfall.argument, utfall.resultat)
                 raka_fel = 0
                 fallda_nycklar.pop(nyckel, None)
             else:
@@ -324,6 +327,23 @@ class Harness(object):
             if raka_fel >= self.max_raka_misslyckanden:
                 return None, raka_fel
         return None, raka_fel
+
+    def _med_regeltext(self, krav: str) -> str:
+        """Lagger till hela texten for varje regel kravet namner vid id.
+
+        En modell som far veta att den brot ARL-001 utan att fa lasa ARL-001
+        rattar gissningsvis - och den kapade prompten kan dessutom sakna
+        regeln. Regeln hamtas darfor ur korpusen och skickas med.
+        """
+        citerade = []
+        for regel_id in sorted(set(re.findall(r"\b[A-Z]{3}-\d{3}\b", krav))):
+            try:
+                citerade.append("  %s" % regelrad(self.korpus, regel_id))
+            except KeyError:
+                continue
+        if not citerade:
+            return krav
+        return krav + "\nReglerna du bryter mot, i sin helhet:\n" + "\n".join(citerade)
 
     @staticmethod
     def _avslagstext(avvisning) -> str:
@@ -364,13 +384,3 @@ class Harness(object):
                            "; ".join(a.text() for a in avvikelser), runda)
             return Vf.omskrivningskrav(avvikelser)
         return None
-
-
-def bygg_harness(modell: Modell, kanal: Verktygskanal, **kvarg) -> Harness:
-    """Bekvamlighet: en harness med registret, korpusen och indexet pa plats.
-
-    Den langsamma delen ar API-indexet (fyra filer under docs/referens/), sa
-    den som kor manga turer bygger en Forgranskare en gang och skickar in
-    den.
-    """
-    return Harness(modell=modell, kanal=kanal, **kvarg)

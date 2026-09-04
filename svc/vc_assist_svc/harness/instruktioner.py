@@ -67,13 +67,13 @@ _SKULD = re.compile(r"^S\d{1,2}$")
 # Talet ar satt over den langsta regeln i korpusen 2026-09-04 (SAK-001, 251
 # tecken) med marginal, och sanks aldrig utan att korpusen rattas i samma
 # andring.
-MAX_REGELTEXT = 400
+MAX_REGELTEXT = 400        # 96_ingen_skuld.md S6, matt over korpusen
 # MIN_SKAL: ett skal kortare an sa har ar en etikett, inte ett skal.
 # Kortaste verkliga skalet i korpusen 2026-09-04 ar 118 tecken.
-MIN_SKAL = 40
+MIN_SKAL = 40              # 96_ingen_skuld.md S6, matt over korpusen
 # MIN_PRIORITET_SKAL: samma krav pa blockets motivering av sin plats i
 # kapordningen. Kortaste verkliga 2026-09-04 ar 214 tecken.
-MIN_PRIORITET_SKAL = 60
+MIN_PRIORITET_SKAL = 60    # 96_ingen_skuld.md S6, matt over korpusen
 
 # Formuleringar som gor en regel beroende av sitt sammanhang. Systemprompten
 # kapas, sa "se ovan" kan peka pa nagot som inte langre finns med. Regeln ska
