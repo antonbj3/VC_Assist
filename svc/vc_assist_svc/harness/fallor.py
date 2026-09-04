@@ -124,7 +124,7 @@ def _ogonrapport(dom: str, orsak: str, motion: Sequence[str],
     ett skal: banken ska kunna bara en AVHUGGEN rapport, och skrivaren vagrar
     (med ratta) att skriva en sadan.
     """
-    rader = ["EYES v1",
+    rader = ["EYES v2",
              "TEMPLATE plocka_och_placera",
              "RUN 2026-09-04T10:00:00 DUR 12.000s SAMPLES 120 RATE 10.00Hz",
              "SECTION MOTION"]
@@ -133,7 +133,13 @@ def _ogonrapport(dom: str, orsak: str, motion: Sequence[str],
               "  TELEPORT_TRANSFER OK",
               "  BLOWUP OK",
               "  UNDERGROUND OK",
-              "  NEVER_GRIPPED OK"]
+              "  NEVER_GRIPPED OK",
+              # v2 (M-65): grinden kraver att rapporten sager vad ogat inte ser.
+              "SECTION LIMITS"]
+    rader += ["  NOT_SIMULATED %s" % n for n in guldgrind.K.EJ_SIMULERAT]
+    rader += ["  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR "
+              "phase=unknown",
+              "  EXCLUDED plc_scan 40.0ms"]
     if avslutad:
         rader.append("EYES VERDICT %s %s" % (dom, orsak))
     return "\n".join(rader) + "\n"

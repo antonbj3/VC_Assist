@@ -591,7 +591,8 @@ def test_en_avhuggen_rapport_ar_inte_ett_godkannande():
 
 
 def test_en_okand_ogonversion_gissas_aldrig():
-    text = GRON_RAPPORT.replace("EYES v1", "EYES v2", 1)
+    # v9: en version ingen kanner. (v2 ar sedan M-65 den skrivna versionen.)
+    text = GRON_RAPPORT.replace("EYES v%d" % K.EYES_VERSION, "EYES v9", 1)
     r = kor("eyes_report", {"report": text})
     assert r["grinddom"] == "NOT GOLD (unknown eyes version)"
 

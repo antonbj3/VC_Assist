@@ -308,6 +308,14 @@ class Analys(object):
         h["fas"] = H.fasforhallande(h["flanker"], self.plan.get("plc_par"),
                                     h["upplosning"])
         for f in h["fas"]:
+            if f.get("max_ms") is None:
+                continue
+            if f.get("obestambar"):
+                continue
+            res = "unknown" if f.get("res_ms") is None else "%.1fms" % f["res_ms"]
+            rader.append("PHASE plc:%s -> %s dt=%.1fms tol=%.1fms res=%s %s"
+                         % (self._rent(f["plc"]), self._rent(f["signal"]),
+                            f["dt_ms"], f["max_ms"], res, f["status"]))
             if f.get("status") == "OUT_OF_TOL":
                 self.skal.append("fasen %s -> %s var %.0f ms, kravet ar %.0f ms "
                                  "(upplosning %.0f ms)"
@@ -834,8 +842,18 @@ class Analys(object):
                         "station": sekvens}
         self.harledt["berattelse"] = self.berattelse()
 
+        gen = gen + self._genomflodesrader(stationer)
+        seq = self._sekvensrader(sekvens)
+        scenrader = self._scenrader(scen)
+        granser = self._granser(th)
         for namn, rader in (("MOTION", motion), ("TIMING", tid),
-                            ("THROUGHPUT", gen), ("SAFETY", sak), ("HONESTY", hed)):
+                            ("SEQUENCE", seq), ("THROUGHPUT", gen),
+                            ("SAFETY", sak), ("SCENE", scenrader),
+                            ("HONESTY", hed), ("LIMITS", granser)):
+            if namn in ("SEQUENCE", "SCENE") and not rader:
+                # Ingen fraga stalld pa den sidan: da skrivs inte sektionen.
+                # En tom sektion hade sett ut som "inget att anmarka pa".
+                continue
             r.sektion(namn)
             for rad in rader:
                 r.rad(rad)
@@ -844,6 +862,145 @@ class Analys(object):
                                  sekvens)
         r.satt_dom(varde, orsak)
         return r
+
+    # -- v2-raderna ---------------------------------------------------------
+
+    def _genomflodesrader(self, stationer):
+        """STARVED/BLOCKED mot ett deklarerat krav, och flaskhalsen."""
+        rader = []
+        krav = stationer.get("_krav") or {}
+        for station in sorted(stationer):
+            if station.startswith("_"):
+                continue
+            d = stationer[station]
+            if not isinstance(d, dict) or "svalt_s" not in d:
+                continue
+            for nyckel, ord_ in (("svalt", "STARVED"), ("blockerad", "BLOCKED")):
+                tak = krav.get("max_%s_s" % nyckel)
+                if tak is None:
+                    continue
+                matt = d["%s_s" % nyckel]
+                over = matt > float(tak) + GENOMSTROMNING_MARGINAL_S
+                rader.append("%s %s %.3fs req=%.3fs %s"
+                             % (ord_, self._rent(station), matt, float(tak),
+                                "EXCEEDED" if over else "OK"))
+        if any(not s.startswith("_") for s in stationer):
+            fh = stationer.get("_flaskhals")
+            if fh:
+                rader.append("BOTTLENECK %s %s %.1f%%"
+                             % (self._rent(fh["station"]),
+                                "starved" if fh["orsak"] == "svalt" else "blocked",
+                                fh["andel"] * 100.0))
+            else:
+                rader.append("BOTTLENECK none")
+        return rader
+
+    def _sekvensrader(self, sekvens):
+        """CYCLES, de steg som inte var OK, rakningar over taket, forreglingen."""
+        rader = []
+        seq = sekvens.get("sekvens")
+        if seq is not None:
+            rader.append("CYCLES judged=%d broken=%d late=%d truncated=%d req=%d"
+                         % (seq.get("domda", 0), len(seq.get("brott") or []),
+                            len(seq.get("tidsbrott") or []),
+                            seq.get("avhuggna", 0),
+                            int((self.plan.get("sekvens") or {}).get("min_cykler", 1))))
+            for cykel in seq.get("cykler") or []:
+                if cykel.get("avhuggen"):
+                    continue
+                for steg in cykel.get("steg") or []:
+                    if steg.get("status", "OK") == "OK":
+                        continue
+                    t = "" if steg.get("dt_s") is None else " t=%.3fs" % steg["dt_s"]
+                    rader.append("STEP %d %s %s %s%s win=%.2fs..%.2fs"
+                                 % (cykel["nr"], self._rent(steg["signal"]),
+                                    steg["flank"], steg["status"], t,
+                                    steg["min_s"], steg["max_s"]))
+                hogst = (self.plan.get("sekvens") or {}).get("hogst") or {}
+                for signal in sorted(cykel.get("antal") or {}):
+                    n = cykel["antal"][signal]
+                    tak = int(hogst.get(signal, n))
+                    if n > tak:
+                        rader.append("COUNT %d %s n=%d max=%d EXCEEDED"
+                                     % (cykel["nr"], self._rent(signal), n, tak))
+        for post in (sekvens.get("forregling") or []):
+            if post.get("obestambar"):
+                lage = "INCONCLUSIVE"
+            else:
+                lage = "BROKEN" if post.get("brott") else "OK"
+            rader.append("INTERLOCK %s+%s %s overlap=%.3fs"
+                         % (self._rent(post["a"]), self._rent(post["b"]), lage,
+                            post.get("overlapp_s", 0.0)))
+        return rader
+
+    def _scenrader(self, scen):
+        """Hela scenen, i grammatik. Bara rader vars fraga har stallts."""
+        rader = []
+        o = self.oversikt()
+        if not o.profiler:
+            return rader
+        rader.append("OBJECTS total=%d moving=%d still=%d unread=%d"
+                     % (len(o.profiler), len(o.rorliga()), len(o.stilla()),
+                        len(o.okanda())))
+        gles = self.scen or {}
+        if gles.get("gles_faktor") is not None:
+            tak = any(h.get("orsak") == "TAK" for h in (gles.get("handelser") or []))
+            median = ((gles.get("kostnad_ms") or {}).get("median") or 0.0)
+            rader.append("THINNED factor=%d %s budget=%.1fms median=%.3fms"
+                         % (int(gles["gles_faktor"]), "CEILING" if tak else "OK",
+                            float(gles.get("budget_ms") or 0.0), float(median)))
+        oombedd = scen.get("oombedd")
+        if oombedd is not None:
+            if oombedd:
+                post = oombedd[0]
+                rader.append("UNCOMMANDED %s dist=%.1fmm t=%.3fs"
+                             % (self._rent(post["objekt"]), post["vaglangd_mm"],
+                                post.get("t") or 0.0))
+            else:
+                rader.append("UNCOMMANDED none")
+        if self.plan.get("movers"):
+            orort = scen.get("orort") or []
+            if orort:
+                post = orort[0]
+                rader.append("IDLE_COMMANDED %s -> %s t=%.3fs"
+                             % (self._rent(post["signal"]), self._rent(post["objekt"]),
+                                post["t"]))
+            else:
+                rader.append("IDLE_COMMANDED none")
+        if self.tracked.get("parts"):
+            kast = scen.get("utslungad") or {}
+            if kast:
+                namn = sorted(kast)[0]
+                rader.append("FLUNG %s %.2fm/s t=%.3fs"
+                             % (self._rent(namn), kast[namn]["fart_ms"], kast[namn]["t"]))
+            else:
+                rader.append("FLUNG none")
+        return rader
+
+    def _granser(self, th):
+        """LIMITS: vad ogat INTE ser. Grinden kraver sektionen.
+
+        Det ar ingen fotnot. Ett PASS ur ogat betyder att inget fel syntes i
+        det som simulerades, i den upplosning serien hade. Raderna sager
+        exakt vad det ar: det som inte finns i simuleringen alls, hur fint
+        ogat kan skilja tva tidpunkter, och vad som ar uteslutet ur talen.
+        """
+        rader = ["NOT_SIMULATED %s" % namn for namn in K.EJ_SIMULERAT]
+        u = th.get("upplosning") or {}
+        prov = u.get("prov_s")
+        if prov is None:
+            rate = float(self.run.get("rate_hz") or 0.0)
+            prov = (1.0 / rate) if rate > 0 else 0.0
+        las = u.get("las_s")
+        fas = u.get("fas_s")
+        rader.append("RESOLUTION sample=%.1fms read=%s join=%.2fms %s phase=%s"
+                     % (prov * 1000.0,
+                        "unknown" if las is None else "%.1fms" % (las * 1000.0),
+                        float(u.get("hopfogning_s", HOPFOGNING_PRIOR_S)) * 1000.0,
+                        u.get("hopfogning_kalla", "PRIOR"),
+                        "unknown" if fas is None else "%.1fms" % (fas * 1000.0)))
+        rader.append("EXCLUDED plc_scan %.1fms" % (PLC_SKAN_S * 1000.0))
+        return rader
 
     # -- de fem domarna -----------------------------------------------------
     #

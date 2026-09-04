@@ -20,7 +20,7 @@ from vc_assist_svc.guldgrind import (          # noqa: E402
 KLASSER = {"plocka", "montera", "linje"}
 
 
-def _ogonrapport(dom="PASS", orsak="allt inom marginal", extra=None):
+def _ogonrapport(dom="PASS", orsak="allt inom marginal", extra=None, granser=True):
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
     r.sektion("MOTION")
     r.rad(extra or "GRIP FORMED t=0.950s dist=0.0mm")
@@ -32,8 +32,20 @@ def _ogonrapport(dom="PASS", orsak="allt inom marginal", extra=None):
     r.sektion("HONESTY")
     r.rad("TELEPORT_TRANSFER OK")
     r.rad("NEVER_GRIPPED OK")
+    if granser:
+        _granser(r)
     r.satt_dom(dom, orsak)
     return r.text()
+
+
+def _granser(r):
+    """LIMITS: v2 (M-65). Grinden kraver att ogat sager vad det inte ser."""
+    r.sektion("LIMITS")
+    for namn in K.EJ_SIMULERAT:
+        r.rad("NOT_SIMULATED %s" % namn)
+    r.rad("RESOLUTION sample=50.0ms read=50.0ms join=13.45ms PRIOR phase=63.5ms")
+    r.rad("EXCLUDED plc_scan 40.0ms")
+    return r
 
 
 def _cell(namn="st010", klass="plocka", eyes=None, forgrindar=None):
@@ -86,7 +98,8 @@ def test_avhuggen_ogonrapport_ar_inte_guld():
 
 
 def test_okand_ogonversion_ar_inte_guld():
-    b = _grind().doma([_cell(eyes=_ogonrapport().replace("EYES v1", "EYES v9", 1))])
+    b = _grind().doma([_cell(eyes=_ogonrapport().replace(
+        "EYES v%d" % K.EYES_VERSION, "EYES v9", 1))])
     assert b.guld is False and "unknown eyes version" in b.skal
 
 
@@ -138,19 +151,27 @@ def test_PASS_med_en_dalig_rad_ar_inte_guld():
     """Ogats dom ar auktoritativ, men en rapport far inte motsaga sig sjalv.
 
     Grinden mater ingenting har - den laser ogats EGET kategoriska ord.
+    Sedan v2 vagrar redan skrivaren; kommer texten utifran faller den pa
+    kontraktet, och grinden svarar med kontraktets egen dom.
     """
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
     r.sektion("MOTION")
     r.rad("PLACE OFF_TARGET err=812.0mm z=0.750m")
     r.sektion("HONESTY")
     r.rad("NEVER_GRIPPED OK")
-    r.satt_dom("PASS", "ser bra ut")
-    b = _grind().doma([_cell(eyes=r.text())])
-    assert b.guld is False and "motsaga" not in b.skal
-    assert "OFF_TARGET" in b.skal
+    _granser(r)
+    with pytest.raises(K.Kontraktsfel):
+        r.satt_dom("PASS", "ser bra ut")
+    r.satt_dom("FAIL", "fel placerad")
+    text = r.text().replace("EYES VERDICT FAIL fel placerad", "EYES VERDICT PASS ser bra ut")
+    b = _grind().doma([_cell(eyes=text)])
+    assert b.guld is False and "malformed" in b.skal
 
 
 def test_PASS_med_kollision_ar_inte_guld():
+    """Sedan v2 vagrar SKRIVAREN sjalv ett PASS bredvid en kollision (regel 5,
+    utokad). Kommer texten utifran ar den ett kontraktsfel, och grinden ger
+    NOT GOLD med kontraktets egen dom."""
     r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
     r.sektion("MOTION")
     r.rad("GRIP FORMED t=1.0s dist=0.0mm")
@@ -158,9 +179,13 @@ def test_PASS_med_kollision_ar_inte_guld():
     r.rad("COLLISION gripare x fixtur t=3.100s")
     r.sektion("HONESTY")
     r.rad("NEVER_GRIPPED OK")
-    r.satt_dom("PASS", "ser bra ut")
-    b = _grind().doma([_cell(eyes=r.text())])
-    assert b.guld is False and "COLLISION" in b.skal
+    _granser(r)
+    with pytest.raises(K.Kontraktsfel):
+        r.satt_dom("PASS", "ser bra ut")
+    r.satt_dom("FAIL", "kollision")
+    text = r.text().replace("EYES VERDICT FAIL kollision", "EYES VERDICT PASS ser bra ut")
+    b = _grind().doma([_cell(eyes=text)])
+    assert b.guld is False and "malformed" in b.skal
 
 
 def test_COLLISION_none_ar_inte_en_kollision():
@@ -182,6 +207,7 @@ def test_grinden_laser_inte_ut_nagra_tal():
     r.rad("PLACE IN_TARGET err=999.0mm z=0.750m")   # ogat kallade det ratt
     r.sektion("HONESTY")
     r.rad("NEVER_GRIPPED OK")
+    _granser(r)
     r.satt_dom("PASS", "inom den har cellens tolerans")
     assert _grind().doma([_cell(eyes=r.text())]).guld is True
 
@@ -218,6 +244,7 @@ def test_en_rapport_utan_HONESTY_ar_inte_guld():
     r.rad("GRIP FORMED t=1.0s dist=0.0mm")
     r.rad("CARRY RIGID rot=0.0deg span=4.0s")
     r.rad("PLACE IN_TARGET err=1.0mm z=0.7m")
+    _granser(r)
     r.satt_dom("PASS", "ser bra ut")
     b = _grind().doma([_cell(eyes=r.text())])
     assert b.guld is False and "HONESTY" in b.skal
@@ -226,9 +253,82 @@ def test_en_rapport_utan_HONESTY_ar_inte_guld():
 def test_en_rapport_utan_MOTION_ar_inte_guld():
     r = K.Rapport("utan", "2026-09-04T00:00:00", 9.0, 180, 20.0)
     r.sektion("HONESTY"); r.rad("NEVER_GRIPPED OK")
+    _granser(r)
     r.satt_dom("PASS", "ser bra ut")
     b = _grind().doma([_cell(eyes=r.text())])
     assert b.guld is False and "MOTION" in b.skal
+
+
+# ---- v2 (M-65): rapporten maste saga vad ogat INTE ser ------------------
+
+def test_en_rapport_utan_LIMITS_ar_inte_guld():
+    """TRASIG FIXTUR (M-65 §6). Samma rapport som ger guld, utan LIMITS.
+
+    Ogat ar felfinnande, aldrig bevis. Sensorstuds, stalldonsdynamik,
+    faltbussjitter och degraderade lagen finns inte i simuleringen, och det
+    ska sta i rapporten - som en sektion grinden kraver, inte som en fotnot.
+    """
+    b = _grind().doma([_cell(eyes=_ogonrapport(granser=False))])
+    assert b.guld is False and "LIMITS" in b.skal
+
+
+def test_en_v1_rapport_lases_men_ar_inte_guld_langre():
+    """v1 ar en delmangd av v2 och lases. Men den saknar LIMITS, och da ar
+    den inte guld: det finns ingen vag runt kravet genom att tala v1."""
+    text = _ogonrapport(granser=False).replace("EYES v2", "EYES v1", 1)
+    assert K.las(text).version == 1
+    b = _grind().doma([_cell(eyes=text)])
+    assert b.guld is False and "LIMITS" in b.skal
+
+
+def test_LIMITS_maste_namna_varje_sak_som_inte_finns_i_simuleringen():
+    """En rubrik ar ingen arlighet. Grinden laser namnen ur kontraktets egen
+    lista - saknas ett ar sektionen ofullstandig."""
+    text = _ogonrapport().replace("  NOT_SIMULATED fieldbus_jitter\n", "")
+    b = _grind().doma([_cell(eyes=text)])
+    assert b.guld is False and "fieldbus_jitter" in b.skal
+
+
+def test_LIMITS_maste_bara_en_upplosning():
+    text = "\n".join(r for r in _ogonrapport().splitlines()
+                     if not r.startswith("  RESOLUTION")) + "\n"
+    b = _grind().doma([_cell(eyes=text)])
+    assert b.guld is False and "RESOLUTION" in b.skal
+
+
+@pytest.mark.parametrize("rad", [
+    ("SEQUENCE", "STEP 0 plc:stopp RISE MISSING win=0.00s..0.50s"),
+    ("SEQUENCE", "STEP 1 plc:stopp FALL TOO_LATE t=3.400s win=1.50s..2.50s"),
+    ("SEQUENCE", "INTERLOCK plc:stopp+plc:slapp BROKEN overlap=0.750s"),
+    ("TIMING", "PHASE plc:Start -> grip_out dt=510.0ms tol=100.0ms res=63.5ms OUT_OF_TOL"),
+    ("THROUGHPUT", "STARVED station1 9.500s req=1.000s EXCEEDED"),
+    ("SCENE", "UNCOMMANDED stallage dist=500.0mm t=2.000s"),
+    ("SCENE", "FLUNG del 5.39m/s t=2.500s"),
+    ("SCENE", "THINNED factor=64 CEILING budget=5.0ms median=15.200ms"),
+])
+def test_ett_v2_fynd_bredvid_PASS_ar_inte_guld(rad):
+    """Regel 5, utokad: orden ar ogats egna, och grinden laser dem som HELA
+    ord - "LATE" inne i "LATENCY" far inte falla en rapport."""
+    sektion, text = rad
+    r = K.Rapport("plocka", "2026-09-04T18:00:00", 9.5, 190, 20.0)
+    r.sektion("MOTION"); r.rad("GRIP FORMED t=0.950s dist=0.0mm")
+    r.sektion("TIMING"); r.rad("LATENCY grip_out -> gripper 20.0ms")
+    r.sektion(sektion); r.rad(text)
+    r.sektion("HONESTY"); r.rad("NEVER_GRIPPED OK")
+    _granser(r)
+    with pytest.raises(K.Kontraktsfel):
+        r.satt_dom("PASS", "ser bra ut")
+    r.satt_dom("FAIL", "fynd")
+    smugglad = r.text().replace("EYES VERDICT FAIL fynd", "EYES VERDICT PASS ser bra ut")
+    b = _grind().doma([_cell(eyes=smugglad)])
+    assert b.guld is False
+
+
+def test_LATENCY_faller_inte_pa_ordet_LATE():
+    """Den andra riktningen for ordmatchningen."""
+    text = _ogonrapport(extra="GRIP FORMED t=0.950s dist=0.0mm").replace(
+        "SECTION SAFETY", "SECTION TIMING\n  LATENCY grip_out -> gripper 20.0ms\nSECTION SAFETY")
+    assert _grind().doma([_cell(eyes=text)]).guld is True
 
 
 def test_en_fullstandig_rapport_ar_fortfarande_guld():

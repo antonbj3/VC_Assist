@@ -76,7 +76,9 @@ UPPGIFTS_ID = tuple(sorted(u.id for u in BANK))
 #
 # KRAVER_UPPGIFT: en bankuppgifts scen ar en lista URI:er som ska laddas
 # innan uppgiften kan koras, alltsa app.load - samma yta som load_component.
-KRAVER_RAPPORT = ("app.findComponent", "node.WorldPositionMatrix")
+# app.Components lades till av M-65 (42_ogat_utbyggt.md §11): ogat provtar
+# HELA scenen genom den ytan i varje prov sedan utbyggnaden.
+KRAVER_RAPPORT = ("app.findComponent", "node.WorldPositionMatrix", "app.Components")
 KRAVER_UPPGIFT = ("app.load",)
 
 
@@ -100,7 +102,9 @@ _FACITRAD = {
     "description": "En facitrad: en sektion och en radmall dar * star for vilket tal som helst.",
     "properties": {
         "section": {"type": "string",
-                    "description": "Ogats sektion: MOTION, TIMING, THROUGHPUT, SAFETY eller HONESTY."},
+                    "description": ("Ogats sektion (EYES v2, M-65): MOTION, TIMING, "
+                                    "SEQUENCE, THROUGHPUT, SAFETY, SCENE, HONESTY "
+                                    "eller LIMITS.")},
         "template": {"type": "string", "description": "Radmallen, i ogats egen grammatik."},
     },
     "required": ["section", "template"],

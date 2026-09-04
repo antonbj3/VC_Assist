@@ -4,19 +4,10 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 25
+## Mätningar utan ärlighetsavsnitt: 16
 
 En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
 
-* `M-01_tillaggsmekanismen.md`
-* `M-02_prefixisolering.md`
-* `M-03_takt.md`
-* `M-04_exekveringsmodellen.md`
-* `M-05_skrivningar_och_pump.md`
-* `M-06_pumpen_fungerar.md`
-* `M-07_motorn_ar_stackless.md`
-* `M-08_vaggklockspumpen.md`
-* `M-09_tyst_syntaxfel.md`
 * `M-11_kvaternion_och_varldsmatris.md`
 * `M-12_onidle_fyrar_inte.md`
 * `M-13_vad_som_dodar_pumpen.md`
@@ -32,9 +23,93 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * `M-40_varfor_mataren_aldrig_fyrade.md`
 * `M-44_windows_oprovat.md`
 * `M-47_verktygstackning_runda_1.md`
-* `M-65_ogat_pa_djupet.md`
+* `M-50_de_trasiga_fallen.md`
 
-## Vad mätningarna säger att de inte vet: 82 punkter
+## Vad mätningarna säger att de inte vet: 171 punkter
+
+### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
+
+* Allt är mätt i ett Wine-prefix på Linux mot VC Premium 4.10. Ingen rad är mätt
+* Raden *"`threading` — importerbar"* säger att modulen går att importera. Att en
+* `socket.bind("127.0.0.1", 8901)` är mätt som en **bindning**. Att någon utifrån
+* Listan över verifierade API-ytor säger att namnen finns och svarade i
+* "Trasiga tillägg misslyckas tyst"* vilar på **ett** avsiktligt syntaxtrasigt
+* Scopeindelningen är prövad genom kroken `OnAppInitialized` och ett kommando.
+* Sökvägsfyndet är mätt som "den ena vägen fyrar, den andra inte" i ett prefix.
+
+### M-02_prefixisolering.md — Vad som INTE är mätt
+
+* Exakt **en** utlänkad mapp är prövad: `Documents`. Regeln mätningen skriver ned
+* Att omdirigeringen faktiskt **ger** isolering är inte efterprövat. Ingen mätning
+* Påståendet att en kopia av prefixet delar `My Commands` med originalet är
+* härlett** ur symlänken. Inget prefix kopierades och ingen delad fil
+* Mätt under Wine 11.16 på den här maskinen. Att en färsk `wineboot` i en annan
+* "Kontrollen ska ingå i fas 0:s acceptans"* är ett förslag i den här texten.
+
+### M-03_takt.md — Vad som INTE är mätt
+
+* Varje tal är **en** körning. 224,7 Hz, 17,2 Hz, medianen och värstafallet har
+* Svarstiden är tjugo tur-och-retur från **en** klient över **en** anslutning på
+* "Värsta av 20"* är värsta av tjugo. Tjugo punkter kan inte mäta en svans: en
+* Att de ~8 ms per varv är `tick()`:s eget arbete är en **förklaring**, inte en
+* Faslåsningen mellan pump och klient är sluten ur att medianen låg på 49,93 ms
+* Talen är mätta mot Wines schemaläggare på den här maskinen, headless `:99`,
+* Kostnaden för den adaptiva pumpens tomma varv är inte mätt. Den avfärdas med
+
+### M-04_exekveringsmodellen.md — Vad som INTE är mätt
+
+* Varje **Nej** i tabellen är en frånvaro mätt över ett ändligt fönster: 135 s
+* Sökningen efter en generell timer är en **ordsökning** på nio namn i API:t.
+* `OnIdle` prövades bunden, headless, med appen stilla. Om den fyrar med
+* De tre kandidaterna under *Öppen fråga* är uppräknade, inte prövade. Ingen av
+* `vcScript` beskrivs ur dokumentationen — `OnRun`, `delay`, `condition`,
+* Allt är mätt headless på `:99` under Wine. Att VC med gränssnitt beter sig
+
+### M-05_skrivningar_och_pump.md — Vad som INTE är mätt
+
+* Bytesträngsfyndet är mätt på **fyra** anrop. Invarianten *"all text som skickas
+* `_s()` är prövad i VC:s Stackless Python 2.7. Att den är en no-op på VC 5.0
+* `sim.run(30.0)` på 0,04 s väggklocka är **en** körning i en scen utan arbete.
+* Att `first_state()` aldrig anropas är mätt som frånvaro. **Varför** den inte
+* Metodfelet i texten (fyra körningar felsökta på fel rad) är rättat i just det
+* `dir()` på `vcScript` visade bara metoder medan `Script` gick att nå ändå.
+
+### M-06_pumpen_fungerar.md — Vad som INTE är mätt
+
+* De 560 varven och *"exakt 20,0 Hz"* är mätta i **simuleringstid**. Samma text
+* Att `from vcScript import *` är **nödvändig** är mätt. Att den är tillräcklig
+* Slutsatsen om `SimSpeed` (*"att sätta den ändrade ingenting"*) är dragen under
+* Hook-ordningen `OnReset → OnStart → OnRun → OnStop` är avläst ur **en**
+* `vcApplication.delayRealTime` står som kandidat och är märkt oprövad i texten.
+* Bekräftelsen ur `Commands/Wizards/SensorWizard.py` är en läsning av
+
+### M-07_motorn_ar_stackless.md — Vad som INTE är mätt
+
+* Trådsvälten är mätt i **en** uppställning: en daemon-tråd som skriver var
+* Mekanismen — *"VC:s egen meddelandeloop släpper inte GIL"* — är en förklaring
+* "Noll varv, för alltid"* är inte en mätbar storhet. Mätningen varade så länge
+* `import clr` och `import System` gav ImportError i **det här** scopet. Att .NET
+* De 91 metoderna på applikationsobjektet är en `dir()`-räkning. Vilka som
+* Versionssträngen är läst en gång i ett prefix. Att VC Premium 4.10 alltid bär
+
+### M-08_vaggklockspumpen.md — Vad som INTE är mätt
+
+* Kvoten 1,000 är mätt över **en** körning på 155 s, i en tom scen, med en pump
+* "3 100 varv utan ett enda missat"* räknas ur skriptets **egen** räknare. Ett
+* Driften *"under 0,01 s över 155 s"* är en körning på tre minuter. Om driften
+* Att `SimSpeed` styr interaktiv uppspelning och inte satskörning är en
+* förklaring** till M-06:s utfall. Den prövades inte här genom att sätta
+* Att `sim.SimTime` läst ur kommandots scope stod kvar på 0,000 är mätt.
+* Vad som händer med köade begäran när operatören stoppar simuleringen är
+* Hela mätningen är gjord headless under Wine. Att `startSimulation()` beter sig
+
+### M-09_tyst_syntaxfel.md — Vad som INTE är mätt
+
+* Ett** fall: en trasig trippelcitering i en fil. Att `loadCommand` ger ett
+* Grinden `tests/enhet/test_tillagg_syntax.py` parsar med **värdmaskinens
+* Kostnaden *"0,05 s"* är en körning på den här maskinen.
+* "Tre gånger nu har VC svalt ett fel tyst"* är en räkning av tre observerade
+* Slutsatsen att felet *"måste fångas på disk, före start"* är rätt för det här
 
 ### M-20_plcbandet.md — 9. Vad som inte är mätt
 
@@ -100,7 +175,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Reproducerbarhet.** STruC++ ligger i en sessionskatalog, inte i repot, och
 * Flera stationer.** En station, tre trasiga fall.
 
-### M-49_stationen_som_arbetar.md — Vad som INTE är visat
+### M-49_stationen_arbetar.md — Vad som INTE är visat
 
 * Nödstoppet.** Den skyddade ingången kan inte drivas från kopplaren och står
 * Att simuleringen kan gå i realtid med slingan sluten.** Kvoten mättes till
@@ -169,23 +244,65 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * Rangordningen.** Träffar sorteras på kortast namn först, vilket är rätt för
 * "IRB 120"* mot *"IRB 120-3/0.6 LID"*. Om det är rätt regel i allmänhet är
 
+### M-64_vad_anvandaren_ser_medan_det_arbetar.md — 9. Vad detta INTE bevisar
+
+* Ingen VC kördes.** Inget i den här mätningen har varit i närheten av
+* Ingen språkmodell kördes.** Reparationsslingan drivs av en manusmodell.
+* Ingen operatör har läst ytan.** Att texten är läsbar är min bedömning,
+* Tystnadstaket är inte mätt.** 5 s kommer ur specen och specen kallar det
+* `MAX_HANDELSERADER = 12` är vald mot teckenkostnaden, inte mot
+* Ytan är inte trådsäker och har ingen processgräns.** `Forlopp` förs av
+* De fem posterna utanför räckvidd är en avskrift, inte en mätning.** De
+* Grinden ser inte ett protokoll som ljuger.** Den dömer texten mot
+* Fält 1 och 7 finns inte.** Samtalet och systemläget kräver en levande
+* Ingenting driver ytan än.** Den går att driva, och det är en annan sak än
+
+### M-65_ogat_pa_djupet.md — Vad som INTE är mätt
+
+* Ingenting är kört i VC.** Allt här är fixturer, syntetiska serier och
+* Ögat är felfinnande, aldrig bevis.** Sensorstuds, ställdonsdynamik,
+* Hopfogningens osäkerhet täcker inte PLC:ns egen skanfördröjning** (40 ms,
+* Hopfogningen är mätt mot M-42:s rigg, inte mot VC:s brygga.** Riggens
+* Upplösningsformeln är prövad mot slumpen, inte mot en verklig kopplare.**
+* Läsintervallet är det ögat ser, inte kopplarens verkliga.** Läser
+* `measureDistance` under en körande simulering** är oprövat: M-36 mätte
+* Fem domare mot VC-byggda celler** (P15-8) är oprövat. Matrisen är mätt
+* `aldrig_gripen` fälls av två skikt.** Grepp-domaren och kontraktets
+* 35 av ögats 49 konstanter är fortfarande PRELIMINÄRA** (M-10, M-18, M-19).
+* `41_ogat_kontrakt.md` beskriver v1** medan koden talar v2. Förslaget står
+* Windows.**
+
 ### M-68_kod_utan_prov.md — Vad som INTE är mätt
 
 * Om proven faktiskt provar något.** Kriteriet är grovt: nämns modulens
 * Om de fem utan prov är farliga.** Radantal är inte risk. `layoutport.py` kan
 * Protokollkörningarna själva.** Ingen av dem har prov, och det är rimligt —
 
-## Produktionsmoduler som ingen provfil nämner: 5 (1229 rader)
+### M-69_tre_svar_pa_hur_manga_robotar.md — Vad som INTE är mätt
+
+* 699 komponenter har ingen familjemarkör alls.** De är varken robot,
+* Om markörlistan är fullständig.** Sju markörer, tagna ur M-59. En komponent
+* Ordningen mellan markörerna är oprövad.** Noll av 3201 bär både en
+* Om `Category`-fältet någonsin är sannare än strukturen.** Antaget nej, inte
+
+### M-71_ren_maskin_utan_vc.md — Vad som fortfarande INTE är prövat
+
+* Att VC startar med det installationen lade dit.** Det är fas 10:s enda
+* Windows och macOS.** Manifestet bär posterna; ingen har kört dem. M-44 har
+* En maskin utan node.** Kedjan kräver `node` och använder det som finns
+* En maskin utan nät.** Hämtningen förutsätter åtkomst till GitHub och npm.
+* En maskin utan docker.** OpenPLC-avbilden dras av docker, inte av oss.
+* Klonen är lokal.** `git clone --local` från samma disk, inte över nätet.
+
+## Produktionsmoduler som ingen provfil nämner: 3 (786 rader)
 
 * `svc/vc_assist_svc/layout/vc_utdata.py` — 143 rader
-* `svc/vc_assist_svc/plan/layoutport.py` — 194 rader
+* `svc/vc_assist_svc/plan/layoutport.py` — 264 rader
 * `svc/vc_assist_svc/plan/villkorssprak.py` — 379 rader
-* `svc/vc_assist_svc/plc/baslinje/morfologi.py` — 288 rader
-* `svc/vc_assist_svc/plc/baslinje/packml.py` — 225 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (1427 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (656 rader)
 
-* `svc/vc_assist_svc/komponentfil.py` — 1005 rader
+* `svc/vc_assist_svc/plan/bestallning.py` — 234 rader
 * `svc/vc_assist_svc/plan/processer.py` — 287 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
@@ -198,7 +315,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 ### vc_assist_svc/harness/fallor.py
 
 * vc_assist_svc/harness/fallor.py:24  trasig fixtur ar oprovad (S2 i 96_ingen_skuld.md, och 95_testprotokoll).
-* vc_assist_svc/harness/fallor.py:964  "orden 'kvar, och inte lagat': arlighetsgrinden fragade "
+* vc_assist_svc/harness/fallor.py:970  "orden 'kvar, och inte lagat': arlighetsgrinden fragade "
 
 ### vc_assist_svc/verktyg/formagegrind.py
 
@@ -287,7 +404,7 @@ En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är
 * vc_addon/vc_assist/oga_harledning.py:91  UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:94  UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:96  FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_harledning.py:1127  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+* vc_addon/vc_assist/oga_harledning.py:1135  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
 
 ### vc_addon/vc_assist/oga_provtagning.py
 

@@ -359,23 +359,70 @@ def test_en_trasig_cell_falls_av_RATT_domare_och_av_ingen_annan(namn, domare):
         "domsraden namner inte domaren: %r" % rapport.dom[1]
 
 
+def _analysens_egen_dom(namn):
+    """Analysens EGEN dom, fore kontraktets regel 5. Skrivaren far inte saga
+    nej har - det ar just analysen som ska provas."""
+    b, plan = celler.ALLA[namn]()
+    a = A.Analys(b.data(), plan)
+    try:
+        a.rapport()
+    except K.Kontraktsfel:
+        pass
+    return a.harledt.get("_dom_provad")
+
+
 @pytest.mark.parametrize("domare", A.Analys.DOMARE)
 def test_slacks_en_domare_blir_exakt_dess_celler_grona(domare, monkeypatch):
     """Mutation: EN domare svarar 'ingen fraga stalld'. Da ska varje cell som
-    hor till den sluta falla, och varje cell som hor till en annan falla
-    precis som forut. Det ar beviset for att domaren bar sina egna celler
-    och inte lutar sig mot en granne."""
-    fore = dict((namn, _domar(namn)[0].dom[0]) for namn, _d in TRASIGA)
+    hor till den sluta falla i ANALYSENS egen dom, och varje cell som hor
+    till en annan falla precis som forut. Det ar beviset for att domaren bar
+    sina egna celler och inte lutar sig mot en granne.
+
+    Kontraktet ar ett ANDRA skikt: regel 5 (v2) forbjuder ett PASS bredvid
+    en STEP MISSING-rad, en STARVED EXCEEDED-rad och sa vidare, sa en slackt
+    domare ger da ett Kontraktsfel i stallet for ett PASS. Det provas for sig
+    i test_kontraktet_vagrar_ett_PASS_nar_domaren_ar_slackt. Har provas
+    domaren, och da lases domen fore kontraktet.
+    """
+    orig = A.Analys._dom
+
+    def bevarande(self, *a, **kw):
+        dom = orig(self, *a, **kw)
+        self.harledt["_dom_provad"] = dom
+        return dom
+    monkeypatch.setattr(A.Analys, "_dom", bevarande)
+    fore = dict((namn, _analysens_egen_dom(namn)[0]) for namn, _d in TRASIGA)
+    assert all(v == "FAIL" for v in fore.values()), fore
     monkeypatch.setattr(A.Analys, "_doma_" + domare,
                         lambda self, h: (None, [], {}))
     for namn, egen in TRASIGA:
-        dom = _domar(namn)[0].dom[0]
+        dom = _analysens_egen_dom(namn)[0]
         if egen == domare and namn not in TVINGADE_AV_HONESTY:
             assert dom != "FAIL", ("%s foll fastan domaren %s ar slackt: nagon "
                                    "annan faller den" % (namn, domare))
         else:
-            assert dom == fore[namn] == "FAIL", (
-                "%s andrade dom nar %s slacktes" % (namn, domare))
+            assert dom == "FAIL", (
+                "%s andrade dom till %s nar %s slacktes" % (namn, dom, domare))
+
+
+@pytest.mark.parametrize("domare", A.Analys.DOMARE)
+def test_kontraktet_vagrar_ett_PASS_nar_domaren_ar_slackt(domare, monkeypatch):
+    """Det andra skiktet. Raderna ar ogats egna ord, och kontraktets regel 5
+    (v2) later inte ett PASS sta bredvid dem - aven om analysens domare ar
+    slackt. Ett fynd i en rad kan inte tigas ihjal av domsraden."""
+    monkeypatch.setattr(A.Analys, "_doma_" + domare,
+                        lambda self, h: (None, [], {}))
+    for namn, egen in TRASIGA:
+        if egen != domare or namn in TVINGADE_AV_HONESTY:
+            continue
+        b, plan = celler.ALLA[namn]()
+        a = A.Analys(b.data(), plan)
+        try:
+            r = a.rapport()
+        except K.Kontraktsfel as e:
+            assert "regel 5" in str(e) or "tvingar" in str(e), str(e)
+            continue
+        assert r.dom[0] != "PASS", (namn, r.dom)
 
 
 @pytest.mark.parametrize("namn", sorted(celler.ALLA))

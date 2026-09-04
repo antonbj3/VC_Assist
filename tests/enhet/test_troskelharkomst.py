@@ -184,6 +184,7 @@ def test_en_specreferens_pekar_pa_ett_dokument_som_finns():
 
 
 @pytest.mark.parametrize("modul", ["oga_analys.py", "oga_provtagning.py",
+                                   "oga_harledning.py",     # M-65, 42_ogat_utbyggt.md §11
                                    "oga_kontrakt.py", "skrivgrind.py", "pump.py"])
 def test_ogats_och_bryggans_trosklar_bar_alla_harkomst(modul):
     """De moduler som domer, och den som skyddar scenen, har noll skuld.

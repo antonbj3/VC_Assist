@@ -30,11 +30,18 @@ KANDIDAT = "candidate"
 INTE_GULD = "NOT GOLD"
 
 # Kategoriska ord i ogats egna rader som betyder att nagot gick fel. De ar
-# ORD, inte matt - grinden laser dem, den raknar inte om dem.
+# ORD, inte matt - grinden laser dem, den raknar inte om dem. Matchas som
+# HELA ord: "LATE" ligger inne i "LATENCY", och en delstrangsmatchning hade
+# fallt varje rapport med en latensrad (M-65 §6).
 DALIGA_ORD = (
     "NEVER_FORMED", "SLIPPING", "OFF_TARGET", "DROPPED",
     "VIOLATION", "SHORT",
+    # v2 (M-65): sekvens, timing, genomflode och scen.
+    "MISSING", "TOO_LATE", "TOO_EARLY", "BROKEN", "EXCEEDED", "OUT_OF_TOL",
+    "CEILING",
 )
+# Rader som ar ett fynd sa fort de inte sager none.
+INTE_NONE = ("COLLISION", "UNCOMMANDED", "IDLE_COMMANDED", "FLUNG")
 
 # Sektioner som MASTE finnas for att domen ska betyda nagot.
 #
@@ -42,7 +49,10 @@ DALIGA_ORD = (
 # FAIL, men regeln ar TOM om sektionen inte finns. En rapport utan HONESTY har
 # alltsa ingen arlighetsgrind alls, och den sag ut som guld.
 # MOTION ar med for att en dom utan en enda rorelserad inte har domt nagot.
-OBLIGATORISKA_SEKTIONER = ("MOTION", "HONESTY")
+# LIMITS (v2, M-65): en rapport som inte sager vad ogat INTE ser har inte
+# sagt allt. Ogat ar felfinnande, aldrig bevis - och det ska sta i rapporten
+# som en sektion grinden kraver, inte som en fotnot i ett dokument.
+OBLIGATORISKA_SEKTIONER = ("MOTION", "HONESTY", "LIMITS")
 
 # Grindarna 1-4 i kedjan. Ogat ar grind 5 och domer sig sjalvt.
 FORGRINDAR = ("kompilering", "statisk_analys", "deklarationsmatchning",
@@ -119,16 +129,31 @@ class Guldgrind(object):
             return False, "%s: ogat sa %s (%s)" % (
                 namn, varde, rapport.dom[1] if rapport.dom else "utan skal")
 
+        # LIMITS ska saga VAD ogat inte ser - inte bara finnas. Grinden laser
+        # namnen ur kontraktets egen lista och kraver en upplosningsrad; en
+        # sektion utan dem ar en rubrik, inte en arlighet.
+        granser = rapport.rader_i("LIMITS")
+        deklarerade = set(r.split()[1] for r in granser
+                          if r.startswith("NOT_SIMULATED ") and len(r.split()) > 1)
+        saknas = [x for x in K.EJ_SIMULERAT if x not in deklarerade]
+        if saknas:
+            return False, ("%s: LIMITS sager inte att %s saknas i simuleringen"
+                           % (namn, ", ".join(saknas)))
+        if not any(r.startswith("RESOLUTION ") for r in granser):
+            return False, "%s: LIMITS bar ingen RESOLUTION-rad" % namn
+
         # Ogats dom ar auktoritativ, men en rapport far inte motsaga SIG SJALV.
         # Att lasa ett kategoriskt ord ur ogats egen rad ar inte att rakna om
         # ett matt - grinden mater ingenting, den upptacker en sjalvmotsagelse.
         for _sektion, rader in rapport.sektioner:
             for rad in rader:
+                ord_i_raden = rad.split()
                 for ord_ in DALIGA_ORD:
-                    if ord_ in rad:
+                    if ord_ in ord_i_raden:
                         return False, ("%s: rapporten sager PASS men bar raden "
                                        "%r" % (namn, rad))
-                if rad.startswith("COLLISION ") and rad != "COLLISION none":
+                if (ord_i_raden and ord_i_raden[0] in INTE_NONE
+                        and len(ord_i_raden) > 1 and ord_i_raden[1] != "none"):
                     return False, "%s: rapporten sager PASS men bar %r" % (namn, rad)
         return True, "ogat sa PASS"
 

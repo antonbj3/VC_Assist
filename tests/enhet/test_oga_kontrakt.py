@@ -45,7 +45,7 @@ def test_skrivare_och_lasare_ar_varandras_invers():
 # ---- regel 1: versionen -------------------------------------------------
 
 def test_okand_version_ger_egen_grinddom():
-    t = _rapport().text().replace("EYES v1", "EYES v7", 1)
+    t = _rapport().text().replace("EYES v2", "EYES v7", 1)
     with pytest.raises(K.OkandVersion) as ei:
         K.las(t)
     assert ei.value.grinddom == "NOT GOLD (unknown eyes version)"
@@ -199,6 +199,27 @@ def test_alla_kanda_radtyper_gar_att_bygga_och_lasa_tillbaka():
         ("HONESTY", "BLOWUP"): ["BLOWUP OK", "BLOWUP VIOLATION vmax=99.0m/s"],
         ("HONESTY", "UNDERGROUND"): ["UNDERGROUND OK", "UNDERGROUND VIOLATION zmin=-1.0m"],
         ("HONESTY", "NEVER_GRIPPED"): ["NEVER_GRIPPED OK", "NEVER_GRIPPED VIOLATION"],
+        # v2 (M-65 §6)
+        ("TIMING", "PHASE"): ["PHASE plc:Start -> grip_out dt=110.0ms tol=300.0ms res=63.5ms OK",
+                              "PHASE plc:Start -> grip_out dt=0.0ms tol=20.0ms res=unknown INCONCLUSIVE"],
+        ("SEQUENCE", "CYCLES"): ["CYCLES judged=3 broken=0 late=0 truncated=1 req=2"],
+        ("SEQUENCE", "STEP"): ["STEP 0 plc:stopp RISE MISSING win=0.00s..0.50s",
+                               "STEP 2 plc:slapp FALL TOO_LATE t=3.500s win=2.00s..3.30s"],
+        ("SEQUENCE", "COUNT"): ["COUNT 1 plc:stopp n=2 max=1 EXCEEDED"],
+        ("SEQUENCE", "INTERLOCK"): ["INTERLOCK plc:stopp+plc:slapp OK overlap=0.000s",
+                                    "INTERLOCK a+b INCONCLUSIVE overlap=0.000s"],
+        ("THROUGHPUT", "STARVED"): ["STARVED st1 9.500s req=1.000s EXCEEDED"],
+        ("THROUGHPUT", "BLOCKED"): ["BLOCKED st1 0.000s req=1.000s OK"],
+        ("THROUGHPUT", "BOTTLENECK"): ["BOTTLENECK none", "BOTTLENECK st1 starved 100.0%"],
+        ("SCENE", "OBJECTS"): ["OBJECTS total=6 moving=2 still=4 unread=0"],
+        ("SCENE", "THINNED"): ["THINNED factor=1 OK budget=5.0ms median=0.021ms"],
+        ("SCENE", "UNCOMMANDED"): ["UNCOMMANDED none", "UNCOMMANDED stallage dist=500.0mm t=2.000s"],
+        ("SCENE", "IDLE_COMMANDED"): ["IDLE_COMMANDED none", "IDLE_COMMANDED band_ut -> band_in t=2.000s"],
+        ("SCENE", "FLUNG"): ["FLUNG none", "FLUNG del 5.39m/s t=2.500s"],
+        ("LIMITS", "NOT_SIMULATED"): ["NOT_SIMULATED sensor_bounce"],
+        ("LIMITS", "RESOLUTION"): ["RESOLUTION sample=50.0ms read=50.0ms join=13.45ms PRIOR phase=63.5ms",
+                                   "RESOLUTION sample=50.0ms read=unknown join=5.30ms RUN phase=unknown"],
+        ("LIMITS", "EXCLUDED"): ["EXCLUDED plc_scan 40.0ms"],
     }
     assert set(prov) == set(K.RADER), "varje radtyp i RADER maste ha ett prov"
     for (sektion, _), rader in prov.items():
