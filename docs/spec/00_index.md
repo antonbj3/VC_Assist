@@ -5,12 +5,12 @@
 | `01_kalldisciplin.md` | Regel för källor, dokumentens ålder, omprövade påståenden | klar |
 | `10_matta_fakta.md` | Allt som är MÄTT i VC, OpenPLC och Wine. Med härkomst. | klar |
 | `20_arv.md` | Vad som ärvs ur Isaac Assist, komponent för komponent | klar |
-| `30_arkitektur.md` | Lagren, processgränserna, dataflödet | utkast |
-| `40_ogat.md` | vc_eyes: vad som provtas, vad som härleds, domskontraktet | utkast |
-| `50_grindar.md` | Grindkedjan och vad varje grind fångar | utkast |
-| `60_plc.md` | OpenPLC v4, OPC UA, deklarationsgenerering, inladdning | utkast |
-| `70_faser.md` | Faser, och den mätta grind som stänger varje fas | utkast |
-| `80_bank.md` | Egen mätbänk: vad vi mäter och hur vi rapporterar | utkast |
+| `30_arkitektur.md` | Lagren, processgränserna, dataflödet | klar |
+| `40_ogat.md` | vc_eyes: vad som provtas, vad som härleds, domskontraktet | klar |
+| `50_grindar.md` | Grindkedjan och vad varje grind fångar | klar |
+| `60_plc.md` | OpenPLC v4, OPC UA, deklarationsgenerering, inladdning | klar |
+| `70_faser.md` | Faser, och den mätta grind som stänger varje fas | klar |
+| `80_bank.md` | Egen mätbänk: vad vi mäter och hur vi rapporterar | klar |
 
 ## Regel för hela specen
 
