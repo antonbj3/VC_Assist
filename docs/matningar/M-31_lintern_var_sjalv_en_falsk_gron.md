@@ -61,3 +61,28 @@ betyder något — det är samma sorts fel som ett test som läser källkod som 
 när det verkliga värdet är något annat.
 
 Lintern hade varit grön i hela projektets livstid.
+
+## Vad som INTE är mätt
+
+* **Talet 125 kommer ur den ombyggda lintern, och den var inte prövad mot ett
+  känt svar när mätningen skrevs.** M-46 gjorde det provet senare med en
+  AST-genomgång och mätte att regexen var blind för `_TROSKEL`, exponentform
+  (`1e-9`), indragna rader, uttryck (`0.5 * 10`), anrop (`int(5)`), ordböcker,
+  typannoteringar och två tilldelningar på en rad. Skulden visade sig inte vara
+  större — den enda verkliga träffen var `verifiering._FLYTTALSMARGINAL` — men
+  den här mätningen kunde inte veta det. Den bytte ett instrument vars täckning
+  ingen mätt mot ett annat instrument vars täckning ingen mätt.
+* Vad som **räknas** som en tröskelkonstant är linterns egen definition. Ett tal
+  mitt i ett uttryck, ett standardvärde i en signatur eller ett värde i en tabell
+  ingår inte i de 125.
+* Lintern kontrollerar att en hänvisad mätning **finns**. Att mätningen faktiskt
+  sätter just den konstanten är inte kontrollerat — formkontrollen är flyttad ett
+  steg, inte borttagen, och det är samma felklass som mätningen själv namnger.
+* Talen 79 och 67 är båda mätta med den **nya** lintern. Ingen av dem går att
+  jämföra med något som mätts före ombyggnaden, så *"skulden gick från 79 till
+  67"* mäter en omskrivning, inte en förbättring av koden.
+* Vilka av de 125 trösklarna som är **fel** är inte mätt. Mätningen räknar
+  härkomst, inte riktighet: en tröskel med en giltig hänvisning till en mätning
+  som satte fel värde räknas som grön.
+* De 27 döda hänvisningarna är räknade en gång. Att ingen ny död hänvisning kan
+  smyga in vilar på spärren, och spärren läser samma linter.

@@ -78,3 +78,24 @@ Fasen står alltså öppen, och den står öppen på en **mätt** orsak.
 Acceptanskörningen `tests/protocol/kor_fas5_layout.py` räknar det trasiga fallet
 som ett underkännande, så den kan inte bli grön förrän detektorn faktiskt fäller
 ett överlapp. Det är hela poängen med att köra det trasiga fallet.
+
+## Vad som INTE är mätt
+
+* **Rätt observation, fel diagnos.** M-36 mätte orsaken: `NodeListA` tar emot en
+  lista och **tömmer** den. Detektorn hade ingenting att jämföra. Varje rad i
+  tabellen här mäter alltså en tom nodlista, inte en detektor som ser fel — och
+  raden `testMinimumDistance(5000.0) → False` såg ut som ett svar om geometri.
+* Hypotesen under *Trolig orsak, omätt* — att detektorn måste ligga i layouten —
+  prövades i M-36 och var **fel**. En detektor skapad som layoutpost via
+  `app.createLayoutItem` ger också noll.
+* De fyra gröna layouterna mäter att fyra scener gick att **bygga**. De mäter
+  ingenting om kollisioner, och texten säger det.
+* Det trasiga fallet är **två kuber**, en uppställning, en förskjutning. Att
+  detektorn skulle fungera för någon annan geometri är inte uteslutet av
+  mätningen.
+* `StopOnCollision`-fyndet gäller det objekt `sim.newCollisionDetector()`
+  returnerar. Om egenskapen finns på en detektor skapad på annat sätt är inte
+  mätt, och `try`-omslutningen i provtagaren är därför en gissning som lämnats
+  kvar.
+* Att fasen står öppen *"på en mätt orsak"* stämde inte när det skrevs: orsaken
+  som angavs var fel, och den riktiga orsaken kom i nästa mätning.

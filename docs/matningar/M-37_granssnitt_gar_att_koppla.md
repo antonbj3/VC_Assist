@@ -58,3 +58,27 @@ Slutsatsen i M-16 att ett läsande verktyg kan döda bryggan står ändå kvar �
 
 Grindens tredje led — *alla gränssnitt kopplade* — är därmed möjligt att
 uppfylla, och det på gränssnittsnivå, inte bara på kontaktnivå.
+
+## Vad som INTE är mätt
+
+* **Receptet binder `Container`, `Port` och `PortName` i en loop över
+  `falt.Properties` — alltså i den ordning VC råkar räkna upp dem.** M-40 mätte
+  senare att ordningen är avgörande: sätts `Container` efter `Port` blir `Port`
+  till `-1` och `canConnect` svarar falskt utan ett ord. Att den här körningen
+  blev grön säger alltså inte att receptet är ordningssäkert. Det säger att
+  uppräkningsordningen råkade duga den gången.
+* Receptet är kört **en gång**, på ett par komponenter byggda i samma körning.
+  Ingen upprepning, ingen annan komponenttyp, ingen katalogkomponent.
+* Kopplingen är mätt till `canConnect True`, `connect True`, `IsConnected True`.
+  Att något **flödar** genom gränssnittet mäts inte här. Det mättes först i M-40
+  och M-41, och där krävdes två villkor till som den här mätningen inte kände till
+  (ramarna ombyggda, `bana.update()` anropad).
+* Rättelsen av M-16 pekar ut den ogiltiga bindningen som orsak. Det är slutet ur
+  att ett **annat** recept fungerar. Ingen mätning har återskapat kraschen och
+  sedan tagit bort bindningen som enda ändring, så orsakssambandet är inte
+  isolerat.
+* Kontaktvalet på `Type` i stället för index ärvs från M-17 och prövas inte om
+  här.
+* Att fas 5:s tredje led därmed *"är möjligt att uppfylla"* är en slutsats om
+  möjlighet. Att alla gränssnitt i en verklig mållayout går att koppla är inte
+  mätt.

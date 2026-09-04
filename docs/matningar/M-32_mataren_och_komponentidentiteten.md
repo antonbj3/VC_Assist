@@ -102,3 +102,28 @@ Nästa mätning är alltså: koppla skaparens utkontakt till en bana med
 `vcConnector.connect()` (som **fungerar**, M-17) och mät om produkter uppstår.
 
 Det som återstår för fas 5 är därmed ett enda led, och det ledet är utpekat.
+
+## Vad som INTE är mätt
+
+* **Punkt 6 är fel, och rättelsen står bara som en ruta ovanför slutsatsen.**
+  Texten under rutan (*"Skaparen är inte avstängd. Den producerar bara inte."*)
+  står kvar oförändrad och läses fel av den som hoppar över rutan. Mätfelet var
+  `len(app.Components)` — fel lista, tolv körningar i rad (M-34).
+* Talet *"72 simulerade sekunder → 0 produkter"* är mätt på en matare byggd i en
+  **redan körande** simulering. M-40 mätte att just det gör att en matare aldrig
+  fyrar. Talet mätte alltså uppstartsordningen, inte mataren, och det gick inte
+  att se på talet.
+* Att en programmatiskt skapad komponent saknar identitet är mätt för
+  `app.createComponent()`. Andra vägar att skapa en komponent är inte prövade.
+* *"En URI överlever inte en layoutrunda"* är mätt för **en** fil utanför en känd
+  katalogrot, en gång. En fil **innanför** en känd rot är inte prövad — och det är
+  precis den uppställning textens egen förklaring pekar ut som skillnaden.
+* Hela bygg–spara–ladda-omvägen visade sig senare vara onödig: M-40 mätte att
+  `TemplateComponent` tar en komponent som står i scenen, även en med
+  `Uri = "vcid:"`. Den här mätningen prövade aldrig den enklare vägen.
+* De två uppstartsluckorna (`vc_assist_startlayout.txt`,
+  `vc_assist_startskript.py`) beskrivs som byggda. Att de fungerar är mätt i
+  M-40, inte här.
+* De två uppstartsfelen (dubbel pump ur en sparad layout, `__future__`-flaggor
+  genom `exec`) är rättade. Att rättelserna håller är inte mätt med ett prov som
+  faller utan dem.

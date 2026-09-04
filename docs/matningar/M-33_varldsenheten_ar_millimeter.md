@@ -78,3 +78,28 @@ uttryckas i millimeter.
 * Bekräfta med ett objekt av känd fysisk storlek när en katalog finns.
 * Samma fråga för tyngdaccelerationen: är `G` 9,81 m/s² eller 9810 mm/s²?
   Ögats fallhastighetsgrindar hänger på det.
+
+## Vad som INTE är mätt
+
+* Kopplingen mellan enhetstabellen och `vcMatrix.P` görs via **en** kropp — en
+  `VC_BLOCK` med EUR-pallens mått, avläst en gång. Dokumentationen säger
+  fortfarande ingen enhet för `vcMatrix.P`, så det ledet vilar på ett enda prov.
+* `findUnitFamily` gav `None` på varje prövat namn. Det är en frånvaro i en
+  **gissad namnlista**, inte en mätning av att familjen saknas — exakt samma form
+  som det falska spåret texten själv skriver ned.
+* `vcMotionPath.Speed = 200.0` är ett **rimlighetsargument**, inte en mätning.
+  Det skiljer 12 m/min från 720 km/h och skulle inte ha skilt millimeter från
+  någon närliggande enhet.
+* **Tyngdaccelerationens enhet är fortfarande omätt.** Texten lämnar frågan öppen,
+  och `ext/vc_addon/vc_assist/oga_harledning.py` bär än i dag
+  `G_MS2 = 9.81  # OMATT ANTAGANDE`. Ögats fallhastighetsgrindar hänger på ett tal
+  som ingen har mätt, och den här mätningen mätte längd, inte acceleration.
+* Bekräftelse mot ett objekt av **känd fysisk storlek ur en katalog** står som
+  öppen punkt och är inte gjord. Blocket är byggt av oss själva och bär de mått vi
+  själva satte.
+* Att ändringen av cellernas mått till millimeter gör de fyra grindarna
+  (`TELEPORT_TRANSFER`, `PLACE`, `MINDIST`, `UNDERGROUND`) rätt är inte mätt här.
+  Mätningen visar bara att de tidigare var självkonsistenta och därför osynligt
+  fel — den visar inte att de är rätta nu.
+* Mätt mot VC Premium 4.10. Att basenheten är densamma i andra VC-versioner, och
+  att den inte går att ställa om i en installation, är inte prövat.

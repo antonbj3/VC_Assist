@@ -81,3 +81,28 @@ bära något, och att bara den pythonbaserade går att skapa — vilket betyder 
 en fungerande transportör kräver att vi skriver dess styrlogik själva.
 
 Det är prövbart i uppstartsskriptet, där ett beteende är ofarligt att lägga till.
+
+## Vad som INTE är mätt
+
+* Varje rad i tabellen är **en** observation ur ett svep, inte en upprepad
+  mätning.
+* *"Fyrar den automatiska matningen? **Nej**"* är mätt över 160 simulerade
+  sekunder på en matare byggd i en **körande** simulering. M-40 mätte att just
+  det villkoret gör att en matare aldrig fyrar. Svaret gällde uppställningen, inte
+  mataren — och mätfelet i den här filens egen ingress hade alltså en tvilling i
+  dess viktigaste tabellrad.
+* Slutsatsen i *Var det står* — att en bana kräver en transportstyrenhet, och att
+  vi därför måste skriva styrlogiken själva — är en **misstanke**. Den håller inte:
+  M-40 fick linjen att mata genom att bygga beteendena före start, bygga om
+  ramarna och anropa `bana.update()`. Ingen transportstyrenhet skrevs.
+* `testCapacity = False` på båda sidor även under drift står som *"betydelsen är
+  omätt"*, och den är omätt än. M-40 mätte bara att `create()`:s `None` inte säger
+  något om mataren, inte vad `testCapacity` mäter.
+* Mätfelet är rättat för `len(app.Components)`. Var det talet användes på andra
+  ställen är inte genomsökt — tolv körningar hann bygga slutsatser på det, och
+  bara M-32:s punkt 6 är utpekad som rättad.
+* De fyra transportstyrenheterna prövades med ett argumentlöst `createBehaviour`,
+  en gång var. Samma begränsning som M-15: `None` betyder "inte skapbar så här",
+  inte "finns inte".
+* Att `VC_PYTHONTRANSPORTCONTROLLER` skapades *"utan att bryggan dog"* är mätt en
+  gång. M-13:s lista över dödande anrop växer med mätning, inte med principer.

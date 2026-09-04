@@ -75,3 +75,26 @@ krävs något annat, och det är omätt.
 
 Ögats `mindist`-provtagning bör byggas om från detektorn till `measureDistance`.
 Den ändringen är **inte** gjord här.
+
+## Vad som INTE är mätt
+
+* Måtten är tagna på **två axelinriktade kuber** som förskjuts längs **en** axel,
+  i fem lägen. Roterade kroppar, konkava kroppar, kroppar med flera noder och
+  kroppar i en hierarki är oprövade.
+* Facit är räknat ur de positioner mätningen själv satte, och förutsätter M-33:s
+  slutsats att världsenheten är millimeter. De fem punkterna prövar alltså
+  avståndsfunktionen mot en linjal som en annan mätning kalibrerade, inte mot en
+  oberoende känd längd.
+* **Måttet är mättat vid noll.** `0.0` betyder både "kant i kant" och "900 mm
+  inne i varandra". En grind byggd på det kan avgöra *om* något rör vid något,
+  aldrig *hur illa*. Texten säger det, och hur djupet ska mätas är fortfarande
+  omätt.
+* Uppdateringsreceptet `nod.update()` + `sim.update()` är mätt som nödvändigt
+  **tillsammans**. Vilket av de två anropen som gör jobbet, eller om båda behövs,
+  är inte separerat.
+* Att de tre avfärdade vägarna (layoutpost, läsning efter ett simuleringssteg,
+  `rebuild()` före) verkligen är återvändsgränder är mätt en gång var, med samma
+  tomma nodlista i botten. Om `NodeListA` går att fylla på något sätt är inte
+  prövat — mätningen slutade vid att den töms.
+* Ombyggnaden av ögats `mindist`-provtagning från detektorn till `measureDistance`
+  är **inte** gjord i den här mätningen; texten säger det själv.
