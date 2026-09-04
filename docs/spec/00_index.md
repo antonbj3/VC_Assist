@@ -29,4 +29,5 @@ märkt **ANTAGET**. Inga tal utan härkomst.
 | `96_ingen_skuld.md` | Tio skuldregler med mekanisk kontroll | klar |
 
 Systemdokumentet ligger i repots rot: `SYSTEM.md`.
+| `36_versioner.md` | 4.10 och 5.0. Python 2.7 mot 3.x, dubbelkompatibel kod | klar |
 
