@@ -1,6 +1,6 @@
 # M-63 — planeringslagret mätt mot sin egen spec
 
-**Datum:** 2026-09-04 · körs utan VC · fas 16 i `docs/spec/70_faser.md`
+**Datum:** 2026-09-04/05 · körs utan VC · fas 16 i `docs/spec/70_faser.md`
 **Mäter:** `docs/spec/22_planeringslagret.md` (384 rader) mot
 `svc/vc_assist_svc/plan/` (3 868 rader före, 7 847 efter)
 **Stänger:** fas 16. Protokollet står i
