@@ -50,6 +50,47 @@ _NAMN = re.compile(r'^\s*Name\s+"([^"]*)"', re.M)
 _KATEGORI = re.compile(r'^\s*Category\s+"([^"]*)"', re.M)
 _GRANSSNITT = re.compile(r'rSimInterface')
 
+# En parameter i metadatan. VC skriver dem som
+#     Variable "rTVariable<rDouble>"
+#     {
+#       Name "ConveyorLength"
+#       Value 500
+# och typen i vinkelparentesen ar VC:s egen (rDouble, rInt, rBool, rString).
+_PARAMETER = re.compile(
+    r'Variable\s+"rTVariable<(\w+)>"\s*\{\s*Name\s+"([^"]+)"\s*\n\s*Value\s+([^\n]*)')
+
+# Parametrar som beskriver ritning och tessellering, inte komponenten. De bar
+# ingen information for den som ska VALJA en komponent, och de finns i nastan
+# alla, sa de skulle dranka indexet.
+#
+# MATT: de sju nedan finns i 3193 av 3201 komponenter och sager darfor
+# ingenting om NAGON av dem. Uri star INTE har - den bars av lika manga, men
+# den ar komponentens identitet och det ar precis vad en agent behover.
+_OINTRESSANTA = ("Brep", "TraceWidth", "Visible", "Name", "MaterialInherit",
+                 "Layer", "CreaseAngle", "OnDemandLoad", "Pickable",
+                 "ShowBackfaces", "ShowContent")
+
+
+def _parametrar(text):
+    """Namn -> varde ur metadatan, utan ritparametrarna.
+
+    Schemat ar INTE enhetligt mellan tillverkare: det finns inget gemensamt
+    Payload- eller Reach-falt. Varje komponentfamilj bar sina egna rattar, och
+    indexet ska darfor bara VAD SOM FINNS i just den komponenten - aldrig ett
+    antaget falt. Samma hallning som formagegrinden har mot API-ytor: prova vad
+    som finns, anta aldrig.
+    """
+    ut = {}
+    for m in _PARAMETER.finditer(text):
+        namn = m.group(2)
+        if any(o in namn for o in _OINTRESSANTA):
+            continue
+        varde = m.group(3).strip()
+        if varde in ("", "{"):
+            continue
+        ut.setdefault(namn, varde[:80])
+    return ut
+
 # Sa manga byte av metadatan som lases nar bara namnet behovs. Hela filen ar
 # 200-300 kB per komponent och 3000 komponenter blir da narmare en gigabyte
 # text. Talet ar en buffertstorlek, ingen troskel: det paverkar ingen dom.
@@ -68,11 +109,15 @@ class Post:
     sokvag: str
     storlek: int
     granssnitt: int = 0
+    parametrar: Dict[str, str] = field(default_factory=dict)
 
     def till_json(self):
-        return {"namn": self.namn, "tillverkare": self.tillverkare,
-                "kategori": self.kategori, "sokvag": self.sokvag,
-                "storlek": self.storlek, "granssnitt": self.granssnitt}
+        d = {"namn": self.namn, "tillverkare": self.tillverkare,
+             "kategori": self.kategori, "sokvag": self.sokvag,
+             "storlek": self.storlek, "granssnitt": self.granssnitt}
+        if self.parametrar:
+            d["parametrar"] = self.parametrar
+        return d
 
 
 @dataclass
@@ -160,7 +205,8 @@ def _las(vcmx: str, djupt: bool) -> Optional[Post]:
                 kategori=(k.group(1) if k else ""),
                 sokvag=vcmx,
                 storlek=os.path.getsize(vcmx),
-                granssnitt=(len(_GRANSSNITT.findall(text)) if djupt else 0))
+                granssnitt=(len(_GRANSSNITT.findall(text)) if djupt else 0),
+                parametrar=(_parametrar(text) if djupt else {}))
 
 
 def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
