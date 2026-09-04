@@ -257,10 +257,54 @@ class _Bygge(object):
         self.intervall = intervall
         self.trosklar = trosklar
 
+        self._gallra(lasning)
         if Pm.ar_packml(k):
             self.rapport.mall = "packml"
             return self._packmlkropp()
         return self._stegkedjekropp()
+
+    def _gallra(self, lasning) -> None:
+        """Fäll direktiv som inte går att uttrycka typriktigt. Fail-closed.
+
+        MÄTT under bygget: det kontrollerade språket skriver `nar ST150_LYR_CNT`
+        utan jämförelse, och en heltalssignal som boolesk term ger `BOOL AND
+        INT` — som grind 2 fäller på TYP. Frestelsen är att tyst släppa termen
+        och behålla steget. Det ger ett SVAGARE villkor som ändå kompilerar,
+        alltså precis en falsk grön: koden ser färdig ut och kommenderar utan
+        sin spärr. Direktivet stryks i stället, och raden räknas som oläst.
+        """
+        kvar = []
+        for d in lasning.direktiv:
+            skal = self._otypat(d)
+            if skal:
+                lasning.olasta.append("%s   [%s]" % (d.rad or str(d), skal))
+                continue
+            kvar.append(d)
+        lasning.direktiv = kvar
+        self.rapport.olasta_rader = list(lasning.olasta)
+
+    def _otypat(self, d: Sp.Direktiv) -> str:
+        for t in d.villkor.termer:
+            tagg = self.karta.get(t.signal)
+            if tagg is None or tagg.typ == "bool":
+                continue
+            if not t.jamforelse and not t.flank:
+                return ("%s ar %s och lastes som en boolesk term utan "
+                        "jamforelse" % (t.signal, tagg.typ))
+        for h in d.handlingar:
+            tagg = self.karta.get(h.signal)
+            if tagg is None:
+                continue
+            if not tagg.ar_utgang:
+                # MÄTT under bygget: läsaren tog `ST310_HSK_ACK` ur satsen
+                # "nollstall den nar ST310_HSK_ACK gatt lag" som ett skrivmål.
+                # En skrivning till en insignal är en logik som sätter sin egen
+                # givare, och tolken fäller den — men först efter att koden sett
+                # färdig ut. Direktivet stryks här i stället.
+                return "%s ar en insignal och kan inte skrivas" % h.signal
+            if tagg.typ != "bool" and h.sort == Sp.SATT and h.varde:
+                return ("%s ar %s och kan inte sattas hog" % (h.signal, tagg.typ))
+        return ""
 
     # -- magra nivån ----------------------------------------------------
 
@@ -394,17 +438,25 @@ class _Bygge(object):
             rader.append("%s(CLK := %s);" % (trig_reset, Mo.KVITTENS))
             self.lasta.add(Mo.KVITTENS)
 
-        # 2. räknare som ska gå oavsett driftläge.
+        # 2. räknare som ska gå oavsett driftläge. Alla regler för SAMMA
+        #    räknare slås ihop till en enda IF/ELSIF-kedja: två skrivningar
+        #    till samma utgång som båda kan köras i samma scan är grind 2:s
+        #    DUBBELSKRIVNING, och grinden har rätt — en uppräkning och en
+        #    nedräkning i samma scan tappar den ena.
+        per_raknare: Dict[str, List[Sp.Direktiv]] = {}
         for x in d:
-            if x.sort != Sp.D_RAKNA:
-                continue
-            villkor = self._villkorstext(x.villkor, trigg)
-            tecken = "+" if x.handlingar and x.handlingar[0].sort == Sp.OKA \
-                else "-"
-            rader.append("IF %s THEN" % villkor)
-            rader.append("    %s := %s %s 1;" % (x.signal, x.signal, tecken))
+            if x.sort == Sp.D_RAKNA:
+                per_raknare.setdefault(x.signal, []).append(x)
+        for signal in sorted(per_raknare):
+            for n, x in enumerate(per_raknare[signal]):
+                villkor = self._villkorstext(x.villkor, trigg)
+                tecken = "+" if x.handlingar and \
+                    x.handlingar[0].sort == Sp.OKA else "-"
+                rader.append("%s %s THEN" % ("IF" if n == 0 else "ELSIF",
+                                             villkor))
+                rader.append("    %s := %s %s 1;" % (signal, signal, tecken))
             rader.append("END_IF;")
-            self.toppskrivna.add(x.signal)
+            self.toppskrivna.add(signal)
 
         # 3. larmkällorna. Alla FÖRE domen, så att larmet aldrig släpar ett
         #    scan efter det don det ska stoppa.
@@ -644,6 +696,11 @@ class _Bygge(object):
 
     def _handlingstext(self, h: Sp.Handling) -> str:
         if h.sort == Sp.SATT:
+            tagg = self.karta.get(h.signal)
+            if tagg is not None and tagg.typ != "bool" and not h.varde:
+                # "nollstall" på en räknare är noll, inte FALSE. Grind 2 fäller
+                # annars på TYP, och den har rätt.
+                return "%s := %s;" % (h.signal, self._nollvarde(h.signal))
             return "%s := %s;" % (h.signal, "TRUE" if h.varde else "FALSE")
         if h.sort == Sp.OKA:
             return "%s := %s + 1;" % (h.signal, h.signal)

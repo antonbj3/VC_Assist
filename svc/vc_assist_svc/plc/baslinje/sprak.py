@@ -181,7 +181,11 @@ class Lasning:
         return len(self.direktiv) + len(self.olasta)
 
 
-_SIGNAL = re.compile(r"\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b")
+# Tokeniseraren for taggnamn. Den ar med avsikt vid: den slappliga formen
+# fangar bade `EMG_OK` och ett namn utan understreck, och den RIKTIGA spärren
+# ar medlemskapet i kartan strax nedanfor. En tokeniserare som kravde ett
+# understreck tappade tyst varje tagg utan ett.
+_SIGNAL = re.compile(r"\b([A-Za-z][A-Za-z0-9_]{2,})\b")
 _TAL = re.compile(r"(\d+(?:[.,]\d+)?)")
 
 # Orden som gör en term falsk. `utan` och `inte` bär samma negation som `lag`.
