@@ -517,9 +517,99 @@ def rapport(korningar: Sequence[Nivakorning], poster: Sequence[dict],
                         _kav(uttot - obundna, uttot),
                         _kav(intot - ororda, intot)))
     rader.append("")
+    rader.append("LASBARHET PER UPPGIFTSGRUPP (nivan spec)")
+    spec_korning = None
+    for k in korningar:
+        if k.namn == NIVA_SPEC:
+            spec_korning = k
+    if spec_korning is not None:
+        rader.append("%-8s %-8s %-16s %-16s %-16s"
+                     % ("grupp", "uppg", "lasta rader", "bundna utg",
+                        "rorda ing"))
+        grupper: Dict[str, List[dict]] = {}
+        for post in poster:
+            grupper.setdefault(post.get("grupp") or "?", []).append(post)
+        for grupp in sorted(grupper):
+            rap = [spec_korning.rapporter[p["task_id"]]
+                   for p in grupper[grupp]
+                   if p["task_id"] in spec_korning.rapporter]
+            if not rap:
+                continue
+            rader.append(
+                "%-8s %-8d %-16s %-16s %-16s"
+                % (grupp, len(rap),
+                   _kav(sum(r.rader_totalt - len(r.olasta_rader) for r in rap),
+                        sum(r.rader_totalt for r in rap)),
+                   _kav(sum(r.utgangar_totalt - len(r.obundna_utgangar)
+                            for r in rap),
+                        sum(r.utgangar_totalt for r in rap)),
+                   _kav(sum(r.ingangar_totalt - len(r.ororda_ingangar)
+                            for r in rap),
+                        sum(r.ingangar_totalt for r in rap))))
+
+    rader.append("")
     rader.append("KOSTNAD: baslinjen anvander noll tokens och noll natanrop.")
     rader.append("Genereringstid mats med --tid.")
     return "\n".join(rader)
+
+
+# ---------------------------------------------------------------- ablation
+#
+# Ett tal som säger "4 av 4" säger inte VARFÖR. Ablationen tar bort en del av
+# indata i taget och kör om domen. Den svarar på den enda fråga som gör
+# baslinjens resultat tolkbart: bär ordningen i specen resultatet, eller
+# räcker standardramen?
+
+ABLATIONER = ("hel spec", "ramen ensam", "omvand sekvens",
+              "utan forreglingar", "utan uppgiftstext")
+
+
+def ablera(spec: Spec, variant: str) -> Spec:
+    import dataclasses
+    if variant == "hel spec":
+        return spec
+    if variant == "ramen ensam":
+        return dataclasses.replace(spec, sekvens=())
+    if variant == "omvand sekvens":
+        return dataclasses.replace(spec, sekvens=tuple(reversed(spec.sekvens)))
+    if variant == "utan forreglingar":
+        return dataclasses.replace(spec, forreglingar=())
+    if variant == "utan uppgiftstext":
+        return dataclasses.replace(spec, uppgiftstext="")
+    raise ValueError("okand ablation %r" % (variant,))
+
+
+def kor_ablation(post: dict, variant: str) -> Utfall:
+    resultat = Baslinje().generera(ablera(spec_ur_uppgift(post), variant))
+    karta = RB.karta_ur_uppgift(post, resultat.station)
+    skelett = Skelett.av_karta(karta, resultat.deklarationer)
+    return spardom(post, skelett.las_svar(resultat.kropp))
+
+
+# ------------------------------------------------------------- kalibrering
+#
+# Ett procenttal ur en påståenderäkning är oanvändbart utan sin skala. De fyra
+# punkterna nedan sätter skalan: referensen som facit är skrivet för, de arton
+# människoskrivna motbevisen (varje ett verkligt driftsättningsfel), och
+# nollprogrammet som inte styr någonting.
+
+def kalibrering(facitposter: Sequence[dict]) -> List[Tuple[str, str, bool, int, int]]:
+    """[(uppgift, vad, godkand, uppfyllda, totalt)] för skalans hållpunkter."""
+    ut: List[Tuple[str, str, bool, int, int]] = []
+    for post in facitposter:
+        tid = post["task_id"]
+        totalt = pastaenden(post).totalt
+        facit = post["facit_spar"]
+        ref = spardom(post, facit.get("referens") or "")
+        ut.append((tid, "referenslosningen", ref.godkand, ref.uppfyllda,
+                   totalt))
+        for mb in facit.get("motbevis") or []:
+            u = spardom(post, mb["st"])
+            ut.append((tid, "motbevis %s" % mb["namn"], u.godkand,
+                       u.uppfyllda, totalt))
+        u = spardom(post, nollprogram(post)[0])
+        ut.append((tid, "nollprogrammet", u.godkand, u.uppfyllda, totalt))
+    return ut
 
 
 def _sida(namn: str, korning: Nivakorning, facitposter: Sequence[dict],
@@ -542,6 +632,10 @@ def main(argv=None):
                                       "grind 1 inte alls")
     ap.add_argument("--slinga", action="store_true",
                     help="kor ocksa reparationsslingan over sparfacituppgifterna")
+    ap.add_argument("--kalibrering", action="store_true",
+                    help="skriv skalan: referens, de 18 motbevisen, nollprogrammet")
+    ap.add_argument("--ablation", action="store_true",
+                    help="ta bort en del av indata i taget och kor om domen")
     ap.add_argument("--tid", action="store_true",
                     help="mat genereringstiden och determinismen over banken")
     ap.add_argument("--par", action="store_true",
@@ -587,6 +681,36 @@ def main(argv=None):
         hoger = _sida(korningar[-1].namn, korningar[-1], facitposter,
                       GRINDAR_UTAN_KOMPILATOR)
         print(Par.para(vanster, hoger).text())
+
+    if a.kalibrering:
+        print("")
+        print("KALIBRERING: vad pastaendeskalan faktiskt skiljer")
+        print("%-8s %-42s %-10s %s" % ("uppgift", "vad", "dom", "pastaenden"))
+        mb_u = mb_t = 0
+        for tid, vad, godkand, uppfyllda, totalt in kalibrering(facitposter):
+            print("%-8s %-42s %-10s %s"
+                  % (tid, vad[:42], "GODKAND" if godkand else "underkand",
+                     _kav(uppfyllda, totalt)))
+            if vad.startswith("motbevis "):
+                mb_u += uppfyllda
+                mb_t += totalt
+        if mb_t:
+            print("MOTBEVISEN SAMMANLAGT: %s pastaenden uppfyllda (%.1f %%), "
+                  "och vart och ett ar ett verkligt driftsattningsfel"
+                  % (_kav(mb_u, mb_t), 100.0 * mb_u / mb_t))
+
+    if a.ablation:
+        print("")
+        print("ABLATION: vilken del av indata bar resultatet (nivan spec)")
+        print("%-8s %-20s %-10s %s" % ("uppgift", "variant", "dom",
+                                       "pastaenden"))
+        for post in facitposter:
+            for variant in ABLATIONER:
+                u = kor_ablation(post, variant)
+                print("%-8s %-20s %-10s %s"
+                      % (post["task_id"], variant,
+                         "GODKAND" if u.godkand else "underkand",
+                         _kav(u.uppfyllda, u.totalt.totalt)))
 
     if a.tid:
         import time

@@ -363,6 +363,31 @@ def test_vaxlarna_ar_av_som_standard_och_syns_nar_de_ar_pa():
     assert "ST010_PRT_PRS" in pa.kropp
 
 
+def test_ordningen_i_specen_bar_resultatet(poster):
+    """Kontroll mot att standardramen ensam gor jobbet.
+
+    Vands sekvensen bak och fram ska koden BLI en annan och domen falla. Gor
+    den inte det ar "4 av 4" ett tal om ramen och inte om lasningen, och da
+    mater ablationen i M-62 ingenting.
+    """
+    post = _post(poster, "T-07")
+    hel = B.kor_ablation(post, "hel spec")
+    omvand = B.kor_ablation(post, "omvand sekvens")
+    assert hel.godkand
+    assert not omvand.godkand
+    assert omvand.uppfyllda < hel.uppfyllda
+
+
+def test_ramen_ensam_racker_inte(poster):
+    post = _post(poster, "T-07")
+    assert not B.kor_ablation(post, "ramen ensam").godkand
+
+
+def test_en_okand_ablation_avvisas():
+    with pytest.raises(ValueError):
+        B.ablera(Spec(()), "hitta pa")
+
+
 # ====================================================================== 4
 # TRASIG FIXTUR 1: en baslinje som far ratt av fel skal.
 
@@ -416,6 +441,29 @@ def test_baslinjen_ligger_over_golvet(facitposter):
         bygge = B.bygg(post, baslinje)
         min_ = B.spardom(post, bygge.st_kalla)
         assert min_.uppfyllda > golv.uppfyllda, post["task_id"]
+
+
+def test_pastaendeskalan_skiljer_inte_pa_farligt_och_riktigt(facitposter):
+    """Den obekvamaste raden i M-62, mekaniserad.
+
+    De arton motbevisen ar vart och ett ett verkligt driftsattningsfel - en
+    station som startar av sig sjalv nar nagon drar upp nodstoppsdonet, en
+    handkorning som latchas. Pa pastaendeskalan far de over 90 %. Ett
+    procenttal ur en pastaenderakning far darfor ALDRIG bli banken huvudtal;
+    bara den binara domen per uppgift skiljer dem at.
+    """
+    u = t = 0
+    for tid, vad, godkand, uppfyllda, totalt in B.kalibrering(facitposter):
+        if not vad.startswith("motbevis "):
+            continue
+        assert not godkand, "%s %s slapptes igenom" % (tid, vad)
+        u += uppfyllda
+        t += totalt
+    assert t > 0
+    assert u > t * 9 // 10, (
+        "motbevisen uppfyller %d av %d pastaenden; ar den kvoten LAG ar den "
+        "har varningen inte langre sann och texten i M-62 maste skrivas om"
+        % (u, t))
 
 
 # ====================================================================== 5
