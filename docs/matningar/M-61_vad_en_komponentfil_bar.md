@@ -1,0 +1,347 @@
+# M-61 — vad en komponentfil bär, och varför den omslutande volymen inte står i den
+
+**Datum:** 2026-09-04 · VC Premium 4.10 · testprefixet `~/.wine-vc-test`
+**Nämnare:** **3201 komponentfiler**, 149 tillverkare, **0 oläsbara** — hela
+biblioteket ur M-57, inte ett urval.
+**Mätt med:** `python3 -m vc_assist_svc.komponentfil --svep`, alltså med koden
+som levereras. **Ingen VC har rörts.**
+
+## Talen först
+
+| Storhet | läst | härledd | saknas | av |
+|---|---:|---:|---:|---:|
+| **komponentens omslutande volym** | **0** | **0** | **3201** | 3201 |
+| namn, kategori, tillverkare | 3201 | 0 | 0 | 3201 |
+| räckvidd | 1437 | 225 | 1539 | 3201 |
+| nyttolast (`MaxPayload` > 0) | 2358 | 0 | 843 | 3201 |
+| gränssnitt, med namn och fälttyper | 11 563 | 0 | 0 | 11 563 |
+| — komponenter som bär minst ett | 3062 | 0 | 139 | 3201 |
+| monteringsramarnas **namn** | 9824 | 0 | 0 | 9824 |
+| monteringsramarnas **läge** | 3036 | 121 | 6667 | 9824 |
+| leder, med namn, typ och gränser | 29 405 | 0 | 0 | 29 405 |
+| geometriblobbens **egen** låda | 0 | 67 907 | 11 128 | 79 035 |
+
+Första raden är hela mätningen. **Ingen av de 3201 filerna bär komponentens
+omslutande volym.** Det är inte slarv, och nästa avsnitt säger varför.
+
+## Varför lådan inte finns i filen
+
+Den är ingen egenskap hos filen. Den är en egenskap hos den **byggda**
+komponenten, vid en viss parameteruppsättning och en viss ställning.
+
+| Vad som styr var geometrin hamnar | antal | av |
+|---|---:|---:|
+| transformer med ett **uttryck** över komponentens parametrar | **32 221** | 39 171 |
+| — av dem som *också* bär en färdig matris | 5 369 | 32 221 |
+| transformer med tomt uttryck och ingen matris | 4 230 | 39 171 |
+| geometriposter bakom en **switch** (syns bara ibland) | 17 901 | 79 035 |
+| geometriposter under minst ett okänt led i kedjan | 48 516 | 79 035 |
+| geometriposter med helt **konstant** kedja | 12 618 | 79 035 |
+| komponenter där **all** geometri har konstant kedja | **140** | 3201 |
+| leder (robotens låda beror på ställningen) | 29 405 | — |
+
+**82 procent av bibliotekets transformer är uttryck**, och fyra femtedelar av
+dem bär inte ens en färdig matris vid sidan om. Att räkna fram lådan ur filen
+är därför att värdefästa VC:s uttrycksspråk, tolka dess switch-semantik och
+lösa dess kinematik — alltså att bygga om VC:s bygge, utan något facit att
+pröva bygget mot.
+
+Och även den som gjorde det skulle sakna geometri. Av bibliotekets 79 035
+geometriposter pekar **5886, i 234 komponenter, på en fil UTANFÖR arkivet** —
+på författarens egen maskin
+(`file:///C:/Users/HannuKe1/OneDrive+-+KUKA+AG/Documents/...`). Ytterligare
+2096 bär ingen URI alls. Den geometrin finns inte att räkna på, oavsett hur
+väl man värdefäster uttrycken.
+
+## Tre ställen jag letade, och vad som inte fanns
+
+**1. `model.xml`.** Varje arkiv bär en liten XML-fil med komponentens egna
+uppgifter. Över alla 3201 finns exakt **tjugo** egenskapsnamn, och inget av
+dem är ett mått:
+
+| Egenskap | i % av 3201 |
+|---|---:|
+| `VCID`, `ModelType`, `Name`, `Type`, `Manufacturer`, `Revision`, `DetailedRevision`, `IsDeprecated` | 100,0 |
+| `MaxPayload` | 93,3 |
+| `Description` | 92,3 |
+| `Author` | 89,5 |
+| `Tags` | 87,2 |
+| `Reach` | 79,9 |
+| `ImageUri`, `ThumbnailUri`, `Modified` | ~50 |
+| `Website`, `Email` | 20,7 / 9,6 |
+
+**2. `component.rsc`.** Ett svep efter bboxliknande ord över alla 3201 gav
+träffar som alla föll när jag läste sammanhanget — och att läsa sammanhanget
+var hela skillnaden:
+
+| Ordet | filer | vad träffen faktiskt var |
+|---|---:|---|
+| `Extent` | 171 | parametern **`Extention`**, en länks utskjut |
+| `Envelope` | 1684 | switchen **`ShowEnvelope`** och geometrin `EnvelopeProfile`, alltså visningen av räckviddshöljet |
+| `Dimensions` | 78 | **kommentarer i inbäddad Python** ("remove all known dimensions") |
+| `AABb`, `bboX`, `bBOX` … | ~30 | delsträngar i `AuthoringHash`, alltså hexadecimalt brus |
+
+En skiftlägesokänslig sökning som inte läser sammanhanget hade rapporterat
+"bounding box finns i 1855 filer". Den hade varit helt fel.
+
+**3. VC:s egen eCatalog-databas.** `eCatalog_4.10.2.sdf`, 28 MB — den katalog
+programmet självt söker i. Dess enda mätbara storhet är `Reach` (6003
+förekomster). Ingen låda, ingen storlek, inget fotavtryck. **VC cachar den
+inte heller.**
+
+## Vad som däremot går att läsa, och vad det kostar
+
+| Läsning | 3201 filer |
+|---|---:|
+| bara `model.xml` | **0,63 s** |
+| `component.rsc` grunt, 4 096 byte (M-58) | 1,8 s |
+| `component.rsc` helt | 7,3 s |
+| helt + gränssnitt, ramar, leder | 125 s |
+| helt + alla 79 035 geometriblobbar | ~11 min |
+
+### Detta stänger M-58:s öppna fråga
+
+M-58 mätte att `Category` i `component.rsc` ligger vid **median byte 142 724**
+och därför aldrig nås i grunt läge, så att `kategori` i det grunta indexet
+kommer från **katalognamnet**. Frågan som lämnades öppen var: *skiljer sig de
+två någonsin?*
+
+Ja. **651 av 3201 — en av fem.**
+
+| katalognamn | komponentens egen `Type` | antal |
+|---|---|---:|
+| `Archiv` | Robots | 58 |
+| `Legacy` | Robots | 53 |
+| `Series-2` | Robot Workpiece Positioners | 25 |
+| `Deprecated` | Robot Workpiece Positioners | 20 |
+| `extra`, `ultra`, `sixx` | Robots | 55 |
+| `TS 1`, `TS 2` | Conveyors | 35 |
+
+"Archiv", "Legacy", "extra", "ultra", "sixx" och "TS 1" är mappnamn, inte
+kategorier. Och kategorin behöver inte längre gissas: den står i `model.xml`,
+omkring byte 400 i en 1,5 kB-post, **3201 av 3201 på 0,63 sekunder**, och där
+är den komponentens egen.
+
+## Räckvidden: ett fält och en profil
+
+`Reach` i `model.xml`:
+
+| | antal | av 3201 |
+|---|---:|---:|
+| positivt tal | 1437 | 44,9 % |
+| **noll** | 1119 | 35,0 % |
+| saknas helt | 645 | 20,1 % |
+
+För de 2169 robotarna: 1434 positiva, 312 nollor, 423 utan fältet. **735
+robotar har alltså ingen räckvidd i sitt eget datablad.**
+
+Men 702 komponenter — alla robotar — bär arkivposten `envelopeprofile`:
+robotens **räckviddsprofil**, en polylinje i XZ-planet, i millimeter. Alla 702
+går att avkoda, och **225 av de 735 hålen fylls av den.**
+
+### Avkodningen är korsprövad, inte gissad
+
+Profilen ligger i **två format** under samma postnamn:
+
+* **3DS-varianten**, 695 filer: chunk `0x8001`, segment som `float64`
+* **textvarianten**, 204 filer: rader med punkter och kanter
+* och i **7 filer** går trädgången sönder — objektet `TRACE` bär två
+  oförklarade byte mellan sina barn — så chunken måste bytesökas. Där avgör en
+  **exakt längdmatchning** om fyndet duger: strukturen ska ta slut precis där
+  nyttolasten tar slut. Utan det kravet läses brus som geometri.
+
+Beviset för att avkodningen är rätt kommer utifrån:
+
+| Prov | Utfall |
+|---|---|
+| ABB CRB 1100-4/0.475: profilens största \|x\| mot `Reach` | **475,0 mm mot 475** |
+| profil mot `Reach` där båda finns (n = 477) | median **−0,59 mm**; \|d\| ≤ 1 mm i 207, ≤ 10 mm i 390, ≤ 50 mm i 426 |
+| ABB IRB 120, `Reach` saknas | profilen ger **579,8 mm**; ABB publicerar 580 |
+| ABB IRB 6640-235/2.55, `Reach` = 0 | profilen ger **2547,4 mm**; namnet säger 2,55 m |
+| alla profiler | y = 0,0 **exakt** i varje punkt — signaturen för ett XZ-snitt |
+
+Profilen hittar också fel i VC:s egen data: `IRB 6700-270/2.70 LID` har
+`Reach = 270`, alltså nyttolasten i räckviddens fält. Profilen säger 2715,9 mm
+och namnet säger 2,70 m.
+
+### Ordningen mellan de två
+
+`rackvidd_ur_fakta` tar det **deklarerade** fältet först och profilen bara när
+fältet är tomt eller noll. Skälet: fältet är tillverkarens uppgift, profilen är
+geometrins. Där båda finns stämmer de. Svaret bär sin härkomst, så den som
+jämför två tal vet vilket av dem han läser.
+
+## Nyttolasten finns — men inte där `datablad.py` letar
+
+`MaxPayload` i `model.xml`: **2358 positiva, 628 nollor, 215 saknade** av 3201.
+
+Att fältet är riktigt går att pröva utan VC, för ABB skriver nyttolasten i
+modellnamnet: `IRB 6700-150/3.20` betyder 150 kg och 3,20 m.
+
+> **117 av 117** ABB IRB-robotar med den namnformen har `MaxPayload` exakt lika
+> med talet i namnet.
+
+Samma prov på räckvidden: av samma 117 stämmer `Reach` med namnet i 79, är noll
+i 18, saknas i 16 och avviker i 4 — varav två är min egen namnläsning (`145`
+betyder 1,45 m), en skiljer 50 mm, och en är fältförväxlingen ovan.
+
+`svc/vc_assist_svc/datablad.py` skriver i sin inledning att *"nyttolast
+(payload) finns INTE i någon av de 3201 filerna"*. Den mätningen är gjord i
+`component.rsc`:s **rotvariabelrymd**, och där stämmer den — modulens egen
+`saknas`-text säger också just "ingen av rotvariablerna". Men fältet finns i
+`model.xml`, i 93 procent av filerna, validerat 117 av 117. Två ställen, två
+svar. Det är samma felklass som M-34 och M-57, och det är tredje gången i det
+här bygget.
+
+## Gränssnitten: det en låda inte har
+
+| | antal |
+|---|---:|
+| gränssnitt | 11 563 i 3062 komponenter |
+| gränssnitt **utan namn** | **0** |
+| unika gränssnittsnamn | 442 |
+| unika sektionsnamn | 181 |
+| unika ramnamn | 1703 |
+
+Fälttyperna — det som avgör vad som går att koppla till vad:
+
+| Fälttyp | antal |
+|---|---:|
+| `rSimHierarchyField` | 16 877 |
+| `rSimJointExportField` | 11 024 |
+| `rSimToolExportField` | 4 449 |
+| `rSimBaseExportField` | 2 222 |
+| `rSimFlowField` | 533 |
+| `rSimSignalField` | 339 |
+| `rSimProcessorField` | 207 |
+| `rSimRslField` | 20 |
+
+`rSimHierarchyField` bär `Mount`: **9548 med 1** (monteras PÅ något) och **7329
+med 0** (tar emot). `rSimFlowField` bär `Port`: 224 med 0 (in), 234 med 1 (ut)
+och 75 med 2 till 6 — grenar och samlingar.
+
+Det ger två **kandidatregler**, lästa ur datan och inte uppfunna:
+
+1. flöde: port 1 i A mot port 0 i B
+2. montering: `Mount 1` i A mot `Mount 0` i B, med minst en gemensam fälttyp
+
+De 75 flödesfälten med port 2–6 täcks **inte** av regel 1, och det står i
+koden. Ett par som inte föreslås är inte ett par som är omöjligt.
+
+Om VC håller med går bara att veta genom att fråga VC, och `canConnect` dödade
+pumpen en gång (M-16). Frågan ligger därför i
+`tests/protocol/fas5_riktiga_komponenter.md` steg 8, med tre par som regeln
+**avvisar** och som måste svara falskt — annars mäter grinden ingenting.
+
+## Ramarnas läge, och ett övertramp jag fångade i mitt eget svep
+
+Ramarnas **namn** går att läsa: 9824 av 9824. Deras **läge** är en annan sak.
+
+Första versionen av kedjegången svarade "ramen ligger i origo" för varje ram
+utan transformer ovanför sig. Svepet sade då att **7521 av 9824 lägen var
+lästa**, alltså 87 procent — ett vackert tal, och fel. Ramar inne i en barnnod
+fick ett läge de inte hade, för nodens eget läge står inte i filen.
+
+Regeln är nu: ett läge är läst bara när **hela** kedjan från komponentens rot
+ned till ramen är konstant. Tre saker gör den okänd, och alla tre är vanliga:
+
+* ett uttryck (32 221 transformer, 19 892 nodoffset)
+* en rörlig led (29 405 stycken)
+* en nod utan `Offset` — där antagandet "enhetsmatris" är just den sortens
+  gissning som nästan alltid stämmer
+
+Efter rättelsen: **3036 lästa, 121 härledda, 6667 saknas** av 9824.
+
+De 3036 lästa är ramar som inte har någonting ovanför sig och därför ligger i
+komponentens **eget origo**. Det håller mot ett oberoende fall: 2046 av 2169
+robotar har sin `RootFrame` där, och en robots basram ligger i dess origo.
+
+Provet `test_en_ram_under_en_NOD_utan_offset_ger_saknas` står kvar som den
+trasiga fixtur som fäller övertrampet om någon gör om det.
+
+### Och ett andra övertramp, i samma svep
+
+`Expression ""` — en tom sträng — finns i **6950 av 39 171** transformer. Första
+mätningen räknade dem som uttryck och fick då "39 171 av 39 171", ett tal som
+såg starkt ut och var sjutton procent för högt. En tom sträng är ingen
+parametrisk del. Provet `test_ett_TOMT_uttryck_ar_inget_uttryck` håller
+skillnaden.
+
+Det rätta talet är **32 221 av 39 171**, och slutsatsen står kvar: lådan går
+inte att räkna fram ur filen.
+
+## Geometrin går att läsa — men blobbens ram är inte komponentens
+
+Geometriblobbarna är **Autodesk 3DS**. Samma chunktaggar (`0x4D4D` huvud,
+`0x4110` hörnlista), så hörnen läses utan VC.
+
+| Geometripostens URI | antal | av 79 035 |
+|---|---:|---:|
+| pekar på en post i arkivet | 71 053 | 89,9 % |
+| pekar **utanför** arkivet (234 komponenter) | 5 886 | 7,4 % |
+| ingen URI alls | 2 096 | 2,7 % |
+| **ger en låda i sin egen ram** | **67 907** | **85,9 %** |
+
+De som inte ger en låda är punktmoln (`VCPointCloud`), spårkurvor, textformade
+profiler och de geometrier som ligger utanför arkivet.
+
+Blobbens låda är en annan storhet än komponentens, och frestelsen att blanda
+ihop dem är störst när komponenten har **en enda** blobb. Provet
+`test_ingen_lada_uppstar_ens_nar_geometrin_ar_en_enda_blobb` finns för det.
+
+## Vad detta betyder för layoutlösaren
+
+`provscener.py` räknar i dag robotens fotplatta som `0.30 × räckvidden`, märkt
+ANTAGET. Fas 5 stängdes på lådor byggda så.
+
+Bryggan är `svc/vc_assist_svc/layout/komponent.py`:
+
+* `objekt_ur_komponent(fakta)` utan låda **kastar `Saknasfel`**, med namnet på
+  komponenten och på det som fattas. Den bygger aldrig ett rätblock.
+* med `Bounds.ur_svar(get_bounds(...))` blir det ett `Objekt` med VC:s mått,
+  ett **MÄTT** ankare, komponentens **egen** kategori och räckvidden ur filen.
+* `till_verktygsanrop(strikt=True)` — som redan vägrar skriva anrop ur ett
+  antaget ankare — släpper då igenom. Det är dörren som öppnas.
+
+Provet `test_lador_ryms_men_de_riktiga_matten_gor_det_inte` ställer de två
+bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
+`LOST`, den riktiga (1400 mm) ger `RYMS_INTE`.
+
+## Prov
+
+| Nivå | Fil | Antal |
+|---|---|---:|
+| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 36 |
+| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 17 |
+| L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 5 |
+
+Trasiga fixturer, sju stycken: en komponent vars mått saknas, en avhuggen
+3DS-blobb, en profil som inte går att avkoda, en profilnyttolast som inte går
+jämnt ut, en ram under en nod utan `Offset`, ett tomt uttryck utan matris —
+och en layout som lådorna löser och de riktiga måtten inte löser.
+
+Till dem kommer tre par som `kopplingsbara` ska **avvisa**: två robotar som
+båda vill monteras på något, två transportöringångar mot varandra, och en
+nodhänvisning inne i ett gränssnitt som inte får räknas som en nod.
+
+## Vad som INTE är mätt
+
+* **Om `get_bounds` täcker hela komponenten.** Verktyget läser rotnodens
+  `BoundCenter` och `BoundDiagonal`. Om en robots rotnod bara bär sin egen
+  geometri är varje låda i bygget för liten — och en för liten låda ger noll
+  kollisioner, alltså ett grönt svar som är fel. Det är fas 5-omkörningens
+  steg 2 och dess viktigaste fråga.
+* **Om en katalogkomponent alls går att ladda.** `app.load()` mot en `.vcmx` är
+  oprövat (M-57), och den här mätningen ändrar inte på det.
+* **Om lådan beror på ställningen och på parametrarna.** Sannolikt ja för båda,
+  men sannolikt är inte mätt.
+* **Om VC:s gränssnittsnamn är samma som filens.** Läsningen här är oprövad mot
+  `list_interfaces`.
+* **De 75 flödesfälten med port 2–6.**
+* **Om `Name` någonsin ligger efter byte 181** — M-58:s öppna rad står kvar,
+  men den spelar mindre roll nu: namnet läses ur `model.xml`.
+* **Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
+  en radbaserad tolk som med flit hoppar över `Feature`-block; den här modulen
+  läser just de blocken och behöver en teckenbaserad tolk, för biblioteket bär
+  `Frame { Name "x" }` på en rad. De löser olika uppgifter, men två tolkare av
+  ett format är skuld tills någon mätt att en av dem räcker.
