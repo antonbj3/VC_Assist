@@ -291,6 +291,26 @@ def test_en_profil_som_inte_gar_att_avkoda_ger_none(tmp_path):
     assert K.las(sokvag, djupt=True, geometri=True).profil is None
 
 
+def test_en_profil_i_YZ_planet_ger_samma_radie_som_en_i_XZ():
+    """TRASIG FIXTUR, och den fangade ett verkligt fel.
+
+    688 av bibliotekets 702 profiler ligger i XZ-planet, 14 - alla Kawasaki -
+    i YZ. Forsta versionen laste storsta |x| och gav de fjorton rackvidden
+    1e-13 mm. Inget prov pa ABB:s robotar kunde upptacka det, for dar ar y
+    noll. Radien ar avstandet fran den LODRATA axeln, inte fran ett plan.
+    """
+    xz = K.Rackviddsprofil([((0.0, 0.0, 800.0), (2101.0, 0.0, 100.0))])
+    yz = K.Rackviddsprofil([((0.0, 0.0, 800.0), (0.0, 2101.0, 100.0))])
+    assert xz.radie_mm == yz.radie_mm == 2101.0
+    assert (xz.snittplan, yz.snittplan) == ("XZ", "YZ")
+
+
+def test_en_profil_som_ligger_snett_sags_ligga_snett():
+    p = K.Rackviddsprofil([((100.0, 100.0, 0.0), (200.0, 200.0, 10.0))])
+    assert p.snittplan == "annat"
+    assert abs(p.radie_mm - (200.0 ** 2 * 2) ** 0.5) < 1e-9
+
+
 def test_en_tom_profil_gar_inte_att_bygga():
     """TRASIG FIXTUR: noll punkter skulle ge radien 0,0 - en robot som pastas
     na noll millimeter. Ingen profil ar ett battre svar an en tom."""

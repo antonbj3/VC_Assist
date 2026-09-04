@@ -53,6 +53,7 @@ FORMATEN
 """
 from __future__ import annotations
 
+import math
 import os
 import re
 import struct
@@ -371,13 +372,31 @@ def tds_kontroll(data):
     return (meshar, trasiga)
 
 
-class Rackviddsprofil(object):
-    """Robotens rackviddsprofil: en polylinje i XZ-planet, i millimeter.
+# Hur langt utanfor sitt plan en profil far ligga och anda kallas ett snitt.
+#
+# MATT over alla 702 profiler: den mindre av max|x| och max|y| ar antingen
+# UNDER 0,66 mm (666 profiler, och for de flesta 1e-14 - alltsa flyttalsbrus)
+# eller OVER 3,1 mm (36 profiler, upp till 1099,8 mm - verkliga 3D-holjen).
+# Gapet mellan de tva ar en faktor fem, och en millimeter ligger mitt i det.
+_PLANTOLERANS_MM = 1.0          # Satt av M-61.
 
-    Den ligger i arkivposten `envelopeprofile` och ar VC:s egen chunk 0x8001 i
-    en 3DS-fil. Avkodningen ar KORSPROVAD: profilens storsta |x| ar exakt lika
-    med `Reach` i model.xml, och de tva falten kommer ur olika delar av
-    arkivet. En avkodning som traffar ett oberoende tal ar matt, inte gissad.
+
+class Rackviddsprofil(object):
+    """Robotens rackviddsprofil: en polylinje i ett LODRATT SNITT, i millimeter.
+
+    Den ligger i arkivposten `envelopeprofile`. Profilen ar ett snitt genom
+    robotens arbetsvolym, och snittet lags i olika plan av olika tillverkare:
+    688 av 702 profiler ligger i XZ-planet (y = 0) och 14 - alla Kawasaki -
+    i YZ-planet (x = 0).
+
+    Radien ar darfor avstandet fran den LODRATA AXELN, `hypot(x, y)`, och
+    inte |x|. Forsta versionen laste |x| och gav de fjorton Kawasaki-robotarna
+    rackvidden 1e-13 mm - ett tal som ser ut som noll och som inget prov pa
+    ABB:s robotar kunde upptacka, for dar ar y noll.
+
+    Avkodningen ar KORSPROVAD mot `Reach` i model.xml, och de tva falten
+    kommer ur olika delar av arkivet. En avkodning som traffar ett oberoende
+    tal ar matt, inte gissad.
     """
 
     __slots__ = ("segment",)
@@ -393,8 +412,26 @@ class Rackviddsprofil(object):
 
     @property
     def radie_mm(self):
-        """Storsta avstand fran robotens egen axel. Rackvidden."""
-        return max(abs(p[0]) for s in self.segment for p in s)
+        """Storsta avstand fran robotens lodrata axel. Rackvidden."""
+        return max(math.hypot(p[0], p[1]) for s in self.segment for p in s)
+
+    @property
+    def snittplan(self):
+        """"XZ", "YZ" eller "annat". Vilket plan profilen ar ritad i.
+
+        Klassningen ar inte kosmetik: en lasare som antar XZ far noll for de
+        fjorton robotar som ligger i YZ, och noll ser ut som ett matt.
+
+        "annat" ar heller ingen restpost. 36 av 702 profiler ar verkliga
+        3D-holjen och inte snitt - kartesiska aktuatorer vars arbetsrymd ar
+        en lada, och robotar som ritats med hela svepet. For dem ar radien
+        fortfarande ratt, men "profilen" ar inte en kurva i ett plan.
+        """
+        x = max(abs(p[0]) for s in self.segment for p in s)
+        y = max(abs(p[1]) for s in self.segment for p in s)
+        if min(x, y) > _PLANTOLERANS_MM:
+            return "annat"
+        return "XZ" if y <= x else "YZ"
 
     @property
     def z_mm(self):

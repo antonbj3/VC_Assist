@@ -178,11 +178,41 @@ Beviset för att avkodningen är rätt kommer utifrån:
 
 | Prov | Utfall |
 |---|---|
-| ABB CRB 1100-4/0.475: profilens största \|x\| mot `Reach` | **475,0 mm mot 475** |
-| profil mot `Reach` där båda finns (n = 477) | median **−0,59 mm**; \|d\| ≤ 1 mm i 207, ≤ 10 mm i 390, ≤ 50 mm i 426 |
+| ABB CRB 1100-4/0.475: profilens radie mot `Reach` | **475,0 mm mot 475** |
+| profil mot `Reach` där båda finns (n = 477) | median **−0,59 mm**; \|d\| ≤ 1 mm i 208, ≤ 10 mm i 399, ≤ 50 mm i 437 |
 | ABB IRB 120, `Reach` saknas | profilen ger **579,8 mm**; ABB publicerar 580 |
 | ABB IRB 6640-235/2.55, `Reach` = 0 | profilen ger **2547,4 mm**; namnet säger 2,55 m |
-| alla profiler | y = 0,0 **exakt** i varje punkt — signaturen för ett XZ-snitt |
+| Kawasaki FD50N | profilen ger **2101,0 mm**; `Reach` säger 2104 |
+
+### Och profilen ligger inte alltid i samma plan
+
+Detta var det tredje övertrampet i mitt eget svep, och det syntes bara för att
+jag räknade om hela biblioteket.
+
+Radien lästes först som största `|x|`. Det stämmer för ABB, Fanuc, KUKA och de
+flesta andra: 652 av 702 profiler ligger i **XZ**-planet. Men **14 profiler,
+alla Kawasaki, ligger i YZ-planet**, och för dem gav `|x|` räckvidden
+**1 · 10⁻¹³ mm** — ett tal som ser ut som noll och som inget prov på en
+ABB-robot kan upptäcka, för där är y noll.
+
+Radien är avståndet från den **lodräta axeln**, `hypot(x, y)`. Efter
+rättelsen har ingen profil längre en radie under 1 mm, och Kawasaki FD50N
+träffar sitt eget `Reach` på 3 mm.
+
+Klassningen av planet är mätt och inte gissad: den mindre av `max|x|` och
+`max|y|` är antingen **under 0,66 mm** (666 profiler, för de flesta 10⁻¹⁴,
+alltså flyttalsbrus) eller **över 3,1 mm** (36 profiler, upp till 1099,8 mm).
+Gapet är en faktor fem, och `_PLANTOLERANS_MM = 1,0` ligger mitt i det.
+
+De 36 är inte en restpost: de är verkliga **3D-höljen** och inte snitt —
+kartesiska aktuatorer vars arbetsrymd är en låda, och robotar som ritats med
+hela svepet. Radien är rätt även för dem; "profil" är fel ord.
+
+| Profilens plan | antal |
+|---|---:|
+| XZ | 652 |
+| YZ | **14** |
+| varken (3D-hölje) | 36 |
 
 Profilen hittar också fel i VC:s egen data: `IRB 6700-270/2.70 LID` har
 `Reach = 270`, alltså nyttolasten i räckviddens fält. Profilen säger 2715,9 mm
@@ -345,7 +375,7 @@ robotar har sin `RootFrame` där, och en robots basram ligger i dess origo.
 Provet `test_en_ram_under_en_NOD_utan_offset_ger_saknas` står kvar som den
 trasiga fixtur som fäller övertrampet om någon gör om det.
 
-### Och ett andra övertramp, i samma svep
+### Ett andra övertramp, i samma svep
 
 `Expression ""` — en tom sträng — finns i **6950 av 39 171** transformer. Första
 mätningen räknade dem som uttryck och fick då "39 171 av 39 171", ett tal som
@@ -355,6 +385,11 @@ skillnaden.
 
 Det rätta talet är **32 221 av 39 171**, och slutsatsen står kvar: lådan går
 inte att räkna fram ur filen.
+
+Det tredje övertrampet — profilens plan — står under räckvidden. Alla tre har
+samma form: en regel som stämmer för det vanliga fallet, och ett tal som ser
+starkt ut tills man räknar om hela biblioteket i stället för ett stickprov.
+Det är därför svepet går över alla 3201 och inte över trehundra.
 
 ## Geometrin går att läsa — men blobbens ram är inte komponentens
 
@@ -410,11 +445,12 @@ bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
 
 | Nivå | Fil | Antal |
 |---|---|---:|
-| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 42 |
+| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 44 |
 | L1, bryggan | `tests/enhet/test_layout_komponent.py` | 23 |
 | L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 6 |
 
-Trasiga fixturer, elva stycken: en komponent vars mått saknas, en avhuggen
+Trasiga fixturer, tolv stycken: en profil i YZ-planet som ska ge samma radie
+som en i XZ, en komponent vars mått saknas, en avhuggen
 3DS-blobb, en triangel som pekar utanför sin hörnlista, en profil som inte går
 att avkoda, en profilnyttolast som inte går jämnt ut, en tom profil, en ram
 under en nod utan `Offset`, ett tomt uttryck utan matris, ett band med bara en

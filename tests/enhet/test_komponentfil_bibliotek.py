@@ -99,15 +99,46 @@ def test_varje_granssnitt_i_biblioteket_har_ett_namn(urval):
             assert g.namn, "namnlost granssnitt i %s" % f
 
 
+#: Under sa manga millimeter ar en "rackvidd" inte en rackvidd utan ett
+#: avkodningsfel. MATT: den minsta radien i hela biblioteket ar 180 mm, och
+#: de fjorton profiler som lag i YZ-planet gav 1e-13 innan radien raknades
+#: fran den lodrata axeln (M-61).
+MINSTA_RIMLIGA_RADIE_MM = 1.0   # Satt av M-61.
+
+
 @kraver_bibliotek
-def test_en_avkodad_rackviddsprofil_har_alltid_en_positiv_radie(urval):
-    """En profil som avkodas till radien noll ar en robot som pastas na noll
-    millimeter. Det ser ut som en matning och ar ett avkodningsfel."""
-    for f in urval:
-        p = K.las(f, djupt=True, geometri=True).profil
-        if p is not None:
-            assert p.radie_mm > 0.0, "profil utan radie i %s" % f
-            assert len(p) > 0
+def test_varje_rackviddsprofil_i_HELA_biblioteket_har_en_rimlig_radie():
+    """Provet gar over ALLA profiler, inte over ett urval - det kostar en
+    halv sekund.
+
+    Skalet ar mätt: de fjorton profiler som ligger i YZ-planet ar alla
+    Kawasaki, och ett stickprov pa sextio filer traffar dem sallan. En regel
+    som stammer for 688 av 702 gar inte att prova pa ett urval.
+    """
+    import zipfile
+
+    profiler = 0
+    dåliga = []
+    for k, _d, filer in os.walk(_ROT_BIB):
+        for n in sorted(filer):
+            if not n.lower().endswith((".vcmx", ".vcm")):
+                continue
+            f = os.path.join(k, n)
+            with zipfile.ZipFile(f) as z:
+                if "envelopeprofile" not in z.namelist():
+                    continue
+                p = K.las_profil(z.read("envelopeprofile"))
+            if p is None:
+                dåliga.append((f, "gick inte att avkoda"))
+                continue
+            profiler += 1
+            if p.radie_mm < MINSTA_RIMLIGA_RADIE_MM:
+                dåliga.append((f, "radie %.3g mm, plan %s"
+                               % (p.radie_mm, p.snittplan)))
+    assert profiler > 0, "biblioteket bar ingen rackviddsprofil alls"
+    assert not dåliga, "\n  ".join(
+        ["%d profiler, dessa duger inte:" % profiler]
+        + ["%s -> %s" % x for x in dåliga])
 
 
 @kraver_bibliotek
