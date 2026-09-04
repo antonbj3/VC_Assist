@@ -27,11 +27,12 @@ _MATNINGAR = os.path.join(_ROT, "docs", "matningar")
 #     var skrivet i ASCII och matningarna i svenska, sa atta av elva grenar
 #     kunde aldrig fyra. Lagat i skuld.py, inte genom att duplicera text.
 #
-# Kvar: M-50, som ar en halvskriven matning i nagon annans hand.
+# Kvar: ingen. M-50 fick sitt avsnitt 2026-09-05, och taket sanktes till noll
+# samma dag - talet far bara ga nedat, sa noll ar nu golvet ocksa.
 #
 # Talet far BARA ga nedat. Att hoja det ar att skriva en ny matning som inte
 # sager vad den inte visar, och det ar precis den skuld registret finns for.
-UTAN_ARLIGHETSAVSNITT = 1
+UTAN_ARLIGHETSAVSNITT = 0
 
 
 def test_sparren_bara_krymper():
@@ -262,3 +263,53 @@ def test_init_filer_raknas_inte(tmp_path):
     (tmp_path / "svc" / "p" / "__init__.py").write_text("", encoding="utf-8")
     u = S.moduler_utan_prov(str(tmp_path))
     assert u["inget"] == [] and u["bara_l3"] == []
+
+
+# ---- rattelser som inte syns vid pastaendet --------------------------------
+
+def test_ingen_rattelse_saknar_sin_framatpekare():
+    """En rattelse som bara star i den NYARE filen ar for den som redan vet.
+
+    Den som slar upp den gamla matningen far det gamla svaret med full
+    trovardighet. Tva mätta fall i det har repot:
+
+      fas 6:s rubrik sa 'halva grinden ar passerad' i over ett dygn medan
+      stangningen lag langst ned i samma fil.
+
+      M-34:s tabellrad sa 'matningen fyrar inte' langt efter att M-40 och M-41
+      motbevisat den; rattelsen lag i ett arlighetsavsnitt langst ned.
+    """
+    utan = S.rattelser_utan_framatpekare(_MATNINGAR)
+    assert not utan, (
+        "matningar som en senare rattar utan att sjalva peka framat:\n  %s"
+        % "\n  ".join("%s rattas av %s" % (g, ", ".join(n)) for g, n in utan))
+
+
+def test_kontrollen_hittar_en_rattelse_utan_pekare(tmp_path):
+    """Trasig fixtur for kontrollen sjalv."""
+    (tmp_path / "M-01_gammal.md").write_text(
+        "# M-01\n\nEtt pastaende.\n", encoding="utf-8")
+    (tmp_path / "M-02_ny.md").write_text(
+        "# M-02\n\nDen har mätningen rättar M-01.\n", encoding="utf-8")
+    assert S.rattelser_utan_framatpekare(str(tmp_path)) == [("M-01", ["M-02"])]
+
+
+def test_en_gammal_matning_som_pekar_framat_gar_fri(tmp_path):
+    (tmp_path / "M-01_gammal.md").write_text(
+        "# M-01\n\nEtt pastaende. RATTAD, se M-02.\n", encoding="utf-8")
+    (tmp_path / "M-02_ny.md").write_text(
+        "# M-02\n\nDen har mätningen rättar M-01.\n", encoding="utf-8")
+    assert S.rattelser_utan_framatpekare(str(tmp_path)) == []
+
+
+def test_monstret_ar_inte_skrivet_i_ASCII_mot_svensk_text():
+    """M-70: atta av elva grenar i den forsta versionen var doda.
+
+    De var skrivna i ASCII medan texten ar pa svenska, sa 'rackvidd' kunde
+    aldrig matcha 'Räckvidd'. En gren som aldrig fyrar rapporterar noll
+    traffar, och noll traffar ser ut som att det inte fanns nagot att hitta.
+    """
+    for ord_ in ("rättar", "rättad av"):
+        assert S._RATTAR.search("Den här mätningen %s M-01." % ord_), ord_
+    # Och ASCII-formen ska ocksa ga igenom, for koden skrivs i ASCII.
+    assert S._RATTAR.search("Den har matningen rattar M-01.")

@@ -1514,3 +1514,76 @@ def test_specartefakten_gar_att_lasa_tillbaka(tmp_path):
     with open(filer["spec"], encoding="utf-8") as f:
         data = _json.load(f)
     assert DetaljeradSpec.fran_json(data).id == "bestallning"
+
+
+# ======================================================================
+# TVA TYSTA BORTFALL SOM HITTADES GENOM ATT SPELA SOM OPERATOREN
+# ======================================================================
+#
+# Bada foll ut nar operatorens EGEN exempeltext ur 27_operatorsflodet kordes
+# genom lagret, och ingen av dem hade nagot prov emot sig. Bada gav ett gront
+# svar pa en fraga som inte var stalld.
+
+OPERATORENS_EXEMPEL = (
+    "Bygg en plockstation som klarar 400 detaljer i timmen, med ett "
+    "inmatningsband, en robot och en utlastningslåda. Skriv PLC-koden.")
+
+
+def test_ett_sammansatt_ord_kanns_igen_pa_sitt_efterled():
+    """'inmatningsband' ar ett band. Fore rattelsen var det ingenting alls,
+    och planen blev BYGGBAR med en tredjedel av det operatoren bad om."""
+    spec, _blad = _spec(OPERATORENS_EXEMPEL)
+    assert "band" in [d.roll for d in spec.delar]
+
+
+def test_ett_prefix_kanns_INTE_igen_som_komponent():
+    """Motprovet at andra hallet: prefixmatchning hade last 'pallmagasin' som
+    'pall' och gett en lastbarare ingen bett om. Det star redan i ORDBOKs
+    egen kommentar, och regeln ar suffix - aldrig prefix."""
+    katalog = dict(KATALOG)
+    katalog["file:///magasin.vcm"] = {
+        "uri": "file:///magasin.vcm", "namn": "Pallmagasin",
+        "kategori": "station", "l_mm": 1400.0, "b_mm": 1000.0, "h_mm": 2000.0}
+    forfinare = Forfinare(katalog)
+    spec = forfinare.ur_fritext(Grundbegaran(
+        "p", "Bygg en cell med ett pallmagasin.", "operator"))
+    assert "pall" not in [d.roll for d in spec.delar]
+
+
+def test_ett_okant_ord_i_upprakningen_blir_en_BLOCKERANDE_fraga():
+    """Det tysta bortfallet, fangat.
+
+    'utlastningslada' finns inte i den slutna ordlistan. Fore rattelsen
+    hoppades den tyst over och beskedet blev BYGGBAR.
+    """
+    besked = _besked(OPERATORENS_EXEMPEL)
+    assert besked.status == B.OFULLSTANDIG, besked.text()
+    ids = [t.split(":")[0] for _k, t in besked.problem]
+    assert any("okant_ord" in t for _k, t in besked.problem), besked.problem
+
+
+def test_fragan_om_det_okanda_ordet_citerar_operatorens_egna_ord():
+    besked = _besked(OPERATORENS_EXEMPEL)
+    text = "\n".join(t for _k, t in besked.problem)
+    assert "utlastningslåda" in text
+
+
+def test_en_upprakning_dar_allt_kanns_igen_ger_ingen_sadan_fraga():
+    """Motprovet. En grind som faller pa varje upprakning mater ingenting."""
+    besked = _besked()
+    assert not [k for k, t in besked.problem if "okant_ord" in t]
+
+
+def test_ett_processord_lases_inte_ur_mitten_av_ett_annat_ord():
+    """'inmatningsband' gav fore rattelsen BADE processen 'inmatning' och
+    processen 'matning'. Bestallningen fick tva processer den aldrig namnde,
+    och bada bar ett akta belagg ur operatorens text - belagget var sant,
+    tolkningen var pahittad."""
+    processer, ordningar = L.processer(OPERATORENS_EXEMPEL)
+    assert processer == []
+    assert ordningar == []
+
+
+def test_samma_processord_som_eget_ord_lases_fortfarande():
+    processer, _o = L.processer("Cellen ska klara inmatning och packning.")
+    assert sorted(p[0] for p in processer) == ["inmatning", "packning"]

@@ -218,6 +218,20 @@ _ORDNINGSFORMER = (
 )
 
 
+def _hela_ordet(ord_, normaliserad_text):
+    """Star ordet som ett EGET ord, inte inuti ett annat?
+
+    MATT nar jag korde operatorens egen exempeltext (M-63): en ren
+    delstrangsmatchning laste 'inmatningsband' som BADE processen 'inmatning'
+    OCH processen 'matning'. Bestallningen fick alltsa tva processer den aldrig
+    namnde, och bada bar en 'harkomst' som pekade rakt in i operatorens text -
+    belagget var akta, tolkningen var pahittad. Ordgranser ar darfor inte en
+    finess utan grinden mot precis det.
+    """
+    monster = r"\b%s\b" % re.escape(ord_).replace(r"\ ", r"\s+")
+    return re.search(monster, normaliserad_text) is not None
+
+
 def _process_i(bit):
     """Process-id och beskrivning ur en textbit, eller None.
 
@@ -225,12 +239,10 @@ def _process_i(bit):
     regel som forfiningens andelselista har, och av samma skal.
     """
     n = normalisera(bit)
-    bast = None
     for ord_ in sorted(_PROCESSNAMN, key=len, reverse=True):
-        if ord_ in n:
-            bast = (_PROCESSNAMN[ord_][0], _PROCESSNAMN[ord_][1], ord_)
-            break
-    return bast
+        if _hela_ordet(ord_, n):
+            return (_PROCESSNAMN[ord_][0], _PROCESSNAMN[ord_][1], ord_)
+    return None
 
 
 def processer(text):
@@ -253,8 +265,9 @@ def processer(text):
                 ordningar.append((a[0], b[0], belagg))
     # Processer som namns utan ordning ska ocksa med: de ska utforas, aven om
     # ingen sagt nar. Att tiga om dem hade tappat halva bestallningen.
+    normaliserad = normalisera(text)
     for ord_ in sorted(_PROCESSNAMN, key=len, reverse=True):
-        if ord_ not in normalisera(text):
+        if not _hela_ordet(ord_, normaliserad):
             continue
         pid, vad = _PROCESSNAMN[ord_]
         if pid in hittade:
@@ -282,6 +295,48 @@ def _belagg_for(text, ord_):
     # harkomstkontrollen ar det inget belagg, och da anvands ordet sjalvt.
     bit = text[i:i + len(ord_)]
     return bit if normalisera(bit) == ord_ else ord_
+
+
+# --------------------------------------------------- komponentupprakningen
+
+# Artiklar och rakneord som star framfor en komponent i en upprakning. Listan
+# ar sluten: den ska ta bort "ett" och "tva", inte gissa vad som ar ett
+# substantiv.
+_ARTIKLAR = ("en", "ett", "den", "det", "tva", "tre", "fyra", "fem", "sex",
+             "sju", "atta", "nio", "tio", "flera", "nagra", "ytterligare")
+
+# Upprakningen efter "med": "med ett inmatningsband, en robot och en
+# utlastningslada". Den stannar vid meningsslut.
+_MED = re.compile(r"\bmed\s+([^.;\n]{3,200})", re.I)
+_DELARE = re.compile(r"\s*(?:,|\boch\b|\bsamt\b)\s*", re.I)
+
+
+def komponentupprakning(text):
+    """[(ordagrann bit, orden i den)] for varje post i en 'med'-upprakning.
+
+    MATT i M-63 pa operatorens EGEN exempeltext ur 27_operatorsflodet:
+    "med ett inmatningsband, en robot och en utlastningslada" gav EN
+    komponent - roboten - och planen blev BYGGBAR med en tredjedel av det
+    operatoren bad om. Ett tyst bortfall som sag ut som ett ja.
+
+    Funktionen laser upprakningen sjalv, sa att forfining.py kan FRAGA om de
+    ord den inte kanner igen i stallet for att tiga om dem. Den avgor inte vad
+    orden betyder; den sager bara att de stod dar.
+    """
+    ut = []
+    for m, _belagg in _traff(text, _MED):
+        for bit in _DELARE.split(m.group(1)):
+            bit = bit.strip()
+            if not bit:
+                continue
+            ord_ = [o for o in _ORD_I_BIT.findall(normalisera(bit))
+                    if o not in _ARTIKLAR]
+            if ord_:
+                ut.append((bit, ord_))
+    return ut
+
+
+_ORD_I_BIT = re.compile(r"[a-z0-9]+")
 
 
 # ------------------------------------------------------------ kopplingarna

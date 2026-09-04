@@ -100,8 +100,25 @@ def _tokens(text):
 
 
 def _namner(tokens, ord_):
-    """Star ordet i texten, i nagon av sina vanliga former?"""
-    return any(ord_ + andelse in tokens for andelse in ANDELSER)
+    """Star ordet i texten, som eget ord eller som EFTERLED i ett sammansatt?
+
+    Suffixet, inte prefixet. MATT i M-63 pa operatorens egen exempeltext:
+    "ett inmatningsband" gav ingen komponent alls, eftersom 'band' inte var
+    ett eget token - och planen blev BYGGBAR med en tredjedel av det han bad
+    om. Ett sammansatt ord bestams av sitt EFTERLED: ett inmatningsband ar ett
+    band.
+
+    Prefixmatchning vore fel at andra hallet, och det star redan i ORDBOKs
+    kommentar: den hade last "pallmagasin" som "pall" och gett en lastbarare
+    ingen bett om.
+    """
+    for andelse in ANDELSER:
+        form = ord_ + andelse
+        if form in tokens:
+            return True
+        if any(t != form and t.endswith(form) for t in tokens):
+            return True
+    return False
 
 
 # ord i begaran -> (kategori i katalogindexet, fragment i uri eller namn)
@@ -620,6 +637,7 @@ class Forfinare(object):
                     "kategorin %s som matchar" % (ord_, kategori),
                     "modellen far bara valja ur indexet (I9), sa en komponent "
                     "som inte finns i katalogen maste operatoren peka ut")
+        self._fraga_om_okanda_ord(text)
         if not delar and not self.fragor:
             self.fraga(
                 "delar",
@@ -627,6 +645,30 @@ class Forfinare(object):
                 "begaran namner inget som gar att kanna igen i katalogen, och "
                 "en scen utan delar gar inte att bygga")
         return delar
+
+    def _fraga_om_okanda_ord(self, text):
+        """Ord i komponentupprakningen som ingen rad i ORDBOK kanner igen.
+
+        Det har ar grinden mot det tysta bortfallet. Utan den blev
+        bestallningen "med ett inmatningsband, en robot och en utlastningslada"
+        en plan med EN komponent, och beskedet blev BYGGBAR - en tredjedel av
+        det operatoren bad om, levererat som ett ja (MATT i M-63).
+
+        Fragan blockerar. Att bygga tva tredjedelar av en cell ar inte att
+        bygga den halvt; det ar att bygga en annan cell.
+        """
+        kanda = set(o for o, _k, _f in ORDBOK)
+        for bit, ord_ in lasning.komponentupprakning(text):
+            if any(_namner(set(ord_), k) for k in kanda):
+                continue
+            self.fraga(
+                "okant_ord:%s" % "_".join(ord_),
+                "vilken komponent i katalogen ar %r?" % bit,
+                "begaran raknar upp %r bland komponenterna, och inget ord i "
+                "den slutna ordlistan matchar det. Att hoppa over det vore "
+                "ett tyst bortfall: planen skulle byggas utan en komponent "
+                "operatoren bad om, och beskedet skulle anda sta som "
+                "byggbart" % bit)
 
     def _kopplingar_ur_fritext(self, delar, text):
         """Kopplingar som STAR i texten. Resten blir en fraga.
