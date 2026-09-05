@@ -118,6 +118,7 @@ class OpencodeCLI(modellklient.Modellklient):
                         k.stderr.decode("utf-8", "replace")[:400]))
             textdelar = []
             token = {"in": 0, "ut": 0}
+            cost_usd = 0.0
             for rad in k.stdout.decode("utf-8", "replace").splitlines():
                 try:
                     h = json.loads(rad)
@@ -131,6 +132,8 @@ class OpencodeCLI(modellklient.Modellklient):
                     tok = info.get("tokens") or {}
                     token["in"] += int(tok.get("input") or 0)
                     token["ut"] += int(tok.get("output") or 0)
+                    if "cost" in info:
+                        cost_usd = float(info["cost"] or 0.0)
                 else:
                     self.verktygslarm += 1
                     raise modellklient.Modellfel(
@@ -141,7 +144,7 @@ class OpencodeCLI(modellklient.Modellklient):
                 raise modellklient.Modellfel(
                     "opencode gav ingen text tillbaka")
             return modellklient.Svar(
-                text=text, modell=self.modell, kostnad_usd=0.0,
+                text=text, modell=self.modell, kostnad_usd=cost_usd,
                 ratt={"tokens_in": token["in"], "tokens_ut": token["ut"]})
         finally:
             shutil.rmtree(katalog, ignore_errors=True)
@@ -150,11 +153,10 @@ class OpencodeCLI(modellklient.Modellklient):
 class OpencodeModell(object):
     """`opencode run` bakom slingans `Modell`-yta. Ren text in, ren text ut."""
 
-    leverantor = "opencode/muse-spark"
-
     def __init__(self, klient=None, modell=MODELL_ID):
         self._klient = klient or OpencodeCLI(modell=modell)
         self.namn = modell
+        self.leverantor = "google-vertex/gemini" if "gemini" in modell else "opencode/muse-spark"
         self.kostnad_usd = 0.0
         self.anrop = 0
         self.tokens_in = 0
