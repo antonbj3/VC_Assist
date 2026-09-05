@@ -1,6 +1,6 @@
 # M-88 — fem domare mot VC-byggda celler: fyra föll rätt, den femte sa PASS på en svulten station
 
-**Datum:** 2026-09-05 08:30 och [[TID2]] · Linux 6.8 · VC Premium 4.10 under
+**Datum:** 2026-09-05 08:30 och 08:40–08:45 · Linux 6.8 · VC Premium 4.10 under
 Wine 11.16, **headless `:99`**, testprefixet `~/.wine-vc-test` (verifierat ur
 `/proc/<pid>/environ`)
 **Mätt av:** `tests/protocol/kor_fas15_domarna.py` (L3, mot en körande VC),
@@ -134,7 +134,30 @@ procenten, inte på namnet.
 
 ### Andra körningen: två varianter i VC
 
-[[SVALT2]]
+Efter lagningen, två celler i VC (körning 2 och en omkörning av bara dem):
+
+| variant | vad som gjordes | statistiken svarade | dom | genomflöde |
+|---|---|---|---|---|
+| `station_svalt_inert` | beteendet skapat, ingen process | `state ''`, 0,0 %, `cur 0`, 120 prov | **INCONCLUSIVE**: *"genomströmningskravet är deklarerat, men ingen station provades"* | INCONCLUSIVE |
+| samma serie, krav 100 s | — | — | INCONCLUSIVE | INCONCLUSIVE — det som inte mätts hålls inte heller |
+| `station_svalt` (IDLE satt) | `b.State = VC_STATISTICS_IDLE` genom kön, före körningen | **`state ''` fortfarande**, 0,0 %, 121 prov | INCONCLUSIVE (samma skäl) | INCONCLUSIVE |
+
+Det falska gröna är borta: den inerta stationen är obestämbar i VC, inte
+godkänd. Men den andra varianten gav ett fynd till: **skrivningen till
+`State` tog tyst inte.** `VC_STATISTICS_IDLE` är `3`; efter `b.State =
+VC_STATISTICS_IDLE` svarade `b.State` fortfarande `''`, utan fel. Ett
+`vcStatistics`-beteende utan process tar alltså inte emot ett tillstånd
+utifrån — det är komponentens process som äger det, och vår kod får inte
+skapa processkript (M-13). (Samma mönster som M-87:s minnesregel om en
+egenskapstilldelning som tyst inte sätter något: läs tillbaka värdet, tro
+inte på tilldelningen.)
+
+Följden för fasens grind: **genomflödesdomaren har ingen VC-byggd cell den
+fäller.** Den har (a) sin syntetiska trasiga cell (`station_svalt`, M-65),
+(b) en VC-byggd cell där den tidigare sa PASS och nu säger INCONCLUSIVE, och
+(c) den gröna riktningen syntetiskt (krav 100 s → PASS). Att fälla den i VC
+kräver en station med en riktig process — en katalogkomponent eller ett
+processflöde — och det är inte byggt. Det står i LIMITS och i fasens rad.
 
 ## §5 P15-9 — LIMITS i ögats riktiga utdata, och guldgrinden mot den: GRÖNT
 
