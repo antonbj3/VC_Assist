@@ -192,8 +192,13 @@ class Grund(object):
             # Jamfor i den enhet MODELLEN skrev talet i: avrundningen skedde
             # dar, sa marginalen hor hemma dar.
             i_modellens_enhet = observerat / faktor if faktor else observerat
-            traff = (abs(tal.varde - i_modellens_enhet) <= marginal
-                     or abs(tal.varde - observerat) <= marginal)
+            # EN jamforelse, och den gar genom enheten. Fram till M-95 stod
+            # har en andra, RA disjunktion (abs(tal.varde - observerat)), och
+            # den lat verktygsvardet 2,5 mm stodja pastaendet "2,5 m". M-94
+            # fynd 3 matte foljden: _enhetsmiss nas bara nar talet INTE stods,
+            # sa DOM-003:s egen mekanisering kunde aldrig fyra pa den form
+            # den finns for. En gren som aldrig kan nas ar ingen grind.
+            traff = abs(tal.varde - i_modellens_enhet) <= marginal
             if not traff:
                 continue
             if generation == self.generation:
@@ -222,19 +227,27 @@ class Grund(object):
         och ett matt i meter maste skrivas ut som meter. Ett bart 2,5 i en
         matmening ar inte kontrollerbart - och det ar just formen en modell
         skriver nar den har rakat om till meter i huvudet.
+
+        Jamforelsen gar i BASENHET (M-95). Fram till dess stalldes kvoten mot
+        tal.varde, alltsa mot rasiffran utan enhet, och da var kvoten 1 for
+        det fall grinden finns for: verktyget svarar 2,5 mm och modellen
+        skriver 2,5 m. Samma rasiffra, tusen ganger fel, och ingen faktor att
+        se. Med tal.bas ar kvoten 0,001 och grinden namner den. For ett bart
+        tal ar bas och varde samma sak, sa det fallet star oforandrat.
         """
-        if not tal.varde:
+        if not tal.bas:
             return None
         for observerat, _generation in self._tal:
-            kvot = observerat / tal.varde
+            kvot = observerat / tal.bas
             for faktor in ENHETSFAKTORER:
                 if abs(kvot - faktor) <= ENHETSTOLERANS * faktor:
-                    return ("inget verktygssvar bar %g, men ett bar %g - "
-                            "alltsa samma tal en faktor %g bort. VC:s langder "
+                    return ("talet ar %s, alltsa %g i basenhet, men det "
+                            "verktygssvar som ligger narmast bar %g - samma "
+                            "tal en faktor %g bort. VC:s langder "
                             "ar MILLIMETER och vinklar grader (verktyg/bas.py); "
                             "skriver du ett matt i en annan enhet ska enheten "
                             "sta i samma mening som talet (DOM-003)"
-                            % (tal.varde, observerat, faktor))
+                            % (tal.beskrivning(), tal.bas, observerat, faktor))
         return None
 
     def stodjer_namn(self, namn: Namnpastaende) -> Optional[str]:
