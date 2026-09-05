@@ -133,25 +133,11 @@ appeared only when the stations were connected: a downstream station started on
 
 ## Where the project stands
 
-```mermaid
-flowchart LR
-    subgraph P1["PROVEN"]
-        direction LR
-        H1["ST written<br/>outside the loop"] --> H2["OpenPLC"] --> H3["real scene"] --> H4["the eye judges"]
-    end
-    subgraph P2["PROVEN"]
-        direction LR
-        M1["ST written<br/>inside the loop"] --> M2["our interpreter"] --> M3["verdict against<br/>a trace"]
-    end
-    subgraph P3["RIG BUILT, NOT YET RUN"]
-        direction LR
-        X1["ST written<br/>inside the loop"] --> X2["OpenPLC"] --> X3["real scene"] --> X4["the eye judges"]
-    end
-
-    style P1 fill:#0d3320,stroke:#238636,color:#fff
-    style P2 fill:#0d3320,stroke:#238636,color:#fff
-    style P3 fill:#3a2d0b,stroke:#d29922,color:#fff
-```
+| the code was written | judged by | status |
+|---|---|---|
+| outside the loop, by hand | OpenPLC, driving a real scene, watched by the eye | **proven** |
+| inside the loop, by a model | our own interpreter, against a recorded trace | **proven** |
+| inside the loop, by a model | OpenPLC, driving a real scene, watched by the eye | **rig built, not yet run** |
 
 The first two were built separately and on purpose. The third joins them, and
 until it has been run, whether a model can close the loop is an open question
