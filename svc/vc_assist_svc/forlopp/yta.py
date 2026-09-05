@@ -166,8 +166,8 @@ class Forlopp(object):
         namn = [str(s) for s in steg]
         if not namn:
             raise Forloppsfel(
-                "en plan utan steg går inte att visa förloppet för; en tom "
-                "plan är inte ett arbete som pågår")
+                "a plan with no steps has no progress to show; an empty "
+                "plan is not work in progress")
         self.steg = [Steg(n) for n in namn]
         return self.lagg("PLAN", "%d steg: %s" % (len(namn), ", ".join(namn)))
 
@@ -263,8 +263,8 @@ class Forlopp(object):
         """Körningen föll. Absorberande: härifrån går det inte att arbeta."""
         if not (skal or "").strip():
             raise Forloppsfel(
-                "ett fall utan skäl går inte att visa; 'något gick fel' är "
-                "precis det besked fasens grind finns för att förbjuda")
+                "a failure with no reason cannot be shown; 'something went wrong' is "
+                "exactly the message the phase's gate exists to forbid")
         return self.lagg("FALLET", skal, ordagrant=skal)
 
     def avbruten(self, skal: str) -> Handelse:
@@ -413,13 +413,13 @@ class Forlopp(object):
             saknas = sorted(VANTADE - set(data))
             extra = sorted(set(data) - VANTADE)
             raise Forloppsfel(
-                "ögonblicksbilden har fel nycklar; saknar %s, har extra %s"
-                % (", ".join(saknas) or "inget", ", ".join(extra) or "inget"))
+                "the snapshot has the wrong keys; missing %s, extra %s"
+                % (", ".join(saknas) or "none", ", ".join(extra) or "none"))
         if data["v"] != FORLOPPSVERSION:
             raise Forloppsfel(
-                "ögonblicksbilden är version %r, läsaren kan %d; en läsare "
-                "som gissar sig genom ett okänt format visar ett halvt "
-                "förlopp som ett helt"
+                "the snapshot is version %r, the reader supports %d; a reader "
+                "that guesses its way through an unknown format shows a half "
+                "progress as a whole one"
                 % (data["v"], FORLOPPSVERSION))
 
         f = cls(data["order_id"], data["uppgift"], klocka=klocka,
@@ -462,8 +462,8 @@ class Forlopp(object):
                    if namn not in har]
         if tappade:
             raise Forloppsfel(
-                "ögonblicksbilden saknar räckviddens poster %s; en bild utan "
-                "dem visar en kortare ovisshet än körningen hade"
+                "the snapshot is missing the scope's entries %s; a snapshot without "
+                "them shows a shorter uncertainty than the run had"
                 % ", ".join(tappade))
         return f
 
