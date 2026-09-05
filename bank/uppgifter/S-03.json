@@ -291,7 +291,7 @@
     "harkomst": "RAKNAD: godkant viktfonster ar 0,016 till 0,020 kg (16 till 20 g) runt medelvikten 0,018 kg (18 g). Takten 45 kartor per minut ger 60/45 = 1,333 s per karta och 2700 kartor/h teoretiskt. Detta ar manniskans facit skrivet ur scenarios normal, wgt_lag, wgt_hog, stable_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Vagning och kassationsrakning for lakemedelsforpackning foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och R_TRIG, tabell 44 och 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_S03_KASSATION\nVAR\n    steg     : INT := 0;\n    tmrPsh   : TON;\n    trigPec  : R_TRIG;\n    trigWgt  : R_TRIG;\n    wgtOk    : BOOL := FALSE;\n    wgtError : BOOL := FALSE;\nEND_VAR\n\ntmrPsh(IN := (steg = 2), PT := T#400ms);\ntrigPec(CLK := ST210_REJ_PEC);\ntrigWgt(CLK := ST210_WGT_STABLE);\n\nwgtOk := (ST210_WGT_VAL >= 16.0) AND (ST210_WGT_VAL <= 20.0);\nwgtError := (ST210_WGT_VAL < 5.0) OR (ST210_WGT_VAL > 50.0);\n\nIF NOT EMG_OK OR (ST210_WGT_STABLE AND wgtError) THEN\n    ST210_CNV_RUN := FALSE;\n    ST210_PSH_OUT := FALSE;\n    steg := 0;\nELSE\n    ST210_CNV_RUN := TRUE;\n\n    IF trigWgt.Q THEN\n        ST210_IN_CNT := ST210_IN_CNT + 1;\n        IF wgtOk THEN\n            ST210_OK_CNT := ST210_OK_CNT + 1;\n            steg := 0;\n        ELSE\n            ST210_PSH_OUT := TRUE;\n            steg := 2;\n        END_IF;\n    END_IF;\n\n    IF steg = 2 THEN\n        IF trigPec.Q THEN\n            ST210_REJ_CNT := ST210_REJ_CNT + 1;\n        END_IF;\n        IF tmrPsh.Q THEN\n            ST210_PSH_OUT := FALSE;\n            steg := 0;\n        END_IF;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_S03_KASSATION\nVAR\n    steg     : INT := 0;\n    tmrPsh   : TON;\n    trigPec  : R_TRIG;\n    trigWgt  : R_TRIG;\n    wgtOk    : BOOL := FALSE;\n    wgtError : BOOL := FALSE;\n    xDrift   : BOOL := FALSE;\nEND_VAR\n\ntmrPsh(IN := (steg = 2), PT := T#400ms);\ntrigPec(CLK := ST210_REJ_PEC);\ntrigWgt(CLK := ST210_WGT_STABLE);\n\n(* Godkant viktfonster 16 till 20 g; under 5 g eller over 50 g ar givarfel. *)\nwgtOk := (ST210_WGT_VAL >= 16.0) AND (ST210_WGT_VAL <= 20.0);\nwgtError := (ST210_WGT_VAL < 5.0) OR (ST210_WGT_VAL > 50.0);\n\nxDrift := EMG_OK AND NOT (ST210_WGT_STABLE AND wgtError);\n\nIF NOT xDrift THEN\n    steg := 0;\nELSE\n    IF trigWgt.Q THEN\n        ST210_IN_CNT := ST210_IN_CNT + 1;\n        IF wgtOk THEN\n            ST210_OK_CNT := ST210_OK_CNT + 1;\n            steg := 0;\n        ELSE\n            steg := 2;\n        END_IF;\n    END_IF;\n\n    IF steg = 2 THEN\n        IF trigPec.Q THEN\n            ST210_REJ_CNT := ST210_REJ_CNT + 1;\n        END_IF;\n        IF tmrPsh.Q THEN\n            steg := 0;\n        END_IF;\n    END_IF;\nEND_IF;\n\nST210_CNV_RUN := xDrift;\n(* Forregling: ingen utskjutning nar AIR_OK ar lag. *)\nST210_PSH_OUT := xDrift AND AIR_OK AND (steg = 2);\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "normal_godkand_karta",
@@ -301,6 +301,7 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
+              "AIR_OK": true,
               "ST210_WGT_STABLE": false,
               "ST210_WGT_VAL": 0.0,
               "ST210_REJ_PEC": false
@@ -365,6 +366,7 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
+              "AIR_OK": true,
               "ST210_WGT_STABLE": false,
               "ST210_WGT_VAL": 0.0,
               "ST210_REJ_PEC": false
