@@ -102,7 +102,7 @@ class Harkomst(object):
                 "'<nyckel>#<falt>'; %r gar inte att sla upp igen"
                 % (kalla, belagg))
         if problem:
-            raise Specfel("harkomsten %r" % (kalla,), problem)
+            raise Specfel("the provenance %r" % (kalla,), problem)
 
     def __repr__(self):
         return "Harkomst(%s: %s)" % (self.kalla, self.belagg)
@@ -162,8 +162,8 @@ class Harkomst(object):
     @classmethod
     def fran_json(cls, data):
         if not isinstance(data, dict) or set(data) != {"kalla", "belagg"}:
-            raise Specfel("harkomst",
-                          ["forvantade precis nycklarna belagg och kalla, fick %s"
+            raise Specfel("provenance",
+                          ["expected exactly the keys belagg and kalla, got %s"
                            % (", ".join(sorted(data))
                               if isinstance(data, dict) else type(data).__name__)])
         return cls(data["kalla"], data["belagg"])
