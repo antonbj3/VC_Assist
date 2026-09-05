@@ -31,7 +31,7 @@ Den här körningen är regeln applicerad på uppgifterna. Fem frågor per uppgi
 
 TRASIGA FALL
 ------------
-Fyra fixturer körs sist och MASTE falla. En grind utan trasig fixtur är en
+Sex fixturer körs sist och MASTE falla. En grind utan trasig fixtur är en
 förhoppning som fått ett filnamn (regel S2, `docs/spec/96_ingen_skuld.md`).
 
 Körs utan VC, utan OpenPLC och utan STruC++.
