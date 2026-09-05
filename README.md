@@ -212,7 +212,7 @@ ligger i `tests/protocol/`.
 | 15 | Ögat på djupet | pågår | Tidsserie över varje objekt, PLC-värdena på samma tidsaxel |
 | 16 | Planeringslagret | klar, kräver ej VC | M-63: en fritextbeställning blir en körbar byggplan, och en omöjlig beställning **avvisas** med vilket villkor som krockar |
 | 17 | Vad användaren ser | pågår | Systemet rapporterar i dag till loggar och mätfiler, alltså till oss |
-| 18 | Befintlig anläggning in | pågår, premissen mätt | M-75: ett inspelat I/O-spår har redan bänkens facitform |
+| 18 | Befintlig anläggning in | mätt (M-89) | 28 av 28 förreglingar återfinns ur ett provspår, 3 av 28 ur ett produktionsspår. Ingen riktig anläggning är inspelad |
 
 ### Fas 10 i detalj — det du just läser instruktionen till
 
