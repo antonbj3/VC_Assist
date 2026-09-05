@@ -570,9 +570,9 @@ def _ledenhet(typ):
     En ledfart som inte vet sin enhet ar ett tal som bar tva storheter. Da
     domer vi inte pa den - vi rapporterar den namnlos och sager varfor.
     """
-    if typ in ("R", "rot", "rotational", 0):
+    if typ in ("R", "rot", "rotational", "deg", 0):
         return "deg"
-    if typ in ("T", "trans", "translational", 1):
+    if typ in ("T", "trans", "translational", "mm", 1):
         return "mm"
     return None
 

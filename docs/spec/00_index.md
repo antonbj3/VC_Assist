@@ -179,6 +179,8 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-138_vad_ogat_inte_kan_se_av_konstruktion.md` | M-138 — vad ögat inte kan se, av konstruktion: produktens ärliga gräns över felklasserna F1–F15 |
 | `M-139_universaliteten.md` | M-139 — Universaliteten mätt: kombinationstabell över OS, Python, VC och Wine |
 | `M-140_provtagningsfrekvensen_mot_vad_som_ska_ses.md` | M-140 — provtagningsfrekvensen mot vad som ska ses: 11 bankuppgifter ogiltiga vid 17,2 Hz tyst provtagning, full täckning vid 224,7 Hz trafik |
+| `M-141_kontextbudgeten_mot_verkligheten.md` | M-141 — Kontextbudgeten mot verkligheten: förhandsreglerna i systemprompten |
+| `M-142_millimeter_och_meter_omvandling_bada_hallen.md` | M-142 — millimeter och meter: fullständig inventering av enhetsbyten och stängning av asymmetriska omvandlingar |
 
 <!-- SLUT MATNINGSTABELL -->
 
