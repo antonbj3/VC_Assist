@@ -88,3 +88,23 @@ def test_c0_flank_till_niva_ar_den_riktiga_f15():
     assert "trigPall(CLK := xPallGivare);" in s[0].kropp
     assert "IF xPallGivare THEN" in s[0].kropp
     assert "tonStall.Q" in s[0].kropp
+
+
+def test_c0_skanningen_ser_kommentarer_och_ordgrans():
+    """C0.4 (uppmatt under C0.1): T-05 rad 18, T-08 rad 47 och P-03 rad 44
+    borjar pa "var" mitt i en fleradig kommentar - det oppnar inget
+    VAR-block. Och VARSEL ar inget VAR. Skanningen ar fortfarande grov
+    (M-122 LIMITS), men den ater inte langre riktig kod."""
+    from vc_assist_svc.plc.mutation import var_rader             # noqa: E402
+    k = ("PROGRAM T\nVAR\n    x : BOOL := FALSE;\nEND_VAR\n"
+         "    (* Bandet gar men inget\n"
+         "       var ett fel haer *)\n"
+         "    x := TRUE;\nEND_PROGRAM")
+    assert var_rader(k) == frozenset({3})
+    s = [x for x in skador(k) if x.sort == "SANT_TILL_FALSKT"]
+    assert [x.rad for x in s] == [7]
+    k2 = ("PROGRAM T\nVAR\n    x : BOOL := FALSE;\nEND_VAR\n"
+          "    varsel := TRUE;\nEND_PROGRAM")
+    assert var_rader(k2) == frozenset({3})
+    s2 = [x for x in skador(k2) if x.sort == "SANT_TILL_FALSKT"]
+    assert [x.rad for x in s2] == [5]

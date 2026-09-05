@@ -90,14 +90,31 @@ def var_rader(kropp: str) -> frozenset:
     En RADSKANNING, inte en parsning (M-122 LIMITS): allt mellan en rad som
     borjar pa VAR och nasta END_VAR raknas som deklaration. Samma skanning
     kor korningens radtyp - pa ett stalle, inte tva.
+
+    Tva grovheter ar borttagna efter matning (M-131): rader inne i
+    (* *)-kommentarer oppnar inga block - T-05 rad 18, T-08 rad 47 och P-03
+    rad 44 borjar alla pa "var" mitt i en kommentar och svalde resten av
+    filen sa att riktig kod undantogs - och VAR kraver ordgrans (VARSEL ar
+    inget VAR). Kvar som grovhet: strenglitteraler med VAR/END_VAR i sig och
+    block som aldrig stangs.
     """
     rader = set()
     inne = False
+    kommentar = 0
     for i, rad in enumerate(kropp.split("\n"), 1):
-        s = rad.strip().upper()
-        if s.startswith("END_VAR"):
+        s = rad.strip()
+        u = s.upper()
+        i_kommentar = kommentar > 0
+        for m in re.finditer(r"\(\*|\*\)", s):
+            if m.group(0) == "(*":
+                kommentar += 1
+            elif kommentar > 0:
+                kommentar -= 1
+        if i_kommentar or u.startswith("//"):
+            continue
+        if re.match(r"END_VAR\b", u):
             inne = False
-        elif s.startswith("VAR"):
+        elif re.match(r"VAR($|[\s_])", u):
             inne = True
         elif inne:
             rader.add(i)
