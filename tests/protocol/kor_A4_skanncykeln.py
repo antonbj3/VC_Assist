@@ -208,7 +208,7 @@ def dom_vid_scan(post, st_text, scan_ms, omstart_ms=(), kall=False):
     rutnatet, sa att ett noll-resultat gar att skilja fran en tyst matare.
 
     `omstart_ms` ar tider dar PLC:n startas om FORE scanet (ko A, punkt A9,
-    M-168). Tom sekvens = ingen omstart, och da ar funktionen exakt den
+    M-173). Tom sekvens = ingen omstart, och da ar funktionen exakt den
     mekanik sjalvkontrollen jamfor mot `bank/domare.py`. `kall=True` ger en
     kallstart i stallet for en varmstart: skillnaden ar RETAIN, och att den
     skillnaden gar att se ar hela A9:s trasiga fixtur.

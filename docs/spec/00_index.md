@@ -204,6 +204,14 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-163_forslag_nar_valet_faller.md` | M-163 — förslag när valet faller: vad grinden kan namnge, och var sökskiktet tar slut |
 | `M-164_baslinjens_golv_i_skala.md` | M-164 — baslinjen mot nollprogrammet i skala: 22 av 44 under, och två förklaringar som inte håller |
 | `M-165_matiecs_kompileringstid.md` | M-165 — matiecs kompileringstid över banken: max 0,087 s, och binären ligger i /tmp |
+| `M-166_skanncykeln_under_banken.md` | M-166 — Skanncykeln under banken: ändrar cykeltiden domen? |
+| `M-167_orord_signal_mot_egna_referenser.md` | M-167 — ORORD_SIGNAL fällde 13 signaler i 9 egna referenser: referensen eller kartan? |
+| `M-168_motbevisrevision.md` | M-168 — Motbevis som faller på fel sak: revision av bankens och svitens motbevis |
+| `M-169_openplc_utanfor_standarden.md` | M-169 — Vad OpenPLC-kedjan gör som IEC 61131-3 inte säger: spill, nolldivision, TIME över dygnet, strängar |
+| `M-170_kontraktsrevision.md` | M-170 — Kontraktsrevision: klassning av bankens 63 uppgifter och mekanisering av kallklass |
+| `M-171_markeringen_och_scenens_sort.md` | M-171 — Markeringen headless, och scenens sort ur strukturen |
+| `M-172_kostnad_opencode.md` | M-172 — Kostnaden som aldrig mattes: opencode rapporterar kostnad i step_finish |
+| `M-173_omstarten_och_retain.md` | M-173 — Omstarten mitt i spåret: RETAIN, varmstart och vad banken förutsätter |
 
 <!-- SLUT MATNINGSTABELL -->
 

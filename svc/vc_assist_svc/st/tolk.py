@@ -399,7 +399,7 @@ class Tolk(object):
 
     # -- omstarten --------------------------------------------------------
     #
-    # Byggd av M-168 (kö A, punkt A9). Före den hade tolken inget
+    # Byggd av M-173 (kö A, punkt A9). Före den hade tolken inget
     # omstartsbegrepp alls: ett spår kördes från scan 0 till slut och kunde
     # aldrig avbrytas av det som händer varje gång strömmen går eller någon
     # trycker på återställningen. `RETAIN` fanns i lexern, i modellen och i
