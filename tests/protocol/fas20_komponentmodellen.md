@@ -1,6 +1,6 @@
 # FAS 20 ACCEPTANS — komponentmodellen
 
-**beskriver:** `docs/spec/49_komponentmodellen.md` (avsnitt 7–10),
+**beskriver:** `docs/spec/49_komponentmodellen.md` (avsnitt 7–11),
 `svc/vc_assist_svc/komponentmodell.py`
 **kontrakt:** `docs/spec/70_faser.md` fas 20 — *"De fyra minsta uppsättningarna
 byggda **ur specen**, i riktig VC: `canConnect` sant mellan rätt par, och
