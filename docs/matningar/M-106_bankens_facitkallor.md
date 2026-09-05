@@ -197,7 +197,11 @@ och inte kravtexten står det, och det står också i uppgiftens eget
 | ISO 10218-1:2011 | 5.6.2 | "Reduced speed control operation" (250 mm/s) | `A-07` |
 | ISO 10218-2:2011 | 5.10.4.3 | "General requirements for interlocked movable guards" | `A-07` |
 | ISO 10218-2:2011 | 5.6.3.4 / 5.6.3.4.2 | "Manual reset, start/restart and unexpected start-up" | `A-07`, `H-04` |
-| ISO 14119:2013 | 4.3.1 (under 4.3) | "Principles of guard interlocking with guard locking" | `P-06` |
+| ISO 14119:2013 | 4.3, 4.3.1 | "Principles of guard interlocking with guard locking" | `P-06` |
+| ISO 14119:2013 | 5.7 | "Additional requirements on guard locking devices" | `P-06` |
+| ISO 14119:2013 | 8.4 | "Release of guard locking device" | `P-06` |
+| ISO 14119:2025 | 5.3, 6.6 | samma krav efter omnumreringen i EN ISO 14119:2025 (4.3→5.3, 5.7→6.6) | `P-06` |
+| ISO 14119:2025 | 9.3 | samma krav efter omnumreringen (8.4→9.3) | `P-06` |
 | ISO 23125:2015 | 5.2.3 | "Workpiece clamping conditions" | `P-06` |
 | ISO 5817:2023 | klausul 5, tabell 1 | "Assessment of imperfections" (nivå B/C/D införs i klausul 1, definieras i 3.1) | `A-07` |
 | ISO 3834-2:2021 | 14.3 | "Inspection and testing during welding" | `A-07` |
