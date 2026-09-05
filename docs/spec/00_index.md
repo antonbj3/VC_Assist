@@ -191,6 +191,11 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-150_parvisa_skador.md` | M-150 — två skador samtidigt: hur ofta parvisa fel tar ut varandra och blir osynliga |
 | `M-151_stimuli_redundans.md` | M-151 — hur många stimuli behövs egentligen: sekvensvis ablationsanalys över bankens facit |
 | `M-152_kalibrera_verkliga_buggar.md` | M-152 — kalibrera mot verkliga buggar: hur mutationsmotorns 22 sorter täcker 82_felklasser och repots historiska fel |
+| `M-153_domarna_i_skala.md` | M-153 — Hela banken genom båda domarna: var de är oense, och hur oense de är med sig själva |
+| `M-154_plcopen_export_ut.md` | M-154 — Exporten ut: PLCopen XML, och vad som overlever sin egen import |
+| `M-155_vad_som_oppnas_hos_tillverkaren.md` | M-155 — Vad som faktiskt oppnas hos en tillverkare: CODESYS, TIA Portal, TwinCAT |
+| `M-156_specen_60_plc_mot_koden.md` | M-156 — INVENTERING: docs/spec/60_plc.md mening for mening mot koden (A12) |
+| `M-157_ren_maskin_hela_kedjan.md` | M-157 — Ren maskin: hela installationskedjan från klon till prov i ren container |
 
 <!-- SLUT MATNINGSTABELL -->
 
