@@ -31,7 +31,7 @@ Ingen av dem skriver ordet `PRELIMINÄR`. Alla tre ser färdiga ut.
 
 ---
 
-## 1. De tolv fynden, i den ordning de kostar att laga sent
+## 1. De tretton fynden, i den ordning de kostar att laga sent
 
 Rangordningen är efter **vad som hänger på fyndet**, inte efter hur lätt det är
 att laga. Ett fel i den grind som skyddar en levande scen kostar mer sent än ett
@@ -51,6 +51,7 @@ fel i ett register.
 | 10 | `TOLERANS_STANDARD` pekade på en mätning utan tolerans | `svc/vc_assist_svc/verktyg/matning.py:113` | **rättad** |
 | 11 | 190 av enhetssvitens prov körs aldrig här | `tests/enhet/test_st_svep_mot_strucpp.py:70` | grönt utan körning |
 | 12 | 61 markörer i `.md` ligger utanför registrets svep | `svc/vc_assist_svc/skuld.py:112` | blind fläck |
+| 13 | Numret reserveras med en tom fil i stället för i tabellen | `docs/matningar/RESERVERADE.md` | grinden blir billig |
 
 ---
 
@@ -379,6 +380,44 @@ avgränsningsfråga som ska göras med mätta undantag, inte i förbifarten.
 
 ---
 
+### 13. Numret reserveras med en platshållarfil i stället för i `RESERVERADE.md`
+
+`docs/matningar/RESERVERADE.md` **är** repots reservationsmekanism, och den har
+en uttalad regel: numret står i tabellen tills mätningen är gjord, då filen
+skrivs och raden tas bort. Den vägen används inte för nya nummer.
+
+**Mätt 2026-09-05:** 13 nummer står i tabellen (M-10, M-18–M-19, M-21–M-30 — alla
+från en tidigare omgång), medan **4 nummer** i stället är reserverade genom att
+någon skapat en nästan tom `.md`-fil:
+
+| Fil | Rader | Ärlighetsavsnitt | Brödtext i det |
+|---|---|---|---|
+| `M-85_komponentdatabladet.md` | 5 | **nej** | – |
+| `M-86_ogat_mot_en_korande_vc.md` | 6 | ja | **58 tecken** |
+| `M-87_hopfogningen_mot_vcs_egen_brygga.md` | 6 | ja | **58 tecken** |
+| `M-88_fem_domare_mot_vc_byggda_celler.md` | 6 | ja | **58 tecken** |
+
+En mekanism, två följder:
+
+* **Kollisionerna i fynd 7 uppstår här.** En fil på disk är det enda som säger
+  att numret är taget, och den syns först när den finns. En rad i en tabell
+  hade kunnat läggas till innan arbetet börjar.
+* **Ärlighetsgrinden blir billig.** Taket är 0, och 58 tecken *"Ingenting är
+  mätt än"* räcker för att passera. Grinden mäter i det läget att någon skrivit
+  en rubrik, inte att någon skrivit ned vad hen inte vet. Tre av fyra
+  platshållare passerar; den fjärde är röd bara för att dess författare inte
+  hann skriva stubben.
+
+**Inte mekaniserat, och skälet är mätt.** Ett längdkrav på ärlighetsavsnittet är
+en godtycklig tröskel — den skulle själv bli en post i `TROSKELSKULD.md`. Den
+riktiga regeln finns redan skriven i `RESERVERADE.md` och behöver ingen ny
+grind, bara att den används: **ett nummer reserveras i tabellen, en fil skrivs
+när mätningen är gjord.** Att formulera det som en grind kräver ett kriterium för
+"platshållare" som inte fäller en kort men färdig mätning, och det kriteriet har
+jag inte mätt fram.
+
+---
+
 ## 2. Vad som behöver göras om senare, och vad som utlöser det
 
 Varje rad namnger **utlösaren**. En rad utan utlösare är en önskan.
@@ -463,6 +502,10 @@ letar om.
   har grenar som aldrig körs ens av attrappen. Vad som skulle avgöra det: en
   körning av `tests/enhet/test_install.py` under coverage med ett rapporterat
   radintervall per gren, jämfört mot de 16 punkterna i M-44.
+* **Fynd 13:s tal är en ögonblicksbild.** Fyra platshållarfiler fanns kl.
+  07:00 den 5 september 2026. Tre av dem skrivs klart av andra agenter i natt och
+  försvinner då ur räkningen. Det som inte försvinner är att en 58 teckens stubb
+  räcker för en spärr vars tak är noll.
 * **Misstanke, inte visad:** `NEKANDE`-listan används av minst fyra grindar
   (`arlighet.py:130`, `arlighet.py:158`, `redovisning.py:118`, och den
   meningsdelare `text.py` exporterar). Fynd 1 och 4 är samma felklass i två av
