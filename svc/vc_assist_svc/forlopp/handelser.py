@@ -55,11 +55,23 @@ FALLET = "FALLET"
 AVBRUTET = "AVBRUTET"
 KLART = "KLART"
 
-LAGEN = (EJ_STARTAT, ARBETAR, VANTAR, TYST, FALLET, AVBRUTET, KLART)
+# Läget för en körning som inte gick att AVGÖRA. Det är inte ett fall och inte
+# ett arbete: det är beskedet att frågan inte går att besvara ur det underlag
+# som finns.
+#
+# I3 säger att tystnad aldrig är ett godkännande, och OBESTÄMT är den regeln på
+# visningens våning. Det behövs först när förloppet lämnar processen: en fil
+# som är avhuggen, en fil vars skrivare kan vara död, och en klocka som gått
+# bakåt är alla lägen där det ärliga svaret är "vet inte". Att skriva EJ
+# STARTAT om en avhuggen fil vore att låta ett läsfel se ut som en lugn början.
+OBESTAMT = "OBESTÄMT"
+
+LAGEN = (EJ_STARTAT, ARBETAR, VANTAR, TYST, FALLET, AVBRUTET, KLART,
+         OBESTAMT)
 
 # Lägen där ingenting arbetar. En pågåendemarkör i något av dem är precis den
 # snurrande symbolen fasens grind förbjuder.
-STILLA = (EJ_STARTAT, TYST, FALLET, AVBRUTET, KLART, VANTAR)
+STILLA = (EJ_STARTAT, TYST, FALLET, AVBRUTET, KLART, VANTAR, OBESTAMT)
 
 # Lägen körningen inte kan lämna. Ett fall går inte att arbeta bort.
 ABSORBERANDE = (FALLET, AVBRUTET)

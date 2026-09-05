@@ -36,9 +36,10 @@ from typing import List, Optional, Sequence, Tuple
 
 from .handelser import (ARBETAR, AVBRUTET, EJ_PROVAT, EJ_STARTAT, FALLET,
                         Forloppsfel, Handelse, KLART, MED_EGEN_SEKTION,
-                        Ovisshet, PAGAR_MARKOR, RACKVIDDEN, STEG_FOLL,
-                        STEG_HOPPAT, STEG_KLART, STEG_PAGAR, STEG_VANTAR,
-                        Steg, TYST, UTANFOR_RACKVIDD, VANTAR)
+                        OBESTAMT, Ovisshet, PAGAR_MARKOR, RACKVIDDEN,
+                        STEG_FOLL, STEG_HOPPAT, STEG_KLART, STEG_PAGAR,
+                        STEG_VANTAR, STEGSTATUSAR, Steg, TYST,
+                        UTANFOR_RACKVIDD, VANTAR)
 
 # Hur många händelserader visningen skriver ut. MÄTT i M-64: en händelserad
 # är 40-90 tecken, så tolv rader kostar under 1 100 och hela ytan mäter
@@ -55,6 +56,11 @@ MAX_HANDELSERADER = 12          # Satt av M-64.
 TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
 
 SAKNAS = "saknas"
+
+# Ögonblicksbildens formatversion. Ändras formen höjs talet, och `fran_json`
+# vägrar läsa en annan version: en läsare som gissar sig genom ett okänt
+# format kan visa ett tomt förlopp som en lugn början.
+FORLOPPSVERSION = 1             # M-90, första formen av en ögonblicksbild.
 
 # Sektioner ögats rapport MÅSTE bära för att domen ska betyda något. Samma
 # lista som `guldgrind.OBLIGATORISKA_SEKTIONER`, och den kopieras hit i
@@ -95,6 +101,7 @@ _STOPPAT_MITT_I = {
     KLART: "stod kvar som pågående när svaret levererades",
     VANTAR: "pågår inte; kön väntar på operatören",
     EJ_STARTAT: "pågick innan körningen börjat",
+    OBESTAMT: "stod som pågående; om det fortfarande gör det går inte att avgöra",
 }
 
 
@@ -122,6 +129,28 @@ class Forlopp(object):
         self.ovissheter: List[Ovisshet] = [
             Ovisshet(namn, "%-19s %s" % (nyckel, skal), UTANFOR_RACKVIDD)
             for nyckel, namn, skal in RACKVIDDEN]
+        # Spegeln, om förloppet skrivs ut ur processen. `None` = ingen: ett
+        # förlopp utan spegel är fullt användbart, det når bara inte längre än
+        # till den som redan kör koden.
+        self.spegel = None
+        # När ögonblicksbilden skrevs. Bara satt för ett förlopp som LÄSTS ur
+        # en fil; en levande körning har aldrig blivit skriven.
+        self.skrivet: Optional[float] = None
+
+    def spegla(self, spegel) -> None:
+        """Låt varje händelse härefter skrivas ut ur processen.
+
+        Spegeln kallas EFTER varje händelse och efter varje ovisshet, inte på
+        en klocka: en yta som uppdateras av en timer visar ett tillstånd som
+        inte hör till någon händelse, och en yta som uppdateras när körningen
+        är slut är den terminala rapportyta fasen finns för att ersätta.
+        """
+        self.spegel = spegel
+        spegel.skriv(self)
+
+    def _spegla(self) -> None:
+        if self.spegel is not None:
+            self.spegel.skriv(self)
 
     # ---- att föra protokollet -------------------------------------------
 
@@ -130,6 +159,7 @@ class Forlopp(object):
         h = Handelse(sort=sort, text=text, t=self.klocka(), steg=steg,
                      ordagrant=ordagrant)
         self.handelser.append(h)
+        self._spegla()
         return h
 
     def plan(self, steg: Sequence[str]) -> Handelse:
@@ -247,6 +277,7 @@ class Forlopp(object):
                  klass: str = EJ_PROVAT) -> Ovisshet:
         o = Ovisshet(namn, skal, klass)
         self.ovissheter.append(o)
+        self._spegla()
         return o
 
     # ---- vad som gäller just nu -----------------------------------------
@@ -284,7 +315,16 @@ class Forlopp(object):
             return KLART
         if self.obesvarade_koposter():
             return VANTAR
-        if self.tyst_sedan() > self.tystnadstak:
+        tyst = self.tyst_sedan()
+        # En NEGATIV tystnad betyder att den senaste händelsen ligger i
+        # framtiden: klockan har gått bakåt. In i processen kan det inte hända,
+        # men ett förlopp som lästs ur en fil bär skrivarens tidsstämplar och
+        # mäts mot LÄSARENS klocka. Utan den här raden blir ett förlopp med en
+        # framtida stämpel ARBETAR för alltid — samma odödliga körning som
+        # hjärtslaget gav, med en annan mekanism.
+        if tyst < 0.0:
+            return OBESTAMT
+        if tyst > self.tystnadstak:
             return TYST
         return ARBETAR
 
@@ -319,6 +359,113 @@ class Forlopp(object):
             if h.ordagrant and h.ordagrant not in ut:
                 ut.append(h.ordagrant)
         return tuple(ut)
+
+    # ---- ut ur processen ------------------------------------------------
+
+    def till_json(self) -> dict:
+        """Ögonblicksbilden, så att någon ANNAN process kan läsa förloppet.
+
+        `26_appen.md` §2 lägger panelen utanför körningen. Så länge ett
+        `Forlopp` bara finns i minnet hos den som kör varvet är "panelen" och
+        "körningen" samma process, och ytan når bara den som redan kör koden.
+
+        `skrivet` är läsarens enda sätt att veta hur GAMMAL bilden är. Utan
+        den raden går det inte att skilja en körning som arbetar just nu från
+        en vars skrivare dog i går, och de två får aldrig se likadana ut.
+        """
+        return {
+            "v": FORLOPPSVERSION,
+            "order_id": self.order_id,
+            "uppgift": self.uppgift,
+            "t0": self.t0,
+            "skrivet": self.klocka(),
+            "tystnadstak": self.tystnadstak,
+            "max_handelserader": self.max_handelserader,
+            "handelser": [{"sort": h.sort, "text": h.text, "t": h.t,
+                           "steg": h.steg, "ordagrant": h.ordagrant}
+                          for h in self.handelser],
+            "steg": [{"namn": s.namn, "status": s.status, "skal": s.skal,
+                      "t_start": s.t_start, "t_slut": s.t_slut}
+                     for s in self.steg],
+            "ovissheter": [{"namn": o.namn, "skal": o.skal, "klass": o.klass}
+                           for o in self.ovissheter],
+        }
+
+    @classmethod
+    def fran_json(cls, data, klocka=time.time) -> "Forlopp":
+        """Läser tillbaka en ögonblicksbild. Fail-closed hela vägen.
+
+        KLOCKAN ÄR LÄSARENS, aldrig filens. Tidsstämplarna i bilden är
+        skrivarens, och åldern räknas mot den som läser — annars står en
+        körning vars skrivare dog kvar på ARBETAR för alltid, och det är
+        precis den odödliga körningen hjärtslaget gav i M-64.
+
+        En bild som inte går att läsa ger ett UNDANTAG, aldrig ett tomt
+        förlopp. Ett tomt förlopp är EJ STARTAT, alltså ett lugnt besked, och
+        ett läsfel som ser lugnt ut är den falska grönen i sin renaste form.
+        """
+        VANTADE = {"v", "order_id", "uppgift", "t0", "skrivet", "tystnadstak",
+                   "max_handelserader", "handelser", "steg", "ovissheter"}
+        if not isinstance(data, dict):
+            raise Forloppsfel("en ögonblicksbild är ett objekt, inte %s"
+                              % type(data).__name__)
+        if set(data) != VANTADE:
+            saknas = sorted(VANTADE - set(data))
+            extra = sorted(set(data) - VANTADE)
+            raise Forloppsfel(
+                "ögonblicksbilden har fel nycklar; saknar %s, har extra %s"
+                % (", ".join(saknas) or "inget", ", ".join(extra) or "inget"))
+        if data["v"] != FORLOPPSVERSION:
+            raise Forloppsfel(
+                "ögonblicksbilden är version %r, läsaren kan %d; en läsare "
+                "som gissar sig genom ett okänt format visar ett halvt "
+                "förlopp som ett helt"
+                % (data["v"], FORLOPPSVERSION))
+
+        f = cls(data["order_id"], data["uppgift"], klocka=klocka,
+                tystnadstak=data["tystnadstak"],
+                max_handelserader=data["max_handelserader"])
+        f.t0 = float(data["t0"])
+        f.skrivet = float(data["skrivet"])
+
+        for rad in data["handelser"]:
+            if set(rad) != {"sort", "text", "t", "steg", "ordagrant"}:
+                raise Forloppsfel("en händelserad har fel fält: %r"
+                                  % sorted(rad))
+            f.handelser.append(Handelse(sort=rad["sort"], text=rad["text"],
+                                        t=float(rad["t"]), steg=rad["steg"],
+                                        ordagrant=rad["ordagrant"]))
+        for rad in data["steg"]:
+            if set(rad) != {"namn", "status", "skal", "t_start", "t_slut"}:
+                raise Forloppsfel("ett steg har fel fält: %r" % sorted(rad))
+            if rad["status"] not in STEGSTATUSAR:
+                raise Forloppsfel("okänd stegstatus %r i ögonblicksbilden"
+                                  % (rad["status"],))
+            f.steg.append(Steg(rad["namn"], rad["status"], rad["skal"],
+                               rad["t_start"], rad["t_slut"]))
+
+        f.ovissheter = []
+        for rad in data["ovissheter"]:
+            if set(rad) != {"namn", "skal", "klass"}:
+                raise Forloppsfel("en ovisshet har fel fält: %r" % sorted(rad))
+            f.ovissheter.append(Ovisshet(rad["namn"], rad["skal"],
+                                         rad["klass"]))
+
+        # Räckvidden i `50_grindar.md` gäller varje körning och kan inte betas
+        # av. En bild som TAPPAT den skulle rendera en visning där avsnittet om
+        # vad ögat inte ser är kortare än det ska vara, och grinden hade inte
+        # kunnat se det: Y5 kräver posterna ur protokollet, så ett protokoll
+        # utan dem kräver ingenting. Läsaren vägrar därför i stället.
+        har = set(o.namn for o in f.ovissheter
+                  if o.klass == UTANFOR_RACKVIDD)
+        tappade = [namn for _nyckel, namn, _skal in RACKVIDDEN
+                   if namn not in har]
+        if tappade:
+            raise Forloppsfel(
+                "ögonblicksbilden saknar räckviddens poster %s; en bild utan "
+                "dem visar en kortare ovisshet än körningen hade"
+                % ", ".join(tappade))
+        return f
 
 
 # ------------------------------------------------------------- renderingen
@@ -512,6 +659,14 @@ def rendera(f: Forlopp) -> str:
         rader.append("ingenting har hänt på %.1f s. Systemet vet inte om "
                      "något arbetar."
                      % (nu - (sista.t if sista else f.t0)))
+    if lage == OBESTAMT:
+        # En framtida stämpel går inte att räkna ålder ur. Att välja ARBETAR
+        # vore att gissa åt det gröna hållet, och att välja KLART vore att
+        # gissa åt det andra. Läget är obestämt, och det står i klartext.
+        rader.append("senaste händelsen ligger %.1f s i FRAMTIDEN mot den här"
+                     % ((sista.t if sista else f.t0) - nu))
+        rader.append("klockan. Åldern går inte att avgöra, så läget är "
+                     "obestämt och inte arbetande.")
     rader.append("")
     rader.extend(_stegrader(f, lage, nu))
     rader.append("")

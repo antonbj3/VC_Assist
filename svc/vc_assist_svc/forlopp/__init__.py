@@ -14,6 +14,10 @@ Tre delar:
                 fäller vilken renderare som helst, också en som inte finns än
 * `kallor`    — hur kopplaren, stationsgrinden, reparationsslingan,
                 guldgrinden och planen matar förloppet
+* `spegel`    — förloppet ut ur processen och tillbaka: en fil som skrivs
+                efter varje händelse, en läsare som mäter bildens ålder mot
+                SIN EGEN klocka, och fem regler till som bara den råa filen
+                kan svara på
 
 Ytan är TEXT. Hur den sedan visas — terminal, webbsida, panel — är ett senare
 beslut (`26_appen.md` §7, öppen fråga 1), och att bygga ett fönster nu vore
@@ -24,27 +28,40 @@ from .grind import (Brott, Forloppsdom, REGLER, granska, granska_eller_kasta)
 from .handelser import (ABSORBERANDE, ARBETAR, AVBRUTET, EJ_FRAMSTEG,
                         EJ_PROVAT, EJ_STARTAT, FALLET, Forloppsfel, Handelse,
                         KLART, LAGEN, Ovisshet, PAGAR_MARKOR, RACKVIDDEN,
-                        SLUTLIGA, SORTER, SPECADE_SORTER, STILLA, Steg,
-                        TILLAGDA_SORTER, TYST, UTANFOR_RACKVIDD, VANTAR)
+                        OBESTAMT, SLUTLIGA, SORTER, SPECADE_SORTER, STILLA,
+                        Steg, TILLAGDA_SORTER, TYST, UTANFOR_RACKVIDD, VANTAR)
 from .kallor import (fran_guldbeslut, fran_kopplarvarv, fran_ogonkoppling,
-                     fran_planprotokoll, fran_reparationsprotokoll,
-                     fran_stationsdom, kor_kopplaren)
-from .yta import (Forlopp, MAX_HANDELSERADER, OBLIGATORISKA_SEKTIONER,
-                  RUBRIK_VET_INTE, SAKNAS, SEKTION_SAKNAS, TYSTNADSTAK_S,
-                  okorda_steg, rendera,
+                     fran_planpost, fran_planprotokoll,
+                     fran_reparationsprotokoll, fran_stationsdom,
+                     kor_kopplaren)
+from .yta import (FORLOPPSVERSION, Forlopp, MAX_HANDELSERADER,
+                  OBLIGATORISKA_SEKTIONER, RUBRIK_VET_INTE, SAKNAS,
+                  SEKTION_SAKNAS, TYSTNADSTAK_S, okorda_steg, rendera,
                   saknade_sektioner)
+from .spegel import (AVSLUTADE, FRAMTID, OLASBAR, Ogonblick,
+                     REGLER as SPEGELREGLER, RUBRIK_SPEGLING, STILLASTAENDE,
+                     Spegel, Speglingsdom, granska_spegling,
+                     granska_spegling_eller_kasta, las_spegling,
+                     rendera_spegling, spegla)
 
 __all__ = [
-    "ABSORBERANDE", "ARBETAR", "AVBRUTET", "Brott", "EJ_FRAMSTEG",
-    "EJ_PROVAT", "EJ_STARTAT", "FALLET", "Forlopp", "Forloppsdom",
+    "ABSORBERANDE", "ARBETAR", "AVBRUTET", "AVSLUTADE", "Brott", "EJ_FRAMSTEG",
+    "EJ_PROVAT", "EJ_STARTAT", "FALLET", "FORLOPPSVERSION", "FRAMTID",
+    "Forlopp", "Forloppsdom",
     "Forloppsfel", "Handelse", "KLART", "LAGEN", "MAX_HANDELSERADER",
-    "OBLIGATORISKA_SEKTIONER", "Ovisshet", "PAGAR_MARKOR", "RACKVIDDEN",
-    "REGLER", "RUBRIK_VET_INTE", "SAKNAS", "SEKTION_SAKNAS", "SLUTLIGA",
-    "SORTER", "SPECADE_SORTER", "STILLA", "Steg", "TILLAGDA_SORTER",
+    "OBESTAMT", "OBLIGATORISKA_SEKTIONER", "OLASBAR", "Ogonblick", "Ovisshet",
+    "PAGAR_MARKOR", "RACKVIDDEN",
+    "REGLER", "RUBRIK_SPEGLING", "RUBRIK_VET_INTE", "SAKNAS",
+    "SEKTION_SAKNAS", "SLUTLIGA", "SPEGELREGLER",
+    "SORTER", "SPECADE_SORTER", "STILLA", "STILLASTAENDE", "Spegel",
+    "Speglingsdom", "Steg", "TILLAGDA_SORTER",
     "TYST", "TYSTNADSTAK_S", "UTANFOR_RACKVIDD", "VANTAR",
     "fran_guldbeslut", "fran_kopplarvarv", "fran_ogonkoppling",
-    "fran_planprotokoll", "fran_reparationsprotokoll", "fran_stationsdom",
-    "granska", "granska_eller_kasta", "kor_kopplaren", "okorda_steg",
-    "rendera",
-    "saknade_sektioner",
+    "fran_planpost", "fran_planprotokoll", "fran_reparationsprotokoll",
+    "fran_stationsdom",
+    "granska", "granska_eller_kasta", "granska_spegling",
+    "granska_spegling_eller_kasta", "kor_kopplaren", "las_spegling",
+    "okorda_steg",
+    "rendera", "rendera_spegling",
+    "saknade_sektioner", "spegla",
 ]

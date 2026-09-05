@@ -196,8 +196,13 @@ PLANSTATUSAR = (PLAN_KORD, PLAN_HOPPAD, PLAN_FALLEN, PLAN_KOAD,
                 PLAN_EJ_UTFORD)
 
 
-def fran_planprotokoll(f: Forlopp, protokoll) -> None:
-    """Planens steg och deras utfall in i förloppet.
+def fran_planpost(f: Forlopp, post) -> None:
+    """EN post ur planens protokoll, i det ögonblick den fick sitt utfall.
+
+    Den här funktionen är hela skillnaden mellan att kunna läsa förloppet och
+    att faktiskt göra det. `Korare.kor` anropar den EFTER VARJE STEG, inte när
+    planen är slut, och det är därför en användare kan se steg tre bli klart
+    medan steg fyra pågår.
 
     Ett koat steg blir `KO_VANTAR`, och det är avsiktligt: en plan som står
     och väntar på operatörens godkännande ARBETAR inte, och en visning som
@@ -206,22 +211,31 @@ def fran_planprotokoll(f: Forlopp, protokoll) -> None:
     En okänd status är ett fel, inte en tyst nedgradering: en post som föll
     igenom alla grenar hade blivit osynlig i visningen.
     """
-    KORD, HOPPAD = PLAN_KORD, PLAN_HOPPAD
-    FALLEN, KOAD, EJ_UTFORD = PLAN_FALLEN, PLAN_KOAD, PLAN_EJ_UTFORD
+    if post.status not in PLANSTATUSAR:
+        raise Forloppsfel(
+            "okänd planstatus %r för steget %s; en post som inte passar "
+            "någon gren blir osynlig i visningen"
+            % (post.status, post.steg))
+    if post.status == PLAN_KORD:
+        f.steg_klart(post.steg)
+    elif post.status == PLAN_FALLEN:
+        f.steg_foll(post.steg, post.skal)
+    elif post.status == PLAN_HOPPAD:
+        f.steg_hoppat(post.steg, post.skal)
+    elif post.status == PLAN_KOAD:
+        f._steg(post.steg)
+        f.ko_vantar(post.qid or post.steg, post.skal)
+    elif post.status == PLAN_EJ_UTFORD:
+        f.vet_inte(post.steg, post.skal)
+
+
+def fran_planprotokoll(f: Forlopp, protokoll) -> None:
+    """Hela planens protokoll in i förloppet, post för post.
+
+    Den här vägen är EFTERHANDS: den finns för den som redan har ett färdigt
+    protokoll och vill visa det. Den som kör planen ska i stället skicka med
+    förloppet till `Korare.kor` och få `fran_planpost` anropad medan det
+    händer.
+    """
     for post in protokoll:
-        if post.status not in PLANSTATUSAR:
-            raise Forloppsfel(
-                "okänd planstatus %r för steget %s; en post som inte passar "
-                "någon gren blir osynlig i visningen"
-                % (post.status, post.steg))
-        if post.status == KORD:
-            f.steg_klart(post.steg)
-        elif post.status == FALLEN:
-            f.steg_foll(post.steg, post.skal)
-        elif post.status == HOPPAD:
-            f.steg_hoppat(post.steg, post.skal)
-        elif post.status == KOAD:
-            f._steg(post.steg)
-            f.ko_vantar(post.qid or post.steg, post.skal)
-        elif post.status == EJ_UTFORD:
-            f.vet_inte(post.steg, post.skal)
+        fran_planpost(f, post)
