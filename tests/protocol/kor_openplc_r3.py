@@ -1,28 +1,39 @@
 # -*- coding: utf-8 -*-
-"""M-108 R3: Sveputökning för STRUCT och ARRAY OF STRUCT genom alla tre motorerna.
+"""M-108 R3 (våg 1 + våg 2): Sveputökning genom alla tre motorerna.
 
 Provar verdict-nivå (validera, STruC++ compile-API via paket.kompilera, OpenPLC v4
 REST-uppladdning) över R3-axlarna:
-  1. STRUCT-deklaration + fältläsning/skrivning (p.x)
-  2. STRUCT-kopiering / tilldelning (p1 := p2)
-  3. Nästlad STRUCT (y.inre.x)
-  4. STRUCT som FB-parameter (VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT)
-  5. STRUCT som FUNCTION-parameter och returtyp
-  6. ARRAY OF STRUCT med indexering (läsning/skrivning/kopiering)
-  7. STRUCT innehållande ARRAY-fält
-  8. Flernivåers nästling (3 nivåer) och blandade datatyper
-  9. STRUCT-initiering i TYPE-definition
-  10. STRUCT-initiering med IEC-form i VAR-deklaration (p : Punkt := (x:=1, y:=2))
-  11. ARRAY OF STRUCT initiering i VAR-deklaration
-  12. STRUCT- och ARRAY-jämförelser (=, <>)
+  Våg 1 (STRUCT och ARRAY OF STRUCT):
+    1. STRUCT-deklaration + fältläsning/skrivning (p.x)
+    2. STRUCT-kopiering / tilldelning (p1 := p2)
+    3. Nästlad STRUCT (y.inre.x)
+    4. STRUCT som FB-parameter (VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT)
+    5. STRUCT som FUNCTION-parameter och returtyp
+    6. ARRAY OF STRUCT med indexering (läsning/skrivning/kopiering)
+    7. STRUCT innehållande ARRAY-fält
+    8. Flernivåers nästling (3 nivåer) och blandade datatyper
+    9. STRUCT-initiering i TYPE-definition
+    10. STRUCT-initiering med IEC-form i VAR-deklaration (p : Punkt := (x:=1, y:=2))
+    11. ARRAY OF STRUCT initiering i VAR-deklaration
+    12. STRUCT- och ARRAY-jämförelser (=, <>)
+  Våg 2 (övriga R3-axlar):
+    13. REF_TO + dereferensiering (^), inkl. NULL-initiering, NULL-tilldelning,
+        kopiering och STRUCT med REF_TO-fält
+    14. CASE-satser: intervall+lista i samma gren (1..5, 7:), överlappande grenar,
+        CASE på STRUCT-fält och CASE på STRING
+    15. REPEAT...UNTIL (basform, EXIT i REPEAT, nästlad REPEAT)
+    16. Strängfunktioner på verdict-nivå mot BACKEND (CONCAT, LEFT, RIGHT, MID,
+        FIND, LEN, INSERT, DELETE, REPLACE med literal-literalkombinationer och
+        variabelkombinationer)
 
 Klassificering via klassificera():
-  OVERENS            vi och OpenPLC säger samma sak
+  OVERENS             vi och OpenPLC säger samma sak
   STRANGARE_BEKRAFTAD vi fäller, OpenPLC accepterar, raden finns i STRANGARE
-  NY_STRANGARE       vi fäller, OpenPLC accepterar, ingen rad - misstänkt falsk rödgrind
-  HAL_BEKRAFTAD      vi släpper, OpenPLC fäller, raden finns i LATTARE
-  NYTT_HAL           vi släpper, OpenPLC fäller, ingen rad - hål i vårt lager
-  EJ_KORD            ena sidan kördes inte - får ALDRIG rapporteras som överens
+  NY_STRANGARE        vi fäller, OpenPLC accepterar, ingen rad - misstänkt falsk rödgrind
+  HAL_BEKRAFTAD       vi släpper, OpenPLC fäller, raden finns i LATTARE
+  NYTT_HAL            vi släpper, OpenPLC fäller, ingen rad - hål i vårt lager
+  TVAFALL             båda motor 1+2 avvisar, inget att ladda upp
+  EJ_KORD             ena sidan kördes inte - får ALDRIG rapporteras som överens
 
 Fail-closed:
   * OpenPLC som inte svarar -> exit 1
@@ -61,8 +72,8 @@ def _las_svep_avvikelser():
 
 BANKPOST = {
     "pastar": (
-        "R3-svepet (STRUCT och ARRAY OF STRUCT) ger samma dom i vårt lager som i "
-        "OpenPLC, eller så klassas avvikelsen som STRANGARE/HAL."),
+        "R3-svepet (STRUCT, REF_TO, CASE, REPEAT, strängfunktioner) ger samma dom "
+        "i vårt lager som i OpenPLC, eller så klassas avvikelsen som STRANGARE/HAL."),
     "under_prov": ("svc/vc_assist_svc/st/",),
     "facit": "OpenPLC Runtime v4 (oberoende tredje motor)",
     "facitkalla": "OpenPLC Runtime v4:s egen kompilering, läst över REST "
@@ -87,7 +98,7 @@ VAR
     dA : DINT;
     rA, rB : REAL;
     tA, tB : TIME;
-    sA : STRING;
+    sA, sB, sC : STRING;
 END_VAR
 """
 
@@ -98,6 +109,9 @@ def kalla(kropp, dekl=None, prolog=""):
 
 
 FALL_R3 = [
+    # =========================================================================
+    # VÅG 1: STRUCT och ARRAY OF STRUCT (fall 1..24)
+    # =========================================================================
     # ---- 1. Grundläggande fältåtkomst och tilldelning ----
     (
         "struct_falt_skriv",
@@ -284,6 +298,234 @@ FALL_R3 = [
         "VAR\n    arr1, arr2 : ARRAY[1..2] OF Punkt;\n    bA : BOOL;\nEND_VAR\n",
         "TYPE\n    Punkt : STRUCT\n        x : INT;\n    END_STRUCT;\nEND_TYPE\n",
     ),
+
+    # =========================================================================
+    # VÅG 2: REF_TO, CASE, REPEAT, STRÄNGFUNKTIONER (fall 25..55)
+    # =========================================================================
+    # ---- 8. REF_TO och dereferensiering (^) ----
+    (
+        "ref_to_dekl_och_deref",
+        "deklaration",
+        "    pRef := REF(iA);\n    pRef^ := 42;\n    iB := pRef^;",
+        "VAR\n    iA, iB : INT;\n    pRef : REF_TO INT;\nEND_VAR\n",
+        "",
+    ),
+    (
+        "ref_to_null_init",
+        "deklaration",
+        "    IF pRef = NULL THEN\n        iA := 1;\n    END_IF;",
+        "VAR\n    iA : INT;\n    pRef : REF_TO INT := NULL;\nEND_VAR\n",
+        "",
+    ),
+    (
+        "ref_to_null_tilldelning",
+        "deklaration",
+        "    pRef := NULL;",
+        "VAR\n    pRef : REF_TO INT;\nEND_VAR\n",
+        "",
+    ),
+    (
+        "ref_to_kopiering",
+        "deklaration",
+        "    pRef1 := REF(iA);\n    pRef2 := pRef1;\n    pRef2^ := 99;\n    iB := pRef1^;",
+        "VAR\n    iA, iB : INT;\n    pRef1, pRef2 : REF_TO INT;\nEND_VAR\n",
+        "",
+    ),
+    (
+        "ref_to_struct_falt",
+        "deklaration",
+        "    rBox.refVal := REF(iA);\n    rBox.refVal^ := 100;",
+        "VAR\n    iA : INT;\n    rBox : RefBox;\nEND_VAR\n",
+        "TYPE\n    RefBox : STRUCT\n        refVal : REF_TO INT;\n    END_STRUCT;\nEND_TYPE\n",
+    ),
+
+    # ---- 9. CASE-satser ----
+    (
+        "case_intervall_och_lista",
+        "sats",
+        "    CASE iA OF\n        1..5, 7: iB := 10;\n        ELSE iB := 20;\n    END_CASE;",
+        None,
+        "",
+    ),
+    (
+        "case_overlappande_grenar",
+        "sats",
+        "    CASE iA OF\n        1..5: iB := 10;\n        3..7: iB := 20;\n        ELSE iB := 30;\n    END_CASE;",
+        None,
+        "",
+    ),
+    (
+        "case_struct_falt",
+        "sats",
+        "    CASE p.x OF\n        1: iB := 10;\n        2: iB := 20;\n        ELSE iB := 30;\n    END_CASE;",
+        "VAR\n    p : Punkt;\n    iB : INT;\nEND_VAR\n",
+        "TYPE\n    Punkt : STRUCT\n        x : INT;\n    END_STRUCT;\nEND_TYPE\n",
+    ),
+    (
+        "case_string",
+        "sats",
+        "    CASE sA OF\n        'abc': iB := 1;\n        'def': iB := 2;\n        ELSE iB := 3;\n    END_CASE;",
+        None,
+        "",
+    ),
+
+    # ---- 10. REPEAT...UNTIL ----
+    (
+        "repeat_basform",
+        "sats",
+        "    REPEAT\n        iA := iA + 1;\n    UNTIL iA > 5\n    END_REPEAT;",
+        None,
+        "",
+    ),
+    (
+        "repeat_med_exit",
+        "sats",
+        "    REPEAT\n        iA := iA + 1;\n        IF iA = 3 THEN\n            EXIT;\n        END_IF;\n    UNTIL iA > 5\n    END_REPEAT;",
+        None,
+        "",
+    ),
+    (
+        "repeat_nastlad",
+        "sats",
+        "    REPEAT\n        iA := iA + 1;\n        REPEAT\n            iB := iB + 1;\n        UNTIL iB > 3\n        END_REPEAT;\n    UNTIL iA > 5\n    END_REPEAT;",
+        None,
+        "",
+    ),
+
+    # ---- 11. Strängfunktioner på verdict-nivå mot backend ----
+    (
+        "string_concat_lit_lit",
+        "funktion",
+        "    sA := CONCAT('foo', 'bar');",
+        None,
+        "",
+    ),
+    (
+        "string_concat_var_lit",
+        "funktion",
+        "    sA := CONCAT(sB, 'bar');",
+        None,
+        "",
+    ),
+    (
+        "string_left_lit_lit",
+        "funktion",
+        "    sA := LEFT('abcdef', 3);",
+        None,
+        "",
+    ),
+    (
+        "string_left_var_lit",
+        "funktion",
+        "    sA := LEFT(sB, 3);",
+        None,
+        "",
+    ),
+    (
+        "string_right_lit_lit",
+        "funktion",
+        "    sA := RIGHT('abcdef', 3);",
+        None,
+        "",
+    ),
+    (
+        "string_right_var_lit",
+        "funktion",
+        "    sA := RIGHT(sB, 3);",
+        None,
+        "",
+    ),
+    (
+        "string_mid_lit_lit",
+        "funktion",
+        "    sA := MID('abcdef', 3, 2);",
+        None,
+        "",
+    ),
+    (
+        "string_mid_var_lit",
+        "funktion",
+        "    sA := MID(sB, 3, 2);",
+        None,
+        "",
+    ),
+    (
+        "string_find_lit_lit",
+        "funktion",
+        "    iA := FIND('abcdef', 'cd');",
+        None,
+        "",
+    ),
+    (
+        "string_find_var_lit",
+        "funktion",
+        "    iA := FIND(sB, 'cd');",
+        None,
+        "",
+    ),
+    (
+        "string_find_lit_var",
+        "funktion",
+        "    iA := FIND('abcdef', sB);",
+        None,
+        "",
+    ),
+    (
+        "string_len_lit",
+        "funktion",
+        "    iA := LEN('abcdef');",
+        None,
+        "",
+    ),
+    (
+        "string_len_var",
+        "funktion",
+        "    iA := LEN(sB);",
+        None,
+        "",
+    ),
+    (
+        "string_insert_lit_lit",
+        "funktion",
+        "    sA := INSERT('abcdef', 'XYZ', 3);",
+        None,
+        "",
+    ),
+    (
+        "string_insert_var_lit",
+        "funktion",
+        "    sA := INSERT(sB, 'XYZ', 3);",
+        None,
+        "",
+    ),
+    (
+        "string_delete_lit",
+        "funktion",
+        "    sA := DELETE('abcdef', 2, 3);",
+        None,
+        "",
+    ),
+    (
+        "string_delete_var",
+        "funktion",
+        "    sA := DELETE(sB, 2, 3);",
+        None,
+        "",
+    ),
+    (
+        "string_replace_lit_lit",
+        "funktion",
+        "    sA := REPLACE('abcdef', 'XYZ', 2, 3);",
+        None,
+        "",
+    ),
+    (
+        "string_replace_var_lit",
+        "funktion",
+        "    sA := REPLACE(sB, 'XYZ', 2, 3);",
+        None,
+        "",
+    ),
 ]
 
 
@@ -387,12 +629,12 @@ def main(argv=None) -> int:
     ap.add_argument(
         "--runtime-include",
         default="/tmp/opencode/m108/strucpp-bin/strucpp/runtime/include")
-    ap.add_argument("--byggkatalog", default="/tmp/opencode/m108_r3/bygg")
+    ap.add_argument("--byggkatalog", default="/tmp/opencode/m108_r3v2/bygg")
     ap.add_argument("--no-upload", action="store_true",
                     help="endast lager A (inget nät, ingen container)")
     ap.add_argument("--trasig-fixtur", action="store_true",
                     help="ladda upp saboterat arkiv och kräv FAILED.")
-    ap.add_argument("--json", default="/tmp/opencode/m108_r3/r3_verdict.json")
+    ap.add_argument("--json", default="/tmp/opencode/m108_r3v2/r3_verdict.json")
     a = ap.parse_args(argv)
 
     STRANGARE, LATTARE = _las_svep_avvikelser()
@@ -445,7 +687,7 @@ def main(argv=None) -> int:
             return 2
         try:
             klient = OpenPlcV4(a.bas, a.anvandare, a.losenord,
-                              tillat_osignerat=True)
+                               tillat_osignerat=True)
             print("runtime: %s status: %s"
                   % (klient.version(), klient.status()))
         except OpenPlcFel as fel:
