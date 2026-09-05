@@ -135,7 +135,7 @@ flowchart LR
         direction LR
         M1["ST written<br/>inside the loop"] --> M2["our interpreter"] --> M3["verdict against<br/>a trace"]
     end
-    subgraph P3["BEING CLOSED NOW"]
+    subgraph P3["RIG BUILT, NOT YET RUN"]
         direction LR
         X1["ST written<br/>inside the loop"] --> X2["OpenPLC"] --> X3["real scene"] --> X4["the eye judges"]
     end
@@ -150,10 +150,10 @@ The two halves were built separately and on purpose: the early phases proved the
 human versus machine — the reference bodies were written by a model too. It is
 **outside the loop** (full context, tools, the scene in view, unlimited
 attempts) versus **inside it** (one prompt, no tools, a cap of four rounds, a
-gate deciding). Joining them is the current work: generated
-code is now judged by OpenPLC's own runtime rather than only by our interpreter,
-and the rig that lets a model author a whole line and receive the eye's reply is
-being built.
+gate deciding). Generated code is now judged by OpenPLC's own runtime rather than only by our
+interpreter, and the rig that lets a model author a whole line and receive the
+eye's reply is finished. It has not been run. Until it has, whether a model can
+close the loop is an open question, not a claim.
 
 ## What has been measured
 
