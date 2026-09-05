@@ -31,7 +31,7 @@ A2 är att bygga den andra domaren: samma domarmekanik, annan motor under.
 
 ## 1. Vad som kör
 
-`bank/domare_openplc.py` (938 rader) dömer en ST-lösning genom att kompilera
+`bank/domare_openplc.py` (1041 rader) dömer en ST-lösning genom att kompilera
 den med STruC++, ladda upp den till OpenPLC, starta PLC:n, köra bankens
 stimuli över OPC UA i realtid och döma samma `facit_spar` som `domare.py`.
 `Dom`, `Brist`, `Domsfel` och `forgrindsbrist` **importeras** ur `domare.py`

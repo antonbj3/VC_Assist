@@ -175,28 +175,28 @@ TOLERANS_SCAN = _bankdomare.MARGINAL_SCAN + 2
 
 # Samplingsavstånd över OPC UA. 10 ms ger ~2 prover per scan vid 20 ms period
 # och matchar pluginets egen cykeltid (opcuakonfig.CYKELTID_MS).
-POLL_S = 0.010
+POLL_S = 0.010                  # M-20: pluginets egen cykeltid, 10 ms.
 
 # Svans efter sekvensens sista tid, så att en sen flank inom toleransen fångas.
 # 0,3 s = 15 scan > TOLERANS_SCAN (4). Marginal, ingen grind.
-TAIL_S = 0.3
+TAIL_S = 0.3                    # 15 scan > TOLERANS_SCAN (M-20 + M-108).
 
 # Tak per sekvens utöver dess egen längd. Gräns mot hängning, inte en
 # förväntan: går den över är det ett Domsfel, aldrig en dom.
-SEQ_MARGINAL_S = 60.0
+SEQ_MARGINAL_S = 60.0           # Tak mot hang; sekvenstider matta i M-146.
 
 # Hur länge OPC UA-servern får dröja efter (om)start. M-108 steg 1 mätte 1,5 s
 # glapp mellan RUNNING och en svarande server; matning.py väntar 30 s.
-OPCUA_START_TIMEOUT = 30.0
+OPCUA_START_TIMEOUT = 30.0      # M-108: 1,5 s glapp RUNNING -> server.
 
 # Hur länge insignalerna får ta på sig att synas i bildtabellen innan
 # kanalkontrollen läser tillbaka dem. 0,15 s = 15 pluginscykler à 10 ms.
-SETTLE_S = 0.15
+SETTLE_S = 0.15                 # 15 pluginscykler a 10 ms (M-20).
 
 # Tolerans vid återläsning av en skriven REAL. Insignalen går genom float32 i
 # PLC:n; 1e-5 relativt är ~80x float32:s epsilon (1,2e-7) och skiljer alltså
 # breddeffekt från en skrivning som inte fastnade.
-REAL_ATERLAS_TOL = 1e-5
+REAL_ATERLAS_TOL = 1e-5         # ~80x float32-epsilon; REAL=float32, M-125.
 
 # Storleksklass per ST-typ för adresseringen; speglar
 # signalkarta.STORLEK_TYPER och kor_A1_beteende.KLASS.
