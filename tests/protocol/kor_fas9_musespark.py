@@ -263,6 +263,8 @@ def main(argv=None):
                                [r for r in resultat
                                 if r.get("slog_i_taket")])}, f,
                           indent=2, ensure_ascii=False)
+
+    for post in poster:
         for varv_nr in range(1, a.upprepa + 1):
             etikett = post["task_id"] if a.upprepa == 1 else "%s #%d" % (
                 post["task_id"], varv_nr)
@@ -278,12 +280,12 @@ def main(argv=None):
                      "upprepning": varv_nr, "slog_i_taket": False,
                      "kostnad_usd": 0.0}
                 print(" FEL: %r" % e)
-        else:
-            print(" %s efter %d varv, %d/%d tokens, %.0f s"
-                  % (r["utfall"], r["varv_korda"], r["tokens_in"],
-                     r["tokens_ut"], r["sekunder"]))
-        resultat.append(r)
-        skriv_delresultat()
+            else:
+                print(" %s efter %d varv, %d/%d tokens, %.0f s"
+                      % (r["utfall"], r["varv_korda"], r["tokens_in"],
+                         r["tokens_ut"], r["sekunder"]))
+            resultat.append(r)
+            skriv_delresultat()
 
     losta = [r for r in resultat if r["lost"]]
     taket = [r for r in resultat if r.get("slog_i_taket")]
@@ -304,12 +306,7 @@ def main(argv=None):
     print("    Domen kommer ur var ST-tolk, inte ur OpenPLC.")
 
     if a.json:
-        with open(a.json, "w", encoding="utf-8") as f:
-            json.dump({"modell": a.modell, "lage": a.lage,
-                       "forhandsregler": not a.utan_forhandsregler,
-                       "max_varv": a.max_varv, "resultat": resultat,
-                       "lost": len(losta), "slog_i_taket": len(taket)},
-                      f, indent=2, ensure_ascii=False)
+        skriv_delresultat()
         print("\n  skrivet: %s" % a.json)
     return 0 if not fel else 1
 
