@@ -4,12 +4,12 @@
 **kontrakt:** `docs/spec/24_samtalsloopen.md` §7, `docs/spec/26_appen.md` §3,
 `docs/spec/27_operatorsflodet.md`, `docs/spec/50_grindar.md`
 **mätning:** `docs/matningar/M-64_vad_anvandaren_ser_medan_det_arbetar.md`
-och `docs/matningar/M-90_speglingen_som_inte_aldras.md`
+och `docs/matningar/M-93_speglingen_som_inte_aldras.md`
 **grind (`70_faser.md`):** *"Medan en körning pågår kan användaren se vad som
 händer, vilken grind som fällde och varför, och vad systemet INTE vet. Trasigt
 fall: ett fällt läge får aldrig se ut som ett arbetande."*
 
-## Status: STÄNGD 2026-09-05 (M-90). Kvarvarande hål i sista avsnittet.
+## Status: STÄNGD 2026-09-05 (M-93). Kvarvarande hål i sista avsnittet.
 
 ## Körs med
 
@@ -26,7 +26,7 @@ PYTHONPATH=svc python3 -m vc_assist_svc.forlopp <spegelfil> --folj 1.0
 ```
 
 Ingen VC, ingen brygga, ingen OPC UA-server, ingen språkmodell. Varje källa
-provas mot attrapper, och det står som en begränsning i M-64 §9 och M-90 §7.
+provas mot attrapper, och det står som en begränsning i M-64 §9 och M-93 §7.
 
 ## Vad som prövas
 
@@ -39,6 +39,7 @@ provas mot attrapper, och det står som en begränsning i M-64 §9 och M-90 §7.
 | 5 | Ytan drivs, den går inte bara att driva | `test_forlopp_forare.py`: `Korare.kor` och `Harness.kor` körs på riktigt och måste lämna ett läsbart förlopp efter sig |
 | 6 | Ytan går att läsa ur en ANNAN process | `test_speglingen_gar_att_lasa_MELLAN_tva_steg` och `test_planens_korare_for_forloppet_MEDAN_planen_kor`: läsningen sker inne i ett verktygsanrop och delar ingenting med föraren utom en sökväg |
 | 7 | En inspelad körning ser ut som en inspelning, inte som nuet | `S3`, och `test_en_avslutad_korning_star_still_utan_att_bli_ovisss` |
+| 8 | **LIMITS är lika synligt som utfallet** | `Y12`: ögats egna `SECTION LIMITS`-rader står ordagrant EFTER `VET INTE:`, inte bara på rad sexton av rapporten. Andelen av ytan som handlar om ovisshet går från 22 % till 32 % när rapporten bär sektionen |
 
 ## De trasiga fallen — alla måste falla
 
@@ -53,7 +54,7 @@ provas mot attrapper, och det står som en begränsning i M-64 §9 och M-90 §7.
 | okänd planstatus | en status ingen gren känner igen, som annars blivit osynlig | **FÄLLD** av `Forloppsfel` |
 | en rad över 100 tecken | visningens egen rad, inte någon annans | **FÄLLD** av breddprovet |
 
-### Speglingens fem, som bara den råa filen kan svara på (M-90)
+### Speglingens fem, som bara den råa filen kan svara på (M-93)
 
 `granska` dömer texten mot protokollet och fäller varje renderare som ljuger.
 Den kan inte fälla en **läsare** som ljuger: en läsare som fryser klockan
@@ -72,8 +73,9 @@ själv, ur bilden och läsarens klocka.
 | bild utan räckvidden | stryker `sensorstuds` ur ovissheterna | **FÄLLD** av läsaren |  |
 | okänd stegstatus eller händelsesort i bilden | ett ord ingen gren känner igen | **FÄLLD**: obestämd i stället för halvt läst |  |
 | kosmetiskt lugnt fall | fallets skäl byts mot "Ett problem uppstod" | **FÄLLD** | `Y3`, `Y4` |
+| gränserna bara i rapporten | skriver ut ögats rapport hel och ordagrant, och inget mer | **FÄLLD** (och Y4 fyrar inte) | `Y12` |
 
-Utöver dessa har varje regel `Y1`–`Y11` och `S1`–`S5` minst en egen trasig
+Utöver dessa har varje regel `Y1`–`Y12` och `S1`–`S5` minst en egen trasig
 fixtur, och `test_alla_regler_har_minst_en_trasig_fixtur` respektive
 `test_alla_speglingsregler_har_minst_en_trasig_fixtur` läser sin egen källa och
 faller på en regel som saknar en. Mätt: stängs en S-regel av faller exakt ett
@@ -82,17 +84,18 @@ prov, och alla fem provades så.
 ## Utfall 2026-09-05
 
 ```
-129 prov gröna i de fyra forlopp-filerna
-16 regler (Y1-Y11 + S1-S5), var och en med minst en trasig fixtur
+131 prov gröna i de fyra forlopp-filerna
+17 regler (Y1-Y12 + S1-S5), var och en med minst en trasig fixtur
 2 forare i svc/ utanfor forlopp/ (var 0)
 9 av 9 inspelade ogonrapporter i banken saknar SECTION LIMITS, och visningen
   sager det om var och en
-0 av 129 kraver VC
+0 av 131 kraver VC
 ```
 
-Kostnaden i tecken, i `M-60`:s form (spegling inräknad): 1 497 arbetande,
-2 382 fallen, 2 976 klar, 1 315 obestämd. Mellan 22 % och 40 % av ytan handlar
-om vad systemet inte vet.
+Kostnaden i tecken, i `M-60`:s form (spegling inräknad, 13 tecken sökväg):
+1 481 arbetande, 2 367 fallen, 2 962 klar med en v1-rapport, 2 852 klar med en
+v2-rapport, 1 270 obestämd. Mellan 22 % och 40 % av ytan handlar om vad
+systemet inte vet.
 
 ## Vad protokollet INTE stänger
 
@@ -100,7 +103,7 @@ om vad systemet inte vet.
   reparationsslingan, ögonkopplingen och guldgrinden har sin översättning
   byggd och provad i `forlopp/kallor.py`, och noll anropare i `svc/`.
 * **Filen växer utan tak.** 4 000 händelser kostar 403 kB och 6,2 ms per
-  skrivning; kostnaden över en körning är kvadratisk (M-90 §5.2).
+  skrivning; kostnaden över en körning är kvadratisk (M-93 §5.2).
 * **Två skrivare mot samma fil är oprövat.** `os.replace` gör varje skrivning
   atomisk, men ingen låsning finns.
 * **Fält 1 och 7** i `26_appen.md` §3 — samtalet och systemläget — kräver en

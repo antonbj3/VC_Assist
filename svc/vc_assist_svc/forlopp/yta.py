@@ -60,7 +60,7 @@ SAKNAS = "saknas"
 # Ögonblicksbildens formatversion. Ändras formen höjs talet, och `fran_json`
 # vägrar läsa en annan version: en läsare som gissar sig genom ett okänt
 # format kan visa ett tomt förlopp som en lugn början.
-FORLOPPSVERSION = 1             # M-90, första formen av en ögonblicksbild.
+FORLOPPSVERSION = 1             # M-93, första formen av en ögonblicksbild.
 
 # Sektioner ögats rapport MÅSTE bära för att domen ska betyda något. Samma
 # lista som `guldgrind.OBLIGATORISKA_SEKTIONER`, och den kopieras hit i
@@ -484,6 +484,33 @@ def saknade_sektioner(ogontext: str) -> Tuple[str, ...]:
     return tuple(n for n in OBLIGATORISKA_SEKTIONER if n not in funna)
 
 
+def ogats_granser(ogontext: str) -> Tuple[str, ...]:
+    """Raderna ögat självt skrev i `SECTION LIMITS`, ordagrant.
+
+    Att LÄSA ut var en sektion börjar och slutar är inte att räkna om ett
+    mått. Raderna kopieras tecken för tecken; ingen väljs bort, ingen kortas.
+
+    De lyfts in i avsnittet om vad systemet inte vet därför att `LIMITS` ska
+    vara **lika synligt som utfallet**. Ligger de bara inne i den råa rapporten
+    står ögats upplösning på rad sexton av tjugofem, mellan en genomflödesrad
+    och en domsrad, och den som läser ser domen men inte gränsen den gäller i.
+    """
+    ut: List[str] = []
+    inne = False
+    for rad in (ogontext or "").splitlines():
+        text = rad.strip()
+        if not text:
+            continue
+        if text.startswith("EYES VERDICT"):
+            break
+        if text.startswith("SECTION "):
+            inne = (text == "SECTION LIMITS")
+            continue
+        if inne:
+            ut.append(text)
+    return tuple(ut)
+
+
 def _saknade_i_domarna(f: "Forlopp") -> List[Tuple[str, str]]:
     ut: List[Tuple[str, str]] = []
     for h in f.domar():
@@ -629,6 +656,15 @@ def _ovissrader(f: Forlopp, lage: str) -> List[str]:
              "  utanför räckvidd (50_grindar.md). Ögats eget namn i mitten:"]
     for o in rackvidd:
         rader.append("    %-18s %s" % (o.namn, o.skal))
+    granser: List[str] = []
+    for h in f.domar():
+        for rad in ogats_granser(h.ordagrant):
+            granser.append(rad)
+    if granser:
+        rader.append("  ögats egna gränser (SECTION LIMITS), %d rader "
+                     "ordagrant:" % len(granser))
+        for rad in granser:
+            rader.append("    " + rad)
     rader.append("  ej prövat i den här körningen:")
     if not korning and not harledda:
         rader.append("    (inget utöver räckvidden)")

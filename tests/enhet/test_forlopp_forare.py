@@ -7,7 +7,7 @@ med flit. Ytan var byggd (M-64) och oanvänd: **noll** moduler i `svc/` utanför
 är en bön med en implementation, och skillnaden mellan de två gick inte att se
 i sviten — den syntes bara om man räknade förarna.
 
-Nu flyttat hit som regressionsprov (M-90). De två som äger en körnings
+Nu flyttat hit som regressionsprov (M-93). De två som äger en körnings
 tidslinje för protokollet MEDAN de kör, och ett förlopp går att läsa från en
 annan process.
 

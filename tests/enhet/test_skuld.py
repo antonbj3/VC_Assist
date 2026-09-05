@@ -344,7 +344,10 @@ def test_monstret_ar_inte_skrivet_i_ASCII_mot_svensk_text():
 # arbetar i repot samtidigt, och ett exakthetskrav gor sviten rod for deras
 # halvfardiga arbete i stallet for att fanga skuld. Att kravet inte ar inne AN
 # ar sjalv en skuld, och den star i M-94.
-KOLLIDERANDE_NUMMER = 1
+# Sankt till 0 2026-09-05: M-90 bars av tva filer (ren maskin, och
+# speglingen som inte aldras). Den senare dopte om sig till M-93. En spärr
+# som star kvar over verkligheten slutar mata sin egen storhet.
+KOLLIDERANDE_NUMMER = 0
 
 
 def test_inga_nya_nummerkollisioner():
