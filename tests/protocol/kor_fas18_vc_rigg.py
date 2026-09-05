@@ -29,10 +29,14 @@ BANKPOST = {
         "forreglingarna aterfinns ur provsparet och avvisas som otackta "
         "ur produktionssparet dar nodstoppet aldrig lost ut",
     "facitkalla":
-        "den riktiga transportorriggen byggd och provtagen i Visual Components",
+        "riggens egen konstruktion: transportoren med sina tva givare byggdes "
+        "for hand i VC, och vilka forreglingar den bar var kant INNAN nagot "
+        "spar spelades in. Sparen ar matningar av den riggen. "
+        "bank/anlaggning.py star UNDER PROV och ar inte facit - den harleder "
+        "pastaenden ur sparen, och det ar just den harledningen som doms.",
     "facitkalla_filer": (
-        "bank/anlaggning.py",
         "docs/matningar/M-89_anlaggningen_utan_kod.md",
+        "docs/matningar/M-132_en_riktig_anlaggning_i_vc_och_gransen_3_av_28.md",
     ),
     "trasiga_fall": (
         "ett produktionsspar dar EMG_OK aldrig brutits far ALDRIG pasta "

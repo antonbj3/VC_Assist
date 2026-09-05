@@ -19,6 +19,46 @@ Denna modul:
 """
 from __future__ import annotations
 
+# Bankposten. En korning utan post ar en matning ingen vet om
+# (docs/spec/85_bankkontraktet.md).
+BANKPOST = {
+    "pastar":
+        "Varje domare har en snabbaste handelse den kan se, given av "
+        "provtagningstakten, och nagra av bankens uppgifter kraver mer an "
+        "ogat ger - deras dom ar da ogiltig.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "ext/vc_addon/vc_assist/oga_harledning.py",
+    ),
+    "facit":
+        "Nyquist: en handelse maste tackas av minst tva prov for att kunna "
+        "ses. Kravet per uppgift star i bankens egna falt (skrivna fore all "
+        "kod), takten ar mätt.",
+    "facitkalla":
+        "bankens uppgiftsfiler for kraven, och M-03 for de matta takterna",
+    "facitkalla_filer": (
+        "bank/uppgifter/",
+        "docs/matningar/M-03_takt.md",
+    ),
+    "trasiga_fall": (
+        "en uppgift vars snabbaste krav ligger under tva provperioder maste "
+        "markas OGILTIG, aldrig godkannas tyst",
+        "en domare vars upplosningsgrans inte gar att harleda far inte "
+        "tilldelas en gissad grans",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-140",),
+    # RATTELSE, funnen 2026-09-05 efter korningen: de tva takterna 17,2 Hz och
+    # 224,7 Hz ar M-03:s matning av BRYGGANS PUMP, inte av ogats provtagare.
+    # Ogats egen takt star i oga_provtagning.py:741 - `rate_hz` med
+    # standardvarde 20,0 - och M-86:s korningar ligger pa 20-24 Hz. Den tysta
+    # regimen (17,2) ligger alltsa nara ogats verkliga takt och den halvan av
+    # M-140 star sig ungefarligt; den snabba regimen (224,7) beskriver en takt
+    # ogat ALDRIG kor i, och de talen sager ingenting om produkten.
+    # Felet kom ur uppdragstexten i KO_D, inte ur korningen. Ommatning vid
+    # 20 Hz kravs innan M-140:s tal far citeras.
+}
+
 import argparse
 import glob
 import json

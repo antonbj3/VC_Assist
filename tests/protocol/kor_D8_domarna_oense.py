@@ -17,6 +17,38 @@ Denna modul:
 """
 from __future__ import annotations
 
+# Bankposten. En korning utan post ar en matning ingen vet om
+# (docs/spec/85_bankkontraktet.md).
+BANKPOST = {
+    "pastar":
+        "De fem domarna ar fem, inte en: over samtliga inspelade spar finns "
+        "det par som ger olika dom, och oenigheten gar att rakna per par.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_harledning.py",
+        "ext/vc_addon/vc_assist/oga_analys.py",
+    ),
+    "facit":
+        "sparen sjalva. De ar inspelade FORE den har korningen, ur bankens "
+        "56 cellspar och D6:s 12 topologispar, och ingen av dem ar producerad "
+        "av domarkoden. Domarnas utfall jamfors parvis mot varandra - talet "
+        "ar en oenighetsmatris, inte ett ratt-eller-fel mot ett facit.",
+    "facitkalla":
+        "inspelade spar ur tidigare VC-korningar och ur kor_D6_linjetopologier, "
+        "bada skrivna innan den har korningen fanns",
+    "facitkalla_filer": (
+        "tests/celler.py",
+        "tests/protocol/kor_D6_linjetopologier.py",
+    ),
+    "trasiga_fall": (
+        "tva domare som ger samma dom pa VARJE spar ar en domare - paret "
+        "maste rapporteras som noll oenighet och det ar ett fynd, inte ett "
+        "godkannande",
+        "ett spar som ingen domare kan doma far inte raknas som enighet",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-137",),
+}
+
 import argparse
 import json
 import os
