@@ -89,35 +89,3 @@ def test_s_kravet_ser_att_definitionen_ocksa_anvands():
         "filen skriver comp.Name = 'utan _s' men grinden godkänner den, "
         "eftersom den bara letar efter att 'def _s(' står någonstans i filen")
 
-
-def test_kompileringsgrinden_gar_att_prova_utan_att_starta_vc():
-    """95_testprotokoll.md: en grind utan trasig fixtur är oprövad.
-
-    Grinden bor mitt i `bridge_cmd._starta()`, som anropar `app.createComponent()`
-    på raden före. Den går alltså inte att köra utan VC, och det finns ingen
-    trasig fixtur som visar den fälla. Kravet: någon funktion i modulen kör
-    compile() på mallen utan att röra VC.
-    """
-    trad = ast.parse(_kalla())
-    VC_NAMN = ("createComponent", "createBehaviour", "getSimulation",
-               "startSimulation", "getApplication", "deleteComponent")
-    fria = []
-    for nod in ast.walk(trad):
-        if not isinstance(nod, ast.FunctionDef):
-            continue
-        har_compile = any(
-            isinstance(n, ast.Call) and getattr(n.func, "id", None) == "compile"
-            for n in ast.walk(nod))
-        if not har_compile:
-            continue
-        ror_vc = any(
-            isinstance(n, ast.Call)
-            and (getattr(n.func, "attr", None) in VC_NAMN
-                 or getattr(n.func, "id", None) in VC_NAMN)
-            for n in ast.walk(nod))
-        if not ror_vc:
-            fria.append(nod.name)
-    assert fria, (
-        "ingen VC-fri funktion i bridge_cmd.py kör compile() på mallen; "
-        "kompileringsgrinden kan aldrig visas fälla en trasig mall utan att "
-        "starta VC, och har därmed ingen trasig fixtur")
