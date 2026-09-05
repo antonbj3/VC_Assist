@@ -233,7 +233,7 @@ Numret är mätningens enda identitet. Allt i systemet slår upp på det.
 | Nummer | Filerna |
 |---|---|
 | M-89 | `M-89_anlaggningen_utan_kod.md` + den här mätningens första namn |
-| M-90 | `M-90_ren_maskin_linux.md` + `M-90_speglingen_som_inte_aldras.md` |
+| M-90 | `M-90_ren_maskin_linux.md` + `M-93_speglingen_som_inte_aldras.md` |
 | M-92 | `M-92_windowssommen_matt_i_stallet_for_last.md` + den här mätningens andra namn |
 
 Ingen av de sex filerna är fel skriven. Det fanns bara ingen grind som ställde
