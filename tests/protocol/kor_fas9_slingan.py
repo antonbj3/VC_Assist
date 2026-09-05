@@ -38,7 +38,7 @@ sys.path.insert(0, _ROT)
 
 from bank import reparationsbank as RB                              # noqa: E402
 from vc_assist_svc import modellklient                              # noqa: E402
-from vc_assist_svc.harness.claudeadapter import ClaudeModell        # noqa: E402
+from vc_assist_svc.claudeadapter import ClaudeModell        # noqa: E402
 from vc_assist_svc.plc import reparation as R                       # noqa: E402
 
 

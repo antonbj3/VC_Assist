@@ -12,7 +12,7 @@ _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 
 from vc_assist_svc import modellklient as MK                        # noqa: E402
-from vc_assist_svc.harness import claudeadapter as A                # noqa: E402
+from vc_assist_svc import claudeadapter as A                # noqa: E402
 from vc_assist_svc.harness.modell import Meddelande                 # noqa: E402
 
 
@@ -96,3 +96,47 @@ def test_ett_tomt_modellsvar_kastar_i_klienten_och_blir_aldrig_tystnad():
     with pytest.raises(MK.Modellfel):
         A.ClaudeModell(klient=MK.Inspelad(["   "])).svara(
             "", [Meddelande(roll="uppgift", text="x")], [])
+
+
+# --- kodstaketet, som kostade ett helt reparationsvarv ------------------------
+#
+# MATT: forsta korningen av kor_fas9_slingan.py mot H-04 gav i varv 1
+# "rad 33: [SYNTAX/F1] ovantat tecken '`'". Systemprompten sager redan "Svara
+# med enbart kroppens rader"; modellen staketade anda. En prompt ar en bon.
+
+def test_ett_staket_runt_hela_svaret_tas_bort():
+    m = A.ClaudeModell(klient=MK.Inspelad(["```st\nIF A THEN\n  B := TRUE;\nEND_IF;\n```"]))
+    svar = m.svara("", [Meddelande(roll="uppgift", text="x")], [])
+    assert svar.text == "IF A THEN\n  B := TRUE;\nEND_IF;"
+    assert "`" not in svar.text
+
+
+def test_staket_utan_sprakrad_ocksa():
+    m = A.ClaudeModell(klient=MK.Inspelad(["```\nA := 1;\n```"]))
+    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == "A := 1;"
+
+
+def test_flera_block_valjs_INTE_at_modellen():
+    """Trasig fixtur for gransen i regeln.
+
+    Med tva block ar det tvetydigt vilket som ar kroppen. Att valja vore att
+    skriva modellens svar at den. Texten gar fram orord, och GRINDEN dommer -
+    den har ratt att saga nej, det har adaptern inte.
+    """
+    text = "```st\nA := 1;\n```\noch alternativt\n```st\nA := 2;\n```"
+    m = A.ClaudeModell(klient=MK.Inspelad([text]))
+    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == text
+
+
+def test_kod_utan_staket_ror_vi_inte():
+    m = A.ClaudeModell(klient=MK.Inspelad(["IF A THEN\n  B := TRUE;\nEND_IF;"]))
+    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == \
+        "IF A THEN\n  B := TRUE;\nEND_IF;"
+
+
+def test_prosa_runt_ett_staket_ror_vi_inte_heller():
+    """Bara nar HELA svaret ar ett staket. Prosa runt om betyder att modellen
+    sa nagot mer, och det nagot far grinden se."""
+    text = "Har ar kroppen:\n```st\nA := 1;\n```"
+    m = A.ClaudeModell(klient=MK.Inspelad([text]))
+    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == text
