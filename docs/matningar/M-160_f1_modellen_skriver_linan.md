@@ -4,13 +4,127 @@
 **Rigg:** `tests/protocol/kor_F1_modellen_skriver_linan.py`
 **Prövar:** `svc/vc_assist_svc/plc/reparation.py`, `modellklient.py`,
 `claudeadapter.py`, `guldgrind.py`, `ext/vc_addon/vc_assist/oga_analys.py`
-**Modell:** *inte vald ännu — se §5*
+**Modell:** **guldarmen på `google-vertex/gemini-3.8-flash`**,
+**kompositionsarmen på `claude/sonnet`** — se §0 och §7. De två armarna kördes
+alltså på **olika modeller**, och det är i sig ett resultat: Gemini-kvoten dog
+mitt i mätningen. `RATTELSER 2026-09-05 16:25` gäller: en arm på en annan
+modell är en **annan mätning**, och de får aldrig läggas ihop till ett tal.
 
-> **Läget 2026-09-05:** riggen är **byggd och prövad, inte körd.** Kvoten är
-> slut på en modell och delas av tre sessioner på den andra, så det här
-> dokumentet beskriver apparaten och vad den kommer att svara på. Talen fylls i
-> när operatören valt modell. **En rad i den här filen som ser ut som ett
-> resultat och inte har en körning bakom sig får inte skrivas.**
+> **Läget 2026-09-05 kl. 23:00:** riggen var **byggd och prövad, aldrig körd.**
+> Allt nedanför §7 är skrivet före körningen och står kvar oförändrat, för det
+> beskriver apparaten. §0 och §7 är körningen.
+
+## 0. Utfallet — F1 kördes 2026-09-05/06
+
+**Sammanfattningen först, för den är kort:**
+
+| halvan | modell | utfall |
+|---|---|---|
+| **guld** — GOLD inom fyra varv i ≥ 2 av 3 körningar | `google-vertex/gemini-3.8-flash` | **JA.** GOLD i 2 av 3, båda på **varv 2**. Den tredje körningen blev KORNINGSFEL på transporten, inte på modellen |
+| **komposition** — ≥ 3 av 5 fall lagade på ögats egna ord | `claude/sonnet` | *se §7* |
+
+**De två halvorna kördes på olika modeller, och det är ett resultat i sig.**
+Mitt i mätningen slutade `google-vertex/gemini-3.8-flash` svara, och orsaken
+är entydig: `403 This API method requires billing to be enabled` på
+`project-fbc92f92-4e11-47e5-bd0`. `opencode/muse-spark-1.3-contributor-free`
+svarade inte alls (tidsgräns 180 s på `Svara med exakt ordet OK.`).
+`claude/sonnet` svarade. Kompositionsarmen kördes därför på Claude.
+`RATTELSER 2026-09-05 16:25` gäller: **de två armarnas tal får aldrig läggas
+ihop till ett F1-tal.**
+
+### 0.1 Riggen hade aldrig kört, och tre fel satt i vägen
+
+Alla tre hittades genom att köra, inget av dem genom att läsa koden, och alla
+tre var osynliga för de 30 gröna enhetsproven.
+
+**1. Den riktiga vägens två byggare tog inga argument.** `guldarmen` och
+`kompositionsarmen` anropar dem med `etikett`; torrkörningens motsvarigheter
+tog den, den riktiga vägens gjorde inte det. Riggen föll på en `TypeError` i
+guldarmens **första** varv — efter att startskriptet skrivits, innan VC rörts.
+Provsviten var grön eftersom torrkörningen går genom två **andra** funktioner.
+Byggarna ligger nu på modulnivå (`riktiga_byggare`) så att ett prov kan nå
+dem, och fixturen `test_fixtur_den_riktiga_vagens_byggare_tar_armens_etikett`
+faller när argumentet tas bort.
+
+**2. Ögats serie ryms inte i bryggans svar.** Mätt: **684 586 byte** mot
+pumpens tak `MAX_KROPP // 2` = **524 288**. `kor_en` returnerar då `fel` utan
+`domar`, och `Ogonsteg` gör körningen OGILTIG — ögat hade aldrig fått döma ett
+enda varv. Serien hämtas nu ur filen (`~/.wine-vc-test/drive_c/users/anton/
+vc_assist_eyes.json`), vilket är vad pumpens egen kommentar säger att filen är
+till för. Det är **samma serie och samma domare**, bara en annan kanal in, och
+den enda nya felklassen — en fil som ligger kvar över en VC-omstart — är
+stängd mekaniskt: filens `run.started` måste vara exakt det ögonblick den här
+körningens `eyes_start` svarade, och antal prov, längd och takt måste stämma.
+Fyra fixturer, alla röda mot mutationen.
+
+**3. Ögats upplösning var inte M-73:s.** Fas 8:s argparse-standard är 70 s
+mätning, 25 s uppvärmning och 20 Hz — men **M-73 och M-74 kördes inte där.**
+M-73 skriver ut vad ögat faktiskt såg: *"ogats serie: 80,0 s, 800 prov, 10,00
+Hz"*, och M-74:s arton körningar har *"45 s uppvärmning och 80 s mätning"*.
+Skillnaden är inte kosmetisk. M-73:s fjärde fynd är att **ett prov vars
+tolerans är snävare än scenuppdateringens eftersläpning mäter
+eftersläpningen**, och facits fönster är räknade vid 0,1 s provintervall. En
+F1-körning på fas 8:s standard hade alltså dömt M-73:s facit vid en upplösning
+facit aldrig kalibrerats mot. Talen ligger nu i namngivna konstanter
+(`MATNING_S`, `UPPVARMNING_S`, `OGONRATE_HZ`) med M-73 som härkomst.
+
+Efter rättelse 2 och 3 rymdes serien i svaret igen: **800 prov, 10,00 Hz,
+80,0 s** i varje ögonvarv, och `serien_ur_fil` är `None` — filvägen är en
+spärr som inte behövde användas, inte en väg mätningen står på.
+
+### 0.2 Guldarmen — modellen skriver linan från uppgiften
+
+`--forfattare opencode --modell google-vertex/gemini-3.8-flash --arm guld
+--upprepa 3`
+
+```
+guld:         GOLD i 2 av 3 korningar (kravs 2)  -> JA
+    korning 1: LOST           varv till GOLD 2      1 ogonvarv   486 s   0,2423 USD
+    korning 2: KORNINGSFEL    varv till GOLD None   0 ogonvarv   280 s   (transport)
+    korning 3: LOST           varv till GOLD 2      1 ogonvarv   541 s   0,2424 USD
+```
+
+Båda de körningar som fick ett svar gick **samma väg**:
+
+| varv | grind | utfall |
+|---|---|---|
+| 1 | `grind:statisk_analys` | FÄLLD, kod `SYNTAX` — billigt, ingen VC rördes |
+| 2 | `station` (grind 1–3) | GODKÄND |
+| 2 | `oga` | **PASS** i alla tre cellerna → `gold_line_verified` |
+
+Alltså: **modellens andra försök blev GOLD direkt.** Ögat hade inget att
+anmärka på — station A PASS, station B PASS, linan PASS — och guldgrinden gav
+`gold_line_verified`. Grind 4 (`anropsvalidering`) kördes och gav `True` inne
+i ögonsteget, precis som §2.1 säger att den ska.
+
+Klockkvoten i de två ögonvarven: **0,9896** och **0,9901**, väl inne i M-73:s
+brakett 0,75–1,40. Ingen körning blev ogiltig på klockan.
+
+**Det första varvet nådde aldrig ögat.** Det är värt att säga rakt ut: i båda
+körningarna föll modellens första kropp på den **statiska analysen**, alltså på
+ST-syntax, och kostade ett av fyra varv utan att ögat sa ett ord. Guldarmen
+mäter därför i praktiken *"ett syntaxvarv plus ett riktigt varv"*, och taket på
+fyra varv är i den formen inte fyra ögonvarv utan färre.
+
+### 0.3 Transporten är en egen felkälla, och den är mätt
+
+Av de anrop guldarmen gjorde föll flera på transporten utan att modellen sagt
+något: `opencode gav slutkod 1` med **tom** stderr, och `opencode gav ingen
+text tillbaka`. Varje sådant fel kostade en VC-omstart, en uppladdning och 80 s
+scenmätning och gav ingenting att döma.
+
+Riggen har därför fått ett **avgränsat omförsök** på tre namngivna
+transportklasser (`gav slutkod`, `gav ingen text tillbaka`, `svarade inte
+inom`), och **aldrig** på `anvande verktyg` — den är en fail-closed *dom* om
+att svaret kan ha läst facit, och ett omförsök där hade varit att fråga om
+tills modellen råkar svara som vi vill. Listan är en vitlista, så en ny
+felklass provas aldrig om utan att någon skriver dit den. Varje omförsök
+räknas och följer med i JSON:en; ett omförsök som inte går att räkna döljer
+sin egen frekvens.
+
+Omförsöket räckte inte mot Gemini: i kompositionsarmens första K1-körningar
+föll **3 av 3** försök, och kort därefter svarade modellen `403 … requires
+billing to be enabled` på en enradsprompt. Kvoten var slut, inte prompten fel.
 
 ## 1. Vad F1 är, och varför den är den enda punkten som spelar roll
 
