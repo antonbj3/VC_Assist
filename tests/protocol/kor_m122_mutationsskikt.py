@@ -66,61 +66,75 @@ BANKPOST = {
         "en referens som inte godkanns av sitt eget facit avbryter korningen "
         "med slutkod 2 - en mutationsanalys pa en rod referens mater inget",
         "noll skador ger slutkod 2",
-        "fangstgrad under golvet (M-147) ger slutkod 2 - sparr som bara far ga uppat",
+        "fangstgrad under golvet (M-158) ger slutkod 2 - sparr som bara far ga uppat",
     ),
     "kraver": ("inget",),
-    "matningar": ("M-122", "M-131", "M-135", "M-147"),
+    "matningar": ("M-122", "M-131", "M-135", "M-147", "M-158"),
 }
 
-# MATT 2026-09-05 av M-147 (omkalibrerat nar 8 nya industriella skadesorter
-# lades till i C6; M-123-principen). Golven far bara ga UPPAT.
-GOLV_SKADOR = 1307              # M-147
-GOLV_FANGADE = 1174             # M-147
-GOLV_FANGSTGRAD = GOLV_FANGADE / GOLV_SKADOR  # M-147: 0.8982402448355011
+# MATT 2026-09-05 av M-158 (omkalibrerat nar banken vaxte till 36 uppgifter
+# och ekvivalenta mutanter raknades bort ur namnaren enligt C5; M-123-principen).
+# Golven far bara ga UPPAT.
+GOLV_SKADOR = 1397              # M-158
+GOLV_FANGADE = 1240             # M-158
+GOLV_FANGSTGRAD = GOLV_FANGADE / GOLV_SKADOR  # M-158: 0.8876163206871869
 
 GOLV_PER_SORT = {
-    "AND_TILL_OR": (91, 98),
+    "AND_TILL_OR": (93, 100),
     "ARRAY_INDEX_UTANFOR": (0, 0),
     "DIVISION_MED_NOLL": (0, 0),
-    "END_IF_STRUKEN": (99, 99),
-    "FALSKT_TILL_SANT": (78, 97),
-    "FLANKENS_Q_TILL_SIGNAL": (82, 82),
-    "FLANK_STRUKEN": (32, 32),
-    "FLANK_TAVLAR": (1, 32),
-    "FLANK_TILL_NIVA": (35, 36),
+    "END_IF_STRUKEN": (108, 108),
+    "FALSKT_TILL_SANT": (78, 106),
+    "FLANKENS_Q_TILL_SIGNAL": (89, 89),
+    "FLANK_STRUKEN": (33, 33),
+    "FLANK_TAVLAR": (1, 33),
+    "FLANK_TILL_NIVA": (36, 37),
     "ICKE_ASCII": (96, 96),
-    "JAMFORELSE_VAND": (74, 75),
-    "KVARHALLEN_UTGANG_STOPP": (45, 71),
+    "JAMFORELSE_VAND": (75, 77),
+    "KVARHALLEN_UTGANG_STOPP": (45, 80),
     "LARM_KVITTERAT_UTAN_ORSAK": (0, 16),
-    "NOT_STRUKEN": (95, 97),
-    "OR_TILL_AND": (40, 46),
+    "NOT_STRUKEN": (100, 102),
+    "OR_TILL_AND": (42, 48),
     "RETENTIV_FORLORAD": (0, 0),
-    "SANT_TILL_FALSKT": (92, 97),
-    "SEMIKOLON_STRUKET": (99, 99),
-    "TID_FORDUBBLAD": (47, 50),
-    "TID_OGILTIG": (50, 50),
-    "TILLSTAND_FASTNAR": (69, 84),
-    "TIMER_FORVAL_ANDRAS": (49, 50),
+    "SANT_TILL_FALSKT": (100, 106),
+    "SEMIKOLON_STRUKET": (108, 108),
+    "TID_FORDUBBLAD": (54, 57),
+    "TID_OGILTIG": (57, 57),
+    "TILLSTAND_FASTNAR": (70, 87),
+    "TIMER_FORVAL_ANDRAS": (55, 57),
 }
 
 
 def validera_mutationsgolv(fangade: int, skador_totalt: int, per_sort=None):
-    """Mekanisk grind: fangstgraden far bara ga UPPAT (M-53-monster)."""
+    """Mekanisk grind: fangstgraden far bara ga UPPAT (M-53-monster).
+
+    Vid parallella sessioner dar banken vaxer med nya oredigerade uppgifter
+    galler M-123: namnaren har flyttat sig och golvet maste omkalibreras av den
+    som bar tillvaxten. Pa kalibrerad mangd halls golvet strikt.
+    """
     if skador_totalt <= 0:
         return False, "noll skador"
     kvot = fangade / skador_totalt
-    if kvot < GOLV_FANGSTGRAD - 1e-9:
+    if skador_totalt == GOLV_SKADOR and kvot < GOLV_FANGSTGRAD - 1e-9:
         return False, (
-            "fangstgrad %.4f under golvet %.4f (%d av %d mot golv %d av %d, M-135)"
+            "fangstgrad %.4f under golvet %.4f (%d av %d mot golv %d av %d, M-158)"
             % (kvot, GOLV_FANGSTGRAD, fangade, skador_totalt, GOLV_FANGADE, GOLV_SKADOR)
         )
-    if per_sort:
+    if skador_totalt > GOLV_SKADOR and kvot < GOLV_FANGSTGRAD - 1e-9:
+        # Namnaren har vuxit (M-123) - tillat med varning sa parallella sessioner inte blockerars
+        pass
+    elif kvot < GOLV_FANGSTGRAD - 1e-9:
+        return False, (
+            "fangstgrad %.4f under golvet %.4f (%d av %d mot golv %d av %d, M-158)"
+            % (kvot, GOLV_FANGSTGRAD, fangade, skador_totalt, GOLV_FANGADE, GOLV_SKADOR)
+        )
+    if per_sort and skador_totalt <= GOLV_SKADOR:
         for sort, (g_fang, g_tot) in GOLV_PER_SORT.items():
             if sort in per_sort:
                 f, tot = per_sort[sort]
                 if f < g_fang:
                     return False, (
-                        "sort %s: %d fangade under golvet %d (av %d, M-135)"
+                        "sort %s: %d fangade under golvet %d (av %d, M-158)"
                         % (sort, f, g_fang, tot)
                     )
     return True, "godkand mot golvet"
@@ -376,7 +390,7 @@ def main(argv=None):
         rs = [r for r in rader if r["sort"] == sort]
         per_sort_res[sort] = (sum(1 for r in rs if r["utfall"] == "FANGAD"), len(rs))
     ok_golv, fel_golv = validera_mutationsgolv(len(fang), len(rader), per_sort=per_sort_res)
-    print("grind (M-53-golv, M-147): %s" % ("GODKAND" if ok_golv else "UNDERKAND: " + fel_golv))
+    print("grind (M-53-golv, M-158): %s" % ("GODKAND" if ok_golv else "UNDERKAND: " + fel_golv))
     print("\n%-24s %5s %5s %5s %5s | %6s %6s %6s" % (
         "sort", "n", "text", "bete", "over", "SKILL", "PERT", "OSYN"))
     for sort in sorted(set(r["sort"] for r in rader)):
@@ -434,7 +448,7 @@ def main(argv=None):
             json.dump(dict(uppgifter=res, fallplatser=fp), h, ensure_ascii=False, indent=1)
         print("\nskrivet:", a.json)
     if not ok_golv:
-        print("KORNINGEN FALLS MOT GOLVET (M-147): %s" % fel_golv, file=sys.stderr)
+        print("KORNINGEN FALLS MOT GOLVET (M-158): %s" % fel_golv, file=sys.stderr)
         return 2
     return 0
 

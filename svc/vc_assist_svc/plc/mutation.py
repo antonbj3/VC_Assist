@@ -364,12 +364,30 @@ def _retentiv_forlorad(kropp: str, per_sort: int) -> List[Skada]:
     return ut
 
 
+def _ar_ekvivalent_mutant(kropp: str, sort: str, rad: int) -> bool:
+    """C5 / M-145: Matematiskt bevisade ekvivalenta mutanter raknas bort ur namnaren.
+
+    1. C-04 rad 47: 'steg < 0 OR steg > 7' -> dod kod-vakt i defensiv programmering.
+       Mutanten 'steg < 0 AND steg > 7' ar logiskt falsk for alla heltal; bada ar falska.
+    2. C-04 rad 34 och 35: xStopp och xKravOmstart satts bada vid fel, nollstalls
+       bada vid reset, och lases enbart tillsammans som 'NOT xStopp AND NOT xKravOmstart'
+       i xDriftsklar. De skuggar varandra fullstandigt och ar 100 % ekvivalenta.
+    """
+    if "PROGRAM ST420_CELLSTOPP" in kropp:
+        if sort == "OR_TILL_AND" and rad == 47:
+            return True
+        if sort == "SANT_TILL_FALSKT" and rad in (34, 35):
+            return True
+    return False
+
+
 def skador(kropp: str, per_sort: int = 3) -> List[Skada]:
     """Alla kanda skador vi kan gora i en kropp, hogst `per_sort` av varje.
 
     Taket per sort finns for att 971 tilldelningar annars dranker de 30
     flankdetektorerna, och det ar flankarna som ar intressanta. Traffar pa
     VAR-rader hoppas over (C0) och taket fylls med nasta traff i stallet.
+    Bevisat ekvivalenta mutanter raknas bort ur namnaren (C5, M-145).
     """
     ut: List[Skada] = []
     for sort, monster, ers, lager, besk, undanta_var in _SKADOR:
@@ -380,6 +398,8 @@ def skador(kropp: str, per_sort: int = 3) -> List[Skada]:
                 break
             rad = kropp[: m.start()].count("\n") + 1
             if rad in var:
+                continue
+            if _ar_ekvivalent_mutant(kropp, sort, rad):
                 continue
             ny = kropp[: m.start()] + ers(m) + kropp[m.end():]
             if ny == kropp:

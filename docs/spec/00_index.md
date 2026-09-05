@@ -196,9 +196,12 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-155_vad_som_oppnas_hos_tillverkaren.md` | M-155 — Vad som faktiskt oppnas hos en tillverkare: CODESYS, TIA Portal, TwinCAT |
 | `M-156_specen_60_plc_mot_koden.md` | M-156 — INVENTERING: docs/spec/60_plc.md mening for mening mot koden (A12) |
 | `M-157_ren_maskin_hela_kedjan.md` | M-157 — Ren maskin: hela installationskedjan från klon till prov i ren container |
-| `M-158_den_riktiga_f15_mutationen.md` | M-158 — den riktiga F15-mutationen och vad den avslojade om sparen |
+| `M-158_den_riktiga_f15_mutationen.md` | M-158 — den riktiga F15-mutationen och vad den avslöjade om spåren |
 | `M-159_larmet_tidsvakten_och_forreglingen.md` | M-159 — grind 3b: tidsvakt, larmutgang och forregling mot bankens 38 referenser |
 | `M-160_f1_modellen_skriver_linan.md` | M-160 — F1: modellen skriver linan, ögat talar tillbaka |
+| `M-161_komponentsoket_tva_hal.md` | M-161 — komponentsökets nolla var två hål: 60 vokabulärfrågor och 15 formatfrågor |
+| `M-162_fritext_om_befintlig_scen.md` | M-162 — fri text om en befintlig scen: diagnos, andring, optimering |
+| `M-163_forslag_nar_valet_faller.md` | M-163 — förslag när valet faller: vad grinden kan namnge, och var sökskiktet tar slut |
 
 <!-- SLUT MATNINGSTABELL -->
 
