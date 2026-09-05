@@ -65,7 +65,7 @@ TAKTFONSTER = 20                    # Satt av M-42.
 # (takt_spridning). Fyra delar av tjugo par ger fem par per del - kort nog att
 # vara brusigare an helheten, och det ar avsikten: max-avvikelsen ska
 # OVERTACKA helhetens fel, inte skatta det. Ett val, motiverat i M-87.
-TAKT_DELFONSTER = 4
+TAKT_DELFONSTER = 4                 # Satt av M-87.
 
 
 def _s(x):
@@ -796,8 +796,10 @@ class Brygga(object):
         avbrott = args.get("avbrott")
         alder_s = args.get("alder_s")
         takt = self.takt()
+        spridning = self.takt_spridning()
         svar = {"oga": self.provtagare is not None, "simtid": self.simtid,
-                "takt": takt, "tick": self._n_tick,
+                "takt": takt, "takt_spridning": spridning,
+                "tick": self._n_tick,
                 "klockbakat": self.n_klockbakat, "lagrat": False}
         if self.provtagare is None:
             # INGEN falsk framgang: vardet lagrades inte, och det sags rent ut
@@ -830,8 +832,6 @@ class Brygga(object):
         # vardet pa, och da ar ett hal ratt svar.
         t = None
         hop = None
-        spridning = self.takt_spridning()
-        svar["takt_spridning"] = spridning
         if self.simtid is not None and takt is not None and alder_s is not None:
             alder = max(0.0, float(alder_s))
             t = self.simtid - alder * takt

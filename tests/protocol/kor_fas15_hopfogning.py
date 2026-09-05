@@ -41,6 +41,9 @@ import time
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
+sys.path.insert(0, os.path.join(_ROT, "tests", "protocol", "stod"))
+
+import installationsgrind                            # noqa: E402
 
 import oga_harledning as H                           # noqa: E402
 import oga_provtagning as OP                         # noqa: E402
@@ -132,21 +135,51 @@ def _nagon_komponent(k):
 
 def steg1_klockorna(k, sekunder, karta):
     """Pumpens egen takt mot den langa regressionen."""
-    takter = []
+    takter, spridningar = [], []
     slut = time.time() + sekunder
     while time.time() < slut:
         karta.las(k)
-        t = k.oga_status().get("takt")
+        st = k.oga_status()
+        t = st.get("takt")
         if t is not None:
             takter.append(float(t))
+        # Spridningen lases genom plc_in: den ar pumpens svar pa hur mycket
+        # dess EGEN takt varierar over sitt fonster (M-87).
+        sp = k.plc_in().get("takt_spridning")
+        if sp is not None:
+            spridningar.append(float(sp))
         time.sleep(0.02)
     lutning, res = karta.lutning()
     ut = {"n_takt": len(takter), "lang_kvot": lutning, "regression": res}
+    # VC:s simuleringstid gar i STEG. Steget ar inte kosmetik: det ar
+    # kvantiseringen som gor pumpens taktfonster oense med sig sjalvt, och
+    # det ar den som term 2 i takt_spridning matter. Har mats det ur
+    # kartans egna avlasningar - det minsta positiva spranget mellan tva.
+    steg = sorted(set(round(karta.punkter[i][2] - karta.punkter[i - 1][2], 6)
+                      for i in range(1, len(karta.punkter))))
+    positiva = [x for x in steg if x > 0]
+    if positiva:
+        ut["simsteg"] = {"minsta_s": positiva[0], "storsta_s": positiva[-1],
+                         "distinkta": len(positiva),
+                         "de_fem_minsta": positiva[:5]}
     if takter:
         ut.update({"takt_median": p(takter, .5), "takt_p05": p(takter, .05),
                    "takt_p95": p(takter, .95),
                    "takt_min": min(takter), "takt_max": max(takter),
                    "takt_spann": max(takter) - min(takter)})
+    if spridningar:
+        ut.update({"spridning_median": p(spridningar, .5),
+                   "spridning_p95": p(spridningar, .95),
+                   "spridning_max": max(spridningar),
+                   "n_spridning": len(spridningar)})
+        # HALLER DEN? Spridningen ska tacka takten avstand till den langa
+        # kvoten. Ett par dar den inte gor det ar ett par dar taket ljuger.
+        if lutning is not None and takter:
+            fel = [abs(t - lutning) for t in takter]
+            ut["takt_fel_p95"] = p(fel, .95)
+            ut["takt_fel_max"] = max(fel)
+            ut["spridningen_tacker_taktfelet"] = bool(
+                p(spridningar, .5) >= p(fel, .95))
     return ut
 
 
@@ -218,8 +251,11 @@ def steg3_d(k, karta, alder_s, varv, kvot):
             "d_lag_ms": (stampel - hog) * 1000.0,
             "d_hog_ms": (stampel - lag) * 1000.0,
             "klamma_ms": (hog - lag) * 1000.0,
-            "tak_ms": None if svar.get("hopfogning_s") is None
-                      else svar["hopfogning_s"] * 1000.0,
+            # Taket som ogats KALLA till slut bar, inte det som skickades:
+            # rattelsen (M-87) kommer efter svaret, och det ar kallans tal
+            # som foljer med in i raden. Kopplarens sista svar bar det.
+            "tak_ms": None if (kopplare.sista_svar or {}).get("hopfogning_s") is None
+                      else kopplare.sista_svar["hopfogning_s"] * 1000.0,
             "takt": svar.get("takt"),
             "rtt_ms": (t1 - t0) * 1000.0,
         }
@@ -343,11 +379,22 @@ def main():
     ap.add_argument("--lasvarv-ms", type=float, default=89.0,
                     help="kopplarens varvtid; M-39 matte 89 ms mot OpenPLC")
     ap.add_argument("--json", default=None)
+    ap.add_argument("--anda", action="store_true",
+                    help="kor aven om VC inte har repots kod (utdatan marks)")
     a = ap.parse_args()
+
+    # STEG 0. Kor VC den kod som ligger i repot? Se installationsgrind.py:
+    # en L3-matning mot en gammal installation ger tal for kod som inte
+    # langre finns, och ingenting kraschar pa vagen.
+    print("STEG 0 - kor VC repots kod?")
+    installationen_ok, _rader = installationsgrind.kontrollera(skriv=print)
+    if not installationen_ok and not a.anda:
+        return 2
 
     k = Klient(port=a.port, tokenfil=a.token or tokenfil(), timeout=60.0).anslut()
     objekt = _nagon_komponent(k)
-    ut = {"objekt": objekt, "tid": time.strftime("%Y-%m-%d %H:%M:%S")}
+    ut = {"objekt": objekt, "tid": time.strftime("%Y-%m-%d %H:%M:%S"),
+          "installationen_ar_repots": installationen_ok}
 
     karta = Karta()
     print("STEG 1 - de tva klockorna (%.0f s)" % a.klocksekunder)
@@ -358,6 +405,16 @@ def main():
              kl["takt_min"], kl["takt_max"]))
     print("  lang regression:  %.5f simsekunder per vaggsekund  (%d punkter)"
           % (kl["lang_kvot"], kl["regression"]["n"]))
+    if "spridning_median" in kl:
+        print("  pumpens takt_spridning: median %.4f  p95 %.4f  max %.4f"
+              % (kl["spridning_median"], kl["spridning_p95"], kl["spridning_max"]))
+        print("  taktens avstand till den langa kvoten: p95 %.4f  max %.4f"
+              % (kl["takt_fel_p95"], kl["takt_fel_max"]))
+    if "simsteg" in kl:
+        print("  VC:s simuleringssteg: minsta %.4f s, %d distinkta sprang, "
+              "de fem minsta %s"
+              % (kl["simsteg"]["minsta_s"], kl["simsteg"]["distinkta"],
+                 kl["simsteg"]["de_fem_minsta"]))
     print("  regressionens residual: median %.2f  p95 %.2f  max %.2f ms"
           % (kl["regression"]["median_ms"], kl["regression"]["p95_ms"],
              kl["regression"]["max_ms"]))

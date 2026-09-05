@@ -326,3 +326,76 @@ def test_kopplaren_rattar_taket_nar_rundan_blev_langre_an_backspegeln(tmp_path):
         assert h.rigg.oga.sammanfattning()["rattade_tak"] == h.rigg.oga.n_rattade
     finally:
         h.stang()
+
+
+# ---- 4. upplosningen hor till FLANKEN, inte till korningen ---------------
+
+def _signalflanker(rader):
+    """VC-signalernas flanker, i samma form som Analys bygger dem. Sma nog
+    att skriva har; att lana Analys hade dragit in hela domen i ett prov som
+    mater en rakning."""
+    ut = []
+    for namn in sorted(set(t for r in rader for t in (r.get("sig") or {}))):
+        forra = None
+        for r in rader:
+            v = (r.get("sig") or {}).get(namn)
+            if v is None:
+                continue
+            if forra is not None and bool(v) != bool(forra):
+                ut.append({"signal": namn, "flank": "RISE" if v else "FALL",
+                           "t": float(r.get("t", 0.0))})
+            forra = v
+    return ut
+
+
+def _serie_med_tva_tak(litet_s, stort_s):
+    """En serie dar EN rad bar ett katastrofalt hopfogningstak och resten ett
+    litet. PLC-taggen och VC-signalen gar hoga i rad 4, alltsa 50 ms isar.
+
+    Bilden ar M-87:s: pumpens takt tappade fotfastet i ett ogonblick, och
+    just den raden vet inte var pa tidsaxeln dess varde ligger. Fragan provet
+    staller ar om det ogonblicket far gora hela korningens fasdomar
+    obestambara.
+    """
+    rader = []
+    for i in range(10):
+        t = i * 0.05
+        rad = {"t": t, "plc": {"Start": i >= 4}, "plc_alder_s": 0.01,
+               "sig": {"do_start": i >= 5},
+               "plc_hopfogning_s": stort_s if i == 8 else litet_s}
+        rader.append(rad)
+    return rader
+
+
+def test_ett_enda_daligt_ogonblick_gor_inte_hela_korningen_obestambar():
+    """DEN TRASIGA FIXTUREN for per-flank-upplosningen.
+
+    Seriens tak (max over raderna) ar en hel sekund; flankens eget ar 10 ms.
+    Kravet ar 100 ms och fasen ar 50 ms, alltsa vall inom kravet. Domdes den
+    mot seriens max vore svaret INCONCLUSIVE ("kravet ar finare an ogats
+    upplosning") - ett ogonblick av dalig klocka hade slagit ut en dom det
+    inte ror.
+    """
+    import oga_harledning as H
+    rader = _serie_med_tva_tak(0.010, 1.000)
+    u = H.upplosning(rader, 20.0, 0.01345)
+    # Seriens tal ar det VARSTA - det ar avsikten, och det ar det LIMITS bar.
+    assert u["hopfogning_s"] == 1.000 and u["hopfogning_kalla"] == "RUN"
+    assert u["fas_s"] > 1.0
+
+    flanker = H.plcflanker(rader) + _signalflanker(rader)
+    par = [{"plc": "Start", "signal": "do_start", "max_ms": 100}]
+    fas = H.fasforhallande(flanker, par, u)
+    assert len(fas) == 1
+    assert fas[0]["status"] == "OK", fas[0].get("skal")
+    # och upplosningen som DOMDE ar flankens egen, inte korningens varsta
+    assert fas[0]["res_ms"] < 100.0
+
+    # Motprovet: ligger det daliga ogonblicket pa SJALVA flankraden ska domen
+    # bli obestambar. Osakerheten hor till den rad den mattes pa.
+    rader2 = _serie_med_tva_tak(0.010, 1.000)
+    rader2[4]["plc_hopfogning_s"] = 1.000
+    fas2 = H.fasforhallande(H.plcflanker(rader2) + _signalflanker(rader2), par,
+                            H.upplosning(rader2, 20.0, 0.01345))
+    assert fas2[0]["status"] == "INCONCLUSIVE"
+    assert fas2[0]["res_ms"] > 1000.0

@@ -935,7 +935,13 @@ def plcflanker(rader):
                            "flank": "RISE" if v else "FALL",
                            "t": round(t_las, 6),
                            "t_prov": float(rad.get("t", 0.0)),
-                           "alder_s": alder})
+                           "alder_s": alder,
+                           # Radens EGET hopfogningstak. Seriens tak ar max
+                           # over alla rader, och ett enda dalig ogonblick
+                           # skulle da gora hela korningens fasdomar
+                           # obestambara. Osakerheten hor till DEN rad den
+                           # mattes pa (M-87).
+                           "hopfogning_s": rad.get("plc_hopfogning_s")})
             forra = v
     ut.sort(key=lambda f: (f["t"], f["signal"]))
     return ut
@@ -990,6 +996,14 @@ def upplosning(rader, rate_hz, hopfogning_prior_s):
     aldrig max(L, S+J) och nadde 95 % av den. Gransen galler ett par
     PLC-tagg mot VC-signal; tva PLC-taggar ur samma lasning skiljer sig
     hogst las_s.
+
+    `hopfogning_s` ar KORNINGENS VARSTA, max over raderna. Det ar ratt tal
+    for LIMITS-raden - den ska saga hur illa det stod till som varst - och
+    FEL tal for en enskild dom. M-87 matte tak som svangde fran 17 ms till
+    over en sekund inom samma korning; med max hade en dalig sekund gjort
+    varenda fasdom obestambar. Fasdomen anvander darfor flankens EGET tak
+    (se fasforhallande), och de tva talen bar olika namn i utdatan:
+    LIMITS-radens `join`/`phase` mot PHASE-radens `res`.
     """
     prov_s = None
     if rate_hz and float(rate_hz) > 0:
@@ -1034,12 +1048,30 @@ def fasforhallande(flanker, par, upplosning=None):
       max < fas_s                     INCONCLUSIVE - kravet ar finare an ogat
     En fasdom utan upplosning vore ett tal utan storhet: ett fasfel pa 60 ms
     i en serie som provtar var 50:e ms ar inte ett fel, det ar ett prov.
+
+    UPPLOSNINGEN AR PER FLANK, inte per korning. `upplosning()` ger seriens
+    tak, alltsa max over alla rader - ratt tal for LIMITS-raden, fel tal for
+    en dom. M-87 matte hopfogningstak som svangde fran 17 ms till over en
+    sekund inom samma korning; med seriens max hade EN dalig sekund gjort
+    varenda fasdom obestambar. Flankens eget tak (`hopfogning_s` ur raden den
+    lastes i) anvands darfor nar det finns, och seriens som reserv.
     """
     ut = []
-    fas_s = (upplosning or {}).get("fas_s")
+    upplosning = upplosning or {}
+    fas_s = upplosning.get("fas_s")
+    prov_s = upplosning.get("prov_s")
+    las_s = upplosning.get("las_s")
+
+    def _res(flank):
+        """Upplosningen som ska doma DEN har flanken, i sekunder."""
+        egen = flank.get("hopfogning_s")
+        if egen is None or prov_s is None or las_s is None:
+            return fas_s
+        return max(las_s, prov_s + float(egen))
+
     for post in (par or []):
         tagg, signal, max_ms = _parpost(post)
-        a = [f["t"] for f in flanker
+        a = [f for f in flanker
              if f["signal"] == PLC_PREFIX + tagg and f["flank"] == "RISE"]
         b = [f["t"] for f in flanker
              if f["signal"] == signal and f["flank"] == "RISE"]
@@ -1052,15 +1084,17 @@ def fasforhallande(flanker, par, upplosning=None):
                 d["status"] = "INCONCLUSIVE"
             ut.append(d)
             continue
-        for t in a:
+        for flank in a:
+            t = flank["t"]
             narmast = min(b, key=lambda x: abs(x - t))
             d = {"plc": tagg, "signal": signal, "t_plc": t,
                  "t_signal": narmast,
                  "dt_ms": round((narmast - t) * 1000.0, 3),
                  "forst": "plc" if t <= narmast else "signal"}
             if max_ms is not None:
+                egen = _res(flank)
                 d["max_ms"] = float(max_ms)
-                d["res_ms"] = None if fas_s is None else round(fas_s * 1000.0, 3)
+                d["res_ms"] = None if egen is None else round(egen * 1000.0, 3)
                 d["status"], d["skal"] = _fasdom(abs(d["dt_ms"]), float(max_ms),
                                                  d["res_ms"])
             ut.append(d)
