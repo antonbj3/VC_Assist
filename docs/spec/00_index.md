@@ -168,6 +168,7 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-127_den_femte_domaren_falld_i_vc.md` | M-127 — den femte domaren fälld i VC: genomflödesdomaren mot en svulten station med verklig process |
 | `M-128_p15_7_fasdom_och_den_felstallda_fragan.md` | M-128 — P15-7 körd: fasdom mot en känd fördröjning i VC, och varför frågan var fel ställd |
 | `M-129_braketten_pa_korningsniva_falld_i_verkligheten.md` | M-129 — braketten på körningsnivå fälld i verkligheten: osäkerhetsbraketten prövad mot naturlig last i VC |
+| `M-130_taket_under_naturlig_belastning_och_stopp.md` | M-130 — taket under naturlig belastning och processtopp: två frågor ur D4 besvarade med mätning |
 
 <!-- SLUT MATNINGSTABELL -->
 
