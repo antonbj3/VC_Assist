@@ -420,3 +420,59 @@ def test_ett_fall_med_bara_en_giltig_korning_raknas_aldrig_som_lagat():
     dom = F1.grontkriteriet([], komp, n=3)
     assert dom["kompositionsfall_lagade"] == 0
     assert dom["kriterium_komposition"] is False
+
+
+def test_fixtur_den_riktiga_vagens_byggare_tar_armens_etikett(monkeypatch):
+    """Den trasiga fixturen som saknades: byggarna på den RIKTIGA vägen.
+
+    Riggen var grön i 30 prov och kunde ändå aldrig köra. Båda armarna anropar
+    sina byggare med `etikett` (`bygg_ogonsteg(etikett)`), och torrkörningens
+    två byggare tar den. Den riktiga vägens två byggare tog INGA argument, så
+    `guldarmen` föll på en `TypeError` i sitt första varv - efter att
+    startskriptet skrivits, innan VC rörts. Provsviten gick genom
+    torrkörningens byggare och såg aldrig de andra två.
+
+    Provet ställer frågan armarna ställer: går byggarna att anropa så som de
+    faktiskt anropas?
+    """
+    class Argument:
+        forfattare = "inspelad"
+        modell = None
+        strucpp = None
+        runtime_include = None
+        byggrot = "/tmp"
+        serier = None
+
+    class Skrivarattrapp:
+        def varv(self, _rad):
+            pass
+
+    monkeypatch.setattr(F1, "bygg_forfattare",
+                        lambda *_a, **_k: "forfattare")
+    forf, oga = F1.riktiga_byggare(Argument(), index=None, bryggan=None,
+                                   skrivare=Skrivarattrapp())
+    # Exakt anropsformen ur `guldarmen`/`kompositionsarmen`.
+    assert forf("guld#1") == "forfattare"
+    steg = oga("K3#2")
+    assert isinstance(steg, F1.Ogonsteg)
+    # Etiketten bär in i byggnamnet: annars skriver körning 2 över körning 1:s
+    # artefakter och frågan "vilken körning föll" går inte att ställa efteråt.
+    assert steg.kor_scenen.namn == "F1_K3_2"
+    assert oga("guld#1").kor_scenen.namn != steg.kor_scenen.namn
+
+
+def test_armarna_anropar_sina_byggare_med_etiketten():
+    """Grinden ovan mäter fel storhet om armarna slutar skicka etiketten."""
+    sedda = []
+
+    class Steg(F1.Ogonsteg):
+        def __init__(self):
+            F1.Ogonsteg.__init__(self, lambda _k: {})
+
+    def bygg_ogonsteg(etikett):
+        sedda.append(etikett)
+        raise RuntimeError("stopp efter byggaren")
+
+    with pytest.raises(RuntimeError):
+        F1.guldarmen(lambda etikett: None, bygg_ogonsteg, 3)
+    assert sedda == ["guld#1"]

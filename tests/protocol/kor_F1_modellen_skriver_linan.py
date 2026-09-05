@@ -1090,6 +1090,38 @@ def kompositionsarmen(bygg_forfattaren, bygg_ogonsteg, n, fall=None,
     return ut
 
 
+def _byggnamn(etikett):
+    """Armens etikett som ett namn en byggkatalog och ett PLC-program tal."""
+    if not etikett:
+        return "F1"
+    return "F1_" + re.sub(r"[^A-Za-z0-9]+", "_", str(etikett)).strip("_")
+
+
+def riktiga_byggare(a, index, bryggan, skrivare):
+    """De tva byggarna for den RIKTIGA vagen: forfattaren och ogonsteget.
+
+    Ligger pa modulniva och inte som tva stangningar inne i `main` av ett matt
+    skal: de lag dar, och de tog INGA argument medan bada armarna anropar dem
+    med `etikett`. Riggen foll darfor pa en `TypeError` i guldarmens forsta
+    varv - efter att startskriptet skrivits, innan VC rorts - och 30 grona
+    enhetsprov sa ingenting om det, for torrkorningen gick genom tva ANDRA
+    stangningar med ratt signatur. En funktion ett prov kan na kan provas.
+    """
+    def bygg_forfattaren(etikett=None):
+        return bygg_forfattare(a.forfattare, modell=a.modell)
+
+    def bygg_ogonsteg(etikett=None):
+        # Etiketten bar in i byggnamnet: annars heter varje kornings forsta
+        # ogonvarv `F1_001_LINJE` och skriver over foregaende kornings
+        # artefakter, sa en efterhandsgranskning av VILKEN korning som fallde
+        # gar inte att gora.
+        return Ogonsteg(Scenkorare(a, index, bryggan,
+                                   namn=_byggnamn(etikett)),
+                        on_varv=skrivare.varv)
+
+    return bygg_forfattaren, bygg_ogonsteg
+
+
 def _skriv_korning(rad):
     print("      %-8s %-14s varv %s/%s  ogonvarv %s  %s"
           % (rad.get("uppgift") or rad.get("fall"), rad.get("utfall"),
@@ -1244,12 +1276,8 @@ def main(argv=None):
         bryggan = Bryggan(starta_om_mellan=not a.ingen_omstart_per_korning)
         index = bygg_validator()
 
-        def bygg_forfattaren():
-            return bygg_forfattare(a.forfattare, modell=a.modell)
-
-        def bygg_ogonsteg():
-            return Ogonsteg(Scenkorare(a, index, bryggan),
-                            on_varv=skrivare.varv)
+        bygg_forfattaren, bygg_ogonsteg = riktiga_byggare(
+            a, index, bryggan, skrivare)
 
     slingargument = {}
     if not a.torrkorning:
