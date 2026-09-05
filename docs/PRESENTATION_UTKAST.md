@@ -216,8 +216,8 @@ its stated limits. Nothing here is an estimate.
 Three rules shaped every line in the repository.
 
 **No threshold without a measured reference.** If the code says `if x > 0.8`,
-a measurement states where 0.8 came from. Otherwise the number is a guess
-wearing the clothes of knowledge.
+a measurement states where 0.8 came from. Otherwise it is a guess that looks
+like a fact.
 
 **No gate without a failing fixture.** A gate that has never caught anything is
 untested. The fixture is written first, observed to be red, and only then is the
