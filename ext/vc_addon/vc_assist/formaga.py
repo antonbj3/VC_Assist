@@ -94,11 +94,17 @@ def formaga(objekt, extra=None):
     saknas = [y for y, d in ytor.items() if d["finns"] is False]
     oprovade = [y for y, d in ytor.items() if d["finns"] is None]
 
+    app_obj = objekt.get("app")
+    vc_ver = getattr(app_obj, "ProductVersion", "") if app_obj is not None else ""
+    vc_status = "matt" if str(vc_ver).startswith("4.10") else ("oprovad" if vc_ver else "okand")
+
     rapport = {
         "skriven": time.time(),
         "python": sys.version.split()[0],
         "python_full": sys.version.replace("\n", " "),
         "exe": sys.executable,
+        "vc_product_version": vc_ver,
+        "vc_version_status": vc_status,
         "ytor": ytor,
         "summering": {
             "provade": len(YTOR),

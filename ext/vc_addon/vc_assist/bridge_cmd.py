@@ -383,8 +383,25 @@ def _kor_startskript(app):
         _log("startskriptet foll\n" + traceback.format_exc())
 
 
+def _kontrollera_vc_version(app_obj):
+    """Kontrollera VC-version vid start: oprovad version sager ifran (E10)."""
+    try:
+        ver = getattr(app_obj, "ProductVersion", "")
+    except Exception:
+        ver = ""
+    if not ver:
+        _log("VC ProductVersion saknas eller gick inte att lasa")
+        return "okand"
+    if str(ver).startswith("4.10"):
+        _log("VC ProductVersion: %s (MATT)" % ver)
+        return "matt"
+    _log("VARNING (E10): VC-version %s ar OPROVAD. Endast VC 4.10 ar matt i det har repot (M-01, M-139). Fortsatter i oprovat lage." % ver)
+    return "oprovad"
+
+
 def _starta():
     _log("=== uppstart %s ===" % time.strftime("%Y-%m-%d %H:%M:%S"))
+    _kontrollera_vc_version(app)
     d = _tillaggsmapp()
     if d is None:
         msg = "hittade inte tillaggsmappen; bryggan startar inte. Se detaljer i loggen ovan."
