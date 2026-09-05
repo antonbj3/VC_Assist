@@ -610,22 +610,8 @@ STRANGARE = {
         "sats eller en gren som skulle ha tagits bort.",
 
     # -- M-99: falska rodgrindar som star kvar, och varfor ---------------
-    "dekl_faltinitiering":
-        "ARRAY[1..3] OF INT := [1, 2, 3]. FALSK RODGRIND, LAGAS INTE AN. "
-        "Formen star i IEC 61131-3 och STruC++ 0.6.6 bygger den; lasaren "
-        "laser startvarden som ETT uttryck och har ingen nod for en "
-        "faltinitierare. Lagningen ror modell, lasare, skrivare och "
-        "typkontroll pa en gang, och tur-och-retur-provet maste halla hela "
-        "vagen. Kostnaden ar dessutom MATT till noll pa modellvagen: "
-        "skelett.granska_arbetsvariabler slapper bara elementara typer och "
-        "standardfunktionsblocken, sa modellen kan inte deklarera ett falt "
-        "over huvud taget - resten av deklarationsdelen genererar kedjan "
-        "sjalv. Skulden ar bokford i M-99, inte gomd.",
-    "dekl_faltinitiering_upprepning":
-        "ARRAY[1..3] OF INT := [3(0)], upprepningsformen. FALSK RODGRIND, "
-        "LAGAS INTE AN, exakt samma skal och samma lagning som "
-        "dekl_faltinitiering: utan en nod for faltinitieraren finns det "
-        "ingenstans att lagga upprepningsantalet.",
+    # (M-108: dekl_faltinitiering och dekl_faltinitiering_upprepning lagades
+    # har — raderna strukna, fallen ar OVERENS nu.)
     "pou_konfigurationsblock":
         "CONFIGURATION / RESOURCE / TASK. FALSK RODGRIND, LAGAS INTE. "
         "Formen star i IEC 61131-3 och kompilatorn bygger den, men lagrets "

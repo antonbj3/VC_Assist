@@ -10,8 +10,11 @@ Bakgrund (mätt i M-108, docs/matningar/M-108_openplc_som_tredje_motor.md):
    med strängliteral som första argument släpptes av validatorn och frontend,
    men backend faller med mallhärledningsfel ("mismatched types 'const IECString<MaxLen>'
    and 'const char [N]'"). Med en variabel som första argument bygger allt.
+3. R1: Fältinitiering (ARRAY[1..3] OF INT := [1, 2, 3] och upprepningsform := [3(0)])
+   som tidigare avvisades av läsaren/typkontrollen men bygger och kör i OpenPLC.
+4. R3: REF_TO-stöd (pRef : REF_TO INT), dereferensiering (^), NULL och restriktion mot REF_TO i STRUCT.
 
-Denna testfil ägs av M-108-mandatet och provar att båda reglerna fäller trasiga
+Denna testfil ägs av M-108-mandatet och provar att reglerna fäller trasiga
 fall fail-closed och släpper igenom alla giltiga konstruktioner.
 """
 from __future__ import annotations
@@ -23,7 +26,7 @@ import pytest
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 
-from vc_assist_svc.st import validera  # noqa: E402
+from vc_assist_svc.st import las, skriv_enhet, validera  # noqa: E402
 
 
 def _pou(dekl: str, kropp: str, extra: str = "", prolog: str = "") -> str:
@@ -232,3 +235,180 @@ def test_giltiga_strangfunktioner_med_variabel_passerar(namn, kalla):
     """Strängfunktioner med variabel/uttryck som första argument bygger och ska passera."""
     rapport = validera(kalla)
     assert rapport.ok is True, "Borde ha godkänts (%s): %s" % (namn, rapport)
+
+
+# =========================================================================
+# REGEL 3: R1 — Fältinitiering och upprepningsform (ARRAY := [1, 2, 3], [3(0)])
+# =========================================================================
+
+GILTIGA_FALTINITIERINGAR = [
+    ("int_lista",
+     _pou("    a : ARRAY[1..3] OF INT := [1, 2, 3];\n    iA : INT;\n", "    iA := a[1];\n")),
+    ("int_upprepning",
+     _pou("    a : ARRAY[1..3] OF INT := [3(0)];\n    iA : INT;\n", "    iA := a[1];\n")),
+    ("blandad_upprepning",
+     _pou("    a : ARRAY[1..5] OF INT := [2(1), 3(0)];\n    iA : INT;\n", "    iA := a[1];\n")),
+    ("bool_lista",
+     _pou("    a : ARRAY[1..3] OF BOOL := [TRUE, FALSE, TRUE];\n    bA : BOOL;\n", "    bA := a[1];\n")),
+    ("bool_upprepning",
+     _pou("    a : ARRAY[1..4] OF BOOL := [2(TRUE), 2(FALSE)];\n    bA : BOOL;\n", "    bA := a[1];\n")),
+    ("real_upprepning",
+     _pou("    a : ARRAY[-2..2] OF REAL := [5(0.0)];\n    rA : REAL;\n", "    rA := a[-2];\n")),
+    ("real_fran_heltal",
+     _pou("    a : ARRAY[1..3] OF REAL := [1, 2, 3];\n    rA : REAL;\n", "    rA := a[1];\n")),
+    ("negativa_element",
+     _pou("    a : ARRAY[1..3] OF INT := [-1, -2, -3];\n    iA : INT;\n", "    iA := a[1];\n")),
+    ("multidim_upprepning",
+     _pou("    m : ARRAY[1..2, 1..3] OF INT := [6(0)];\n    iA : INT;\n", "    iA := m[1, 1];\n")),
+    ("string_lista",
+     _pou("    a : ARRAY[1..2] OF STRING := ['foo', 'bar'];\n    s : STRING;\n", "    s := a[1];\n")),
+]
+
+
+@pytest.mark.parametrize("namn,kalla", GILTIGA_FALTINITIERINGAR,
+                         ids=[x[0] for x in GILTIGA_FALTINITIERINGAR])
+def test_giltiga_faltinitieringar_passerar(namn, kalla):
+    """Giltiga fältinitieringar ska godkännas av validatorn."""
+    rapport = validera(kalla)
+    assert rapport.ok is True, "Borde ha godkänts (%s): %s" % (namn, rapport)
+
+
+@pytest.mark.parametrize("namn,kalla", GILTIGA_FALTINITIERINGAR,
+                         ids=[x[0] for x in GILTIGA_FALTINITIERINGAR])
+def test_faltinitiering_tur_och_retur(namn, kalla):
+    """Fältinitieringar ska bevara identitet genom läsare och skrivare."""
+    enhet1 = las(kalla)
+    text1 = skriv_enhet(enhet1)
+    enhet2 = las(text1)
+    text2 = skriv_enhet(enhet2)
+    assert text1 == text2
+    assert enhet1 == enhet2
+
+
+TRASIGA_FALTINITIERINGAR = [
+    ("fel_elementtyp_real_till_int",
+     _pou("    a : ARRAY[1..3] OF INT := [1, 2, 3.5];\n", ""),
+     "TYP", "flyttalsliteral kan inte tilldelas INT"),
+    ("fel_elementtyp_upprepning",
+     _pou("    a : ARRAY[1..3] OF INT := [3(1.5)];\n", ""),
+     "TYP", "flyttalsliteral kan inte tilldelas INT"),
+    ("fel_elementtyp_int_till_bool",
+     _pou("    a : ARRAY[1..3] OF BOOL := [1, 2, 3];\n", ""),
+     "TYP", "heltalsliteral kan inte tilldelas BOOL"),
+    ("for_fa_element",
+     _pou("    a : ARRAY[1..3] OF INT := [1, 2];\n", ""),
+     "TYP", "rymmer 3 element men initieraren har 2"),
+    ("for_manga_element",
+     _pou("    a : ARRAY[1..3] OF INT := [1, 2, 3, 4];\n", ""),
+     "TYP", "rymmer 3 element men initieraren har 4"),
+    ("for_fa_upprepning",
+     _pou("    a : ARRAY[1..3] OF INT := [2(0)];\n", ""),
+     "TYP", "rymmer 3 element men initieraren har 2"),
+    ("for_manga_upprepning",
+     _pou("    a : ARRAY[1..3] OF INT := [4(0)];\n", ""),
+     "TYP", "rymmer 3 element men initieraren har 4"),
+    ("faltinit_till_skalar",
+     _pou("    a : INT := [1, 2, 3];\n", ""),
+     "TYP", "fältinitierare kan bara tilldelas ett fält"),
+    ("literal_over_int",
+     _pou("    a : ARRAY[1..2] OF INT := [1, 40000];\n", ""),
+     "TYP", "40000 ligger utanför INT"),
+    ("upprepning_noll",
+     _pou("    a : ARRAY[1..3] OF INT := [0(1)];\n", ""),
+     "SYNTAX", "upprepningsantalet"),
+    ("tom_initierare",
+     _pou("    a : ARRAY[1..3] OF INT := [];\n", ""),
+     "SYNTAX", "kan inte vara tom"),
+]
+
+
+@pytest.mark.parametrize("namn,kalla,exp_kod,exp_txt", TRASIGA_FALTINITIERINGAR,
+                         ids=[x[0] for x in TRASIGA_FALTINITIERINGAR])
+def test_trasiga_faltinitieringar_falls(namn, kalla, exp_kod, exp_txt):
+    """Trasiga fältinitieringar (fel typ, fel antal, ogiltig syntax) måste fällas fail-closed."""
+    rapport = validera(kalla)
+    assert not rapport.ok, "Borde ha fällts: %s" % namn
+    assert exp_kod in rapport.koder(), "Väntade felkod %s i %s (%s)" % (exp_kod, rapport.koder(), namn)
+    assert any(exp_txt.lower() in a.text.lower() for a in rapport.anmarkningar), (
+        "Felmeddelande ska innehålla %r: %s" % (exp_txt, [a.text for a in rapport.anmarkningar])
+    )
+
+
+# =========================================================================
+# REGEL 4: R3 — REF_TO-stöd, dereferensiering (^), NULL och STRUCT-begränsning
+# =========================================================================
+
+GILTIGA_REF_TO = [
+    ("deref_lasning",
+     _pou("    pRef : REF_TO INT;\n    iA : INT;\n", "    iA := pRef^;\n")),
+    ("deref_skrivning_var",
+     _pou("    pRef : REF_TO INT;\n    iA : INT;\n", "    pRef^ := iA;\n")),
+    ("deref_skrivning_lit",
+     _pou("    pRef : REF_TO INT;\n", "    pRef^ := 42;\n")),
+    ("null_init_pekar",
+     _pou("    pRef : REF_TO INT := NULL;\n", "    pRef := NULL;\n")),
+    ("null_tilldelning_pekar",
+     _pou("    pRef : REF_TO INT;\n", "    pRef := NULL;\n")),
+    ("pekare_kopiering",
+     _pou("    p1, p2 : REF_TO INT;\n", "    p1 := p2;\n")),
+    ("deref_i_uttryck",
+     _pou("    pRef : REF_TO INT;\n    iA : INT;\n", "    iA := pRef^ + 5;\n")),
+    ("deref_real_pekare",
+     _pou("    pRef : REF_TO REAL;\n    rA : REAL;\n", "    rA := pRef^;\n    pRef^ := 3.14;\n")),
+    ("deref_bool_pekare",
+     _pou("    pRef : REF_TO BOOL;\n    bA : BOOL;\n", "    bA := pRef^;\n    pRef^ := TRUE;\n")),
+]
+
+
+@pytest.mark.parametrize("namn,kalla", GILTIGA_REF_TO,
+                         ids=[x[0] for x in GILTIGA_REF_TO])
+def test_giltiga_ref_to_passerar(namn, kalla):
+    """Giltiga REF_TO-deklarationer, deref-läs/skriv, NULL och pekarkopiering ska godkännas."""
+    rapport = validera(kalla)
+    assert rapport.ok is True, "Borde ha godkänts (%s): %s" % (namn, rapport)
+
+
+TRASIGA_REF_TO = [
+    ("deref_av_int",
+     _pou("    iA, iB : INT;\n", "    iA := iB^;\n"),
+     "TYP", "kan bara avreferera REF_TO"),
+    ("deref_av_int_skriv",
+     _pou("    iA : INT;\n", "    iA^ := 10;\n"),
+     "TYP", "kan bara avreferera REF_TO"),
+    ("deref_av_bool",
+     _pou("    bA, bB : BOOL;\n", "    bA := bB^;\n"),
+     "TYP", "kan bara avreferera REF_TO"),
+    ("struct_falt_ref_to",
+     "TYPE\n  S : STRUCT\n    p : REF_TO INT;\n  END_STRUCT;\nEND_TYPE\nPROGRAM P\nVAR\n  s1 : S;\nEND_VAR\nEND_PROGRAM\n",
+     "TYP", "STRUCT-fält av REF_TO-typ stöds inte"),
+    ("null_till_int",
+     _pou("    iA : INT;\n", "    iA := NULL;\n"),
+     "TYP", "NULL kan bara tilldelas REF_TO-typer"),
+    ("null_init_int",
+     _pou("    iA : INT := NULL;\n", ""),
+     "TYP", "NULL kan bara tilldelas REF_TO-typer"),
+    ("null_till_bool",
+     _pou("    bA : BOOL;\n", "    bA := NULL;\n"),
+     "TYP", "NULL kan bara tilldelas REF_TO-typer"),
+    ("pekare_kopiering_olika_typer",
+     _pou("    p1 : REF_TO INT;\n    p2 : REF_TO DINT;\n", "    p1 := p2;\n"),
+     "TYP", "REF_TO DINT kan inte tilldelas REF_TO INT"),
+    ("pekare_till_int_tilldelning",
+     _pou("    p1 : REF_TO INT;\n    iA : INT;\n", "    p1 := iA;\n"),
+     "TYP", "INT kan inte tilldelas REF_TO INT"),
+    ("int_till_pekare_tilldelning",
+     _pou("    p1 : REF_TO INT;\n    iA : INT;\n", "    iA := p1;\n"),
+     "TYP", "REF_TO INT kan inte tilldelas INT"),
+]
+
+
+@pytest.mark.parametrize("namn,kalla,exp_kod,exp_txt", TRASIGA_REF_TO,
+                         ids=[x[0] for x in TRASIGA_REF_TO])
+def test_trasiga_ref_to_falls(namn, kalla, exp_kod, exp_txt):
+    """Trasiga REF_TO-konstruktioner (deref av icke-pekare, NULL till skalar, STRUCT-fält) fälls fail-closed."""
+    rapport = validera(kalla)
+    assert not rapport.ok, "Borde ha fällts: %s" % namn
+    assert exp_kod in rapport.koder(), "Väntade felkod %s i %s (%s)" % (exp_kod, rapport.koder(), namn)
+    assert any(exp_txt.lower() in a.text.lower() for a in rapport.anmarkningar), (
+        "Felmeddelande ska innehålla %r: %s" % (exp_txt, [a.text for a in rapport.anmarkningar])
+    )
