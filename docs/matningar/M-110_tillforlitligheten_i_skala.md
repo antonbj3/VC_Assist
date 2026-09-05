@@ -6,10 +6,10 @@
 
 ## Armar (en commit per arm, namngiven --json per arm)
 
-1. Flerskott: `kor_fas9_slingan.py --lage historik --json m110_flerskott_historik.json`
-2. Enskott med regler: `--max-varv 1 --upprepa 5 --json m110_enskott_med_regler.json`
-3. Enskott utan förhandsregler: `--max-varv 1 --upprepa 5 --utan-forhandsregler --json m110_enskott_utan_regler.json`
-4. Takslagare med `--max-varv 8` (se §3 i uppdraget; `ABSOLUT_TAK` 20 höjs inte)
+1. Flerskott Sonnet: `--lage historik --json m110_flerskott_historik.json` — BLOCKERAD (claude ej inloggad).
+2. Flerskott Muse Spark: pilot T-07+S-05 klar (2/2); full bank körs i skärvor A/B/C av tre subagenter parallellt (`m110_flerskott_ms_{A,B,C}.json`), piloten återanvänds och T-07/S-05 körs INTE om. Banken växte 21→26 under dagen (A-03 A-07 L-01 P-03 S-01 tillkom) — varje JSON bär `bank_vid_start`.
+3. Enskott med/utan regler (Muse Spark): beslutas efter skärvutfallet.
+4. Takslagare med `--max-varv 8` (se §3 i uppdraget; `ABSOLUT_TAK` 20 höjs inte).
 
 ## Resultat
 
@@ -26,6 +26,7 @@
 - Transporttillägg (konstant i armen): "Svara med enbart kodens rader som vanlig text. Använd inga verktyg, läs inga filer, kör ingen kod."
 - Kostnad: 0 USD (gratisnivå); i stället mäts tokens in/ut per uppgift.
 - Pilot (`m110_pilot_musespark.json`): S-05 LÖST efter 2 varv (30 599/1 798 tok, 90 s), T-07 LÖST efter 2 varv (28 359/749 tok, 144 s). T-07 slog i taket (4 varv) på Sonnet i M-96 — på Muse Spark räckte 2. Inga verktygslarm (larmet hade gett KÖRNINGSFEL, inte tyst godkännande).
+- Lärdom från avbruten fullarm samma dag: `kor_fas9_slingan.py`-familjen skrev JSON först i slutet — en avbruten körning tappade ~10 lösta uppgifter. `kor_fas9_musespark.py` flushar nu JSON efter varje uppgift och skriver `bank_vid_start` (banken växer under dagen).
 - Dessa tal jämförs ALDRIG med M-96:s Sonnet-tal.
 
 ## LIMITS
