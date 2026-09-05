@@ -581,31 +581,51 @@ def _dom_flodet(serie):
                  "kvoter": kvoter, "nadde": nadde}
 
 
-STADKOD = """import json
+RAKNAKOD = """import json
 app = getApplication()
-_bort = []
-for _c in list(app.Components):
+_f = []
+for _c in app.Components:
     if _c.Name[:4] == 'F20_':
-        _bort.append(_c.Name)
-        app.deleteComponent(_c)
-print(json.dumps({"bortagna": _bort}))
+        _f.append(_c.Name)
+print(json.dumps({"f20": _f}))
+"""
+
+# En komponent per anrop. MATT 2026-09-05: en slinga som gick over
+# list(app.Components) och tog bort varje F20-komponent svarade "failed" ur
+# kon efter 31 ms -- efter att ha hunnit ta bort nagra. Samma borttagningar,
+# EN per anrop, gick igenom for alla tolv. Orsaken ar inte utredd; formen som
+# fungerar ar matt, och den anvands.
+BORTKOD = """app = getApplication()
+c = app.findComponent(%r)
+if c is not None:
+    app.deleteComponent(c)
 """
 
 
 def _stada(k):
     """VC ar DELAD, och en annan agents oga provtar `scen: all`. Lamnar vi
-    sexton F20-komponenter kvar hamnar de i NAGON ANNANS matning. Mätt:
-    medan den har korningen forbereddes stod `ogat startat ... parts:
-    [F20_Produkt]` i bryggloggen -- vara komponenter i deras provtagning.
+    sexton F20-komponenter kvar hamnar de i NAGON ANNANS matning. Mätt: medan
+    den har korningen forbereddes stod `ogat startat ... parts: [F20_Produkt]`
+    i bryggloggen -- vara komponenter i deras provtagning.
+
+    Svarar med vad som FAKTISKT ar kvar efteråt, inte med vad vi bad om.
     """
-    post = k.anrop("exec_queue", {"code": STADKOD,
-                                  "desc": "fas20: stada bort F20-komponenterna",
-                                  "tillat_skriptbeteende": False})["result"]
+    kvar = _f20_kvar(k)
+    for namn in kvar:
+        post = k.anrop("exec_queue", {"code": BORTKOD % str(namn),
+                                      "desc": "fas20: ta bort %s" % namn})["result"]
+        k.godkann_och_vanta(post["qid"], timeout=60.0)
+    return len(kvar), _f20_kvar(k)
+
+
+def _f20_kvar(k):
+    post = k.anrop("exec_queue", {"code": RAKNAKOD,
+                                  "desc": "fas20: rakna F20"})["result"]
     ut = k.godkann_och_vanta(post["qid"], timeout=60.0)
     if ut["state"] != "done":
-        return None
+        return []
     svar = ((ut.get("svar") or {}).get("result") or {}).get("result") or {}
-    return svar.get("bortagna")
+    return svar.get("f20") or []
 
 
 def _aterstall_startskriptet():
@@ -694,12 +714,15 @@ def main(argv=None):
     for _ in range(a.prov):
         serie.append(_prov(k))
         time.sleep(a.paus)
-    bortagna = _stada(k)
+    forsokte, kvar_efterat = _stada(k)
     k.stang()
     flodesfel, flode = _dom_flodet(serie)
     _aterstall_startskriptet()
-    print("  stadade bort %s F20-komponenter ur den delade scenen"
-          % ("?" if bortagna is None else len(bortagna)))
+    print("  stadade bort %d F20-komponenter ur den delade scenen; kvar: %s"
+          % (forsokte, kvar_efterat or "inga"))
+    if kvar_efterat:
+        flodesfel.append("stadningen lamnade kvar %d F20-komponenter i den "
+                         "delade scenen: %s" % (len(kvar_efterat), kvar_efterat))
 
     print("\n=== 1. de fyra minsta uppsattningarna, byggda ur specen ===")
     for namn, klass, r in byggrader:
