@@ -14,3 +14,9 @@
 # VC:s egna referensfiler ar hamtade ur installationen och ligger med sina
 # egna CRLF. De ar kallmaterial, inte var kod: ingen normalisering alls.
 docs/referens/** -text
+
+# PLCopens TC6-schema ar hamtat ur Beremiz med sina egna CRLF, och HARKOMST.md
+# bar dess sha256. Normaliserar git radsluten stammer inte hashen langre, och
+# en harkomst som inte gar att kontrollera ar ingen harkomst. Samma skal som
+# docs/referens ovan. Satt av M-154.
+svc/vc_assist_svc/plc/plcopen_schema/*.xsd -text
