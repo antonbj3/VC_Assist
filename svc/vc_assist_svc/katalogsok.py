@@ -307,7 +307,8 @@ class Katalog(object):
         rak delstrangssokning traffade darfor NOLL av 75 biblioteksfragor.
         Femton av de 75 ar riktiga modellbeteckningar; de ovriga 60 ar bankens
         egna svenska funktionsbeskrivningar, och dem loser inget namnsteg -
-        se M-161 §"vokabularglappet".
+        se M-161 avsnitt 6, som mater varfor: de tva vokabularen beskriver
+        inte ens samma storheter.
 
         VARFOR DET AR EN STEGE OCH INTE EN UNION: samma matning visar att en
         skiljeteckenslos matchning breddar 2,31 % av alla sjalvfragor ("C4"
