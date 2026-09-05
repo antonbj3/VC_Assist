@@ -22,7 +22,7 @@ och inte som "produkten har ingen USD-lasare".
 
 RIKTNINGEN, och varfor grinden inte anklagar den som HAR ratt. Tre saker
 kravs i SAMMA mening: ett namn ur den matta listan, ett verb som gor det till
-en vag framat, och ingen nekande markor. Meningen "VC har ingen USD-lasare,
+en vag framat, och att meningen inte nekar sitt eget forslag. Meningen "VC har ingen USD-lasare,
 sa den vagen finns inte" bar bade namnet och ett nekande ord, och gar fri.
 Meningen "vi kan importera USD-filen direkt" bar namnet och verbet och inget
 nekande, och faller. Samma monster som sakerhet.granska_text, av samma skal:
@@ -39,7 +39,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Sequence, Tuple
 
-from .text import bar_delstrang, bar_ord, meningar, NEKANDE
+from .text import bar_delstrang, bar_ord, meningar, nekar_pastaendet
 
 GRIND = "matta_fakta"
 
@@ -126,9 +126,15 @@ def granska(text: str) -> Tuple[Anmarkning, ...]:
     ut: List[Anmarkning] = []
     for mening in meningar(text or ""):
         lag = mening.lag
-        if bar_ord(lag, NEKANDE):
+        if nekar_pastaendet(lag):
             # Meningen sager att nagot INTE gar. Den ar precis vad regeln
             # vill se, och far aldrig anklagas.
+            #
+            # SKARPT AV M-95, samma felklass som M-94 fynd 1 och 4: fragan
+            # var "bar meningen nagot nekande ord", och forbehallet "utan"
+            # rakades da som ett nekande. MATT: "VC exporterar scenen till
+            # USD" fallde, "VC exporterar scenen till USD utan problem" gick
+            # fri - och den andra ar ett starkare forslag an den forsta.
             continue
         for fakta in FAKTA:
             # NAMNEN provas pa ordgrans och VERBEN som delstrang, av samma
