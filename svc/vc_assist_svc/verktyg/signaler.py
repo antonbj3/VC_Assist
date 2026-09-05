@@ -400,7 +400,7 @@ def _las_dotnet(katalog=DOTNET_KATALOG):
     for filnamn in DOTNET_FILER:
         stig = os.path.join(katalog, filnamn)
         if not os.path.exists(stig):
-            raise Schemafel("connectivity_status saknar sin kalla: %s" % stig)
+            raise Schemafel("connectivity_status is missing its source: %s" % stig)
         rot = ET.parse(stig).getroot()
         assembly = (rot.findtext("./assembly/name") or "").strip()
         antal = 0
@@ -415,7 +415,7 @@ def _las_dotnet(katalog=DOTNET_KATALOG):
             }
             antal += 1
         if not antal:
-            raise Schemafel("%s bar inga <member>; kallan gar inte att lita pa"
+            raise Schemafel("%s has no <member>; the source cannot be trusted"
                             % stig)
     return ut
 
@@ -430,8 +430,8 @@ def _dotnet(namn):
     ett uppfunnet .NET-namn ska falla har och inte i ett svar (I9).
     """
     if namn not in DOTNET:
-        raise Schemafel("%s star inte i %s; connectivity_status far inte "
-                        "namnge en medlem som kallan inte bar"
+        raise Schemafel("%s is not in %s; connectivity_status must not "
+                        "name a member the source does not have"
                         % (namn, ", ".join(DOTNET_FILER)))
     post = dict(DOTNET[namn])
     post["medlem"] = namn

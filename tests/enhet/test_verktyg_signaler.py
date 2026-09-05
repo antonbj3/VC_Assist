@@ -1332,7 +1332,7 @@ def test_en_uppfunnen_dotnet_medlem_kastar():
     """Trasig fixtur: kallan far inte kunna kringgas med ett hittat namn."""
     with pytest.raises(V.Schemafel) as e:
         S._dotnet("P:VisualComponents.Connectivity.Shared.IServer.Servers")
-    assert "star inte i" in str(e.value)
+    assert "is not in" in str(e.value)
     # ...och en riktig medlem gar igenom.
     assert S._dotnet(
         "P:VisualComponents.Connectivity.Shared.IServer.Connected")["summering"]
@@ -1385,7 +1385,7 @@ def test_en_saknad_dotnet_kalla_kastar_i_stallet_for_att_tiga(tmp_path):
     """S5: ett index som ar tomt ar inget index."""
     with pytest.raises(V.Schemafel) as e:
         S._las_dotnet(str(tmp_path))
-    assert "saknar sin kalla" in str(e.value)
+    assert "missing its source" in str(e.value)
 
 
 # ==========================================================================
