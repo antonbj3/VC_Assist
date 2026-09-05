@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 614 punkter
+## Vad mätningarna säger att de inte vet: 632 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -144,11 +144,24 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-102_modellagret_mot_riktiga_verktygssvar.md — LIMITS
 
-* Mätningen är inte klar.** Ingenting nedanför den här raden är ännu ett tal.
-* Ingen språkmodell och ingen leverantör är anropad. Allt mäts mot repots egna
-* Ingen brygga och ingen VC är igång. Verktygssvaren kommer ur de handlare som
-* deklarerade** `returns`, inte ur en körning.
-* Tokenräkningen är en omräkning ur byte, inte en leverantörs tokenisering.
+* Ingen språkmodell är anropad.** Turerna kommer ur en attrapp med manus.
+* Ingen brygga och ingen VC har svarat.** Verktygssvaren kommer ur de
+* Tokentalen är en omräkning ur byte**, inte en leverantörs tokenisering.
+* Urvalsträffen mäter regeln, inte efterfrågan.** De 95 turerna är
+* Scensammanfattaren är mätt på konstruerade scener.** Ingen bankscen är
+* Ingen lång körning finns.** Den långa ögonrapporten är byggd med ögats egen
+* `KO`-läget är oprövat.** Kön har inget lager i den byggda loopen.
+
+### M-102_modellagret_mot_riktiga_verktygssvar.md — 7. Vad som INTE är mätt
+
+* Ingen modell, ingen brygga, ingen VC.** Se LIMITS.
+* `A4`, adapterns tokenräknare**, finns inte. Kravet "högst 5 % avvikelse"
+* Kön.** Läget `KO`, och stoppkoderna `VANTAR_GODKANNANDE`, `AVBRUTEN`,
+* Ett verktyg som ALDRIG svarar** kan inte avbrytas (M-13). Tidsvakten kan
+* Att 22 av 37 övergångar är allt som går att nå** gäller den byggda loopen.
+* Sammanfattaren mot banken.** Regeln "inget namn försvinner" går inte att
+* Systempromptens guldfil** och importgrafprovet mot adaptern är inte byggda.
+* Injektionsprovet** (två turer, identiska utom komponentnamnet) är inte kört
 
 ### M-103_aterhamtningen_som_anvandaren_ser_den.md — LIMITS
 
@@ -190,7 +203,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-106_bankens_facitkallor.md — LIMITS
 
-* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd. Tak: 0.
+* Tak: se avsnittet "Vad som INTE är mätt".** Talen nedan är räknade och
+* Spårfacit döms av `bank/domare.py` genom vår egen ST-tolk. Tolken är **inte**
+* Paragrafnumren nedan är verifierade mot standardorganens egna
+* 
 
 ### M-107_tillverkarens_datablad.md — Vad som inte gick att belägga, och varför
 
@@ -210,6 +226,12 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * `nyttolast_kg` och `rackvidd_mm` heter fortfarande så**, i
 * Ingen komponent har laddats i VC.** Att ABB publicerar 901 mm säger
 * Täckningstalen gäller ETT bibliotek** — VC 4.10:s eCatalog på den här
+
+### M-108_openplc_som_tredje_motor.md — LIMITS
+
+* Inget i denna mätning är ännu mätt.** Filen är en reservation; alla tal ovan är plan, inte resultat.
+* Facit är OpenPLC v4 i Docker, inte fysisk PLC-hårdvara.** Fältbussjitter och hårdvaru-I/O ingår inte.
+* Tidsupplösning 20 ms.** Timers under en scancykel prövas inte.
 
 ### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
 
@@ -897,7 +919,9 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-96_slingan_kor_sig_sjalv.md — LIMITS
 
-* Talen mot den lagade grinden är inte klara än.** Det som står ovan är
+* Enskott MED grindreglerna är inte färdigmätt.** Körningen med n = 5 per
+* T-07 slog i taket och orsaken är inte utredd.** Fyra varv, 0,605 USD, och
+* antaget**.
 * n = 1 per uppgift och läge.** Ingen upprepning, ingen spridning.
 * Fyra uppgifter av 51** — bara de har spårfacit.
 * En modell, en promptformulering.** Byts någotdera kan talen bli andra.
