@@ -323,7 +323,7 @@
     "harkomst": "RAKNAD: bandhastigheten 0,45 m/s och kamerans bedomningstid 120 ms = 0,120 s ger bandforflyttningen 0,45 * 0,120 = 0,054 m = 54,0 mm. Takten 0,625 s per kex ger 60/0,625 = 96 kex/min eller 5760 kex/h teoretiskt. Detta ar manniskans facit skrivet ur scenarios normal, enc_lag, enc_hog, spd_lag, spd_hog, found_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Bandfoljning och synkronisation mot pulsgivare foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_P02_DELTAROBOT\nVAR\n    steg    : INT := 0;\n    tmrCam  : TON;\n    spdOk   : BOOL := FALSE;\n    encOk   : BOOL := FALSE;\nEND_VAR\n\ntmrCam(IN := EMG_OK AND NOT tmrCam.Q, PT := T#200ms);\n\nspdOk := (ST110_CNV_SPD >= 0.20) AND (ST110_CNV_SPD <= 0.60);\nencOk := (ST110_ENC_POS > 0.0) AND (ST110_ENC_POS <= 2500.0);\n\nIF NOT EMG_OK THEN\n    ST110_RB_PICK  := FALSE;\n    ST110_VAC_ON   := FALSE;\n    ST110_CAM_TRIG := FALSE;\n    steg := 0;\nELSE\n    ST110_CAM_TRIG := tmrCam.Q;\n    CASE steg OF\n        0:\n            ST110_RB_PICK  := FALSE;\n            ST110_VAC_ON   := FALSE;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF ST110_CAM_FOUND AND spdOk AND encOk THEN\n                ST110_VAC_ON  := TRUE;\n                ST110_RB_PICK := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST110_RB_DONE THEN\n                ST110_RB_PICK := FALSE;\n                ST110_VAC_ON  := FALSE;\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_P02_DELTAROBOT\nVAR\n    steg    : INT := 0;\n    tmrCam  : TON;\n    spdOk   : BOOL := FALSE;\n    encOk   : BOOL := FALSE;\n    xPickKvitterad  : BOOL := FALSE;\n    xGreppBekraftat : BOOL := FALSE;\nEND_VAR\n\ntmrCam(IN := EMG_OK AND NOT tmrCam.Q, PT := T#200ms);\n\nspdOk := (ST110_CNV_SPD >= 0.20) AND (ST110_CNV_SPD <= 0.60);\nencOk := (ST110_ENC_POS > 0.0) AND (ST110_ENC_POS <= 2500.0);\n\nIF NOT EMG_OK THEN\n    ST110_RB_PICK  := FALSE;\n    ST110_VAC_ON   := FALSE;\n    ST110_CAM_TRIG := FALSE;\n    xPickKvitterad  := FALSE;\n    xGreppBekraftat := FALSE;\n    steg := 0;\nELSE\n    ST110_CAM_TRIG := tmrCam.Q;\n    CASE steg OF\n        0:\n            ST110_RB_PICK  := FALSE;\n            ST110_VAC_ON   := FALSE;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF ST110_CAM_FOUND AND spdOk AND encOk THEN\n                ST110_VAC_ON  := TRUE;\n                ST110_RB_PICK := TRUE;\n                xPickKvitterad  := FALSE;\n                xGreppBekraftat := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST110_RB_BUSY THEN\n                xPickKvitterad := TRUE;\n            END_IF;\n            IF ST110_VAC_OK THEN\n                xGreppBekraftat := TRUE;\n            END_IF;\n            (* ST110_RB_DONE ensam sager bara att roboten kort klart banan.\n               Utan ST110_RB_BUSY startade plockprogrammet aldrig, och utan\n               ST110_VAC_OK fick sugkoppen aldrig grepp - kexet ligger da kvar\n               pa bandet och nasta bild skulle rakna det tva ganger. *)\n            IF ST110_RB_DONE AND xPickKvitterad AND xGreppBekraftat THEN\n                ST110_RB_PICK := FALSE;\n                ST110_VAC_ON  := FALSE;\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "normal_kexplock",
@@ -368,10 +368,21 @@
             "varfor": "kex hittat, plock startas och vakuum slas pa"
           },
           {
+            "t_ms": 400,
+            "satt": {
+              "ST110_RB_BUSY": true,
+              "ST110_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
             "t_ms": 500,
             "satt": {
               "ST110_RB_DONE": true,
-              "ST110_CAM_FOUND": false
+              "ST110_CAM_FOUND": false,
+              "ST110_RB_BUSY": false,
+              "ST110_VAC_OK": false
             },
             "krav": {},
             "varfor": ""
