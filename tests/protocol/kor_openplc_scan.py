@@ -7,9 +7,15 @@ jamforda scan for scan. Timers ar det intressanta: TON med PT := T#4s ska
 losa ut pa samma scan i bada.
 
 Spar per program (20 ms cykel i bada andar):
-  SCAN_GENOM  u := g                      (4 vippor, varje foljd mats i ms)
-  SCAN_TON4S  t(IN := g, PT := T#4s); u := t.Q  (3x, triggscan jamfors)
-  SCAN_RTRIG  rt(CLK := g); u := rt.Q     (puls, exakt en hog scan vantas)
+  SCAN_GENOM    u := g                      (4 vippor, varje foljd mats i ms)
+  SCAN_TON4S    t(IN := g, PT := T#4s); u := t.Q  (3x, triggscan jamfors)
+  SCAN_TON1S    t(IN := g, PT := T#1s); u := t.Q  (3x, triggscan jamfors)
+  SCAN_TON20MS  t(IN := g, PT := T#20ms); u := t.Q (3x, triggscan jamfors)
+  SCAN_RTRIG    rt(CLK := g); u := rt.Q     (puls, exakt en hog scan vantas)
+  SCAN_TOF      t(IN := g, PT := T#1s); u := t.Q  (3x, fallscan jamfors)
+  SCAN_TP       t(IN := g, PT := T#1s); u := t.Q  (3x, pulsbredd 50 scan jamfors)
+  SCAN_CTU      c(CU := g, PV := 5); u := c.Q    (5 pulser 60ms isar, Q vid 5:e)
+  SCAN_SR       sr(S1 := s1, R := r); u := sr.Q1 (latch set/hold/reset/dominans)
 
 Fail-closed:
   * Ett program vars utgang aldrig andras FALLS - annars matts att OpenPLC
@@ -98,6 +104,27 @@ PROGRAMMEN = [
       ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
      "    rt(CLK := g);\n    u := rt.Q;\n",
      "    rt : R_TRIG;\n"),
+    ("SCAN_TOF",
+     [("Givare", "Sig", "g", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    t(IN := g, PT := T#1s);\n    u := t.Q;\n",
+     "    t : TOF;\n"),
+    ("SCAN_TP",
+     [("Givare", "Sig", "g", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    t(IN := g, PT := T#1s);\n    u := t.Q;\n",
+     "    t : TP;\n"),
+    ("SCAN_CTU",
+     [("Givare", "Sig", "g", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    c(CU := g, PV := 5);\n    u := c.Q;\n",
+     "    c : CTU;\n"),
+    ("SCAN_SR",
+     [("Givare", "Satt", "s1", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Givare", "Nolla", "r", "BOOL", "TILL_PLC", "%IX0.1"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    sr(S1 := s1, R := r);\n    u := sr.Q1;\n",
+     "    sr : SR;\n"),
 ]
 
 
@@ -168,6 +195,80 @@ async def kor_rtrig(nod_in, nod_ut, ua):
     return {"hog_avlasningar": hog, "avlasningar": prov}
 
 
+async def kor_tof(nod_in, nod_ut, ua, repetitioner=3, tak_pt_s=3.0):
+    trigg = []
+    for _ in range(repetitioner):
+        await _skriv(nod_in, ua, True)
+        await _vanta(nod_ut, True, tak_s=tak_pt_s)
+        await asyncio.sleep(0.1)
+        t0 = time.perf_counter()
+        await _skriv(nod_in, ua, False)
+        ms = await _vanta(nod_ut, False, tak_s=tak_pt_s)
+        if ms is None:
+            return {"ok": False,
+                    "skal": "TOF slappte aldrig inom %.1fs" % tak_pt_s,
+                    "triggscan": trigg}
+        trigg.append(int(round(ms / SCAN_MS)))
+        await asyncio.sleep(0.1)
+    return {"ok": True, "triggscan": trigg}
+
+
+async def kor_tp(nod_in, nod_ut, ua, repetitioner=3, tak_pt_s=3.0):
+    trigg = []
+    for _ in range(repetitioner):
+        await _skriv(nod_in, ua, False)
+        await _vanta(nod_ut, False, tak_s=tak_pt_s)
+        await asyncio.sleep(0.05)
+        t0 = time.perf_counter()
+        await _skriv(nod_in, ua, True)
+        ms_rise = await _vanta(nod_ut, True, tak_s=1.0)
+        if ms_rise is None:
+            return {"ok": False, "skal": "TP startade aldrig", "triggscan": trigg}
+        await asyncio.sleep(0.1)
+        await _skriv(nod_in, ua, False)
+        ms_fall = await _vanta(nod_ut, False, tak_s=tak_pt_s)
+        if ms_fall is None:
+            return {"ok": False,
+                    "skal": "TP puls tog aldrig slut inom %.1fs" % tak_pt_s,
+                    "triggscan": trigg}
+        total_ms = (time.perf_counter() - t0) * 1000.0
+        trigg.append(int(round(total_ms / SCAN_MS)))
+        await asyncio.sleep(0.05)
+    return {"ok": True, "triggscan": trigg}
+
+
+async def kor_ctu(nod_in, nod_ut, ua):
+    u_efter_puls = []
+    for _ in range(5):
+        await _skriv(nod_in, ua, True)
+        await asyncio.sleep(0.06)
+        await _skriv(nod_in, ua, False)
+        await asyncio.sleep(0.06)
+        u_val = bool(await nod_ut.read_value())
+        u_efter_puls.append(u_val)
+    return {"ok": True, "openplc_u": u_efter_puls}
+
+
+async def kor_sr(nod_s1, nod_r, nod_ut, ua):
+    steg_in = [
+        (True, False),
+        (False, False),
+        (False, True),
+        (False, False),
+        (True, True),
+        (False, True),
+        (False, False),
+    ]
+    oplc_u = []
+    for s_val, r_val in steg_in:
+        await _skriv(nod_s1, ua, s_val)
+        await _skriv(nod_r, ua, r_val)
+        await asyncio.sleep(0.06)
+        u_val = bool(await nod_ut.read_value())
+        oplc_u.append(u_val)
+    return {"ok": True, "openplc_u": oplc_u}
+
+
 def ladda(klient, karta, pou, station, endpoint, strucpp_paket,
           runtime_include, byggrot):
     full = pou + P.konfigurationstext(station, intervall=P.TASKINTERVALL)
@@ -177,7 +278,10 @@ def ladda(klient, karta, pou, station, endpoint, strucpp_paket,
     zipvag, _ = P.bygg_projekt(full, os.path.join(kat, "arkiv"),
                                strucpp_paket, runtime_include,
                                opcua_konfig=konf)
-    return klient.ladda_och_starta(zipvag)
+    klient.ladda_upp(zipvag)
+    time.sleep(0.5)
+    klient.vanta_pa_kompilering()
+    return klient.starta_och_vanta()
 
 
 async def _mat_allt(args):
@@ -199,27 +303,69 @@ async def _mat_allt(args):
         oplc = Client(url=args.endpoint, timeout=5.0)
         await _anslut(oplc)
         try:
-            n_in = oplc.get_node("ns=2;s=%s"
-                                 % opcuakonfig.nodid(station, "g"))
-            n_ut = oplc.get_node("ns=2;s=%s"
-                                 % opcuakonfig.nodid(station, "u"))
             # stillastaende-variabel-fallan: utgangen maste ga att andra.
-            # TON har PT=4s, sa dess utgang FAR inte rora sig inom 1s -
-            # taket ar per program, inte ett tal.
-            stilla_tak = {"SCAN_TON4S": 6.0, "SCAN_TON1S": 3.0}.get(
-                station, TAK_S)
-            await _skriv(n_in, ua, True)
-            ms = await _vanta(n_ut, True, tak_s=stilla_tak)
-            await _skriv(n_in, ua, False)
-            await _vanta(n_ut, False, tak_s=stilla_tak)
-            if ms is None:
-                resultat[station] = {"ok": False,
-                                     "skal": "utgangen ror sig inte - "
-                                             "korningen matte bara start, "
-                                             "inte exekvering"}
-                print("%s: %s" % (station, json.dumps(resultat[station],
-                                                      sort_keys=True)))
-                continue
+            # taket ar per program (TOF/TP: PT+2s; CTU/SR: 1s; TON: PT+2s).
+            stilla_tak = {
+                "SCAN_TON4S": 6.0,
+                "SCAN_TON1S": 3.0,
+                "SCAN_TOF": 3.0,
+                "SCAN_TP": 3.0,
+                "SCAN_CTU": 1.0,
+                "SCAN_SR": 1.0,
+            }.get(station, TAK_S)
+
+            if station == "SCAN_SR":
+                n_s1 = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "s1"))
+                n_r = oplc.get_node("ns=2;s=%s"
+                                    % opcuakonfig.nodid(station, "r"))
+                n_ut = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "u"))
+                await _skriv(n_s1, ua, True)
+                await _skriv(n_r, ua, False)
+                ms1 = await _vanta(n_ut, True, tak_s=stilla_tak)
+                await _skriv(n_s1, ua, False)
+                await _skriv(n_r, ua, True)
+                ms2 = await _vanta(n_ut, False, tak_s=stilla_tak)
+                await _skriv(n_r, ua, False)
+                if ms1 is None or ms2 is None:
+                    resultat[station] = {"ok": False,
+                                         "skal": "utgangen ror sig inte - "
+                                                 "korningen matte bara start, "
+                                                 "inte exekvering"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+            elif station == "SCAN_CTU":
+                n_in = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "g"))
+                n_ut = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "u"))
+                u_init = bool(await n_ut.read_value())
+                if u_init:
+                    resultat[station] = {"ok": False,
+                                         "skal": "CTU startade inte med u=False"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+            else:
+                n_in = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "g"))
+                n_ut = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "u"))
+                await _skriv(n_in, ua, True)
+                ms = await _vanta(n_ut, True, tak_s=stilla_tak)
+                await _skriv(n_in, ua, False)
+                await _vanta(n_ut, False, tak_s=stilla_tak)
+                if ms is None:
+                    resultat[station] = {"ok": False,
+                                         "skal": "utgangen ror sig inte - "
+                                                 "korningen matte bara start, "
+                                                 "inte exekvering"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+
             if station == "SCAN_GENOM":
                 ins = [(0.0, {"g": False}), (0.0, {"g": True}),
                        (40.0, {"g": False}), (80.0, {"g": True}),
@@ -258,6 +404,75 @@ async def _mat_allt(args):
                 o["ok"] = (o["hog_avlasningar"] >= 1
                            and o["hog_avlasningar"] <= 6)
                 resultat[station] = o
+            elif station == "SCAN_TOF":
+                ins = [(0.0, {"g": True}), (100.0, {"g": False}), (3000.0, {})]
+                trad = tolk_spar(karta, pou, ins)
+                fall_scan = next((i for i, r in enumerate(trad)
+                                  if r["t_ms"] >= 100.0 and not r["varden"]["U"]), None)
+                fall_scan_rel = (fall_scan - 5) if fall_scan is not None else None
+                o = await kor_tof(n_in, n_ut, ua, tak_pt_s=3.0)
+                o["tolk_fallscan"] = fall_scan_rel
+                o["pt_scan"] = int(round(1000.0 / SCAN_MS))
+                if o["ok"] and fall_scan_rel is not None:
+                    o["avvikelse_scan"] = [t - fall_scan_rel for t in o["triggscan"]]
+                    o["ok"] = all(abs(a) <= 2 for a in o["avvikelse_scan"])
+                resultat[station] = o
+            elif station == "SCAN_TP":
+                ins = [(0.0, {"g": False}), (0.0, {"g": True}),
+                       (100.0, {"g": False}), (3000.0, {})]
+                trad = tolk_spar(karta, pou, ins)
+                t_hog = sum(1 for r in trad if r["varden"]["U"])
+                o = await kor_tp(n_in, n_ut, ua, tak_pt_s=3.0)
+                o["tolk_hog_scan"] = t_hog
+                o["pt_scan"] = int(round(1000.0 / SCAN_MS))
+                if o["ok"]:
+                    o["avvikelse_scan"] = [t - t_hog for t in o["triggscan"]]
+                    o["ok"] = all(abs(a) <= 2 for a in o["avvikelse_scan"])
+                resultat[station] = o
+            elif station == "SCAN_CTU":
+                ins = [
+                    (0.0, {"g": False}),
+                    (60.0, {"g": True}), (120.0, {"g": False}),
+                    (180.0, {"g": True}), (240.0, {"g": False}),
+                    (300.0, {"g": True}), (360.0, {"g": False}),
+                    (420.0, {"g": True}), (480.0, {"g": False}),
+                    (540.0, {"g": True}), (600.0, {"g": False}),
+                    (700.0, {})
+                ]
+                trad = tolk_spar(karta, pou, ins)
+                tolk_u = []
+                for t_check in (140.0, 260.0, 380.0, 500.0, 620.0):
+                    val = next(r["varden"]["U"] for r in trad if abs(r["t_ms"] - t_check) < 1e-3)
+                    tolk_u.append(val)
+                o = await kor_ctu(n_in, n_ut, ua)
+                o["tolk_u"] = tolk_u
+                # CTU kraver EXAKT 0 avvikelse (ren logik)
+                o["ok"] = (o["ok"] and (o["openplc_u"] == tolk_u)
+                           and (tolk_u == [False, False, False, False, True]))
+                resultat[station] = o
+            elif station == "SCAN_SR":
+                ins = [
+                    (0.0, {"s1": False, "r": False}),
+                    (60.0, {"s1": True, "r": False}),
+                    (120.0, {"s1": False, "r": False}),
+                    (180.0, {"s1": False, "r": True}),
+                    (240.0, {"s1": False, "r": False}),
+                    (300.0, {"s1": True, "r": True}),
+                    (360.0, {"s1": False, "r": True}),
+                    (420.0, {"s1": False, "r": False}),
+                    (500.0, {})
+                ]
+                trad = tolk_spar(karta, pou, ins)
+                tolk_u = []
+                for t_check in (100.0, 160.0, 220.0, 280.0, 340.0, 400.0, 460.0):
+                    val = next(r["varden"]["U"] for r in trad if abs(r["t_ms"] - t_check) < 1e-3)
+                    tolk_u.append(val)
+                o = await kor_sr(n_s1, n_r, n_ut, ua)
+                o["tolk_u"] = tolk_u
+                # SR kraver EXAKT 0 avvikelse (ren logik)
+                o["ok"] = (o["ok"] and (o["openplc_u"] == tolk_u)
+                           and (tolk_u == [True, True, False, False, True, False, False]))
+                resultat[station] = o
         finally:
             await oplc.disconnect()
         print("%s: %s" % (station, json.dumps(resultat[station],
@@ -291,7 +506,7 @@ def main(argv=None) -> int:
         with open(a.json, "w", encoding="utf-8") as fh:
             json.dump({"bankpost": BANKPOST, "resultat": resultat}, fh,
                       indent=2, ensure_ascii=False, sort_keys=True)
-    ok = all(r.get("ok") for r in resultat.values()) and len(resultat) == 5
+    ok = all(r.get("ok") for r in resultat.values()) and len(resultat) == len(PROGRAMMEN)
     print("SCAN-SLUT: %s" % ("OVERENS" if ok else "AVVIKELSE"))
     return 0 if ok else 1
 
