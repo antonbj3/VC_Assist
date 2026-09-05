@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 602 punkter
+## Vad mätningarna säger att de inte vet: 614 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -192,9 +192,24 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 * Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd. Tak: 0.
 
+### M-107_tillverkarens_datablad.md — Vad som inte gick att belägga, och varför
+
+* Fyra modeller fick inte en enda belagd uppgift**, av tre olika skäl:
+* Reach*. Källan säger dessutom `Rated: 3, Max: 6` — två tal, och vilket VC:s
+* Vikt gick inte att belägga på en enda modell.** Alla fem tillverkarna anger
+
 ### M-107_tillverkarens_datablad.md — LIMITS
 
-* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd. Tak: 0.
+* Korpusen täcker 28 modeller av bibliotekets 2 175 distinkta robotnamn**
+* Enhetsgrinden kontrollerar att talet och enheten står bredvid varandra,
+* Kolumnläsningen är positionell och därmed svagare än ett ordagrant par.**
+* Talen är läsningar av ETT dokument per modell, ofta ett säljblad.** ABB:s
+* Ingen käll-URL kontrolleras mot nätet efter hämtningen.** Ett datablad som
+* Den tredje grinden (utdraget står i dokumentet) kräver cachen**, som med
+* Enhetstabellen är kort med flit** (kg/g, mm/cm/m). En tumenhet i citatet —
+* `nyttolast_kg` och `rackvidd_mm` heter fortfarande så**, i
+* Ingen komponent har laddats i VC.** Att ABB publicerar 901 mm säger
+* Täckningstalen gäller ETT bibliotek** — VC 4.10:s eCatalog på den här
 
 ### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
 
@@ -971,8 +986,8 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### vc_assist_svc/llm/tur.py
 
-* vc_assist_svc/llm/tur.py:282  # Vaggklockan for en hel tur. PRELIMINAR, satts av matning M-28. Vald over
-* vc_assist_svc/llm/tur.py:285  VAGGKLOCKA_MAX_S = 180.0    # PRELIMINAR, satts av M-28
+* vc_assist_svc/llm/tur.py:328  # Vaggklockan for en hel tur. PRELIMINAR, satts av matning M-28. Vald over
+* vc_assist_svc/llm/tur.py:331  VAGGKLOCKA_MAX_S = 180.0    # PRELIMINAR, satts av M-28
 
 ### vc_assist_svc/verktyg/formagegrind.py
 
