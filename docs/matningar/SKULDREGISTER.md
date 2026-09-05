@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 550 punkter
+## Vad mätningarna säger att de inte vet: 576 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -148,7 +148,15 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-104_bankposterna_over_26_korningar.md — LIMITS
 
-* Ingenting är mätt än.** Tak: **0** påståenden. Inget här får citeras
+* Ingen av de 33 körningarna kördes av den här mätningen.** Talen ovan är
+* Facitkällans klass är min bedömning**, inte ett mätt tal. Gränsen mellan
+* "en mätning av verkligheten"* och *"en annan implementation"* är
+* Grinden kan inte se ett facit som är fel.** Den ser bara att facit kommer
+* Ett `under_prov` kan vara för smalt.** Ingen kontroll säger att modulerna
+* `kor_fas5.py`:s facit är svagt.** För de flesta verktygen är det rätta
+* Registret rör sig.** Sex körningar landade från andra agenter medan den
+* `kor_tackning.py` var ospårad** när posten skrevs in i den. Landar den
+* Klassificeringstabellen ovan är en **ögonblicksbild**. Den räknas fram ur
 
 ### M-105_ett_monster_som_aldrig_kort_mot_sin_text.md — LIMITS
 
@@ -740,7 +748,13 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-88_fem_domare_mot_vc_byggda_celler.md — LIMITS
 
-* Mätningen är inte gjord än — filen reserverar bara numret.
+* PLC-värdena kommer från skriptet, inte från en PLC.** Vägen är den
+* P15-7 (fasdom mot en riktig fördröjning i ett VC-skript) är inte kört.**
+* Genomflödescellen i VC har ingen process.** Varianten med `State` satt
+* Kollisionen är ett ytavstånd på 0,0 mm, inte en detektorträff.**
+* Bandrivaren flyttar kropparna i steg om 50 ms** — ingen fysik, inga
+* En scen som delas med andra agenter.** `saknade` bar en främmande
+* Windows** (fas 13).
 
 ### M-89_anlaggningen_utan_kod.md — LIMITS
 
@@ -851,7 +865,14 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-97_plc_axelns_giltighet.md — LIMITS
 
-* Mätningen är inte gjord än — filen reserverar bara numret.
+* Störningen är `SIGSTOP` på hela processen** — den stoppar VC:s
+* Ingen riktig PLC.** Kopplarvarvet är efterliknat med en väntesats;
+* Vad taket täcker under störning** mäts i §5 med klämman, som är trubbig
+* Ett tak som ljuger ligger utanför grindens räckvidd** (§1). Grinden är
+* Asymmetrin mellan `plc_gammal` och otäckt står kvar.** En enda gammal rad
+* `STEP` har ingen INCONCLUSIVE-form** i grammatiken (ovan).
+* En maskin, en förmiddag, andra agenter på samma dator.** Två av de fyra
+* Windows** (fas 13).
 
 ### M-98_den_sjatte_ordlistan.md — LIMITS
 
@@ -870,24 +891,28 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-99_differentialsvepet_mot_kompilatorn.md — LIMITS
 
-* Mätningen är inte klar.** Ingenting nedanför den här raden är ännu ett tal.
-* Facit är STruC++ v0.6.6, inte standarden och inte OpenPLC.
-* STruC++ är ingen namnauktoritet: `HITTEPA(x)` passerar dess främmande.
+* Facit är STruC++ v0.6.6, inte standarden.** Kompilatorn är varken en
+* Ordalydelsen i standarden är inte verifierad mot en fysisk utgåva** för
+* OpenPLC är fortfarande oprövad.** Kedjan dit kräver ett npm-paket som inte
+* Fuzzen mäter EN invariant** — att `validera` lämnar en `Rapport` — inte att
+* Satsnästling är oskyddad.** Mätt: 326 nästlade `IF` innan RecursionError
+* Tre falska rödgrindar står kvar** (fältinitieraren i två former,
+* Grannfallen är prövade per lagning, inte uttömmande.** `T#5X` och `T#5S10M`
+* Talet 394 är konstruktioner, inte täckning.** Axlarna valdes ur M-96:s
 
-## Produktionsmoduler som ingen provfil nämner: 3 (1558 rader)
+## Produktionsmoduler som ingen provfil nämner: 3 (1704 rader)
 
 * `svc/vc_assist_svc/llm/ogontrim.py` — 432 rader
 * `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
-* `svc/vc_assist_svc/tillverkardatablad.py` — 953 rader
+* `svc/vc_assist_svc/tillverkardatablad.py` — 1099 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 4 (485 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
 
 * `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
-* `svc/vc_assist_svc/bankkontrakt.py` — 173 rader
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 126
+## Markörer i koden: 131
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -907,19 +932,24 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * vc_assist_svc/llm/budget.py:86  "PRELIMINAR, M-29; EDGE och MINDIST vaxer med forloppet"),
 * vc_assist_svc/llm/budget.py:88  "PRELIMINAR, M-29"),
 * vc_assist_svc/llm/budget.py:90  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:97  K_HELA_RESULTAT = 8         # PRELIMINAR, satts av M-29
 
 ### vc_assist_svc/llm/matt.py
 
 * vc_assist_svc/llm/matt.py:52  # PRELIMINAR, satt av matning M-28 (adapterprovets punkt 4 i
+* vc_assist_svc/llm/matt.py:54  MARGINAL_UPPSKATTAD = 0.05  # PRELIMINAR, satts av M-28
 
 ### vc_assist_svc/llm/scenvy.py
 
 * vc_assist_svc/llm/scenvy.py:36  # PRELIMINAR, satts av matning M-29. Motivet ar matt: bankens storsta scen ar
+* vc_assist_svc/llm/scenvy.py:40  SCEN_FULL_MAX = 60          # PRELIMINAR, satts av M-29; motivet M-45
 * vc_assist_svc/llm/scenvy.py:42  # Samma sak per komponent. PRELIMINAR, matning M-29.
+* vc_assist_svc/llm/scenvy.py:43  EGENSKAPER_FULL_MAX = 40    # PRELIMINAR, satts av M-29
 
 ### vc_assist_svc/llm/tur.py
 
 * vc_assist_svc/llm/tur.py:282  # Vaggklockan for en hel tur. PRELIMINAR, satts av matning M-28. Vald over
+* vc_assist_svc/llm/tur.py:285  VAGGKLOCKA_MAX_S = 180.0    # PRELIMINAR, satts av M-28
 
 ### vc_assist_svc/verktyg/formagegrind.py
 
@@ -954,7 +984,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### vc_assist_svc/aterhamtning/yta.py
 
 * vc_assist_svc/aterhamtning/yta.py:50  MAX_AVLASNINGSRADER = 8     # PRELIMINÄR. Samma form som M-64. Satt av M-103.
-* vc_assist_svc/aterhamtning/yta.py:131  d, "ingen avläsning gjord; om %s lever är inte prövat" % d,
+* vc_assist_svc/aterhamtning/yta.py:138  d, "ingen avläsning gjord; om %s lever är inte prövat" % d,
 
 ### vc_assist_svc/plan/korning.py
 
