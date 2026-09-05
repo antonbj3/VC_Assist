@@ -22,6 +22,43 @@ nagon annans lage.
 """
 from __future__ import annotations
 
+# Bankposten. En korning utan post ar en matning ingen vet om
+# (docs/spec/85_bankkontraktet.md).
+BANKPOST = {
+    "pastar":
+        "Markeringen i VC gar att lasa headless, och den smalnar av ett "
+        "tvetydigt mal utan att nagonsin avgora det at operatoren: en "
+        "markering av FEL sort loser aldrig ut, den blir en motsagelse.",
+    "under_prov": (
+        "svc/vc_assist_svc/verktyg/markering.py",
+        "svc/vc_assist_svc/scenarbete/avsikt.py",
+    ),
+    "facit":
+        "VC:s egen SelectionManager. Sonden SATTER en markering och laser "
+        "tillbaka den; det som kommer ut ska vara det som skickades in. "
+        "Fallbankens halva har ett handskrivet facit per fall: for varje "
+        "kombination av mening och markering star det FORE korningen vad "
+        "domen ska bli, och en NAIV_UPPLOSNING star bredvid som kontrast.",
+    "facitkalla":
+        "VC 4.10:s SelectionManager for round-trippen (en annan "
+        "implementation an var egen), och ett handskrivet fallfacit skrivet "
+        "innan mekanismen fanns for fallbanken",
+    "facitkalla_filer": (
+        "docs/referens/vc_api/api.xml",
+        "docs/matningar/M-171_markeringen_och_scenens_sort.md",
+    ),
+    "trasiga_fall": (
+        "en markering av annan sort an meningen namner far ALDRIG losa ut "
+        "malet - den ska ge en motsagelse med bada sidor namngivna",
+        "en tom markering far inte tyst bli ett val; frangan ska sta kvar",
+        "ett utlost mal utan belagg om att markeringen avgjorde maste fallas",
+        "markeringen far bara SMALNA AV kandidatlistan, aldrig utoka den",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-171",),
+}
+
+
 import argparse
 import json
 import os
