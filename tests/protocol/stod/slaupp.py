@@ -20,18 +20,38 @@ import json
 import subprocess
 import sys
 
-# Repots rot, harledd ur filens egen plats. Den hardkodade sokvagen som stod
-# har forst hade bundit verktyget till en maskin.
+# Repots rot. Den hardkodade sokvagen som stod har forst hade bundit verktyget
+# till en maskin. Att i stallet harleda tre niva upp ur filens plats band det
+# lika hart till sin KATALOG: en kopia i en scratchpad pekade da pa
+# sessionskatalogen, och felet syntes forst som "No module named vc_assist_svc"
+# ur en underprocess - alltsa langt fran orsaken. Nu letas roten upp.
 import os
-# TRE niva upp: filen ligger i tests/protocol/stod/. Tva niva gav tests/, och
-# felet syntes forst som "No module named vc_assist_svc" i underprocessen -
-# alltsa langt fran orsaken.
-REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                     "..", "..", ".."))
 
-# OBS: strangen formateras med %% REPO nedan, sa VARJE procenttecken har inne
-# maste vara dubblat. Ett ensamt %%d ater upp formateringen och ger ett fel som
-# syns langt fran orsaken.
+
+def _leta_rot():
+    """Hitta repot fran filens plats, fran cwd, eller ur miljon.
+
+    Returnerar None om ingen av vagarna bar. Verktyget sager da vad som saknas
+    i stallet for att lata underprocessen do pa en importrad.
+    """
+    kandidater = [os.path.dirname(os.path.abspath(__file__)), os.getcwd()]
+    for start in kandidater:
+        d = start
+        while True:
+            if os.path.isdir(os.path.join(d, "svc", "vc_assist_svc")):
+                return d
+            mor = os.path.dirname(d)
+            if mor == d:
+                break
+            d = mor
+    ur_miljon = os.environ.get("VC_ASSIST_REPO")
+    if ur_miljon and os.path.isdir(os.path.join(ur_miljon, "svc", "vc_assist_svc")):
+        return ur_miljon
+    return None
+
+
+REPO = _leta_rot()
+
 KOD = '''
 import sys, json
 sys.path.insert(0, %r + "/svc")
@@ -55,14 +75,20 @@ for post in (r.get("symbols") or []) + (r.get("traffar") or []):
         d = " ".join(post["description"].split())
         post["description"] = d[:400] + (" ..." if len(d) > 400 else "")
 print(json.dumps(r, ensure_ascii=False, indent=1))
-''' % REPO
+'''
 
 
 def main():
     if len(sys.argv) != 3 or sys.argv[1] not in ("namn", "sok", "yta"):
         print(__doc__)
         return 2
-    k = subprocess.run([sys.executable, "-c", KOD, sys.argv[1], sys.argv[2]],
+    if REPO is None:
+        sys.stderr.write(
+            "slaupp.py hittar inte VC_Assist-repot. Sokte uppat fran %s och\n"
+            "fran %s. Satt VC_ASSIST_REPO till repots rot.\n"
+            % (os.path.dirname(os.path.abspath(__file__)), os.getcwd()))
+        return 2
+    k = subprocess.run([sys.executable, "-c", KOD % REPO, sys.argv[1], sys.argv[2]],
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     sys.stdout.write(k.stdout.decode("utf-8", "replace"))
     return k.returncode

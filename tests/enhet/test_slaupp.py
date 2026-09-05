@@ -67,3 +67,57 @@ def test_en_okand_fragesort_avvisas():
 def test_fel_antal_argument_avvisas():
     assert kor("namn").returncode == 2
     assert kor("namn", "a", "b").returncode == 2
+
+
+# --- att en KOPIA av verktyget ocksa hittar repot (M-84) ----------------------
+#
+# Trasig fixtur for ett fel som en riktig korning gick pa: verktyget kopierades
+# till en scratchpad, och "tre niva upp ur filens plats" pekade da pa
+# sessionskatalogen. Underprocessen dog pa "No module named vc_assist_svc" -
+# ett fel som inte namner sin orsak och inte sager vad man ska gora.
+
+def kor_kopia(tmp_path, *argv, **kw):
+    kopia = tmp_path / "slaupp.py"
+    kopia.write_bytes(open(_SLAUPP, "rb").read())
+    miljo = dict(os.environ)
+    miljo.pop("VC_ASSIST_REPO", None)
+    miljo.update(kw.get("env") or {})
+    return subprocess.run([sys.executable, str(kopia)] + list(argv),
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          cwd=kw.get("cwd") or str(tmp_path), env=miljo,
+                          timeout=120)
+
+
+def test_kopia_utanfor_repot_sager_vad_som_saknas(tmp_path):
+    r = kor_kopia(tmp_path, "namn", "vcApplication.load")
+    ut = r.stdout.decode("utf-8")
+    assert r.returncode == 2
+    assert "VC_ASSIST_REPO" in ut
+    assert "ModuleNotFoundError" not in ut, "felet far inte komma ur underprocessen"
+
+
+def test_kopia_hittar_repot_ur_miljon(tmp_path):
+    r = kor_kopia(tmp_path, "namn", "vcApplication.load",
+                  env={"VC_ASSIST_REPO": _ROT})
+    assert r.returncode == 0
+    assert json.loads(r.stdout.decode("utf-8"))["found"] is True
+
+
+def test_kopia_hittar_repot_genom_att_leta_uppat_fran_arbetskatalogen(tmp_path):
+    """Star man NAGONSTANS i repot racker det, aven om verktyget ligger ute."""
+    djupt = os.path.join(_ROT, "svc", "vc_assist_svc")
+    r = kor_kopia(tmp_path, "namn", "vcApplication.load", cwd=djupt)
+    assert r.returncode == 0
+    assert json.loads(r.stdout.decode("utf-8"))["found"] is True
+
+
+def test_en_pekare_till_fel_katalog_i_miljon_avvisas(tmp_path):
+    """VC_ASSIST_REPO provas mot svc/vc_assist_svc, inte bara mot att den finns.
+
+    En pekare som accepteras utan prov hade gett samma importfel igen, fast med
+    en miljovariabel att skylla pa.
+    """
+    r = kor_kopia(tmp_path, "namn", "vcApplication.load",
+                  env={"VC_ASSIST_REPO": str(tmp_path)})
+    assert r.returncode == 2
+    assert "VC_ASSIST_REPO" in r.stdout.decode("utf-8")
