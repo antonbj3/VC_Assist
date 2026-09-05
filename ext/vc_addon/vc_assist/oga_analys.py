@@ -26,6 +26,10 @@ from __future__ import absolute_import, division, print_function
 
 import oga_harledning as H
 import oga_kontrakt as K
+# Farskhetsfonstret bor i provtagaren, som satter plc_gammal pa det. Har
+# anvands SAMMA tal for att avgora om hopfogningens tak tacker fonstret
+# (plc_otackt, M-97) - tva trosklar for en storhet hade driftat isar.
+from oga_provtagning import PLC_FARSK_S
 
 # ---- trosklar ------------------------------------------------------------
 # Alla ar PRELIMINARA tills M-10 (ogats kalibrering mot handbyggda celler)
@@ -65,6 +69,15 @@ HOPFOGNING_PRIOR_S = 0.01345     # Satt av M-65 §3 ur M-03:s varsta tur och ret
 # inte fran insignalens flank i PLC:n. M-20: exakt tva skan, 40,0 ms vid
 # 20 ms skanperiod. Rapporteras som UTESLUTET, aldrig som inraknat.
 PLC_SKAN_S = 0.040               # Satt av M-20.
+# PLC-AXELNS GILTIGHET (M-97). En PLC-rad ar OTACKT nar alder + hopfogningstak
+# overstiger farskhetsfonstret: vardets farskhet gar da inte att styrka, och
+# raden ligger inte bevisat pa samma tidsaxel som fysiken. Ar andelen otackta
+# rader over den har braketten ar korningens PLC-axel inget matt, och domen
+# blir INCONCLUSIVE - fas 8:s OGILTIG, inte FAIL och inte PASS. Under
+# braketten diskvalificeras de otackta flankerna var for sig (sekvensdom,
+# fasforhallande) i stallet for att gora hela korningen obestambar (M-87 §5:
+# "ogat hade blivit blint av att bli arligt").
+PLC_AXEL_MAX_ANDEL = 0.10        # PRELIMINAR. Satts av matning M-97.
 
 
 # ---- kvaternion- och vektormatematik ------------------------------------
@@ -291,7 +304,7 @@ class Analys(object):
         # samma radform. Prefixet plc: skiljer dem fran VC:s egna signaler, och
         # grammatikens <signal> ar ett namn utan blanksteg, sa prefixet ryms
         # utan att kontraktet behover andras.
-        plcflanker = H.plcflanker(self.rader)
+        plcflanker = H.plcflanker(self.rader, PLC_FARSK_S)
         for f in plcflanker:
             rader.append("EDGE %s %s t=%.3fs"
                          % (self._rent(f["signal"]), f["flank"], f["t"]))
@@ -301,6 +314,20 @@ class Analys(object):
         if h["plc_gammal"]:
             self.skal.append(
                 "%d PLC-prov var aldre an sitt eget prov" % len(h["plc_gammal"]))
+        # PLC-axelns giltighet (M-97): hur stor del av PLC-raderna bar en
+        # hopfogning som tacker farskhetsfonstret? Rakningen ligger alltid i
+        # underlaget; policyn (braketten) tillampas i _dom.
+        h["plc_axel"] = H.plc_axel(self.rader, PLC_FARSK_S)
+        h["plc_axel"]["max_andel"] = PLC_AXEL_MAX_ANDEL
+        h["plc_axel"]["over_braketten"] = bool(
+            h["plc_axel"]["rader_med_plc"]
+            and h["plc_axel"]["andel_otackt"] > PLC_AXEL_MAX_ANDEL)
+        if h["plc_axel"]["over_braketten"]:
+            self.skal.append(
+                "%d av %d PLC-prov bar en hopfogning som tacker "
+                "farskhetsfonstret %.2f s (tak max %.3f s)"
+                % (h["plc_axel"]["otackta"], h["plc_axel"]["rader_med_plc"],
+                   PLC_FARSK_S, h["plc_axel"]["tak_max_s"] or 0.0))
         # Upplosningen MATS ur serien: provintervall, lasintervall och
         # hopfogningens tak. En fasdom utan den vore ett tal utan storhet.
         h["upplosning"] = H.upplosning(self.rader, self.run.get("rate_hz"),
@@ -911,6 +938,12 @@ class Analys(object):
                 for steg in cykel.get("steg") or []:
                     if steg.get("status", "OK") == "OK":
                         continue
+                    if steg.get("status") == "INCONCLUSIVE":
+                        # Grammatiken (EYES v2) har ingen INCONCLUSIVE-form for
+                        # STEP. Osakerheten bars av domsraden och av
+                        # derived.station.sekvens.osakra, inte av en STEP-rad
+                        # som lasaren skulle kasta pa. Skulden star i M-97.
+                        continue
                     t = "" if steg.get("dt_s") is None else " t=%.3fs" % steg["dt_s"]
                     rader.append("STEP %d %s %s %s%s win=%.2fs..%.2fs"
                                  % (cykel["nr"], self._rent(steg["signal"]),
@@ -1045,7 +1078,7 @@ class Analys(object):
         th = h.get("timing") or {}
         seq = (h.get("station") or {}).get("sekvens")
         fynd = {"for_sent": False, "fas_ut": False, "fas_okand": None,
-                "uppehall": False, "kapplopning": False}
+                "steg_osakert": None, "uppehall": False, "kapplopning": False}
         skal = []
         fragad = False
         if seq is not None:
@@ -1053,6 +1086,10 @@ class Analys(object):
             if seq.get("tidsbrott"):
                 fynd["for_sent"] = True
                 skal.append("stationens tider hölls inte")
+            elif seq.get("osakra"):
+                # Steget lag utanfor sitt fonster med mindre an hopfogningens
+                # egen osakerhet (M-97). Varken ett fel eller ett godkannande.
+                fynd["steg_osakert"] = seq["osakra"][0]
         for f in (th.get("fas") or []):
             if f.get("max_ms") is None:
                 continue
@@ -1077,6 +1114,9 @@ class Analys(object):
             return "FAIL", skal, fynd
         if fynd["fas_okand"]:
             return "INCONCLUSIVE", ["fasen kan inte dömas: %s" % fynd["fas_okand"]], fynd
+        if fynd["steg_osakert"]:
+            return "INCONCLUSIVE", ["stegets tid ligger inom hopfogningens "
+                                    "osäkerhet: %s" % fynd["steg_osakert"]], fynd
         return "PASS", [], fynd
 
     def _doma_grepp(self, h):
@@ -1199,6 +1239,15 @@ class Analys(object):
             # som fysiken, och hela poangen med PLC i serien var att de gor
             # det. Da ar fasforhallandet inget matt.
             return "INCONCLUSIVE", self._orsak("PLC-värdena var inte samtidiga")
+        if (th.get("plc_axel") or {}).get("over_braketten"):
+            # M-97, fas 8:s OGILTIG: hopfogningens matta osakerhet tacker
+            # farskhetsfonstret i for stor del av korningen. PLC-vardena ar da
+            # inte bevisat pa fysikens tidsaxel, och ingen dom som vilar pa
+            # dem ar ett matt - varken FAIL eller PASS.
+            return "INCONCLUSIVE", self._orsak(
+                "PLC-axeln går inte att lita på: hopfogningens osäkerhet täcker "
+                "färskhetsfönstret i %.0f %% av PLC-proven"
+                % (100.0 * th["plc_axel"]["andel_otackt"]))
         grepp, timing = d["grepp"], d["timing"]
         if grepp["fynd"].get("aldrig"):
             return "FAIL", self._orsak("grepp: greppet bildades aldrig")
@@ -1263,6 +1312,9 @@ class Analys(object):
         if timing["fynd"].get("fas_okand"):
             return "INCONCLUSIVE", self._orsak(
                 "timing: fasen kan inte dömas: %s" % timing["fynd"]["fas_okand"])
+        if timing["fynd"].get("steg_osakert"):
+            return "INCONCLUSIVE", self._orsak(
+                "timing: stegets tid ligger inom hopfogningens osäkerhet")
         return "PASS", "allt inom marginal"
 
     @staticmethod
