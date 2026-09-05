@@ -23,6 +23,46 @@ regel L-1, och den skulle vara värdelös som attrapp.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Nar ett delsystem dor far den som vantar se VILKET som dog, hur det "
+        "syntes och om det finns en vag tillbaka - tystnaden tolkas av nagon "
+        "annan an den som tystnade, och en vag som lyckats syns i ytan.",
+    "under_prov": (
+        "svc/vc_assist_svc/aterhamtning/lagen.py",
+        "svc/vc_assist_svc/aterhamtning/grind.py",
+        "svc/vc_assist_svc/aterhamtning/yta.py",
+        "svc/vc_assist_svc/aterhamtning/bild.py",
+        "svc/vc_assist_svc/aterhamtning/stegen.py",
+        "svc/vc_assist_svc/aterhamtning/kallor.py",
+    ),
+    "facit":
+        "lagen, overgangarna och vagarna tillbaka som de star i "
+        "28_lagen_och_aterhamtning.md, och regel L-1: laget avgors av ett "
+        "ping-svar, aldrig av att en anslutning gick att oppna",
+    "facitkalla":
+        "docs/spec/28_lagen_och_aterhamtning.md och 27_operatorsflodet.md, "
+        "skrivna fore korningen. Premissen bakom L-1 mats dessutom mot en "
+        "RIKTIG socket som ingen accepterar, i den har processen - som "
+        "attrapp hade den matningen varit vardelos.",
+    "facitkalla_filer": (
+        "docs/spec/28_lagen_och_aterhamtning.md",
+        "docs/spec/27_operatorsflodet.md",
+    ),
+    "trasiga_fall": (
+        "connect() mot en socket ingen accepterar lyckas, och far darfor "
+        "ALDRIG tolkas som ett levande lage (regel L-1)",
+        "en frusen klocka far inte fa ett dott delsystem att se levande ut - "
+        "lasarens klocka ska ge OBESTAMT",
+        "en yta som visar en lyckad aterkomst utan bevisraden ur loggen falls "
+        "av atergrinden",
+        "ett dolt delsystem eller en dold vag maste raknas i ytans egna "
+        "'totalt, visar'-rader",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-103",),
+}
+
 import argparse
 import json
 import os
