@@ -203,6 +203,24 @@ muterade källor × 3 lager = **4551 processkörningar** à 10 s timeout.
 rad 410). 0 nya häng. Positivkontroll (syntetisk oändlig slinga fångas)
 grön. Slutsats: lagret svarar alltid — deterministiskt Syntaxfel/Rapport.
 
+## R1 och REF_TO färdiga (2026-09-05, LAGAT + MÄTT)
+
+**Fältinitiering lagad** (läsare+modell+skrivare+typer, 3 funktioner +
+2 AST-noder): `[1,2,3]`, `[3(0)]`, blandade `[2(1),3(0)]`, multidim —
+med typkontroll (elementtyp + exakt kapacitet) och tur-och-retur-identitet.
+Båda R1-raderna strukna ur STRANGARE (taket 36/40); fallen är överens.
+CONFIGURATION-gränsen står kvar med skäl (ingen kallare, kedjan genererar;
+fullt stöd ≈400 rader för noll nytta).
+
+**REF_TO färdigt** (lexer+modell+typer+validator+skrivare): `REF_TO INT`,
+`REF(x)` som specialform (pekaromslagning, literal avvisas), `^` som
+postfix med egen nod och `pRef^`-serialisering, NULL endast till REF_TO,
+STRUCT-fält av REF_TO-typ avvisas (backend genererar IEC_INT — mätt).
+`REF` står avsiktligt INTE i standardbiblioteket: namnsvepet bygger varje
+funktion som `v_INT := F(v_INT)`, en form som för REF alltid är ogiltig.
+4 falska rödgrindar stängda; semantik+syntax+halskydd 363 gröna; svepet
+252 gröna; full svit 7295 gröna (2 främmande baslinje-röda, HEAD-gröna).
+
 ## OPC UA-ledet (2026-09-05, KLART)
 
 Kört av `tests/protocol/kor_openplc_opcua.py` (GODKÄND, exit 0) mot
