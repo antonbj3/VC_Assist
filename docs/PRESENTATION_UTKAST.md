@@ -8,6 +8,23 @@ The distinction that matters: most code-generation tools answer *does it
 compile?* This one answers *what happened in the plant?* — and feeds the answer
 back until the code is right.
 
+## What it runs on
+
+| | Version | Status |
+|---|---|---|
+| Visual Components | **4.10 Premium** | everything is measured on this |
+| Visual Components | 5.0 | prepared for in the installer, **unverified** |
+| Visual Components | 3.x and older | will not work — no modern API or add-on architecture |
+| OpenPLC Runtime | **v4**, pinned by sha256 digest | the address is configuration, never an assumption |
+| Python (host) | 3.10 – 3.13 | measured |
+| Python (host) | 3.9 | installer works; the verification step needs 3.10 |
+| Python (inside the simulator) | 2.7 and 3.x | every file is checked against both at install time |
+| Linux | Wine ≥ 11.15 | below that the licence engine dies on `bcrypt HashBlockLength` — measured |
+| Windows | nothing beyond VC itself | **the untested path** |
+
+No `pip install`, no `requirements.txt`. The installer and the add-on use the
+standard library only, on both platforms.
+
 ## How it works
 
 ```mermaid
@@ -29,12 +46,24 @@ Each step, concretely:
 palletises eight boxes per layer on a EUR pallet. Place height is measured from
 the top of the layer. Buffer ahead of the station, target 100 units per hour."*
 
-**The build plan** turns that into a runnable sequence of components and
-conditions — and rejects the order if it contradicts itself, naming which
-condition collides, rather than building half of it.
+**The build plan** turns that into a runnable sequence. It reads more than the
+component list: throughput, cell footprint, walkway clearance, reach, the
+relations between machines, and the order the processes must run in. From a
+measured run:
 
-**The scene** is assembled from component types the system knows: conveyor,
-feeder, buffer, sink. Robots and grippers come from the simulator's library.
+> *"Build a picking station that handles 400 parts per hour, with an infeed
+> conveyor, a robot and an outfeed box. Write the PLC code."*
+>
+> `cell is 8x8 metres, walkway at least 800 mm`
+> `the conveyor feeds the robot, the robot feeds the reject box`
+
+An order that contradicts itself is **rejected**, naming which condition
+collides, rather than being built halfway. You never receive a plausible-looking
+cell that cannot work.
+
+**The scene** is assembled from component types the system builds itself —
+conveyor, feeder, buffer, sink — plus machines drawn from the simulator's
+library.
 
 **The ST code** is written by a language model that cannot see the answer key.
 The transport enforces this in two layers: an empty tool list, and a working
@@ -53,10 +82,45 @@ permits it.
 every signal, every edge — and judges on five axes: sequence, timing, grasp,
 collision and throughput.
 
-**The loop back** is the part that does not exist elsewhere. The model does not
-receive "it failed". It receives which signal rose too early, by how many
-seconds, and which station therefore began working on a part the previous
-station had not finished.
+**The loop back** is what the model receives. Not "it failed" — which signal
+rose too early, by how many seconds, and which station therefore began working
+on a part the previous station had not finished.
+
+We looked for prior art before building it. Five papers were read in full —
+LLM4PLC, Agents4PLC, AutoPLC, SemaPLC and Spec2Control. Each closes a loop
+around *formal verification* or a test harness; none deploys generated code to a
+soft-PLC, runs it against a plant model, and feeds the result back. Whether that
+gap is an opportunity or a warning is not yet settled — see *Where the project
+stands*.
+
+## Finding the right machine
+
+The component library holds **3 201 machines**, 1 736 of them robots, in a 4.3 MB
+index. A correct index that costs 4.3 MB to read is useless to a language model:
+it will not read it, and will guess instead — which is the thing the index was
+supposed to prevent. So the search layer is built around the model, not the data.
+
+Three rules it follows:
+
+* **A hit list is rows, not JSON**, one line per machine, a fixed set of fields,
+  and always *"N hits, showing M"*. An answer that does not say how much it left
+  out looks exhaustive when it is not.
+* **A broad question gets a summary, not a list.** *"robots"* matches 1 736 of
+  them; returning those burns the model's context on what it did not ask for.
+  The answer is the distribution per manufacturer and a prompt to narrow down.
+* **A field the data does not carry says SAKNAS — missing.** Never zero, never
+  blank, never omitted. An omitted field is read as *zero* by people and models
+  alike, and then the index has lied quietly.
+
+That last rule came from a measurement: the library reports `reach = 0` for
+robots whose manufacturer datasheet says 703 mm, on 1 119 of 3 201 rows. The
+format can express *unknown* — the reading was what lost it.
+
+**Measured weakness, stated plainly:** asked to find a specific component by
+description, the lookup answers correctly on the first attempt in **0 %** of
+cases and on retry in **9.7 %**. Parameter names are the reason — the library
+carries 1 806 distinct ones with no shared convention. This is the single
+largest known gap in the system.
 
 ## The gate chain
 
