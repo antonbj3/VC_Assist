@@ -83,11 +83,11 @@ def _las_katalog(sokvag=KATALOGFIL):
     poster = collections.OrderedDict()
     for post in data["poster"]:
         if post["uri"] in poster:
-            raise Schemafel("katalogindexet har tva poster pa %s (%s)"
+            raise Schemafel("the catalog index has two entries at %s (%s)"
                             % (post["uri"], sokvag))
         poster[post["uri"]] = post
     if not poster:
-        raise Schemafel("katalogindexet %s ar tomt" % sokvag)
+        raise Schemafel("the catalog index %s is empty" % sokvag)
     return data, poster
 
 
