@@ -230,7 +230,7 @@ def test_ett_namn_kartan_ager_avvisas_oavsett_skiftlage(namn):
 def test_en_okand_typ_avvisas():
     with pytest.raises(S.Skelettfel) as e:
         sk_arb().granska_arbetsvariabler("    t : HITTEPA;\n", karta())
-    assert "okand typ" in str(e.value)
+    assert "unknown type" in str(e.value)
 
 
 def test_en_rad_som_inte_gar_att_lasa_avvisas():

@@ -206,8 +206,8 @@ class Skelett:
             sedda.add(namn.upper())
             if typ.upper() not in tillatna:
                 raise Skelettfel(
-                    "okand typ %s for arbetsvariabeln %s; tillatna ar de "
-                    "elementara typerna och standardfunktionsblocken"
+                    "unknown type %s for the work variable %s; allowed are "
+                    "the elementary types and the standard function blocks"
                     % (typ, namn), n)
 
     def plocka_arbetsvariabler(self, kalla: str) -> str:
