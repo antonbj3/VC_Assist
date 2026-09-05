@@ -81,14 +81,35 @@ Tre vägar, i fallande styrka:
 
 ## 4. Tre format, för ett räcker inte
 
-| Lager | Format | Läge |
+| Lager | Format | Läge, **mätt i `M-113`** |
 |---|---|---|
-| 1–4, det synliga och det fysiska | **USD** (eller glTF för enbart geometri) | VC:s stöd **inte mätt**; forskas |
-| 5, 7 och anläggningens struktur | **AutomationML** (IEC 62714) | bär hierarki, gränssnitt och I/O; forskas |
-| 8, styrlogiken | **PLCopen XML** (IEC 61131-10) | vår ST är IEC 61131-3; forskas |
+| 8, styrlogiken | **PLCopen XML** (IEC 61131-10) | **klart i princip.** S-06:s genererade ST byggd till ett TC6-projekt och **validerad mot det officiella schemat**, ST-texten byte-identisk igenom, 17 av 17 signalnamn och typer bevarade |
+| 5 och 7, koppling och signaler | **AutomationML** (CAEX) | **validerar.** A-01:s sju komponenter och fem kopplingar byggda som CAEX 2.15 och validerade mot `CAEX_ClassModel_V2.15.xsd`. **Men** gällande AutomationML (IEC 62714-1:2018) är CAEX **3.0** — inte prövat |
+| 1, geometrin | **STEP, STL, JT, IGES, SAT, Parasolid, 3MF, U3D, VRML, FBX** | VC har **HOOPS Exchange 2024.12** i installationen med nio skrivar-DLL:er, plus Autodesks FBX-SDK och ett dokumenterat `IFBXExporter.Export`. **Belagt ur filer och .NET-referens, inte kört** |
+| 1–4 mot en fysikmotor | **USD, URDF, SDF, MJCF** | ingen skrivare finns i VC. Måste byggas |
 
-Att det krävs tre är inte ett misslyckande. Det är att en cell inte är en modell
-utan tre: **en kropp, en anläggning och ett program.**
+**USD var fel gissning.** Det finns ingen USD-väg ur VC — men det finns nio
+neutrala CAD-format som redan ligger i installationen. Geometrin var alltså
+aldrig problemet.
+
+Att det krävs tre format är inte ett misslyckande. Det är att en cell inte är en
+modell utan tre: **en kropp, en anläggning och ett program.**
+
+### Fysiken krympte till ett tal per material
+
+Lager 4 såg ut som den hårda väggen: VC bär massa i bara 14 % av biblioteket och
+ingen tröghet alls.
+
+`M-113` mätte att **Gazebo, MuJoCo och Isaac Sim oberoende konvergerar på samma
+reservlösning**: räkna massa och tröghet ur **kollisionsgeometrin** gånger en
+densitet, med förvalet **1000 kg/m³** (vatten) när ingen anges. VC har
+kollisionsformer (`M-55`) men noll densitet någonstans.
+
+Problemet är alltså inte en tröghetsdatabas. Det är **ett densitetstal per
+material** — och det är en helt annan storleksordning arbete.
+
+Förbehåll som hör till: att reservlösningen ger *rätt* massa är **inte mätt**
+mot någon verklig maskins kända vikt. Den krymper problemet, den löser det inte.
 
 ---
 
@@ -105,9 +126,11 @@ cellen.
 med enhet och källa. `M-107` har börjat; 21 komponenter har en enhet med källa
 och 2 965 står som `enhet_saknas`.
 
-**Sist formaten.** USD, AutomationML och PLCopen XML är serialiseringar av det
-receptet redan bär. Byggs de först blir de en export av något vi inte kan
-beskriva.
+**Sist formaten** — men de är billigare än väntat. PLCopen XML och CAEX är
+mätta som fungerande i `M-113`, och geometrin ligger redan i VC:s egen HOOPS-
+och FBX-installation. Serialiseringen är alltså **inte** flaskhalsen; receptet
+och avbildningen är det. Byggs formaten först blir de en export av något vi
+inte kan beskriva.
 
 ---
 
