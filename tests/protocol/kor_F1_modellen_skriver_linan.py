@@ -26,7 +26,7 @@ docstring.
 Kedjan per varv:
 
     modellen skriver kroppen
-        -> grind 1-4 (billigt, ingen VC)      fallt: grindens egna ord tillbaka
+        -> grind 1-3 (billigt, ingen VC)      fallt: grindens egna ord tillbaka
         -> OpenPLC + VC-scenen + ogat         fallt: OGATS egna ord tillbaka
         -> guldgrinden over tre celler        gront: GOLD, slingan slutar
 
@@ -752,9 +752,9 @@ def bygg_slinga(ogonsteg, max_varv=R.MAX_VARV, lage=R.LAGE_RENT,
                 systemprompt=None, karta=None, skelett=None,
                 stationsgrindar=None, index=None, strucpp=None,
                 byggkatalog=None):
-    """Grind 1-4 billigt forst, sedan ogat. Samma kedja som M-74:s rigg.
+    """Grind 1-3 billigt forst, sedan ogat (som sjalvt kor grind 1-4).
 
-    Att grind 1-4 star FORE ogat ar inte en optimering: en kropp som inte
+    Att de billiga grindarna star FORE ogat ar inte en optimering: en kropp som inte
     kompilerar ska aldrig kosta en VC-omstart, en uppladdning och 105 sekunder
     scenmatning, och det ar samma ordning `stationsgrind.KORORDNING` redan har
     av samma skal.
