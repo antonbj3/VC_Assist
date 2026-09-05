@@ -155,6 +155,22 @@ nej. Ett *ja* på ett konstantnamn bär däremot ingenting alls.
 | `S10-006` | Vad betyder raden `RACE` i sektionen TIMING? | `vcHelpers.Robot.traceOff`, `traceOn`, `Robot2.traceOff`, `Robot2.traceOn` — fyra träffar med rang `delstrang_namn`, därför att "race" står inne i "trace" |
 | `S10-008` | Vad betyder raden `MINDIST` i sektionen SAFETY? | `vcCurveData.getCurveMinDistance` |
 
+Nollan står dessutom **bredvid det riktiga talet i samma träfflista**:
+
+```
+komponentsok "IRB 1200-5/0.9"
+  IRB 1200-5/0.9         rackvidd=0.0     nyttolast=5.0
+  IRB 1200-5/0.9 Gen2    rackvidd=900.0   nyttolast=5.0
+
+komponentsok "IRB 1200-7/0.7"
+  IRB 1200-7/0.7         rackvidd=0.0     nyttolast=7.0
+  IRB 1200-7/0.7 Gen2    rackvidd=700.0   nyttolast=7.0
+```
+
+Den komponent som bär bankens exakta namn svarar noll; dess Gen2-syskon en rad
+under svarar 900 respektive 700 mm. Att det rätta talet ligger så nära är
+precis vad som gör nollan tyst — svaret ser fullständigt ut.
+
 Två saker skiljer de här sex från de 303 som svarade SAKNAS. De ser ut som
 svar. Och de har alla ett **facit utanför verktyget**: bankens katalogindex
 stämplat `PUBLICERAD_SPEC` (tillverkarens publicerade datablad) för de fyra
