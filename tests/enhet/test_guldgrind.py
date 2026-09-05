@@ -388,4 +388,18 @@ def test_en_korning_med_for_fa_prov_ar_inte_guld():
     assert not b.guld, "en körning på ett enda prov gav %s" % b.text()
 
 
+def test_facit_grinden_ger_fortfarande_guld_at_en_riktig_rapport():
+    """Utan detta vore proven ovan värdelösa: en grind som fäller allt klarar
+    varje fällningsprov."""
+    sys.path.insert(0, os.path.join(_ROT, "tests"))
+    import celler
+    import oga_analys as A
+
+    b, plan = celler.bra()
+    text, _rapport, _analys = A.doma(b.data(), plan)
+    beslut = _grind_mb().doma([_cell_mb(text)])
+    assert beslut.guld, "den bra cellens riktiga rapport nekades guld: %s" % beslut.text()
+
+
+
 
