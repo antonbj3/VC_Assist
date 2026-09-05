@@ -20,10 +20,21 @@ upp.
 `M-89` är undantaget och pekar ut vägen: ett **inspelat I/O-spår från en
 verklig anläggning** är ett facit ingen av oss hittat på.
 
-**Plan.** Varje ny bänkuppgift ska ha en facitkälla ur `85`:s två starkaste
-klasser — en standardparagraf eller en mätning av verkligheten. En uppgift vars
-facit bara är *"en människas facit skrivet före"* räknas som svagare och märks
-så i uppgiftsfilen.
+**Plan, två delar.** Varje ny bänkuppgift ska ha en facitkälla ur `85`:s två
+starkaste klasser — en standardparagraf eller en mätning av verkligheten. En
+uppgift vars facit bara är *"en människas facit skrivet före"* räknas som
+svagare och märks så i uppgiftsfilen.
+
+Och den andra delen, som `M-120` gjorde möjlig att se: **det finns ingen öppen
+bänk i fältet.** LLM4PLC släppte aldrig sina data — det står i en konkurrents
+fulltext — och Agents4PLC:s bänk förekommer i två oförenliga storlekar i
+litteraturen. Att vår bänk är egenskriven är alltså fältets norm och inte vårt
+misstag.
+
+Men normen är fel, och det ger en väg ut som inte fanns förut: **publicera
+bänken.** En bänk andra kan bryta är den enda som inte mäter sin författares
+fantasi. Det är också det billigaste sättet att göra §1:s problem till någon
+annans arbete.
 
 ---
 
