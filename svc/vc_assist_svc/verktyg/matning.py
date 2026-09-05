@@ -443,7 +443,21 @@ def _kod_test_collision(argument):
         '        post["a"] = kroppar[i].Name',
         '        post["b"] = kroppar[j].Name',
         "        traffar.append(post)",
-        '_svara({"collision": len(traffar) > 0, "hits": traffar,',
+        # I3, fail-closed, och returschemats egen text: ett omatbart par ar
+        # OMATT, aldrig fritt. En traff ar en traff oavsett; men NOLL traffar
+        # nar nagot par inte gick att mata ar inget svar, och da svarar
+        # faltet null. MATT M-94 fynd 5: fore detta svarade en scen dar
+        # measureDistance ger None for varje par (M-36 dokumenterar att det
+        # hander) {"collision": false, "pairs_tested": 496,
+        # "unmeasurable": 496} - noll par mattes, och svaret sa "ingen
+        # kollision". min_distance hade den arliga formen i samma fil.
+        "if traffar:",
+        "    kollision = True",
+        "elif omatbara:",
+        "    kollision = None",
+        "else:",
+        "    kollision = False",
+        '_svara({"collision": kollision, "hits": traffar,',
         '        "antal": len(traffar), "bodies": len(kroppar),',
         '        "pairs_tested": par, "unmeasurable": omatbara,',
         '        "tolerance": %s, "avkortad": avkortad,' % tal(argument["tolerance"]),
@@ -475,9 +489,15 @@ _lagg(
                                          "vilket betyder nuddar eller "
                                          "overlappar."}},
            []),
-    returns({"collision": {"type": "boolean",
+    returns({"collision": {"type": ["boolean", "null"],
                            "description": "True om minst ett par ligger inom "
-                                          "toleransen."},
+                                          "toleransen. null om inget par "
+                                          "traffade OCH minst ett par inte "
+                                          "gick att mata: de omatta paren "
+                                          "raknas ALDRIG som fria, sa da ar "
+                                          "svaret okant och inte nej. False "
+                                          "bara nar varje par mattes och "
+                                          "inget traffade."},
              "hits": {"type": "array", "description": "De par som traffade.",
                       "items": {"type": "object", "description": "Ett traffat par.",
                                 "properties": dict(
