@@ -59,7 +59,7 @@ def test_en_arbetskatalog_i_repot_avvisas(monkeypatch):
     k = M.ClaudeCLI(korbar="/bin/true", arbetskatalog=os.path.join(_ROT, "bank"))
     with pytest.raises(M.Modellfel) as e:
         k.fraga("hej")
-    assert "facit" in str(e.value)
+    assert "reference answer" in str(e.value)
 
 
 def test_repotsroten_sjalv_avvisas_ocksa(monkeypatch):

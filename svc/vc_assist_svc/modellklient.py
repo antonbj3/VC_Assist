@@ -124,8 +124,8 @@ class ClaudeCLI(Modellklient):
     def fraga(self, prompt: str) -> Svar:
         if not self.tillganglig():
             raise Modellfel(
-                "hittar ingen korbar `claude`. Installera Claude Code eller "
-                "anvand Inspelad-transporten.")
+                "cannot find a runnable `claude`. Install Claude Code or use "
+                "the Inspelad transport.")
         egen = self.arbetskatalog is None
         katalog = tempfile.mkdtemp(prefix="vcassist-modell-") if egen \
             else self.arbetskatalog
@@ -177,8 +177,9 @@ def _neka_repot(katalog: str) -> None:
     if riktig == os.path.realpath(rot) or riktig.startswith(
             os.path.realpath(rot) + os.sep):
         raise Modellfel(
-            "arbetskatalogen %s ligger i repot. Modellen far inte kora dar: "
-            "matningens giltighet star pa att den inte sett facit." % katalog)
+            "working directory %s is inside the repo. The model must not run "
+            "there: the measurement's validity depends on it never having "
+            "seen the reference answer." % katalog)
 
 
 class Inspelad(Modellklient):
