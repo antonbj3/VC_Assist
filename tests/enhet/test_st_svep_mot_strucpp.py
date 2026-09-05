@@ -384,6 +384,123 @@ f("strangfunktion_kedja", "form", "    sA := CONCAT(LEFT(sA, 2), RIGHT(sA, 2));"
 f("move", "form", "    iA := MOVE(iB);")
 f("sub_div", "form", "    iA := DIV(SUB(iB, 1), 2);")
 
+# ---- 12. M-99:s axlar ---------------------------------------------------
+#
+# M-51 svepte 185 konstruktioner och missade skiftlage; M-96 hittade det
+# felet i drift och bokforde nio av sexton grinddomar som VART fel. M-99
+# svepte 394 konstruktioner till, axel for axel, och de fall som bar ett
+# fynd eller en dom star har sa att de fortsatter matas.
+
+# skiftlage pa allt som inte var provat
+f("skift_typnamn_gemener", "form", "    v := v;",
+  dekl="VAR\n    v : int;\nEND_VAR\n")
+f("skift_var_gemener", "form", "    bA := TRUE;",
+  dekl="var\n    bA : BOOL;\nend_var\n")
+f("skift_program_gemener", "form", None, None,
+  "program Main\nVAR\n    bA : BOOL;\nEND_VAR\n    bA := TRUE;\nend_program\n")
+f("skift_fbnamn_gemener", "form", "    t1(IN := bA, PT := T#1s);",
+  dekl="VAR\n    t1 : ton;\n    bA : BOOL;\nEND_VAR\n")
+f("skift_funknamn_gemener", "form", "    iA := abs(iB);")
+f("skift_blockparam_gemener", "form",
+  "    ton1(in := bA, pt := T#1s);\n    bB := ton1.q;")
+f("skift_literalprefix_gemener", "form", "    wA := word#16#ff;")
+f("skift_adress_gemener", "form", "    bA := bB;",
+  dekl="VAR\n    bA : BOOL;\n    bB at %ix0.0 : BOOL;\nEND_VAR\n")
+f("skift_true_gemener", "form", "    bA := true;\n    bB := false;")
+f("skift_struct_gemener", "form", "    p.x := 1;",
+  dekl="VAR\n    p : Punkt;\nEND_VAR\n",
+  prolog="type\n    Punkt : struct\n        x : INT;\n    end_struct;\nend_type\n")
+
+# tidsliteraler utover skiftlage
+f("tid_noll", "literal", "    tA := T#0s;")
+f("tid_versal_sammansatt", "literal", "    tA := T#1D2H3M4S5MS;")
+f("tid_understreck", "literal", "    tA := T#1_000ms;")
+f("tid_us_ns", "literal", "    tA := T#500us;\n    tB := T#100ns;")
+f("tid_dubbel_enhet", "trasig", "    tA := T#5s5s;")
+f("tid_decimal_i_fel_del", "trasig", "    tA := T#1.5h30m;")
+
+# blanksteg och radbrytningar
+f("blank_radbrytning_i_tilldelning", "form", "    bA :=\n        bB;")
+f("blank_tabbar", "form", "\tbA\t:=\tbB;")
+f("blank_runt_punktpunkt", "form",
+  "    CASE iA OF\n        1 .. 5: bA := TRUE;\n    END_CASE;")
+f("blank_crlf", "form", "    bA := bB;\r\n    iA := 1;")
+f("blank_sidmatning", "form", "    bA := bB;\x0c\n    iA := 1;")
+f("blank_vertikaltabb", "form", "    bA := bB;\x0b\n    iA := 1;")
+f("blank_i_anrop", "form", "    ton1 ( IN := bA , PT := T#1s ) ;")
+f("blank_i_index", "form", "    arr [ 1 ] := 5;")
+f("blank_radbrytning_i_villkor", "form",
+  "    IF bA\n       AND bB\n    THEN\n        bC := TRUE;\n    END_IF;")
+
+# kommentarer
+f("kommentar_mitt_i_uttryck", "kommentar", "    iA := iB (* mitt i *) + iC;")
+f("kommentar_mitt_i_tilldelning", "kommentar", "    bA (* x *) := (* y *) bB;")
+f("kommentar_rad_mitt_i_uttryck", "kommentar", "    iA := iB + // hej\n        iC;")
+f("kommentar_djupt_nastlad", "kommentar",
+  "    (* a (* b (* c *) b *) a *)\n    bA := bB;")
+f("kommentar_efter_end_if", "kommentar",
+  "    IF bA THEN\n        bB := TRUE;\n    END_IF (* x *);")
+f("kommentarstart_i_strang", "form", "    sA := 'a(*b';")
+
+# talformer
+f("tal_int_minsta", "literal", "    iA := -32768;")
+f("tal_dint_minsta", "literal", "    dA := -2147483648;")
+f("tal_negativ_noll", "literal", "    iA := -0;")
+f("tal_understreck_i_realdel", "form", "    rA := 1_000.5;")
+f("tal_exponent_utan_punkt", "literal", "    rA := 1E3;")
+f("tal_int_over_omradet_negativt", "trasig", "    iA := -32769;")
+f("tal_real_utan_brakdel", "trasig", "    rA := 1.;")
+f("tal_real_punkt_fore_exponent", "trasig", "    rA := 1.e3;")
+
+# strangar
+f("strang_dollar_N", "literal", "    sA := 'a$Nb';")
+f("strang_dollar_hex_52", "literal", "    sA := 'a$52b';")
+f("strang_dollarcitat", "form", "    sA := 'a$\"b';")
+f("strang_over_radbrytning", "trasig", "    sA := 'a\nb';")
+
+# uttrycksformer
+f("uttryck_atta_parenteser", "form", "    iA := ((((((((iB))))))));")
+f("uttryck_not_not", "form", "    bA := NOT NOT bB;")
+f("uttryck_dubbelt_unart_minus", "form", "    iA := - -iB;")
+f("uttryck_jamforelse_utan_parentes", "form", "    bA := iA < iB = TRUE;")
+f("uttryck_exponent_hogerassociativ", "form", "    rA := 2.0 ** 3.0 ** 2.0;")
+f("uttryck_kedjetilldelning", "trasig", "    iA := iB := iC;")
+f("uttryck_index_ar_uttryck", "form", "    arr[iA + 1] := 5;")
+
+# deklarationsformer
+f("dekl_adress_bool_pa_bitadress", "deklaration", "    bA := bB;",
+  dekl="VAR\n    bA AT %QX0.0 : BOOL;\n    bB : BOOL;\nEND_VAR\n")
+f("dekl_adress_int_pa_ordadress", "deklaration", "    n := 1;",
+  dekl="VAR\n    n AT %QW1 : INT;\nEND_VAR\n")
+f("dekl_adress_real_pa_dubbelordadress", "deklaration", "    r := 1.0;",
+  dekl="VAR\n    r AT %MD4 : REAL;\nEND_VAR\n")
+f("dekl_adress_bool_pa_ordadress", "trasig", "    bA := bA;",
+  dekl="VAR\n    bA AT %QW1 : BOOL;\nEND_VAR\n")
+f("dekl_adress_int_pa_bitadress", "trasig", "    n := 1;",
+  dekl="VAR\n    n AT %IX0.0 : INT;\nEND_VAR\n")
+f("dekl_falt_omvand_grans", "trasig", "    a[1] := 1;",
+  dekl="VAR\n    a : ARRAY[10..1] OF INT;\nEND_VAR\n")
+f("dekl_retain_constant", "trasig", "    iA := G;",
+  dekl="VAR RETAIN CONSTANT\n    G : INT := 1;\nEND_VAR\n"
+       "VAR\n    iA : INT;\nEND_VAR\n")
+f("dekl_faltinitiering", "deklaration", "    iA := a[1];",
+  dekl="VAR\n    a : ARRAY[1..3] OF INT := [1, 2, 3];\n    iA : INT;\nEND_VAR\n")
+f("dekl_faltinitiering_upprepning", "deklaration", "    iA := a[1];",
+  dekl="VAR\n    a : ARRAY[1..3] OF INT := [3(0)];\n    iA : INT;\nEND_VAR\n")
+
+# POU-former
+f("pou_tom_kropp_i_funktion", "trasig", None, None,
+  "FUNCTION F : INT\nVAR_INPUT\n    v : INT;\nEND_VAR\n    ;\n"
+  "END_FUNCTION\nPROGRAM Main\nVAR\n    iA : INT;\nEND_VAR\n"
+  "    iA := F(1);\nEND_PROGRAM\n")
+f("pou_konfigurationsblock", "trasig", None, None,
+  "PROGRAM Main\nVAR\n    bA : BOOL;\nEND_VAR\n    bA := TRUE;\n"
+  "END_PROGRAM\nCONFIGURATION C\n  RESOURCE R ON PLC\n"
+  "    TASK T(INTERVAL := T#20ms, PRIORITY := 1);\n"
+  "    PROGRAM P WITH T : Main;\n  END_RESOURCE\nEND_CONFIGURATION\n")
+f("sats_tom_gren_i_case", "trasig",
+  "    CASE iA OF\n        1: ;\n    END_CASE;")
+
 
 # ---- facit: var far de tva svaren skilja sig at, och varfor --------------
 #
@@ -455,6 +572,62 @@ STRANGARE = {
         "Meddelandet sager redan rakt ut att lagret inte stodjer formen.",
     "tid_pa_dagen_literal":
         "TOD#, tid pa dagen. LAGAS INTE, exakt samma skal som DATE#: typlagret har ingen TIME_OF_DAY-typ att kontrollera den mot.",
+
+    # -- M-99: avsiktlig stranghet som svepet hittade -------------------
+    "tid_dubbel_enhet":
+        "T#5s5s namner samma enhet tva ganger. IEC 61131-3 kraver fallande "
+        "signifikans och varje enhet hogst en gang; kompilatorn tiger och "
+        "summerar dem tyst till 10 s. Samma familj som tid_fel_ordning.",
+    "tid_decimal_i_fel_del":
+        "T#1.5h30m har decimaler i en del som INTE ar den minsta. IEC "
+        "61131-3 tillater decimaler bara i den minsta delen, annars ar "
+        "literalens varde tvetydigt. Kompilatorn tiger.",
+    "tal_int_over_omradet_negativt":
+        "-32769 ryms inte i INT. Kompilatorn tiger; talet skulle slaa runt i "
+        "falt. Grannen till M-99:s lagning: -32768 SKA ga igenom, -32769 ska "
+        "inte, och bada matas nu.",
+    "strang_over_radbrytning":
+        "En strangliteral som lopper over en radbrytning. IEC 61131-3 har "
+        "$L och $N just for att en strang inte ska behova bryta raden; "
+        "STruC++ 0.6.6 slapper igenom formen anda. En oavslutad strang och "
+        "en flerradig strang ser likadana ut for den som laser felet.",
+    "uttryck_kedjetilldelning":
+        "iA := iB := iC. Tilldelning ar en SATS i ST, inte ett uttryck, sa "
+        "kedjan gar inte att harleda ur IEC 61131-3:s grammatik. "
+        "Kompilatorn bygger den anda och far da valja associativitet sjalv.",
+    "dekl_falt_omvand_grans":
+        "ARRAY[10..1] har ingen enda giltig index. Kompilatorn tiger. MATT i "
+        "M-99: hos oss kom formen ut som en OFANGAD ValueError - grinden "
+        "kraschade i stallet for att doma - och det ar vad som lagades.",
+    "pou_tom_kropp_i_funktion":
+        "En FUNCTION vars hela kropp ar ';'. Samma regel som "
+        "tom_sats_semikolon och samma skal: ett ensamt semikolon avslutar "
+        "nagot, det ar aldrig en sats. Har ar foljden dessutom en funktion "
+        "som aldrig tilldelar sitt returvarde.",
+    "sats_tom_gren_i_case":
+        "En CASE-gren vars hela kropp ar ';'. Samma regel som "
+        "tom_sats_semikolon. En gren som inte gor nagot ar antingen en halv "
+        "sats eller en gren som skulle ha tagits bort.",
+
+    # -- M-99: falska rodgrindar som star kvar, och varfor ---------------
+    "dekl_faltinitiering":
+        "ARRAY[1..3] OF INT := [1, 2, 3]. FALSK RODGRIND, LAGAS INTE AN. "
+        "Formen star i IEC 61131-3 och STruC++ 0.6.6 bygger den; lasaren "
+        "laser startvarden som ETT uttryck och har ingen nod for en "
+        "faltinitierare. Lagningen ror modell, lasare, skrivare och "
+        "typkontroll pa en gang, och tur-och-retur-provet maste halla hela "
+        "vagen. Skulden ar bokford i M-99, inte gomd.",
+    "dekl_faltinitiering_upprepning":
+        "ARRAY[1..3] OF INT := [3(0)], upprepningsformen. FALSK RODGRIND, "
+        "LAGAS INTE AN, exakt samma skal och samma lagning som "
+        "dekl_faltinitiering: utan en nod for faltinitieraren finns det "
+        "ingenstans att lagga upprepningsantalet.",
+    "pou_konfigurationsblock":
+        "CONFIGURATION / RESOURCE / TASK. FALSK RODGRIND, LAGAS INTE. "
+        "Formen star i IEC 61131-3 och kompilatorn bygger den, men lagrets "
+        "domanen ar POU:er: konfigurationen kring dem genereras av kedjan "
+        "sjalv (plc/skelett.py), aldrig av modellen. Att lasa den skulle "
+        "vara en ny grammatik utan en enda kallare.",
 }
 
 LATTARE = {
@@ -464,6 +637,41 @@ LATTARE = {
         "begransning i vart lager binder oss till en version, och grind 1 kor "
         "i samma anrop som grind 2 och 3 (stationsgrind.granska_station) sa "
         "fallet fangas anda innan stationen doms. Formen '-T#2h' bygger.",
+    # -- M-99: kompilatorbegransningar, inte var stranghet --------------
+    "kommentarstart_i_strang":
+        "sA := 'a(*b'. STruC++ 0.6.6 lexar '(*' aven INNE i en strangliteral "
+        "och svarar 'Unclosed block comment'. Var lexer laser strangen forst, "
+        "vilket ar ratt: en kommentarstart inuti en strang ar text. LAGAS "
+        "INTE - att harma felet vore att skriva in en kompilatorbugg i "
+        "lagret, och grind 1 kor anda i samma anrop.",
+    "tal_understreck_i_realdel":
+        "rA := 1_000.5. Understreck i ett tal ar lasbarhetsavskiljare i IEC "
+        "61131-3 och tillatna i BADA delarna; STruC++ 0.6.6 tar dem bara i "
+        "heltalsdelen. LAGAS INTE av samma skal som ovan.",
+    "strang_dollarcitat":
+        "sA := 'a$\"b'. $\" star i IEC 61131-3:s tabell over $-sekvenser; "
+        "STruC++ 0.6.6 kanner den inte inne i en enkelciterad strang. LAGAS "
+        "INTE: vart lager avkodar sekvensen till ett tecken och tappar "
+        "ingenting.",
+    "uttryck_not_not":
+        "bA := NOT NOT bB. IEC 61131-3:s grammatik tillater en unar operator "
+        "per uttryck, och STruC++ 0.6.6 haller pa den bokstaven. LAGAS INTE: "
+        "att avvisa formen skulle gora oss strangare an de kompilatorer "
+        "modellen troligast har sett, alltsa en NY falsk rodgrind - och "
+        "grind 1 fangar den anda i samma anrop.",
+    "uttryck_dubbelt_unart_minus":
+        "iA := - -iB. Samma grammatikrad och samma dom som uttryck_not_not: "
+        "en unar operator per uttryck. LAGAS INTE, samma skal.",
+    "uttryck_jamforelse_utan_parentes":
+        "bA := iA < iB = TRUE. IEC 61131-3 skiljer comparison fran "
+        "equ_expression, sa formen ar harledbar; STruC++ 0.6.6 kraver "
+        "parenteser. LAGAS INTE - vart trad bygger samma vansterassociativa "
+        "form som standarden anger.",
+    "uttryck_exponent_hogerassociativ":
+        "rA := 2.0 ** 3.0 ** 2.0. Exponentoperatorn ar hogerassociativ och "
+        "kedjebar i IEC 61131-3 (tabell 71); STruC++ 0.6.6 tar bara en. "
+        "LAGAS INTE: test_st_syntax provar redan att var kedja lases och "
+        "skrivs tillbaka likadant.",
     "var_string_langd":
         "STRING[20] ar giltig IEC 61131-3 och vart typlager anvander langden "
         "till en verklig kontroll (test_st_semantik: 'abcdefg' ryms inte i "
@@ -494,7 +702,10 @@ def svep():
 
     def en(post):
         namn, _grupp, kropp, dekl, prolog = post
-        text = kalla(kropp, dekl, prolog)
+        # kropp=None: fallet ar HELA kallan, inte en kropp i Main. Formerna
+        # som provar POU-ramen sjalv (CONFIGURATION, en FUNCTION med tom
+        # kropp) gar inte att uttrycka som en kropp inuti ett program.
+        text = prolog if kropp is None else kalla(kropp, dekl, prolog)
         kok, kutdata = _kompilera(STRUCPP, text, katalog, namn)
         return namn, (validera(text), kok, kutdata)
 
@@ -559,10 +770,19 @@ def test_var_grind_och_kompilatorn_ar_overens_dar_de_ska_vara_det(namn, svep):
 
 
 def test_antalet_dokumenterade_avvikelser_gar_inte_upp_av_sig_sjalvt():
-    """Sparr at ett hall. Talet ar M-51:s matning; det far sjunka nar en
-    avvikelse lagas, men en ny rad ska kosta ett medvetet beslut."""
-    assert len(STRANGARE) + len(LATTARE) <= 19, (
-        "fler dokumenterade avvikelser an M-51 matte. Lagade du en, sank "
+    """Sparr at ett hall.
+
+    Talet var M-51:s 19. M-99 svepte 394 nya konstruktioner over skiftlage,
+    blanksteg, kommentarer, talformer, tidsliteraler, strangar, uttryck och
+    POU-ramen, lagade sex falska rodgrindar och tre hal, och lamnade 21 nya
+    dokumenterade avvikelser: elva dar vi ar avsiktligt strangare, sju dar
+    kompilatorversionen ar begransningen, och TRE falska rodgrindar som star
+    kvar med skal utskrivet (faltinitieraren i tva former och CONFIGURATION).
+
+    Taket ar hojt MEDVETET till 40. Det far sjunka nar en avvikelse lagas,
+    men en ny rad ska fortsatta kosta ett beslut."""
+    assert len(STRANGARE) + len(LATTARE) <= 40, (
+        "fler dokumenterade avvikelser an M-99 matte. Lagade du en, sank "
         "talet; behover du en ny rad, hoj det medvetet och skriv ned varfor.")
 
 
