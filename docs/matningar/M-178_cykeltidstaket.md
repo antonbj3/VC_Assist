@@ -58,12 +58,16 @@ Visat i stället för påstått — samma kropp, växande arbetsmängd, ett scan
 
 | varv i kroppen | väggtid för scanet | tolkens klocka efteråt |
 |---|---|---|
-| 1 | 0,019 ms | 20,0 ms |
-| 400 | 0,392 ms | 20,0 ms |
-| 3 600 | 3,239 ms | 20,0 ms |
-| 14 400 | 13,028 ms | 20,0 ms |
+| 1 | 0,035 ms | 20,0 ms |
+| 400 | 0,624 ms | 20,0 ms |
+| 3 600 | 5,388 ms | 20,0 ms |
+| 14 400 | 16,648 ms | 20,0 ms |
 
-Väggtiden växer 685-faldigt. Modellklockan rör sig inte en tiondels
+(Talen är ur `m178_runtime.json`, mätt under samma last som svepet. En körning
+på en tom maskin gav 0,019 / 0,392 / 3,239 / 13,028 ms — förhållandet är
+detsamma, absolutvärdena beror på maskinens last.)
+
+Väggtiden växer 476-faldigt. Modellklockan rör sig inte en tiondels
 millisekund. Det står nu som ett permanent prov
 (`test_tolkens_klocka_ar_oberoende_av_arbetet`), och provet fäller om någon
 ger tolken en exekveringstid utan att mäta om det här.
@@ -78,7 +82,8 @@ i de tio filer som ligger mellan modellens text och en körande PLC:
 | `st/validator.py`, `st/tolk.py` | 0 |
 | `plc/deklarationsgrind.py`, `plc/industrigrind.py`, `plc/stationsgrind.py` | 0 |
 | `plc/forhandsregler.py` | 0 |
-| `plc/paket.py`, `plc/openplc.py` | 0 |
+| `plc/paket.py` | 0 |
+| `plc/openplc.py` | 1 — den **kommentar** den här mätningen själv la dit (§6) |
 | `bank/domare.py` | 0 |
 | `bank/domare_openplc.py` | 3 — alla **kommentarer** om provtagningens takt, ingen mätning |
 
