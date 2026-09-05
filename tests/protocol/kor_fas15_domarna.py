@@ -28,6 +28,42 @@ VAD SOM AR RIKTIGT HAR OCH VAD SOM INTE AR DET
 
     python3 tests/protocol/kor_fas15_domarna.py --json ut.json
 """
+
+BANKPOST = {
+    "pastar":
+        "De fem domarna sekvens, timing, grepp, kollision och genomflode "
+        "faller var sin trasiga cell byggd i VC:s riktiga scengraf, och exakt "
+        "en domare faller per cell.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_analys.py",
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "svc/vc_assist_svc/guldgrind.py",
+        "svc/vc_assist_svc/plc/ogonkoppling.py",
+    ),
+    "facit":
+        "aldrig_gripen ska fallas av grepp, station_utan_stopp av sekvens och "
+        "station_forsent av timing; avstandet mellan tva kroppar ska sjunka "
+        "monotont till 0,0 och kontakt bli sant i det prov de nuddar",
+    "facitkalla":
+        "cellerna ar handskrivna scenarier med en felklass var och en vantad "
+        "domare vardera, och det minsta avstandet domers av VC:s egen "
+        "vcNode.measureDistance under korande simulering",
+    "facitkalla_filer": (
+        "tests/celler.py",
+        "docs/spec/83_scenarier.md",
+        "tests/protocol/fas15_ogat_pa_djupet.md",
+        "docs/spec/50_grindar.md",
+    ),
+    "trasiga_fall": (
+        "varje trasig cell maste fa FAIL med RATT domare, och exakt en domare "
+        "pa FAIL",
+        "en ogonrapport med LIMITS-sektionen bortklippt far inte bli guld",
+        "gar ett vcStatistics-beteende inte att bygga sags det rent ut - "
+        "inget tyst hopp over en domare",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-88",),
+}
 import argparse
 import json
 import os
@@ -316,7 +352,7 @@ def kor_cell_i_vc(k, cellnamn, objekt_kartor, med_plc, extra_s=3.0):
             "saknade": data.get("saknade")}
 
 
-def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0):
+def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0, satt_idle=False):
     """Cellen `station_svalt` i VC: en station med ett RIKTIGT vcStatistics-
     beteende som ingen produkt nagonsin nar. Kravet sager hogst `max_svalt_s`
     svalt; korningen ar langre. Genomflodesdomaren ska falla - och med kravet
@@ -324,6 +360,16 @@ def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0):
 
     Beteendet skapas med VC_STATISTICS (M-15: skapbart, ger vcStatistics).
     Skrivgrinden slapper det - det ar inget skriptbeteende (M-13).
+
+    TVA VARIANTER, for M-88 fann att de ger olika serier:
+      satt_idle=False  INERT. Ingen process har satt beteendets tillstand:
+                       VC svarar state '' och 0,0 i alla procent, korningen
+                       igenom. Ogat far INTE saga PASS pa det (falskt gront
+                       i forsta korningen) - det ar obestambart.
+      satt_idle=True   tillstandet satts till VC_STATISTICS_IDLE en gang,
+                       som en process gor nar stationen vantar pa arbete.
+                       Da MATER statistiken, stationen ar ledig och tom, och
+                       genomflodesdomaren ska falla mot kravet.
     """
     station = "%s_station" % PREFIX
     kropp = "%s_kropp" % PREFIX
@@ -335,10 +381,15 @@ def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0):
         "c.Name = %r\n"
         "b = c.createBehaviour(VC_STATISTICS, 'stat')\n"
         "d = {'beteende': None if b is None else type(b).__name__,\n"
-        "     'har_arrived': hasattr(b, 'ComponentsArrived')}\n"
+        "     'har_arrived': hasattr(b, 'ComponentsArrived'),\n"
+        "     'state_fore': str(b.State)}\n"
+        "if %r:\n"
+        "    b.State = VC_STATISTICS_IDLE\n"
+        "    d['state_satt'] = str(b.State)\n"
         "print(json.dumps(d))\n"
-    ) % (str(station),)
-    skapat = _kor(k, kod, "fas15: station med vcStatistics")
+    ) % (str(station), bool(satt_idle))
+    skapat = _kor(k, kod, "fas15: station med vcStatistics%s"
+                  % (" (IDLE satt)" if satt_idle else " (inert)"))
     plan = {"template": "station_svalt", "parts": [kropp], "tools": [],
             "rate_hz": 20.0, "scen": "roles", "stat": ["%s/stat" % station],
             "genomstromning": {"max_svalt_s": max_svalt_s}}
@@ -461,29 +512,38 @@ def main():
                           % (ax["otackta"], ax["rader_med_plc"],
                              100.0 * ax["andel_otackt"], ax["tak_max_s"] or 0.0,
                              "  <- OVER BRAKETTEN" if ax["over_braketten"] else ""))
-            # Genomflodet: en station med ett riktigt vcStatistics-beteende.
-            try:
-                r = kor_svalt_i_vc(k)
-            except Exception as e:
-                r = {"fel": "%s: %s" % (type(e).__name__, e)}
-            r["vantad_domare"] = "genomflode"
-            if r.get("domar"):
-                fallande = [d for d, v in sorted(r["domar"].items()) if v == "FAIL"]
-                r["fallande_domare"] = fallande
-                r["ratt_domare"] = (fallande == ["genomflode"]
-                                    and r.get("gron_genomflode") == "PASS")
-            ut["p15_8"]["station_svalt"] = r
-            print("  %-22s dom=%-13s vantad domare=%-11s fallande=%s%s"
-                  % ("station_svalt", r.get("dom", r.get("fel")), "genomflode",
-                     r.get("fallande_domare"),
-                     "" if r.get("ratt_domare") else "   <- INTE SOM VANTAT"))
-            if r.get("orsak"):
-                print("      orsak: %s" % r["orsak"][:110])
-            if "skapat" in r:
-                print("      vcStatistics: %r | stationsprov %s | forsta %s | svalt %s s | "
-                      "med krav 100 s: %s (genomflode %s)"
-                      % (r["skapat"], r.get("stationsprov"), r.get("forsta_stat"),
-                         r.get("svalt_s"), r.get("gron_dom"), r.get("gron_genomflode")))
+            # Genomflodet: en station med ett riktigt vcStatistics-beteende,
+            # i tva varianter. Den inerta ar den TRASIGA FIXTUREN for
+            # fail-closed (M-88 §5: forsta korningen gav PASS pa den).
+            for namn, satt_idle, vantat in (("station_svalt_inert", False, "INCONCLUSIVE"),
+                                            ("station_svalt", True, "FAIL")):
+                try:
+                    r = kor_svalt_i_vc(k, satt_idle=satt_idle)
+                except Exception as e:
+                    r = {"fel": "%s: %s" % (type(e).__name__, e)}
+                r["vantad_domare"] = "genomflode"
+                r["vantad_dom"] = vantat
+                if r.get("domar"):
+                    fallande = [d for d, v in sorted(r["domar"].items()) if v == "FAIL"]
+                    r["fallande_domare"] = fallande
+                    if vantat == "FAIL":
+                        r["ratt_domare"] = (fallande == ["genomflode"]
+                                            and r.get("gron_genomflode") == "PASS")
+                    else:
+                        r["ratt_domare"] = (r.get("dom") == vantat and not fallande)
+                ut["p15_8"][namn] = r
+                print("  %-22s dom=%-13s vantad=%-16s fallande=%s%s"
+                      % (namn, r.get("dom", r.get("fel")),
+                         "genomflode" if vantat == "FAIL" else vantat,
+                         r.get("fallande_domare"),
+                         "" if r.get("ratt_domare") else "   <- INTE SOM VANTAT"))
+                if r.get("orsak"):
+                    print("      orsak: %s" % r["orsak"][:110])
+                if "skapat" in r:
+                    print("      vcStatistics: %r | stationsprov %s | sista %s | svalt %s s | "
+                          "med krav 100 s: %s (genomflode %s)"
+                          % (r["skapat"], r.get("stationsprov"), r.get("sista_stat"),
+                             r.get("svalt_s"), r.get("gron_dom"), r.get("gron_genomflode")))
 
         # P15-9: LIMITS i ogats RIKTIGA utdata, och guldgrinden mot den.
         texter = [(n, r["eyes"]) for n, r in (ut.get("p15_8") or {}).items()
@@ -500,7 +560,7 @@ def main():
                         "forgrindar": dict((g, True) for g in FORGRINDAR)}
                 b1 = grind.doma([cell])
                 b2 = grind.doma([utan])
-                rader = [r for r in text.splitlines() if r.strip()]
+                rader = [r.strip() for r in text.splitlines() if r.strip()]
                 limits = [r for r in rader if r.startswith(("NOT_SIMULATED",
                                                             "RESOLUTION",
                                                             "EXCLUDED"))]
