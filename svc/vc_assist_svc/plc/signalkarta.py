@@ -70,8 +70,18 @@ MAX_INDEX = 1023
 # Bitindex 0..7 därför att bool-tabellen är bool_input[BUFFER_SIZE][8].
 MAX_BIT = 7
 
+# IEC 61131-3 ar skiftlagesokansligt, ocksa i den lokaliserade adressen:
+# `%qx0.0` och `%QX0.0` ar SAMMA plats i bildtabellen. MATT 2026-09-05 (M-105):
+# monstret saknade `re.I` medan `_typ_av_text` i samma fil redan gjorde
+# `.upper()` pa typen och `plc.skelett._HAR_ADRESS` redan bar `re.I` - exakt den
+# asymmetri M-96 matte i lexern, dar halva filen var skiftlagesokanslig och
+# halva inte. En karta skriven i gemener foll pa "ar ingen lokaliserad adress".
+#
+# `re.I` ENSAMT hade varit varre an felet: `%qx0.0` och `%QX0.0` hade blivit tva
+# SKILDA Adress-varden, och `plats()` hade sagt att de inte krockar. Darfor
+# normaliserar `las_adress` omradet och storleken till versaler.
 _ADRESS = re.compile(r"^%(?P<omrade>[IQ])(?P<storlek>[XBWDL])"
-                     r"(?P<index>\d+)(?:\.(?P<bit>\d+))?$")
+                     r"(?P<index>\d+)(?:\.(?P<bit>\d+))?$", re.I)
 
 # ST-identifierare enligt IEC 61131-3: bokstav eller understreck först, sedan
 # bokstäver, siffror och understreck. Skrivaren kräver dessutom ren ASCII.
@@ -146,7 +156,10 @@ def las_adress(text: str) -> Adress:
     if not m:
         raise KartFel("%r är ingen lokaliserad adress på formen %%QX0.0" % (text,))
     bit = m.group("bit")
-    return Adress(m.group("omrade"), m.group("storlek"), int(m.group("index")),
+    # Versaler ar kanonform: tva skrivningar av samma plats maste bli samma
+    # Adress, annars slutar plats() se krocken. Se monstrets kommentar.
+    return Adress(m.group("omrade").upper(), m.group("storlek").upper(),
+                  int(m.group("index")),
                   None if bit is None else int(bit))
 
 
