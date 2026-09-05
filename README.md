@@ -47,6 +47,7 @@ ovanför sömmen är generiskt, allt under är VC-specifikt.
 |---|---|---|
 | **Värdmaskin** | Python 3 | Endast standardbiblioteket för installationen. Körd på **3.13.11**, **3.12.3** och **3.10.12** |
 | **För att köra proven** | `pytest` | Det enda som behöver installeras, och bara för `tests/`. Installationen och tillägget klarar sig utan |
+| **För PLC-verktygskedjan** | Node.js ≥ 18 & npm | Krävs för STruC++:s beroenden (`npm ci` med låsfil). Mätt i M-56 |
 | **Visual Components** | 4.10 Premium | Det är versionen allt är mätt på. Se tabellen längst ned om andra versioner |
 | **Linux** | Wine ≥ 11.15, DXVK som d3d9 | Se [`docs/drift/linux_wine.md`](docs/drift/linux_wine.md). Under 11.15 dör licensmotorn på `bcrypt HashBlockLength` — mätt |
 | **Windows** | inget utöver VC självt | **Oprövad väg.** Se nedan |
@@ -140,6 +141,21 @@ och den gissar inte.
 
 Mätt: mappträdet före installation och efter avinstallation är byte-identiskt,
 sha256 per fil, noll skillnader.
+
+### Verktygskedjan (STruC++, OpenPLC)
+
+För PLC-generering och körning hämtas verktygskedjan med kontrollerad hash (M-56):
+
+```bash
+# Visa tillgängliga plattformar och låst digest
+python3 install/verktygskedjan.py --lista
+
+# Hämta och installera STruC++ samt kör npm ci mot vendorad låsfil
+python3 install/verktygskedjan.py
+```
+
+Kräver `Node.js` och `npm` på värden för STruC++:s AST-steg. OpenPLC Runtime v4
+körs som Docker-container (`ghcr.io/autonomy-logic/openplc-runtime@sha256:...`).
 
 ---
 
