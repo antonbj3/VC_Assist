@@ -87,7 +87,7 @@ def verifiera_utgivning(filer: List[str]) -> None:
     forbjudna = granska_utgivningslista(filer)
     if forbjudna:
         raise Extraktionsfel(
-            "Leverantorsdokumentation funnen i utgivningstradet! "
-            "Filerna under docs/referens/ far inte distribueras:\n  %s"
+            "Vendor documentation found in the release tree! "
+            "Files under docs/referens/ must not be distributed:\n  %s"
             % "\n  ".join(forbjudna)
         )
