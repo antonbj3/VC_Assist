@@ -17,6 +17,7 @@ Allt i det här lagret använder **endast standardbiblioteket**. Undantaget är
 `matning.py`, som är en mätharness och inte tjänstelager; den beror på asyncua
 och exporteras inte härifrån.
 """
+from . import matiec
 from .deklarationsgrind import (Grind3Rapport, KONTROLLER_PLC, PlcAnmarkning,
                                 bruk, granska)
 from .opcuakonfig import konfiguration, nodid, variabel
@@ -27,6 +28,7 @@ from .signalkarta import (Adress, FRAN_PLC, KartFel, Signal, Signalkarta,
                           TILL_PLC, karta_av_rader, las_adress)
 
 __all__ = [
+    "matiec",
     "Adress", "FRAN_PLC", "KartFel", "Signal", "Signalkarta", "TILL_PLC",
     "karta_av_rader", "las_adress",
     "Grind3Rapport", "KONTROLLER_PLC", "PlcAnmarkning", "bruk", "granska",
