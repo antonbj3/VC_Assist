@@ -1133,14 +1133,29 @@ class Analys(object):
         return "PASS", [], {"kollision": False}
 
     def _doma_genomflode(self, h):
-        """Holl stationerna det deklarerade genomflodeskravet?"""
+        """Holl stationerna det deklarerade genomflodeskravet?
+
+        Ett krav utan en enda PROVAD station ar inte uppfyllt - det ar
+        obesvarat. MATT (M-74): en plan som deklarerade `genomstromning` mot en
+        serie helt utan stationsprov fick PASS, alltsa ett godkannande av en
+        fraga grinden aldrig stallde. Det ar samma fel som I3 forbjuder pa
+        alla andra stallen, och det ar farligast just har: `stat` kraver ett
+        vcStatistics-beteende i scenen, och saknas det tiger provtagningen.
+        """
         stationer = h.get("stationer") or {}
         if not stationer.get("_krav"):
             return None, [], {}
+        provade = [namn for namn, d in stationer.items()
+                   if not namn.startswith("_") and isinstance(d, dict)
+                   and "svalt_s" in d]
+        if not provade:
+            return "INCONCLUSIVE", ["genomströmningskravet är deklarerat, men "
+                                    "ingen station provades"], \
+                {"brott": [], "provade": 0}
         if stationer.get("_brott"):
             return "FAIL", ["genomströmningskravet hölls inte"], \
-                {"brott": list(stationer["_brott"])}
-        return "PASS", [], {"brott": []}
+                {"brott": list(stationer["_brott"]), "provade": len(provade)}
+        return "PASS", [], {"brott": [], "provade": len(provade)}
 
     def domar(self, harledt=None):
         """{domare: {"utfall": PASS|FAIL|INCONCLUSIVE|None, "skal": [...],
@@ -1200,6 +1215,9 @@ class Analys(object):
             return "FAIL", self._orsak("robot: " + brott)
         if d["genomflode"]["utfall"] == "FAIL":
             return "FAIL", self._orsak("genomflode: genomströmningskravet hölls inte")
+        if d["genomflode"]["utfall"] == "INCONCLUSIVE":
+            return "INCONCLUSIVE", self._orsak(
+                "genomflode: " + d["genomflode"]["skal"][0])
         # Stationens egna grindar. Forreglingen forst: den ar den enda av de
         # tva som ar farlig, och den ar sann aven i en korning dar sekvensen
         # for ovrigt holl.

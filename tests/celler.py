@@ -591,6 +591,20 @@ def station_svalt_utan_krav():
     return b, plan()
 
 
+def station_krav_utan_prov():
+    """Ett genomflodeskrav deklarerat mot en serie UTAN en enda station.
+
+    Nollpunkten for genomflodesgrinden, och den var lange en falsk gron:
+    grinden sag ett krav, hittade inga brott - for det fanns inga stationer
+    att hitta brott hos - och svarade PASS. MATT i M-74. `stat` kraver ett
+    vcStatistics-beteende i scenen, och saknas det tiger provtagningen; da ar
+    kravet obesvarat, inte uppfyllt.
+    """
+    b = _grundcell("station_krav_utan_prov")
+    return b, plan(genomstromning={"max_svalt_s": 1.0,
+                                   "max_blockerad_s": 1.0})
+
+
 def station_blockerad():
     """Stationen bar nagot den inte far lamna ifran sig."""
     return (_stationscell("station_blockerad", "BLOCKED", cur=1),
@@ -1008,6 +1022,7 @@ ALLA = {
     # stationer
     "station_svalt": station_svalt,
     "station_svalt_utan_krav": station_svalt_utan_krav,
+    "station_krav_utan_prov": station_krav_utan_prov,
     "station_blockerad": station_blockerad,
     "station_upptagen": station_upptagen,
     # PLC

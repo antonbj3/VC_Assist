@@ -86,6 +86,7 @@ FACIT = {
     "station_forregling_bruten": ("FAIL", None),
     "station_gor_om_arbetet":   ("FAIL", None),
     "station_bara_en_cykel":    ("INCONCLUSIVE", None),
+    "station_krav_utan_prov":   ("INCONCLUSIVE", None),
     "station_utan_deklaration": ("INCONCLUSIVE", None),
 }
 
@@ -319,6 +320,19 @@ def test_svalt_och_blockering_faller_bara_mot_ett_deklarerat_krav():
     assert med_krav.dom[0] == "FAIL" and "svalt" in med_krav.dom[1]
     assert utan_krav.dom[0] == "PASS"
     assert a2.harledt["stationer"]["station1"]["svalt_s"] > 2.0
+
+
+def test_genomflodeskrav_utan_provad_station_ar_obesvarat_inte_uppfyllt():
+    """Nollpunkten för genomflödesgrinden.
+
+    Grinden såg ett krav, hittade inga brott — för det fanns inga stationer
+    att hitta brott hos — och svarade PASS. Ett godkännande av en fråga den
+    aldrig ställde (M-74).
+    """
+    r, _rader, a = _doma("station_krav_utan_prov")
+    assert r.dom[0] == "INCONCLUSIVE", r.dom
+    assert "ingen station provades" in r.dom[1]
+    assert a.domar()["genomflode"]["fynd"]["provade"] == 0
 
 
 def test_blockerad_och_upptagen_ar_inte_samma_sak():
