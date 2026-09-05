@@ -181,35 +181,35 @@ Every number has a measurement file behind it, stating the rig it ran on and
 what it does not show. Figures above are as of **2026-09-06**; they change as the
 project measures more.
 
-## What is being built next
+## Where this is going
 
-**Saying it however you like.** The input is plain language, and it should cover
-the whole range: a precise specification, a rough intention, or a change to a
-scene that already exists — *speed this line up*, *why does station 3 starve*,
-*swap that gripper*. The 122 tools underneath already read and modify a running
-scene, and the planner already turns a build order into a spec or tells you
-which two conditions collide. What is missing is the path from a loose sentence
-about an existing scene to the work being done; today that route is only proven
-for building something new.
+**Natural language across the whole job.** The input is plain language, and it
+should cover the range a real engineer works in: a precise specification, a
+rough intention, or a change to a cell that already exists — *speed this line
+up*, *why does station 3 starve*, *swap that gripper*. The 122 tools underneath
+already read and modify a running scene, and the planner already turns a build
+order into a buildable spec or names the two conditions that collide. The route
+from a loose sentence about an existing cell to the work being done is the piece
+still to build.
 
-**From one station to a whole line.** Not yet proven: the model writing the
-control code for a *complete line* and correcting it from what the eye reports. Faults between stations are a different problem from
-faults inside one. The rig is built and waiting on a run. If it fails, that is
-worth knowing: it would mean the value sits in the testing rather than in the
-generation.
+**Line-level generation.** Faults between stations are a different problem from
+faults inside one — five classes of them exist that every station passes on its
+own. Generating and correcting the control code for a *complete line*, on the
+eye's own reports, is the next milestone. The rig is built and waiting on a run.
 
-**Existing plants.** If a line is already running, its original code is often
-lost. Point the tool at a recording of the plant's inputs and outputs and it can
-reconstruct the logic — 28 of 28 interlocks recovered from a clean recording.
-From a production recording, 3 of 28: normal operation never exercises the
-emergency stop or the fault paths, so a recording of a good day cannot teach
-them. This works today on a purpose-made recording; it needs a real one from a
-real plant to be more than that.
+**Brownfield reconstruction.** Most lines on a factory floor are older than
+their documentation, and the original PLC project is often simply gone. Point
+this at a recording of the plant's I/O and it reconstructs the control logic:
+**28 of 28 interlocks** recovered from a clean recording. From a production
+recording, 3 of 28 — because normal operation never exercises the emergency stop
+or the fault paths, and a recording of a good day cannot teach what it never
+did. The reconstruction works; what it needs is a recording from a real plant,
+and a way to provoke the paths a good day hides.
 
-**Getting the code into your PLC.** Export to PLCopen XML works and survives a
-round trip, verified against the official schema and a second toolchain. Whether
-it opens cleanly in CODESYS or TwinCAT is untested — one exported file from
-someone who owns either would settle it.
+**Vendor toolchains.** Export to PLCopen XML works and survives a round trip,
+validated against the official schema and accepted by an independent toolchain.
+Opening it in CODESYS or TwinCAT is untested — one exported file from anyone who
+owns either would settle it for both.
 
 ## Getting started
 
