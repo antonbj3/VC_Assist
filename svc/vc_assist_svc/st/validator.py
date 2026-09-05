@@ -38,6 +38,23 @@ ARITMETIK = ("+", "-", "*", "/")
 # ser ut när deklarationsdelen ligger i en annan fil.
 EJ_SKRIVBARA = {"VAR_INPUT": "en VAR_INPUT ägs av anroparen"}
 
+# Direktadressens storleksbokstav -> de typer som får ligga där.
+# IEC 61131-3, tabell 16: X (och utelämnad bokstav) är en bit, B en byte,
+# W ett ord, D ett dubbelord, L ett långord.
+#
+# MÄTT (M-99), inte antagen: sex bokstäver × sexton typer = 96 källor genom
+# STruC++ 0.6.6. Kompilatorn byggde exakt de 16 paren nedan och avvisade de
+# övriga 80 med sin egen ordalydelse ("Type 'BOOL' is not compatible with
+# address size 'W'"). TIME saknas i varje rad: den har ingen adressbredd och
+# byggde ingenstans.
+ADRESSTORLEK = {
+    "X": ("BOOL",),
+    "B": ("BYTE", "SINT", "USINT"),
+    "W": ("WORD", "INT", "UINT"),
+    "D": ("DWORD", "DINT", "UDINT", "REAL"),
+    "L": ("LWORD", "LINT", "ULINT", "LREAL"),
+}
+
 
 @dataclass(frozen=True)
 class Post:
@@ -149,7 +166,9 @@ class Granskning(object):
     def _globala_poster(self):
         ut = {}
         for b in self.enhet.globala:
+            self._kontrollera_kvalificerare(b)
             for d in b.deklarationer:
+                self._kontrollera_adress(d)
                 ut[d.namn.upper()] = Post(
                     d.namn, d.typ, b.sort, "CONSTANT" in b.kvalificerare,
                     d.skyddad or d.namn.upper() in self.skyddade,
@@ -187,6 +206,8 @@ class Granskning(object):
         self.styrvariabler = set()
         self.slingdjup = 0
         sedda = {}
+        for b in p.block:
+            self._kontrollera_kvalificerare(b)
         for b, d in p.deklarationer():
             nyckel = d.namn.upper()
             if nyckel in sedda:
@@ -195,6 +216,7 @@ class Granskning(object):
                 continue
             sedda[nyckel] = d.rad
             self._kontrollera_typ(d.typ, d.rad)
+            self._kontrollera_adress(d)
             post = Post(d.namn, d.typ, b.sort, "CONSTANT" in b.kvalificerare,
                         d.skyddad or nyckel in self.skyddade,
                         self._ar_utgang(b.sort, d), d.rad)
@@ -214,6 +236,46 @@ class Granskning(object):
         self._satser(p.kropp)
         self._oatkomlighet(p.kropp)
         self._sekvens(p.kropp)
+
+    def _kontrollera_kvalificerare(self, b: M.Varblock):
+        """RETAIN och CONSTANT pa samma block.
+
+        En konstant har inget tillstand att behalla over en varmstart - den
+        satts om till samma varde varje gang - sa kvalificerarna sager emot
+        varandra. MATT (M-99): STruC++ 0.6.6 avvisar `VAR RETAIN CONSTANT`
+        med "Variable cannot be both RETAIN and CONSTANT"; vart lager slappte
+        igenom den, alltsa ett hal at det hall dar felet syns forst i bygget.
+        """
+        kval = set(b.kvalificerare)
+        if "CONSTANT" in kval and ("RETAIN" in kval or "NON_RETAIN" in kval):
+            behall = "RETAIN" if "RETAIN" in kval else "NON_RETAIN"
+            self.fel("TYP", b.rad,
+                     "%s och CONSTANT gar inte ihop pa samma %s-block: en "
+                     "konstant har inget tillstand att behalla"
+                     % (behall, b.sort))
+
+    def _kontrollera_adress(self, d: M.Deklaration):
+        """Adressens storleksbokstav mot den deklarerade typen.
+
+        `q AT %QW1 : BOOL;` ar ingen typfraga inne i ST-koden - den ar en
+        fraga om VAR i bildtabellen variabeln ligger, och en BOOL pa en
+        ordadress lasar och skriver fel antal byte i drift.
+
+        Tabellen ar MATT, inte antagen (M-99): 96 kombinationer av sex
+        storleksbokstaver och sexton typer genom STruC++ 0.6.6. Kompilatorn
+        godkande exakt de par som star har och avvisade de ovriga 80 - och
+        vart lager slappte igenom alla 96. Talet 80 ar hela halet.
+        """
+        if not d.adress:
+            return
+        adr = d.adress.upper()
+        storlek = adr[2] if len(adr) > 2 and adr[2] in "XBWDL" else "X"
+        tillatna = ADRESSTORLEK[storlek]
+        if not isinstance(d.typ, T.Elementar) or d.typ.namn not in tillatna:
+            self.fel("TYP", d.rad,
+                     "%s AT %s: storleken %s tar %s, inte %s"
+                     % (d.namn, d.adress, storlek, "/".join(sorted(tillatna)),
+                        d.typ.st()))
 
     def _kontrollera_typ(self, typ: T.Typ, rad: int):
         if isinstance(typ, T.Falt):
@@ -378,6 +440,16 @@ class Granskning(object):
             if not T.ar_numerisk(t):
                 self.fel("TYP", u.rad, "minustecken kräver ett tal, inte %s" % t.st())
                 return None
+            # Minustecknet hör till LITERALEN, inte till uttrycket runt den.
+            #
+            # MÄTT (M-99): `iA := -32768;` avvisades med "literalen 32768
+            # ligger utanför INT (-32768..32767)". Talet i meddelandet var
+            # 32768 därför att unärt minus lämnade literalvärdet orört och
+            # intervallkontrollen därför prövade fel tal. INT:s minsta värde
+            # är inte skrivbart som INT-literal utan den här raden, och
+            # STruC++ 0.6.6 kompilerar formen.
+            if isinstance(t, T.Literaltyp) and t.klass in ("HELTAL", "REAL"):
+                return T.Literaltyp(t.klass, -t.varde)
             return t
         if isinstance(u, M.Binar):
             return self._binartyp(u)
