@@ -37,10 +37,16 @@ sys.path.insert(0, os.path.join(_ROT, "svc"))
 from vc_assist_svc import skuld as S                     # noqa: E402
 from vc_assist_svc.harness import text as Tx             # noqa: E402
 
-# Taket för kopierade ordlistor. MÄTT 2026-09-05 (M-98): elva par, alla
-# namngivna i KOPIOR nedan. Spärren får bara gå NEDÅT — en ny kopia är en ny
-# plats där två listor kan glida isär utan att någon ser det.
-KOPIOR_TAK = 11
+# Taket för kopierade ordlistor. MÄTT 2026-09-05 (M-98). Spärren får bara gå
+# NEDÅT — en ny kopia är en ny plats där två listor kan glida isär utan att
+# någon ser det.
+#
+# Talet gick 11 → 13 inom två timmar efter att spärren skrevs: en annan agent
+# lade `_RANGORDNING` i en tredje modul (`llm/urval.py`), och namnet stod
+# redan i `api_index.py` och `verktyg/katalog.py`. Det är spärren som fungerar,
+# inte spärren som är trasig — och den rätta åtgärden när talet stiger är att
+# NAMNGE paret i KOPIOR nedan, aldrig att bara skriva upp talet.
+KOPIOR_TAK = 13
 
 # Paren som mätningen namnger. Står här och inte bara som ett tal, därför att
 # ett tak utan innehåll slutar mäta sin egen storhet: den dag ett par
@@ -67,6 +73,11 @@ KOPIOR = (
     ("svc/vc_assist_svc/verktyg/matning.py", "_YTOR_LAYOUT",
      "svc/vc_assist_svc/verktyg/robotik.py", "_YTOR_LAYOUT"),
     ("svc/vc_assist_svc/api_index.py", "_RANGORDNING",
+     "svc/vc_assist_svc/verktyg/katalog.py", "_RANGORDNING"),
+    # Tredje kopian av samma namn, tillkommen 2026-09-05 medan spärren skrevs.
+    ("svc/vc_assist_svc/api_index.py", "_RANGORDNING",
+     "svc/vc_assist_svc/llm/urval.py", "_RANGORDNING"),
+    ("svc/vc_assist_svc/llm/urval.py", "_RANGORDNING",
      "svc/vc_assist_svc/verktyg/katalog.py", "_RANGORDNING"),
 )
 
