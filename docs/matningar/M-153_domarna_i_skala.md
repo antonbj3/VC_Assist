@@ -346,4 +346,48 @@ tre varv.)*
 
 ## LIMITS
 
-(fylls i)
+* **Mätningen jämför två DOMARE, inte två motorer.** `bank/domare.py` och
+  `bank/domare_openplc.py` läser samma facit men ställer inte samma fråga om
+  det. Tre regelskillnader är utpekade och mätta (§4a flankfönstret, §4b
+  uppstartsscanet, §6 `tolkfel:*`). Om det finns fler regelskillnader som den
+  här banken inte råkar reta vet jag inte. Att kalla talen "hur mycket vår tolk
+  och OpenPLC skiljer sig" vore fel: de flesta oenigheterna går tillbaka på
+  domarmekaniken, inte på motorerna.
+* **Ingen tredje domare avgör vem som har rätt.** Där de två skiljer sig säger
+  mätningen VEM som säger VAD, inte vem som har rätt. §4a är det enda ställe
+  där rättvisan är avgjord — och där har facit rätt och OpenPLC-domarens
+  fönster fel. T-08:s ensamma punktkrav (`ST520_PRT_CNT`), C-04:s två
+  invarianter och S-05:s 34 punktkrav är rapporterade och **inte utredda**.
+* **13 instabila enheter är ett GOLV, inte ett tal.** Instabiliteten mättes vid
+  n = 3. En enhet som vacklar i en körning av tjugo ser stabil ut vid n = 3.
+  Hur talet växer med n är omätt.
+* **Omprovens urval är inte oberoende (§5).** De 13 enheterna valdes för att de
+  redan visat sig instabila. Regression mot medelvärdet gör att färre visar sig
+  instabila vid omprov även utan någon skillnad i last. Därför jämförs de två
+  armarna **med varandra**, aldrig med svepet — och även den jämförelsen har
+  bara 13 enheter under sig.
+* **Enskansglitchen i §4c är inte hänförd.** Om pulsen ligger i OpenPLC eller i
+  vår provtagning går inte att avgöra ur den här datan. Att provtagningen är
+  för gles för att avgöra det (1,70 prov per 20 ms scan, mot de 2 som
+  `POLL_S = 10 ms` antar) är däremot mätt.
+* **Punktkravens 0-offset gäller punktkrav, inte flanker.** 34 275 av 34 291
+  punktkrav låg på offset 0 och inget över 2 scan. Flankernas och
+  invarianternas fördelning **under** toleransen är fortfarande omätt, och §4a
+  visar att det är just där skillnaden bor.
+* **En maskin, en scanperiod, en runtimeversion.** 20 ms, OpenPLC v4.2.1, en
+  maskin som under hela svepet delades med tre andra sessioner, Visual
+  Components och operatörens skrivbord. Vad talen blir vid 10 eller 100 ms scan
+  är punkt A4 och är oprövat här.
+* **Kostnadstalen gäller under tolv parallella runtimes.** 84,9 s median per
+  OpenPLC-körning är mätt under den lasten. En ensam runtime är snabbare (mätt
+  samma dag: P-05:s referens 24,6 s ensam mot 29,1 s under last), så
+  "14,6 h seriellt" är en övre uppskattning och inte en mätning.
+* **Mätningen säger inget om att bankens facit är rätt.** När en referens är
+  röd hos OpenPLC-domaren kan felet ligga hos referensen, hos domaren eller hos
+  facit. §4a visar ett fall där det är domaren. De övriga är inte avgjorda, och
+  ingen av dem får läsas som att referensen är trasig.
+* **Ingen modell kördes.** Talen säger ingenting om någon modells förmåga; de
+  säger vad två domare gör med texter som redan står i banken.
+* **Ingenting är lagat.** `bank/` ligger utanför kö A:s yta i briefen, så de
+  två utpekade defekterna i §4a och §4b är **rapporterade och inte rättade**.
+  Talen i den här mätningen gäller domarna som A2 lämnade dem.
