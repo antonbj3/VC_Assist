@@ -202,7 +202,7 @@ class Kalla:
             raise Tillverkarfel("a source without a quote is not a source (%s)" % self.url)
         if self.utdrag and normalisera(self.citat) not in normalisera(self.utdrag):
             raise Tillverkarfel(
-                "citatet star inte i utdraget ur %s: %r" % (self.url, self.citat))
+                "the quote is not in the excerpt from %s: %r" % (self.url, self.citat))
 
     def rad(self) -> str:
         return '%s (hamtad %s, sha256 %s...): "%s"' % (
@@ -323,8 +323,8 @@ class Kolumn:
         if not normalisera(self.rad).lower().startswith(
                 normalisera(self.modell_i_rad).lower()):
             raise Tillverkarfel(
-                "raden %r borjar inte med modellnamnet %r - utan det gar talen "
-                "inte att rakna, for modellnamnet innehaller siffror"
+                "the row %r does not start with the model name %r - without that "
+                "the numbers cannot be counted, since the model name contains digits"
                 % (normalisera(self.rad), normalisera(self.modell_i_rad)))
 
     def enheter(self) -> List[str]:
@@ -403,7 +403,7 @@ class Uppgift:
                                 % (self.falt, self.varde))
         if self.enhet not in d.enheter:
             raise Tillverkarfel(
-                "%s: enheten %r hor inte till storheten %s; tillatna: %s"
+                "%s: the unit %r does not belong to the quantity %s; allowed: %s"
                 % (self.falt, self.enhet, d.storhet, ", ".join(sorted(d.enheter))))
         if not isinstance(self.kalla, Kalla):
             raise Tillverkarfel("%s: a task without a source is a claim"
@@ -411,9 +411,9 @@ class Uppgift:
         if self.kolumn is None:
             if not par_i_citat(self.kalla.citat, self.varde, self.enhet):
                 raise Tillverkarfel(
-                    "%s: enheten %r star inte bredvid vardet %r i citatet ur %s. "
-                    "En enhet som harletts ur ett varde ar en gissning som ser ut "
-                    "som ett matt. Citatet var: %r"
+                    "%s: the unit %r is not next to the value %r in the quote "
+                    "from %s. A unit inferred from a value is a guess that "
+                    "looks like a measurement. The quote was: %r"
                     % (self.falt, self.enhet, self.varde, self.kalla.url,
                        normalisera(self.kalla.citat)[:200]))
             return
@@ -421,11 +421,11 @@ class Uppgift:
         # raderna maste sta ordagrant i det citat kallan bar, och kopplingen
         # kontrolleras positionellt.
         n = normalisera(self.kalla.citat)
-        for namn, v in (("rubriken", self.kolumn.rubrik), ("raden", self.kolumn.rad)):
+        for namn, v in (("header", self.kolumn.rubrik), ("row", self.kolumn.rad)):
             if normalisera(v) not in n:
                 raise Tillverkarfel(
-                    "%s: %s %r star inte i kallans citat. En kolumnlasning vars "
-                    "rubrik inte finns i dokumentet ar en gissning."
+                    "%s: %s %r is not in the source's quote. A column reading "
+                    "whose header is not in the document is a guess."
                     % (self.falt, namn, normalisera(v)[:120]))
         ok, skal = self.kolumn.stammer(self.varde, self.enhet)
         if not ok:
@@ -513,29 +513,29 @@ class Svar:
         if self.lage == FINNS:
             if self.varde is None or not self.enhet or self.kalla is None:
                 raise Tillverkarfel(
-                    "%s: lage finns kraver varde, enhet OCH kalla" % self.falt)
+                    "%s: mode finns requires a value, a unit AND a source" % self.falt)
         elif self.lage == SAKNAS:
             if self.varde is not None or self.enhet or self.ordagrant:
                 raise Tillverkarfel(
-                    "%s: lage saknas far inte bara ett varde" % self.falt)
+                    "%s: mode saknas may not carry a value" % self.falt)
             if not self.skal:
                 raise Tillverkarfel(
-                    "%s: lage saknas maste saga VAD som lettes efter" % self.falt)
+                    "%s: mode saknas must state WHAT was being looked for" % self.falt)
         else:   # ENHET_SAKNAS
             if self.varde is not None:
                 raise Tillverkarfel(
-                    "%s: lage enhet_saknas far INTE bara ett talvarde - talet "
-                    "ska vara ojamforbart, inte bara omarkt" % self.falt)
+                    "%s: mode enhet_saknas may NOT carry a numeric value - the "
+                    "number must be incomparable, not merely unlabeled" % self.falt)
             if self.enhet:
                 raise Tillverkarfel(
                     "%s: lage enhet_saknas med en enhet ar en motsagelse"
                     % self.falt)
             if not self.ordagrant:
                 raise Tillverkarfel(
-                    "%s: lage enhet_saknas utan det ordagranna talet" % self.falt)
+                    "%s: mode enhet_saknas without the literal number" % self.falt)
             if not self.skal:
                 raise Tillverkarfel(
-                    "%s: lage enhet_saknas maste saga varfor enheten saknas"
+                    "%s: mode enhet_saknas must state why the unit is missing"
                     % self.falt)
 
     @property
@@ -744,7 +744,7 @@ def _post(d: Dict[str, object], fil: str) -> Modellblad:
                                 % (fil, modell, falt))
         if falt in uppgifter:
             raise Tillverkarfel(
-                "%s: %s: %s star bade som belagd och ej belagd"
+                "%s: %s: %s appears as both documented and undocumented"
                 % (fil, modell, falt))
         ej[falt] = str(skal)
     return Modellblad(modell=modell, tillverkare=tillverkare,
@@ -785,9 +785,9 @@ class Korpus:
                 k = n.strip().lower()
                 if k in self._per_vc:
                     raise Tillverkarfel(
-                        "biblioteksnamnet %r gor tva modeller anspraak pa "
-                        "(%s och %s). Ett namn som pekar pa tva datablad "
-                        "fyller den ena med den andras tal."
+                        "library name %r is claimed by two models "
+                        "(%s and %s). A name that points to two datasheets "
+                        "fills one with the other's numbers."
                         % (n, self._per_vc[k].modell, b.modell))
                 self._per_vc[k] = b
 
@@ -810,9 +810,9 @@ class Korpus:
         kat = katalog or KORPUSKATALOG
         if not os.path.isdir(kat):
             raise Tillverkarfel(
-                "ingen korpuskatalog pa %s. En saknad kalla far inte bli en tom "
-                "korpus - da hade varje falt tyst blivit `saknas` utan att nagon "
-                "sett att kallan var borta." % kat)
+                "no corpus directory at %s. A missing source must not become an "
+                "empty corpus - that would silently turn every field into `saknas` "
+                "without anyone noticing that the source was gone." % kat)
         blad: List[Modellblad] = []
         filer = sorted(f for f in os.listdir(kat)
                        if f.endswith(".json") and not f.startswith("_"))
@@ -1001,8 +1001,8 @@ def hamta(url: str, katalog: Optional[str] = None,
     kropp = kropp[:m.start()] if m else kropp
     if kod != 200 or not kropp:
         raise Tillverkarfel(
-            "%s svarade HTTP %s med %d byte. En kalla som inte gar att na far "
-            "inte bli ett tyst tomt falt." % (url, kod, len(kropp)))
+            "%s responded HTTP %s with %d bytes. A source that cannot be "
+            "reached must not become a silent empty field." % (url, kod, len(kropp)))
     s = hashlib.sha256(kropp).hexdigest()
     fil = s + (".pdf" if kropp[:4] == b"%PDF" else ".html")
     with open(os.path.join(kat, fil), "wb") as f:

@@ -55,7 +55,7 @@ def test_en_enhet_som_harletts_ur_ett_varde_falls():
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Uppgift(falt="nyttolast", varde=180, enhet="kg",
                    kalla=_kalla("MaxPayload 180"))
-    assert "star inte bredvid" in str(fel.value)
+    assert "is not next to" in str(fel.value)
     assert "180" in str(fel.value)
 
 
@@ -128,7 +128,7 @@ def test_kolumnlasningen_faller_nar_rubriken_inte_star_i_citatet():
         TD.Uppgift(falt="nyttolast", varde=20, enhet="kg",
                    kalla=_kalla(_RAD),
                    kolumn=TD.Kolumn(_RUBRIK, _RAD, "IRB 2600-20/1.65", 0))
-    assert "star inte i kallans citat" in str(fel.value)
+    assert "is not in the source's quote" in str(fel.value)
 
 
 def test_kolumnlasningen_faller_nar_talet_inte_star_i_raden():
@@ -143,7 +143,7 @@ def test_raden_maste_borja_med_modellnamnet():
     """Modellnamnet bär siffror. Räknas de med blir kolumnindexet meningslöst."""
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Kolumn(_RUBRIK, _RAD, "IRB 4600-60/2.05", 0)
-    assert "borjar inte med modellnamnet" in str(fel.value)
+    assert "does not start with the model name" in str(fel.value)
 
 
 # ---------------------------------------------------------------------------
@@ -173,14 +173,14 @@ def test_citatet_maste_sta_i_utdraget():
         TD.Kalla(url="https://example.invalid/a.pdf", hamtad="2026-09-05",
                  sha256=SHA, citat="Payload 5 kg",
                  utdrag="ingenting om nyttolast alls")
-    assert "star inte i utdraget" in str(fel.value)
+    assert "is not in the excerpt" in str(fel.value)
 
 
 def test_en_enhet_utanfor_faltets_storhet_avvisas():
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Uppgift(falt="nyttolast", varde=5, enhet="mm",
                    kalla=_kalla("Payload 5 mm"))
-    assert "hor inte till storheten Mass" in str(fel.value)
+    assert "does not belong to the quantity Mass" in str(fel.value)
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ def test_enhet_saknas_med_ett_talvarde_ar_en_motsagelse():
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Svar(falt="nyttolast", lage=TD.ENHET_SAKNAS, varde=180.0,
                 ordagrant="180", skal="x")
-    assert "far INTE bara ett talvarde" in str(fel.value)
+    assert "may NOT carry a numeric value" in str(fel.value)
 
 
 def test_enhet_saknas_med_en_enhet_ar_en_motsagelse():
@@ -218,7 +218,7 @@ def test_enhet_saknas_med_en_enhet_ar_en_motsagelse():
 def test_saknas_maste_saga_vad_som_lettes_efter():
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Svar(falt="nyttolast", lage=TD.SAKNAS)
-    assert "maste saga VAD som lettes efter" in str(fel.value)
+    assert "must state WHAT was being looked for" in str(fel.value)
 
 
 def test_finns_kraver_varde_enhet_och_kalla():
@@ -328,7 +328,7 @@ def test_en_saknad_korpuskatalog_kastar_i_stallet_for_att_bli_tom(tmp_path):
     """
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Korpus.las(str(tmp_path / "finns-inte"))
-    assert "far inte bli en tom korpus" in str(fel.value)
+    assert "must not become an empty corpus" in str(fel.value)
 
 
 def test_en_tom_korpuskatalog_kastar_ocksa(tmp_path):
@@ -377,7 +377,7 @@ def test_tva_modeller_som_gor_ansprak_pa_samma_biblioteksnamn_kastar(tmp_path):
     with pytest.raises(TD.Tillverkarfel) as fel:
         _skriv_korpus(tmp_path, [_post("A", ["IRB 660"], 180),
                                  _post("B", ["IRB 660"], 250)])
-    assert "gor tva modeller anspraak pa" in str(fel.value)
+    assert "is claimed by two models" in str(fel.value)
 
 
 def test_ett_falt_som_bade_ar_belagt_och_ej_belagt_kastar(tmp_path):
@@ -385,7 +385,7 @@ def test_ett_falt_som_bade_ar_belagt_och_ej_belagt_kastar(tmp_path):
     p["ej_belagda"]["nyttolast"] = "bladet anger ingen nyttolast"
     with pytest.raises(TD.Tillverkarfel) as fel:
         _skriv_korpus(tmp_path, [p])
-    assert "bade som belagd och ej belagd" in str(fel.value)
+    assert "appears as both documented and undocumented" in str(fel.value)
 
 
 def test_ett_ej_belagt_falt_utan_skal_kastar(tmp_path):
