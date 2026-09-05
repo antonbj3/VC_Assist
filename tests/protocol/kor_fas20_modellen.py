@@ -33,6 +33,33 @@ Tre tysta villkor styr uppstallningen, alla matta i M-40/M-41:
 Utan --starta-om skrivs startskriptet och korningen sager till att VC maste
 startas om for hand innan matningen betyder nagot.
 """
+
+BANKPOST = {
+    "pastar":
+        "Specens fyra minsta uppsattningar - transportor, matare, sanka och "
+        "buffert - gar att bygga UR kravlistorna, koppla ihop i VC och lata "
+        "material rora sig genom hela kedjan.",
+    "under_prov": ("svc/vc_assist_svc/komponentmodell.py",),
+    "facit":
+        "de par specen sager ska ga ihop ska ge canConnect sant, och material "
+        "ska ha rort sig genom kedjan matare, transportor, buffert och sanka",
+    "facitkalla":
+        "docs/spec/49_komponentmodellen.md sager vad varje klass minst "
+        "behover och ar skriven fore korningen; svaret pa om det haller "
+        "kommer ur VC:s eget canConnect och ur produkternas verkliga "
+        "banavstand",
+    "facitkalla_filer": ("docs/spec/49_komponentmodellen.md",),
+    "trasiga_fall": (
+        "en komponent dar exakt ett kravt beteende utelamnats ska ge "
+        "canConnect FALSKT",
+        "en HEL tvilling pa SAMMA plats i varlden ska ge SANT - utan den "
+        "mater fixturen 'nagonting gick fel' och inte 'det har kravet ar ett "
+        "krav'",
+        "felet ska saga VILKET beteende som fattas",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-101",),
+}
 import argparse
 import json
 import os
@@ -308,8 +335,12 @@ def _vc_processer():
             continue
         try:
             with open("/proc/%s/cmdline" % post, "rb") as f:
-                cmd = f.read().decode("utf-8", "replace")
-            if "VisualComponents.Engine.exe" not in cmd:
+                argv = f.read().decode("utf-8", "replace").split("\0")
+            # argv[0], inte en delstrang av hela raden. En sokning som bara
+            # fragar "star namnet nagonstans i kommandoraden" traffar sitt
+            # EGET skal: skriptet som letar bar namnet i sin egen rad och
+            # rapporterade sig sjalvt som en VC i fel prefix.
+            if not argv or not argv[0].endswith("VisualComponents.Engine.exe"):
                 continue
             miljo = {}
             with open("/proc/%s/environ" % post, "rb") as f:
@@ -339,6 +370,20 @@ def _verifiera_prefix():
             fel.append("pid %d kor i okant prefix %r" % (pid, pfx))
         if dsp != DISPLAY:
             fel.append("pid %d har DISPLAY=%r, inte %r" % (pid, dsp, DISPLAY))
+    return fel
+
+
+def _far_stoppa():
+    """~/bin/vc-stoppa.sh dodar VARJE VisualComponents.Engine.exe, oavsett
+    prefix. Kor operatoren VC i sitt eget prefix far vi INTE stoppa nagot --
+    hans prefix rors aldrig av oprovad kod, och det galler ocksa att sla av
+    det. Fail-closed: kan vi inte se prefixet stannar vi."""
+    fel = []
+    for pid, miljo in _vc_processer():
+        pfx = miljo.get("WINEPREFIX", "")
+        if os.path.normpath(pfx) != os.path.normpath(PREFIX):
+            fel.append("pid %d kor i %r, inte i testprefixet -- stoppar inte"
+                       % (pid, pfx))
     return fel
 
 
@@ -576,6 +621,11 @@ def main(argv=None):
         return 0
 
     if a.starta_om:
+        sparr = _far_stoppa()
+        for r in sparr:
+            print("  FEL  %s" % r)
+        if sparr:
+            return 1
         print("  startar om VC pa DISPLAY=%s i %s ..." % (DISPLAY, PREFIX))
         _starta_om_vc()
         if not _vanta_pa_bryggan(420.0):
