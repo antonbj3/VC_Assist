@@ -83,6 +83,7 @@ from .lagen import (Aterhamtningsfel, BLOCKERAD, DELSYSTEM, FRANKOPPLAD,
                     KAN_NEJ, LEVANDE, NERE, OBESTAMT, OKAND, STILLA,
                     UTAN_SJALVSTART, vagarna)
 from .yta import (ATERHAMTAR_MARKOR, FORSOKER_MARKOR, INGET_FORSOK,
+                  NEKANDET,
                   MAX_AVLASNINGSRADER, MAX_BREDD, PAGAR_MARKOR, RACKVIDDEN,
                   RUBRIK_AVLASNINGAR, RUBRIK_DELSYSTEM, RUBRIK_LAGE,
                   RUBRIK_STEGEN, RUBRIK_VAGAR, RUBRIK_VET_INTE, allvarligast,
@@ -129,6 +130,10 @@ def frammande(blick: Blick) -> Tuple[str, ...]:
     egna utfallsord. Vår egen prosa står inte här: den får brytas och ramas in.
     """
     ut: List[str] = []
+    if blick.obestamd:
+        # En bild som inte gick att läsa bär inga främmande ord utom läsfelet,
+        # och det prövas av `_granska_obestamd` för sig.
+        return ()
     for d in DELSYSTEM:
         if lage_for(blick.bild, d, blick.nu) in LEVANDE:
             continue
@@ -241,12 +246,13 @@ def granska(blick: Blick, text: Optional[str] = None,
     # blivit fel: bryggan kan ha slagit av sin självstart efter att försöket
     # började.
     mojliga, omojliga = mojliga_och_omojliga(blick)
-    # `INGET_FORSOK` innehåller själv frasen `FORSOKER_MARKOR` — den är en
-    # NEKANDE mening om precis den saken. Den plockas därför bort innan
-    # markören söks; annars fäller regeln varje ärlig visning och släpper
-    # igenom noll, vilket är en grind som mäter sin egen formulering.
+    # `NEKANDET` innehåller själv frasen `FORSOKER_MARKOR` — den är en NEKANDE
+    # mening om precis den saken, och den står i flera orsakstexter också.
+    # Den plockas därför bort innan markören söks; annars fäller regeln varje
+    # ärlig visning och släpper igenom noll, vilket är en grind som mäter sin
+    # egen formulering i stället för ett påstående.
     utan_nekandet = _MELLANRUM.sub(" ", egna).replace(
-        _MELLANRUM.sub(" ", INGET_FORSOK), "")
+        _MELLANRUM.sub(" ", NEKANDET), "")
     lovar = (FORSOKER_MARKOR in utan_nekandet
              or ATERHAMTAR_MARKOR in utan_nekandet)
     if lovar and not mojliga:
@@ -367,9 +373,9 @@ def _granska_rakningar(blick: Blick, text: str, huvud: str,
     return brott
 
 
-def _granska_bredd(blick: Blick, text: str) -> List[Brott]:
+def _granska_bredd(blick: Blick, text: str, extra=()) -> List[Brott]:
     fritagna = set()
-    for ord_ in frammande(blick):
+    for ord_ in tuple(frammande(blick)) + tuple(extra):
         for rad in ord_.splitlines():
             fritagna.add(rad.strip())
     brott: List[Brott] = []
@@ -418,7 +424,8 @@ def _granska_obestamd(blick: Blick, text: str,
         if not any(d in r and OBESTAMT in r for r in text.splitlines()):
             brott.append(Brott("Å2", "delsystemet %s står inte som %s i den "
                                      "obestämda visningen" % (d, OBESTAMT)))
-    brott.extend(_granska_bredd(blick, text))
+    brott.extend(_granska_bredd(blick, text, (blick.fel,) if blick.fel
+                                else ()))
     return Aterhamtningsdom(brott)
 
 

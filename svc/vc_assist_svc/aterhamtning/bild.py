@@ -390,9 +390,13 @@ def lage_for(bild: Systembild, delsystem: str, nu: float) -> str:
             return SIMULERING_IGANG
         return ANSLUTEN
     if sista.svarade is False:
-        if sista.sista_loggrad.strip() == MODAL_OPPEN_RAD \
-                and alder <= bild.t_modal:
-            return BLOCKERAD
+        if sista.sista_loggrad.strip() == MODAL_OPPEN_RAD:
+            # §3.6:s undantag: ingen övergång till NERE medan en modal står
+            # öppen. Men undantaget har en gräns. Efter taket går det inte
+            # längre att skilja en ruta som står öppen från en brygga som dog
+            # bakom den, och då är det ärliga svaret varken det ena eller det
+            # andra.
+            return BLOCKERAD if alder <= bild.t_modal else OBESTAMT
         if bild.har_svarat(delsystem):
             return NERE
         return FRANKOPPLAD

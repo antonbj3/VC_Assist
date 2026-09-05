@@ -183,9 +183,16 @@ VAGAR = (MENYVAL2, SJALVSTART, VC_OMSTART, LASANDE_EXEC, STANG_MODALEN,
 
 # Tre svar, aldrig två. Ett `okänt` som klumpas ihop med `ja` blir ett löfte,
 # och ett som klumpas ihop med `nej` slänger en väg som kanske fungerar.
+# Orden är valda så att INGET är en delsträng av ett annat. Det är inte
+# stilistik: grinden letar efter dem i en främmande renderares text, och den
+# första formuleringen — `okänt om den kan lyckas` — bar `kan lyckas` inuti
+# sig. En grind som letar efter `kan lyckas` hade då sagt ja om en väg som
+# stod som okänd, alltså gjort ett okänt till ett löfte i just det steg som
+# finns för att förhindra det. `test_ingen_kanskap_ar_delstrang_av_en_annan`
+# håller regeln.
 KAN_JA = "kan lyckas"
 KAN_NEJ = "kan inte lyckas"
-KAN_OKAND = "okänt om den kan lyckas"
+KAN_OKAND = "okänt om den hjälper"
 KANSKAP = (KAN_JA, KAN_NEJ, KAN_OKAND)
 
 

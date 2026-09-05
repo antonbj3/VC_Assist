@@ -62,7 +62,14 @@ RUBRIK_STEGEN = "STEGEN SOM HITTAR ORSAKEN:"
 # efter en formulering den hittat på i farten mäter sin egen fantasi.
 FORSOKER_MARKOR = "försöker igen"
 ATERHAMTAR_MARKOR = "återhämtning pågår"
-INGET_FORSOK = "Ingenting försöker igen."
+# Nekandet står som en egen konstant, och grinden stryker det ur texten INNAN
+# den letar efter markören. Skälet är mätt på den här ytan: `FORSOKER_MARKOR`
+# är en delsträng av sin egen negation, och flera orsakstexter säger just
+# "Ingenting försöker igen, och det är avsiktligt". Utan strykningen fäller
+# regeln varje ärlig visning och släpper igenom noll — en grind som mäter sin
+# egen formulering i stället för ett påstående.
+NEKANDET = "Ingenting försöker igen"
+INGET_FORSOK = NEKANDET + "."
 
 # Radbredden. En rad som inte får plats i ett terminalfönster läses inte, och
 # en yta som inte läses är samma sak som ingen yta. Gränsen gäller VISNINGENS
@@ -299,9 +306,11 @@ def _avlasningsrader(blick: Blick) -> List[str]:
         rader.append("  ... %d till, ej visade." % dolda)
     for a in visade:
         svar = {True: "svar", False: "tyst", None: "ej frågat"}[a.svarade]
-        rader.append("  t-%-7.1f %-9s %-10s %s"
-                     % (blick.nu - a.t, a.delsystem, svar,
-                        a.fel or a.orsak or ""))
+        # `rstrip` med flit: en rad som slutar i mellanslag ser ut som en
+        # avhuggen rad för den som läser i en terminal.
+        rader.append(("  t-%-7.1f %-9s %-10s %s"
+                      % (blick.nu - a.t, a.delsystem, svar,
+                         a.fel or a.orsak or "")).rstrip())
     return rader
 
 
@@ -358,9 +367,9 @@ def _rendera_obestamd(blick: Blick) -> str:
     lugn början är den falska grönen i sin renaste form — M-93 skrev formen,
     och den gäller ord för ord här.
     """
-    rader = ["%s %s %s" % (RUBRIK_LAGE, "systembilden", OBESTAMT),
-             "%s systembilden %s gick inte att läsa."
-             % (RUBRIK_ORSAK, blick.kalla or SAKNAS)]
+    rader = ["%s %s %s" % (RUBRIK_LAGE, "systembilden", OBESTAMT)]
+    rader.extend(_bryt("%s systembilden %s gick inte att läsa."
+                       % (RUBRIK_ORSAK, blick.kalla or SAKNAS)))
     rader.extend(_block("läsfelet", blick.fel))
     rader.append("")
     rader.append("%s inget försök pågår" % RUBRIK_ATERHAMTNING)
@@ -416,7 +425,7 @@ def rendera(blick: Blick, loggar=None) -> str:
 
 
 __all__ = ["ALLVAR", "ATERHAMTAR_MARKOR", "FORSOKER_MARKOR", "INGET_FORSOK",
-           "MAX_AVLASNINGSRADER", "MAX_BREDD", "PAGAR_MARKOR",
+           "MAX_AVLASNINGSRADER", "MAX_BREDD", "NEKANDET", "PAGAR_MARKOR",
            "mojliga_och_omojliga",
            "RACKVIDDEN",
            "RUBRIK_ATERHAMTNING", "RUBRIK_AVLASNINGAR", "RUBRIK_DELSYSTEM",
