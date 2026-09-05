@@ -198,13 +198,11 @@ own. Generating and correcting the control code for a *complete line*, on the
 eye's own reports, is the next milestone. The rig is built and waiting on a run.
 
 **Brownfield reconstruction.** Most lines on a factory floor are older than
-their documentation, and the original PLC project is often simply gone. Point
-this at a recording of the plant's I/O and it reconstructs the control logic:
-**28 of 28 interlocks** recovered from a clean recording. From a production
-recording, 3 of 28 — because normal operation never exercises the emergency stop
-or the fault paths, and a recording of a good day cannot teach what it never
-did. The reconstruction works; what it needs is a recording from a real plant,
-and a way to provoke the paths a good day hides.
+their documentation, and the original PLC project is often gone. Point this at a
+recording of the plant's I/O and it reconstructs the control logic: **28 of 28
+interlocks** recovered from a clean recording, **3 of 28** from a production one.
+The gap is the whole problem — a recording of normal operation contains no
+emergency stop to learn from.
 
 **Vendor toolchains.** Export to PLCopen XML works and survives a round trip,
 validated against the official schema and accepted by an independent toolchain.
