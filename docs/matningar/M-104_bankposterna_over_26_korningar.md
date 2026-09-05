@@ -182,10 +182,14 @@ STruC++-CLI var angiven:
   svaret *"anropet kastade inte"*. Bara `set_transform` följt av
   `get_transform` jämför ett **värde**. Att alla anrop går igenom är inte
   samma sak som att verktygen gör rätt.
-* **Registret rör sig.** Sex körningar landade från andra agenter medan den
-  här mätningen skrevs. Taket `TAK_ODEKLARERADE = 0` betyder att nästa körning
-  som landar utan post gör sviten röd — det är avsikten, och felmeddelandet
-  säger vad som ska göras.
+* **Registret rör sig, och fort.** Under den här mätningens kväll gick det
+  från 26 körningar till **38**: tolv landade från andra agenter medan
+  posterna skrevs. Tabellen ovan är därför en ögonblicksbild räknad vid 36
+  poster; sifferraderna i prosan är räknade ur samma ögonblick. De sista två
+  körningarna kom med **egna** poster, skrivna av sina ägare — vilket är hela
+  poängen med att kontraktet bor i körningarnas filer och inte i en lista.
+  Taket `TAK_ODEKLARERADE = 0` gör sviten röd på nästa körning som landar
+  utan post, och felmeddelandet säger vad som ska göras.
 * **Tre filer var ospårade** när jag skrev i dem: `kor_tackning.py` och
   `kor_m107_bygg_korpus.py` fick sina poster, och `kor_m107_berikningen.py`
   fick sitt `kraver` rättat från `"installerat VC-bibliotek"` till `"vc"`
