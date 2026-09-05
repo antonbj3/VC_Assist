@@ -110,14 +110,64 @@ lagret.
 
 ## Talen
 
-*(Fylls i när körningarna mot den lagade grinden är klara. De första talen —
-1 av 4 lösta, 3 av 4 i taket, 1,045 USD — är mätta med den TRASIGA grinden och
-publiceras inte som fasens tal.)*
+Alla mot den **lagade** grinden. Talen från de första körningarna publiceras
+inte som fasens: de mättes med tidsliteralbuggen i grinden.
+
+### Enskott — modellen får ett försök
+
+| | löst | n |
+|---|---|---|
+| **utan grindreglerna** | **0 av 20** | 5 per uppgift, 4 uppgifter |
+
+Noll. Inte noll av fyra — noll av tjugo. Det är en fast nolla, inte brus, och
+det är utgångsläget: en modell som aldrig fått veta vad grinden fäller på kan
+inte undvika det.
+
+Felklasserna i enskott utan regler: `DUBBELSKRIVNING` i 3 av 4 uppgifter,
+`SYNTAX` i 1. Ingen av dem är okunnighet om palleteringsceller. Båda är
+konventioner grinden kräver och som ingen sagt.
+
+### Flerskott — grindens egna ord tillbaka, tak fyra varv
+
+`--lage historik`, alltså modellen ser sina tidigare försök och varje doms
+egna ord.
+
+| Uppgift | utfall | varv | kostnad |
+|---|---|---:|---:|
+| H-04 | **löst** | 3 | 0,296 USD |
+| L-05 | **löst** | 1 | 0,134 USD |
+| S-05 | **löst** | 2 | 0,287 USD |
+| T-07 | slog i taket | 4 | 0,605 USD |
+| | **3 av 4** | median **2** | **1,322 USD** |
+
+Det är det tal som svarar mot kravet *"flerskott som fastnar på grindar och
+görs om är fallback"*. Reserven fungerar, och den kostar en dryg dollar för
+fyra industriceller.
+
+**Taket på fyra varv är nu prövat mot en riktig modell**, vilket `M-52` aldrig
+kunde. Det räckte i tre fall av fyra och slog i i det fjärde. Ett tak som
+aldrig prövats är ett påstående; det här är ett mätt tal.
+
+### Vad avståndet mellan 0 av 20 och 3 av 4 betyder
+
+Skillnaden är inte modellens förmåga. Det är **återkopplingen**. Samma modell,
+samma uppgifter, samma grindar — enda skillnaden är att den andra körningen får
+se vad grinden sa.
+
+Det säger var arbetet mot enskott ska ligga: allt som grinden vet ska sägas
+**före** skrivningen, inte efter. `forhandsregler.py` gör det för grind 2, grind
+3 och ögats nio klasser, genererat ur grindarnas egna tabeller. Effekten mäts
+i en pågående körning.
 
 ## LIMITS
 
-* **Talen mot den lagade grinden är inte klara än.** Det som står ovan är
-  mekanismen och fyndet, inte fasens utfall.
+* **Enskott MED grindreglerna är inte färdigmätt.** Körningen med n = 5 per
+  uppgift pågår. Tre tidigare armar med n = 1 gav alla 1 av 4 — men på **olika
+  uppgift varje gång**, vilket är signaturen för brus och inte för en effekt.
+  Det talet publiceras när det har en nämnare som tål att läsas.
+* **T-07 slog i taket och orsaken är inte utredd.** Fyra varv, 0,605 USD, och
+  ingen dom lästes efteråt. Att det är uppgiften och inte grinden är
+  **antaget**.
 * **n = 1 per uppgift och läge.** Ingen upprepning, ingen spridning.
 * **Fyra uppgifter av 51** — bara de har spårfacit.
 * **En modell, en promptformulering.** Byts någotdera kan talen bli andra.
