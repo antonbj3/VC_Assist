@@ -119,6 +119,35 @@ plugin-synk 10 ms) + tabell→läsning (≤1 + 5 ms poll). Timerns logik löser
 på samma scan (200=200); kanalen lägger 2 scan fas. Nio mätningar, noll
 undantag.
 
+## OPC UA-ledet (2026-09-05, KLART)
+
+Kört av `tests/protocol/kor_openplc_opcua.py` (GODKÄND, exit 0) mot
+Matstation-genomsläpp på egen behållare. Förväntat utfall formulerat före
+varje prov.
+
+| prov | förväntat | mätt |
+|---|---|---|
+| skriv till FRAN_PLC-utgång som anonym | avvisas högljutt | **BadInternalError 0x80020000**, `DENY write ... role: engineer` i logg, minnet oförändrat |
+| läs okänd nod | BadNodeIdUnknown, aldrig default | **0x80340000**, inget värde lämnas |
+| skriv fel typ till BOOL (INT/Float/STRING) | okänt — sondering | **permissiv coercion**: noll→False, övrigt→True (`'abc'`→False, `'yes'`→True); status Good |
+| stopp via REST | okänt — sondering | **OPC UA dör med PLC:n**: anslutningar bryts, nya nekas; vid omstart är **allt nollställt** |
+| timing, fasvarierad skrivning | 1–2 scan | lokal 0,99 ms median; RTT **30,2 ms median** (24–42 spann) |
+
+Viktigaste raden för kedjan: typfelet är tyst (coercion, Good) — en kopplare
+som skriver fel typ får rätt statuskod tillbaka och fel värde i PLC:n.
+Och stopp är totalt: ingen session överlever, inget värde heller.
+
+## Scantid + digest (2026-09-05, KLART)
+
+Samma storhet, tre (fyra) tal: OpenPLC `cycle_time_avg` **20.000 ms**
+(REST `include_stats`, EWMA) = `tolk.SCAN_MS` **20.0** = `TASKINTERVALL`
+**T#20ms** = STruC++-REPL `Cycle: 20ms`. Differens 0.0 ms. Notera:
+OpenPLC:s `scan_time` (~2 µs) är ren exekveringstid — inte perioden.
+
+Digest: `...openplc-runtime@sha256:40726c...cc738bc1435` i
+`verktygskedjan.py:123` = RepoDigests för `:latest` = image-ID för
+körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
+
 ## LIMITS
 
 * **Facit är OpenPLC v4 i Docker, inte fysisk PLC-hårdvara.** Fältbussjitter och hårdvaru-I/O ingår inte.
@@ -129,3 +158,7 @@ undantag.
 * **Enprogramsbehållare, två signaler, Linux, anonym OPC UA.** Hundra taggar, certifikat, Windows och VC-scen ingår inte.
 * **Den delade ST8-behållaren rördes aldrig.** Alla M-108-körningar gick mot `vcassist-openplc-m108` (18444/14841); ST8-linan lämnades åt sin ägare.
 * **IEC-citatet för CONCAT är kvalitativt.** Exakt tabellnummer i 61131-3 är inte verifierat mot standardtext — stdbibliotekets egen signatur (`=IN1`, variadisk STRING) är den kontrollerade referensen.
+* **OPC UA-coercion är permissiv:** INT/Float/STRING till BOOL konverteras tyst med status Good. En typförväxling i kopplaren syns inte i returkoden.
+* **Stopp nollställer allt:** sessioner bryts, bildtabellen återgår till default. Ingen persistens över REST-omstart är mätt — eller lovad.
+* **RTT-spannet 24–42 ms är fas, inte last.** En mätning vid ett fasläge är ingen fördelning; I5 kräver serier.
+* **Klassificeringslogiken är låst i `tests/enhet/test_openplc_klassificering.py`** (41 prov, ingen docker): alla `klassificera`-grenar + BENCH-4-vakt (`facitkalla_filer ∩ under_prov = ∅`) för båda kor-skripten.
