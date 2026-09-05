@@ -94,7 +94,10 @@ on a part the previous station had not finished.
 
 We read five papers in full before building it — LLM4PLC, Agents4PLC, AutoPLC,
 SemaPLC and Spec2Control. Each closes its loop around formal verification or a
-test harness. None deploys the code to a PLC and runs it against a plant.
+test harness; none of them reports running the generated code on a PLC against a
+plant model and correcting it from the result. Nor does any vendor publish a
+correctness figure at all. What happens in labs we cannot see is another
+question.
 
 ## Finding the right machine
 
