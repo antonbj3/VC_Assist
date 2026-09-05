@@ -48,6 +48,26 @@ K5  VILLKOR  -   IF a_tid.Q AND b_laget <> 2 THEN
 | **K4** | förreglingen skriven för linan i stället för per station | en förregling som håller inom en station men bryts mellan två |
 | **K5** | station A släpper inte förrän station B:s zon är tom | en station blockerar nästa: mättnad nedströms |
 
+### Vilka klasser som är täckta, och var två fall delar en klass
+
+Fem klasser skulle fällas, och alla fem är fällda — men täckningen är inte en
+ren bijektion, och det ska stå:
+
+| Klass | Fällt av | Talet som säger det |
+|---|---|---|
+| en station blockerar nästa (mättnad nedströms) | **K5** | station A:s broms ute i 35 % av proven mot 23 % i den hela lösningen |
+| en station svälter (tomgång uppströms) | **K2** | åtta produkter passerade station B, och B:s broms gick inte ut en enda gång |
+| två stationer tar samma resurs | **K1** och **K3** | K1: noll flanker på 80 s. K3: 15 konflikter om det delade donet mot 0 |
+| en produkt lämnar station 1 innan station 2 är redo | **K4** | produkten når station B efter 3,3–3,6 s; fönstret är 4,09–8,89 s |
+| en förregling håller inom en station men bryts mellan två | **K3** och **K4** | 0,00 s överlapp inom **båda** stationerna, 3,90 s mellan dem |
+
+Två klasser är alltså fällda av två fall var, och två fall bär två klasser var.
+`K1` och `K3` är samma klass sedd på två ställen — den ena delar en variabel i
+programmet, den andra ett don i scenen — och `K3` och `K4` bryter båda en
+förregling som håller inom stationen. Det är inte en brist i mätningen, men det
+är inte heller fem oberoende mekanismer, och den som läser tabellen ska veta
+vilket.
+
 ### Två sorters ändringar, och skillnaden bär halva beviset
 
 **INSTANS** (K1, K2) låter stationerna dela en arbetsvariabel. Texten är
