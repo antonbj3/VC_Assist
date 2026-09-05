@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Any, List, Optional, Sequence, Tuple
 
 from .sakerhet import ROT
-from .text import bar_ord, ogonmeningar, satser
+from .text import ogonmeningar, satsen_med
 
 _EXT = os.path.join(ROT, "ext", "vc_addon", "vc_assist")
 if _EXT not in sys.path:
@@ -83,13 +83,6 @@ class Anmarkning:
         return "%s: %s" % (self.kod, self.skal)
 
 
-def _bar(lag: str, ord_: Sequence[str]) -> Optional[str]:
-    """Ordgrans, inte delstrang. Se text.bar_ord: "placeringen" innehaller
-    "ingen", och med delstrangsmatchning trodde grinden att en mildrad dom
-    nekade nagot. Matt i efterlevnadsbanken 2026-09-04 (falla F-32)."""
-    return bar_ord(lag, ord_)
-
-
 def _obestridd_sats(mening_lag: str, ord_: Sequence[str]) -> Optional[str]:
     """Den forsta SATSEN som bar ett ord ur ord_ utan att neka det.
 
@@ -109,11 +102,13 @@ def _obestridd_sats(mening_lag: str, ord_: Sequence[str]) -> Optional[str]:
     Varje sats provas for sig, och det ar med flit: "Ogat sa inte PASS, men
     cellen ar godkand" bar bade en nekad och en obestridd dom, och det ar den
     obestridda som ska anklagas.
+
+    Matchningen gar pa ORDGRANS och inte pa delstrang, och det ar ocksa matt:
+    "placeringen" innehaller "ingen", och med delstrangsmatchning trodde
+    grinden att en mildrad dom nekade nagot (efterlevnadsbanken 2026-09-04,
+    falla F-32). Ordgransen ligger i text.bar_ord, som satsen_med anropar.
     """
-    for sats in satser(mening_lag):
-        if _bar(sats, ord_) and not _bar(sats, NEKANDE_OGONORD):
-            return sats
-    return None
+    return satsen_med(mening_lag, ord_, NEKANDE_OGONORD)
 
 
 def _godkannande(mening) -> bool:

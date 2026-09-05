@@ -395,16 +395,26 @@ def satser(mening_lag: str) -> Tuple[str, ...]:
     return tuple(d.strip() for d in delar if d.strip())
 
 
-def satsen_med(mening_lag: str, ord_: Sequence[str]) -> Optional[str]:
-    """Den forsta satsen som bar nagot ord ur ord_, eller None.
+def satsen_med(mening_lag: str, ord_: Sequence[str],
+              utan: Sequence[str] = ()) -> Optional[str]:
+    """Den forsta satsen som bar nagot ord ur ord_ men inget ur utan.
 
     Finns for att ett nekande ska kunna knytas till RATT storhet. Fragan
     "bar meningen ett nekande ord?" svarar pa fel storhet sa fort meningen
     har mer an en sats; fragan "bar SATSEN med godkannandet ett nekande
     ord?" svarar pa ratt.
+
+    VARJE sats provas, och det ar med flit: "Ogat sa inte PASS, men cellen ar
+    godkand" bar bade en nekad och en obestridd dom, och det ar den obestridda
+    som ska hittas.
+
+    Funktionen ligger HAR och inte i den grind som behover den, av precis det
+    skal modulens inledning ger: en kopierad mekanism blir tva mekanismer sa
+    fort nagon rattar den ena. M-98 kom av att oga.py hade en egen kopia av
+    ordlistan; mekanismen ska inte fa samma ode.
     """
     for sats in satser(mening_lag):
-        if bar_ord(sats, ord_):
+        if bar_ord(sats, ord_) and not (utan and bar_ord(sats, utan)):
             return sats
     return None
 
