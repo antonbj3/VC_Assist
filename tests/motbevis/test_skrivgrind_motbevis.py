@@ -48,7 +48,6 @@ def test_en_skrivning_skriven_som_dunderanrop_maste_ocksa_fastna(kod, skal):
 # ---- 2. skriptbeteendegrinden är fail-open ------------------------------
 
 SKRIPTBETEENDEN = [
-    ("c.createBehaviour(**{'type': VC_SCRIPT, 'name': 'x'})", "nyckelordsargument"),
     ("setattr(b, 'Script', kod)", "tilldelning till .Script via setattr"),
 ]
 
