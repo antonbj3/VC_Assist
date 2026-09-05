@@ -29,6 +29,17 @@ if ! flock -w 300 9; then echo "fel: fick inte låset inom 300 s"; exit 3; fi
 # Den gamla sökvägen ska ändå med i `git commit`, annars blir raderingen kvar.
 # -A med uttryckliga sökvägar är ofarligt; farligt är bara -A UTAN sökvägar,
 # och skriptet vägrar redan köra utan dem.
+# Katalogargument vagras. En katalog stagar ALLT i den, inklusive det en
+# annan session har osparat dar just nu - och det hande: en annan agents
+# arbete i datablad.py foljde med i en commit vars meddelande handlade om
+# nagot helt annat. Namnge filer, sa ar du ansvarig for exakt det du namner.
+for v in "$@"; do
+  if [ -d "$REPO/$v" ] || [ -d "$v" ]; then
+    echo "fel: $v ar en katalog. Namnge filerna."
+    echo "     En katalog stagar aven det andra sessioner har osparat dar."
+    exit 7
+  fi
+done
 FINNS=()
 for v in "$@"; do
   if [ -e "$REPO/$v" ] || [ -e "$v" ]; then FINNS+=("$v"); fi
