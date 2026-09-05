@@ -13,7 +13,12 @@
 
 ## Resultat
 
-(TODO — andel per uppgift, inte bara summor.)
+### Arm 1 (flerskott historik) — BLOCKERAD, ingen mätdata 2026-09-06
+
+- Kommando: `python3 tests/protocol/kor_fas9_slingan.py --lage historik --json docs/matningar/m110_flerskott_historik.json` (exit 1).
+- Utfall: **21 av 21 KORNINGSFEL**, `lost 0 av 21`, kostnad **0.000 USD**. Orsak: `Modellfel('claude gav slutkod 1: ')` på varje uppgift — repots enda modellklient är `claude -p` (`svc/vc_assist_svc/modellklient.py:71`) och CLI:t svarar `Not logged in · Please run /login` i denna miljö. Inget anrop nådde modellen; inget är mätt, inget är förbrukat.
+- Alternativen är avvisade: `InspeladModell` är en inspelning (vore attrappstal, fail-closed gäller), Ollama finns som env-namn men ingen klient för den i repot — att bygga en ny klient mitt i mätningen vore att byta apparat (§4).
+- Nästa steg kräver inloggat `claude` (operatörens miljö) eller besked om annan väg. Armarna 2–4 körs inte förrän arm 1 kan nå modellen — att bränna armar mot en död klient ger bara fler nollfiler.
 
 ## LIMITS
 
