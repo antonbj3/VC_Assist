@@ -219,7 +219,7 @@ def _skriv_ovriga(mal, vcmappar, skriv):
 def kommando_installera(args, miljo, skriv):
     mal, vcmappar = mal_ur_argument(args, miljo)
     if not mal:
-        skriv("Hittade ingen VC-mapp att installera i. Kor 'sok' for detaljer.")
+        skriv("Hittade ingen VC-mapp att installera i. Kor 'python3 install/installera.py sok' for att se vad som hittades, eller ange malet direkt med --mal '<sokvag>'.")
         return INGEN_VC
 
     for m in mal:
@@ -252,12 +252,12 @@ def kommando_installera(args, miljo, skriv):
 def kommando_avinstallera(args, miljo, skriv):
     mal, _vcmappar = mal_ur_argument(args, miljo)
     if not mal:
-        skriv("Hittade ingen VC-mapp. Kor 'sok' for detaljer.")
+        skriv("Hittade ingen VC-mapp. Kor 'python3 install/installera.py sok' for detaljer, eller ange --mal.")
         return INGEN_VC
     hittade_nagot = False
     for m in mal:
         if paket.las_manifest(m.malmapp) is None:
-            skriv("%s: ingen installation" % m.malmapp)
+            skriv("%s: ingen installation (inget manifest funnet). Ange mappen dar tillagget installerats med --mal." % m.malmapp)
             continue
         hittade_nagot = True
         rapport = paket.avinstallera(m.malmapp)
@@ -280,14 +280,14 @@ def kommando_avinstallera(args, miljo, skriv):
 def kommando_verifiera(args, miljo, skriv):
     mal, _vcmappar = mal_ur_argument(args, miljo)
     if not mal:
-        skriv("Hittade ingen VC-mapp. Kor 'sok' for detaljer.")
+        skriv("Hittade ingen VC-mapp. Kor 'python3 install/installera.py sok' for detaljer, eller ange --mal.")
         return INGEN_VC
     slutkod = KLART
     for m in mal:
         rapport = paket.kontrollera(m.malmapp, kalla=args.kalla)
         skriv("%s" % m.malmapp)
         if not rapport.installerad:
-            skriv("  inte installerat")
+            skriv("  inte installerat (inget manifest funnet). Kor 'installera' forst eller ange --mal.")
             slutkod = FEL
             continue
         skriv("  installerad: %s" % rapport.manifest.get("installerad", "?"))
