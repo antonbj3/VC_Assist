@@ -79,6 +79,16 @@ kl.stoppa()
 n_scan = int((slut / 1000.0 + DO.TAIL_S) * 1000.0 / DO.SCAN_MS) + 1
 grid = DO._sampla(spar, n_scan)
 tag = karta.med_tagg(signal).tagg
+# Provtagningens EGEN takt. `domare_openplc.POLL_S` = 10 ms med motiveringen
+# "~2 prover per scan vid 20 ms". Halls den inte ar en enskans puls
+# undersamplad, och da ar en flank som dyker upp och forsvinner mellan tva
+# korningar av samma text ett matfel och inte en egenskap hos motorn.
+_d = [spar[k + 1][0] - spar[k][0] for k in range(len(spar) - 1)]
+_d.sort()
+print("POLL  n=%d prov, median %.2f ms, p95 %.2f ms, max %.2f ms "
+      "(POLL_S=%.0f ms, %.2f prov per %d ms scan)"
+      % (len(spar), _d[len(_d) // 2], _d[int(0.95 * len(_d))], _d[-1],
+         DO.POLL_S * 1000, DO.SCAN_MS / _d[len(_d) // 2], DO.SCAN_MS))
 print("RA    forsta 6 rasamplen (t_ms, %s): %s"
       % (signal, [(round(t, 1), v.get(tag)) for t, v in spar[:6]]))
 print("GRID  scan 0-4 (%s): %s"
