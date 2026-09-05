@@ -435,7 +435,7 @@ def test_kontraktet_vagrar_ett_PASS_nar_domaren_ar_slackt(domare, monkeypatch):
         try:
             r = a.rapport()
         except K.Kontraktsfel as e:
-            assert "regel 5" in str(e) or "tvingar" in str(e), str(e)
+            assert "rule 5" in str(e) or "force" in str(e), str(e)
             continue
         assert r.dom[0] != "PASS", (namn, r.dom)
 

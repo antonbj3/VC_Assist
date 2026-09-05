@@ -147,7 +147,7 @@ def test_lasaren_domer_inte_om_ett_motsagelsefullt_PASS_till_godkant():
     t = r.text().replace("EYES VERDICT FAIL", "EYES VERDICT PASS")
     with pytest.raises(K.Kontraktsfel) as ei:
         K.las(t)
-    assert "regel 5" in str(ei.value)
+    assert "rule 5" in str(ei.value)
 
 
 def test_overtradelse_med_FAIL_lases_men_ar_inte_godkant():

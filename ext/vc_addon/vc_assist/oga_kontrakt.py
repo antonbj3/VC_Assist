@@ -208,40 +208,40 @@ class Rapport(object):
 
     def sektion(self, namn):
         if namn not in SEKTIONER:
-            raise Kontraktsfel("okand sektion %r; kanda ar %s"
+            raise Kontraktsfel("unknown section %r; known sections are %s"
                                % (namn, ", ".join(SEKTIONER)))
         self.sektioner.append((namn, []))
         return self
 
     def rad(self, text):
         if not self.sektioner:
-            raise Kontraktsfel("rad utanfor sektion: %r" % (text,))
+            raise Kontraktsfel("line outside a section: %r" % (text,))
         namn, rader = self.sektioner[-1]
         text = text.strip()
         nyckel = text.split(" ", 1)[0]
         monster = RADER.get((namn, nyckel))
         if monster is None:
-            raise Kontraktsfel("okant nyckelord %r i sektionen %s" % (nyckel, namn))
+            raise Kontraktsfel("unknown keyword %r in section %s" % (nyckel, namn))
         if not re.match(monster, text):
-            raise Kontraktsfel("raden foljer inte monstret for %s/%s: %r"
+            raise Kontraktsfel("the line does not match the pattern for %s/%s: %r"
                                % (namn, nyckel, text))
         rader.append(text)
         return self
 
     def satt_dom(self, varde, orsak):
         if varde not in DOMAR:
-            raise Kontraktsfel("okand dom %r" % (varde,))
+            raise Kontraktsfel("unknown verdict %r" % (varde,))
         if "\n" in orsak:
-            raise Kontraktsfel("orsaken far inte innehalla radbrytning")
+            raise Kontraktsfel("the reason must not contain a line break")
         if varde == "PASS":
             # Regel 5 i kontraktet. Ett PASS med en overtradelse ar inte en
             # smaksak - det ar den sortens falska framgang hela ogat finns for.
             if self.overtradelser():
                 raise Kontraktsfel(
-                    "PASS med overtradelser i HONESTY: %s" % ", ".join(self.overtradelser()))
+                    "PASS with violations in HONESTY: %s" % ", ".join(self.overtradelser()))
             if self.tvingande():
                 raise Kontraktsfel(
-                    "PASS bredvid fynd som tvingar domen: %s"
+                    "PASS next to findings that force the verdict: %s"
                     % ", ".join(self.tvingande()))
         self.dom = (varde, orsak)
         return self
@@ -302,7 +302,7 @@ class Rapport(object):
 
     def text(self):
         if self.dom is None:
-            raise Kontraktsfel("rapporten saknar dom; en rapport utan dom far inte skrivas")
+            raise Kontraktsfel("the report has no verdict; a report without one must not be written")
         ut = ["EYES v%d" % self.version,
               "TEMPLATE %s" % self.template,
               "RUN %s DUR %.3fs SAMPLES %d RATE %.2fHz"
@@ -320,26 +320,26 @@ def las(text):
     rader = [r.strip() for r in text.splitlines()]
     rader = [r for r in rader if r != ""]
     if not rader:
-        raise Avhuggen("tom utdata")
+        raise Avhuggen("empty output")
 
     m = _HUVUD.match(rader[0])
     if not m:
-        raise OkandVersion("forsta raden ar inte 'EYES v<int>': %r" % (rader[0],))
+        raise OkandVersion("the first line is not 'EYES v<int>': %r" % (rader[0],))
     version = int(m.group(1))
     if version not in LASBARA_VERSIONER:
-        raise OkandVersion("ogat talar v%d, grinden kan v%s"
+        raise OkandVersion("the eye speaks v%d, the gate understands v%s"
                            % (version, "/".join(str(v) for v in LASBARA_VERSIONER)))
 
     if not rader[-1].startswith("EYES VERDICT"):
-        raise Avhuggen("sista raden ar inte 'EYES VERDICT ...': %r" % (rader[-1],))
+        raise Avhuggen("the last line is not 'EYES VERDICT ...': %r" % (rader[-1],))
 
     if len(rader) < 3 or not _TEMPLATE.match(rader[1]):
-        raise Kontraktsfel("rad 2 ar inte 'TEMPLATE <strang>'")
+        raise Kontraktsfel("line 2 is not 'TEMPLATE <string>'")
     template = _TEMPLATE.match(rader[1]).group(1)
 
     mr = _RUN.match(rader[2])
     if not mr:
-        raise Kontraktsfel("rad 3 ar inte en giltig RUN-rad: %r" % (rader[2],))
+        raise Kontraktsfel("line 3 is not a valid RUN line: %r" % (rader[2],))
 
     r = Rapport(template, mr.group(1), float(mr.group(2)), int(mr.group(3)),
                 float(mr.group(4)), version=version)
@@ -365,21 +365,21 @@ def las(text):
         if hoppar_over:
             continue
         if aktiv is None:
-            raise Kontraktsfel("rad utanfor sektion: %r" % (rad,))
+            raise Kontraktsfel("line outside a section: %r" % (rad,))
         r.rad(rad)
 
     md = _DOM.match(rader[-1])
     if not md:
-        raise Kontraktsfel("domsraden foljer inte grammatiken: %r" % (rader[-1],))
+        raise Kontraktsfel("the verdict line does not follow the grammar: %r" % (rader[-1],))
     varde, orsak = md.group(1), md.group(2)
     if varde == "PASS" and r.overtradelser():
         # Kommer den motsagelsen in utifran domer vi INTE om den till PASS.
         raise Kontraktsfel(
-            "PASS trots overtradelser i HONESTY (%s); regel 5 i kontraktet"
+            "PASS despite violations in HONESTY (%s); rule 5 of the contract"
             % ", ".join(r.overtradelser()))
     if varde == "PASS" and r.tvingande():
         raise Kontraktsfel(
-            "PASS trots fynd som tvingar domen (%s); regel 5 i kontraktet, v2"
+            "PASS despite findings that force the verdict (%s); rule 5 of the contract, v2"
             % ", ".join(r.tvingande()))
     r.dom = (varde, orsak)
     return r
