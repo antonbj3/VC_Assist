@@ -1863,3 +1863,55 @@ def test_den_blockerande_fragan_skriver_ut_vad_den_behovs_till():
     besked = _besked("Bygg en cell med ett band, en robot och en pall.")
     assert besked.status == B.OFULLSTANDIG
     assert any("behovs for" in t for _k, t in besked.problem)
+
+
+# ======================================================================
+# GRANSEN MOT VC: layout/vc_utdata.py
+# ======================================================================
+#
+# Det ar den modulen som gor layoutmotorns svar till set_transform-anrop, och
+# den bar ankargrinden som hela `strikt_ankare` vilar pa. Planeringslagret
+# LITAR pa den, sa den provas har - vid gransen, av den som anvander den.
+# (M-68 raknade den som helt oprovad.)
+
+def test_vc_utdata_vagrar_skriva_ett_anrop_ur_ett_ANTAGET_ankare():
+    """set_transform satter komponentens ORIGO, och var origo sitter i
+    forhallande till lados mitt vet bara VC. Ett antaget ankare flyttar
+    komponenten fel, tyst."""
+    from vc_assist_svc.layout.matt import Langd
+    from vc_assist_svc.layout.rum import Hall, Objekt, Pose, Scen
+    from vc_assist_svc.layout.vc_utdata import Ankarfel, till_verktygsanrop
+    scen = Scen(Hall("h", Langd.mm(4000.0), Langd.mm(4000.0), Langd.mm(3000.0)))
+    scen.lagg_till(Objekt("band", Langd.mm(2000.0), Langd.mm(400.0),
+                          Langd.mm(900.0)))
+    scen.placera("band", Pose.meter(1.0, 1.0, 0.0, 0.0))
+    with pytest.raises(Ankarfel):
+        till_verktygsanrop(scen)
+
+
+def test_vc_utdata_skriver_millimeter_och_vridning_i_TREDJE_talet():
+    """Motprovet, och den falla modulen sjalv varnar for: wpr ar W kring X,
+    P kring Y, R kring Z - vridningen hor i tredje talet."""
+    from vc_assist_svc.layout.matt import Langd
+    from vc_assist_svc.layout.rum import Hall, Objekt, Pose, Scen
+    from vc_assist_svc.layout.vc_utdata import till_verktygsanrop
+    scen = Scen(Hall("h", Langd.mm(4000.0), Langd.mm(4000.0), Langd.mm(3000.0)))
+    scen.lagg_till(Objekt("band", Langd.mm(2000.0), Langd.mm(400.0),
+                          Langd.mm(900.0)))
+    scen.placera("band", Pose.meter(1.0, 2.0, 0.0, 90.0))
+    anrop = till_verktygsanrop(scen, strikt=False)
+    assert len(anrop) == 1
+    assert anrop[0].verktyg == "set_transform"
+    assert anrop[0].argument["position"][:2] == [1000.0, 2000.0]
+    assert anrop[0].argument["wpr"] == [0.0, 0.0, 90.0]
+
+
+def test_layoutmotorns_koordinater_kommer_genom_vc_utdata():
+    """Planeringslagret raknar ingen origoforskjutning sjalvt. Gjorde det
+    det vore det tva implementationer av samma omraking, och de tva vore
+    olika sa fort nagon andrade den ena (I1)."""
+    svar = _motor().placera(_rackviddsbegaran(2600.0))
+    assert svar["status"] == "LOST"
+    for p in svar["placeringar"]:
+        assert p["wpr_deg"][0] == 0.0 and p["wpr_deg"][1] == 0.0
+        assert len(p["position_mm"]) == 3
