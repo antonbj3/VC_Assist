@@ -129,6 +129,11 @@ punktkraven — ett nytt facit utan kontrollpunkter, och C1:s första klass.
   granskats — inte ett gammalt facit som försämrats.
 * **Trädet rör sig.** Svepet kördes på `f48dbab`; två andra sessioner
   committade under körningen. En omkörning i morgon kan ge ±några mutanter.
+* **Svepet startade på smutsigt träd.** `HEAD` var `f48dbab`, men
+  arbetsträdet bar C0.4-fixet (skanningen) ocommittat — committat som
+  `b6ae065` under körningen utan att filinnehållet ändrades. Siffrorna är
+  med fixet: 0 INITIERARE-överlevare och 82/82 booleska kodmutanter går inte
+  ihop utan det.
 * **En maskin, en eftermiddag, andra sessioner på samma dator.** Tiderna
   (23 s) är väggklocka under delad last, inte prestandatal.
 * **De 5 röda enhetsproven vid C0 tillhör andra köer** (D ×2, B ×2,
