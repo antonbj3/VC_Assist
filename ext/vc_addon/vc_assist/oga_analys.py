@@ -1258,13 +1258,13 @@ class Analys(object):
         if grepp["fynd"].get("aldrig"):
             return "FAIL", self._orsak("grasp: greppet bildades aldrig")
         if d["kollision"]["utfall"] == "FAIL":
-            return "FAIL", self._orsak("kollision: " + d["kollision"]["skal"][0])
+            return "FAIL", self._orsak("collision: " + d["kollision"]["skal"][0])
         if scen.get("oombedd"):
-            return "FAIL", self._orsak("scen: något i scenen rörde sig oombett")
+            return "FAIL", self._orsak("scene: something in the scene moved unbidden")
         if scen.get("utslungad"):
-            return "FAIL", self._orsak("scen: delen slungades iväg")
+            return "FAIL", self._orsak("scene: the part was flung away")
         for post in (scen.get("orort") or []):
-            return "FAIL", self._orsak("scen: ett kommenderat objekt rörde sig aldrig")
+            return "FAIL", self._orsak("scene: a commanded object never moved")
         brott = self._robotbrott(robotar)
         if brott:
             return "FAIL", self._orsak("robot: " + brott)

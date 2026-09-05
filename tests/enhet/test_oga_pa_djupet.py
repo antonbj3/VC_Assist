@@ -368,7 +368,7 @@ def test_en_trasig_cell_falls_av_RATT_domare_och_av_ingen_annan(namn, domare):
     assert not andra, ("%s falls ocksa av %s - cellen ar inte osynlig for de "
                        "andra domarna" % (namn, andra))
     ord_ = {"sekvens": ("sequence", "interlock"), "timing": ("timing", "race"),
-            "grepp": ("grasp",), "kollision": ("kollision",),
+            "grepp": ("grasp",), "kollision": ("collision",),
             "genomflode": ("throughput",)}[domare]
     assert any(rapport.dom[1].startswith(o + ":") for o in ord_), \
         "domsraden namner inte domaren: %r" % rapport.dom[1]
@@ -530,4 +530,4 @@ def test_kontakten_gar_hela_vagen_till_en_kollisionsdom():
     assert a.harledt["domar"]["kollision"]["utfall"] == "FAIL"
     assert a.harledt["safety"]["kollision"]["kalla"] == "mind"
     assert a.harledt["safety"]["kollision"]["t"] == pytest.approx(1.0)
-    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("kollision:")
+    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("collision:")

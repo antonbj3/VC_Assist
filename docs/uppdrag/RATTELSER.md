@@ -92,3 +92,30 @@ Rättelsen 16:25 gäller alltså inte längre.
 mätningens rubrik och i dess JSON. `M-110`:s tal är Muse Spark 1.3. En arm på
 Gemini är en **annan mätning**, inte en fortsättning, och de två får aldrig
 jämföras utan att skillnaden står skriven.
+
+## 2026-09-05 22:35 — ögats domsord är nu engelska, och en avvikelse ligger i banken
+
+Steg 1 i `docs/spec/56_sprakplanen.md` är genomfört: **noll av 664 användarvända
+strängar är svenska**, och ögats domsord flyttades i en enda commit tillsammans
+med kontraktet, producenten och bankens trasiga fixturer.
+
+Verdiktradens ord är nu: `sequence`, `timing`, `grasp`, `collision`,
+`throughput`, `interlock`, `race`, `geometry`, `integrity`, `scene`, `robot`.
+
+**Två saker att veta, båda funna efteråt:**
+
+**1. `bank/uppgifter/L-90.json` säger `geometry:` om en kollision.** Fixturens
+egen artefakt bär raden `COLLISION kolli_7 x pallkarm`, men domsraden lyder
+`EYES VERDICT FAIL geometry: ...`. Koden säger nu `collision:` — det är
+domarens namn, och de fem domarna heter sequence, timing, grasp, collision och
+throughput.
+
+Samma fel i två vokabulärer alltså, och avvikelsen fanns före översättningen.
+Fixturen är kö B:s mark och är **inte ändrad**. Ändrar någon den: fixturens hela
+poäng är dess exakta text, så domen ska flytta med sitt prov.
+
+**2. Mätningen av "användarvända strängar" missade `return`-satser.** De 664 kom
+ur `print(` och `raise ...Fel(`. Ögats domsrader produceras med `return`, och
+fyra av dem bar svensk prosa som ingen räkning fångade. De är rättade nu, men
+talet 664 är ett **golv**, inte en fullständig räkning. Nästa svep bör läsa
+varje strängliteral som når en användare, oavsett hur den lämnar funktionen.
