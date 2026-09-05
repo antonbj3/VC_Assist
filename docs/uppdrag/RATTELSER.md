@@ -71,3 +71,24 @@ andra siffror betyder.
 mätningens rubrik och i dess JSON. `M-110`:s tal är Muse Spark 1.3. En arm på
 en annan modell är en **annan mätning**, inte en fortsättning, och de två får
 aldrig jämföras utan att skillnaden står skriven.
+
+## 2026-09-05 18:35 — kö B: parkeringen av B2 och B3 är HÄVD
+
+Operatören har beslutat att B ska gå klart på den Gemini-kvot som återstår.
+Rättelsen 16:25 gäller alltså inte längre.
+
+**Men ordningen spelar roll, för kvoten är ändlig.** Ta punkterna så här:
+
+1. **B1 först** — 16 av 23 facit återstår (A-01…A-06 är skrivna). Det är
+   författande, nästan inga modellanrop, och det är basen allt annat vilar på.
+2. **B6b och B7** — revisioner, inga modellanrop.
+3. **B2 och B3 sist**, med den kvot som då är kvar. Kör hellre färre uppgifter
+   med **n ≥ 3** än alla 63 med n = 1. Ett tal utan spridning säger ingenting
+   om tillförlitlighet, och tillförlitlighet är hela frågan. Flusha JSON efter
+   varje uppgift — en avbruten körning har tappat tio lösta uppgifter i det
+   här projektet förut.
+
+**Kravet som står kvar oförändrat:** skriv ut vilken modell armen körde på, i
+mätningens rubrik och i dess JSON. `M-110`:s tal är Muse Spark 1.3. En arm på
+Gemini är en **annan mätning**, inte en fortsättning, och de två får aldrig
+jämföras utan att skillnaden står skriven.
