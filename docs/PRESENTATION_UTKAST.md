@@ -86,12 +86,9 @@ collision and throughput.
 rose too early, by how many seconds, and which station therefore began working
 on a part the previous station had not finished.
 
-We looked for prior art before building it. Five papers were read in full —
-LLM4PLC, Agents4PLC, AutoPLC, SemaPLC and Spec2Control. Each closes a loop
-around *formal verification* or a test harness; none deploys generated code to a
-soft-PLC, runs it against a plant model, and feeds the result back. Whether that
-gap is an opportunity or a warning is not yet settled — see *Where the project
-stands*.
+We read five papers in full before building it — LLM4PLC, Agents4PLC, AutoPLC,
+SemaPLC and Spec2Control. Each closes its loop around formal verification or a
+test harness. None deploys the code to a PLC and runs it against a plant.
 
 ## Finding the right machine
 
