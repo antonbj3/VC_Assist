@@ -11,7 +11,7 @@ ingenting.
 
 Bankkontraktet mekaniserar den regeln för de 26 körningarna under
 `tests/protocol/` (`svc/vc_assist_svc/bankkontrakt.py`). Den har aldrig gällt
-bankens 51 uppgifter, och där ligger den största facitmängden i repot.
+bankens 63 uppgifter, och där ligger den största facitmängden i repot.
 
 Den här körningen är regeln applicerad på uppgifterna. Sex frågor per uppgift:
 

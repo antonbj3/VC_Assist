@@ -9,7 +9,7 @@ rattar den ena - samma regel som repot redan har om ordlistor (M-98).
 KORPUSEN AR RIKTIG, INTE PAHITTAD
 ---------------------------------
 Verktygssvaren kommer ur repots egna DATA_HANDLERS, anropade med argument som
-ocksa kommer ur repot: katalogens 65 URI:er, bankens 51 uppgifter,
+ocksa kommer ur repot: katalogens 82 URI:er, bankens 63 uppgifter,
 API-indexets typnamn, hjalpmodulernas egen uppraekning. Ingen brygga och ingen
 VC ar inblandad - de verktyg som kraver en levande VC ar KODGENERERANDE och
 lamnar en kodstrang, inte ett svar, sa deras svarsform kommer i stallet ur

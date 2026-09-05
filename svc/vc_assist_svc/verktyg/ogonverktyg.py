@@ -22,7 +22,8 @@ trasighet ar aldrig ett godkannande. INCONCLUSIVE ar inte heller godkant,
 och ett PASS med en HONESTY-overtradelse domes aldrig om till godkant.
 
 Kallor: docs/spec/40_ogat.md, 41_ogat_kontrakt.md, 80_bank.md.
-Banken laddas har vid import med strikt=True (matt: 51 uppgifter, 0,02 s; M-45).
+Banken laddas har vid import med strikt=True (matt: 63 uppgifter; M-45 matte
+0,02 s vid 51 uppgifter).
 En bank dar en post inte gar att validera ar inte en halvbra bank.
 """
 from __future__ import annotations

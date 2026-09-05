@@ -241,7 +241,7 @@ def main(argv=None):
 
     print("\n  Vad korningen INTE visar:")
     print("    n = 1 per uppgift. Ingen upprepning, ingen spridning.")
-    print("    Fyra uppgifter av 51 - bara de har sparfacit.")
+    print("    24 uppgifter av 63 - bara de har sparfacit (M-106).")
     print("    Domen kommer ur var ST-tolk, inte ur OpenPLC.")
 
     if a.json:
