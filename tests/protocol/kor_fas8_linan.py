@@ -1352,6 +1352,20 @@ def kor_en(namn, konfig, kropp_, a, index, brygga):
 
 # ---- huvudprogram ---------------------------------------------------------
 
+def _klockan_ok(rad):
+    """Lag klockkvoten i braketten? None nar ingen kvot mattes.
+
+    Kvoten kontrolleras HAR ocksa nar korningen ar inlast ur en aldre
+    JSON-fil, sa att en sammanstallning inte kan bli mildare an korningen.
+    """
+    if "klockan_ok" in rad:
+        return rad["klockan_ok"]
+    kvot = rad.get("klockkvot")
+    if kvot is None:
+        return None
+    return bool(KLOCKA_LAG <= kvot <= KLOCKA_HOG)
+
+
 def _dom_av(rad, namn):
     """Domen for en cell, eller None om korningen inte gar att lasa.
 
@@ -1359,7 +1373,7 @@ def _dom_av(rad, namn):
     facits fonster ar skalade med braketten, och utanfor den mater de
     kopplingen mellan klockorna i stallet for stationen.
     """
-    if rad.get("klockan_ok") is False:
+    if _klockan_ok(rad) is False:
         return "OGILTIG"
     d = ((rad.get("domar") or {}).get(namn) or {}).get("dom")
     return d[0] if d else None
@@ -1391,7 +1405,7 @@ def _skriv(ut):
             print("        %-9s %d varv, paus %s, %d konflikter, klockkvot %s%s"
                   % ("slingan", s["varv"], s.get("paus"), s["konflikter"],
                      rad.get("klockkvot"),
-                     "" if rad.get("klockan_ok") is not False
+                     "" if _klockan_ok(rad) is not False
                      else "  <- UTANFOR BRAKETTEN, korningen ar OGILTIG"))
     print("\n  guldgrinden: %s" % ut.get("guld"))
     for rad in ut.get("kompositionsprov", []):
@@ -1403,6 +1417,31 @@ def _skriv(ut):
         if rad.get("vantas_passera") is True and rad["linje"] != "PASS":
             fel += 1
     return fel
+
+
+def _guld(ut):
+    """Guldgrinden over den HELA losningens celler.
+
+    Linan ar guld forst nar BADA stationerna och LINAN ar det - tre celler,
+    tre klasser, och en okand klass ar inget godkannande. Cellerna ur
+    enstationskorningarna ar med: kontraktet sager "guld per station, SEDAN
+    guld for linan", och det ar tva pastaenden, inte ett.
+    """
+    grind = guldgrind.Guldgrind(["station", "linje"])
+    celler = []
+    for rad in ut["korningar"]:
+        if rad["fall"] != "HEL":
+            continue
+        if _klockan_ok(rad) is False:
+            continue
+        for namn, cell in sorted((rad.get("celler") or {}).items()):
+            if rad["konfig"] != "LINJE" and namn == "linan":
+                continue
+            celler.append(cell)
+    if not celler:
+        return None, None
+    beslut = grind.doma(celler)
+    return beslut.text(), beslut.niva
 
 
 def _kompositionsprov(ut):
@@ -1484,6 +1523,12 @@ def main(argv=None):
     p.add_argument("--bara-scen", action="store_true",
                    help="skriv startskriptet och prova anlaggningen, kor inget fall")
     p.add_argument("--json", default=None)
+    p.add_argument("--sammanstall", default=None,
+                   help="komma-lista med tidigare --json-filer. Slar ihop dem, "
+                        "skriver kompositionstabellen och guldgrinden, och kor "
+                        "ingenting. Korningarna delas ofta upp over flera "
+                        "anrop av vaggklockskal, och tabellen ska anda komma "
+                        "ur samma kod som domde dem")
     p.add_argument("--serier", default=None)
     a = p.parse_args(argv)
     if a.byggrot is None:
@@ -1491,6 +1536,21 @@ def main(argv=None):
     os.makedirs(a.byggrot, exist_ok=True)
     if a.serier:
         os.makedirs(a.serier, exist_ok=True)
+
+    if a.sammanstall:
+        ut = {"linje": LINJE, "korningar": []}
+        for fil in a.sammanstall.split(","):
+            with open(fil.strip()) as f:
+                ut["korningar"].extend(json.load(f)["korningar"])
+        ut["guld"], ut["guld_niva"] = _guld(ut)
+        ut["kompositionsprov"] = _kompositionsprov(ut)
+        fel = _skriv(ut)
+        if a.json:
+            with open(a.json, "w") as f:
+                json.dump(ut, f, indent=1, sort_keys=True, ensure_ascii=False)
+        print("\n%s" % ("ALLA FALL STAMDE" if fel == 0
+                        else "%d FALL STAMDE INTE" % fel))
+        return 0 if fel == 0 else 1
 
     kalla = _startskript()
     with open(STARTSKRIPT, "w") as f:
@@ -1555,21 +1615,7 @@ def main(argv=None):
     finally:
         brygga.stang()
 
-    # Guldgrinden. Linan ar guld forst nar BADA stationerna och LINAN ar det -
-    # tre celler, tre klasser, och en okand klass ar inget godkannande.
-    grind = guldgrind.Guldgrind(["station", "linje"])
-    celler = []
-    for rad in ut["korningar"]:
-        if rad["fall"] != "HEL":
-            continue
-        for namn, cell in sorted((rad.get("celler") or {}).items()):
-            if rad["konfig"] != "LINJE" and namn == "linan":
-                continue
-            celler.append(cell)
-    if celler:
-        beslut = grind.doma(celler)
-        ut["guld"] = beslut.text()
-        ut["guld_niva"] = beslut.niva
+    ut["guld"], ut["guld_niva"] = _guld(ut)
     ut["kompositionsprov"] = _kompositionsprov(ut)
     fel = _skriv(ut)
     if a.json:
