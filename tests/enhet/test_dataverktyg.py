@@ -368,13 +368,14 @@ def test_ett_brutet_varde_djupt_i_en_lista_falls():
 # ---- 4. katalogen: arlighet om vad som finns ----------------------------
 
 def test_katalogen_ar_den_matta_lokala_banken():
-    """MATT: 65 poster. Inget eCatalog, inga .vcmx-layouter pa disk."""
+    """MATT 2026-09-05: 82 poster (65 + 17 for maskinbetjaning, provning,
+    markning och hardning i M-106). Inget eCatalog, inga .vcmx-layouter pa disk."""
     r = kor("catalog_categories", {})
-    assert r["antal_poster"] == 65
+    assert r["antal_poster"] == 82
     assert r["index"]["index_id"] == "bank-lokal-v1"
-    assert sum(k["antal"] for k in r["kategorier"]) == 65
-    assert sum(g["antal"] for g in r["grupper"]) == 65
-    assert sum(s["antal"] for s in r["stamplar"]) == 65
+    assert sum(k["antal"] for k in r["kategorier"]) == 82
+    assert sum(g["antal"] for g in r["grupper"]) == 82
+    assert sum(s["antal"] for s in r["stamplar"]) == 82
 
 
 def test_varje_katalogsvar_sager_att_katalogen_ar_lokal_och_begransad():
@@ -391,7 +392,7 @@ def test_ingen_traff_ar_en_uppfunnen_uri():
     """I9: modellen far bara valja ur trafflistan, sa listan maste vara sann."""
     for traff in kor("search_catalog", {})["traffar"]:
         assert traff["uri"] in katalog.POSTER
-    assert kor("search_catalog", {})["antal"] == 65
+    assert kor("search_catalog", {})["antal"] == 82
 
 
 def test_en_uri_som_inte_finns_ger_found_false_och_verkliga_alternativ():
@@ -445,7 +446,7 @@ def test_ett_rackviddsfilter_slapper_aldrig_igenom_en_post_utan_rackvidd():
 
 
 def test_sokningen_hittar_over_stavningarna_i_indexet():
-    """MATT: 35 av 65 poster bar icke-ASCII, ovriga ar translittererade."""
+    """MATT 2026-09-05: 35 av 82 poster bar icke-ASCII, ovriga ar translittererade."""
     assert kor("search_catalog", {"query": "ljusrida"})["antal"] == 1
     assert kor("search_catalog", {"query": "LJUSRIDA"})["antal"] == 1
 

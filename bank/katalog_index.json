@@ -529,6 +529,154 @@
       "namn": "Verktygsställ för två gripdon",
       "kategori": "station",
       "stampel": "ANTAGEN"
+    },
+    {
+      "uri": "bank://station/cnc_svarv",
+      "namn": "CNC-svarv med chuck och automatisk lucka",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "spanntid_s": 0.8,
+      "lucktid_s": 2.5,
+      "not": "spanntid och lucktid ar antagna; pneumatiska kraftchuckar spanner pa 0,5-1,2 s och en servolucka gar pa 2-3 s. Talen ar bankens antaganden, inte hamtade ur ett datablad"
+    },
+    {
+      "uri": "bank://station/excenterpress_630",
+      "namn": "Excenterpress med oppen matzon och uppmatt stopptid",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "presstid_s": 1.4,
+      "stopptid_ms": 275.0,
+      "not": "stopptiden 275 ms ar den tid pressens egen broms tar fran stoppsignal till stillastaende kopp. Talet ar ANTAGET har och ska matas upp pa den verkliga pressen innan ett sakerhetsavstand raknas ur det: ISO 13855 raknar avstandet ur den UPPMATTA stopptiden, inte ur en katalogsiffra"
+    },
+    {
+      "uri": "bank://station/vandbord_svets",
+      "namn": "Vandbord med tva svetsstationer och skiljevagg",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "indexeringstid_s": 4.0,
+      "not": "tva stationer 180 grader isar; roboten svetsar pa den ena medan operatoren laddar den andra. Indexeringstiden ar antagen"
+    },
+    {
+      "uri": "bank://station/lacktestrigg",
+      "namn": "Tathetsprovningsrigg med tryckgivare och tatningsdon",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "fylltid_s": 3.0,
+      "stabiliseringstid_s": 5.0,
+      "mattid_s": 10.0,
+      "not": "tryckfallsmetod: fyll, stabilisera, mat tryckfallet. Tiderna ar antagna och valda sa att fylltiden racker for 0,45 l vid 300 mbar"
+    },
+    {
+      "uri": "bank://station/etikettmaskin_print_apply",
+      "namn": "Print-and-apply etikettmaskin med stampelarm",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "stampeltid_s": 0.25,
+      "trycktid_s": 0.6,
+      "not": "stampeltiden 0,25 ms galler ett slag pa 150 mm vid 0,6 m/s; bada talen ar antagna"
+    },
+    {
+      "uri": "bank://station/hardugn_genomlopp",
+      "namn": "Genomloppsugn for pulverlack med kedjetransportor",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "uppvarmd_langd_mm": 12000.0,
+      "hastighet_mps": 0.01,
+      "not": "uppvarmd langd och kedjehastighet ar antagna, men valda sa att uppehallstiden blir 12000 mm / 10 mm/s = 1200 s = 20,0 min, vilket ryms i ett publicerat hardschema for pulverlack"
+    },
+    {
+      "uri": "bank://station/kartongforslutare",
+      "namn": "Kartongforslutare med tejphuvud",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "forslutningstid_s": 2.2,
+      "not": "tiden ar antagen och galler en kartong som passerar tejphuvudet i ett drag"
+    },
+    {
+      "uri": "bank://station/strackfilmsmaskin",
+      "namn": "Strackfilmsmaskin med vridbord och 500 mm filmbana",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "filmbredd_mm": 500.0,
+      "not": "filmbredden 500 mm ar den vanligaste rullbredden for pallfilm; varvtalet star som antagande i uppgiften eftersom det stalls per pall"
+    },
+    {
+      "uri": "bank://station/amr_dockningsstation",
+      "namn": "Dockningsstation for AMR med driven rullbana",
+      "kategori": "station",
+      "stampel": "ANTAGEN",
+      "hastighet_mps": 0.4,
+      "dockningstid_s": 3.0,
+      "not": "rullbanans hastighet och dockningstiden ar antagna; 0,4 m/s ar en vanlig overforingshastighet for lastbarare"
+    },
+    {
+      "uri": "bank://transport/amr_rullbanadack",
+      "namn": "Autonom mobil robot med driven rullbana pa dacket",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "nyttolast_kg": 100.0,
+      "hastighet_mps": 1.2,
+      "not": "nyttolast och fardhastighet ar antagna och ligger i det spann publicerade AMR-datablad anger for lastbararhantering. Posten ar INTE kategori robot: den har ingen arm och ingen rackvidd, och far darfor inte domas av bankens robotkapacitetsregel"
+    },
+    {
+      "uri": "bank://transport/vertikaltransportor",
+      "namn": "Vertikaltransportor mellan tva plan",
+      "kategori": "transport",
+      "stampel": "ANTAGEN",
+      "lyfthojd_mm": 3600.0,
+      "hastighet_mps": 0.8,
+      "not": "lyfthojd och hastighet ar antagna; 3,6 m ar en vanlig fri hojd till ett entresolplan"
+    },
+    {
+      "uri": "bank://gripdon/mig_pistol",
+      "namn": "MIG-svetspistol med tradmatning, robotmonterad",
+      "kategori": "gripdon",
+      "stampel": "ANTAGEN",
+      "massa_kg": 3.5,
+      "anslag_s": 0.2,
+      "not": "massan ar antagen; robotmonterade MIG-pistoler med halsen ligger typiskt 2-5 kg. Anslagstiden avser gasforflodet innan bagen tands"
+    },
+    {
+      "uri": "bank://givare/tryckgivare_analog",
+      "namn": "Analog tryckgivare for provtryck",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 5.0,
+      "not": "svarstiden ar antagen; matomradet stalls per uppgift och star dar med sin enhet"
+    },
+    {
+      "uri": "bank://givare/flodesgivare_lim",
+      "namn": "Flodesgivare i limslangen",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 50.0,
+      "not": "svarstiden ar antagen; matomradet stalls per uppgift och star dar med sin enhet"
+    },
+    {
+      "uri": "bank://givare/temperaturgivare_ugn",
+      "namn": "Termoelement typ K i ugnszon",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "svarstid_ms": 2000.0,
+      "not": "ett mantlat termoelement i luft svarar langsamt; 2 s ar antaget och ska matas upp mot den verkliga givaren innan en tidsvakt raknas ur det"
+    },
+    {
+      "uri": "bank://givare/streckkodslasare_verifierare",
+      "namn": "Verifieringslasare for streckkod med kvalitetsbetyg",
+      "kategori": "givare",
+      "stampel": "ANTAGEN",
+      "bedomningstid_ms": 80.0,
+      "not": "lasaren rapporterar symbolens kvalitetsbetyg enligt ISO/IEC 15416 pa skalan 4,0 till 0,0; bedomningstiden ar antagen"
+    },
+    {
+      "uri": "bank://last/glasburk_720",
+      "namn": "Glasburk 720 ml, diameter 95 mm",
+      "kategori": "lastbarare",
+      "stampel": "ANTAGEN",
+      "diameter_mm": 95.0,
+      "hojd_mm": 130.0,
+      "massa_kg": 0.55,
+      "not": "matt och massa ar antagna men valda efter en vanlig 720 ml konservburk i glas: 95 mm diameter, 130 mm hojd, cirka 0,55 kg fylld"
     }
   ]
 }
