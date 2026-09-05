@@ -191,8 +191,8 @@ def las_sekvens(sokvag):
     verklig = hash_av(kropp)
     if verklig != pastadd:
         raise Planfel(
-            "sekvensen i %s bar hashen %s men innehallet ger %s. Artefakten "
-            "har andrats efter att den skrevs" % (sokvag, pastadd[:12],
+            "the sequence in %s carries the hash %s but the content gives %s. "
+            "The artifact has been changed since it was written" % (sokvag, pastadd[:12],
                                                   verklig[:12]))
     return data
 

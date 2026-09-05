@@ -1460,7 +1460,7 @@ def test_en_andrad_artefakt_avvisas_pa_hashen(tmp_path):
         json.dump(data, f)
     with pytest.raises(Planfel) as fel:
         A.las_sekvens(filer["sekvens"])
-    assert "andrats" in str(fel.value)
+    assert "changed" in str(fel.value)
 
 
 def test_en_sekvens_utan_hash_gar_inte_att_lita_pa(tmp_path):
