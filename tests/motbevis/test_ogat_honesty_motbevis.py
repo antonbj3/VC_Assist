@@ -45,8 +45,6 @@ def _rapport(data, plan, modul=A):
 
 # (cell, den enda klass den ska bryta mot, klasser den INTE får bryta mot)
 ISOLERING = [
-    ("explosion", "BLOWUP VIOLATION",
-     ("OFF_TARGET", "DROPPED", "SLIPPING", "NEVER_FORMED", "NEVER_GRIPPED VIOLATION")),
     ("aldrig_gripen", "NEVER_GRIPPED VIOLATION",
      ("OFF_TARGET", "DROPPED", "SLIPPING", "BLOWUP VIOLATION",
       "UNDERGROUND VIOLATION")),

@@ -588,3 +588,29 @@ def test_en_station_som_gor_om_sitt_arbete_falls_av_RAKNINGEN_inte_ordningen():
 def test_rakningen_domer_inte_nar_planen_inte_bett_om_den():
     r, _rader, _ = _doma("station_forregling_utan_deklaration")
     assert r.dom[0] == "PASS", r.dom
+
+
+def _rapport_mb(data, plan, modul=A):
+    _text, rapport, _analys = modul.doma(data, plan)
+    return rapport
+
+
+ISOLERING_MB = [
+    ("explosion", "BLOWUP VIOLATION",
+     ("OFF_TARGET", "DROPPED", "SLIPPING", "NEVER_FORMED", "NEVER_GRIPPED VIOLATION")),
+]
+
+
+@pytest.mark.parametrize("namn,egen,frammande", ISOLERING_MB,
+                         ids=[x[0] for x in ISOLERING_MB])
+def test_en_trasig_cell_bryter_mot_exakt_en_felklass(namn, egen, frammande):
+    b, plan = celler.ALLA[namn]()
+    r = _rapport_mb(b.data(), plan)
+    rader = [x for _s, rr in r.sektioner for x in rr]
+    assert any(egen in x for x in rader), "%s bröt inte mot sin egen klass" % namn
+    smitta = [x for x in rader if any(f in x for f in frammande)]
+    assert not smitta, (
+        "%s bryter mot fler klasser än sin egen: %s. Då täcker grindarna för "
+        "varandra: mutationsprovet visar att %s-grinden kan stängas av utan "
+        "att sviten fälls." % (namn, smitta, egen.split()[0]))
+
