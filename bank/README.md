@@ -371,16 +371,22 @@ Måttet ligger **bredvid** ögondomen, aldrig i stället för den. Ögat fäller
 
 ## Vad som är tunt
 
-* **47 av 51 uppgifter saknar spårfacit.** De fyra som har det (`T-07`, `H-04`,
-  `S-05`, `L-05`) är ett mönster att växa på, inte en färdig bank. M-45 §8.
+* **Trettionio av 63 uppgifter saknar spårfacit.** Talet var 47 av 51; M-106
+  gav facit till tio gamla uppgifter och tog in tolv nya. De 39 som saknar det
+  går att döma först när någon skriver deras facit.
+* **Trettio uppgifter ber om ett larm de inte kan ge.** Deras scenarier säger
+  "styrningen ska larma" men signalkartan har ingen `SYS_ALARM`, och två har
+  `SYS_ALARM` utan `SYS_RESET` att kvittera med. Mätt i M-106; talen ligger som
+  skuldtak i `tests/protocol/kor_bankens_facit.py`. Ingen av de tolv nya
+  uppgifterna är bland dem.
 * Ingen uppgift är körd. `verified_status` är `unverified` överallt och
   `last_run` är `null`. Svårighetsgraderna är därför deklarerade, inte mätta.
 * Tre felklasser har exakt en uppgift var: `F12` ohederlig, `F13` verktygsfel
   och `F14` annat. Det är avsiktligt för `F14`, som ska vara nära noll, men
   tunt för `F12` och `F13`.
-* Branschtäckningen är ojämn: fordonsmontering och livsmedelsförpackning har
-  tretton uppgifter var, medan plastformsprutning, svetsning och limning har en
-  var.
+* Branschtäckningen är ojämn: fordonsmontering har arton uppgifter och
+  livsmedelsförpackning fjorton, medan plastformsprutning och limning har två
+  var och svetsning tre.
 * Kategoritaxonomin i Koziolek och ABB (arXiv 2305.15809) har tio
   representativa kategorier. Jag har inte den listan ordagrant och kan därför
   inte påstå att banken täcker den. Det som mäts i stället är de sju grupperna,
