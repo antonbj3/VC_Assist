@@ -26,11 +26,17 @@ Alla tre har samma form: **nagon skrev vad hen kom ihag, koden kom att krava
 nagot annat, och de gled isar utan att nagon sag det.**
 
 Darfor lases reglerna ur grindarnas EGNA kodtabeller - `st.fel.KONTROLLER`
-(grind 2) och `plc.deklarationsgrind.KONTROLLER_PLC` (grind 3). En kod utan
-regel ar en FALLA: grinden kan falla pa nagot modellen aldrig fick veta. Det
-ar mekaniskt kontrollerat i `saknade_regler()`, och provet med samma namn
-faller om nagon lagger till en kontroll utan att saga vad man ska gora i
-stallet.
+(grind 2), `plc.deklarationsgrind.KONTROLLER_PLC` (grind 3) och
+`plc.industrigrind.KONTROLLER_INDUSTRI` (grind 3b). En kod utan regel ar en
+FALLA: grinden kan falla pa nagot modellen aldrig fick veta. Det ar mekaniskt
+kontrollerat i `saknade_regler()`, och provet med samma namn faller om nagon
+lagger till en kontroll utan att saga vad man ska gora i stallet.
+
+Grind 3b:s tre koder ar de yngsta och de kommer ur `M-89`: en modell som skrev
+kod ur ett inspelat produktionsspar ATERGAV inspelningen och fick anda 0 av 2
+mot manniskans facit, darfor att koden saknade tidsovervakningen, larmen och
+forreglingarna. Det ar precis den sortens kunskap som maste na modellen INNAN
+den skriver - den gar inte att gissa sig till ur en signalkarta.
 """
 from __future__ import annotations
 
@@ -41,6 +47,7 @@ import re
 
 from ..st.fel import KONTROLLER
 from .deklarationsgrind import KONTROLLER_PLC
+from .industrigrind import KONTROLLER_INDUSTRI
 
 # Felklasstabellen i 82_felklasser.md. Lases ur DOKUMENTET, inte kopieras hit:
 # tva kopior av samma tabell glider isar, och natten har redan visat sex
@@ -167,6 +174,43 @@ REGLER: Dict[str, str] = {
         "Skriv varje utgang i kartan - alltsa varje namn med AT %Q... i "
         "deklarationen. En utgang som koden aldrig satter ar ett stalldon som "
         "aldrig ror sig, och uppgiften ar da inte gjord.",
+    # --- grind 3b, den industriella minimiformen --------------------------
+    #
+    # De tre kommer ur M-89:s matning: en modell som skrev kod ur ett inspelat
+    # produktionsspar aterger inspelningen och far anda 0 av 2 mot manniskans
+    # facit. Det som saknades var inte logik utan tidsovervakning, larm och
+    # forregling. Reglerna star har sa att modellen far veta kravet FORE den
+    # skriver - det ar hela modulens syfte.
+    "SAKNAD_TIDSVAKT":
+        "Ge varje kommenderad rorelse som kan fastna en TIDSGRANS. Formen ar "
+        "ett tidsur som gar sa lange kommandot ligger ute och kvittensen "
+        "uteblir, och vars Q latchar ett feltillstand:\n"
+        "        tmrIdx(IN := ST050_IDX_START AND NOT ST050_IDX_DONE, "
+        "PT := T#2s);\n"
+        "        IF tmrIdx.Q THEN xLarm := TRUE; END_IF;\n"
+        "        Att stalla uret pa enbart kommandot (IN := ST050_IDX_START) "
+        "gar ocksa bra - uret nollstalls nar kommandot tas bort. Det som INTE "
+        "duger ar ett ur utan tidsgrans (PT := T#0s), ett ur vars Q ingen "
+        "laser, eller ett ur som star pa nagot annat an den vantan. Laser "
+        "uppgiftens failure_modes ut en vantan som saknar tidsgrans ar den "
+        "vantan ett KRAV, inte ett rad.",
+    "TYST_FELTILLSTAND":
+        "Lat varje latchat feltillstand na en UTGANG. Ett fel som bara satter "
+        "en intern variabel syns inte for nagon: cellen star still och "
+        "operatoren far ingen anvisning. Har kartan ett samlingslarm ska "
+        "felet dit - `SYS_ALARM := xLarm;` - och ar felets ratta utfall ett "
+        "annat don (en kassationsmarkning) racker det. Att bara SPARRA med "
+        "`NOT xLarm` ar ingen larmvag: sparren gor ingen utgang hog.",
+    "SAKNAD_FORREGLING":
+        "Skriv forreglingen som ett VILLKOR i uttrycket, inte som en foljd av "
+        "var sekvensen rakar sta. En INGANG kan andra sig mitt i ett steg - "
+        "klamman slapper mitt i indexet, luckans lagesgivare faller medan "
+        "roboten ar inne - och da racker det inte att steget kontrollerade "
+        "den innan. Formen ar M-121:s: ETT skrivstalle per utgang, langst ner, "
+        "med forreglingen i samma uttryck:\n"
+        "        ST050_IDX_START := xIndex AND ST050_CLP_CLOSED;\n"
+        "        Ga igenom uppgiftens `control.interlocks` rad for rad och se "
+        "att varje rad som namner en INGANG star i sitt dons uttryck.",
 }
 
 
@@ -247,8 +291,9 @@ def foraldralosa_ogonregler() -> Tuple[str, ...]:
 
 
 def alla_koder() -> Tuple[str, ...]:
-    """Varje kod som nagon av de tva grindarna kan falla pa."""
-    return tuple(sorted(set(KONTROLLER) | set(KONTROLLER_PLC)))
+    """Varje kod som nagon av de tre grindarna kan falla pa."""
+    return tuple(sorted(set(KONTROLLER) | set(KONTROLLER_PLC)
+                        | set(KONTROLLER_INDUSTRI)))
 
 
 def saknade_regler() -> Tuple[str, ...]:
@@ -279,7 +324,9 @@ def text(rubrik: str = "Vad grindarna faller, och hur du undviker det") -> str:
     """
     rader: List[str] = [rubrik, ""]
     for tabell, namn in ((KONTROLLER, "Grind 2 - ST-lagret"),
-                         (KONTROLLER_PLC, "Grind 3 - signalkartan")):
+                         (KONTROLLER_PLC, "Grind 3 - signalkartan"),
+                         (KONTROLLER_INDUSTRI,
+                          "Grind 3b - den industriella minimiformen")):
         rader.append(namn)
         for kod in tabell:
             regel = REGLER.get(kod, "").strip()
