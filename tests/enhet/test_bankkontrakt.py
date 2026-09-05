@@ -199,6 +199,40 @@ def test_matningarna_finns():
     assert not saknas, "\n".join(saknas)
 
 
+def antal_deklarationer(sokvag):
+    """Hur manga modulniva-BANKPOST filen har. Fler an en ar en tyst dom."""
+    trad = ast.parse(open(sokvag, encoding="utf-8").read(), filename=sokvag)
+    n = 0
+    for sats in trad.body:
+        if isinstance(sats, ast.Assign):
+            n += sum(1 for m in sats.targets
+                     if isinstance(m, ast.Name) and m.id == "BANKPOST")
+    return n
+
+
+def test_ingen_korning_deklarerar_tva_poster():
+    """Tva BANKPOST i samma fil ar tva pastaenden dar ett laser.
+
+    `las_bankpost` tar den FORSTA; python kor den SISTA. Hande 2026-09-05:
+    tva agenter deklarerade samma korning, och den ena posten blev osynlig
+    utan att nagot blev rott.
+    """
+    dubbla = []
+    for f in sorted(os.listdir(PROTOKOLL)):
+        if f.startswith("kor_") and f.endswith(".py"):
+            n = antal_deklarationer(os.path.join(PROTOKOLL, f))
+            if n > 1:
+                dubbla.append("%s: %d BANKPOST" % (f, n))
+    assert not dubbla, "\n".join(dubbla)
+
+
+def test_fixtur_tva_poster_i_samma_fil_syns(tmp_path):
+    fil = tmp_path / "kor_dubbel.py"
+    fil.write_text("BANKPOST = %r\nBANKPOST = %r\n" % (_post(), _post()),
+                   encoding="utf-8")
+    assert antal_deklarationer(str(fil)) == 2
+
+
 def test_kor_allt_har_en_post():
     """Den aggregerade korningen ar sjalv en post - annars star den utanfor."""
     poster = dict((p.korning, p) for p in registret().poster)
