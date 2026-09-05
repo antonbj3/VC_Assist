@@ -313,6 +313,7 @@ def test_samma_operation_far_inte_bero_pa_hur_den_stavas():
 
 SKRIPTBETEENDEN_MB = [
     ("t = VC_SCRIPT\nc.createBehaviour(t, 'x')", "typen via en variabel"),
+    ("c.createBehaviour(vcConst.VC_SCRIPT, 'x')", "typen via ett attribut"),
 ]
 
 
