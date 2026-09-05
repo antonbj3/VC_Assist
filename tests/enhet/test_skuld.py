@@ -319,3 +319,114 @@ def test_monstret_ar_inte_skrivet_i_ASCII_mot_svensk_text():
         assert S._RATTAR.search("Den här mätningen %s M-01." % ord_), ord_
     # Och ASCII-formen ska ocksa ga igenom, for koden skrivs i ASCII.
     assert S._RATTAR.search("Den har matningen rattar M-01.")
+
+
+# ---- M-numret ar matningens enda identitet ---------------------------------
+
+# Sa manga M-nummer som mer an en matningsfil gor ansprak pa.
+#
+# MATT 2026-09-05 (M-94): 1. Talet var 3 under den natt det mattes - M-89, M-90
+# och M-92 fick var sin andra fil av tre olika agenter inom en timme, ingen av
+# dem fel skriven. Det fanns bara ingen grind som stallde fragan "ar numret
+# taget?" i skrivogonblicket. Tva av de tre loste sig genom att den har
+# matningen flyttade sig sjalv (M-89 -> M-92 -> M-94), och kvar star M-90.
+#
+# VARFOR DET INTE AR KOSMETIK: `test_troskelharkomst.matningar_som_finns()`
+# bygger en MANGD, sa `svc/vc_assist_svc/forlopp/yta.py:63` (`FORLOPPSVERSION =
+# 1  # M-90`) ar gron oavsett vilken av de tva M-90 den menade. Och
+# `rattelser_utan_framatpekare` bygger `per_nummer[nummer] = fil`, sa den ena
+# filens rattelser blir tyst osynliga for grinden.
+#
+# Talet far BARA ga nedat.
+#
+# Varfor det INTE ocksa finns ett krav pa att taket ska ligga PA verkligheten,
+# som troskelskulden har: samma skal som MODULER_UTAN_PROV ovan - flera agenter
+# arbetar i repot samtidigt, och ett exakthetskrav gor sviten rod for deras
+# halvfardiga arbete i stallet for att fanga skuld. Att kravet inte ar inne AN
+# ar sjalv en skuld, och den star i M-94.
+KOLLIDERANDE_NUMMER = 1
+
+
+def test_inga_nya_nummerkollisioner():
+    koll = S.nummerkollisioner(_MATNINGAR)
+    assert len(koll) <= KOLLIDERANDE_NUMMER, (
+        "%d M-nummer bars av mer an en fil, taket ar %d:\n  %s"
+        % (len(koll), KOLLIDERANDE_NUMMER,
+           "\n  ".join("%s: %s" % (n, ", ".join(f)) for n, f in koll)))
+
+
+def test_kontrollen_hittar_tva_filer_pa_samma_nummer(tmp_path):
+    """TRASIG FIXTUR for kollisionsgrinden.
+
+    Foll inte fore 2026-09-05, for grinden fanns inte - och just den natten
+    hade repot tre sadana par samtidigt.
+    """
+    (tmp_path / "M-90_ett.md").write_text("# M-90\n", encoding="utf-8")
+    (tmp_path / "M-90_tva.md").write_text("# M-90\n", encoding="utf-8")
+    (tmp_path / "M-91_ensam.md").write_text("# M-91\n", encoding="utf-8")
+    assert S.nummerkollisioner(str(tmp_path)) == [
+        ("M-90", ["M-90_ett.md", "M-90_tva.md"])]
+
+
+def test_nollsiffriga_varianter_av_samma_nummer_ar_samma_nummer(tmp_path):
+    """M-9 och M-09 ar samma matning, och en grind som inte ser det ar blind
+    for just den kollision som ar latt att skriva."""
+    (tmp_path / "M-9_ett.md").write_text("# M-9\n", encoding="utf-8")
+    (tmp_path / "M-09_tva.md").write_text("# M-09\n", encoding="utf-8")
+    assert [n for n, _f in S.nummerkollisioner(str(tmp_path))] == ["M-09"]
+
+
+def test_en_katalog_utan_kollisioner_ger_tom_lista(tmp_path):
+    """Andra halvan av fixturen: en grind som fyrar pa allt mater ingenting."""
+    for namn in ("M-01_a.md", "M-02_b.md", "RESERVERADE.md", "las_mig.txt"):
+        (tmp_path / namn).write_text("# x\n", encoding="utf-8")
+    assert S.nummerkollisioner(str(tmp_path)) == []
+
+
+# ---- modulnamnet maste sta som ett eget ord --------------------------------
+
+def test_en_modul_raknas_inte_som_provad_av_ett_langre_ord(tmp_path):
+    """TRASIG FIXTUR for tackningsproxyn (M-94).
+
+    Foll INTE fore 2026-09-05: kriteriet var `stam in text`, alltsa en ren
+    delstrang, och da rackte ordet "anlaggningssignaler" i en provfil for att
+    `bank/anlaggning.py` skulle raknas som provad. Coverage matte samma dag 0
+    av modulens 336 satser.
+
+    Provet visar bada halvorna: delstrangen racker inte, det egna ordet racker.
+    """
+    for d in ("svc", "tests/enhet", "tests/protocol"):
+        os.makedirs(os.path.join(str(tmp_path), d), exist_ok=True)
+    (tmp_path / "svc" / "anlaggning.py").write_text("x = 1\n", encoding="utf-8")
+    prov = tmp_path / "tests" / "enhet" / "t.py"
+
+    # Bara som delstrang i ett langre ord: modulen ar OPROVAD.
+    prov.write_text("def _anlaggningssignaler():\n    pass\n", encoding="utf-8")
+    u = S.moduler_utan_prov(str(tmp_path))
+    assert [f for f, _n in u["inget"]] == [os.path.join("svc", "anlaggning.py")], (
+        "delstrangen 'anlaggning' inne i '_anlaggningssignaler' raknades som "
+        "ett prov - det ar exakt hålet den har grinden finns for")
+
+    # Som eget ord: modulen ar provad.
+    prov.write_text("import anlaggning\n", encoding="utf-8")
+    assert S.moduler_utan_prov(str(tmp_path))["inget"] == []
+
+
+@pytest.mark.parametrize("provtext,provad", [
+    ("import bas\n", True),
+    ("from x import bas\n", True),
+    ("# se bas.py\n", True),
+    ("basen ar bred\n", False),
+    ("kompbas = 1\n", False),
+    ("bas_utokad = 1\n", False),
+])
+def test_ordgransen_pa_en_kort_stam(tmp_path, provtext, provad):
+    """Korta stammar bar hela halet: `bas`, `fel` och `text` finns inne i
+    hundratals svenska ord, sa delstrangskriteriet gjorde dem provade av en
+    slump. Ingen behovde ta den vagen medvetet - den var alltid oppen."""
+    for d in ("svc", "tests/enhet", "tests/protocol"):
+        os.makedirs(os.path.join(str(tmp_path), d), exist_ok=True)
+    (tmp_path / "svc" / "bas.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tests" / "enhet" / "t.py").write_text(provtext, encoding="utf-8")
+    u = S.moduler_utan_prov(str(tmp_path))
+    assert (u["inget"] == []) is provad, provtext

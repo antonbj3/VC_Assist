@@ -93,10 +93,28 @@ ihåg — alltså inte den farliga.
 
 Antalet mätningar **utan** ärlighetsavsnitt är en spärr som bara får gå nedåt,
 och som inte heller får ligga över verkligheten. Ett tak med luft i slutar fånga
-nästa glidning. Mätt 2026-09-05: 24 av 44, nästan alla skrivna innan
-disciplinen satte sig.
+nästa glidning. Mätt första gången 2026-09-05: 24 av 44, nästan alla skrivna
+innan disciplinen satte sig. Taket sänktes till **0** samma dag; talet i
+`SKULDREGISTER.md` är alltid det aktuella.
 
 En mätning utan ett sådant avsnitt är inte en mätning utan skuld. Det är en
 mätning vars skuld ingen har skrivit ned — och det är precis vad guldgrindens
 krav på `HONESTY` redan säger om en rapport: regeln är **tom** om sektionen inte
 finns, och en rapport utan den såg en gång ut som guld.
+
+## S11. Ett mätningsnummer bärs av exakt en fil
+
+Numret är mätningens enda identitet, och allt i systemet slår upp på det:
+tröskellinterns `matningar_som_finns()` bygger en **mängd**, och registrets
+rättelsegrind bygger `per_nummer[nummer] = fil` där sista filen vinner tyst. Två
+filer på samma nummer gör därför varje hänvisning tvetydig utan att något blir
+rött.
+
+Mätt 2026-09-05 (M-94): **tre** nummer bars av två filer var inom en timme —
+M-89, M-90 och M-92 — därför att flera agenter skrev samtidigt och ingen grind
+ställde frågan *"är numret taget?"* i skrivögonblicket. Ingen av filerna var fel
+skriven.
+
+*Kontroll:* `skuld.nummerkollisioner()`, spärr i
+`tests/enhet/test_skuld.py::test_inga_nya_nummerkollisioner`, och kollisionerna
+skrivs ut i `SKULDREGISTER.md`.

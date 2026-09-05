@@ -110,7 +110,7 @@ MAX_KROPPAR = 32  # Satt av M-47.
 # finns alltsa inget brusgolv att marginalera bort - en tolerans over noll
 # skulle inte kompensera for matbrus utan tysta bort verkliga narkontakter.
 # Den som VILL ha en sakerhetsmarginal anger den, och da star den i svaret.
-TOLERANS_STANDARD = 0.0  # Satt av M-47.
+TOLERANS_STANDARD = 0.0  # Satt av M-36 (M-47 namner ingen tolerans).
 
 
 # ---- domanens egna hjalpare ---------------------------------------------

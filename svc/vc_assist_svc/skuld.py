@@ -226,8 +226,26 @@ def moduler_utan_prov(rot: str) -> Dict[str, List[Tuple[str, int]]]:
     matt hade varit battre och dyrare, och det grova fangar redan det som ska
     fangas.
 
+    MEN NAMNET MASTE STA SOM ETT EGET ORD (M-92). Forsta versionen fragade
+    `stam in text`, alltsa en ren delstrang. MATT 2026-09-05: `bank/anlaggning.py`
+    raknades som provad for att bokstaverna "anlaggning" fanns inne i
+    `_anlaggningssignaler` i test_verktyg_signaler.py - och samtidigt matte
+    coverage 0 av modulens 336 satser. Delstrangskriteriet ar alltsa en vag ut
+    ur sparren som ingen behover ta medvetet: den oppnas av vilket langre ord
+    som helst. Kort stam = storre hal, sa `bas.py`, `fel.py` och `text.py` var
+    de mest utsatta.
+
+    Ordgransen kan i stallet ge falskt UTSLAG: `st/lexer.py` kors till 86 % via
+    tolken utan att nagon provfil skriver ordet "lexer". Det ar med flit. En
+    sparre som ska hitta skuld far hellre peka pa en modul for mycket an tiga
+    om en som aldrig kors - falsk gron ar den dyra riktningen.
+
     __init__.py raknas inte: den ar limmet och provas genom det den binder.
     """
+    def namns(stam, text):
+        return re.search(r"(?<![A-Za-z0-9_])" + re.escape(stam)
+                         + r"(?![A-Za-z0-9_])", text) is not None
+
     def las(katalog):
         text = []
         for kat, kataloger, filer in os.walk(katalog):
@@ -271,9 +289,9 @@ def moduler_utan_prov(rot: str) -> Dict[str, List[Tuple[str, int]]]:
                                             encoding="utf-8"))
                 except (OSError, UnicodeDecodeError):
                     n = 0
-                if stam in enhet or stam in ovrigt:
+                if namns(stam, enhet) or namns(stam, ovrigt):
                     continue
-                if stam in protokoll:
+                if namns(stam, protokoll):
                     ut["bara_l3"].append((sokvag, n))
                 else:
                     ut["inget"].append((sokvag, n))
@@ -305,6 +323,38 @@ def _mnr(text: str) -> str:
     if not m:
         raise ValueError("inget M-nummer i %r" % text)
     return "M-%02d" % int(m.group(1))
+
+
+def nummerkollisioner(katalog: str) -> List[Tuple[str, List[str]]]:
+    """M-nummer som mer an en matningsfil gor ansprak pa.
+
+    VARFOR DET AR SKULD OCH INTE SLARV (M-92): numret ar den enda identiteten
+    en matning har. Allt annat i systemet slar upp den PA NUMRET:
+
+      * `test_troskelharkomst.matningar_som_finns()` bygger en MANGD, sa tva
+        filer med samma nummer kollapsar till en post. En troskel som skriver
+        `# Satt av M-90.` blir gron oavsett vilken av de tva den menade, och
+        `svc/vc_assist_svc/forlopp/yta.py:63` var precis den raden den dagen
+        det fanns tva M-90.
+      * `rattelser_utan_framatpekare` nedan bygger `per_nummer[nummer] = fil`.
+        Sista filen i bokstavsordning vinner, tyst, och den andra matningens
+        rattelser blir osynliga for grinden.
+      * en lasare som far numret hanvisat till sig hittar fel matning.
+
+    MATT 2026-09-05: tva kollisioner samtidigt i repot (M-89 och M-90), bagge
+    uppkomna av att flera agenter skrev samtidigt utan att nagot fragade om
+    numret var taget. Ingen av de fyra filerna var fel skriven - det fanns bara
+    ingen grind som stallde fragan i skrivogonblicket.
+
+    Returnerar [(nummer, [filer])] for de nummer som har fler an en fil.
+    """
+    per_nummer: Dict[str, List[str]] = {}
+    for f in sorted(os.listdir(katalog)):
+        if not (f.startswith("M-") and f.endswith(".md")):
+            continue
+        per_nummer.setdefault(_mnr(f), []).append(f)
+    return [(n, filer) for n, filer in sorted(per_nummer.items())
+            if len(filer) > 1]
 
 
 def rattelser_utan_framatpekare(katalog: str) -> List[Tuple[str, List[str]]]:
@@ -360,6 +410,7 @@ def bygg(rot: str) -> Dict[str, object]:
         "matningsposter": poster,
         "kodposter": kodposter,
         "utan_arlighetsavsnitt": matningar_utan_arlighetsavsnitt(matningar),
+        "nummerkollisioner": nummerkollisioner(matningar),
         "moduler_utan_prov": moduler_utan_prov(rot),
         "rattelser_utan_framatpekare": rattelser_utan_framatpekare(matningar),
         "antal_punkter": sum(p.antal for p in poster),
@@ -388,6 +439,19 @@ def text(register: Dict[str, object]) -> str:
         rader.append("")
         for f in utan:
             rader.append("* `%s`" % f)
+        rader.append("")
+    kollisioner = register.get("nummerkollisioner") or []
+    rader.append("## Mätningsnummer som fler än en fil gör anspråk på: %d"
+                 % len(kollisioner))
+    rader.append("")
+    if kollisioner:
+        rader.append("Numret är mätningens enda identitet. Två filer på samma "
+                     "nummer gör varje hänvisning tvetydig, och både "
+                     "tröskellintern och rättelsegrinden slår upp på numret.")
+        rader.append("")
+        for nummer, filer in kollisioner:
+            rader.append("* **%s** — %s" % (nummer, ", ".join("`%s`" % f
+                                                              for f in filer)))
         rader.append("")
     rader.append("## Vad mätningarna säger att de inte vet: %d punkter"
                  % register["antal_punkter"])
