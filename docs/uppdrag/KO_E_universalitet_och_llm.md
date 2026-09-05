@@ -54,17 +54,59 @@ Två saker, i den ordningen:
 **Trasig fixtur:** en fejkad OneDrive-katalogstruktur där sökningen ska lyckas,
 och en där den ska misslyckas **med ett tydligt besked**.
 
-## E3 — M-119: vad hittade den, och vad är den tysta klassen
+## E3 — M-119 är mätt. Det här är reparationerna den kräver.
 
-919 frågor är mätta och osammanfattade. Analysera dem.
+`M-119` är körd och skriven: 1 025 frågor, 814 svarade, 211 kräver VC.
+Resultatet är inte "50 % täckning" — det är **två skarpa halvor**. Sex
+frågeslag av tretton svarar **noll**: konstanterna `VC_*`, enheter på
+properties, signalkartan, standarderna, grindreglerna och komponent-i-bibliotek.
+Summan döljer det, precis som `M-96` lärde en gång.
 
-Frågan som räknas är inte "hur många procent svarade rätt". Den är: **finns det
-en klass frågor där systemet svarar med tillförsikt och har fel?** Ett tyst fel
-— ett svar som ser bra ut och är fel — är den dyraste sorten, eftersom ingen
-kontrollerar det.
+Mät inte om det. Laga det. Fem punkter, i fallande ordning av vad de kostar:
 
-Rapportera per frågeslag, inte som ett totaltal. Ett totaltal döljer exakt den
-klass du letar efter.
+**E3a — nollan som ser ut som en mätning.** Biblioteket säger
+`rackvidd_mm = 0` för ABB IRB 1200-7/0.7; tillverkaren säger 703 mm. Det
+gäller **1 119 av 3 201 rader (35,0 %)** för räckvidd och **628 (19,6 %)** för
+nyttolast. Formatet kan redan säga *okänd* — `None` står i 645 respektive 215
+rader — så skillnaden mellan **noll** och **saknad** finns i datan och tappas i
+läsningen. En nolla som läses som ett mätvärde är projektets egen doktrin om
+härkomst, bruten i vår egen kod.
+
+Laga läsningen så att saknat aldrig kan läsas som noll. **Trasig fixtur:** en
+rad med `None` som blir `0` i svaret ska fällas.
+
+**E3b — grindreglerna finns men går inte att nå.** Tio av 31 grindfrågor fick
+träffar i fel domän. Det rätta svaret står **komplett på disk** i
+`docs/spec/41_ogat_kontrakt.md`, med enheter — och **ingen datahanterare öppnar
+`docs/spec/` vid körning**. Bara `docs/referens/vc_api/` och `vc_dotnet/` läses.
+
+Öppna `docs/spec/` för uppslagen. Det är en av de billigaste rättelserna i
+projektet och den stänger ett helt frågeslag.
+
+**E3c — `bench_task` utelämnar 9 av 23 fält.** Bland dem `control`
+(signalkartan), `fysik` och `facit_spar` — och 26 uppgifter bär
+klausulhänvisningar till standarder just i `facit_spar`. Det förklarar två av
+de tomma frågeslagen på en gång: signalkartan svarar 0 av 94 och standarderna
+0 av 23, för att fälten aldrig kommer fram.
+
+**E3d — 709 konstanter utan en enda beskrivning.** 100 % av konstanterna, 100 %
+av typerna och 100 % av händelserna saknar beskrivning; properties 0 %, metoder
+6,5 %. Indexet kan bekräfta att `VC_BOOLEANSIGNAL` finns, men inte att 88,1 %
+av biblioteket saknar boolean-signal — så `findBehavioursByType(...)[0]` kastar.
+`M-84` visade att det är just den klassen uppslag som är mest värd: de som
+svarar **SAKNAS**.
+
+**E3e — delsträngsträffen som ljuger.** `RACE` gav `vcHelpers.Robot.traceOn`,
+eftersom "race" ligger inne i "trace". `MINDIST` gav
+`vcCurveData.getCurveMinDistance`. Rangen `delstrang_namn` producerar tysta
+fel med hög tillförsikt. Antingen ska den rangen kräva en ordgräns, eller så
+ska svaret säga att träffen är en delsträng. **Trasig fixtur:** `RACE` får
+inte ge `traceOn` utan att svaret säger varför.
+
+En sjätte, billig: 26 av 238 API-svar namnger en **annan typ** än den man
+frågade om — ärvda medlemmar, `vcComponent.findBehavioursByType` svarar
+`vcNode...` — samtidigt som samma svar avslutas med "använd namnet exakt som
+det står". Svaret motsäger sig självt i sin egen sista mening.
 
 ## E4 — kan en LLM hitta det den behöver
 
