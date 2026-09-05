@@ -306,7 +306,14 @@ class Tolk(object):
         self.riktning: Dict[str, str] = dict(riktningar or {})
         self.varden: Dict[str, object] = {}
         self.block: Dict[str, Blockinstans] = {}
+        # Retentiva namn (VAR RETAIN) och ursprungsvärdena. Båda finns bara
+        # för omstartsbegreppet nedan; utan dem går en varmstart inte att
+        # skilja från en kallstart. Se `varmstart`.
+        self._retain: set = set()
+        self._blocksort: Dict[str, str] = {}
         self._deklarera(signaler or {})
+        self._ursprung: Dict[str, object] = dict(self.varden)
+        self.omstarter = 0
 
     # -- uppsättning ------------------------------------------------------
 
@@ -322,8 +329,11 @@ class Tolk(object):
         for block, dek in self.pou.deklarationer():
             namn = dek.namn.upper()
             typ = dek.typ
+            if "RETAIN" in getattr(block, "kvalificerare", ()):
+                self._retain.add(namn)
             if hasattr(typ, "namn") and typ.namn.upper() in SB.BLOCK:
                 self.block[namn] = Blockinstans(typ.namn.upper(), dek.namn)
+                self._blocksort[namn] = typ.namn.upper()
                 continue
             if hasattr(typ, "namn") and typ.namn.upper() in self.egna_pouer:
                 raise Tolkfel("tolken kör inte egna funktionsblock (%s)"
@@ -386,6 +396,54 @@ class Tolk(object):
         """Kör scan tills klockan når t_ms. Klockan står på scanrutnätet."""
         while self.tid_ms < t_ms - 1e-9:
             self.scan()
+
+    # -- omstarten --------------------------------------------------------
+    #
+    # Byggd av M-168 (kö A, punkt A9). Före den hade tolken inget
+    # omstartsbegrepp alls: ett spår kördes från scan 0 till slut och kunde
+    # aldrig avbrytas av det som händer varje gång strömmen går eller någon
+    # trycker på återställningen. `RETAIN` fanns i lexern, i modellen och i
+    # validatorn, men ingenstans i körningen — kvalificeraren var alltså en
+    # etikett utan verkan, och en uppgift kunde inte skilja en variabel som
+    # ÖVERLEVER en omstart från en som inte gör det.
+    #
+    # IEC 61131-3:2003 §2.4.3.1: vid en VARM start behåller variabler som är
+    # deklarerade RETAIN sitt värde; allt annat får sitt initialvärde. Vid en
+    # KALL start får också de retentiva sitt initialvärde.
+    #
+    # Två saker som INTE nollställs, och skälen:
+    #   * Insignalerna. Fältet ändras inte av att PLC:n startar om — givaren
+    #     står kvar där den står, och bildtabellen läses om från den vid
+    #     nästa scan. Att nollställa dem hade mätt "alla givare försvann"
+    #     i stället för "styrningen startade om".
+    #   * Klockan (`tid_ms`). Spåret är ett förlopp i verkligheten, och
+    #     verkligheten pausar inte. Antalet omstarter räknas i `omstarter`.
+
+    def varmstart(self):
+        """Varm omstart: allt utom RETAIN får sitt initialvärde.
+
+        Funktionsblocksinstanser (TON, R_TRIG, CTU …) nollställs likaså om de
+        inte står i ett RETAIN-block: en flankdetektor som minns sitt
+        föregående värde över en omstart hade sett en flank som aldrig hände.
+        """
+        self._starta_om(behall_retain=True)
+
+    def kallstart(self):
+        """Kall omstart: också RETAIN får sitt initialvärde."""
+        self._starta_om(behall_retain=False)
+
+    def _starta_om(self, behall_retain: bool):
+        for namn, varde in self._ursprung.items():
+            if behall_retain and namn in self._retain:
+                continue
+            if self.riktning.get(namn) == "in":
+                continue
+            self.varden[namn] = varde
+        for namn, sort in self._blocksort.items():
+            if behall_retain and namn in self._retain:
+                continue
+            self.block[namn] = Blockinstans(sort, namn)
+        self.omstarter += 1
 
     # -- satser -----------------------------------------------------------
 
