@@ -171,7 +171,7 @@ class Systembild(object):
 
     def notera(self, avlasning: Avlasning) -> Avlasning:
         if not isinstance(avlasning, Avlasning):
-            raise Aterhamtningsfel("notera tar en Avlasning, inte %s"
+            raise Aterhamtningsfel("notera takes an Avlasning, not %s"
                                    % type(avlasning).__name__)
         self.avlasningar.append(avlasning)
         self._spegla()
@@ -193,7 +193,7 @@ class Systembild(object):
         linjer, som `OP_FOR_EFFECT` och `skrivgrind`.
         """
         if vag not in VAGAR:
-            raise Aterhamtningsfel("okänd väg %r" % (vag,))
+            raise Aterhamtningsfel("unknown path %r" % (vag,))
         kan = kan_lyckas(orsak, vag, self.utan_sjalvstart)
         if kan == KAN_NEJ:
             raise Aterhamtningsfel(
@@ -208,7 +208,7 @@ class Systembild(object):
     def avsluta_forsok(self, forsok: Forsok, lyckades: bool,
                        ordagrant: str = "") -> Forsok:
         if forsok not in self.forsoken:
-            raise Aterhamtningsfel("försöket hör inte till den här bilden")
+            raise Aterhamtningsfel("the attempt does not belong to this snapshot")
         if not lyckades and not (ordagrant or "").strip():
             raise Aterhamtningsfel(
                 "ett misslyckat försök utan ord är samma tomma besked som "
@@ -301,7 +301,7 @@ class Systembild(object):
         VANTADE = {"v", "uppdrag", "t0", "skrivet", "t_ping", "t_nere",
                    "t_modal", "avlasningar", "forsok"}
         if not isinstance(data, dict):
-            raise Aterhamtningsfel("en systembild är ett objekt, inte %s"
+            raise Aterhamtningsfel("a system snapshot is an object, not %s"
                                    % type(data).__name__)
         if set(data) != VANTADE:
             saknas = sorted(VANTADE - set(data))
@@ -323,7 +323,7 @@ class Systembild(object):
                        "anslutning_oppnades", "degraded", "kor", "keepalive",
                        "provtagning", "ko_vantande", "sista_loggrad", "orsak"}
             if set(rad) != vantade:
-                raise Aterhamtningsfel("en avläsning har fel fält: %r"
+                raise Aterhamtningsfel("a reading has invalid fields: %r"
                                        % sorted(rad))
             b.avlasningar.append(Avlasning(
                 delsystem=rad["delsystem"], t=float(rad["t"]),
@@ -337,12 +337,12 @@ class Systembild(object):
         for rad in data["forsok"]:
             if set(rad) != {"vag", "orsak", "t_start", "kanskap", "t_slut",
                             "lyckades", "ordagrant"}:
-                raise Aterhamtningsfel("ett försök har fel fält: %r"
+                raise Aterhamtningsfel("an attempt has invalid fields: %r"
                                        % sorted(rad))
             if rad["vag"] not in vag_ur_nyckel:
-                raise Aterhamtningsfel("okänd väg %r i bilden" % (rad["vag"],))
+                raise Aterhamtningsfel("unknown path %r in the snapshot" % (rad["vag"],))
             if rad["orsak"] not in ORSAK_UR_NYCKEL:
-                raise Aterhamtningsfel("okänd orsak %r i bilden"
+                raise Aterhamtningsfel("unknown cause %r in the snapshot"
                                        % (rad["orsak"],))
             b.forsoken.append(Forsok(
                 vag=vag_ur_nyckel[rad["vag"]],
@@ -364,7 +364,7 @@ def lage_for(bild: Systembild, delsystem: str, nu: float) -> str:
     avläsning.
     """
     if delsystem not in DELSYSTEM:
-        raise Aterhamtningsfel("okänt delsystem %r" % (delsystem,))
+        raise Aterhamtningsfel("unknown subsystem %r" % (delsystem,))
     sista = bild.sista(delsystem)
     if sista is None:
         # Ingen har frågat. Det är ett besked om OSS, inte om den andra sidan,
