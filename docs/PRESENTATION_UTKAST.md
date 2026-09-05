@@ -180,16 +180,24 @@ project measures more.
 
 ## Where this is going
 
-**Natural language across the whole job.** The input is plain language, and it
-covers the range an engineer actually works in: a precise specification, a rough
-intention, or a change to a cell that already exists.
+**Natural language across the whole job.** The input is plain language, from a
+precise specification to a rough intention to a change to a cell that already
+exists.
 
-Asking about a running cell works today — *why does station 3 starve* is answered
-from the eye's own measurements, quoting the rows it read, and it cannot touch
-the scene while it does so. Changing one — *swap that gripper* — has its gates
-built: an ambiguous sentence returns the candidates and switches every writing
-tool off until you answer. Optimising one — *speed this line up* — is not built,
-and is refused with that reason rather than half-attempted.
+How much work happens before anything is built follows from the order itself.
+*Swap that gripper* settles in one step. *Build a picking station that handles
+400 parts per hour* has throughput, footprint, walkway clearance, reach and
+process order to resolve first — and each of those is either derived, and
+recorded with the reasoning that produced it, or put back to you as a question.
+Nothing is filled in silently, and the questions that block the build are marked
+apart from the ones that do not.
+
+Asking about a running cell works today: *why does station 3 starve* is answered
+from the eye's own measurements, quoting the rows it read, and cannot touch the
+scene while it does so. Changing one has its gates built — an ambiguous sentence
+returns the candidates and switches every writing tool off until you answer.
+Optimising one, *speed this line up*, is not built, and is refused with that
+reason rather than half-attempted.
 
 **Line-level generation.** Faults between stations are a different problem from
 faults inside one — five classes of them exist that every station passes on its
