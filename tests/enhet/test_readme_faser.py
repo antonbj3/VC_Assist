@@ -113,3 +113,26 @@ def test_readme_fas10_text_har_inga_oppna_punkter():
     )
     assert "inte prövat, och det är fasens öppna punkt" not in text.lower()
 
+
+def _pyfiler(*kataloger):
+    ut = []
+    for kat in kataloger:
+        for rot, ds, fs in os.walk(os.path.join(_ROT, kat)):
+            ds[:] = [d for d in ds if d != "__pycache__"]
+            ut += [os.path.join(rot, f) for f in sorted(fs) if f.endswith(".py")]
+    return ut
+
+
+def test_readme_beskriver_ett_repo_med_kod_i():
+    """README.md: 'Specifikationsfas. Ingen kod byggd ännu.' S7 mätte att
+    källprojektets README låg 71 dagar efter koden och påstod funktioner som
+    inte fanns. Här påstår den frånvaron av kod som finns."""
+    rader = sum(len(open(p, encoding="utf-8").readlines())
+                for p in _pyfiler("ext", "svc", "bank"))
+    with open(_README, encoding="utf-8") as f:
+        text = f.read()
+    assert "Ingen kod byggd ännu" not in text, (
+        "README.md säger 'Ingen kod byggd ännu' medan repot bär %d rader "
+        "Python i ext/, svc/ och bank/" % rader)
+
+

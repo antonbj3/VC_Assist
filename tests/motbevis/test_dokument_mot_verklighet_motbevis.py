@@ -130,18 +130,6 @@ def test_antalet_enhetstester_i_fas1_stammer_med_sviten():
         % (m.group(2), antal))
 
 
-def test_readme_beskriver_ett_repo_med_kod_i():
-    """README.md: 'Specifikationsfas. Ingen kod byggd ännu.' S7 mätte att
-    källprojektets README låg 71 dagar efter koden och påstod funktioner som
-    inte fanns. Här påstår den frånvaron av kod som finns."""
-    rader = sum(len(open(p, encoding="utf-8").readlines())
-                for p in _pyfiler("ext", "svc", "bank"))
-    text = _las("README.md")
-    assert "Ingen kod byggd ännu" not in text, (
-        "README.md säger 'Ingen kod byggd ännu' medan repot bär %d rader "
-        "Python i ext/, svc/ och bank/" % rader)
-
-
 def test_utforarens_pastaende_om_att_vara_enda_stallet_haller():
     """utforare.py:13 — '1. Tabellen är det ENDA stället i tjänsten där
     operationsnamnen "exec" och "exec_queue" står.'"""
