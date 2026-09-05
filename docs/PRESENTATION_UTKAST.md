@@ -92,13 +92,6 @@ collision and throughput.
 rose too early, by how many seconds, and which station therefore began working
 on a part the previous station had not finished.
 
-We read five papers in full before building it — LLM4PLC, Agents4PLC, AutoPLC,
-SemaPLC and Spec2Control. Each closes its loop around formal verification or a
-test harness; none of them reports running the generated code on a PLC against a
-plant model and correcting it from the result. Nor does any vendor publish a
-correctness figure at all. What happens in labs we cannot see is another
-question.
-
 ## Finding the right machine
 
 The library holds **3 201 machines**, around 2 200 of them robots. Search it by what
