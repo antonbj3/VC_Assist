@@ -1,0 +1,40 @@
+# M-153: flankproben, radata (kord mot vcassist-openplc-v4, 127.0.0.1:18443)
+
+## A-07 kallstart_utan_sjalvstart ST470_CLP_CLOSE
+TOLK  ST470_CLP_CLOSE RISE vid [500.0]
+TOLK  ST470_CLP_CLOSE FALL vid []
+OPLC  ST470_CLP_CLOSE RISE vid [540.0]
+OPLC  ST470_CLP_CLOSE FALL vid []
+FACIT ingen_spanning_fore_kvittens: RISE antal=0 fonster [0, 480] ms; openplc-domaren laser [0, 560.0]
+
+## P-03 lang_kylning_och_ett_uttag (bada flankkraven)
+=== P-03 lang_kylning_och_ett_uttag ST120_MLD_CLOSE_OK ===
+TOLK  ST120_MLD_CLOSE_OK RISE vid [18400.0]
+TOLK  ST120_MLD_CLOSE_OK FALL vid [14000.0]
+OPLC  ST120_MLD_CLOSE_OK RISE vid [20.0, 18440.0]
+OPLC  ST120_MLD_CLOSE_OK FALL vid [14040.0]
+FACIT en_frigivning_per_verktygsoppning: RISE antal=1 fonster [0, 18800] ms; openplc-domaren laser [0, 18880.0]
+=== P-03 lang_kylning_och_ett_uttag ST120_RB_CLEAR ===
+TOLK  ST120_RB_CLEAR RISE vid [18000.0]
+TOLK  ST120_RB_CLEAR FALL vid [14000.0]
+OPLC  ST120_RB_CLEAR RISE vid [20.0, 18040.0]
+OPLC  ST120_RB_CLEAR FALL vid [14020.0]
+FACIT en_omradesfri_kvittens_per_verktygsoppning: RISE antal=1 fonster [0, 18800] ms; openplc-domaren laser [0, 18880.0]
+
+## P-03 + T-04 med rasamplen och rutnatets forsta scan
+=== P-03 ST120_RB_CLEAR (startvillkoret) ===
+TOLK  ST120_RB_CLEAR RISE vid [18000.0]
+TOLK  ST120_RB_CLEAR FALL vid [14000.0]
+RA    forsta 6 rasamplen (t_ms, ST120_RB_CLEAR): [(2.3, False), (13.3, False), (24.4, False), (35.4, True), (46.5, True), (57.6, True)]
+GRID  scan 0-4 (ST120_RB_CLEAR): [False, True, True, True, True]
+OPLC  ST120_RB_CLEAR RISE vid [20.0, 18020.0]
+OPLC  ST120_RB_CLEAR FALL vid [14040.0]
+FACIT en_omradesfri_kvittens_per_verktygsoppning: RISE antal=1 fonster [0, 18800] ms; openplc-domaren laser [0, 18880.0]
+=== T-04 ST040_STP_IN_OPEN ===
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+RA    forsta 6 rasamplen (t_ms, ST040_STP_IN_OPEN): [(3.8, False), (15.5, False), (27.5, False), (39.5, True), (51.4, True), (63.2, True)]
+GRID  scan 0-4 (ST040_STP_IN_OPEN): [False, True, True, True, True]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 1040.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [1020.0, 19720.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
