@@ -83,11 +83,14 @@ REGLER: Dict[str, str] = {
         "Skriv aldrig till en ingang (VAR_INPUT), till en CONSTANT eller till "
         "en styrvariabel. Ingangar lases; utgangar skrivs.",
     "DUBBELSKRIVNING":
-        "Skriv varje utgang pa EXAKT ETT stalle. Tva skrivningar till samma "
-        "utgang som kan koras i samma scan falls, aven nar de star i olika "
-        "grenar - sist skriven vinner, och da doljer koden sin egen avsikt. "
-        "Behover utgangen satta och nollstallas: gor det i EN sats, till "
-        "exempel `UT := villkorA AND NOT villkorB;`.",
+        "Har en utgang tva varden: anvand IF/ELSE (eller ELSIF), skriv den som "
+        "ETT uttryck `UT := villkorA AND NOT villkorB;`, eller satt ett "
+        "grundvarde OVILLKORAT forst och skriv over det villkorat efterat. "
+        "Alla tre gar igenom. Det som falls ar tva SEPARATA IF-block som ger "
+        "samma utgang OLIKA varden - bada kan koras i samma scan och da avgor "
+        "ordningen, inte logiken. Ocksa: en ovillkorad skrivning EFTER en "
+        "villkorad (den villkorade blir verkningslos), och tva ovillkorade "
+        "(den forsta syns aldrig).",
     "OATKOMLIG":
         "Skriv ingen kod som aldrig kan koras: en gren efter ett villkor som "
         "alltid ar falskt, eller satser efter RETURN eller EXIT.",
