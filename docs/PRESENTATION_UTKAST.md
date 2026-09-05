@@ -1,17 +1,10 @@
 # VC Assist
 
-If you do virtual commissioning, you know the shape of the day: inventory the
-signals, wire the maps, set the directions, connect the scene to the PLC, run
-the simulation, and then hunt the timing fault that only appears on the ninth
-cycle.
-
-VC Assist writes the Structured Text, runs it on a real soft-PLC against the
-scene, and reads what the plant actually did — every object's position, every
-signal, every edge — to find the sequence and timing faults for you. When it
-finds one, it says which signal rose too early and by how much, and hands that
-back to the model to fix.
-
-It does not answer *does it compile?* It answers *what happened in the plant?*
+VC Assist writes the Structured Text for a cell, runs it on a real soft-PLC
+against the scene, and reads what the plant actually did — every object's
+position, every signal, every edge — to find the sequence and timing faults.
+When it finds one it says which signal rose too early and by how much, and hands
+that back to be fixed.
 
 ## What it runs on
 
@@ -25,7 +18,7 @@ It does not answer *does it compile?* It answers *what happened in the plant?*
 | Python (host) | 3.9 | installer works; the verification step needs 3.10 |
 | Python (inside the simulator) | 2.7 and 3.x | every file is checked against both at install time |
 | Linux | Wine ≥ 11.15 | below that the licence engine dies on `bcrypt HashBlockLength` — measured |
-| Windows | nothing beyond VC itself | supported; `python3 tests/protocol/kor_E1_windows_16punkter.py` confirms it on your machine |
+| Windows | nothing beyond VC itself | supported — development has been on Linux, so `python3 tests/protocol/kor_E1_windows_16punkter.py` verifies your setup |
 
 No `pip install`, no `requirements.txt`. The installer and the add-on use the
 standard library only, on both platforms.
