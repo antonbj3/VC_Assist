@@ -105,14 +105,27 @@ namn: `BehaviorType`, `SimInterfaceFieldType`, `ConnectorType`,
 `FeatureType` i Create3D. Därför citeras .NET-filerna för semantik fast
 koden är Python.
 
-**MÄTT om klassnamnen:** py2-bindningen rapporterar egna klassnamn
-(`type(b).__name__`) som **inte** är api.xml:s typnamn: `VC_ONEWAYPATH` →
-`vcOneWayPath`, `VC_COMPONENTCONTAINER` → `vcSimContainer`,
-`VC_COMPONENTCREATOR` → `rResourceCreator`, `VC_ONEDIRECTIONALPATH` →
-`vcMovementPath`, `VC_CONTAINERFILLER` → `vcContainerFiller`, `VC_TRANSPORT`
-→ `vcTransport`. Indexets typer (`vcMotionPath`, `vcContainer`,
-`vcComponentCreator`) är dokumentationens namn på samma objekt. Listan står
-i `hypoteser.MATTA_KLASSNAMN`.
+**~~MÄTT om klassnamnen~~ — REFUTERAT i M-101, se avsnitt 11.** Raden sade
+att py2-bindningen rapporterar egna klassnamn som **inte** är api.xml:s
+(`VC_ONEWAYPATH` → `vcOneWayPath`, `VC_COMPONENTCONTAINER` → `vcSimContainer`,
+`VC_COMPONENTCREATOR` → `rResourceCreator` …). Mätt om 2026-09-05 på två
+vägar — returvärdet från `createBehaviour` och samma beteende ur
+`k.Behaviours` — i samma VC 4.10 och samma prefix:
+
+| Konstant | raden sade | **MÄTT M-101** |
+|---|---|---|
+| `VC_ONEWAYPATH` | `vcOneWayPath` | **`vcMotionPath`** |
+| `VC_COMPONENTCONTAINER` | `vcSimContainer` | **`vcComponentContainer`** |
+| `VC_COMPONENTCREATOR` | `rResourceCreator` | **`vcComponentCreator`** |
+| `VC_ONEDIRECTIONALPATH` | `vcMovementPath` | **`vcOneDirectionalPath`** |
+| `VC_CONTAINERFILLER` | `vcContainerFiller` | **`vcFlow`** |
+| `VC_TRANSPORT` | `vcTransport` | `vcTransport` (den enda som stämmer) |
+| `VC_ONETOONEINTERFACE` | — | **`vcSimInterface`** |
+
+`type(b).__name__` ger alltså **api.xml:s** namn, inte några egna. Listan
+`hypoteser.MATTA_KLASSNAMN` — som `test_byggrecept.py` dömer VC-namn mot —
+håller därmed namn VC inte producerar. Den ligger utanför fas 20:s filer och
+är **inte rättad här**, bara flaggad.
 
 ### 1.2 Flöde, behållare, kontakt
 
@@ -674,16 +687,34 @@ hade sagt grönt om en linje som står still.
 
 ## 11. Vad mätningen har refuterat
 
-En rad i en källa är inte en mätning. De här stod som belagda och VC svarade
-nej.
+En rad här är ett påstående som stod i en källa — eller i den här specen —
+och som VC svarade nej på. Raderna hör hemma i modellen, inte bara i en
+mätning: nästa gång någon läser api.xml eller avsnitt 1.1 och tror sig ha
+hittat ett faktum ska raden möta hen här.
 
 **`ContentVisible`** — M-101
 
 * Påstods: BELAGT api.xml vcContainer.ContentVisible (W): "Sets the visibility of components stored in the container."
 * Utfall: finns INTE på det beteende VC_COMPONENTCONTAINER faktiskt ger (vcSimContainer). Tilldelningen svarar "NameError: Attribute or method 'ContentVisible' not found." — alltså VC:s NameError, inte Pythons AttributeError (samma fälla som M-40 beskrev för Connectors). api.xml dokumenterar egenskapen på typen vcContainer; py2-bindningens instans bär den inte. En BELAGD rad är inte en mätt rad.
 
-Lärdomen är generell och kostade tretton komponenter: en egenskap som inte
-finns kastar `NameError` i VC:s bindning, och en oskyddad tilldelning tar med
-sig **hela resten av startskriptet**. Därför går varje egenskapstilldelning i
-`komponentmodell` genom `_steg()`: en egenskap som inte finns är ett mätvärde,
-aldrig ett haveri.
+**`MATTA_KLASSNAMN`** — M-101
+
+* Påstods: MÄTT i spec 49 §1.1 (2026-09-04): py2-bindningen rapporterar egna klassnamn som INTE är api.xml:s typnamn — VC_ONEWAYPATH → vcOneWayPath, VC_COMPONENTCONTAINER → vcSimContainer, VC_COMPONENTCREATOR → rResourceCreator, VC_ONEDIRECTIONALPATH → vcMovementPath, VC_CONTAINERFILLER → vcContainerFiller
+* Utfall: reproducerar inte. `type(b).__name__` mätt på två vägar (returvärdet från createBehaviour och samma beteende ur k.Behaviours), samma VC 4.10 och samma prefix, ger api.xml:s namn: vcMotionPath, vcComponentContainer, vcComponentCreator, vcOneDirectionalPath — och VC_CONTAINERFILLER ger vcFlow. Fem av sex namn skiljer sig; bara vcTransport stämmer. Vad som mättes 2026-09-04 vet vi inte, men det var inte det som står. Följden är att `byggrecept/hypoteser.MATTA_KLASSNAMN` — som test_byggrecept.py dömer VC-namn mot — håller namn VC inte producerar. Den listan ligger utanför fas 20:s filer och är INTE rättad här; den är flaggad.
+
+**`Port = -1 som kännetecken på ett obundet fält`** — M-101
+
+* Påstods: MÄTT M-40: "Ett fält med Port = -1 ger canConnect() == False" — läst som att ett obundet flödesfält känns igen på Port = -1
+* Utfall: ett NYSKAPAT VC_FLOWFIELD har Port = **0**, inte -1. Mätt på alla sex trasiga gränssnitt i M-101: Container = None och Port = 0. -1 är vad Port BLIR när Container sätts EFTER Port (M-40:s ordningsfynd), inte vad ett obundet fält bär. Ett prov som bara läste Port hade alltså sagt "bundet" om ett fält som pekar på port 0 i INGET beteende. Det är därför R2 (Container) står före R3 (Port) i matchningsregeln.
+
+Lärdomen bakom den första raden är generell och kostade tretton komponenter:
+en egenskap som inte finns kastar `NameError` i VC:s bindning, och en
+oskyddad tilldelning tar med sig **hela resten av startskriptet**. Därför går
+varje egenskapstilldelning i `komponentmodell` genom `_steg()`: en egenskap
+som inte finns är ett mätvärde, aldrig ett haveri.
+
+Lärdomen bakom den andra är obehagligare. Raden i avsnitt 1.1 bar märket
+**MÄTT**, och den reproducerar inte. Ett märke är ingen garanti — det är ett
+påstående om hur påståendet kom till. Det som skiljer avsnitt 7–11 från
+avsnitt 0–6 är inte märkena utan att raderna är **körbara**: de bygger något,
+och ett prov faller när de slutar stämma.

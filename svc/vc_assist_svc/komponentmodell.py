@@ -278,6 +278,39 @@ REFUTERAT = (
                u"fälla som M-40 beskrev för Connectors). api.xml dokumenterar "
                u"egenskapen på typen vcContainer; py2-bindningens instans bär "
                u"den inte. En BELAGD rad är inte en mätt rad."),
+    Refuterat(
+        namn="MATTA_KLASSNAMN",
+        pastod=u"MÄTT i spec 49 §1.1 (2026-09-04): py2-bindningen rapporterar "
+               u"egna klassnamn som INTE är api.xml:s typnamn — "
+               u"VC_ONEWAYPATH → vcOneWayPath, VC_COMPONENTCONTAINER → "
+               u"vcSimContainer, VC_COMPONENTCREATOR → rResourceCreator, "
+               u"VC_ONEDIRECTIONALPATH → vcMovementPath, VC_CONTAINERFILLER → "
+               u"vcContainerFiller",
+        matning="M-101",
+        utfall=u"reproducerar inte. `type(b).__name__` mätt på två vägar "
+               u"(returvärdet från createBehaviour och samma beteende ur "
+               u"k.Behaviours), samma VC 4.10 och samma prefix, ger "
+               u"api.xml:s namn: vcMotionPath, vcComponentContainer, "
+               u"vcComponentCreator, vcOneDirectionalPath — och "
+               u"VC_CONTAINERFILLER ger vcFlow. Fem av sex namn skiljer sig; "
+               u"bara vcTransport stämmer. Vad som mättes 2026-09-04 vet vi "
+               u"inte, men det var inte det som står. Följden är att "
+               u"`byggrecept/hypoteser.MATTA_KLASSNAMN` — som "
+               u"test_byggrecept.py dömer VC-namn mot — håller namn VC inte "
+               u"producerar. Den listan ligger utanför fas 20:s filer och är "
+               u"INTE rättad här; den är flaggad."),
+    Refuterat(
+        namn=EGENSKAP_PORT + " = -1 som kännetecken på ett obundet fält",
+        pastod=u"MÄTT M-40: \"Ett fält med Port = -1 ger canConnect() == False\" "
+               u"— läst som att ett obundet flödesfält känns igen på Port = -1",
+        matning="M-101",
+        utfall=u"ett NYSKAPAT VC_FLOWFIELD har Port = **0**, inte -1. Mätt på "
+               u"alla sex trasiga gränssnitt i M-101: Container = None och "
+               u"Port = 0. -1 är vad Port BLIR när Container sätts EFTER Port "
+               u"(M-40:s ordningsfynd), inte vad ett obundet fält bär. Ett "
+               u"prov som bara läste Port hade alltså sagt \"bundet\" om ett "
+               u"fält som pekar på port 0 i INGET beteende. Det är därför R2 "
+               u"(Container) står före R3 (Port) i matchningsregeln."),
 )
 
 
