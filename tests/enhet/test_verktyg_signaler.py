@@ -1285,7 +1285,7 @@ def test_tyst_stdout_ar_inte_ett_godkannande(utf, brygga, monkeypatch):
     monkeypatch.setattr(brygga, "_resultat", lambda args: None)
     with pytest.raises(V.Svarsfel) as e:
         utf.utfor("get_signal", {"component": "Bana", "signal": "S1"})
-    assert "ingen JSON" in str(e.value)
+    assert "not JSON" in str(e.value)
 
 
 # ==========================================================================

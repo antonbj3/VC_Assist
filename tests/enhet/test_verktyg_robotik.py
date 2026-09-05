@@ -744,7 +744,7 @@ def test_tyst_stdout_ar_inte_ett_godkannande(utf, brygga, monkeypatch):
     monkeypatch.setattr(brygga, "_resultat", lambda args: None)
     with pytest.raises(V.Svarsfel) as e:
         utf.utfor("get_joints", {"component": "R"})
-    assert "ingen JSON" in str(e.value)
+    assert "not JSON" in str(e.value)
 
 
 def test_en_handlare_som_lamnar_skrivande_kod_routas_anda_som_read(utf, brygga,

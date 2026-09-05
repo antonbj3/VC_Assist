@@ -137,8 +137,8 @@ class Utforare(object):
             # Sista raden pa stdout var inte JSON. Da har mallen inte svarat,
             # och tystnad ar aldrig ett godkannande (I3).
             raise Svarsfel(
-                "%s: sista raden pa stdout var ingen JSON; bryggans svarskanal "
-                "ar tom. stdout: %r" % (namn, svar.get("stdout", "")))
+                "%s: the last line on stdout was not JSON; the bridge's "
+                "response channel is empty. stdout: %r" % (namn, svar.get("stdout", "")))
         validera_resultat(verktyg, resultat)
         return Resultat(namn, verktyg.effect, verktyg.mode, op=op, kod=kod,
                         resultat=resultat, stdout=svar.get("stdout", ""),
@@ -175,8 +175,8 @@ class Utforare(object):
             resultat = resultat["result"]
         if resultat is None:
             raise Svarsfel(
-                "%s: koposten kordes men sista raden pa stdout var ingen JSON. "
-                "stdout: %r" % (namn, svar.get("stdout", "")))
+                "%s: the queue item ran but the last line on stdout was not "
+                "JSON. stdout: %r" % (namn, svar.get("stdout", "")))
         validera_resultat(verktyg, resultat)
         return Resultat(namn, verktyg.effect, verktyg.mode, op="queue_approve",
                         koad=False, qid=qid, resultat=resultat,
