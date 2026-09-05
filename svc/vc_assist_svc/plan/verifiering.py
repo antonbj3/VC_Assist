@@ -84,8 +84,9 @@ class Uppskjutet(object):
                                   % (mall, sektion, fel))
         if not isinstance(skal, str) or len(skal.strip()) < MIN_SKAL_TECKEN:
             raise Verifieringsfel(
-                "det uppskjutna kravet %r saknar skal pa minst %d tecken; ett "
-                "krav far skjutas upp, men inte tyst" % (mall, MIN_SKAL_TECKEN))
+                "the deferred requirement %r lacks a rationale of at least %d "
+                "characters; a requirement may be deferred, but not silently"
+                % (mall, MIN_SKAL_TECKEN))
 
     def __repr__(self):
         return "Uppskjutet(%s, %r)" % (self.sektion, self.mall)
@@ -177,8 +178,8 @@ class Verifieringskrav(object):
             for k in self.rader:
                 if k.sektion == "HONESTY" and "VIOLATION" in k.mall:
                     raise Verifieringsfel(
-                        "kravet sager PASS men kraver raden %r; ogat skriver "
-                        "aldrig ett PASS med en HONESTY-overtradelse" % (k.mall,))
+                        "the requirement says PASS but requires the line %r; the "
+                        "eye never writes a PASS with a HONESTY violation" % (k.mall,))
 
     def __repr__(self):
         return "Verifieringskrav(%s, %d rader, %d uppskjutna)" % (
