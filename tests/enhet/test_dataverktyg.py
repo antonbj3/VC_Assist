@@ -97,7 +97,7 @@ EXEMPEL = {
     "catalog_item": [{"uri": "bank://robot/abb_irb_660_180_3150"},
                      {"uri": "bank://robot/finns_inte"}],
     "catalog_categories": [{}],
-    # De tva mot det INSTALLERADE biblioteket. Pa en maskin utan VC svarar de
+    # De TRE mot det INSTALLERADE biblioteket. Pa en maskin utan VC svarar de
     # "inget bibliotek" med skalet, och det ar ett giltigt svar mot schemat -
     # vilket ar precis vad ett prov utan bibliotek ska visa.
     "search_installed_library": [{},
@@ -105,6 +105,14 @@ EXEMPEL = {
                                  {"manufacturer": "ABB", "category": "Robots"},
                                  {"has_parameter": "conveyor", "max_rows": 3}],
     "library_overview": [{}],
+    # component_datasheet: ett namn som finns, ett som inte finns, en fraga
+    # som ar for bred for att veta vilken komponent som menas, och ett anrop
+    # helt utan argument. Alla fyra ska passera schemat - de tre sista som ett
+    # NEJ MED SKAL, inte som ett tomt datablad.
+    "component_datasheet": [{"name": "IRB 6700-150/3.20"},
+                            {"name": "den har komponenten finns inte"},
+                            {"name": "IRB"},
+                            {}],
     "lookup_api": [{"name": "vcRobotController.moveTo"},
                    {"name": "moveTo"},
                    {"name": "vcRobotController.moveToo"}],
@@ -184,14 +192,20 @@ def test_de_tre_domanerna_ar_byggda():
         domaner.setdefault(v.doman, []).append(v.namn)
     assert sorted(domaner) == ["catalog", "eyes", "knowledge"]
     # catalog bar TVA kallor, med flit: tre verktyg mot bankens 65 handskrivna
-    # poster (som uppgifterna binder mot, lintkod M4_UNKNOWN_URI) och tva mot
+    # poster (som uppgifterna binder mot, lintkod M4_UNKNOWN_URI) och TRE mot
     # det bibliotek som faktiskt ar installerat pa maskinen (M-57: 3201
     # komponenter). Att sla ihop dem hade varit att andra ett kontrakt for att
     # slippa forklara en skillnad.
-    assert len(domaner["catalog"]) == 5
+    #
+    # De tre mot biblioteket svarar pa tre olika fragor, och skillnaden mellan
+    # dem ar hela skalet till att de ar tre: library_overview sager VAD SOM
+    # FINNS, search_installed_library VILKEN komponent, och
+    # component_datasheet vad DEN komponenten heter invandigt - egenskaperna,
+    # signalerna och granssnitten vid namn (M-85, halet M-84 namngav).
+    assert len(domaner["catalog"]) == 6
     assert len(domaner["knowledge"]) == 4
     assert len(domaner["eyes"]) == 3
-    assert len(REGISTER) == 12
+    assert len(REGISTER) == 13
 
 
 def test_allt_ligger_i_data_registret():
@@ -210,7 +224,8 @@ def test_de_tre_domanerna_ligger_i_paketets_register():
     for namn in REGISTER:
         assert namn in V.REGISTER, "%s ar inte inkopplat i paketet" % namn
         assert namn in V.DATA_HANDLERS, "%s ligger inte i DATA_HANDLERS" % namn
-    assert len(REGISTER) == 12, "catalog 3 + 2 mot installerade biblioteket, knowledge 4, eyes 3"
+    assert len(REGISTER) == 13, ("catalog 3 mot banken + 3 mot installerade "
+                                 "biblioteket, knowledge 4, eyes 3")
 
 
 @pytest.mark.parametrize("namn", sorted(REGISTER))
