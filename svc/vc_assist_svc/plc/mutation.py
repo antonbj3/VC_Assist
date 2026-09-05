@@ -30,6 +30,23 @@ banken.
 
 Det ar samma sak `54_felstallda_fragor.md` §3 efterlyste: andelen domar som
 kraver att man ser mer an en fil.
+
+## Fangad ar inte fangad av RATT skal
+
+`M-115` bevisade tre oberoende vagar att flank- och latchfel ar OSYNLIGA for
+varje sparbaserad verifierare: bankens spar med ett enda kolli gor korrekt och
+trasig styrning byte-identiska, och skillnaden lever i ett matt band pa
+220-900 ms som det fasta sparet aldrig nar.
+
+Det forklarar ett resultat i forsta korningen som annars ser bra ut.
+`FLANK_TILL_NIVA` fangades 6 av 7 och `FLANKENS_Q_TILL_SIGNAL` 15 av 15 - men
+av TEXTLAGRET: en struken flankdetektor gor variabeln odeklarerad, och `.Q`
+utbytt mot instansen ger ett typfel. Beteendedefekten fangades aldrig.
+
+Det var tur, inte en fungerande beteendegrind. En matning som bara raknar
+"fangad" kan inte skilja de tva, och den skillnaden ar hela poangen. Darfor bar
+varje `Skada` sitt `vantat_lager`: fangas en beteendeskada av textlagret ska det
+rapporteras som en LYCKOTRAFF, inte som tackning.
 """
 from __future__ import annotations
 
