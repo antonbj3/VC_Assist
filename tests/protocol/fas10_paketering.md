@@ -6,8 +6,18 @@
 handpåläggning."*
 **kontrakt:** `docs/spec/35_plattformar.md`, `docs/spec/36_versioner.md`
 
-## Status: ÖPPEN — allt utom ett steg är mätt.
-Kvar: att VC startar med det installationen lade dit (kräver VC)
+## Status: STÄNGD 2026-09-05 (M-112).
+
+Den sista punkten — *att VC startar med det installationen lade dit* — är mätt.
+Sekvensen var ren: installera från repot (`nya 0, uppdaterade 1, oförändrade
+10`, elva filer verifierade på plats), stoppa VC, starta med `~/bin/vc-test.sh`
+headless på `:99` i testprefixet, och läsa bootloggen.
+
+Tolv nya rader: mappen hittad, `bridge_cmd.py` laddad, startskriptet kört,
+bryggkomponenten byggd. Och den lever — `ping` tur och retur **19,7 ms**,
+`exec print(1+1)` ger `2`. Ett felskrivet anrop gav dessutom ett Python-spår ur
+VC med sökvägen till installationens `pump.py`, vilket är det starkaste beviset
+på var koden kom ifrån.
 
 ## Förutsättning
 

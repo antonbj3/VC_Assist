@@ -204,7 +204,7 @@ ligger i `tests/protocol/`.
 | 7 | ST för en station | klar på Linux | M-49, M-50: grind 1–5 gröna, ögat PASS, **L1-guld**. Fem trasiga fall fällda av ögat |
 | 8 | Komposition | klar på Linux | M-73, M-74: två stationer på en lina, **guld i fem celler**. Fem kompositionsfel fällda i linan som båda enstationskörningarna släppte igenom |
 | 9 | Bänken | **stängd** | M-96: slingan kör sig själv — bryggan mellan grind och modell var det enda som stod öppet. Enskott utan grindreglerna **0 av 20** (fem försök per uppgift); flerskott med grindens egna ord tillbaka **3 av 4** inom taket på fyra varv, varv 3/1/2, 1,32 USD. `M-52`:s tak prövat mot en riktig modell för första gången. Skalan är fas 21 |
-| 10 | Paketering | klar på ren Linux-maskin, en öppen punkt | M-90. Se nedan |
+| 10 | Paketering | **stängd** | M-90 (ren Linux-maskin) + M-112: VC startar med det installationen lade dit. Elva filer installerade och verifierade, bootloggen visar tillägget laddat, `ping` tur och retur **19,7 ms** genom installationens brygga |
 | 11 | Klassisk baslinje | klar, kräver ej VC | M-62: en regelbaserad generator över **samma** bank och **samma** domare. Fas 9:s tal rapporteras alltid som par |
 | 12 | Verktygskedjan i repot | klar på Linux | M-56: STruC++ v0.6.6, OpenPLC v4 och node v22.22.0 hämtas med fastspikad version och kontrollerad hash. Windows-vägen oprövad |
 | 13 | Windows | **inte påbörjad** | Kräver en Windows-maskin. M-44:s 16 numrerade protokollpunkter väntar |
