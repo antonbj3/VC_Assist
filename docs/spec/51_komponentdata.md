@@ -79,12 +79,63 @@ med enhet är ett fel som ser ut som ett svar.
 
 ---
 
-## 5. Vad som INTE är gjort
+## 5. Vad berikningen ger, och var den tar slut
 
-Berikningen ur tillverkarnas datablad är **specificerad här, inte byggd**.
-Talen i §1 är mätta (`M-85`); allt i §2 om den tredje källan är en plan.
+Berikningen är **byggd** (`M-107`): `svc/vc_assist_svc/tillverkardatablad.py`
+och korpusen i `data/tillverkardatablad/`. De tre lägena i §4 är tre lägen i
+koden, och skillnaden bärs av konstruktorer:
 
-Och en gräns som gäller även när den är byggd: ett datablad gäller en
-**modell**, inte en instans. Två robotar av samma typ med olika verktyg har
-olika nyttolast kvar. Databladets tal är ett tak, aldrig ett driftvärde — ett
-typskyltvärde är en anslutning, inte en förbrukning.
+* `finns` kräver värde, enhet **och** källa. En `Kalla` utan url, hämtdatum,
+  sha256 och ordagrant citat går inte att bygga.
+* `enhet_saknas` bär **inget talvärde alls**, bara strängen `ordagrant`. Det är
+  poängen: `svar.varde` är `None`, så det finns inget tal att räkna på av
+  misstag. En float hade varit en märkning man kan glömma.
+* `saknas` måste säga vad som letades efter.
+
+Enheten kan aldrig härledas ur värdet. Talet och enheten ska stå **bredvid
+varandra i ett ordagrant citat** ur den hämtade källan — `MaxPayload: 180` går
+inte att göra till `180 kg` genom att skriva dit `kg`. För tabeller vars enhet
+står i rubriken (`Handling capacity (kg)`) finns ett andra, svagare läge vars
+koppling kontrolleras positionellt mot både rubrik och rad, och varje sådant
+svar skriver ut att det är positionsläst.
+
+Jämförelsen heter `rymmer()` och inte `racker()`, och den **avstår** så snart
+någon sida inte är `finns`.
+
+### Vad talen blev
+
+| | `finns` | `enhet_saknas` | `saknas` |
+|---|---|---|---|
+| nyttolast, 3 201 komponenter | **21** | **2 965** | 215 |
+| räckvidd | 19 | 2 542 | 640 |
+
+Korpusen bär 28 modeller och 52 belagda uppgifter ur tolv dokument från fem
+tillverkare. Biblioteket har 2 202 robotar och 2 175 distinkta modellnamn.
+**Mekanismen finns; biblioteket är inte berikat**, och skillnaden är två
+storleksordningar.
+
+Alla 628 komponenter med `MaxPayload = 0` svarar `ENHET SAKNAS … ett ofyllt
+fält`. Ingen skriver `0 kg`. Samma sak för de 1 115 med `Reach = 0`.
+
+### Vad som INTE är gjort
+
+* **Täckningen.** 0,66 % av biblioteket har en enhet med källa.
+* **`katalogsok.Traff.rad` fäster fortfarande `mm` och `kg`** vid samma
+  enhetslösa katalogfält, och skriver `0 kg` för de 628 nollorna. Grinden i det
+  nya lagret skyddar inte sökskiktet, och det är sökskiktet modellen läser.
+* **Bankens 15 `PUBLICERAD_SPEC`-poster bär ingen URL.** Stämpeln lovar
+  tillverkarens publicerade datablad; posten bär bara talet.
+* **Sex fält där VC:s katalogfält motsäger den citerade källan passerar tyst**
+  — bland dem `UR10e` med `MaxPayload 12` mot Universal Robots 12,5 kg.
+* **Enhetsgrinden mäter närhet, inte betydelse.** En diameter går att citera
+  som en räckvidd; att det inte har hänt är ett omdöme, inte en grind.
+
+De fem står som röda prov i
+`tests/motbevis/test_tillverkardatablad_motbevis.py`.
+
+### Gränsen som gäller även nu när det är byggt
+
+Ett datablad gäller en **modell**, inte en instans. Två robotar av samma typ
+med olika verktyg har olika nyttolast kvar. Databladets tal är ett tak, aldrig
+ett driftvärde — ett typskyltvärde är en anslutning, inte en förbrukning.
+`Domslut.text()` skriver ut den raden i varje dom.
