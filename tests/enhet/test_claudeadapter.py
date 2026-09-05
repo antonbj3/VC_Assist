@@ -178,3 +178,30 @@ def test_en_kalla_utan_radbrytning_far_lexern_att_SVARA():
     k = _sp.run([_sys.executable, "-c", kod], stdout=_sp.PIPE, stderr=_sp.STDOUT,
                 timeout=30)
     assert b"SVARADE" in k.stdout, k.stdout[:300]
+
+
+def test_adaptern_summerar_bara_kanda_kostnader():
+    """En arm dar halva korningarna saknar kostnadsuppgift far inte rapportera
+    summan av den andra halvan som armens kostnad."""
+    class Halvkand(MK.Inspelad):
+        def __init__(self, svar):
+            MK.Inspelad.__init__(self, svar)
+            self._n = 0
+
+        def fraga(self, prompt):
+            s = MK.Inspelad.fraga(self, prompt)
+            self._n += 1
+            s.kostnad_usd = 0.05 if self._n == 1 else None
+            return s
+
+    m = A.ClaudeModell(klient=Halvkand(["a", "b"]))
+    for _ in range(2):
+        m.svara("", [Meddelande(roll="uppgift", text="x")], [])
+    assert m.kostnad_usd == 0.05
+    assert m.anrop == 2
+
+
+def test_en_adapter_utan_enda_kostnadsuppgift_sager_okand():
+    m = A.ClaudeModell(klient=MK.Inspelad(["a"]))
+    m.svara("", [Meddelande(roll="uppgift", text="x")], [])
+    assert m.kostnad_usd is None, "noll anrop med uppgift ska ge okand, inte 0"

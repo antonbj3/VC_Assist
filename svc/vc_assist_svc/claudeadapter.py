@@ -47,7 +47,9 @@ class ClaudeModell(Modell):
         self.namn = namn or getattr(self._klient, "modell", modell)
         # Vad turen kostade. Ett tak pa fyra varv ar ett pastaende om ingen
         # kan saga vad varven kostade.
-        self.kostnad_usd = 0.0
+        # None tills nagon transport rapporterat en kostnad. Se
+        # modellklient.Svar: okand ar inte samma sak som noll.
+        self.kostnad_usd = None
         self.anrop = 0
 
     def svara(self, systemprompt: str, meddelanden: Sequence[Meddelande],
@@ -61,7 +63,8 @@ class ClaudeModell(Modell):
         fraga = _en_strang(systemprompt, meddelanden)
         svar = self._klient.fraga(fraga)
         text = _utan_kodstaket(svar.text)
-        self.kostnad_usd += svar.kostnad_usd
+        if svar.kostnad_usd is not None:
+            self.kostnad_usd = (self.kostnad_usd or 0.0) + svar.kostnad_usd
         self.anrop += 1
         return Modellsvar(text=text, anrop=(), leverantor=self.leverantor)
 

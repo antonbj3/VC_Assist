@@ -47,7 +47,11 @@ class Svar:
 
     text: str
     modell: str
-    kostnad_usd: float = 0.0
+    # None betyder OKAND, inte gratis. En transport som inte rapporterar sin
+    # kostnad far inte se ut som en som kostade noll - det ar samma felklass
+    # som ett tal utan enhet (51_komponentdata.md): ett saknat varde som ser
+    # ut som ett matt.
+    kostnad_usd: Optional[float] = None
     varv: int = 1
     ratt: Dict = field(default_factory=dict)
 
@@ -59,7 +63,27 @@ class Svar:
 
 
 class Modellklient(object):
-    """Ytan slingan ser. En rad: fraga in, `Svar` ut, eller `Modellfel`."""
+    """Ytan slingan ser. En rad: fraga in, `Svar` ut, eller `Modellfel`.
+
+    ## Vad en NY transport maste uppfylla
+
+    Ytan ar med flit liten, sa en annan modell gar att satta in. Tre villkor ar
+    inte forhandlingsbara, och bryts nagot av dem mater korningen nagot annat
+    an den pastar:
+
+    1. **Modellen far inte na repot.** Bankens facit ligger dar. `ClaudeCLI`
+       har tva lager - tom verktygslista OCH en arbetskatalog utanfor repot -
+       eftersom det ena ar en flagga och det andra en sokvag. En transport med
+       farre lager ar inte likvardig.
+    2. **Ett misslyckande maste KASTA.** Tom text fangas redan av
+       `Svar.__post_init__`, sa den delen arvs. Tidsgrans, fel slutkod och
+       oparsbart svar maste transporten sjalv kasta pa.
+    3. **Kostnaden ar `None` nar den ar okand**, aldrig `0.0`.
+
+    Och en regel om MATNINGEN, inte om transporten: tva armar som jamfors
+    maste ha kort pa SAMMA transport. Byts modellen mellan armarna innehaller
+    skillnaden modellbytet, och da mater jamforelsen inte det den sager.
+    """
 
     namn = "abstrakt"
 
@@ -124,7 +148,9 @@ class ClaudeCLI(Modellklient):
                 raise Modellfel("claude rapporterade fel: %r"
                                 % (d.get("subtype") or d.get("result"))[:300])
             return Svar(text=d.get("result") or "", modell=self.modell,
-                        kostnad_usd=float(d.get("total_cost_usd") or 0.0),
+                        kostnad_usd=(float(d["total_cost_usd"])
+                                     if d.get("total_cost_usd") is not None
+                                     else None),
                         varv=int(d.get("num_turns") or 1), ratt=d)
         finally:
             if egen:

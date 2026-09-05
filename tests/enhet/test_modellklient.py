@@ -161,3 +161,32 @@ def test_standardklienten_ger_None_i_stallet_for_en_attrapp(monkeypatch):
     """En anropare som far en attrapp tror att den mater en modell."""
     monkeypatch.setattr(M.shutil, "which", lambda _: None)
     assert M.standardklient() is None
+
+
+# --- okand kostnad ar inte noll ----------------------------------------------
+#
+# Operatoren bytte transport fran `claude -p` till en annan modell. En transport
+# som inte rapporterar sin kostnad hade da sett ut som en som kostade NOLL, och
+# summan over en arm hade blivit ett matt tal som ingen matt. Samma felklass som
+# ett tal utan enhet (51_komponentdata.md): ett saknat varde som ser fardigt ut.
+
+def test_transport_utan_kostnadsuppgift_ger_None_inte_noll(monkeypatch, tmp_path):
+    _kor(monkeypatch, FalskProcess(ut=json.dumps(
+        {"result": "ST", "is_error": False, "subtype": "success"}).encode()))
+    s = M.ClaudeCLI(korbar="/bin/true", arbetskatalog=str(tmp_path)).fraga("x")
+    assert s.kostnad_usd is None, "okand kostnad far aldrig bli 0.0"
+
+
+def test_en_rapporterad_nolla_ar_fortfarande_en_nolla(monkeypatch, tmp_path):
+    """Andra halvan. Sager transporten 0 sa ar det ett MATT tal, och det ska
+    inte forvandlas till 'okand' - da vore rattelsen lika lognaktig at andra
+    hallet."""
+    _kor(monkeypatch, FalskProcess(ut=_svar(total_cost_usd=0.0)))
+    s = M.ClaudeCLI(korbar="/bin/true", arbetskatalog=str(tmp_path)).fraga("x")
+    assert s.kostnad_usd == 0.0
+
+
+def test_inspelad_transport_rapporterar_ingen_kostnad():
+    """Inspelad kostar inget att KORA, men den vet inte vad modellen skulle ha
+    kostat. Att skriva 0 vore att pasta nagot om modellen."""
+    assert M.Inspelad(["svar"]).fraga("x").kostnad_usd is None

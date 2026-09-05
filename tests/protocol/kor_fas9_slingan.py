@@ -125,7 +125,9 @@ def kor_en(post, lage, modellnamn, max_varv, forhandsregler=True,
         "forhandsregler": bool(forhandsregler),
         "exempel_fran": exempel[0] if exempel else None,
         "anrop": modell.anrop,
-        "kostnad_usd": round(modell.kostnad_usd, 4),
+        # None = transporten rapporterar ingen kostnad. Skrivs aldrig som 0.
+        "kostnad_usd": (round(modell.kostnad_usd, 4)
+                        if modell.kostnad_usd is not None else None),
         "sekunder": round(time.time() - t0, 1),
         # Grindens EGNA ord per varv, sa domen gar att lasa i efterhand.
         "domar_per_varv": [
@@ -197,18 +199,23 @@ def main(argv=None):
             r = {"uppgift": post["task_id"], "lage": a.lage,
                  "utfall": "KORNINGSFEL", "lost": False, "fel": repr(e),
                  "varv_korda": 0, "varv_till_lost": None, "upprepning": varv_nr,
-                 "slog_i_taket": False, "kostnad_usd": 0.0}
+                 "slog_i_taket": False, "kostnad_usd": None}
             print(" FEL: %r" % e)
         else:
-            print(" %s efter %d varv, %.3f USD, %.0f s"
-                  % (r["utfall"], r["varv_korda"], r["kostnad_usd"],
+            print(" %s efter %d varv, %s, %.0f s"
+                  % (r["utfall"], r["varv_korda"],
+                     ("%.3f USD" % r["kostnad_usd"])
+                     if r["kostnad_usd"] is not None else "kostnad okand",
                      r["sekunder"]))
         resultat.append(r)
 
     losta = [r for r in resultat if r["lost"]]
     taket = [r for r in resultat if r.get("slog_i_taket")]
     fel = [r for r in resultat if r["utfall"] == "KORNINGSFEL"]
-    kostnad = sum(r.get("kostnad_usd") or 0.0 for r in resultat)
+    kostnader = [r.get("kostnad_usd") for r in resultat]
+    kanda = [k for k in kostnader if k is not None]
+    kostnad = sum(kanda)
+    okanda = len(kostnader) - len(kanda)
 
     if a.upprepa > 1:
         print("\n  Per uppgift (andelen ar hela poangen med upprepning):")
@@ -222,7 +229,12 @@ def main(argv=None):
         print("  %-22s %s  (median %s)"
               % ("varv till lost:", varv, sorted(varv)[len(varv) // 2]))
     print("  %-22s %d av %d" % ("slog i taket:", len(taket), len(resultat)))
-    print("  %-22s %.3f USD" % ("kostnad:", kostnad))
+    if okanda == len(kostnader):
+        print("  %-22s okand - transporten rapporterar ingen" % "kostnad:")
+    else:
+        print("  %-22s %.3f USD%s"
+              % ("kostnad:", kostnad,
+                 "" if not okanda else "  (%d korningar utan uppgift)" % okanda))
     if fel:
         print("  %-22s %d - talen ovan ar INTE hela banken"
               % ("korningsfel:", len(fel)))
