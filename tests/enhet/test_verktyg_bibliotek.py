@@ -143,10 +143,17 @@ def test_ett_grunt_index_sager_att_kategorin_kommer_fran_katalognamnet(bibliotek
 
 
 def test_bankens_katalog_ar_ororda(bibliotek):
-    """Bankens vokabular ar ett kontrakt. Det nya verktyget far inte rora det."""
+    """Bankens vokabular ar ett kontrakt. Det nya verktyget far inte rora det.
+
+    Talet var 65 fram till M-106, som la till 17 poster for maskinbetjaning,
+    provning, markning och hardning at de tolv nya bankuppgifterna. Sparren
+    star kvar och gar bara at ett hall: verktyget far inte andra antalet, och
+    en post som dyker upp utan att nagon skrivit ned det nya talet ar en post
+    ingen granskat.
+    """
     bibliotek()
     r = V.DATA_HANDLERS["search_catalog"]({})
-    assert r["antal"] == 65
+    assert r["antal"] == 82
 
 
 # ---- familjen ar det sanna mattet (M-69) -----------------------------------
