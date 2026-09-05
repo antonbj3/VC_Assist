@@ -176,6 +176,8 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-135_stimuli_som_ser_skadorna.md` | M-135 — stimuli som ser skadorna: C2-punktkrav, sekvenser och grind |
 | `M-136_llm_informationsatkomst.md` | M-136 — LLM-informationstäckning i skala över 50 bankuppgifter |
 | `M-137_domarnas_oenighet_over_inspelade_scener.md` | M-137 — domarnas oenighet över inspelade scener: 74 spår visar att ingen domare är en kopia av en annan |
+| `M-138_vad_ogat_inte_kan_se_av_konstruktion.md` | M-138 — vad ögat inte kan se, av konstruktion: produktens ärliga gräns över felklasserna F1–F15 |
+| `M-139_universaliteten.md` | M-139 — Universaliteten mätt: kombinationstabell över OS, Python, VC och Wine |
 
 <!-- SLUT MATNINGSTABELL -->
 

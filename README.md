@@ -245,6 +245,26 @@ hårdvara. Ögat är felfinnande, aldrig bevis. Och ingenting genererat rör en
 säkerhetsfunktion: nödstopp och skyddskretsar ligger på certifierad
 säkerhets-PLC, i begränsat variabelt språk, skrivet av människa.
 
+#### Vad ögat inte kan se, av konstruktion (M-138)
+
+Ett spår visar bara vad som faktiskt hände under körningen. Ur felklasserna
+i [`docs/spec/82_felklasser.md`](docs/spec/82_felklasser.md) kan ögat principiellt
+aldrig upptäcka följande, oavsett hur mycket domarna förbättras:
+
+1. **Statiska strukturfel (F1 Syntax, F2 Okänt namn, F3 Fel tagg, F4 Deklaration):**
+   Koden kan inte exekveras och producerar inget spår, eller variabelns typkontrakt
+   syns inte i datavärdet. Fångas uteslutande av kompilatorn och grind 1–4.
+2. **Flank- och latchsemantik (F15):** En nivå-styrd `IF` i stället för en `R_TRIG`-flank
+   eller en olatchad tillståndsvariabel ger ett **byte-för-byte identiskt I/O-spår**
+   vid normal drift med normala mellanrum (bevisat i M-115). Felet bor i källans
+   interna tillstånd, inte i det observerbara spåret.
+3. **Tysta säkerhetsförreglingar i normaldrift (F8):** Ett produktionsspår där nödstopp
+   eller skyddsdörr aldrig brutits saknar täckning för säkerhetslogiken (0 till 3 av 28
+   förreglingar återfinns, bevisat i M-89 och M-132). Avsaknaden av förregling syns
+   bara om felet provoceras i ett provspår.
+4. **Verktygs- och samtalsfel (F13):** Felaktiga API-parametrar eller avbrutna agentturer
+   sker på metanivå och syns i verktygsloggen, inte i simuleringens fysik.
+
 ---
 
 ## Kartan
