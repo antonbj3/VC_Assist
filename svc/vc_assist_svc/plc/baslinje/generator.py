@@ -168,7 +168,7 @@ class Baslinje(object):
     def __init__(self, niva: str = NIVA_SPEC, driv_obundna: bool = False,
                  las_obundna: bool = False):
         if niva not in NIVAER:
-            raise Baslinjefel("okänd nivå %r; nivåerna är %s"
+            raise Baslinjefel("unknown level %r; the levels are %s"
                               % (niva, ", ".join(NIVAER)))
         self.niva = niva
         self.driv_obundna = driv_obundna
@@ -726,7 +726,7 @@ class _Bygge(object):
         if h.sort == Sp.FOLJ:
             self.lasta.add(h.kalla)
             return "%s := %s;" % (h.signal, h.kalla)
-        raise Baslinjefel("okänd handling %r" % (h.sort,))
+        raise Baslinjefel("unknown action %r" % (h.sort,))
 
     def _stegen(self, direktiv) -> List[Tuple[Sp.Villkor, Tuple, Optional[float]]]:
         """Stegkedjan: villkor, handlingar och ett eventuellt uppehåll.
