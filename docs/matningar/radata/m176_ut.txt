@@ -1,0 +1,44 @@
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+disconnect_socket was called but connection is closed
+  A10-FLANK     referens                               varv 1  tolk=GODKAND    openplc=GODKAND
+  A10-FLANK     referens                               varv 2  tolk=GODKAND    openplc=GODKAND
+  A10-FLANK     referens                               varv 3  tolk=GODKAND    openplc=GODKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_a_forst  varv 1  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_a_forst  varv 2  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_a_forst  varv 3  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_b_forst  varv 1  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_b_forst  varv 2  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_b_forst  varv 3  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-DOMINANS  referens                               varv 1  tolk=GODKAND    openplc=GODKAND
+  A10-DOMINANS  referens                               varv 2  tolk=GODKAND    openplc=GODKAND
+  A10-DOMINANS  referens                               varv 3  tolk=GODKAND    openplc=GODKAND
+  A10-DOMINANS  motbevis:kvittensen_slacker_ett_kvarstaende_fel varv 1  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-DOMINANS  motbevis:kvittensen_slacker_ett_kvarstaende_fel varv 2  tolk=UNDERKAND  openplc=UNDERKAND
+  A10-DOMINANS  motbevis:kvittensen_slacker_ett_kvarstaende_fel varv 3  tolk=UNDERKAND  openplc=UNDERKAND
+
+=== per enhet, n = 3 ===
+  A10-DOMINANS  motbevis:kvittensen_slacker_ett_kvarstaende_fel tolk=UNDERKAND    openplc=UNDERKAND
+  A10-DOMINANS  referens                               tolk=GODKAND      openplc=GODKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_a_forst  tolk=UNDERKAND    openplc=UNDERKAND
+  A10-FLANK     motbevis:en_instans_tva_anrop_b_forst  tolk=UNDERKAND    openplc=UNDERKAND
+  A10-FLANK     referens                               tolk=GODKAND      openplc=GODKAND
+
+--- trasiga fallen ---
+  spegelkontroll (tolk): A faller pa fyra_tryck_tva_konsumenter@1800ms:UT_B,fyra_tryck_tva_konsumenter@800ms:UT_B, B pa fyra_tryck_tva_konsumenter@1800ms:UT_A,fyra_tryck_tva_konsumenter@800ms:UT_A
+  spegelkontroll (openplc): A faller pa fyra_tryck_tva_konsumenter@1800ms:UT_B,fyra_tryck_tva_konsumenter@800ms:UT_B, B pa fyra_tryck_tva_konsumenter@1800ms:UT_A,fyra_tryck_tva_konsumenter@800ms:UT_A
+
+=== motorerna mot varandra ===
+  utfallsoenighet: 0 av 5 enheter 
+  kodoenighet:     0 av 5 enheter 

@@ -1,0 +1,117 @@
+{
+ "enheter": {
+  "A10-DOMINANS/motbevis:kvittensen_slacker_ett_kvarstaende_fel": {
+   "eniga_om_koder": true,
+   "eniga_om_utfall": true,
+   "etikett": "motbevis:kvittensen_slacker_ett_kvarstaende_fel",
+   "faller_pa": [
+    "kvittens_pa_kvarstaende_fel@1000ms:UT_LARM",
+    "kvittens_pa_kvarstaende_fel@1400ms:UT_LARM"
+   ],
+   "openplc_koder": [
+    "kvittens_pa_kvarstaende_fel@1000ms:UT_LARM",
+    "kvittens_pa_kvarstaende_fel@1400ms:UT_LARM"
+   ],
+   "openplc_texter": [
+    "UT_LARM skulle vara 1 men var 0 inom 4 scan efter 1000 ms. kvittens pa ett KVARSTAENDE fel far inte slacka larmet",
+    "UT_LARM skulle vara 1 men var 0 inom 4 scan efter 1400 ms. och den far inte gora det efter en stund heller"
+   ],
+   "openplc_utfall": "UNDERKAND",
+   "task": "A10-DOMINANS",
+   "tolk_koder": [
+    "kvittens_pa_kvarstaende_fel@1000ms:UT_LARM",
+    "kvittens_pa_kvarstaende_fel@1400ms:UT_LARM"
+   ],
+   "tolk_texter": [
+    "UT_LARM skulle vara 1 men var 0. kvittens pa ett KVARSTAENDE fel far inte slacka larmet",
+    "UT_LARM skulle vara 1 men var 0. och den far inte gora det efter en stund heller"
+   ],
+   "tolk_utfall": "UNDERKAND"
+  },
+  "A10-DOMINANS/referens": {
+   "eniga_om_koder": true,
+   "eniga_om_utfall": true,
+   "etikett": "referens",
+   "faller_pa": [],
+   "openplc_koder": [],
+   "openplc_texter": [],
+   "openplc_utfall": "GODKAND",
+   "task": "A10-DOMINANS",
+   "tolk_koder": [],
+   "tolk_texter": [],
+   "tolk_utfall": "GODKAND"
+  },
+  "A10-FLANK/motbevis:en_instans_tva_anrop_a_forst": {
+   "eniga_om_koder": true,
+   "eniga_om_utfall": true,
+   "etikett": "motbevis:en_instans_tva_anrop_a_forst",
+   "faller_pa": [
+    "fyra_tryck_tva_konsumenter@800ms:UT_B",
+    "fyra_tryck_tva_konsumenter@1800ms:UT_B"
+   ],
+   "openplc_koder": [
+    "fyra_tryck_tva_konsumenter@1800ms:UT_B",
+    "fyra_tryck_tva_konsumenter@800ms:UT_B"
+   ],
+   "openplc_texter": [
+    "UT_B skulle vara 2 men var 0 inom 4 scan efter 800 ms. tva tryck; BADA konsumenterna har sett bada",
+    "UT_B skulle vara 4 men var 0 inom 4 scan efter 1800 ms. fyra tryck, fyra rakningar hos bada"
+   ],
+   "openplc_utfall": "UNDERKAND",
+   "task": "A10-FLANK",
+   "tolk_koder": [
+    "fyra_tryck_tva_konsumenter@1800ms:UT_B",
+    "fyra_tryck_tva_konsumenter@800ms:UT_B"
+   ],
+   "tolk_texter": [
+    "UT_B skulle vara 2 men var 0. tva tryck; BADA konsumenterna har sett bada",
+    "UT_B skulle vara 4 men var 0. fyra tryck, fyra rakningar hos bada"
+   ],
+   "tolk_utfall": "UNDERKAND"
+  },
+  "A10-FLANK/motbevis:en_instans_tva_anrop_b_forst": {
+   "eniga_om_koder": true,
+   "eniga_om_utfall": true,
+   "etikett": "motbevis:en_instans_tva_anrop_b_forst",
+   "faller_pa": [
+    "fyra_tryck_tva_konsumenter@800ms:UT_A",
+    "fyra_tryck_tva_konsumenter@1800ms:UT_A"
+   ],
+   "openplc_koder": [
+    "fyra_tryck_tva_konsumenter@1800ms:UT_A",
+    "fyra_tryck_tva_konsumenter@800ms:UT_A"
+   ],
+   "openplc_texter": [
+    "UT_A skulle vara 2 men var 0 inom 4 scan efter 800 ms. tva tryck; BADA konsumenterna har sett bada",
+    "UT_A skulle vara 4 men var 0 inom 4 scan efter 1800 ms. fyra tryck, fyra rakningar hos bada"
+   ],
+   "openplc_utfall": "UNDERKAND",
+   "task": "A10-FLANK",
+   "tolk_koder": [
+    "fyra_tryck_tva_konsumenter@1800ms:UT_A",
+    "fyra_tryck_tva_konsumenter@800ms:UT_A"
+   ],
+   "tolk_texter": [
+    "UT_A skulle vara 2 men var 0. tva tryck; BADA konsumenterna har sett bada",
+    "UT_A skulle vara 4 men var 0. fyra tryck, fyra rakningar hos bada"
+   ],
+   "tolk_utfall": "UNDERKAND"
+  },
+  "A10-FLANK/referens": {
+   "eniga_om_koder": true,
+   "eniga_om_utfall": true,
+   "etikett": "referens",
+   "faller_pa": [],
+   "openplc_koder": [],
+   "openplc_texter": [],
+   "openplc_utfall": "GODKAND",
+   "task": "A10-FLANK",
+   "tolk_koder": [],
+   "tolk_texter": [],
+   "tolk_utfall": "GODKAND"
+  }
+ },
+ "kodoeniga": [],
+ "n": 3,
+ "utfallsoeniga": []
+}
