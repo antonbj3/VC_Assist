@@ -166,27 +166,19 @@ being built.
 
 ## What has been measured
 
-Every number here has a measurement file behind it, with the rig it ran on and
+| | |
+|---|---|
+| **4.3 µs** | per component, per sample — the cost of reading the scene, measured linear up to 800 components |
+| **225 /s** | samples taken while the simulation runs, without slowing it |
+| **0** | positional drift over a full run |
+| **5 of 5** | classes of line fault caught that each station passed on its own |
+| **25 of 26** | tasks solved within four rounds of writing and correcting, median two |
+| **4 of 26** | solved on the first attempt — which is why the correction loop exists |
+| **718 of 809** | deliberate faults injected into working code, and caught |
+| **63** | cells in the task set: transport, picking, assembly, sorting, palletising, whole lines, robot handover |
+
+Every number has a measurement file behind it, stating the rig it ran on and
 what it does not show.
-
-**Reading the scene is cheap, and stays cheap.** Cost is **4.3 microseconds per
-component per sample**, measured linear up to 800 components — well past the
-size of a real cell. That is what makes 225 samples a second possible while the
-simulation runs. Positions come back with no drift.
-
-**It finds faults a single station cannot show you.** On a two-station line it
-caught all five classes of fault that each station passed on its own — the kind
-that only exist in the gap between machines.
-
-**It usually gets there in two tries.** Across 26 tasks with a known answer, 25
-were solved within four rounds of writing and correcting, median two. On the
-first attempt alone, 4 of 26 — which is why the correction loop exists.
-
-**The judging has been tested against itself.** 809 deliberate faults were
-injected into working code to see how many the system would catch: 718.
-
-The task set is 63 cells across transport, picking, assembly, sorting,
-palletising, whole lines, and robot handover.
 
 ## Getting started
 
