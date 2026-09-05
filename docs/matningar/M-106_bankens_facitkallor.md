@@ -32,6 +32,18 @@ Två frågor:
   innehållsförteckningar och mot fulltextadoptioner. **Kravtexterna** är i flera
   fall inte lästa i full text — där det gäller står det i uppgiftens eget
   `standard`-fält, ordagrant.
+* **Referenslösningarna är inte prövade mot grind 1–4.** MÄTT 2026-09-05:
+  samtliga 22 referenser fälls av `granska_station` på `ODEKLARERAD`, och det
+  gäller lika mycket de fyra som fanns före det här arbetet. Skälet är att en
+  `facit_spar.referens` skrivs för tolken, som får signalkartan separat, medan
+  stationsgrinden väntar sig skelettet med sina deklarationer. Referensen är
+  alltså bevisad **uppfyllbar**, inte bevisad **byggbar**: ingen av dem har gått
+  genom STruC++. Att köra referenserna genom skelettet är en öppen punkt.
+* **Facit och referens är skrivna av samma sorts modell som ska dömas.** Talen
+  kommer utifrån — ur en paragraf, ett datablad eller en räkning ur scenens egna
+  mått — men sekvenserna, invarianterna och flankräkningarna är formulerade av
+  en språkmodell. Ett facit en modell inte kunde uttrycka finns inte i banken,
+  och den snedvridningen är inte mätt.
 
 ---
 
