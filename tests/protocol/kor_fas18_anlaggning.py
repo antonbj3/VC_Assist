@@ -108,7 +108,7 @@ def _stimuli(post, ider=None, upprepningar=1):
 
     Bankens sekvenser bar bade `satt` (vad givarna gjorde) och `krav` (vad en
     manniska har bestamt ska gallla). En anlaggning ger bara det forsta. Kravet
-    lamnas darfor kvar har - det ar precis den kunskap fasen provar om spåret
+    lamnas darfor kvar har - det ar precis den kunskap fasen provar om sparet
     kan ersatta.
 
     AVSNITTEN AVIDENTIFIERAS, och det ar inte kosmetik. Bankens sekvens heter
@@ -433,7 +433,7 @@ def brieftext(post, harlett, skelett):
     ut.append("")
     ut.append("## Tvasignalstillstand som ALDRIG forekom i inspelningen")
     ut.append("")
-    ut.append("Varje rad ar ett forbud som spåret STODJER men inte BEVISAR.")
+    ut.append("Varje rad ar ett forbud som sparet STODJER men inte BEVISAR.")
     ut.append("Att ett tillstand inte forekom kan bero pa en forregling eller")
     ut.append("pa en tillfallighet, och inspelningen kan inte skilja dem at.")
     ut.append("")
@@ -542,7 +542,7 @@ def main(argv=None):
     print("     Bankens EGNA handskrivna invarianter, provade mot")
     print("     produktionssparet. En rad per uppgift.\n")
     print("     %-6s %10s %10s   %s" % ("", "invarianter", "otackta",
-                                        "som spåret aldrig visade"))
+                                        "som sparet aldrig visade"))
     tot_inv = tot_otackt = 0
     for r in alla:
         d = r["produktion"]["x10"]
@@ -564,7 +564,7 @@ def main(argv=None):
     print("\n     EMG_OK gick ALDRIG till 0 i produktionssparet for: %s"
           % (", ".join(emg) or "ingen uppgift"))
     print("     Ett nodstopp som ingen tryckt pa sager ingenting om vad som")
-    print("     hander nar nagon gor det. Fasens grind vagrar pastå det.")
+    print("     hander nar nagon gor det. Fasens grind vagrar pasta det.")
 
     print("\n  3. MER DATA UR SAMMA GREN AR INTE MER TACKNING")
     print("     %-6s %9s %9s %9s %9s" % ("", "rader x1", "rader x10",

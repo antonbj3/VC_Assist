@@ -226,7 +226,7 @@ def test_trasig_fixtur_ett_spar_utan_nodstopp_far_inte_doma_nodstoppet():
     """FASENS VIKTIGASTE GRIND, och den maste falla har.
 
     Inspelningen ar en normaldriftsdag: nodstoppet stod slutet hela tiden. Ett
-    facit som anda pastar vad som hander nar det bryts pastar nagot spåret
+    facit som anda pastar vad som hander nar det bryts pastar nagot sparet
     aldrig sag, och det ar ett facit som ljuger. Grinden ska namna signalen och
     namnaren, inte bara saga nej.
     """
@@ -252,10 +252,10 @@ def test_kontrollfall_samma_invariant_slapps_igenom_nar_sparet_bar_den():
 
 
 def test_harledningen_sjalv_pastar_aldrig_nagot_om_ett_osett_lage():
-    """Grinden ar en spärr; harledningen far inte behova den.
+    """Grinden ar en sparr; harledningen far inte behova den.
 
     Det ar skillnad pa att FANGA ett falskt pastaende och pa att inte gora det.
-    Harledningen ska aldrig lamna ifran sig ett pastaende om ett lage spåret
+    Harledningen ska aldrig lamna ifran sig ett pastaende om ett lage sparet
     inte visat - och de den vagrade ska ligga kvar med sitt skal.
     """
     spar = spar_normaldrift()
@@ -276,7 +276,7 @@ def test_harledningen_sjalv_pastar_aldrig_nagot_om_ett_osett_lage():
         [e["skal"] for e in vagrade]
 
 
-def test_trasig_fixtur_ett_krav_pa_en_signal_spåret_inte_har():
+def test_trasig_fixtur_ett_krav_pa_en_signal_sparet_inte_har():
     facit = {"invarianter": [{"namn": "hittepa", "sekvens": "*",
                              "nar": {"EMG_OK": True},
                              "kraver": {"FINNS_INTE": True}, "varfor": "x"}]}
@@ -304,7 +304,7 @@ def test_trasig_fixtur_ett_harlett_facit_utan_tackningsuppgift():
             if b.kod == A.T3_UTAN_UNDERLAG and b.pastaende == "facit"]
 
 
-def test_kontrollfall_ett_handskrivet_facit_krävs_inte_pa_namnare():
+def test_kontrollfall_ett_handskrivet_facit_kravs_inte_pa_namnare():
     """Ett handskrivet facit har sin harkomst i en standard, inte i en matning.
 
     IEC 60204-1 sager att en nodstoppskrets kraver manuell aterstallning. Det
@@ -318,7 +318,7 @@ def test_kontrollfall_ett_handskrivet_facit_krävs_inte_pa_namnare():
 
 def test_trasig_fixtur_ett_punktkrav_pa_ett_varde_som_aldrig_sags():
     """BAND stod pa 1 hela normaldriften. Ett facit som kraver 0 pastar nagot
-    spåret aldrig visat, precis som nodstoppsfallet."""
+    sparet aldrig visat, precis som nodstoppsfallet."""
     spar = spar_normaldrift()
     assert A.Tackning(spar).observerad("BAND", False) == 0
     facit = {"sekvenser": [{"id": "s", "beskrivning": "", "steg": [
@@ -338,7 +338,7 @@ def test_trasig_fixtur_ett_flankkrav_pa_en_flank_som_aldrig_hant():
 
 
 def test_kontrollfall_ett_flankkrav_pa_noll_flanker_ar_en_observation():
-    """"Den pulsade aldrig" ar nagot spåret FAKTISKT visade."""
+    """"Den pulsade aldrig" ar nagot sparet FAKTISKT visade."""
     spar = spar_normaldrift()
     facit = {"flanker": [{"namn": "f", "sekvens": "produktion",
                           "signal": "BAND", "typ": "FALL",
@@ -390,7 +390,7 @@ def test_tio_ganger_sa_manga_rader_ger_inte_ett_enda_nytt_lage():
     assert stort.tysta() == litet.tysta()
 
 
-# ---- 6. spåret bar inga inre tillstand ----------------------------------
+# ---- 6. sparet bar inga inre tillstand ----------------------------------
 
 def test_inspelningen_bar_bara_signalkartan():
     """Programmets eget inre syns aldrig i sparet (M-75). Provet ar mekaniskt:
