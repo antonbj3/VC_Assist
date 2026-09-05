@@ -111,6 +111,32 @@ Tolkens cykel 20.0 ms bekräftad lika före körning.
 | SCAN_TON1S, PT=T#1s | trigg scan 50 | 52, 52, 52 | överens (se kanalnot) |
 | SCAN_TON20MS, PT=T#20ms | trigg scan 1 | 3, 3, 3 | överens (se kanalnot) |
 | SCAN_RTRIG, 60 ms puls | exakt 1 hög scan | 3–4 höga avläsningar à 5 ms (≈1 scan) | överens |
+| SCAN_TOF, PT=T#1s | fall scan 50 efter IN-fall | 52, 52, 52 | överens (kanalfas) |
+| SCAN_TP, PT=T#1s | 50 höga scan | 51, 52, 52 | överens (kanalfas) |
+| SCAN_CTU, PV=5, 5 pulser | F,F,F,F,T | F,F,F,F,T | **exakt 0** |
+| SCAN_SR, 7 steg set/reset | T,T,F,F,T,F,F | T,T,F,F,T,F,F | **exakt 0** |
+
+Ren logik utan tid (CTU, SR, R_TRIG) är exakt överens — noll scan
+avvikelse. Tidsblocken (TON, TOF, TP) bär samma konstanta +2 kanalfas.
+
+## R3-sondering: STRUCT-axeln (2026-09-05)
+
+Kört av `tests/protocol/kor_openplc_r3.py`: 24 STRUCT/ARRAY OF STRUCT-fall
+genom alla tre motorerna (verdict-nivå). 18 överens (fältläsning/skrivning,
+nästling 3 nivåer, FB IN/OUT/IN_OUT, funktionsparametrar, matrisindex).
+
+**3 NY_STRANGARE — falska rödgrindar, OpenPLC har rätt:**
+`p : Punkt := (x := 1, y := 2)` (även nästlad och ARRAY-form) avvisas av
+vår läsare (`väntade ) men fick :=`) men bygger i STruC++ och OpenPLC.
+Formen är giltig IEC-strukturinitiering. Lagning rör läsare+modell och är
+större än en grindregel — skuldförs här, lagas inte här.
+
+**3 NYTT_HAL — hål i vår typkontroll, backend har rätt:**
+`P1 = P2` (STRUCT, även `<>` och ARRAY-form) släpps av vårt lager och av
+frontenden, men backend faller: `no match for operator==`. IEC definierar
+`=`/`<>` för elementära typer, inte för STRUCT/ARRAY. Vår `_binartyp`
+kontrollerar bara gemensam typ — ett hål som når scenen via samma väg som
+concat (grind 1 ser bara frontenden).
 
 **Kanalnot (mätningen som bär "samma scan"):** Δ +2 scan är konstant över
 1/50/200 scans horisont (3 rep vardera). En logikförskjutning hade skalat
@@ -161,4 +187,6 @@ körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
 * **OPC UA-coercion är permissiv:** INT/Float/STRING till BOOL konverteras tyst med status Good. En typförväxling i kopplaren syns inte i returkoden.
 * **Stopp nollställer allt:** sessioner bryts, bildtabellen återgår till default. Ingen persistens över REST-omstart är mätt — eller lovad.
 * **RTT-spannet 24–42 ms är fas, inte last.** En mätning vid ett fasläge är ingen fördelning; I5 kräver serier.
-* **Klassificeringslogiken är låst i `tests/enhet/test_openplc_klassificering.py`** (41 prov, ingen docker): alla `klassificera`-grenar + BENCH-4-vakt (`facitkalla_filer ∩ under_prov = ∅`) för båda kor-skripten.
+* **Klassificeringslogiken är låst i `tests/enhet/test_openplc_klassificering.py`** (43 prov, ingen docker): alla `klassificera`-grenar + BENCH-4-vakt (`facitkalla_filer ∩ under_prov = ∅`) för alla fyra kor-skripten.
+* **R3 är en sondering, inte ett svep.** 24 STRUCT-fall mäter verdict, inte körning; STRUCT-jämförelsens backend-fel är verifierat i kompileringslogg, inte i drift.
+* **STRUCT-fynden är skuldförda, inte lagade.** Initieringsstödet kräver läsarändring (`st/`, annan sessions område), likhetsgrinden kräver typregel — båda utanför uppdragets ägda filer.
