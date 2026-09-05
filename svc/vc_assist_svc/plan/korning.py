@@ -227,8 +227,8 @@ class Korare(object):
             return set()
         if tidigare.plan_id != plan.id:
             raise Korningsfel(
-                "protokollet horde till planen %r, inte %r; ett protokoll fran "
-                "en annan plan sager ingenting om den har"
+                "the protocol belonged to plan %r, not %r; a protocol from "
+                "another plan says nothing about this one"
                 % (tidigare.plan_id, plan.id))
         klara = set()
         for steg_id in plan.ordning():
