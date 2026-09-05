@@ -19,13 +19,47 @@ DE TRASIGA FALLEN AR FASENS POANG
 ---------------------------------
 En tackningssiffra ar sarskilt latt att gora meningslos - namnaren kan tyst
 krympa till det vi klarar. Natten 2026-09-04/05 fangades tre grindar som matte
-nagot annat an de pastod. Darfor kors fjorton riggade specer mot samma domare,
+nagot annat an de pastod. Darfor kors femton riggade specer mot samma domare,
 och var och en MASTE falla med sin egen kod. En grind utan trasig fixtur ar en
 forhoppning som fatt ett filnamn.
 
     python3 tests/protocol/kor_fas19_tackning.py [--json ut.json]
 """
 from __future__ import annotations
+
+BANKPOST = {
+    "pastar":
+        "Personatackningen ar ett tal med namnare: varje profils steg raknas, "
+        "stegen utanfor rackvidd raknas for sig, och femton riggade specer "
+        "faller var och en med sin egen felkod.",
+    "under_prov": (
+        "svc/vc_assist_svc/personatackning.py",
+        "svc/vc_assist_svc/verktyg/register.py",
+    ),
+    "facit":
+        "de sju profilernas egna arbetssteg, med ALLA steg i namnaren, och "
+        "API-ytan de arbetar mot",
+    "facitkalla":
+        "specerna, skrivna fore analysen: profilernas steg och deras krav "
+        "star i 48_personaprofiler.md och 47_verktygstackning.md, och "
+        "verktygsnamnen provas mot registret och API-indexet",
+    "facitkalla_filer": (
+        "docs/spec/48_personaprofiler.md",
+        "docs/spec/47_verktygstackning.md",
+    ),
+    "trasiga_fall": (
+        "den grona kontrollspecen MASTE ga igenom; gor den inte det ar "
+        "domaren trasig och inte fixturerna",
+        "ett steg som pastas tackt av ett verktyg som inte ar registrerat "
+        "maste ge OKANT_VERKTYG",
+        "ett steg som pekar pa ett API-namn indexet inte kanner maste ge "
+        "OKANT_API",
+        "en namnare som tyst krymper till det vi klarar maste fallas: femton "
+        "riggade specer, var och en med sin egen kod",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-100",),
+}
 
 import argparse
 import json
