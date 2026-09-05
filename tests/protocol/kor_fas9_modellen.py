@@ -57,7 +57,21 @@ def _las(katalog, namn):
         return f.read()
 
 
-def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None):
+def _apiindex():
+    """API-indexet for grind 4. Byggs en gang.
+
+    Utan det svarar grinden "API-indexet saknas" - korrekt fail-closed, men fel
+    besked: det ratta ar att kandidaten inte bar nagon scenkod att validera.
+    Tva olika skal ska inte se likadana ut.
+    """
+    try:
+        from vc_assist_svc.api_index import bygg_validator
+        return bygg_validator()
+    except Exception:
+        return None
+
+
+def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None, index=None):
     """Bygg, granska och döm ett svar. Varje steg kan falla, och sägar varför."""
     tid = post.get("task_id")
     station = (tid or "P").replace("-", "_")
@@ -88,7 +102,7 @@ def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None):
     ut["kroppsrader"] = len([r for r in kropp.splitlines() if r.strip()])
 
     dom_sg = SG.granska_station(
-        SG.Kandidat(station, st_kalla, None), karta,
+        SG.Kandidat(station, st_kalla, None), karta, index=index,
         strucpp_cli=strucpp_cli, byggkatalog=byggkatalog,
         stanna_vid_forsta=False)
     ut["forgrindar"] = dict((g, (True if v is True else str(v)))
@@ -97,7 +111,7 @@ def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None):
     d = domare.dom(post, st_kalla)
     ut["godkand"] = bool(d.godkand)
     ut["brister"] = [{"kod": b.kod, "text": b.text} for b in d.brister]
-    ut["koder"] = list(d.koder())
+    ut["koder"] = list(d.koder)
     ut["scan"] = d.scan_kord
     ut["utfall"] = "godkand" if d.godkand else "underkand"
     return ut
@@ -112,7 +126,8 @@ def main(argv=None):
     a = p.parse_args(argv)
 
     poster = [u.data for u in lasare.ladda() if u.data.get("facit_spar")]
-    resultat = [kor_en(post, a.svar, a.strucpp_cli, a.byggkatalog)
+    index = _apiindex()
+    resultat = [kor_en(post, a.svar, a.strucpp_cli, a.byggkatalog, index)
                 for post in poster]
 
     print("=== FAS 9: en modells ST mot bankens spårfacit ===\n")
