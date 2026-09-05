@@ -1,0 +1,82 @@
+{
+  "totalt_tecken": 6929,
+  "totalt_bytes": 6943,
+  "totalt_tokens_4b": 1735,
+  "totalt_tokens_3c": 2309,
+  "sektioner": {
+    "grundprompt": {
+      "tecken": 200,
+      "bytes": 202,
+      "tokens_4b": 50
+    },
+    "grind_2_st": {
+      "tecken": 3409,
+      "bytes": 3418,
+      "tokens_4b": 854,
+      "antal_regler": 12
+    },
+    "grind_3_signalkarta": {
+      "tecken": 1323,
+      "bytes": 1323,
+      "tokens_4b": 330,
+      "antal_regler": 8
+    },
+    "ogat_process_sakerhet": {
+      "tecken": 1865,
+      "bytes": 1868,
+      "tokens_4b": 467,
+      "antal_regler": 9
+    }
+  },
+  "budget_analys": [
+    {
+      "kontext_tokens": 8192,
+      "allokerat_5_procent": 409,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": -1326,
+      "rymmer": false,
+      "belastning_procent": 424.2
+    },
+    {
+      "kontext_tokens": 16384,
+      "allokerat_5_procent": 819,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": -916,
+      "rymmer": false,
+      "belastning_procent": 211.8
+    },
+    {
+      "kontext_tokens": 32768,
+      "allokerat_5_procent": 1638,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": -97,
+      "rymmer": false,
+      "belastning_procent": 105.9
+    },
+    {
+      "kontext_tokens": 65536,
+      "allokerat_5_procent": 3276,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": 1541,
+      "rymmer": true,
+      "belastning_procent": 53.0
+    },
+    {
+      "kontext_tokens": 131072,
+      "allokerat_5_procent": 6553,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": 4818,
+      "rymmer": true,
+      "belastning_procent": 26.5
+    },
+    {
+      "kontext_tokens": 200000,
+      "allokerat_5_procent": 10000,
+      "faktiskt_behov_tokens": 1735,
+      "differens_tokens": 8265,
+      "rymmer": true,
+      "belastning_procent": 17.3
+    }
+  ],
+  "kritisk_grans_tokens": 34700
+}
