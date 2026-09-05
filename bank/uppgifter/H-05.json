@@ -1,0 +1,1146 @@
+{
+  "task_id": "H-05",
+  "title": "AMR lamnar over lastbarare till dockningsstation",
+  "goal": "Ta emot en lastbarare fran en autonom mobil robot med en fyrstegs handskakning, sa att kvittensen bara ges till ett ledigt mottagningslage, banan aldrig gar utan bekraftad dockning och handskakningen nollstalls pa AMR:ns DONE och inte pa en niva.",
+  "grupp": "H",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar fyra missar pa AMR-overlamningar. Den forsta: kvittensen ges sa fort AMR:n dockat, utan att stationen ser efter om mottagningslaget ar tomt, sa nasta lastbarare skjuts mot den som star kvar. Den andra: banan startar innan dockningsgivaren bekraftat AMR:n, och lastbararen kilar sig i gapet mellan dack och station. Den tredje: handskakningen nollstalls pa fotocellens niva i stallet for pa AMR:ns DONE, sa begaran ligger kvar och nasta AMR arver en halvfardig overforing. Den fjarde: overforingen vantas in utan tidsgrans, sa en AMR som tappat kontakten star kvar dockad med kvittensen ute tills nagon undrar varfor takten sjunkit.",
+  "prompt": "Bygg en dockningsstation dar en autonom mobil robot lamnar over en lastbarare, och\nskriv styrningen till den.\n\nScen: en AMR med driven rullbana pa dacket, en dockningsstation med egen driven\nrullbana, en ackumulerande rullbana som for lastbararen vidare in i lagret, tva\nreflexfotoceller, en vagcell under mottagningslaget och nodstoppskretsen. Det finns\ningen robot i cellen. Lastbararen ar en VDA KLT 6280, 600 x 400 x 280 mm, som vager\n14,4 kg fylld (tom 2,4 kg plus 12,0 kg innehall). Overforingsstrackan fran AMR-dacket\ntill mottagningslaget ar 1000 mm och stationens bana gar 0,4 m/s.\n\nUppgift, handskakningen:\n1. AMR:n begar overforing med ST490_XFR_REQ.\n2. Stationen kvitterar med ST490_XFR_ACK nar mottagningslaget ar ledigt och banan\n   star still.\n3. Nar lastbararen lamnat AMR-dacket bekraftar AMR:n det med ST490_XFR_DONE.\n4. Stationen nollstaller handskakningen med ST490_XFR_RST.\n\nUppgift, de fyra kraven som gor stationen driftsatt:\n* Kvittensen ar ett loften om plats. ST490_XFR_ACK far aldrig ga hog nar\n  ST490_PEC_IN ar hog: da star det redan en lastbarare i mottagningslaget.\n* Banan far aldrig ga utan bekraftad dockning. ST490_CNV_RUN kraver ST490_DOK_OK.\n  Utan AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n  sig i gapet mellan dack och station. ST490_PEC_GAP ser det gapet.\n* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. ST490_XFR_RST far inte\n  ga hog forran ST490_XFR_DONE gatt hog.\n* Tidsovervakning. Ren gangtid over 1000 mm vid 400 mm/s ar 2,5 s. Har overforingen\n  inte avslutats inom 4,0 s ska SYS_ALARM latchas och stationen stanna. Vakten ska\n  falla tidigast 3,8 s och senast 4,2 s efter kvittensen.\n\nVagcellen ST490_LOD_WGT ska visa mellan 10,0 och 20,0 kg nar lastbararen star i\nmottagningslaget. Under fonstret ar bararen i praktiken tom och AMR:n har lamnat fel\nbarare; over det ar det tva staplade barare eller en helt annan last. Bada fallen ska\nlarma.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga.\n\nTakttiden ar 45,0 s per lastbarare. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F7",
+    "F15"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "kvittensen ges innan mottagningslaget ar ledigt, sa nasta lastbarare skjuts mot den som star kvar",
+    "banan startar innan dockningen ar bekraftad och lastbararen kilar sig i gapet mellan dack och station",
+    "handskakningen nollstalls pa fotocellens niva i stallet for pa AMR:ns DONE",
+    "overforingen vantas in utan tidsgrans, sa en tappad AMR lamnar kvittensen ute och banan dragen",
+    "vagcellen lases aldrig, sa en tom eller dubbelstaplad lastbarare kvitteras in i orderflodet"
+  ],
+  "antaganden": [
+    {
+      "vad": "overforingsstrackan fran AMR-dack till mottagningslage",
+      "varde": "1000 mm",
+      "motiv": "strackan ar ANTAGEN och satt till lastbararens langd plus gapet: en KLT 6280 ar 600 mm lang och maste rulla helt av dacket och in i laget innan AMR:n far ge sitt DONE. Talet ar valt, inte matt pa en verklig station"
+    },
+    {
+      "vad": "stationens banhastighet",
+      "varde": "0,4 m/s",
+      "motiv": "HAMTAT ur katalogposten bank://station/amr_dockningsstation, som bar hastighet_mps 0,4. Posten ar sjalv stamplad ANTAGEN i katalogen, sa talet ar bankens antagande och inte en tillverkares publicerade siffra"
+    },
+    {
+      "vad": "tidsvakten over handskakningen",
+      "varde": "4,0 s",
+      "motiv": "RAKNAT golv plus marginal: 1000 mm vid 400 mm/s ar 2,5 s ren gangtid, och vakten ar SATT till 4,0 s sa att dockningens sista justering och en trog rullbana ryms utan att en tappad AMR far sta i timmar"
+    },
+    {
+      "vad": "viktfonstret i mottagningslaget",
+      "varde": "10,0 till 20,0 kg",
+      "motiv": "ANTAGET fonster kring en fylld KLT 6280 pa 14,4 kg: undre gransen ligger over en tom barare (2,4 kg) med marginal for ett halvtomt plock, ovre under tva staplade barare. Talen ar valda, inte matta over ett verkligt orderflode"
+    },
+    {
+      "vad": "lastbararens massa",
+      "varde": "14,4 kg",
+      "motiv": "ANTAGEN summa: 2,4 kg tom KLT 6280 plus 12,0 kg innehall. Backens matt 600 x 400 x 280 mm ar HAMTADE ur katalogposten bank://last/klt_6280 (VDA-standardmatt), men bade taravikten och innehallets massa ar bankens antaganden"
+    },
+    {
+      "vad": "takttiden per lastbarare",
+      "varde": "45,0 s",
+      "motiv": "SATT och inte matt: en AMR som kor fram, dockar, lamnar over och backar ut ligger i den storleksordningen nar korstrackan mellan plockzon och dockningsstation ar kort. Talet styr bara genomflodeskravet, inte nagon tidsvakt"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6280 med innehall",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 280,
+      "massa_kg": 14.4
+    },
+    "arbetsradie_mm": 1000.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "AMR:er kommer med 45,0 s takt, dockar, och lamnar over en fylld KLT 6280 till mottagningslaget som tommas av utmatningsbanan mellan overlamningarna.",
+      "forvantat": "En kvittens, en inmatning och en nollstallning per lastbarare, banan aldrig igang utan bekraftad dockning, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "vikt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST490_LOD_WGT",
+      "beskrivning": "ST490_LOD_WGT visar 6,0 kg nar lastbararen star i mottagningslaget, alltsa under undre gransen 10,0 kg.",
+      "forvantat": "En barare som vager mindre an fonstrets nedre grans ar i praktiken tom; AMR:n har lamnat fel barare. Styrningen ska larma och stanna i stallet for att kvittera in en tom back i orderflodet."
+    },
+    {
+      "id": "vikt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST490_LOD_WGT",
+      "beskrivning": "ST490_LOD_WGT visar 24,0 kg, alltsa over ovre gransen 20,0 kg.",
+      "forvantat": "For hog vikt betyder tva staplade barare eller en helt annan last. Styrningen ska larma; en staplad barare valter i forsta kurvan pa utmatningsbanan."
+    },
+    {
+      "id": "done_uteblir",
+      "typ": "vandning",
+      "signal": "ST490_XFR_DONE",
+      "beskrivning": "AMR:n ger aldrig sitt ST490_XFR_DONE efter kvittensen.",
+      "forvantat": "Tidsvakten pa 4,0 s ska falla, SYS_ALARM latchas och banan stanna. Handskakningen far inte nollstallas av att tiden gatt ut, for da tror AMR:n att lasten ar mottagen."
+    },
+    {
+      "id": "mottagningslaget_upptaget",
+      "typ": "vandning",
+      "signal": "ST490_PEC_IN",
+      "beskrivning": "En lastbarare star kvar i mottagningslaget nar nasta AMR dockar och begar overforing.",
+      "forvantat": "Ingen kvittens och ingen bana far ga forran laget ar tomt. Nar fotocellen slapper ska kvittensen komma, en gang, sa att AMR:n inte far ropa fram sin last tva ganger."
+    },
+    {
+      "id": "dockningen_slapper",
+      "typ": "vandning",
+      "signal": "ST490_DOK_OK",
+      "beskrivning": "ST490_DOK_OK faller mitt i overforingen, alltsa AMR:n har rullat ur sitt lage.",
+      "forvantat": "Banan ska stanna i samma scan. En bana som fortsatter drar lastbararen ned i gapet mellan AMR-dacket och stationen i stallet for over det."
+    }
+  ],
+  "core_outputs": [
+    "ST490_XFR_ACK",
+    "ST490_XFR_RST",
+    "ST490_CNV_RUN",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "amr",
+        "uri": "bank://transport/amr_rullbanadack",
+        "count": 1
+      },
+      {
+        "role": "dockningsstation",
+        "uri": "bank://station/amr_dockningsstation",
+        "count": 1
+      },
+      {
+        "role": "utmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "lastbarare",
+        "uri": "bank://last/klt_6280",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 2
+      },
+      {
+        "role": "vagcell",
+        "uri": "bank://givare/vagcell",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "amr",
+        "to_role": "dockningsstation"
+      },
+      {
+        "from_role": "amr",
+        "to_role": "lastbarare"
+      },
+      {
+        "from_role": "dockningsstation",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "dockningsstation",
+        "to_role": "vagcell"
+      },
+      {
+        "from_role": "dockningsstation",
+        "to_role": "utmatning"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST490_XFR_REQ",
+        "dir": "in",
+        "type": "bool",
+        "comment": "AMR begar overforing"
+      },
+      {
+        "name": "ST490_XFR_ACK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen kvitterar att mottagningslaget ar ledigt och banan star still"
+      },
+      {
+        "name": "ST490_XFR_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "AMR bekraftar att lastbararen lamnat dess dack"
+      },
+      {
+        "name": "ST490_XFR_RST",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationen nollstaller handskakningen"
+      },
+      {
+        "name": "ST490_DOK_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "dockningsgivare, AMR i lage"
+      },
+      {
+        "name": "ST490_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "stationens rullbana drar in lastbararen"
+      },
+      {
+        "name": "ST490_PEC_IN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell i mottagningslaget"
+      },
+      {
+        "name": "ST490_PEC_GAP",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell i overlamningsgapet mellan AMR-dack och station"
+      },
+      {
+        "name": "ST490_LOD_WGT",
+        "dir": "in",
+        "type": "real",
+        "comment": "vagcell under mottagningslaget, kg"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "satt ST490_XFR_ACK hog nar ST490_XFR_REQ ar hog, ST490_DOK_OK ar hog och ST490_PEC_IN ar lag",
+      "lat ST490_CNV_RUN ga sa lange overforingen pagar, dockningen ar bekraftad och mottagningslaget ar tomt",
+      "nollstall ST490_XFR_ACK nar ST490_PEC_IN gar hog: inbjudan dras tillbaka nar laget ar upptaget",
+      "satt ST490_XFR_RST hog forst efter en stigande flank pa ST490_XFR_DONE",
+      "nollstall ST490_XFR_RST nar ST490_XFR_REQ eller ST490_XFR_DONE fallit",
+      "starta tidsvakten 4,0 s i samma scan som kvittensen ges",
+      "larma nar ST490_LOD_WGT ligger utanfor 10,0 till 20,0 kg med lastbararen i mottagningslaget"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST490": 4.0
+      },
+      "cycle_s": 45.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ST490_CNV_RUN far aldrig ga nar ST490_DOK_OK ar lag",
+      "ST490_XFR_ACK far aldrig ga hog nar ST490_PEC_IN ar hog",
+      "ST490_XFR_RST far aldrig ga hog innan ST490_XFR_DONE gatt hog",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ingen ny handskakning forran den forra ar nollstalld"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 80.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST490_XFR_ACK RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST490_CNV_RUN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST490_XFR_RST RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST490_CNV_RUN -> dockningsstation *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST490 *s req=4.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST490 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST lastbarare+amr *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST490 *s req=4.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST490_CNV_RUN+ST490_XFR_ACK dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: handskakningens tillstand foljer VDA 5050 3.0.0 avsnitt 6.2.3.2 tabell 5, aktionerna pick och drop, och blockeringstypen i 6.2.2 tabell 3. Tidsvakten ar raknad ur overforingsstrackan och banans hastighet: 1000 mm / 400 mm/s = 2,5 s ren gangtid, tidsvakten satt till 4,0 s vilket lamnar 1,5 s marginal. Rakningen och kallorna star i M-106.",
+    "standard": "VDA 5050 3.0.0 avsnitt 6.2.3.2 tabell 5 for lastoverforingens tillstand (WAITING, INITIALIZING, RUNNING, PAUSED, RETRIABLE, FINISHED, FAILED) och 6.2.2 tabell 3 for blockeringstypen; ISO 3691-4:2023 4.5 \"Load handling\" och 4.8.2 \"Detection of persons in the path\" namnger kraven pa lasthantering och persondetektering. Paragrafnumren och rubrikerna ar verifierade mot ISO:s egen innehallsforteckning, men kravtexterna i 4.5 och 4.8.2 ar INTE lasta i full text: tidsgransen lutar sig darfor pa rakningen, inte pa en paragraf. Aterstallning efter nodstopp enligt IEC 60204-1 och TON enligt IEC 61131-3.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\nIF ST490_PEC_IN AND (ST490_LOD_WGT < 10.0 OR ST490_LOD_WGT > 20.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\ntmrXfr(IN := xXfrAktiv, PT := T#4s);\nIF tmrXfr.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND ST490_DOK_OK AND NOT ST490_PEC_IN THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Lastbararen har natt mottagningslaget: inbjudan dras tillbaka. *)\n            IF ST490_PEC_IN THEN\n                ST490_XFR_ACK := FALSE;\n            END_IF;\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            (* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. *)\n            IF ST490_PEC_IN AND xDoneSedd THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ OR NOT ST490_XFR_DONE THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND ST490_DOK_OK AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_overlamning",
+        "beskrivning": "En AMR dockar, begar overforing, och lastbararen rullar over till stationens mottagningslage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_XFR_RST": false,
+              "ST490_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute och ingen begaran har kommit; stationen far inte kvittera nagot av sig sjalv"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true,
+              "ST490_XFR_RST": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "dockningen ar bekraftad och mottagningslaget tomt, sa kvittensen far ges och banan dra in"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST490_PEC_GAP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST490_PEC_GAP": false,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_RST": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "lastbararen star i mottagningslaget: inbjudan dras tillbaka och banan stannar innan bararen kors mot stoppet. Nollstallningen har annu inte kommit, for AMR:n har inte sagt att dacket ar tomt"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST490_XFR_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_RST": true,
+              "ST490_XFR_ACK": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "forst AMR:ns DONE far nollstalla handskakningen; da vet stationen att dacket ar tomt och att nasta AMR inte arver en halvfardig overforing"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST490_XFR_REQ": false,
+              "ST490_XFR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_RST": false,
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "handskakningen ar avslutad i bada andar och stationen star redo for nasta AMR utan nagot latchat kvar"
+          }
+        ]
+      },
+      {
+        "id": "mottagningslaget_upptaget",
+        "beskrivning": "En lastbarare star kvar i mottagningslaget nar nasta AMR dockar och begar overforing.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_DOK_OK": true,
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "mottagningslaget ar upptaget; en kvittens har ar ett loften om plats som inte finns, och nasta lastbarare skjuts mot den som star kvar"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST490_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "nar laget blivit ledigt far kvittensen ges och banan dra in"
+          }
+        ]
+      },
+      {
+        "id": "banan_startar_inte_utan_dockning",
+        "beskrivning": "Begaran kommer innan dockningsgivaren bekraftat att AMR:n star i lage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan bekraftad dockning star AMR-dacket inte i linje med banan; en bana som startar har drar lastbararen ned i gapet mellan dack och station"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "med dockningen bekraftad far overforingen borja"
+          }
+        ]
+      },
+      {
+        "id": "overforingen_fastnar_tidsvakt",
+        "beskrivning": "Kvittensen ar given men lastbararen kommer aldrig fram. Tidsvakten 4,0 s ska falla.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "overforingen har startat"
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "3,7 s efter kvittensen far vakten annu inte ha fallit; ren gangtid ar 2,5 s och en vakt som faller for tidigt stoppar cellen pa normal drift"
+          },
+          {
+            "t_ms": 4700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_ACK": false
+            },
+            "varfor": "4,3 s efter kvittensen ska vakten ha fallit; en overforing som vantas in utan tidsgrans lamnar AMR:n dockad och banan dragen tills nagon undrar varfor takten sjunkit"
+          },
+          {
+            "t_ms": 4900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att banan slutat ga"
+          }
+        ]
+      },
+      {
+        "id": "lastbararen_ar_for_latt",
+        "beskrivning": "Lastbararen som lamnas over vager 6,0 kg, alltsa under viktfonstrets 10,0 kg.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "overforingen har startat med ett rimligt viktvarde"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST490_PEC_IN": true,
+              "ST490_LOD_WGT": 6.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_ACK": false,
+              "ST490_XFR_RST": false
+            },
+            "varfor": "6,0 kg ar under fonstrets 10,0 kg: bararen ar i praktiken tom och AMR:n har lamnat fel barare. Stationen ska larma och stanna i stallet for att kvittera in en tom back i orderflodet"
+          }
+        ]
+      },
+      {
+        "id": "tva_staplade_barare",
+        "beskrivning": "Vagcellen visar 24,0 kg, alltsa over viktfonstrets 20,0 kg.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "overforingen har startat med ett rimligt viktvarde"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST490_PEC_IN": true,
+              "ST490_LOD_WGT": 24.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_ACK": false,
+              "ST490_XFR_RST": false
+            },
+            "varfor": "24,0 kg ar over fonstrets 20,0 kg: det ar tva staplade barare eller en helt annan last. En staplad barare valter i nasta kurva och far inte rulla vidare"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstoppet bryts mitt i en overforing, aterstalls, och stationen far ga igen forst pa kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "overforingen pagar"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_RST": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; en bana som fortsatter drar lastbararen mot en AMR som redan borjat backa"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta overlamningen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "forst kvittensen tar stationen tillbaka i drift"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "banan_star_still_utan_dockning",
+        "sekvens": "*",
+        "nar": {
+          "ST490_DOK_OK": false
+        },
+        "kraver": {
+          "ST490_CNV_RUN": false
+        },
+        "varfor": "utan bekraftad dockning star AMR-dacket inte i linje med stationens bana; en bana som gar da drar lastbararen ned i gapet i stallet for over det"
+      },
+      {
+        "namn": "kvittens_bara_till_ledigt_mottagningslage",
+        "sekvens": "*",
+        "nar": {
+          "ST490_PEC_IN": true
+        },
+        "kraver": {
+          "ST490_XFR_ACK": false
+        },
+        "varfor": "kvittensen ar ett loften om plats. Ligger det redan en lastbarare i mottagningslaget finns ingen plats, och AMR:n skjuter sin barare mot den som star kvar"
+      },
+      {
+        "namn": "nollstallning_bara_efter_done",
+        "sekvens": "*",
+        "nar": {
+          "ST490_XFR_RST": true
+        },
+        "kraver": {
+          "ST490_XFR_DONE": true
+        },
+        "varfor": "handskakningen far nollstallas forst nar AMR:n sagt att dacket ar tomt; nollstalls den pa en niva ligger begaran kvar och nasta AMR arver en halvfardig overforing"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST490_XFR_ACK": false,
+          "ST490_XFR_RST": false,
+          "ST490_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larm_stoppar_overforingen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST490_CNV_RUN": false,
+          "ST490_XFR_ACK": false
+        },
+        "varfor": "ett larm som lamnar banan igang och kvittensen ute ar inget larm utan en lampa"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_kvittens_per_overforing",
+        "sekvens": "normal_overlamning",
+        "signal": "ST490_XFR_ACK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "en begaran ska ge exakt en kvittens; tva betyder att kvittensen ges pa niva och att AMR:n far kora fram tva ganger pa samma plats"
+      },
+      {
+        "namn": "en_nollstallning_per_overforing",
+        "sekvens": "normal_overlamning",
+        "signal": "ST490_XFR_RST",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "handskakningen nollstalls en gang per overforing; en nollstallning som upprepas gor att AMR:n slapper begaran innan stationen last av vikten"
+      },
+      {
+        "namn": "banan_drar_in_en_gang",
+        "sekvens": "normal_overlamning",
+        "signal": "ST490_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "banan startar en gang per lastbarare; flera starter betyder att den nyps av och pa och att bararen stannar mitt i gapet"
+      },
+      {
+        "namn": "ingen_kvittens_till_upptaget_lage",
+        "sekvens": "mottagningslaget_upptaget",
+        "signal": "ST490_XFR_ACK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 700,
+        "antal": 0,
+        "varfor": "sa lange mottagningslaget ar upptaget far kvittensen aldrig ga hog; en enda flank har racker for att AMR:n ska borja rulla ut sin last"
+      },
+      {
+        "namn": "banan_gar_forst_nar_laget_blivit_ledigt",
+        "sekvens": "mottagningslaget_upptaget",
+        "signal": "ST490_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1000,
+        "antal": 1,
+        "varfor": "banan far starta exakt en gang, och forst nar mottagningslaget blivit ledigt; startar den medan laget ar upptaget kors den nya bararen mot den som star kvar, och startar den aldrig har stationen fastnat i vantelaget"
+      },
+      {
+        "namn": "banan_startar_inte_forran_dockad",
+        "sekvens": "banan_startar_inte_utan_dockning",
+        "signal": "ST490_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 700,
+        "antal": 0,
+        "varfor": "banan far inte ha startat en enda gang innan dockningsgivaren bekraftat AMR:n; en puls racker for att kila lastbararen i gapet"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "kvittens_utan_ledigt_mottagningslage",
+        "st": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\nIF ST490_PEC_IN AND (ST490_LOD_WGT < 10.0 OR ST490_LOD_WGT > 20.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\ntmrXfr(IN := xXfrAktiv, PT := T#4s);\nIF tmrXfr.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND ST490_DOK_OK THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            (* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. *)\n            IF ST490_PEC_IN AND xDoneSedd THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ OR NOT ST490_XFR_DONE THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND ST490_DOK_OK AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Kvittensen ges sa fort AMR:n dockat och begart overforing, utan att stationen ser efter om mottagningslaget ar tomt. Cellen gar felfritt sa lange utmatningen hinner undan, och forsta gangen den inte gor det skjuter AMR:n sin lastbarare mot den som star kvar.",
+        "faller_pa": [
+          "invariant:kvittens_bara_till_ledigt_mottagningslage@mottagningslaget_upptaget",
+          "mottagningslaget_upptaget@600ms:ST490_XFR_ACK",
+          "flank:ingen_kvittens_till_upptaget_lage"
+        ]
+      },
+      {
+        "namn": "banan_startar_utan_dockning",
+        "st": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\nIF ST490_PEC_IN AND (ST490_LOD_WGT < 10.0 OR ST490_LOD_WGT > 20.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\ntmrXfr(IN := xXfrAktiv, PT := T#4s);\nIF tmrXfr.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND NOT ST490_PEC_IN THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Lastbararen har natt mottagningslaget: inbjudan dras tillbaka. *)\n            IF ST490_PEC_IN THEN\n                ST490_XFR_ACK := FALSE;\n            END_IF;\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            (* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. *)\n            IF ST490_PEC_IN AND xDoneSedd THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ OR NOT ST490_XFR_DONE THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Overforingen startas pa begaran allena och banan villkoras inte av dockningsgivaren. AMR:n hinner nastan alltid dit forst, sa felet syns bara nar en AMR kor in med last och stannar nagra centimeter fel, och da ligger lastbararen i gapet.",
+        "faller_pa": [
+          "invariant:banan_star_still_utan_dockning@banan_startar_inte_utan_dockning",
+          "banan_startar_inte_utan_dockning@600ms:ST490_CNV_RUN",
+          "banan_startar_inte_utan_dockning@600ms:ST490_XFR_ACK",
+          "flank:banan_startar_inte_forran_dockad"
+        ]
+      },
+      {
+        "namn": "nollstallning_pa_niva",
+        "st": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\nIF ST490_PEC_IN AND (ST490_LOD_WGT < 10.0 OR ST490_LOD_WGT > 20.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\ntmrXfr(IN := xXfrAktiv, PT := T#4s);\nIF tmrXfr.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND ST490_DOK_OK AND NOT ST490_PEC_IN THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Lastbararen har natt mottagningslaget: inbjudan dras tillbaka. *)\n            IF ST490_PEC_IN THEN\n                ST490_XFR_ACK := FALSE;\n            END_IF;\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            IF ST490_PEC_IN THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND ST490_DOK_OK AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Handskakningen nollstalls sa fort fotocellen i mottagningslaget gar hog, alltsa pa en niva i stallet for pa AMR:ns DONE. Stationen sager klart innan AMR:n sagt att dacket ar tomt, och nasta AMR ropas in mot en overforing som aldrig avslutades.",
+        "faller_pa": [
+          "invariant:nollstallning_bara_efter_done@normal_overlamning",
+          "normal_overlamning@1000ms:ST490_XFR_RST"
+        ]
+      },
+      {
+        "namn": "overforingen_vantas_in_utan_tidsgrans",
+        "st": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\nIF ST490_PEC_IN AND (ST490_LOD_WGT < 10.0 OR ST490_LOD_WGT > 20.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND ST490_DOK_OK AND NOT ST490_PEC_IN THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Lastbararen har natt mottagningslaget: inbjudan dras tillbaka. *)\n            IF ST490_PEC_IN THEN\n                ST490_XFR_ACK := FALSE;\n            END_IF;\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            (* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. *)\n            IF ST490_PEC_IN AND xDoneSedd THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ OR NOT ST490_XFR_DONE THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND ST490_DOK_OK AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Ingen tidsvakt over handskakningen. En AMR som tappat kontakten mitt i overforingen lamnar kvittensen ute och banan dragen i all evighet, och ingen far veta det forran nagon undrar varfor takten sjunkit.",
+        "faller_pa": [
+          "overforingen_fastnar_tidsvakt@4700ms:SYS_ALARM",
+          "overforingen_fastnar_tidsvakt@4700ms:ST490_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "vikten_lases_aldrig",
+        "st": "PROGRAM ST490_AMR_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrXfr      : TON;\n    trigReset   : R_TRIG;\n    trigDone    : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xXfrAktiv   : BOOL := FALSE;\n    xDoneSedd   : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\ntrigDone(CLK := ST490_XFR_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stoppa. --- *)\n\n(* Lastbararen i mottagningslaget ska vaga 10,0 till 20,0 kg. En tom KLT 6280\n   vager 2,4 kg och en fylld 14,4 kg; utanfor fonstret star det fel barare i\n   laget och stationen far inte kvittera in den i flodet. *)\n\n(* Nagot star i overlamningsgapet utan att en overforing pagar: en lastbarare\n   har kilat sig mellan AMR-dacket och stationens bana. *)\nIF ST490_PEC_GAP AND NOT xXfrAktiv THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over hela handskakningen. Overforingsstrackan ar 1000 mm och banan\n   gar 400 mm/s, alltsa 2,5 s ren gangtid; vakten 4,0 s lamnar 1,5 s. *)\ntmrXfr(IN := xXfrAktiv, PT := T#4s);\nIF tmrXfr.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST490_XFR_ACK := FALSE;\n    ST490_XFR_RST := FALSE;\n    xXfrAktiv := FALSE;\n    xDoneSedd := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST490_XFR_RST := FALSE;\n            xDoneSedd := FALSE;\n            (* Kvittensen ges forst nar dockningen ar bekraftad OCH\n               mottagningslaget ar tomt. Den ar ett loften om plats. *)\n            IF ST490_XFR_REQ AND ST490_DOK_OK AND NOT ST490_PEC_IN THEN\n                ST490_XFR_ACK := TRUE;\n                xXfrAktiv := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Lastbararen har natt mottagningslaget: inbjudan dras tillbaka. *)\n            IF ST490_PEC_IN THEN\n                ST490_XFR_ACK := FALSE;\n            END_IF;\n            IF trigDone.Q THEN\n                xDoneSedd := TRUE;\n            END_IF;\n            (* Nollstallningen kommer pa AMR:ns DONE, aldrig pa en niva. *)\n            IF ST490_PEC_IN AND xDoneSedd THEN\n                ST490_XFR_RST := TRUE;\n                xXfrAktiv := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST490_XFR_REQ OR NOT ST490_XFR_DONE THEN\n                ST490_XFR_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Stationens bana drar in lastbararen. Aldrig utan bekraftad dockning: utan\n   AMR:n i lage finns inget dack att rulla over ifran, och lastbararen kilar\n   sig i gapet. Aldrig nar mottagningslaget redan ar upptaget. *)\nST490_CNV_RUN := xDriftsklar AND xXfrAktiv AND ST490_DOK_OK AND NOT ST490_PEC_IN;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stationen litar pa fotocellen i mottagningslaget och laser aldrig vagcellen. En tom lastbarare och tva staplade barare ser bada ut som en riktig overlamning, och felet upptacks forst nar en order plockas mot en tom back.",
+        "faller_pa": [
+          "lastbararen_ar_for_latt@1000ms:SYS_ALARM",
+          "tva_staplade_barare@1000ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}
