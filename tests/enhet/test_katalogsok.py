@@ -241,3 +241,17 @@ def test_nolla_i_katalogpost_blir_saknas_inte_noll_mm():
     assert " 0 mm" not in rad, "far inte saga '0 mm'"
     assert " 0 kg" not in rad, "far inte saga '0 kg'"
     assert rad.count(SAKNAS) >= 2
+
+
+def test_en_nolla_utan_enhet_skrivs_inte_ut_som_0_kg_nagonstans_i_repot():
+    """De 628 nollorna, körda genom SÖKSKIKTET i stället för genom M-107.
+
+    Det nya lagret säger `ENHET SAKNAS ... ofyllt falt`. Sökskiktet säger
+    `0 kg`, och det är sökskiktet som svarar på `search_installed_library`.
+    """
+    traff = Traff(namn="Nagon komponent", tillverkare="X",
+                  kategori="", sokvag="/x.vcmx", nyttolast_kg=0.0)
+    assert "0 kg" not in traff.rad(), (
+        "en nolla utan enhet skrivs ut som en nyttolast pa noll kilo: %s"
+        % traff.rad())
+

@@ -90,19 +90,6 @@ def test_ingen_levererad_kod_faster_en_enhet_vid_ett_enhetslost_katalogfalt():
         % rad)
 
 
-def test_en_nolla_utan_enhet_skrivs_inte_ut_som_0_kg_nagonstans_i_repot():
-    """De 628 nollorna, körda genom SÖKSKIKTET i stället för genom M-107.
-
-    Det nya lagret säger `ENHET SAKNAS ... ofyllt falt`. Sökskiktet säger
-    `0 kg`, och det är sökskiktet som svarar på `search_installed_library`.
-    """
-    traff = katalogsok.Traff(namn="Nagon komponent", tillverkare="X",
-                             kategori="", sokvag="/x.vcmx", nyttolast_kg=0.0)
-    assert "0 kg" not in traff.rad(), (
-        "en nolla utan enhet skrivs ut som en nyttolast pa noll kilo: %s"
-        % traff.rad())
-
-
 # ---------------------------------------------------------------------------
 # 3. Bankens stämpel lovar en källa den inte bär
 # ---------------------------------------------------------------------------
