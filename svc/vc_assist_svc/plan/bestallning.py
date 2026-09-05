@@ -80,8 +80,8 @@ class Besked(object):
         self.processordning = list(processordning)
         self.datablad = dict(datablad or {})
         if status != BYGGBAR and plan is not None:
-            raise Planfel("ett nej far aldrig lamna ut en plan; da byggs den "
-                          "halvt anda")
+            raise Planfel("a no must never hand out a plan; then it gets "
+                          "built half-done anyway")
 
     def __repr__(self):
         return "Besked(%s, %d problem)" % (self.status, len(self.problem))
