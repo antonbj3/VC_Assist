@@ -87,8 +87,9 @@ Spårfacit i `facit_spar` dömer *styrlogiken* mot insignalerna över tid, och g
 att döma i dag — utan VC, utan OpenPLC, utan nät. De ligger bredvid varandra;
 ögat fäller domen om scenen (invariant I1), spåret om logiken.
 
-Fältet är **frivilligt**. De 47 uppgifter som fanns före M-45 saknar det och går
-igenom lintern oförändrade.
+Fältet är **frivilligt**: en uppgift utan det går igenom lintern oförändrad, och
+en uppgift som har det går igenom även om fältet tas bort. M-106 gav spårfacit
+till tio av de 47 uppgifter som saknade det och tog dessutom in tolv nya.
 
 ```
 python3 bank/domare.py --uppgift T-07               # referens + alla motbevis
@@ -100,7 +101,7 @@ python3 -m pytest tests/enhet/test_domare.py -q
 
 | Fält | Vad det är |
 |---|---|
-| `harkomst` | mätningen som satte facit; ett `M-`nummer som går att slå upp |
+| `harkomst` | **källklassen, härledningen och mätningen** — se nedan |
 | `standard` | den publicerade tillståndsmodell eller standard facit lutar sig mot |
 | `scan_ms` | scanperioden spåret körs med. 20 ms, mätt i M-20 |
 | `referens` | en lösning som uppfyller facit; beviset att facit går att nå |
@@ -112,6 +113,40 @@ python3 -m pytest tests/enhet/test_domare.py -q
 Tre sorters påstående, alla mekaniska: **punktkrav**, **invariant**,
 **flankräkning**. Flankräkningen är den enda mekaniska domen över felklass
 `F15`, flank och latch.
+
+### Härkomsten: fyra källklasser, och paragrafen ska citeras
+
+Tillagt av **M-106**. `harkomst` börjar med en **källklass** och bär den
+härledning som klassen lovar. Fyra klasser är lagliga, och de är
+`docs/spec/85_bankkontraktet.md` §2:s egna källor i bankens ordförråd:
+
+| Klass | Vad den lovar | Vad grinden kräver |
+|---|---|---|
+| `STANDARD:` | en paragraf i en publicerad standard | utgivare **och** paragrafnummer, och paragrafen ska stå i M-106:s tabell |
+| `RAKNAD:` | geometri eller fysik ur scenens egna mått | räkningen skriven ut, med likhetstecken |
+| `DATABLAD:` | en tillverkares publicerade datablad | modellen namngiven och vad som hämtats |
+| `SPAR:` | ett inspelat I/O-spår från en riktig anläggning | var spåret kommer ifrån |
+
+Klasserna får kombineras: `STANDARD+RAKNAD: ...`. Härkomsten ska dessutom
+namnge en **mätning** (`M-`nummer) som finns i `docs/matningar/`.
+
+Två saker är förbjudna, och båda fälls mekaniskt av
+`tests/protocol/kor_bankens_facit.py`:
+
+* **Facit ur koden som döms.** Härkomsten får aldrig peka in i `svc/`,
+  `bank/domare.py`, `tests/` eller `plc/`. Kör aldrig referensen för att se vad
+  den ger och skriv sedan ned det som facit — det är BENCH-4, en grind som stod
+  grön i månader mot ett tal räknat av samma algoritm som dömdes.
+* **Ett paragrafnummer ingen slagit upp.** MÄTT 2026-09-05: två uppgifter bar
+  "IEC 60204-1:2016 9.2.4", en paragraf som inte finns. Grinden slår därför upp
+  varje citat mot tabellerna i `docs/matningar/M-106_bankens_facitkallor.md`,
+  där paragraferna faktiskt kontrollerades mot standardorganens
+  innehållsförteckningar. Vill du citera en ny paragraf: slå upp den och skriv
+  in den i M-106 först.
+
+Och kärnutgångarna: **varje namn i `core_outputs` måste röras av spårfacit** —
+i ett punktkrav, en invariant eller en flankräkning. En utgång som ingen
+sekvens nämner är inte dömd.
 
 ### Marginalregeln
 
