@@ -602,6 +602,18 @@ def test_grinden_ser_att_en_typ_byts():
     assert any("typ" in rad for rad in PX.avvikelser(e, tillbaka))
 
 
+def test_exporten_ar_deterministisk():
+    """Samma modell ger byte-identisk fil, varje gang. Modulens docstring
+    lovar det (tidsstampeln ar en fast strang och inte `now()`), och ett lofte
+    utan prov ar en bon. En guldfil som andrar sig av sig sjalv mater
+    ingenting."""
+    for namn, kalla in KONSTRUKTIONER:
+        a = PX.skriv_projekt(_las(kalla), projektnamn=namn)
+        b = PX.skriv_projekt(_las(kalla), projektnamn=namn)
+        assert a == b, namn
+        assert PX.TIDSSTAMPEL_STANDARD in a
+
+
 # ---- 6. schemat: en domare utanfor var egen kod --------------------------
 
 def _lxml_eller_hoppa():

@@ -8,7 +8,7 @@ Externa domare: det officiella `tc6_xml_v201.xsd` (hämtat ur Beremiz, sha256 i
 på den här maskinen utan wxPython) och **matiec** (`/tmp/opencode/matiec/iec2c`,
 OpenPLC:s egen kompilator, samma binär som `M-121`).
 **Prövar:** `svc/vc_assist_svc/plc/plcopen.py` (ny),
-`tests/enhet/test_plc_plcopen.py` (139 prov),
+`tests/enhet/test_plc_plcopen.py` (140 prov),
 `docs/matningar/radata/m154_svep.py` → `m154_ut.txt`.
 **Bygger på, upprepar inte:** `M-113` (PLCopen XML som **möjlig** väg ut, mätt
 med ST-texten som en klump), `M-114` (vägen in ger inte tillbaka källkoden),
