@@ -112,6 +112,7 @@ guld för linan. **L2**"*.
 | Grind 5 ögat, båda i linan | **PASS** för station A, **PASS** för station B, **PASS** för linan |
 | Guld per station | **GOLD gold_verified_core** (2 av 2 celler) |
 | Guld för linan | **GOLD gold_verified_core** (3 av 3 celler) |
+| Båda tillsammans | **GOLD gold_verified_core** (5 av 5 celler) |
 
 ## Vad ögat sa
 
@@ -284,4 +285,10 @@ dem. Samma kopplare värmer och mäter nu.
   inte växer långsamt över en timme är inte mätt.
 * **Fasförhållandet PLC ↔ scen.** Kräver `--plc-inskott`, som är av av samma
   skäl som i fas 7 (M-49).
+* **Ett objekt i scenen läses aldrig av.** Ögat rapporterar i varje körning
+  `app.Components: en komponent saknar Name: ReferenceError` bland `saknade`.
+  Det är en produkt som fångas i det ögonblick mataren skapar den, innan
+  anläggningen hunnit ge den ett namn. Den saknas alltså ur scenbilden i det
+  provet, och ögat **säger det** i stället för att tiga — men vad den
+  komponenten gjorde är inte mätt.
 * **Windows. Verklig hårdvara. Hur ofta det lyckas.**

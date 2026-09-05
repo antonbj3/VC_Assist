@@ -5,7 +5,17 @@
 sedan guld för linan. **L2**"*
 **körs av:** `tests/protocol/kor_fas8_linan.py`
 
-**Status: FYLLS I NÄR KÖRNINGEN ÄR KLAR.**
+**Status: STÄNGD 2026-09-05.** Grind 1–5 gröna i alla arton körningarna, ögat
+sa PASS för station A, för station B och för linan, guldgrinden gav
+`GOLD gold_verified_core` över fem celler, och **fem av fem** trasiga fall är
+kompositionsfel enligt definitionen nedan. Talen står i
+[M-73](../../docs/matningar/M-73_linan_arbetar.md) och
+[M-74](../../docs/matningar/M-74_kompositionsfallen.md). Utfallet i sin helhet
+står längst ned.
+
+Dokumentet skrevs innan de trasiga fallen kördes, och fallen deklarerades i
+körningen innan de kördes. Kraven nedan är alltså inte en beskrivning av vad
+som råkade fungera.
 
 ## Vad fasen påstår, och vad den inte påstår
 
@@ -87,7 +97,7 @@ i `LINJE` och passera i `A` och `B`.
 | K2 | station B:s block anropar station A:s `a_flank` | en station svälter — den tappar sina starter | stationsfacit |
 | K3 | turordningen på det delade utmatningsdonet borttagen | två stationer tar samma resurs (den fysiska) | linjefacit, förreglingen |
 | K4 | förreglingen skriven för linan i stället för per station | en förregling som håller inom en station men bryts mellan två | stationsfacit |
-| K5 | station A väntar på att station B:s zon är tom | en station blockerar nästa — mättnad nedströms | stationsfacit eller linjefacit |
+| K5 | station A väntar på att station B:s zon är tom | en station blockerar nästa — mättnad nedströms | linjefacit |
 
 ### Två sorters ändringar, och skillnaden bär beviset
 
@@ -120,3 +130,55 @@ Samma som i fas 7, med ett tillägg:
 * **Att en modell skriver kropparna.** Alla är handskrivna, som i fas 7.
 * **Nödstoppet.** Den skyddade ingången går inte att driva över OPC UA (M-49).
 * **Windows, verklig hårdvara, frekvens.**
+
+## Utfallet — mätt 2026-09-05
+
+```
+                LINJE                             ENSAM
+        station A   station B   linan       A       B
+HEL     PASS        PASS        PASS        PASS    PASS      guld
+K1      INCONCL     INCONCL     INCONCL     PASS    PASS      KOMPOSITIONSFEL
+K2      PASS        FAIL        FAIL        PASS    PASS      KOMPOSITIONSFEL
+K3      FAIL        FAIL        FAIL        PASS    PASS      KOMPOSITIONSFEL
+K4      FAIL        FAIL        FAIL        PASS    PASS      KOMPOSITIONSFEL
+K5      PASS        PASS        FAIL        PASS    PASS      KOMPOSITIONSFEL
+
+guldgrinden: GOLD gold_verified_core (5 av 5 celler gav PASS)
+```
+
+**Tio enstationskörningar, tio PASS.** En domare som fäller allt klarar varje
+fällningsprov och är ändå värdelös; här tiger den i exakt de fall där den ska
+tiga, och den tiger på program som i linan är sönder.
+
+`K5` är fasens starkaste rad: **båda stationerna PASS, linan FAIL.** Utan ett
+eget facit för linan hade den körningen varit grön.
+
+### Vad körningen tvingade fram, och som inte fanns när protokollet skrevs
+
+Fyra rättelser, alla i grinden och alla mätta:
+
+1. **En körning vars klockkvot ligger utanför braketten är OGILTIG.** `K2`:s
+   första linjekörning fick 0,6131 därför att en provsvit kördes samtidigt på
+   samma maskin. Protokollet lovade grinden; den fanns inte förrän nu.
+2. **Perturbationen armas på vilken som helst av stationernas bromsar.** Armad
+   bara på station A:s kom den aldrig i konfigurationen `B`, och
+   kontrollkörningen var då mildare än linjekörningen.
+3. **Ett genomströmningskrav utan en enda provad station är obesvarat**, inte
+   uppfyllt. Ögat svarade PASS; det svarar nu INCONCLUSIVE, och cellen
+   `station_krav_utan_prov` är dess nollpunkt.
+4. **Ett konflikttal som strukturellt aldrig kunde bli annat än noll** är
+   borttaget. Konflikterna räknas i slingan i stället, och `K3` ger 15 mot den
+   hela lösningens 0.
+
+### Vad fasen INTE prövade, trots grönt
+
+* **Fler än två stationer.**
+* **Att listan över kompositionsfelklasser är komplett.** Fem är fällda;
+  felklasserna i verkligheten är inte slut.
+* **Att felen fälls i en annan scen.** En lina vars takt är längre än båda
+  stationernas upptagenhet står aldrig på varandra, och där hade `K3` inte
+  haft någon samtidighet att bryta mot. Takten är vald så att faserna möts,
+  och det står i M-73.
+* **Att en modell skriver kropparna.** Alla sex är handskrivna. Reparationsvarv:
+  **noll**, av samma skäl. Fas 9.
+* **Nödstoppet, Windows, verklig hårdvara, frekvens.**

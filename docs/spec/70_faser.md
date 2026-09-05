@@ -29,7 +29,7 @@ slarv"*, *"missa ingenting"* — bor där, inte i uppstartsstegen.
 | 5 | **Scenbygge** | katalogindex, spawn via URI, koppling via `canConnect`/`connect` | N mållayouter byggda: noll kollisioner, alla gränssnitt kopplade | **stängd** |
 | 6 | **PLC-bandet** | OpenPLC v4, OPC UA, genererad signalkarta och deklarationer | Handskriven ST styr scenen genom OPC UA. Tur och retur mätt i ms | **stängd** (M-39) |
 | 7 | **ST för en station** | skelett + deklarationer genererade, modellen skriver sekvensen | Grind 1–5 gröna. Ögat säger PASS. **L1-guld** | **STÄNGD** (M-49, M-50): grind 1–5 gröna, ögat PASS, L1-guld; fem trasiga fall fällda av ögat |
-| 8 | **Komposition** | flera stationer | Guld per station, sedan guld för linan. **L2** | öppen |
+| 8 | **Komposition** | flera stationer | Guld per station, sedan guld för linan. **L2** | **STÄNGD** (M-73, M-74): två stationer på en lina, guld i fem celler, och fem trasiga fall som ögat fäller i linan och släpper igenom i båda enstationskörningarna |
 | 9 | **Bänken** | scenariosamling med facit | Tre tal rapporterade: första försöket, efter k varv, fel per klass | **alla tre talen mätta** (M-80): första försöket 0 av 4, efter ett reparationsvarv 4 av 4, baslinjen 4 av 4 i varv 1. Slingan drevs för hand |
 | 10 | **Paketering** | nedladdningsbart tillägg | Ren maskin: klona, installera, kör. Fungerar utan handpåläggning. **Kräver fas 12** | byggd, oprövad på ren maskin |
 

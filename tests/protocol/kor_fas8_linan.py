@@ -1426,14 +1426,20 @@ def _guld(ut):
     guld for linan", och det ar tva pastaenden, inte ett.
     """
     grind = guldgrind.Guldgrind(["station", "linje"])
-    celler = []
+    # En sammanstallning kan bara ett fall och en konfiguration EN gang, aven
+    # nar samma korning finns i tva filer: en omkord korning ersatter den den
+    # kordes om, den laggs inte till. Utan det raknade guldgrinden sju celler
+    # dar det fanns fem, och ett tal som vaxer nar man laser om samma korning
+    # ar inget tal.
+    senaste = {}
     for rad in ut["korningar"]:
-        if rad["fall"] != "HEL":
-            continue
-        if _klockan_ok(rad) is False:
+        senaste[(rad["fall"], rad["konfig"])] = rad
+    celler = []
+    for (fall, konfig), rad in sorted(senaste.items()):
+        if fall != "HEL" or _klockan_ok(rad) is False:
             continue
         for namn, cell in sorted((rad.get("celler") or {}).items()):
-            if rad["konfig"] != "LINJE" and namn == "linan":
+            if konfig != "LINJE" and namn == "linan":
                 continue
             celler.append(cell)
     if not celler:
