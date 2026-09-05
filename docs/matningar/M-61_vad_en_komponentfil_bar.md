@@ -526,12 +526,14 @@ bredvid varandra i samma 6 × 1,2 m korridor: den gissade lådan (600 mm) ger
 
 | Nivå | Fil | Antal |
 |---|---|---:|
-| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 44 |
-| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 23 |
+| L1, attrapperade `.vcmx` | `tests/enhet/test_komponentfil.py` | 45 |
+| L1, bryggan | `tests/enhet/test_layout_komponent.py` | 27 |
 | L2, det verkliga biblioteket (hoppas över om det saknas) | `tests/enhet/test_komponentfil_bibliotek.py` | 6 |
+| L1, familjemarkörernas två kopior | `tests/enhet/test_katalogindex.py` | 3 av 15 |
 
-Trasiga fixturer, tolv stycken: en profil i YZ-planet som ska ge samma radie
-som en i XZ, en komponent vars mått saknas, en avhuggen
+Trasiga fixturer, fjorton stycken: en profil i YZ-planet som ska ge samma
+radie som en i XZ, en familjemarkör som står i ett Python-skript, en robot vars
+`Type` säger `Advanced Motion`, en komponent vars mått saknas, en avhuggen
 3DS-blobb, en triangel som pekar utanför sin hörnlista, en profil som inte går
 att avkoda, en profilnyttolast som inte går jämnt ut, en tom profil, en ram
 under en nod utan `Offset`, ett tomt uttryck utan matris, ett band med bara en
