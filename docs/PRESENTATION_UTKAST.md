@@ -1,12 +1,17 @@
 # VC Assist
 
-VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
-code on a real soft-PLC against a simulated plant, and reads what actually
-happened in the simulation to decide whether the code is correct.
+If you do virtual commissioning, you know the shape of the day: inventory the
+signals, wire the maps, set the directions, connect the scene to the PLC, run
+the simulation, and then hunt the timing fault that only appears on the ninth
+cycle.
 
-The distinction that matters: most code-generation tools answer *does it
-compile?* This one answers *what happened in the plant?* — and feeds the answer
-back until the code is right.
+VC Assist writes the Structured Text, runs it on a real soft-PLC against the
+scene, and reads what the plant actually did — every object's position, every
+signal, every edge — to find the sequence and timing faults for you. When it
+finds one, it says which signal rose too early and by how much, and hands that
+back to the model to fix.
+
+It does not answer *does it compile?* It answers *what happened in the plant?*
 
 ## What it runs on
 
