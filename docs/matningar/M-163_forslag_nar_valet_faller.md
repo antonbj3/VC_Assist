@@ -208,3 +208,12 @@ sämre än inget förslag — då har grinden skickat operatören på en andra v
   2026-09-05 kl. 20 och tog inte i `katalogsok.py` eller `katalogindex.py`.
 * **Talet 3 är inte mätt.** `MAX_FORSLAG = 3` är ställt i uppdraget. Teckentabellen
   ovan säger vad andra tal hade kostat, inte vilket som är rätt.
+* **`MK4_PASSAR_EJ` får inga förslag, och den frågan är inte avgjord här.** Den
+  krocken döms `OMOJLIG` — och `OMOJLIG` föreslår aldrig, det är regel 4. Men
+  dess egen åtgärdstext lyder *"gor cellen storre eller valj en mindre
+  komponent"*, alltså ett komponentbyte, vilket är ett fallet **val**. Antingen
+  är verdikten fel eller är åtgärdstexten det. Jag har inte rört någondera:
+  att flytta MK4 till `VALET_FALLER` ändrar en dokumenterad dom i grinden och
+  hör till ett eget beslut, inte till den här kopplingen. Sökskiktet bär
+  dessutom inget måttfilter (M-61), så ett förslag där hade ändå bara kunnat
+  bli ett skäl.
