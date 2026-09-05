@@ -12,17 +12,15 @@ back until the code is right.
 
 ```mermaid
 flowchart LR
-    A["plain-text<br/>order"] --> B["build plan"]
-    B --> C["scene in the<br/>simulator"]
-    C --> D["ST code"]
-    D --> E["OpenPLC<br/>runtime"]
-    E -->|OPC UA| F["the plant<br/>runs"]
-    F --> G(["the eye reads every object<br/>as a time series"])
-    G -->|all correct| H["GOLD"]
-    G -->|"ST260_STA_BUSY rose 7.45 s<br/>before ST250_STA_DONE"| D
+    A["plain-text<br/>order"] --> B["scene built in<br/>the simulator"]
+    B --> C["ST code"]
+    C --> D["OpenPLC drives<br/>the plant"]
+    D --> E(["THE EYE<br/>reads what happened"])
+    E --> F["GOLD"]
+    E -.->|"what went wrong,<br/>in words"| C
 
-    style G fill:#1f6feb,color:#fff
-    style H fill:#238636,color:#fff
+    style E fill:#1f6feb,color:#fff
+    style F fill:#238636,color:#fff
 ```
 
 Each step, concretely:
@@ -60,34 +58,32 @@ receive "it failed". It receives which signal rose too early, by how many
 seconds, and which station therefore began working on a part the previous
 station had not finished.
 
-## Reading the code, and running it
+## The gate chain
 
-Four checks read the code as **text**: does it compile, is anything
-unreachable, do the names and types exist, are the function blocks real. They
-are fast, they need no simulator, and they catch a great deal.
-
-They can also all pass on code that is wrong.
+Four checks read the code as **text**: does it compile, is anything unreachable,
+do the names and types exist, are the function blocks real. They are fast, they
+need no simulator, and they can all pass on code that is wrong.
 
 ```mermaid
 flowchart LR
-    M["model's draft"] --> T["reads the TEXT<br/>compile · analysis<br/>names · calls"]
-    T -->|"all four pass"| O["runs it and WATCHES<br/><i>the grasp formed while the tool<br/>was 642 mm from the board</i>"]
-    O -.->|"the failure, in words"| M
+    M["model's<br/>draft"] --> T["1-4 · reads the TEXT<br/><i>compile · analysis<br/>names · calls</i>"]
+    T --> O["5 · THE EYE<br/><i>runs the code against<br/>the plant and watches</i>"]
     O --> G["GOLD"]
+    O -.->|"the failure, in words"| M
 
     style O fill:#1f6feb,color:#fff
     style G fill:#238636,color:#fff
 ```
 
-That example is real. The syntax was flawless, every name existed, the sequence
-was in order — and the robot closed its gripper more than half a metre from the
-part. Only running it against a plant reveals that.
+The eye caught this, and the four text checks could not: *the grasp formed while
+the tool was 642 mm from the board.* The syntax was flawless, every name
+existed, the sequence was in order — and the robot closed its gripper more than
+half a metre from the part.
 
-It watches the whole line, not one station — which matters because faults live
-in the gaps between stations. Five in our measurement passed each station
-individually and appeared only once the stations were connected: a downstream
-station started on *"a part is present"* instead of on *"the previous station
-is finished"*, and so began working on a part that was not ready.
+It watches the whole line, not one station, because faults live in the gaps
+between stations. Five in our measurement passed each station individually and
+appeared only when the stations were connected: a downstream station started on
+*"a part is present"* instead of on *"the previous station is finished"*.
 
 ## Where the project stands
 
