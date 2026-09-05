@@ -192,6 +192,23 @@ recorded with the reasoning that produced it, or put back to you as a question.
 Nothing is filled in silently, and the questions that block the build are marked
 apart from the ones that do not.
 
+```mermaid
+flowchart LR
+    O["your order,<br/>plain language"] --> R{"for each thing<br/>the build needs"}
+    R -->|"derivable from the<br/>catalogue or the scene"| A["assumed —<br/>with the reasoning<br/>written down"]
+    R -->|"only you can answer"| Q["asked"]
+    A --> B["buildable spec"]
+    Q -->|"blocking"| S["nothing is built<br/>until you answer"]
+    Q -->|"not blocking"| B
+
+    style A fill:#1f6feb,color:#fff
+    style S fill:#3a2d0b,color:#fff
+    style B fill:#238636,color:#fff
+```
+
+There is no difficulty setting and no complexity tier. The amount of work is
+whatever the order leaves unresolved.
+
 Asking about a running cell works today: *why does station 3 starve* is answered
 from the eye's own measurements, quoting the rows it read, and cannot touch the
 scene while it does so. Changing one has its gates built — an ambiguous sentence
