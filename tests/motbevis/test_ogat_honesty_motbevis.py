@@ -43,27 +43,6 @@ def _rapport(data, plan, modul=A):
 
 # ---- 1. cellerna isolerar inte sin felklass ----------------------------
 
-# (cell, den enda klass den ska bryta mot, klasser den INTE får bryta mot)
-ISOLERING = [
-    ("aldrig_gripen", "NEVER_GRIPPED VIOLATION",
-     ("OFF_TARGET", "DROPPED", "SLIPPING", "BLOWUP VIOLATION",
-      "UNDERGROUND VIOLATION")),
-]
-
-
-@pytest.mark.parametrize("namn,egen,frammande", ISOLERING,
-                         ids=[x[0] for x in ISOLERING])
-def test_en_trasig_cell_bryter_mot_exakt_en_felklass(namn, egen, frammande):
-    b, plan = celler.ALLA[namn]()
-    r = _rapport(b.data(), plan)
-    rader = [x for _s, rr in r.sektioner for x in rr]
-    assert any(egen in x for x in rader), "%s bröt inte mot sin egen klass" % namn
-    smitta = [x for x in rader if any(f in x for f in frammande)]
-    assert not smitta, (
-        "%s bryter mot fler klasser än sin egen: %s. Då täcker grindarna för "
-        "varandra: mutationsprovet visar att %s-grinden kan stängas av utan "
-        "att sviten fälls." % (namn, smitta, egen.split()[0]))
-
 
 def test_greppgrinden_och_never_gripped_ar_inte_samma_grind():
     """`aldrig_gripen` fälls både av `mh["grip"] is None` (rad 517) och av

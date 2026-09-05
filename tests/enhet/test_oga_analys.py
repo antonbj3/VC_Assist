@@ -598,6 +598,9 @@ def _rapport_mb(data, plan, modul=A):
 ISOLERING_MB = [
     ("explosion", "BLOWUP VIOLATION",
      ("OFF_TARGET", "DROPPED", "SLIPPING", "NEVER_FORMED", "NEVER_GRIPPED VIOLATION")),
+    ("aldrig_gripen", "NEVER_GRIPPED VIOLATION",
+     ("OFF_TARGET", "DROPPED", "SLIPPING", "BLOWUP VIOLATION",
+      "UNDERGROUND VIOLATION")),
 ]
 
 
