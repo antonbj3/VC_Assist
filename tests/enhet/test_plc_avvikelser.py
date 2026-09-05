@@ -190,7 +190,7 @@ def test_noll_division_med_variabel_slipper_igenom_matiec():
     assert ok is True
     svar = tolken_ger("  i : INT; n : INT := 0;", "  i := 10 / n;", "I")
     assert isinstance(svar, TK.Tolkfel)
-    assert "division med noll" in str(svar)
+    assert "division by zero" in str(svar)
 
 
 def test_noll_real_division_slipper_igenom_matiec_men_inte_tolken():

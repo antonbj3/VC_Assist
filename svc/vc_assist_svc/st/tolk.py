@@ -79,7 +79,7 @@ def _tid_ms(lit: M.Literal) -> float:
         ok, ms, _ = tolka_tidliteral(delar[0] + "#" + delar[1].lower())
         if ok:
             return float(ms)
-    raise Tolkfel("TIME-literalen %r går inte att läsa: %s" % (lit.text, varfor))
+    raise Tolkfel("the TIME literal %r cannot be read: %s" % (lit.text, varfor))
 
 
 class Blockinstans(object):
@@ -108,7 +108,7 @@ class Blockinstans(object):
         elif sort == "CTUD":
             self.ut = {"QU": False, "QD": True, "CV": 0}
         else:
-            raise Tolkfel("tolken kan inte köra funktionsblocket %s" % sort)
+            raise Tolkfel("the interpreter cannot run the function block %s" % sort)
 
     # -- anropet ----------------------------------------------------------
 
@@ -140,7 +140,7 @@ class Blockinstans(object):
         okanda = [n for n in arg if n.upper() not in kanda]
         if okanda:
             raise Tolkfel(
-                "anropet till %s (%s) bar okanda ingangar: %s. %s tar %s"
+                "the call to %s (%s) carries unknown inputs: %s. %s takes %s"
                 % (self.namn, self.sort, ", ".join(sorted(okanda)),
                    self.sort, ", ".join(kanda)))
         f = getattr(self, "_" + self.sort.lower())
@@ -148,7 +148,7 @@ class Blockinstans(object):
 
     def _kravs(self, arg, namn):
         if namn not in arg:
-            raise Tolkfel("anropet till %s (%s) saknar %s"
+            raise Tolkfel("the call to %s (%s) is missing %s"
                           % (self.namn, self.sort, namn))
         return arg[namn]
 
@@ -294,10 +294,10 @@ class Tolk(object):
         try:
             enhet = las(kalla)
         except Exception as fel:                    # Syntaxfel och allt annat
-            raise Tolkfel("koden går inte att läsa: %s" % (fel,))
+            raise Tolkfel("the code cannot be read: %s" % (fel,))
         program = [p for p in enhet.pouer if p.sort == "PROGRAM"]
         if len(program) != 1:
-            raise Tolkfel("tolken kör exakt ett PROGRAM, koden har %d"
+            raise Tolkfel("the interpreter runs exactly one PROGRAM, the code has %d"
                           % len(program))
         self.pou = program[0]
         self.egna_pouer = dict((p.namn.upper(), p) for p in enhet.pouer
@@ -324,7 +324,7 @@ class Tolk(object):
         # skriver VAR_INPUT.
         for namn, typ in signaler.items():
             if typ not in NOLLVARDE:
-                raise Tolkfel("okänd signaltyp %r för %s" % (typ, namn))
+                raise Tolkfel("unknown signal type %r for %s" % (typ, namn))
             self.varden[namn.upper()] = NOLLVARDE[typ]
         for block, dek in self.pou.deklarationer():
             namn = dek.namn.upper()
@@ -336,7 +336,7 @@ class Tolk(object):
                 self._blocksort[namn] = typ.namn.upper()
                 continue
             if hasattr(typ, "namn") and typ.namn.upper() in self.egna_pouer:
-                raise Tolkfel("tolken kör inte egna funktionsblock (%s)"
+                raise Tolkfel("the interpreter does not run custom function blocks (%s)"
                               % typ.namn)
             self.varden[namn] = self._nollvarde(typ)
             if dek.init is not None:
@@ -368,7 +368,7 @@ class Tolk(object):
         """Sätter en insignal. Fälls om namnet inte finns."""
         nyckel = namn.upper()
         if nyckel not in self.varden:
-            raise Tolkfel("okänd signal %r" % (namn,))
+            raise Tolkfel("unknown signal %r" % (namn,))
         self.varden[nyckel] = varde
 
     def las(self, namn: str):
@@ -379,13 +379,13 @@ class Tolk(object):
             bas, falt = nyckel.split(".", 1)
             if bas in self.block:
                 return self.block[bas].ut.get(falt)
-        raise Tolkfel("okänd signal %r" % (namn,))
+        raise Tolkfel("unknown signal %r" % (namn,))
 
     def scan(self):
         """Ett varv: kör kroppen en gång och flyttar klockan ett scansteg."""
         self.scan_nr += 1
         if self.scan_nr > MAX_SCAN:
-            raise Tolkfel("över %d scan; spåret är orimligt långt" % MAX_SCAN)
+            raise Tolkfel("over %d scans; the trace is unreasonably long" % MAX_SCAN)
         try:
             self._satser(self.pou.kropp)
         except _Retur:
@@ -484,7 +484,7 @@ class Tolk(object):
             while self._sant(s.villkor):
                 varv += 1
                 if varv > MAX_LOOPVARV:
-                    raise Tolkfel("WHILE på rad %d snurrar över %d varv"
+                    raise Tolkfel("WHILE on line %d spins over %d cycles"
                                   % (s.rad, MAX_LOOPVARV))
                 try:
                     self._satser(s.satser)
@@ -496,7 +496,7 @@ class Tolk(object):
             while True:
                 varv += 1
                 if varv > MAX_LOOPVARV:
-                    raise Tolkfel("REPEAT på rad %d snurrar över %d varv"
+                    raise Tolkfel("REPEAT on line %d spins over %d cycles"
                                   % (s.rad, MAX_LOOPVARV))
                 try:
                     self._satser(s.satser)
@@ -510,17 +510,17 @@ class Tolk(object):
             slut = int(self._varde(s.till))
             steg = int(self._varde(s.steg)) if s.steg is not None else 1
             if steg == 0:
-                raise Tolkfel("FOR på rad %d har steget 0" % s.rad)
+                raise Tolkfel("FOR on line %d has step 0" % s.rad)
             namn = s.styrvar.upper()
             if namn not in self.varden:
-                raise Tolkfel("FOR på rad %d styr på odeklarerade %s"
+                raise Tolkfel("FOR on line %d controls the undeclared %s"
                               % (s.rad, s.styrvar))
             varv = 0
             v = start
             while (steg > 0 and v <= slut) or (steg < 0 and v >= slut):
                 varv += 1
                 if varv > MAX_LOOPVARV:
-                    raise Tolkfel("FOR på rad %d snurrar över %d varv"
+                    raise Tolkfel("FOR on line %d spins over %d cycles"
                                   % (s.rad, MAX_LOOPVARV))
                 self.varden[namn] = v
                 try:
@@ -533,7 +533,7 @@ class Tolk(object):
             raise _Avbrott()
         if isinstance(s, M.Retur):
             raise _Retur()
-        raise Tolkfel("tolken kan inte köra satsen %s på rad %s"
+        raise Tolkfel("the interpreter cannot run the statement %s on line %s"
                       % (type(s).__name__, getattr(s, "rad", "?")))
 
     def _tilldela(self, s: M.Tilldelning):
@@ -541,27 +541,27 @@ class Tolk(object):
         if isinstance(mal, M.Avreferering):
             ref = self._varde(mal.bas)
             if ref is None:
-                raise Tolkfel("avreferering av NULL-pekare på rad %d" % s.rad)
+                raise Tolkfel("dereference of a NULL pointer on line %d" % s.rad)
             if not (isinstance(ref, tuple) and len(ref) == 2 and ref[0] == "REF"):
-                raise Tolkfel("kan inte avreferera icke-pekare på rad %d" % s.rad)
+                raise Tolkfel("cannot dereference a non-pointer on line %d" % s.rad)
             mal_namn = ref[1]
             self._skriv(mal_namn, self._varde(s.uttryck), s.rad)
             return
         if not isinstance(mal, M.Namn):
-            raise Tolkfel("tolken tilldelar bara enkla namn, inte %s på rad %d"
+            raise Tolkfel("the interpreter only assigns to simple names, not %s on line %d"
                           % (type(mal).__name__, s.rad))
         namn = mal.ident.upper()
         if namn not in self.varden:
-            raise Tolkfel("odeklarerat namn %r på rad %d" % (mal.ident, s.rad))
+            raise Tolkfel("undeclared name %r on line %d" % (mal.ident, s.rad))
         self._skriv(mal.ident, self._varde(s.uttryck), s.rad)
 
     def _skriv(self, ident: str, varde, rad: int):
         namn = ident.upper()
         if namn not in self.varden:
-            raise Tolkfel("odeklarerat namn %r på rad %d" % (ident, rad))
+            raise Tolkfel("undeclared name %r on line %d" % (ident, rad))
         if self.riktning.get(namn) == "in":
-            raise Tolkfel("rad %d skriver till insignalen %s; en logik som "
-                          "sätter sin egen givare mäter ingenting"
+            raise Tolkfel("line %d writes to the input signal %s; logic that "
+                          "sets its own sensor measures nothing"
                           % (rad, ident))
         self.varden[namn] = varde
 
@@ -581,16 +581,16 @@ class Tolk(object):
             namn = u.ident.upper()
             if namn in self.varden:
                 return self.varden[namn]
-            raise Tolkfel("odeklarerat namn %r på rad %d" % (u.ident, u.rad))
+            raise Tolkfel("undeclared name %r on line %d" % (u.ident, u.rad))
         if isinstance(u, M.Medlem):
             bas = u.bas
             if not isinstance(bas, M.Namn):
-                raise Tolkfel("tolken läser bara fält på enkla namn, rad %d" % u.rad)
+                raise Tolkfel("the interpreter only reads fields on simple names, line %d" % u.rad)
             inst = self.block.get(bas.ident.upper())
             if inst is None:
-                raise Tolkfel("%s är ingen blockinstans, rad %d" % (bas.ident, u.rad))
+                raise Tolkfel("%s is not a block instance, line %d" % (bas.ident, u.rad))
             if u.falt.upper() not in inst.ut:
-                raise Tolkfel("%s har ingen utgång %s, rad %d"
+                raise Tolkfel("%s has no output %s, line %d"
                               % (inst.sort, u.falt, u.rad))
             return inst.ut[u.falt.upper()]
         if isinstance(u, M.Avreferering):
@@ -601,22 +601,22 @@ class Tolk(object):
                 return (not v) if isinstance(v, bool) else ~int(v)
             if u.op == "-":
                 return -v
-            raise Tolkfel("okänd unär operator %r" % (u.op,))
+            raise Tolkfel("unknown unary operator %r" % (u.op,))
         if isinstance(u, M.Binar):
             return self._binar(u)
         if isinstance(u, M.Anrop):
             return self._anropa(u)
-        raise Tolkfel("tolken kan inte räkna ut %s" % type(u).__name__)
+        raise Tolkfel("the interpreter cannot evaluate %s" % type(u).__name__)
 
     def _avreferera_las(self, u: M.Avreferering):
         ref = self._varde(u.bas)
         if ref is None:
-            raise Tolkfel("avreferering av NULL-pekare på rad %d" % u.rad)
+            raise Tolkfel("dereference of a NULL pointer on line %d" % u.rad)
         if not (isinstance(ref, tuple) and len(ref) == 2 and ref[0] == "REF"):
-            raise Tolkfel("kan inte avreferera icke-pekare på rad %d" % u.rad)
+            raise Tolkfel("cannot dereference a non-pointer on line %d" % u.rad)
         mal_namn = ref[1]
         if mal_namn not in self.varden:
-            raise Tolkfel("odeklarerat namn %r på rad %d" % (mal_namn, u.rad))
+            raise Tolkfel("undeclared name %r on line %d" % (mal_namn, u.rad))
         return self.varden[mal_namn]
 
     def _binar(self, u: M.Binar):
@@ -652,14 +652,14 @@ class Tolk(object):
             return v * h
         if op == "/":
             if h == 0:
-                raise Tolkfel("division med noll på rad %d" % u.rad)
+                raise Tolkfel("division by zero on line %d" % u.rad)
             if isinstance(v, int) and isinstance(h, int) \
                     and not isinstance(v, bool) and not isinstance(h, bool):
                 return int(v / h)          # IEC: heltalsdivision trunkerar
             return v / h
         if op == "MOD":
             if h == 0:
-                raise Tolkfel("MOD med noll på rad %d" % u.rad)
+                raise Tolkfel("MOD by zero on line %d" % u.rad)
             # IEC 61131-3: MOD har tecknet hos täljaren, python har det hos
             # nämnaren. Skillnaden syns bara på negativa tal, och den syns.
             return int(v) - int(h) * int(v / h)
@@ -673,7 +673,7 @@ class Tolk(object):
             if isinstance(h, float) or isinstance(v, float) or h < 0:
                 return float(v) ** float(h)
             return int(v) ** int(h)
-        raise Tolkfel("okänd operator %r på rad %d" % (op, u.rad))
+        raise Tolkfel("unknown operator %r on line %d" % (op, u.rad))
 
     # -- anrop ------------------------------------------------------------
 
@@ -686,20 +686,20 @@ class Tolk(object):
         if namn in SB.FUNKTIONER:
             return self._anropa_funktion(namn, a)
         if namn in SB.BLOCK:
-            raise Tolkfel("%s är ett funktionsblock och måste ha en instans, rad %d"
+            raise Tolkfel("%s is a function block and must have an instance, line %d"
                           % (a.namn, a.rad))
-        raise Tolkfel("okänt anrop %r på rad %d; tolken kör bara "
-                      "standardbibliotekets funktioner" % (a.namn, a.rad))
+        raise Tolkfel("unknown call %r on line %d; the interpreter only runs "
+                      "the standard library's functions" % (a.namn, a.rad))
 
     def _ref(self, a: M.Anrop):
         if len(a.argument) != 1 or a.argument[0].ut:
-            raise Tolkfel("REF tar exakt ett argument på rad %d" % a.rad)
+            raise Tolkfel("REF takes exactly one argument on line %d" % a.rad)
         arg = a.argument[0].uttryck
         if not isinstance(arg, M.Namn):
-            raise Tolkfel("tolken stöder bara REF till enkla namn på rad %d" % a.rad)
+            raise Tolkfel("the interpreter only supports REF to simple names on line %d" % a.rad)
         namn = arg.ident.upper()
         if namn not in self.varden:
-            raise Tolkfel("odeklarerat namn %r i REF på rad %d" % (arg.ident, a.rad))
+            raise Tolkfel("undeclared name %r in REF on line %d" % (arg.ident, a.rad))
         return ("REF", namn)
 
     def _anropa_block(self, inst: Blockinstans, a: M.Anrop):
@@ -710,7 +710,7 @@ class Tolk(object):
         for i, ar in enumerate(a.argument):
             if ar.namn is None:
                 if i >= len(ordning):
-                    raise Tolkfel("för många argument till %s på rad %d"
+                    raise Tolkfel("too many arguments to %s on line %d"
                                   % (inst.namn, a.rad))
                 arg[ordning[i]] = self._varde(ar.uttryck)
                 continue
@@ -721,7 +721,7 @@ class Tolk(object):
         inst.anropa(arg, self.scan_ms)
         for falt, mal in utbindningar:
             if not isinstance(mal, M.Namn):
-                raise Tolkfel("=> binder bara till ett namn, rad %d" % a.rad)
+                raise Tolkfel("=> only binds to a name, line %d" % a.rad)
             self._skriv(mal.ident, inst.ut.get(falt), a.rad)
         return None
 
@@ -756,7 +756,7 @@ class Tolk(object):
             if till in ("STRING", "WSTRING"):
                 return str(v)
             return int(v)
-        raise Tolkfel("tolken kan inte räkna funktionen %s på rad %d"
+        raise Tolkfel("the interpreter cannot evaluate the function %s on line %d"
                       % (namn, a.rad))
 
 

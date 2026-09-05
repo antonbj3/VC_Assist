@@ -121,7 +121,7 @@ def test_tolken_faller_en_skrivning_till_en_insignal():
     t = tolk.Tolk(prog, SIGNALER, RIKTNING)
     with pytest.raises(tolk.Tolkfel) as fel:
         t.scan()
-    assert "insignalen" in str(fel.value)
+    assert "input signal" in str(fel.value)
 
 
 def test_tolken_faller_ett_odeklarerat_namn():
@@ -142,7 +142,7 @@ def test_tolken_faller_en_oandlig_loop_i_stallet_for_att_hanga():
     t = tolk.Tolk(prog, SIGNALER, RIKTNING)
     with pytest.raises(tolk.Tolkfel) as fel:
         t.scan()
-    assert "snurrar" in str(fel.value)
+    assert "spins" in str(fel.value)
 
 
 # ------------------------------------------------------------------ banken
