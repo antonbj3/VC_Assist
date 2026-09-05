@@ -144,6 +144,11 @@ TRASIGA = [
      _GRON + "\n## P2 — Tomheten\n\ningen tabell alls\n",
      "TOM_PROFIL",
      "en profil vars hela tabell ar borta"),
+
+    ("samma profil tva ganger",
+     _GRON + "\n" + _GRON.replace("Kontrollen", "Kontrollen igen"),
+     "DUBBEL_PROFIL",
+     "en profilkod som star tva ganger; den ena tabellen doljer den andra"),
 ]
 
 # Fixturerna dooms mot ett eget golv och en egen profillista - annars matte de
@@ -254,6 +259,20 @@ def main(argv=None):
     print("   %d av %d verktyg (%.0f %%)"
           % (len(oanvanda), len(REGISTER),
              100.0 * len(oanvanda) / max(1, len(REGISTER))))
+
+    # ---- 3b. det gamla pastaendet om utbildaren ---------------------------
+    # 48 pastod fore fas 19 att utbildaren "kraver inte en enda ytterligare
+    # API-yta" an saljaren, och drog darfor slutsatsen att hon inte behovde en
+    # egen profil. Pastaendet gar att prova, sa det provas.
+    print("\n3b. UTBILDARENS EGNA YTOR - det gamla pastaendet provat\n")
+    per_kod = {p.kod: set(PT.api_namn([p])) for p in profiler}
+    egna = sorted(per_kod.get("P7", set()) - per_kod.get("P5", set()))
+    print("   P7 pekar pa %d API-namn, varav %d INTE finns i P5:"
+          % (len(per_kod.get("P7", ())), len(egna)))
+    for namn in egna:
+        print("     %s" % namn)
+    print("   Pastaendet 'kraver inte en enda ytterligare API-yta' ar %s."
+          % ("SANT" if not egna else "FALSKT"))
 
     # ---- 4. domen over den verkliga specen --------------------------------
     print("\n4. DOMEN OVER SPECEN SJALV\n")
