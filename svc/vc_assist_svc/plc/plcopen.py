@@ -133,12 +133,12 @@ def _ascii(text: str, vad: str) -> str:
     flyttat det till någon annans importör.
     """
     if not isinstance(text, str):
-        raise ExportFel("%s är ingen sträng: %r" % (vad, text))
+        raise ExportFel("%s is not a string: %r" % (vad, text))
     try:
         text.encode("ascii")
     except UnicodeEncodeError:
-        raise ExportFel("%s innehåller icke-ASCII: %r. En PLCopen-fil som "
-                        "lämnar oss måste vara ren ASCII." % (vad, text))
+        raise ExportFel("%s contains non-ASCII: %r. A PLCopen file that "
+                        "leaves us must be pure ASCII." % (vad, text))
     return text
 
 
@@ -153,10 +153,10 @@ def _barn(el: ET.Element, namn: str) -> Optional[ET.Element]:
 
 def _krav(el: Optional[ET.Element], namn: str, var: str) -> ET.Element:
     if el is None:
-        raise Importfel("%s saknas helt" % var)
+        raise Importfel("%s is missing entirely" % var)
     b = el.find(_q(namn))
     if b is None:
-        raise Importfel("%s saknar <%s>" % (var, namn))
+        raise Importfel("%s is missing <%s>" % (var, namn))
     return b
 
 
@@ -195,7 +195,7 @@ def _skriv_typ(foralder: ET.Element, typ: T.Typ, var: str) -> None:
         d = ET.SubElement(foralder, _q("derived"))
         d.set("name", _ascii(typ.namn, "ett typnamn"))
         return
-    raise ExportFel("%s har typen %s, som PLCopen XML inte har någon form för"
+    raise ExportFel("%s has type %s, for which PLCopen XML has no form"
                     % (var, type(typ).__name__))
 
 
@@ -213,10 +213,10 @@ def _las_typtext(el: ET.Element, var: str) -> str:
         for d in el.findall(_q("dimension")):
             lo, hi = d.get("lower"), d.get("upper")
             if lo is None or hi is None:
-                raise Importfel("%s har en <dimension> utan lower/upper" % var)
+                raise Importfel("%s has a <dimension> without lower/upper" % var)
             matt.append("%s..%s" % (lo, hi))
         if not matt:
-            raise Importfel("%s är ett <array> utan en enda <dimension>" % var)
+            raise Importfel("%s is an <array> without a single <dimension>" % var)
         bas = _krav(el, "baseType", "%s (array)" % var)
         return "ARRAY [%s] OF %s" % (", ".join(matt), _las_typtext(_ett(bas, var), var))
     if tagg == "pointer":
@@ -225,16 +225,16 @@ def _las_typtext(el: ET.Element, var: str) -> str:
     if tagg == "derived":
         namn = el.get("name")
         if not namn:
-            raise Importfel("%s har ett <derived> utan name" % var)
+            raise Importfel("%s has a <derived> without name" % var)
         return namn
-    raise Importfel("%s har typen <%s>, som det här lagret inte kan läsa"
+    raise Importfel("%s has type <%s>, which this layer cannot read"
                     % (var, tagg))
 
 
 def _ett(foralder: ET.Element, var: str) -> ET.Element:
     barn = list(foralder)
     if len(barn) != 1:
-        raise Importfel("%s: väntade exakt ett typelement, fick %d"
+        raise Importfel("%s: expected exactly one type element, got %d"
                         % (var, len(barn)))
     return barn[0]
 
@@ -272,9 +272,9 @@ def _las_inittext(el: ET.Element, var: str) -> str:
     if av is not None:
         return _las_faltvardetext(av, var)
     if _barn(el, "structValue") is not None:
-        raise Importfel("%s bär ett <structValue>; ST-lagret har ingen "
-                        "strukturinitierare att läsa in det i" % var)
-    raise Importfel("%s har ett <initialValue> utan värde" % var)
+        raise Importfel("%s carries a <structValue>; the ST layer has no "
+                        "struct initializer to read it into" % var)
+    raise Importfel("%s has an <initialValue> without a value" % var)
 
 
 def _las_faltvardetext(av: ET.Element, var: str) -> str:
@@ -287,14 +287,14 @@ def _las_faltvardetext(av: ET.Element, var: str) -> str:
         else:
             sv = _barn(v, "simpleValue")
             if sv is None:
-                raise Importfel("%s har ett <value> utan värde" % var)
+                raise Importfel("%s has a <value> without a value" % var)
             text = sv.get("value") or ""
         if antal is not None and antal != "1":
             delar.append("%s(%s)" % (antal, text))
         else:
             delar.append(text)
     if not delar:
-        raise Importfel("%s har ett tomt <arrayValue>" % var)
+        raise Importfel("%s has an empty <arrayValue>" % var)
     return "[%s]" % ", ".join(delar)
 
 
@@ -334,7 +334,7 @@ def _las_text(el: Optional[ET.Element]) -> str:
     if p is None:
         # Ett formattedText utan xhtml-barn är inte schemagiltigt. Att svara
         # med tom sträng vore att tysta ett trasigt dokument.
-        raise Importfel("ett <%s> saknar sitt xhtml-barn"
+        raise Importfel("a <%s> is missing its xhtml child"
                         % el.tag.split("}")[-1])
     return p.text or ""
 
@@ -342,7 +342,7 @@ def _las_text(el: Optional[ET.Element]) -> str:
 def _deklarationsrad(v: ET.Element, var: str) -> str:
     namn = v.get("name")
     if not namn:
-        raise Importfel("%s har en <variable> utan name" % var)
+        raise Importfel("%s has a <variable> without name" % var)
     rad = namn
     adress = v.get("address")
     if adress:
@@ -371,7 +371,7 @@ def _deklarationsrad(v: ET.Element, var: str) -> str:
 def _skriv_varblock(foralder: ET.Element, b: M.Varblock, var: str) -> ET.Element:
     elementnamn = SORT_TILL_ELEMENT.get(b.sort)
     if elementnamn is None:
-        raise ExportFel("VAR-sorten %s har ingen plats i PLCopens <interface>"
+        raise ExportFel("VAR kind %s has no place in PLCopen's <interface>"
                         % b.sort)
     el = ET.SubElement(foralder, _q(elementnamn))
     for kval, attribut in KVAL_TILL_ATTRIBUT:
@@ -396,7 +396,7 @@ def _varblockrader(el: ET.Element, sort: str, var: str) -> List[str]:
 def _skriv_pou(foralder: ET.Element, p: M.Pou) -> None:
     poutyp = SORT_TILL_POUTYP.get(p.sort)
     if poutyp is None:
-        raise ExportFel("POU-sorten %s finns inte i PLCopens pouType" % p.sort)
+        raise ExportFel("POU kind %s does not exist in PLCopen's pouType" % p.sort)
     el = ET.SubElement(foralder, _q("pou"))
     el.set("name", _ascii(p.namn, "ett POU-namn"))
     el.set("pouType", poutyp)
@@ -415,11 +415,11 @@ def _skriv_pou(foralder: ET.Element, p: M.Pou) -> None:
 def _pou_rader(el: ET.Element) -> List[str]:
     namn = el.get("name")
     if not namn:
-        raise Importfel("en <pou> saknar name")
+        raise Importfel("a <pou> is missing name")
     poutyp = el.get("pouType")
     sort = POUTYP_TILL_SORT.get(poutyp or "")
     if sort is None:
-        raise Importfel("<pou name=%r> har pouType=%r; kända är %s"
+        raise Importfel("<pou name=%r> has pouType=%r; known are %s"
                         % (namn, poutyp, ", ".join(sorted(POUTYP_TILL_SORT))))
     huvud = "%s %s" % (sort, namn)
     rader: List[str] = []
@@ -434,8 +434,8 @@ def _pou_rader(el: ET.Element) -> List[str]:
                 continue
             varsort = ELEMENT_TILL_SORT.get(taggen)
             if varsort is None:
-                raise Importfel("<pou name=%r> har ett <%s> i sitt "
-                                "<interface> som det här lagret inte läser"
+                raise Importfel("<pou name=%r> has a <%s> in its "
+                                "<interface> that this layer does not read"
                                 % (namn, taggen))
             rader.extend(_varblockrader(barn, varsort, namn))
     rader.insert(0, huvud)
@@ -444,9 +444,9 @@ def _pou_rader(el: ET.Element) -> List[str]:
     if st is None:
         andra = [b.tag.split("}")[-1] for b in kropp
                  if b.tag.split("}")[-1] in KROPPSSPRAK]
-        raise Importfel("<pou name=%r> har kroppen skriven i %s, inte i ST. "
-                        "Det här lagret läser bara ST."
-                        % (namn, andra[0] if andra else "ett okänt språk"))
+        raise Importfel("<pou name=%r> has its body written in %s, not in ST. "
+                        "This layer only reads ST."
+                        % (namn, andra[0] if andra else "an unknown language"))
     rader.append(_las_text(st))
     rader.append("END_%s" % sort)
     return rader
@@ -466,11 +466,11 @@ def skriv_projekt(enhet: M.Enhet, *, projektnamn: str = "VC_Assist",
     använder `exportera()`.
     """
     if not isinstance(enhet, M.Enhet):
-        raise ExportFel("skriv_projekt vill ha en st.Enhet, inte %s"
+        raise ExportFel("skriv_projekt wants an st.Enhet, not %s"
                         % type(enhet).__name__)
     if not enhet.pouer:
-        raise ExportFel("ett projekt utan en enda POU är ingen export; "
-                        "dokumentet hade validerat mot schemat och ändå varit tomt")
+        raise ExportFel("a project without a single POU is not an export; "
+                        "the document would validate against the schema and still be empty")
 
     ET.register_namespace("", NS_PLCOPEN)
     ET.register_namespace("xhtml", NS_XHTML)
@@ -512,8 +512,8 @@ def skriv_projekt(enhet: M.Enhet, *, projektnamn: str = "VC_Assist",
         konf.set("name", _ascii(konfigurationsnamn, "konfigurationsnamnet"))
         for b in enhet.globala:
             if b.sort != "VAR_GLOBAL":
-                raise ExportFel("ett block på filnivå har sorten %s; bara "
-                                "VAR_GLOBAL hör hemma i en <configuration>"
+                raise ExportFel("a file-level block has kind %s; only "
+                                "VAR_GLOBAL belongs in a <configuration>"
                                 % b.sort)
             _skriv_varblock(konf, b, konfigurationsnamn)
 
@@ -534,9 +534,9 @@ def till_st(xml: str) -> str:
     try:
         rot = ET.fromstring(xml)
     except ET.ParseError as fel:
-        raise Importfel("dokumentet är inte välformad XML: %s" % fel)
+        raise Importfel("the document is not well-formed XML: %s" % fel)
     if rot.tag != _q("project"):
-        raise Importfel("rotelementet är %r; väntade <project> i namnrymden %s"
+        raise Importfel("the root element is %r; expected <project> in namespace %s"
                         % (rot.tag, NS_PLCOPEN))
 
     typer = _krav(rot, "types", "<project>")
@@ -549,12 +549,12 @@ def till_st(xml: str) -> str:
         for dt in strukturer:
             namn = dt.get("name")
             if not namn:
-                raise Importfel("en <dataType> saknar name")
+                raise Importfel("a <dataType> is missing name")
             bas = _krav(dt, "baseType", "<dataType name=%r>" % namn)
             struct = _barn(bas, "struct")
             if struct is None:
-                raise Importfel("<dataType name=%r> har en baseType som inte "
-                                "är en <struct>; ST-lagret har bara STRUCT i "
+                raise Importfel("<dataType name=%r> has a baseType that is not "
+                                "a <struct>; the ST layer only has STRUCT in "
                                 "TYPE ... END_TYPE" % namn)
             rader.append("    %s : STRUCT" % namn)
             for v in struct.findall(_q("variable")):
@@ -587,7 +587,7 @@ def las_projekt(xml: str) -> M.Enhet:
     try:
         return las(kalla)
     except Syntaxfel as fel:
-        raise Importfel("den ST som dokumentet beskriver går inte att läsa: %s"
+        raise Importfel("the ST that the document describes cannot be read: %s"
                         % fel)
 
 
@@ -596,15 +596,15 @@ def kroppstext(xml: str, pounamn: str) -> str:
     try:
         rot = ET.fromstring(xml)
     except ET.ParseError as fel:
-        raise Importfel("dokumentet är inte välformad XML: %s" % fel)
+        raise Importfel("the document is not well-formed XML: %s" % fel)
     for p in rot.iter(_q("pou")):
         if p.get("name") == pounamn:
             kropp = _krav(p, "body", "<pou name=%r>" % pounamn)
             st = _barn(kropp, "ST")
             if st is None:
-                raise Importfel("<pou name=%r> har ingen ST-kropp" % pounamn)
+                raise Importfel("<pou name=%r> has no ST body" % pounamn)
             return _las_text(st)
-    raise Importfel("ingen <pou name=%r> i dokumentet" % pounamn)
+    raise Importfel("no <pou name=%r> in the document" % pounamn)
 
 
 # ---- jämförelsen ---------------------------------------------------------
@@ -709,13 +709,13 @@ def exportera(enhet: M.Enhet, **kw) -> str:
     try:
         tillbaka = las_projekt(xml)
     except Importfel as fel:
-        raise ExportFel("filen gick inte att läsa tillbaka: %s" % fel)
+        raise ExportFel("the file could not be read back: %s" % fel)
     if tillbaka != enhet:
         rader = avvikelser(enhet, tillbaka)
-        raise ExportFel("exporten överlevde inte sin egen import:\n  "
-                        + "\n  ".join(rader or ["(ingen avvikelse gick att "
-                                                "peka ut, men modellerna är "
-                                                "olika)"]))
+        raise ExportFel("the export did not survive its own import:\n  "
+                        + "\n  ".join(rader or ["(no discrepancy could be "
+                                                "pinpointed, but the models "
+                                                "are different)"]))
     return xml
 
 
