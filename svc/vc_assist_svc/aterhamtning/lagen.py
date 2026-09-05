@@ -221,7 +221,7 @@ class Orsak:
 def _orsak(*a, **kw) -> Orsak:
     o = Orsak(*a, **kw)
     if o.delsystem not in DELSYSTEM:
-        raise Aterhamtningsfel("okänt delsystem %r" % (o.delsystem,))
+        raise Aterhamtningsfel("unknown subsystem %r" % (o.delsystem,))
     if o.automatisk is not None and o.automatisk not in o.vagar:
         raise Aterhamtningsfel(
             "orsaken %s försöker automatiskt en väg som inte står bland dess "
@@ -414,10 +414,10 @@ def kan_lyckas(orsak: Orsak, vag: Vag,
     är slagen är en väntan på ingenting.
     """
     if not isinstance(orsak, Orsak):
-        raise Aterhamtningsfel("kan_lyckas tar en Orsak, inte %s"
+        raise Aterhamtningsfel("kan_lyckas takes an Orsak, not %s"
                                % type(orsak).__name__)
     if not isinstance(vag, Vag):
-        raise Aterhamtningsfel("kan_lyckas tar en Vag, inte %s"
+        raise Aterhamtningsfel("kan_lyckas takes a Vag, not %s"
                                % type(vag).__name__)
     if utan_sjalvstart and vag is SJALVSTART:
         return KAN_NEJ
