@@ -212,6 +212,8 @@ och grönt, inklusive de trasiga fallen.
 
 * `tests/protocol/fas0_testprefix.md`
 * `tests/protocol/fas10_paketering.md`
+* `tests/protocol/fas12_verktygskedjan.md`
+* `tests/protocol/fas13_windows.md`
 * `tests/protocol/fas1_bryggan.md`
 * `tests/protocol/fas2_ogat.md`
 * `tests/protocol/fas3_grinden.md`
