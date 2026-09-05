@@ -8,7 +8,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ## Mätningsnummer som fler än en fil gör anspråk på: 0
 
-## Vad mätningarna säger att de inte vet: 480 punkter
+## Vad mätningarna säger att de inte vet: 481 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -741,6 +741,10 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Misstanke, inte visad:** `install/upptackt.py` ligger på 57 % täckning och
 * Fynd 13:s tal är en ögonblicksbild.** Fyra platshållarfiler fanns kl.
 * Misstanke, inte visad:** `NEKANDE`-listan används av minst fyra grindar
+
+### M-96_slingan_kor_sig_sjalv.md — LIMITS
+
+* Mätningen är inte klar än. Talen nedan fylls i när körningarna är gjorda.
 
 ## Produktionsmoduler som ingen provfil nämner: 1 (407 rader)
 
