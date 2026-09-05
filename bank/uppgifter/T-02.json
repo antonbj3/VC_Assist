@@ -245,5 +245,832 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: cykeltiden ar summan av stationens egna tider. Indexrorelsen ar 150 mm pa 0,35 s, alltsa 150/0,35 = 428,6 mm/s i medel, forslutningen haller 0,90 s och resten av cykeln 1,60 - 0,35 - 0,90 = 0,35 s ar oppning och hantering. 1,60 s per cykel ar 60/1,60 = 37,5 blister per minut. Rakningen star i M-106.",
+    "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"); ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet. Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar automatlagesvaljaren, och facit domer att maskinen star kvar tills SYS_AUTO fatt en ny stigande flank. Tidsovervakningen av kvittensen ar en TON och flankdetekteringen pa hemlaget och automatlaget en R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Den barande forreglingen - ST020_IDX_START aldrig hog medan ST020_SEA_CLOSE ar hog - och presstiden 0,90 s ar stationens egna och star i uppgiftens egen text.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := (ST020_SEA_TEMP < 150.0) OR (ST020_SEA_TEMP > 210.0);\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#900ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF trigHome.Q THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF ST020_SEA_DONE AND tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST020_SEA_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_cykel",
+        "beskrivning": "En hel cykel: index 150 mm, forslutning 0,90 s, kvittens, nasta index. Cykeltiden ska bli 1,60 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "utan automatlage star maskinen still; efter spanningspaslag star omstartskvittensen ute"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {
+              "ST020_IDX_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 320,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last dar hade domt indexet klart innan mataren ens lamnat hemlaget"
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 640,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": true
+            },
+            "varfor": "pa hemlagets stigande flank ar indexet fardigt och mataren star still; forst da nollstalls indexordern och forslutningsverktyget far ga ner"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": true,
+              "ST020_IDX_START": false
+            },
+            "varfor": "0,82 s efter att verktyget gick ner har presstiden 0,90 s inte lopt ut; ett kortare uppehall ger en forslutning som inte haller tatt"
+          },
+          {
+            "t_ms": 1520,
+            "satt": {
+              "ST020_SEA_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1620,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": false,
+              "ST020_IDX_START": false
+            },
+            "varfor": "forst nar bade presstiden 0,90 s lopt ut och ST020_SEA_DONE kommit far verktyget ga upp"
+          },
+          {
+            "t_ms": 1780,
+            "satt": {
+              "ST020_SEA_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "nasta index startas av kvittensen fran forslutningen, aldrig av en timer; forsta indexet startade vid 0,20 s och det andra vid 1,80 s, alltsa cykeltiden 1,60 s"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_kommer_fore_uppehallet",
+        "beskrivning": "ST020_SEA_DONE kommer redan efter 0,42 s. Presstiden 0,90 s ska anda hallas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "utan automatlage star maskinen still; efter spanningspaslag star omstartskvittensen ute"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {
+              "ST020_IDX_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 320,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last dar hade domt indexet klart innan mataren ens lamnat hemlaget"
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST020_SEA_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": true,
+              "ST020_IDX_START": false
+            },
+            "varfor": "kvittensen kom efter 0,42 s men receptet kraver 0,90 s presstid; verktyget far inte ga upp forran uppehallet ar fullgjort, annars ar blistret oforslutet nar det lamnar stationen"
+          },
+          {
+            "t_ms": 1560,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "0,92 s efter att verktyget gick ner ar bade presstiden och kvittensen pa plats och verktyget gar upp"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST020_SEA_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true
+            },
+            "varfor": "nar verktyget ar uppe och kvittensen slappt far nasta index startas"
+          }
+        ]
+      },
+      {
+        "id": "forslutningen_kvitterar_aldrig",
+        "beskrivning": "ST020_SEA_DONE uteblir helt. Nasta index far aldrig startas pa tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "utan automatlage star maskinen still; efter spanningspaslag star omstartskvittensen ute"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {
+              "ST020_IDX_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 320,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last dar hade domt indexet klart innan mataren ens lamnat hemlaget"
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": true
+            },
+            "varfor": "presstiden 0,90 s har lopt ut men kvittensen har inte kommit; en styrning som slapper indexet pa den timern drar bandet under ett nedkort verktyg"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": true
+            },
+            "varfor": "1,9 s efter att verktyget gick ner star maskinen fortfarande still och vantar pa kvittensen, inte pa en klocka"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": true
+            },
+            "varfor": "tidsgransen 3,0 s har inte lopt ut; verktyget star kvar och maskinen indexerar inte"
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": false,
+              "ST020_IDX_START": false
+            },
+            "varfor": "efter 3,0 s utan kvittens lyfts verktyget fran folien och cykeln stannar; en het stampel som star kvar mot samma blister branner folien"
+          },
+          {
+            "t_ms": 3900,
+            "satt": {
+              "ST020_SEA_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "en kvittens som kommer efter tidsoverdraget far inte i sig starta maskinen igen; ett fel som slapper av sig sjalvt nar orsaken forsvinner har ingen sett"
+          },
+          {
+            "t_ms": 4300,
+            "satt": {
+              "SYS_AUTO": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "SYS_AUTO": true,
+              "ST020_SEA_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4600,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true
+            },
+            "varfor": "forst nar operatoren tagit maskinen ur och tillbaka i automatlage far den ga igen"
+          }
+        ]
+      },
+      {
+        "id": "temperatur_under_fonstret",
+        "beskrivning": "ST020_SEA_TEMP faller till 148 C, under arbetsfonstret 150 till 210 C.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "utan automatlage star maskinen still; efter spanningspaslag star omstartskvittensen ute"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {
+              "ST020_IDX_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 320,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last dar hade domt indexet klart innan mataren ens lamnat hemlaget"
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1520,
+            "satt": {
+              "ST020_SEA_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST020_SEA_TEMP": 148.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1780,
+            "satt": {
+              "ST020_SEA_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "148 C ligger under arbetsfonstret 150 till 210 C; en forslutning som inte haller tatt far inte forsoka igen, sa cykeln sparras och inget nytt index startas"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false
+            },
+            "varfor": "sparren slapper inte av sig sjalv pa en timer; den slapper nar temperaturen ar tillbaka i fonstret"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST020_SEA_TEMP": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true
+            },
+            "varfor": "temperaturen ar en processstorhet och inget latchat fel: nar den ar tillbaka i fonstret far cykeln fortsatta utan kvittens"
+          }
+        ]
+      },
+      {
+        "id": "overtemperatur_lyfter_verktyget",
+        "beskrivning": "ST020_SEA_TEMP stiger till 218 C mitt i presstiden.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "utan automatlage star maskinen still; efter spanningspaslag star omstartskvittensen ute"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {
+              "ST020_IDX_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 320,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last dar hade domt indexet klart innan mataren ens lamnat hemlaget"
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST020_SEA_TEMP": 218.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": false,
+              "ST020_IDX_START": false
+            },
+            "varfor": "over 210 C branns folien; verktyget ska lyftas direkt, mitt i presstiden, och inget nytt index startas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "verktyget star kvar uppe sa lange temperaturen ligger over fonstret"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST020_SEA_TEMP": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true
+            },
+            "varfor": "nar temperaturen ar tillbaka i fonstret far en ny cykel startas fran hemlaget"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_manuell_aterstallning",
+        "beskrivning": "Nodstoppet bryts mitt i indexet och donet dras upp igen utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": false,
+              "ST020_SEA_TEMP": 180.0,
+              "ST020_IDX_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 440,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderad rorelse i samma scan"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": false,
+              "ST020_SEA_CLOSE": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; aterstallning ska vara en avsiktlig manuell handling och maskinen star kvar tills nagon gor den"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "SYS_AUTO": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST020_IDX_START": true
+            },
+            "varfor": "forst den manuella kvittensen - maskinen ur och tillbaka i automatlage - far starta bandet igen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "inget_index_med_stangt_verktyg",
+        "sekvens": "*",
+        "nar": {
+          "ST020_SEA_CLOSE": true
+        },
+        "kraver": {
+          "ST020_IDX_START": false
+        },
+        "varfor": "den barande forreglingen: dras bandet medan forslutningsverktyget ar nere slits blistret snett ur verktyget, och ingen signal blir lag av det - felet syns forst som otata blister langre fram"
+      },
+      {
+        "namn": "ingen_rorelse_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST020_IDX_START": false,
+          "ST020_SEA_CLOSE": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen, men den maste vara forreglad av den: varken matare eller verktyg kommenderas medan kretsen ar bruten"
+      },
+      {
+        "namn": "inget_verktyg_ner_over_temperaturfonstret",
+        "sekvens": "*",
+        "nar": {
+          "ST020_SEA_TEMP": 218.0
+        },
+        "kraver": {
+          "ST020_SEA_CLOSE": false,
+          "ST020_IDX_START": false
+        },
+        "varfor": "218 C ligger over arbetsfonstrets 210 C; en stampel som pressas ner vid overtemperatur branner folien i stallet for att forsluta den"
+      },
+      {
+        "namn": "inget_index_under_temperaturfonstret",
+        "sekvens": "*",
+        "nar": {
+          "ST020_SEA_TEMP": 148.0
+        },
+        "kraver": {
+          "ST020_IDX_START": false,
+          "ST020_SEA_CLOSE": false
+        },
+        "varfor": "148 C ligger under arbetsfonstrets 150 C; att indexera fram nasta blister till en for kall stampel producerar otata forpackningar i takt"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ett_index_per_cykel",
+        "sekvens": "en_cykel",
+        "signal": "ST020_IDX_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1700,
+        "antal": 1,
+        "varfor": "en cykel ska ge exakt en indexorder; en andra flank inom cykeln betyder att mataren far en ny order medan den gar eller att nasta index slappts pa en timer"
+      },
+      {
+        "namn": "en_forslutning_per_cykel",
+        "sekvens": "en_cykel",
+        "signal": "ST020_SEA_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1700,
+        "antal": 1,
+        "varfor": "verktyget ska ga ner en gang per blister; tva nedslag pa samma blister ar en dubbelforslutning som skar folien"
+      },
+      {
+        "namn": "inget_index_utan_kvittens",
+        "sekvens": "forslutningen_kvitterar_aldrig",
+        "signal": "ST020_IDX_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 4300,
+        "antal": 1,
+        "varfor": "utan kvittens fran forslutningen far bara det forsta indexet ha startat; en andra flank ar precis den timerstyrda matningen som drar bandet under ett nedkort verktyg"
+      },
+      {
+        "namn": "verktyget_lyfts_pa_tidsoverdrag",
+        "sekvens": "forslutningen_kvitterar_aldrig",
+        "signal": "ST020_SEA_CLOSE",
+        "typ": "FALL",
+        "fran_ms": 3500,
+        "till_ms": 4200,
+        "antal": 1,
+        "varfor": "efter 3,0 s utan kvittens ska verktyget lyftas exakt en gang; star det kvar branner det folien och gar det upp och ner igen ar det ett andra nedslag pa samma blister"
+      },
+      {
+        "namn": "inget_index_utanfor_temperaturfonstret",
+        "sekvens": "temperatur_under_fonstret",
+        "signal": "ST020_IDX_START",
+        "typ": "RISE",
+        "fran_ms": 1800,
+        "till_ms": 2580,
+        "antal": 0,
+        "varfor": "sa lange stampeln ar for kall far inget nytt blister matas fram; forsta indexet efter sparren ska komma forst nar temperaturen ar tillbaka i fonstret vid 2,6 s"
+      },
+      {
+        "namn": "verktyget_lyfts_vid_overtemperatur",
+        "sekvens": "overtemperatur_lyfter_verktyget",
+        "signal": "ST020_SEA_CLOSE",
+        "typ": "FALL",
+        "fran_ms": 700,
+        "till_ms": 1200,
+        "antal": 1,
+        "varfor": "vid 218 C ska verktyget lyftas mitt i presstiden; en styrning som later stampeln ligga kvar tills presstiden ar slut branner folien pa det blister den star pa"
+      },
+      {
+        "namn": "inget_index_pa_aterstallt_nodstopp",
+        "sekvens": "nodstopp_kraver_manuell_aterstallning",
+        "signal": "ST020_IDX_START",
+        "typ": "RISE",
+        "fran_ms": 500,
+        "till_ms": 1500,
+        "antal": 0,
+        "varfor": "mellan att nodstoppsdonet dras upp och att operatoren kvitterar far ingen indexorder ges; en maskin som drar bandet i samma stund donet slapps gor det med nagon kvar vid verktyget"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "nasta_index_pa_timer",
+        "st": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := (ST020_SEA_TEMP < 150.0) OR (ST020_SEA_TEMP > 210.0);\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#900ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF trigHome.Q THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Nasta index startas nar presstiden 0,90 s lopt ut i stallet for pa ST020_SEA_DONE. Tar forslutningen 20 ms langre an vanligt dras bandet undan medan verktyget fortfarande ar nere, blistret slits snett ur formen och ingen signal blir lag av det.",
+        "faller_pa": [
+          "forslutningen_kvitterar_aldrig@1600ms:ST020_IDX_START",
+          "forslutningen_kvitterar_aldrig@1600ms:ST020_SEA_CLOSE",
+          "forslutningen_kvitterar_aldrig@2500ms:ST020_SEA_CLOSE",
+          "flank:inget_index_utan_kvittens",
+          "flank:ett_index_per_cykel"
+        ]
+      },
+      {
+        "namn": "verktyget_gar_ner_pa_niva_i_hemlaget",
+        "st": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := (ST020_SEA_TEMP < 150.0) OR (ST020_SEA_TEMP > 210.0);\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#900ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF ST020_IDX_HOME THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF ST020_SEA_DONE AND tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST020_SEA_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Indexet doms klart pa hemlagesgivarens NIVA i stallet for pa dess stigande flank. Givaren star hog innan mataren ens lamnat hemlaget, sa cykeln hoppar rakt till forslutningen och verktyget gar ner mot ett band som just borjat rora sig.",
+        "faller_pa": [
+          "en_cykel@320ms:ST020_IDX_START",
+          "en_cykel@320ms:ST020_SEA_CLOSE"
+        ]
+      },
+      {
+        "namn": "for_kort_uppehall",
+        "st": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := (ST020_SEA_TEMP < 150.0) OR (ST020_SEA_TEMP > 210.0);\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#500ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF trigHome.Q THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF ST020_SEA_DONE AND tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST020_SEA_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Presstiden ar satt till 0,50 s i stallet for 0,90 s. Kommer kvittensen tidigt gar verktyget upp efter en halv sekund, och blistret lamnar stationen med en fog som ser hel ut men inte haller tatt.",
+        "faller_pa": [
+          "kvittensen_kommer_fore_uppehallet@1300ms:ST020_SEA_CLOSE"
+        ]
+      },
+      {
+        "namn": "ingen_temperaturgrind",
+        "st": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := FALSE;\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#900ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF trigHome.Q THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF ST020_SEA_DONE AND tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST020_SEA_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Forslutningsverktygets temperatur lases aldrig. Maskinen forsluter vidare bade under 150 C, dar fogen inte haller, och over 210 C, dar folien branns, och matar fram nya blister till en stampel som inte kan forsluta dem.",
+        "faller_pa": [
+          "temperatur_under_fonstret@1880ms:ST020_IDX_START",
+          "overtemperatur_lyfter_verktyget@1000ms:ST020_SEA_CLOSE",
+          "flank:inget_index_utanfor_temperaturfonstret",
+          "flank:verktyget_lyfts_vid_overtemperatur",
+          "invariant:inget_verktyg_ner_over_temperaturfonstret@overtemperatur_lyfter_verktyget"
+        ]
+      },
+      {
+        "namn": "automatisk_omstart_efter_nodstopp",
+        "st": "PROGRAM ST020_BLISTERMATNING\nVAR\n    steg         : INT := 0;\n    trigAuto     : R_TRIG;\n    trigHome     : R_TRIG;\n    tmrUppehall  : TON;\n    tmrKvittens  : TON;\n    xVantarDone  : BOOL := FALSE;\n    xTempfel     : BOOL := FALSE;\n    xTidsfel     : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\ntrigAuto(CLK := SYS_AUTO);\n\n(* Indexet ar fardigt nar mataren har KOMMIT hem, alltsa pa hemlagesgivarens\n   stigande flank. Givaren star hog aven medan mataren annu star kvar i\n   hemlaget; lases nivan doms indexet klart i samma scan som det startas och\n   verktyget gar ner mot ett band i rorelse. *)\ntrigHome(CLK := ST020_IDX_HOME);\n\n(* Ett brutet nodstopp kraver en manuell kvittering innan maskinen far ga igen.\n   Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar\n   automatlagesvaljaren: operatoren tar maskinen ur och tillbaka i AUTO. *)\n(* Arbetsfonstret 150 till 210 C. Under fonstret haller inte forslutningen,\n   over det branns folien. Temperaturen ar en processstorhet och inget latchat\n   fel: den kommer tillbaka av sig sjalv och da far cykeln fortsatta. *)\nxTempfel := (ST020_SEA_TEMP < 150.0) OR (ST020_SEA_TEMP > 210.0);\n\n(* Uteblir kvittensen fran forslutningen ar det INGET skal att indexera pa tid.\n   Efter 3,0 s lyfts verktyget fran folien - en 150 till 210 C het stampel far\n   inte sta kvar mot samma blister - och cykeln stannar tills nagon kvitterar. *)\nxVantarDone := ST020_SEA_CLOSE AND NOT ST020_SEA_DONE;\ntmrKvittens(IN := xVantarDone, PT := T#3s);\nIF tmrKvittens.Q THEN\n    xTidsfel := TRUE;\nEND_IF;\n\nIF trigAuto.Q AND EMG_OK THEN\n    xTidsfel := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Presstiden 0,90 s raknas fran att verktyget gick ner, inte fran indexstart. *)\ntmrUppehall(IN := ST020_SEA_CLOSE, PT := T#900ms);\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xTidsfel;\n\nIF NOT xDriftsklar THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSIF xTempfel THEN\n    ST020_IDX_START := FALSE;\n    ST020_SEA_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST020_SEA_CLOSE := FALSE;\n            ST020_IDX_START := TRUE;\n            steg := 1;\n        1:\n            IF trigHome.Q THEN\n                ST020_IDX_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST020_SEA_CLOSE := TRUE;\n            steg := 3;\n        3:\n            IF ST020_SEA_DONE AND tmrUppehall.Q THEN\n                ST020_SEA_CLOSE := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST020_SEA_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret ar EMG_OK AND SYS_AUTO utan omstartskvittens. Maskinen drar bandet i samma scan som nodstoppsdonet dras upp, med en operator kvar vid forslutningsstationen.",
+        "faller_pa": [
+          "nodstopp_kraver_manuell_aterstallning@1200ms:ST020_IDX_START",
+          "flank:inget_index_pa_aterstallt_nodstopp"
+        ]
+      }
+    ]
+  }
 }

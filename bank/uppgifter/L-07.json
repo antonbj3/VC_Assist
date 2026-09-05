@@ -1,0 +1,1328 @@
+{
+  "task_id": "L-07",
+  "title": "Strackfilmning och pallmarkning med nitton varv och klipp i hemlage",
+  "goal": "Filma en fardig pallast med nitton varv strackfilm, klippa och svetsa filmen forst nar vridbordet star i hemlage, satta etiketten och kora ut pallen - utan att filmvagnens tva riktningar nagonsin ar hoga samtidigt.",
+  "grupp": "L",
+  "bransch": "logistik_pall",
+  "orsak": "Speglar tre missar pa strackfilmsstationer. Den forsta: uppatriktningen nollstalls forst nar vagnen ar nere igen i stallet for i det ovre andlaget, sa bada korriktningarna star hoga samtidigt nar vagnen vander och kontaktorerna kortsluter varandra. Den andra: filmen klipps i samma steg som bordet kommenderas att stanna, utan att hemlaget vantas in, sa ett vridbord med en halvton last rullar vidare och snittet hamnar mitt pa lasten. Den tredje: varvantalet vantas in utan tidsgrans, sa en tappad pulsgivare lamnar bordet snurrande under en halvfilmad pall tills nagon undrar varfor inga pallar kommer ut.",
+  "prompt": "Bygg en strackfilmsstation med pallmarkning och skriv styrningen till den.\n\nScen: en strackfilmsmaskin med vridbord och 500 mm bred filmbana, en print-and-apply\netikettmaskin med stampelarm, en kedjetransportor in till bordet och en ut fran det.\nLasten ar en fardig pallast pa 1200 x 800 mm EUR-pall: 1400 mm last pa en 144 mm hog\npall, alltsa 1544 mm total hojd, och 480 kg.\n\nVarvantalet: filmbanan ar 500 mm och lindas med 50 procent overlapp, alltsa 250 mm\nstigning per varv. 1544 mm / 250 mm ger 6,18 varv, avrundat 7 varv uppat och 7 nedat.\nMed 3 lasvarv i botten och 2 varv i topp blir det 19 varv, och vid 12 varv/min tar\nfilmningen 19 / 12 * 60 = 95,0 s. Takttiden ar 120,0 s per pall.\n\nUppgift, sekvensen:\n1. Nar ST550_PEC_PAL ar hog, ST550_FLM_BOT bekraftar att vagnen ar nere och\n   ST550_TBL_HOME att bordet star i hemlage: satt ST550_TBL_RUN hog.\n2. Vid ST550_TBL_REV lika med 3 ar lasvarven lagda: satt ST550_FLM_UP hog.\n3. Vid ST550_FLM_TOP: nollstall ST550_FLM_UP.\n4. Vid ST550_TBL_REV lika med 12 ar topvarven lagda: satt ST550_FLM_DOWN hog.\n5. Vid ST550_FLM_BOT: nollstall ST550_FLM_DOWN.\n6. Vid ST550_TBL_REV lika med 19 ar filmningen klar: stanna ST550_TBL_RUN.\n7. Nar ST550_TBL_HOME ar hog: satt ST550_FLM_CUT hog, darefter ST550_LBL_APPLY.\n8. Vid ST550_LBL_APPLIED: kor ut pallen med ST550_CNV_RUN.\n\nUppgift, de fem kraven som gor stationen driftsatt:\n* Omsesidig uteslutning. ST550_FLM_UP och ST550_FLM_DOWN far ALDRIG sta hoga\n  samtidigt. Vagnen har en kontaktor per riktning och tva hoga signaler ar en\n  kortslutning.\n* Filmvagnen far aldrig rora sig nar vridbordet star still. Da laggs filmen pa\n  ett och samma stalle och banan river.\n* ST550_FLM_CUT far aldrig kommenderas innan ST550_TBL_HOME ar hog. Annars klipps\n  filmen mitt pa lasten.\n* Pallen far aldrig koras ut innan filmen ar klippt och svetsad.\n* Tidsovervakning och kvitterad omstart. Rors inte ST550_TBL_REV pa 8,0 s medan\n  bordet ar kommenderat runt ska SYS_ALARM latchas och stationen stanna; larmet\n  ska falla tidigast 7,8 s och senast 8,2 s. Larm och omstartskvittens nollstalls\n  bara pa en stigande flank pa SYS_RESET, och att nodstoppet aterstalls far\n  ALDRIG i sig starta stationen. Tryckluft som kommer tillbaka far daremot aterta\n  driften utan kvittens.\n\nST550_TBL_REV kommer fran vridbordets pulsgivare och ska ligga mellan 0 och 19.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far\ninte innehalla nagon sakerhetsfunktion, men ska vara forreglad av den.\n\nAnvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar\nvariablerna over OPC UA. Visual Components ar OPC UA-klient och mappar\nvariablerna mot simuleringsvariabler i scenen. VC kor ingen ST internt, sa allt\nsom ska handa i scenen maste ga via en mappad OPC UA-variabel. Signalnamnen i\nkartan ar alltsa OPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F5",
+    "F15"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "uppatriktningen nollstalls i nedre andlaget i stallet for i det ovre, sa bada riktningarna blir hoga nar vagnen vander",
+    "filmvagnens riktningar lamnas latchade nar driftsvillkoret faller, sa vagnen gar vidare medan bordet star still",
+    "ST550_FLM_CUT kommenderas i samma steg som bordet stannas, utan att hemlaget vantas in",
+    "utmatningen startas pa varvantalet i stallet for efter klippet, sa pallen drar med sig filmrullen",
+    "varvantalet vantas in utan tidsgrans, sa en tappad pulsgivare inte syns",
+    "driftsvillkoret saknar omstartskvittens, sa vridbordet startar sjalv nar nodstoppet aterstalls"
+  ],
+  "antaganden": [
+    {
+      "vad": "overlappet mellan filmvarven",
+      "varde": "50 %",
+      "motiv": "50 procent overlapp ar det som star i de flesta lastsakringsinstruktioner for helpall och ger 250 mm stigning per varv pa en 500 mm bana; procenttalet ar antaget for den har lasten och inte hamtat ur en kundspecifikation"
+    },
+    {
+      "vad": "lasvarv i botten och varv i topp",
+      "varde": "3 varv i botten och 2 varv i topp",
+      "motiv": "lasvarven binder lasten till pallen och topvarven halskar lasten; antalen ar satta efter vad som ar brukligt for en 1,5 m hog last och inte matta mot ett dragprov, men de bar totalen 3 + 7 + 2 + 7 = 19 varv"
+    },
+    {
+      "vad": "vridbordets varvtal",
+      "varde": "12 varv/min",
+      "motiv": "12 varv per minut ar ett normalt varvtal for en halvautomatisk strackfilmsmaskin och ger 5,0 s per varv, alltsa 95,0 s for nitton varv; talet ar satt och inte matt mot en verklig maskin"
+    },
+    {
+      "vad": "pulsgivarvakten pa vridbordet",
+      "varde": "8,0 s",
+      "motiv": "ett varv tar 5,0 s vid 12 varv/min, sa vakten maste rymma ett helt varv med marginal utan att dolja ett stillastaende bord; 8,0 s ar satt, och fonstret 7,8 till 8,2 s i facit gor domen okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "lastens matt och massa",
+      "varde": "1200 x 800 x 1544 mm, 480 kg",
+      "motiv": "1400 mm last pa en 144 mm hog EUR-pall ar en vanlig lastprofil for helpall; hojden bar hela varvrakningen medan massan 480 kg ar antagen och bara anvands for att bordet ska dimensioneras rimligt"
+    },
+    {
+      "vad": "takttiden per pall",
+      "varde": "120,0 s",
+      "motiv": "95,0 s filmning plus in- och utkorning, klipp och etikett ryms i tva minuter per pall; talet ar satt och inte matt, och det ar filmningen som bar takten"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "fardig pallast pa EUR-pall",
+      "l_mm": 1200,
+      "b_mm": 800,
+      "h_mm": 1544,
+      "massa_kg": 480.0
+    },
+    "arbetsradie_mm": 1200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "En pall var 120,0 s: nitton varv film pa 95,0 s, klipp i hemlage, etikett och utkorning.",
+      "forvantat": "Ett svep uppat och ett nedat per pall, aldrig bada riktningarna hoga samtidigt, klippet forst i hemlage och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "rev_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST550_TBL_REV",
+      "beskrivning": "ST550_TBL_REV star kvar pa 0 fastan ST550_TBL_RUN varit hog i over 8,0 s; pulsgivaren har tappat sin signal.",
+      "forvantat": "Ett bord som ar kommenderat runt utan att raknaren ror sig star antingen still eller saknar givare. Styrningen ska larma och stanna, inte fortsatta lagga film pa ett varvantal den inte kan lita pa."
+    },
+    {
+      "id": "rev_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST550_TBL_REV",
+      "beskrivning": "ST550_TBL_REV nar 19, alltsa hela varvantalet 3 + 7 + 2 + 7 for lasten.",
+      "forvantat": "Vid nitton varv ar filmningen klar. Vridbordet ska stanna, och filmen far klippas forst nar bordet natt hemlaget."
+    },
+    {
+      "id": "hemlaget_drojer",
+      "typ": "vandning",
+      "signal": "ST550_TBL_HOME",
+      "beskrivning": "Bordet har stannats men ST550_TBL_HOME ar annu lag: en halvton last rullar ett stycke innan bordet star still.",
+      "forvantat": "ST550_FLM_CUT far inte kommenderas. Klipps filmen har hamnar snittet mitt pa lasten och filmanden sitter inte fast."
+    },
+    {
+      "id": "lagesvaljaren_slas_om",
+      "typ": "vandning",
+      "signal": "SYS_AUTO",
+      "beskrivning": "Lagesvaljaren slas fran auto mitt i svepet uppat.",
+      "forvantat": "Bade vridbordet och filmvagnen ska stanna i samma scan, och filmningen ska borja om fran lasvarven nar automatlaget kommer tillbaka."
+    },
+    {
+      "id": "nodstoppet_aterstalls",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "Nagon slar nodstopp mitt i filmningen och drar upp donet igen utan att trycka pa aterstallningsknappen.",
+      "forvantat": "Stationen ska sta kvar stilla. Ett aterstallt nodstopp ar ingen startorder; forst en stigande flank pa SYS_RESET far ta stationen tillbaka i drift."
+    }
+  ],
+  "core_outputs": [
+    "ST550_TBL_RUN",
+    "ST550_FLM_UP",
+    "ST550_FLM_DOWN",
+    "ST550_FLM_CUT",
+    "ST550_LBL_APPLY"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "strackfilmsmaskin",
+        "uri": "bank://station/strackfilmsmaskin",
+        "count": 1
+      },
+      {
+        "role": "etikettmaskin",
+        "uri": "bank://station/etikettmaskin_print_apply",
+        "count": 1
+      },
+      {
+        "role": "transportor",
+        "uri": "bank://transport/kedjetransportor_pall",
+        "count": 2
+      },
+      {
+        "role": "pall",
+        "uri": "bank://last/eur_pall",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 2
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "transportor",
+        "to_role": "strackfilmsmaskin"
+      },
+      {
+        "from_role": "transportor",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "strackfilmsmaskin",
+        "to_role": "pall"
+      },
+      {
+        "from_role": "strackfilmsmaskin",
+        "to_role": "etikettmaskin"
+      },
+      {
+        "from_role": "etikettmaskin",
+        "to_role": "transportor"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST550_TBL_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "vridbordet gar, 12 varv/min"
+      },
+      {
+        "name": "ST550_TBL_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vridbordet star i hemlage"
+      },
+      {
+        "name": "ST550_FLM_UP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor filmvagnen uppat"
+      },
+      {
+        "name": "ST550_FLM_DOWN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor filmvagnen nedat"
+      },
+      {
+        "name": "ST550_FLM_TOP",
+        "dir": "in",
+        "type": "bool",
+        "comment": "filmvagnen i ovre andlaget"
+      },
+      {
+        "name": "ST550_FLM_BOT",
+        "dir": "in",
+        "type": "bool",
+        "comment": "filmvagnen i nedre andlaget"
+      },
+      {
+        "name": "ST550_FLM_CUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "klipp och svetsa filmen"
+      },
+      {
+        "name": "ST550_TBL_REV",
+        "dir": "in",
+        "type": "int",
+        "comment": "raknade varv fran vridbordets pulsgivare"
+      },
+      {
+        "name": "ST550_LBL_APPLY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "etikettmaskinens stampelarm satter etiketten"
+      },
+      {
+        "name": "ST550_LBL_APPLIED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "etiketten sitter pa pallen"
+      },
+      {
+        "name": "ST550_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utmatningens kedjetransportor gar"
+      },
+      {
+        "name": "ST550_PEC_PAL",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell, hog nar en pall star pa vridbordet"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute; vridbordet gar inte forran SYS_RESET fatt en stigande flank",
+      "satt ST550_TBL_RUN hog nar ST550_PEC_PAL, ST550_FLM_BOT och ST550_TBL_HOME ar hoga",
+      "vid ST550_TBL_REV lika med 3: satt ST550_FLM_UP hog",
+      "vid ST550_FLM_TOP: nollstall ST550_FLM_UP innan nagon annan riktning kommenderas",
+      "vid ST550_TBL_REV lika med 12: satt ST550_FLM_DOWN hog",
+      "vid ST550_FLM_BOT: nollstall ST550_FLM_DOWN",
+      "vid ST550_TBL_REV lika med 19: nollstall ST550_TBL_RUN",
+      "vid ST550_TBL_HOME: satt ST550_FLM_CUT hog och darefter ST550_LBL_APPLY",
+      "vid ST550_LBL_APPLIED: satt ST550_CNV_RUN hog och kor ut pallen",
+      "starta pulsgivarvakten 8,0 s sa fort ST550_TBL_RUN ar hog och nollstall den vid varje nytt raknat varv",
+      "nollstall larm och omstartskvittens bara pa stigande flank pa SYS_RESET"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST550": 95.0
+      },
+      "cycle_s": 120.0,
+      "tolerance_s": 2.0
+    },
+    "interlocks": [
+      "ST550_FLM_UP och ST550_FLM_DOWN far aldrig sta hoga samtidigt",
+      "filmvagnen far aldrig vara kommenderad nar ST550_TBL_RUN ar lag",
+      "ST550_FLM_CUT far aldrig kommenderas nar ST550_TBL_HOME ar lag",
+      "ST550_CNV_RUN far aldrig sta hog innan ST550_FLM_CUT kommenderats",
+      "inget don far kommenderas nar EMG_OK eller AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 30.0,
+    "runs": 3,
+    "warmup_s": 120.0,
+    "must_pass": [
+      "TIMING",
+      "SEQUENCE",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 30.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST550_TBL_RUN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST550_FLM_UP RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST550_FLM_DOWN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST550_FLM_CUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST550_TBL_RUN -> strackfilmsmaskin *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST550 *s req=95.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST550_FLM_UP+ST550_FLM_DOWN OK overlap=*s"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "CYCLES judged=* broken=* late=* truncated=* req=*"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST pallast+filmvagn *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST550_FLM_UP+ST550_FLM_DOWN dt=*ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST550 *s req=95.0s SHORT"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST550_FLM_UP+ST550_FLM_DOWN BROKEN overlap=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: varvantalet kommer ur lastens hojd och filmbanans bredd. Filmbanan ar 500 mm och lindas med 50 procent overlapp, alltsa 250 mm stigning per varv. Lasthojden med pall ar 1400 + 144 = 1544 mm, sa ett svep uppat kraver 1544/250 = 6,18 varv, avrundat 7 varv upp och 7 ned. Med 3 lasvarv i botten och 2 i topp blir det 19 varv, och vid 12 varv/min tar filmningen 19/12*60 = 95,0 s. Rakningen star i M-106.",
+    "standard": "Varvantalet ar geometri och ingen standardfraga. Omsesidig uteslutning mellan filmvagnens tva korriktningar och manuell aterstallning efter nodstopp enligt IEC 60204-1; TON for tidsovervakningen och CTU for varvrakningen enligt IEC 61131-3.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och lat det ga till hemlage *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_ingen_sjalvstart",
+        "beskrivning": "Spanning pa med en fardig pallast pa vridbordet, vagnen nere och bordet i hemlage. Stationen far anda inte starta av sig sjalv.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "ST550_FLM_CUT": false,
+              "ST550_LBL_APPLY": false,
+              "ST550_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; en station som borjar snurra bordet av sig sjalv med nagon kvar vid filmvagnen ar den klassiska driftsattningsmissen"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "forst kvittensen far starta vridbordet, och de tre lasvarven laggs innan filmvagnen far ga uppat"
+          }
+        ]
+      },
+      {
+        "id": "en_pall_filmad_och_markt",
+        "beskrivning": "Nitton varv film och en etikett pa en fardig pallast. Sekvensen driver ST550_TBL_REV direkt i stallet for att vanta ut de 95,0 s filmningen tar vid 12 varv/min.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "ST550_FLM_CUT": false
+            },
+            "varfor": "ingen pall star pa bordet annu, sa varken bordet eller vagnen far vara kommenderade"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false
+            },
+            "varfor": "pallen star pa vridbordet; de tre lasvarven i botten laggs innan filmvagnen far borja svepa uppat, annars sitter inte filmen fast i pallen"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST550_TBL_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST550_TBL_REV": 3
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_UP": true,
+              "ST550_FLM_DOWN": false,
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "efter tre lasvarv borjar svepet uppat; ned far aldrig vara hog samtidigt - bada riktningarna ar en kortslutning i vagnens kontaktorer"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST550_TBL_REV": 10,
+              "ST550_FLM_BOT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST550_FLM_TOP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "ovre andlaget stoppar svepet; de tva varven i topp laggs med vagnen stillastaende och bordet igang"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST550_TBL_REV": 12
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_DOWN": true,
+              "ST550_FLM_UP": false
+            },
+            "varfor": "efter tva varv i topp vander vagnen nedat; uppat maste vara nollstallt innan nedat kommenderas"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST550_FLM_TOP": false,
+              "ST550_TBL_REV": 17
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST550_FLM_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_DOWN": false,
+              "ST550_TBL_RUN": true,
+              "ST550_FLM_CUT": false
+            },
+            "varfor": "nedre andlaget stoppar svepet, men bordet ska ga tills alla nitton varven ar lagda"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST550_TBL_REV": 19
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_CUT": false,
+              "ST550_CNV_RUN": false
+            },
+            "varfor": "nitton varv ar lagda och bordet stannar, men det star annu inte i hemlage; klipps filmen har hamnar snittet mitt pa lasten och pallen far inte koras ut med filmen kvar i maskinen"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST550_TBL_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_CUT": true,
+              "ST550_LBL_APPLY": true,
+              "ST550_TBL_RUN": false,
+              "ST550_CNV_RUN": false
+            },
+            "varfor": "forst i hemlage klipps och svetsas filmen, och darefter satts etiketten pa den fardiga pallen"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST550_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {},
+            "krav": {
+              "ST550_LBL_APPLY": false,
+              "ST550_CNV_RUN": true,
+              "ST550_FLM_CUT": true
+            },
+            "varfor": "etiketten sitter och pallen kors ut; utkorningen far ske forst nar filmen ar klippt och svetsad"
+          },
+          {
+            "t_ms": 3300,
+            "satt": {
+              "ST550_PEC_PAL": false,
+              "ST550_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST550_CNV_RUN": false,
+              "ST550_FLM_CUT": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "pallen har lamnat vridbordet och stationen star redo for nasta, utan latchat larm"
+          }
+        ]
+      },
+      {
+        "id": "pulsgivaren_tappas_tidsovervakning",
+        "beskrivning": "ST550_TBL_REV star kvar pa 0 fastan bordet ar kommenderat runt. Vakten pa 8,0 s ska falla i fonstret 7,8 till 8,2 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST550_TBL_RUN": true,
+              "ST550_FLM_UP": false
+            },
+            "varfor": "7,8 s efter att bordet kommenderats runt far vakten annu inte ha fallit; ett varv tar 5,0 s vid 12 varv/min och en vakt som inte rymmer ett helt varv stoppar filmningen pa normal drift"
+          },
+          {
+            "t_ms": 8800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false
+            },
+            "varfor": "8,2 s utan ett enda raknat varv betyder att pulsgivaren tappats eller att bordet star still; filmen laggs da pa ett och samma stalle och river, och ingen vet hur manga varv som ligger pa pallen"
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST550_TBL_REV": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST550_TBL_RUN": false
+            },
+            "varfor": "larmet ar latchat: att givaren till slut ger en puls tar inte bort att varvantalet pa pallen ar okant"
+          },
+          {
+            "t_ms": 9400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "en stigande flank pa SYS_RESET, och bara den, tar stationen tillbaka"
+          },
+          {
+            "t_ms": 9700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "lagesvaljaren_slas_om_mitt_i_filmningen",
+        "beskrivning": "Lagesvaljaren slas fran auto mitt i svepet uppat. Bordet stannar och vagnen maste stanna med det. Varvraknaren star kvar pa de tre lasvarv som redan ligger pa pallen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST550_TBL_REV": 3,
+              "ST550_TBL_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST550_FLM_UP": true,
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "svepet uppat pagar med bordet igang"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "SYS_AUTO": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false
+            },
+            "varfor": "filmvagnen maste stanna i samma scan som bordet; en vagn som fortsatter uppat medan bordet star still drar filmen ur ett och samma stalle tills den river"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true,
+              "ST550_FLM_DOWN": false
+            },
+            "varfor": "tillbaka i automatlage startar bordet igen genom grundlaget och filmningen tas upp fran det varvantal som faktiskt ligger pa pallen; nedatriktningen far aldrig arva ett halvfardigt lage"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_och_kommer_tillbaka",
+        "beskrivning": "AIR_OK faller och kommer tillbaka. Det ar inget skyddsstopp och kraver ingen kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "stationen ar i drift med pallen pa bordet"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_CUT": false
+            },
+            "varfor": "utan tryckluft haller varken filmklippets svetsbacke eller etikettmaskinens stampelarm, sa inget don far kommenderas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "tryckluft ar ingen skyddsfunktion; driften far atertas utan kvittens, till skillnad fran efter ett nodstopp"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_utan_automatisk_omstart",
+        "beskrivning": "Nodstopp mitt i svepet uppat, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST550_TBL_REV": 3,
+              "ST550_TBL_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "ST550_FLM_CUT": false,
+              "ST550_CNV_RUN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "EMG_OK": true,
+              "ST550_TBL_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; urkopplingen far bara mojliggora omstart, inte utfora den (IEC 60204-1, manuell aterstallning)"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "bordet har rullat tillbaka till hemlaget och nodstoppet ar aterstallt, men det ar forst kvittensen som far starta filmningen igen"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "filmvagnen_gar_aldrig_at_bada_hallen",
+        "sekvens": "*",
+        "nar": {
+          "ST550_FLM_UP": true
+        },
+        "kraver": {
+          "ST550_FLM_DOWN": false
+        },
+        "varfor": "filmvagnen har en kontaktor per riktning; tva hoga signaler ar en kortslutning i stallet for en rorelse"
+      },
+      {
+        "namn": "filmvagnen_star_still_nar_bordet_star_still",
+        "sekvens": "*",
+        "nar": {
+          "ST550_TBL_RUN": false
+        },
+        "kraver": {
+          "ST550_FLM_UP": false,
+          "ST550_FLM_DOWN": false
+        },
+        "varfor": "gar vagnen medan bordet star still dras filmen ur samma punkt pa lasten tills banan river, och pallen star kvar halvfilmad"
+      },
+      {
+        "namn": "klippet_bara_i_hemlage",
+        "sekvens": "*",
+        "nar": {
+          "ST550_FLM_CUT": true
+        },
+        "kraver": {
+          "ST550_TBL_HOME": true,
+          "ST550_TBL_RUN": false
+        },
+        "varfor": "klipps och svetsas filmen nagon annanstans an i hemlaget hamnar snittet mitt pa lasten och filmanden sitter inte fast"
+      },
+      {
+        "namn": "ingen_utkorning_utan_klippt_film",
+        "sekvens": "*",
+        "nar": {
+          "ST550_CNV_RUN": true
+        },
+        "kraver": {
+          "ST550_FLM_CUT": true
+        },
+        "varfor": "kors pallen ut med filmen kvar i maskinen dras hela rullen med och bade last och filmbana rivs"
+      },
+      {
+        "namn": "ingen_etikett_innan_filmen_klippts",
+        "sekvens": "*",
+        "nar": {
+          "ST550_LBL_APPLY": true
+        },
+        "kraver": {
+          "ST550_FLM_CUT": true
+        },
+        "varfor": "etiketten ska sitta pa filmen, inte under den; satts den fore klippet lindas den in i nasta varv"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST550_TBL_RUN": false,
+          "ST550_FLM_UP": false,
+          "ST550_FLM_DOWN": false,
+          "ST550_FLM_CUT": false,
+          "ST550_LBL_APPLY": false,
+          "ST550_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den: inget don kommenderat medan kretsen ar bruten"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST550_TBL_RUN": false,
+          "ST550_FLM_UP": false,
+          "ST550_FLM_DOWN": false,
+          "ST550_FLM_CUT": false,
+          "ST550_LBL_APPLY": false
+        },
+        "varfor": "filmklippets svetsbacke och etikettmaskinens stampelarm ar pneumatiska; ett kommando utan tryck ger ingen rorelse och logiken tror anda att det ar gjort"
+      },
+      {
+        "namn": "larm_stoppar_stationen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST550_TBL_RUN": false,
+          "ST550_FLM_UP": false,
+          "ST550_FLM_DOWN": false,
+          "ST550_CNV_RUN": false
+        },
+        "varfor": "ett larm som lamnar vridbordet snurrande under en halvfilmad pall ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ett_svep_uppat_per_pall",
+        "sekvens": "en_pall_filmad_och_markt",
+        "signal": "ST550_FLM_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3400,
+        "antal": 1,
+        "varfor": "sju varv uppat ar en sammanhangande rorelse; tva flanker betyder att vagnen kommenderas om pa niva och stannar mitt i svepet"
+      },
+      {
+        "namn": "ett_svep_nedat_per_pall",
+        "sekvens": "en_pall_filmad_och_markt",
+        "signal": "ST550_FLM_DOWN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3400,
+        "antal": 1,
+        "varfor": "sju varv nedat ar en sammanhangande rorelse, och den far kommenderas forst efter de tva varven i topp"
+      },
+      {
+        "namn": "ett_klipp_per_pall",
+        "sekvens": "en_pall_filmad_och_markt",
+        "signal": "ST550_FLM_CUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3400,
+        "antal": 1,
+        "varfor": "filmen klipps och svetsas exakt en gang per pall; tva flanker betyder att svetsbacken slar till mot en redan klippt film"
+      },
+      {
+        "namn": "en_etikett_per_pall",
+        "sekvens": "en_pall_filmad_och_markt",
+        "signal": "ST550_LBL_APPLY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3400,
+        "antal": 1,
+        "varfor": "en pall far en etikett; tva etiketter pa samma pall gor godsmottagningen tvetydig"
+      },
+      {
+        "namn": "ingen_bordsgang_utan_kvittens",
+        "sekvens": "kallstart_ingen_sjalvstart",
+        "signal": "ST550_TBL_RUN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 250,
+        "antal": 0,
+        "varfor": "innan nagon kvitterat far vridbordet inte starta en enda gang, aven med pallen pa plats och alla lagesgivare hoga"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "filmvagnen_gar_at_bada_hallen",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_UP := FALSE;\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och lat det ga till hemlage *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Uppatriktningen nollstalls forst nar vagnen ar nere igen, inte i det ovre andlaget. Under de tva varven i topp ser cellen felfri ut, och nar nedat kommenderas star bada riktningarna hoga samtidigt - en kortslutning mellan vagnens tva kontaktorer.",
+        "faller_pa": [
+          "en_pall_filmad_och_markt@1500ms:ST550_FLM_UP",
+          "en_pall_filmad_och_markt@1800ms:ST550_FLM_UP",
+          "invariant:filmvagnen_gar_aldrig_at_bada_hallen@en_pall_filmad_och_markt"
+        ]
+      },
+      {
+        "namn": "klippet_kommenderas_utan_hemlage",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och klipp filmen *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Filmen klipps i samma steg som bordet kommenderas att stanna, utan att ST550_TBL_HOME vantas in. Ett vridbord med en halvton last rullar ett stycke innan det star still, sa snittet hamnar mitt pa lasten och filmanden sitter inte fast.",
+        "faller_pa": [
+          "en_pall_filmad_och_markt@2600ms:ST550_FLM_CUT",
+          "invariant:klippet_bara_i_hemlage@en_pall_filmad_och_markt"
+        ]
+      },
+      {
+        "namn": "pallen_kors_ut_innan_filmen_klippts",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och kor ut pallen *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Utmatningen startas nar varvantalet ar natt, alltsa innan filmen klippts och svetsats. Pallen drar da med sig hela filmrullen ut ur maskinen och bade lasten och filmbanan rivs.",
+        "faller_pa": [
+          "en_pall_filmad_och_markt@2600ms:ST550_CNV_RUN",
+          "invariant:ingen_utkorning_utan_klippt_film@en_pall_filmad_och_markt"
+        ]
+      },
+      {
+        "namn": "utan_pulsgivarvakt",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och lat det ga till hemlage *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Varvantalet vantas in utan tidsgrans. Tappar pulsgivaren sin signal, eller stannar vridbordet under filmvagnen, star stationen kvar med bordet kommenderat och ingen far veta det forran nagon undrar varfor pallen inte kommit ut.",
+        "faller_pa": [
+          "pulsgivaren_tappas_tidsovervakning@8800ms:SYS_ALARM",
+          "pulsgivaren_tappas_tidsovervakning@8800ms:ST550_TBL_RUN",
+          "pulsgivaren_tappas_tidsovervakning@9200ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "filmvagnen_fortsatter_nar_bordet_stannar",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och lat det ga till hemlage *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Nar driftsvillkoret faller nollstalls vridbordet och de pneumatiska donen, men filmvagnens tva korriktningar lamnas latchade. Vagnen fortsatter uppat medan bordet star still och drar filmen ur samma punkt pa lasten tills banan river.",
+        "faller_pa": [
+          "lagesvaljaren_slas_om_mitt_i_filmningen@1100ms:ST550_FLM_UP",
+          "invariant:filmvagnen_star_still_nar_bordet_star_still@lagesvaljaren_slas_om_mitt_i_filmningen"
+        ]
+      },
+      {
+        "namn": "automatisk_omstart_efter_nodstopp",
+        "st": "PROGRAM ST550_STRACKFILM\nVAR\n    steg        : INT := 0;\n    tmrVarv     : TON;\n    trigReset   : R_TRIG;\n    nForraVarv  : INT := 0;\n    xVarvRor    : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\n(* Pulsgivarvakt. Vid 12 varv/min tar ett varv 5,0 s, sa vakten maste rymma\n   ett helt varv. Rors inte raknaren pa 8,0 s medan bordet ar kommenderat\n   runt har givaren tappats eller sa star bordet still under filmvagnen -\n   och da lagger vagnen filmen pa ett och samma stalle tills den river. *)\nIF ST550_TBL_REV <> nForraVarv THEN\n    nForraVarv := ST550_TBL_REV;\n    xVarvRor := TRUE;\nELSE\n    xVarvRor := FALSE;\nEND_IF;\ntmrVarv(IN := ST550_TBL_RUN AND NOT xVarvRor, PT := T#8s);\nIF tmrVarv.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm;\n\nIF NOT xDrift THEN\n    ST550_TBL_RUN := FALSE;\n    ST550_FLM_UP := FALSE;\n    ST550_FLM_DOWN := FALSE;\n    ST550_FLM_CUT := FALSE;\n    ST550_LBL_APPLY := FALSE;\n    ST550_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* pallen star pa vridbordet, vagnen nere och bordet i hemlage *)\n            IF ST550_PEC_PAL AND ST550_FLM_BOT AND ST550_TBL_HOME THEN\n                ST550_TBL_RUN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* tre lasvarv i botten innan svepet borjar *)\n            IF ST550_TBL_REV >= 3 THEN\n                ST550_FLM_UP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* sju varv uppat, 250 mm stigning per varv *)\n            IF ST550_FLM_TOP THEN\n                ST550_FLM_UP := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* tva varv i topp innan vagnen vander *)\n            IF ST550_TBL_REV >= 12 THEN\n                ST550_FLM_DOWN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* sju varv nedat *)\n            IF ST550_FLM_BOT THEN\n                ST550_FLM_DOWN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* nitton varv lagda: stanna bordet och lat det ga till hemlage *)\n            IF ST550_TBL_REV >= 19 THEN\n                ST550_TBL_RUN := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* klipp och svetsa filmen forst nar bordet star i hemlage, annars\n               klipps filmen mitt pa lasten *)\n            IF ST550_TBL_HOME THEN\n                ST550_FLM_CUT := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            ST550_LBL_APPLY := TRUE;\n            IF ST550_LBL_APPLIED THEN\n                ST550_LBL_APPLY := FALSE;\n                ST550_CNV_RUN := TRUE;\n                steg := 8;\n            END_IF;\n        8:\n            IF NOT ST550_PEC_PAL THEN\n                ST550_CNV_RUN := FALSE;\n                ST550_FLM_CUT := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret ar EMG_OK AND AIR_OK AND SYS_AUTO utan omstartskvittens. Vridbordet drar igang i samma stund nagon drar upp nodstoppsdonet, med en operator kvar vid filmvagnen, och stationen startar av sig sjalv redan vid spanningspaslag.",
+        "faller_pa": [
+          "kallstart_ingen_sjalvstart@200ms:ST550_TBL_RUN",
+          "nodstopp_utan_automatisk_omstart@2000ms:ST550_TBL_RUN",
+          "flank:ingen_bordsgang_utan_kvittens"
+        ]
+      }
+    ]
+  }
+}

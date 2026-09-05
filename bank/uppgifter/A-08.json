@@ -1,0 +1,1602 @@
+{
+  "task_id": "A-08",
+  "title": "Robotdispensering av tatningsmassa med flodesovervakning och markning",
+  "goal": "Lagga en obruten strang tatningsmassa runt flansens 760 mm med ett 3,0 mm munstycke vid 120 mm/s, halla flodet innanfor 45,0 till 57,0 cm3/min, och se till att en detalj med avbruten strang aldrig gar vidare omarkt.",
+  "grupp": "A",
+  "bransch": "limning",
+  "orsak": "Speglar fyra missar som gors om och om igen pa limstationer. Den forsta: doseringsventilen lamnas oppen nar roboten star still, sa limmet rinner ut i en klump som nasta detalj pressar ut i fogen och fogen tatar inte just dar. Den andra: ventilen oppnas pa fotocellen i stallet for pa bekraftad klamma, sa strangen borjar laggas medan detaljen annu inte sitter fast och hamnar bredvid flansen. Den tredje: flodesgivaren sitter i slangen men lases aldrig, sa ett igensatt munstycke lagger en osynlig strang hela skiftet. Den fjarde: strangen stoppas pa avvikelsen men detaljen markas inte, sa den halvlimmade detaljen gar vidare tillsammans med de godkanda och gar inte langre att skilja ut.",
+  "prompt": "Bygg en limstation dar en robot lagger en strang tatningsmassa runt en flans, och skriv\nstyrningen till den.\n\nScen: en sexaxlig robot med limmunstycke, en limstation med uppvarmt lim, en flodesgivare\ni limslangen, en pneumatisk fixtur med spannare och lagesgivare, en bandtransportor och\nen genomgaende fotocell. Detaljen ar ett pressgjutet aluminiumhus 220 x 160 x 90 mm som\nvager 1,8 kg. Robotens arbetsradie i cellen ar 1400 mm.\n\nStrangen och flodet:\n* Munstycket ar 3,0 mm och robotens banhastighet ar 120 mm/s.\n* Strangen foljer flansens omkrets 2 x (220 + 160) = 760 mm.\n* ST480_ADH_FLW ar limflodet i cm3/min och ska ligga mellan 45,0 och 57,0 cm3/min under\n  strangen. Under fonstret ar munstycket igensatt eller materialet slut; over fonstret ar\n  munstycket slitet eller matningstrycket for hogt. Bada ger en strang som inte tatar.\n\nUppgift, sekvensen:\n1. Nar ST480_PRT_PRS gar hog: stanna bandet och satt ST480_CLP_CLOSE hog.\n2. Nar ST480_CLP_CLOSED bekraftar: satt ST480_RB_START hog och oppna ST480_ADH_ON.\n3. Vid ST480_RB_DONE: stang ST480_ADH_ON och nollstall ST480_RB_START.\n4. Slapp klamman och for ut detaljen.\nST480_ADH_LOW ar lag materialniva i fatet. En paborjad strang ska alltid bli hel, men\ningen NY strang far startas med lag niva.\n\nUppgift, de fem kraven som gor stationen driftsatt:\n* ST480_ADH_ON far ALDRIG vara hog nar roboten inte ar i rorelse. Limmet rinner da ut\n  och bildar en klump som nasta detalj pressar ut i fogen.\n* ST480_ADH_ON far aldrig oppnas innan ST480_CLP_CLOSED bekraftat att detaljen sitter\n  fast.\n* Ett flode utanfor fonstret ska stoppa strangen OCH satta ST480_REJ_MARK. En detalj med\n  avbruten strang far aldrig ga vidare omarkt.\n* Flodet far byggas upp innan det doms; en strang far inte larma pa sina forsta\n  tiondelar.\n* Kommer inte ST480_RB_DONE inom 8,0 s efter att banan startats ska SYS_ALARM latchas,\n  ventilen stangas och detaljen markas. Vakten ska falla tidigast 7,8 s och senast 8,6 s\n  efter flanken.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Inget don far kommenderas nar EMG_OK eller AIR_OK ar\nlag. Efter spanningspaslag och efter ett nodstopp kravs en stigande flank pa SYS_RESET\ninnan nagot far ga; tryckluft som kommer tillbaka far daremot aterta driften utan\nkvittens.\n\nTakttiden ar 18,0 s per detalj. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F10",
+    "F8"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "doseringsventilen stangs forst i ett senare steg an ST480_RB_DONE, sa limmet rinner ut i en klump nar roboten star still",
+    "ventilen oppnas pa fotocellen i stallet for pa bekraftad klamma, sa strangen borjar innan detaljen sitter fast",
+    "flodesgivaren lases aldrig, sa ett igensatt munstycke lagger en osynlig strang hela skiftet",
+    "strangen stoppas pa flodesavvikelsen men detaljen markas inte, sa en halvlimmad detalj gar vidare omarkt",
+    "ST480_RB_DONE vantas in utan tidsgrans, sa en stannad robot lamnas med ventilen oppen",
+    "flodet doms redan i uppbyggnadsogonblicket, sa varje strang larmar pa sina forsta tiondelar",
+    "driftsvillkoret ar EMG_OK AND AIR_OK AND SYS_AUTO, sa stationen startar av sig sjalv nar nodstoppsdonet dras upp",
+    "en paborjad strang avbryts pa lag materialniva, sa en halv strang blir en kasserad detalj i onodan"
+  ],
+  "antaganden": [
+    {
+      "vad": "munstyckets diameter",
+      "varde": "3,0 mm",
+      "motiv": "en tatningsstrang pa en gjuten flans laggs typiskt med tre till fem millimeters munstycke; 3,0 mm ar valt for att strangen ska rymmas i flansens spar. Talet ar satt for den har uppgiften och inte hamtat ur ett datablad for ett namngivet munstycke"
+    },
+    {
+      "vad": "strangens tvarsnitt lika med munstyckets area",
+      "varde": "7,0686 mm2",
+      "motiv": "arean ar exakt pi/4 gange 3,0 i kvadrat, men strangens tvarsnitt ar bara lika stort om strangen laggs utan att stracks eller tryckas ihop. En verklig strang laggs oftast nagot strackt, sa det raknade flodet ar ett OVRE varde och det verkliga ligger nagra procent under"
+    },
+    {
+      "vad": "robotens banhastighet",
+      "varde": "120 mm/s",
+      "motiv": "en dispenserbana halls langsam och jamn for att strangen ska bli lika tjock hela varvet; 120 mm/s ar en vanlig storleksordning for tatningsmassa. Talet ar satt och styr bade flodet och strangtiden, sa det maste sta som antagande"
+    },
+    {
+      "vad": "det raknade volymflodet",
+      "varde": "50,9 cm3/min",
+      "motiv": "flodet ar munstyckets area gange banhastigheten: 7,0686 mm2 gange 120 mm/s ar 848,2 mm3/s, alltsa 0,848 cm3/s och 50,9 cm3/min. Det ar fysik och ingen standardfraga, men det vilar pa antagandet om strangens tvarsnitt ovan"
+    },
+    {
+      "vad": "flodesfonstret",
+      "varde": "45,0 till 57,0 cm3/min",
+      "motiv": "cirka tolv procent kring det raknade 50,9 cm3/min. Fonstret ar satt sa att pumpens normala pulsation och limmets temperaturberoende viskositet ryms utan larm, men ett igensatt eller slitet munstycke inte gor det. Bada granserna ar antagna och bor stallas om mot en uppmatt strangvikt"
+    },
+    {
+      "vad": "strangtiden",
+      "varde": "6,33 s raknad, 6,4 s i takten",
+      "motiv": "760 mm delat med 120 mm/s ar 6,33 s. Talet i control.timing ar avrundat till 6,4 s, dels for att en tiondel ar den upplosning en takttid rimligen anges i, dels for att avrundningen ligger at det hall som inte fyrar av en dwellgrind pa en normal strang"
+    },
+    {
+      "vad": "limmangden per detalj",
+      "varde": "5,37 cm3",
+      "motiv": "760 mm gange 7,0686 mm2 ar 5372 mm3, alltsa 5,37 cm3 per detalj. Mangden ar raknad ur samma antagande om strangens tvarsnitt och ar darfor ocksa ett ovre varde; den anvands har bara for att visa storleksordningen mot fatets innehall"
+    },
+    {
+      "vad": "strangvakten",
+      "varde": "8,0 s",
+      "motiv": "den raknade strangtiden ar 6,33 s, sa 8,0 s lamnar drygt en fjardedels marginal for accelerationer och hornradier utan att dolja en robot som stannat. Fonstret 7,8 till 8,6 s i facit gor domen okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "flodets uppbyggnadstid",
+      "varde": "0,5 s",
+      "motiv": "munstycket och slangens sista bit maste fyllas innan givaren visar arbetsflodet; doms flodet redan i uppbyggnadsogonblicket larmar varje strang pa sina forsta tiondelar. 0,5 s ar satt till flera ganger munstyckets anslagstid 0,1 s i katalogindexet"
+    },
+    {
+      "vad": "detaljens matt och massa",
+      "varde": "220 x 160 x 90 mm, 1,8 kg",
+      "motiv": "ett pressgjutet aluminiumhus i den storleken med tunn gods hamnar kring ett par kilo; matten ar valda sa att flansens omkrets blir 760 mm och massan ar antagen och inte vagd"
+    },
+    {
+      "vad": "robotens kapacitet mot lasten",
+      "varde": "12,0 kg nyttolast och 1441 mm rackvidd mot 4,2 kg munstycke och 1400 mm arbetsradie",
+      "motiv": "roboten bar munstycket och aldrig detaljen, men kapacitetskontrollen raknar konservativt bade munstyckets 4,2 kg och detaljens 1,8 kg mot 12,0 kg och far anda tva ganger marginal. Arbetsradien 1400 mm ligger 41 mm under rackvidden, vilket ar tight och forutsatter att fixturen star nara roboten"
+    },
+    {
+      "vad": "takttiden",
+      "varde": "18,0 s per detalj",
+      "motiv": "6,33 s strang plus spanning, robotens vag ut och hem, slapp och utmatning ryms i arton sekunder for en cell i den har storleken. Talet ar satt och inte matt mot en verklig linje"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "pressgjutet aluminiumhus",
+      "l_mm": 220,
+      "b_mm": 160,
+      "h_mm": 90,
+      "massa_kg": 1.8
+    },
+    "arbetsradie_mm": 1400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Detaljer kommer med 18,0 s takt och far en obruten strang runt flansens 760 mm pa 6,33 s med flodet 50,9 cm3/min.",
+      "forvantat": "Doseringsventilen oppen bara medan roboten ar i rorelse och bara med bekraftad klamma, flodet innanfor 45,0 till 57,0 cm3/min hela strangen, och ingen markning pa en hel strang."
+    },
+    {
+      "id": "flw_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST480_ADH_FLW",
+      "beskrivning": "ST480_ADH_FLW faller till 38,0 cm3/min, alltsa under fonstrets undre grans 45,0 cm3/min.",
+      "forvantat": "For lagt flode betyder igensatt munstycke eller slut material, och strangen blir for tunn eller uteblir helt. Styrningen ska stoppa strangen, larma och markera detaljen; den far aldrig ga vidare omarkt."
+    },
+    {
+      "id": "flw_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST480_ADH_FLW",
+      "beskrivning": "ST480_ADH_FLW stiger till 65,0 cm3/min, alltsa over fonstrets ovre grans 57,0 cm3/min.",
+      "forvantat": "For hogt flode betyder slitet munstycke eller for hogt matningstryck. Strangen blir for tjock, klams ut ur fogen nar delarna skruvas ihop och tatar inte. Styrningen ska stoppa strangen, larma och markera detaljen."
+    },
+    {
+      "id": "materialet_tar_slut",
+      "typ": "vandning",
+      "signal": "ST480_ADH_LOW",
+      "beskrivning": "ST480_ADH_LOW gar hog mitt i en pagaende strang.",
+      "forvantat": "Den pagaende strangen ska bli hel, for en halv strang ar en kasserad detalj. Nasta detalj far daremot inte startas forran fatet ar bytt, och lag niva ar inget larm utan ett vantelage."
+    },
+    {
+      "id": "nodstopp_mitt_i_strangen",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "EMG_OK faller mitt i en strang och aterstalls sedan utan kvittens.",
+      "forvantat": "Varje don ska falla i samma scan, markeringsdonet inraknat. Det aterstallda nodstoppet far inte starta stationen igen, och detaljen med den avbrutna strangen ska vara markad nar stationen gar igen."
+    },
+    {
+      "id": "tryckluften_faller_bort",
+      "typ": "vandning",
+      "signal": "AIR_OK",
+      "beskrivning": "AIR_OK faller mitt i en strang och kommer tillbaka en halv sekund senare.",
+      "forvantat": "Varken fixturen eller doseringen far vara kommenderad utan tryckluft, men bortfallet ar inget skyddsstopp: driften ska atertas utan kvittens. Strangen ar anda avbruten, sa detaljen ska vara markad."
+    }
+  ],
+  "core_outputs": [
+    "ST480_RB_START",
+    "ST480_ADH_ON",
+    "ST480_CLP_CLOSE",
+    "ST480_REJ_MARK",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "munstycke",
+        "uri": "bank://gripdon/limmunstycke",
+        "count": 1
+      },
+      {
+        "role": "limstation",
+        "uri": "bank://station/limstation",
+        "count": 1
+      },
+      {
+        "role": "flodesgivare",
+        "uri": "bank://givare/flodesgivare_lim",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "bana",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "fixtur"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "munstycke"
+      },
+      {
+        "from_role": "limstation",
+        "to_role": "flodesgivare"
+      },
+      {
+        "from_role": "flodesgivare",
+        "to_role": "munstycke"
+      },
+      {
+        "from_role": "munstycke",
+        "to_role": "fixtur"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST480_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "genomgaende fotocell, hog nar en detalj star i fixturen"
+      },
+      {
+        "name": "ST480_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandtransportoren gar"
+      },
+      {
+        "name": "ST480_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann detaljen i fixturen"
+      },
+      {
+        "name": "ST480_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesgivare, hog nar fixturen haller detaljen"
+      },
+      {
+        "name": "ST480_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens dispenserbana; hog sa lange banan gar"
+      },
+      {
+        "name": "ST480_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten har gatt hela banan och star stilla"
+      },
+      {
+        "name": "ST480_ADH_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna doseringsventilen i munstycket"
+      },
+      {
+        "name": "ST480_ADH_FLW",
+        "dir": "in",
+        "type": "real",
+        "comment": "limflode i slangen, cm3/min"
+      },
+      {
+        "name": "ST480_ADH_LOW",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lag materialniva i fatet"
+      },
+      {
+        "name": "ST480_REJ_MARK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "markera detaljen som kasserad"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "vid ST480_PRT_PRS och tillrackligt med material: stanna bandet och satt ST480_CLP_CLOSE hog",
+      "vid ST480_CLP_CLOSED: satt ST480_RB_START hog och oppna ST480_ADH_ON",
+      "las ST480_ADH_FLW mot fonstret 45,0 till 57,0 cm3/min forst 0,5 s efter att ventilen oppnat",
+      "vid ST480_RB_DONE: stang ST480_ADH_ON och nollstall ST480_RB_START i samma scan",
+      "slapp klamman och for ut detaljen pa bandet",
+      "flode utanfor fonstret eller utebliven ST480_RB_DONE inom 8,0 s: stoppa strangen, latcha larmet och satt ST480_REJ_MARK",
+      "halla ST480_REJ_MARK tills den kasserade detaljen lamnat stationen",
+      "starta ingen ny strang medan ST480_ADH_LOW ar hog, men avbryt aldrig en pagaende"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST480": 6.4
+      },
+      "cycle_s": 18.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ST480_ADH_ON far aldrig vara hog nar ST480_RB_START ar lag",
+      "ST480_ADH_ON far aldrig oppnas innan ST480_CLP_CLOSED bekraftat",
+      "ST480_RB_START far aldrig vara hog nar ST480_CLP_CLOSE ar lag",
+      "en detalj med avbruten strang far aldrig ga vidare utan ST480_REJ_MARK",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ST480_ADH_ON och ST480_RB_START far aldrig kommenderas nar AIR_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 200.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "MOTION",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST480_CLP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST480_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST480_ADH_ON RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST480_ADH_ON -> munstycke *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST480 *s req=6.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST munstycke+fixtur *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST480 *s req=6.4s SHORT"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY SLIPPING rot=*deg span=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST480_RB_START+ST480_CLP_CLOSE dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: limflodet kommer ur munstyckets egen area och robotens banhastighet. Munstycket ar 3,0 mm, alltsa A = pi/4 * 3,0^2 = 7,0686 mm2, och vid banhastigheten 120 mm/s blir volymflodet 7,0686 * 120 = 848,2 mm3/s = 0,848 cm3/s = 50,9 cm3/min. Strangen foljer flansens omkrets 2*(220+160) = 760 mm, alltsa 760/120 = 6,33 s och 760 * 7,0686 = 5372 mm3 = 5,37 cm3 per detalj. Rakningen star i M-106.",
+    "standard": "Flodet ar fysik och ingen standardfraga: volymflodet ar munstyckets area gange banhastigheten. Manuell aterstallning efter nodstopp enligt IEC 60204-1 och TON for strangens tidsovervakning enligt IEC 61131-3.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanningspaslag med en detalj redan i fixturen. Ingen strang far borja fore kvittensen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false,
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": false,
+              "ST480_CLP_CLOSE": false,
+              "ST480_RB_START": false,
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; en detalj som redan ligger i fixturen far inte fa en strang av sig sjalv"
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": false,
+              "ST480_ADH_ON": false
+            },
+            "varfor": "stationen star kvar stilla, inte bara det forsta scanet"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": true,
+              "ST480_RB_START": false,
+              "ST480_ADH_ON": false
+            },
+            "varfor": "forst kvittensen far spanna detaljen, och roboten vantar anda pa att fixturen bekraftar"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "normalcykel_en_strang",
+        "beskrivning": "En hel strang runt flansens 760 mm vid 120 mm/s: 6,33 s med flodet 50,9 cm3/min mitt i fonstret.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 60,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": false,
+              "ST480_CLP_CLOSE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan kvittens star bandet stilla; en station som startar pa spanningspaslag ar den dyraste driftsattningsmissen som finns"
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": true,
+              "ST480_CLP_CLOSE": false,
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false
+            },
+            "varfor": "efter kvittensen matar bandet fram, men ingen ventil och ingen robotbana startas innan en detalj finns"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": true,
+              "ST480_CNV_RUN": false,
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false
+            },
+            "varfor": "detaljen spanns fast forst; varken roboten eller doseringsventilen far ga pa narvaron"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST480_RB_START": true,
+              "ST480_ADH_ON": true,
+              "ST480_CLP_CLOSE": true
+            },
+            "varfor": "med bekraftad klamma startar banan och doseringen; ventilen ar oppen bara sa lange roboten ar i rorelse"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 50.9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": true,
+              "SYS_ALARM": false,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "flodet har byggt upp sig och 50,9 cm3/min ligger mitt i fonstret 45,0 till 57,0; strangen fortsatter"
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": true,
+              "ST480_RB_START": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "5,4 s in i strangen ar banan pa 760 mm inte klar och strangvakten pa 8,0 s har inte fallit; en for kort vakt stoppar en normal strang"
+          },
+          {
+            "t_ms": 7000,
+            "satt": {
+              "ST480_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7200,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false,
+              "ST480_CLP_CLOSE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "ventilen stangs i samma scan som roboten blir klar; en ventil som star kvar oppen med roboten stilla lagger en klump limmet"
+          },
+          {
+            "t_ms": 7400,
+            "satt": {
+              "ST480_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7600,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": true,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "detaljen slapps och gar vidare; en hel strang markas aldrig"
+          },
+          {
+            "t_ms": 7800,
+            "satt": {
+              "ST480_PRT_PRS": false,
+              "ST480_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": true,
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "stationen ar tom och redo for nasta detalj, utan att nagot don star kvar kommenderat"
+          }
+        ]
+      },
+      {
+        "id": "flodet_faller_igensatt_munstycke",
+        "beskrivning": "ST480_ADH_FLW ligger pa 38,0 cm3/min, alltsa under fonstrets undre grans 45,0 cm3/min.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 38.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "38 cm3/min ar 25 procent under det raknade flodet: igensatt munstycke eller slut material. Strangen stoppas OCH detaljen markas i samma andetag"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_REJ_MARK": true,
+              "ST480_ADH_ON": false
+            },
+            "varfor": "larmet ar latchat och markeringen star kvar; en detalj med avbruten strang far aldrig ga vidare omarkt"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST480_CNV_RUN": true,
+              "ST480_CLP_CLOSE": false,
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "kvittensen tar bort larmet men inte kassationen: den markta detaljen kors ut och far ingen ny strang ovanpa den avbrutna"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST480_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {
+              "ST480_REJ_MARK": false,
+              "ST480_CNV_RUN": true
+            },
+            "varfor": "markeringen slapper forst nar den kasserade detaljen lamnat stationen"
+          }
+        ]
+      },
+      {
+        "id": "flodet_stiger_slitet_munstycke",
+        "beskrivning": "ST480_ADH_FLW stiger till 65,0 cm3/min, alltsa over fonstrets ovre grans 57,0 cm3/min.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 65.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "65 cm3/min ar 28 procent over det raknade flodet: slitet munstycke eller for hogt matningstryck. Strangen blir for tjock, klams ut ur fogen och tatar inte"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "aven ett for stort flode ar en kasserad detalj, inte bara en for liten strang"
+          }
+        ]
+      },
+      {
+        "id": "strangen_blir_aldrig_klar",
+        "beskrivning": "ST480_RB_DONE kommer aldrig. Strangvakten pa 8,0 s ska falla i fonstret 7,8 till 8,6 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 50.9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST480_ADH_ON": true,
+              "ST480_RB_START": true,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "7,4 s efter start far vakten annu inte ha fallit; den raknade strangtiden ar 6,33 s och en vakt som faller dar stoppar varje normal strang"
+          },
+          {
+            "t_ms": 9200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "8,6 s efter start ska vakten ha fallit, ventilen stangas och detaljen markas; en robot som star still med ventilen oppen tommer fatet i fixturen"
+          },
+          {
+            "t_ms": 9600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "larmet ar latchat och markeringen star kvar; en avbruten strang ar en kasserad detalj oavsett vad som avbrot den"
+          }
+        ]
+      },
+      {
+        "id": "materialet_tar_slut_mitt_i_strangen",
+        "beskrivning": "ST480_ADH_LOW gar hog mitt i en strang. Den pagaende strangen ska bli hel, men ingen ny far startas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 50.9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST480_ADH_LOW": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": true,
+              "ST480_RB_START": true,
+              "SYS_ALARM": false,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "en paborjad strang avbryts aldrig pa lag niva i fatet; det som finns kvar racker langt mer an de aterstaende metrarna, och en halv strang ar en kasserad detalj"
+          },
+          {
+            "t_ms": 7000,
+            "satt": {
+              "ST480_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7200,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "strangen blev hel, sa detaljen ar godkand och markas inte"
+          },
+          {
+            "t_ms": 7400,
+            "satt": {
+              "ST480_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7800,
+            "satt": {
+              "ST480_PRT_PRS": false,
+              "ST480_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8200,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8600,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": false,
+              "ST480_ADH_ON": false,
+              "ST480_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "med lag niva i fatet startas ingen NY strang; nasta detalj far vanta i stallet for att fa en strang som tar slut halvvags"
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9400,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": true
+            },
+            "varfor": "fatet ar bytt och stationen tar vid dar den slutade, utan kvittens; lag materialniva ar inget larm"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i en strang, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 50.9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST480_RB_START": false,
+              "ST480_ADH_ON": false,
+              "ST480_CLP_CLOSE": false,
+              "ST480_CNV_RUN": false,
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan, markeringsdonet inraknat"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "ST480_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": false,
+              "ST480_RB_START": false,
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta stationen (IEC 60204-1 9.2.5.4.2: urkopplingen far bara mojliggora omstart, inte utfora den). Strangen avbrots mitt i, sa detaljen ar redan markad"
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": true,
+              "ST480_CLP_CLOSE": false,
+              "ST480_ADH_ON": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "kvittensen tar stationen tillbaka i drift, men den markta detaljen kors ut i stallet for att fa en andra strang ovanpa den halva"
+          },
+          {
+            "t_ms": 4500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4600,
+            "satt": {
+              "ST480_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4800,
+            "satt": {},
+            "krav": {
+              "ST480_REJ_MARK": false,
+              "ST480_CNV_RUN": true
+            },
+            "varfor": "markeringen slapper nar den kasserade detaljen lamnat stationen"
+          },
+          {
+            "t_ms": 5000,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5400,
+            "satt": {},
+            "krav": {
+              "ST480_CLP_CLOSE": true,
+              "ST480_ADH_ON": false
+            },
+            "varfor": "nasta detalj far en ny strang som vanligt"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_bort",
+        "beskrivning": "AIR_OK faller mitt i en strang och kommer tillbaka. Tryckluft ar inget skyddsstopp, men strangen ar anda avbruten.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST480_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST480_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST480_ADH_FLW": 50.9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST480_ADH_ON": false,
+              "ST480_RB_START": false,
+              "ST480_CNV_RUN": false,
+              "ST480_REJ_MARK": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan tryckluft kan varken fixturen eller doseringen rora sig; strangen ar avbruten och detaljen markas, men bortfallet ar inget skyddsstopp och darfor inget latchat larm"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": true,
+              "ST480_ADH_ON": false,
+              "ST480_CLP_CLOSE": false,
+              "ST480_REJ_MARK": true
+            },
+            "varfor": "tryckluften som kommer tillbaka far aterta driften utan kvittens, men den markta detaljen kors ut i stallet for att fa en ny strang"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST480_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST480_REJ_MARK": false
+            },
+            "varfor": "markeringen slapper forst nar detaljen lamnat stationen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ventilen_bara_med_roboten_i_rorelse",
+        "sekvens": "*",
+        "nar": {
+          "ST480_ADH_ON": true
+        },
+        "kraver": {
+          "ST480_RB_START": true
+        },
+        "varfor": "en oppen doseringsventil med roboten stilla lagger inte en strang utan en klump, och klumpen pressas ut i fogen av nasta detalj sa att fogen inte tatar dar"
+      },
+      {
+        "namn": "ventilen_kraver_bekraftad_klamma",
+        "sekvens": "*",
+        "nar": {
+          "ST480_ADH_ON": true
+        },
+        "kraver": {
+          "ST480_CLP_CLOSED": true
+        },
+        "varfor": "en detalj som inte sitter fast i fixturen ror sig under munstycket, och strangen hamnar bredvid flansen i stallet for pa den"
+      },
+      {
+        "namn": "roboten_startar_aldrig_utan_spand_detalj",
+        "sekvens": "*",
+        "nar": {
+          "ST480_RB_START": true
+        },
+        "kraver": {
+          "ST480_CLP_CLOSE": true
+        },
+        "varfor": "banan gar tatt intill fixturen; startar den innan spannaren ar kommenderad ar detaljens lage inte definierat"
+      },
+      {
+        "namn": "markt_detalj_far_ingen_ny_strang",
+        "sekvens": "*",
+        "nar": {
+          "ST480_REJ_MARK": true
+        },
+        "kraver": {
+          "ST480_ADH_ON": false
+        },
+        "varfor": "en andra strang ovanpa en avbruten forsta doljer felet i stallet for att laga det, och detaljen gar da vidare som godkand"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST480_RB_START": false,
+          "ST480_ADH_ON": false,
+          "ST480_CLP_CLOSE": false,
+          "ST480_CNV_RUN": false,
+          "ST480_REJ_MARK": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "ingen_dosering_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST480_ADH_ON": false,
+          "ST480_RB_START": false
+        },
+        "varfor": "utan tryckluft haller varken fixturen eller munstyckets nal, och en ventil som star kommenderad slar upp i det ogonblick trycket kommer tillbaka"
+      },
+      {
+        "namn": "larm_stoppar_strangen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST480_ADH_ON": false,
+          "ST480_RB_START": false
+        },
+        "varfor": "ett larm som lamnar doseringen oppen eller roboten i rorelse ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_strang_per_detalj",
+        "sekvens": "normalcykel_en_strang",
+        "signal": "ST480_ADH_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 8000,
+        "antal": 1,
+        "varfor": "en detalj ska fa exakt en strang; tva oppningar betyder att ventilen styrs pa niva och att fogen far en dubbel strang pa en del av varvet"
+      },
+      {
+        "namn": "en_robotbana_per_detalj",
+        "sekvens": "normalcykel_en_strang",
+        "signal": "ST480_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 8000,
+        "antal": 1,
+        "varfor": "en detalj ska ge exakt en robotcykel; tva betyder att banan startas pa niva i stallet for pa flank och att roboten kor ett tomt varv"
+      },
+      {
+        "namn": "godkand_detalj_markas_aldrig",
+        "sekvens": "normalcykel_en_strang",
+        "signal": "ST480_REJ_MARK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 8000,
+        "antal": 0,
+        "varfor": "en markning som gar pa en hel strang tommer produktionen i omarbetningen"
+      },
+      {
+        "namn": "markningen_pa_avbruten_strang",
+        "sekvens": "flodet_faller_igensatt_munstycke",
+        "signal": "ST480_REJ_MARK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2800,
+        "antal": 1,
+        "varfor": "den avbrutna strangen ska ge exakt en markning; noll betyder att detaljen gar vidare omarkt och hamnar i en bil"
+      },
+      {
+        "namn": "strangen_avbryts_en_gang",
+        "sekvens": "strangen_blir_aldrig_klar",
+        "signal": "ST480_ADH_ON",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 9600,
+        "antal": 1,
+        "varfor": "vakten ska stanga ventilen en gang och lamna den stangd; en ventil som slar av och pa medan roboten star still droppar lim i fixturen"
+      },
+      {
+        "namn": "ingen_dosering_fore_kvittensen",
+        "sekvens": "kallstart_utan_sjalvstart",
+        "signal": "ST480_ADH_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1100,
+        "antal": 0,
+        "varfor": "efter spanningspaslag far ingen strang borja innan nagon kvitterat, aven om detaljen redan ligger i fixturen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "ventilen_utan_bekraftad_klamma",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Robotbanan och doseringen startas pa fotocellen i stallet for pa ST480_CLP_CLOSED. Spannaren har 0,6 s spanntid, sa roboten hinner ut pa flansen innan detaljen sitter fast. I en langsam provkorning med en detalj som redan ligger ratt marks ingenting; i drift hamnar strangen bredvid fogen sa fort en detalj kommer in nagra millimeter snett.",
+        "faller_pa": [
+          "invariant:ventilen_kraver_bekraftad_klamma@normalcykel_en_strang",
+          "normalcykel_en_strang@500ms:ST480_ADH_ON"
+        ]
+      },
+      {
+        "namn": "ventilen_stangs_forst_nar_klamman_oppnar",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_ADH_ON := FALSE;\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Doseringsventilen nollstalls i steget dar klamman oppnar i stallet for i samma scan som ST480_RB_DONE kommer. Roboten star da still over flansen med ventilen oppen i tva scan plus klammans oppningstid, och limmet rinner ut i en klump pa den sista centimetern av strangen. Klumpen pressas ut i fogen nar delarna skruvas ihop och fogen tatar inte just dar.",
+        "faller_pa": [
+          "invariant:ventilen_bara_med_roboten_i_rorelse@normalcykel_en_strang",
+          "normalcykel_en_strang@7200ms:ST480_ADH_ON"
+        ]
+      },
+      {
+        "namn": "flodet_lases_aldrig",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\n(* Flodesgivaren finns i slangen men lases aldrig av styrningen. *)\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Flodesgivaren sitter i slangen men styrningen laser den aldrig. Ett munstycke som satts igen ger da en strang som ser ut att laggas men inte finns, och stationen fortsatter i takt tills nagon langre fram i linjen hittar en fog utan lim. Det ar den vanligaste orsaken till att en limstation gar hela skiftet och producerar otata detaljer.",
+        "faller_pa": [
+          "flodet_faller_igensatt_munstycke@1400ms:SYS_ALARM",
+          "flodet_faller_igensatt_munstycke@1400ms:ST480_REJ_MARK",
+          "flodet_stiger_slitet_munstycke@1400ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "avbruten_strang_markas_inte",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Flodesavvikelsen stoppar strangen och larmar, men detaljen markas aldrig. Nar nagon kvitterar larmet gar den halvlimmade detaljen vidare tillsammans med de godkanda, och den ar omojlig att skilja fran dem langre fram. Larmet ser ut att gora sitt jobb och stationen ser hederlig ut i statistiken.",
+        "faller_pa": [
+          "flodet_faller_igensatt_munstycke@1400ms:ST480_REJ_MARK",
+          "flodet_stiger_slitet_munstycke@2000ms:ST480_REJ_MARK",
+          "flank:markningen_pa_avbruten_strang"
+        ]
+      },
+      {
+        "namn": "ingen_tidsvakt_pa_strangen",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Roboten vantas in utan tidsgrans. *)\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST480_RB_DONE vantas in utan tidsgrans. En robot som stannat pa ett larm i sin egen styrning lamnar da doseringsventilen oppen, och limmet fortsatter rinna ut i fixturen tills nagon undrar varfor takten sjunkit. Ett fat tatningsmassa tommer sig pa nagra minuter genom ett 3,0 mm munstycke.",
+        "faller_pa": [
+          "strangen_blir_aldrig_klar@9200ms:SYS_ALARM",
+          "strangen_blir_aldrig_klar@9200ms:ST480_ADH_ON",
+          "strangen_blir_aldrig_klar@9200ms:ST480_REJ_MARK"
+        ]
+      },
+      {
+        "namn": "stationen_startar_sig_sjalv_efter_nodstopp",
+        "st": "PROGRAM ST480_LIMDISPENSERING\nVAR\n    steg        : INT := 0;\n    tmrFlode    : TON;\n    tmrStrang   : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Flodet far byggas upp innan det doms. Munstycket ar 3,0 mm och pumpen\n   behover en dryg tiondel pa att fylla det; 0,5 s ar flera ganger den tiden\n   och hindrar att varje strang larmar pa sina forsta tiondelar. *)\ntmrFlode(IN := ST480_ADH_ON, PT := T#500ms);\n\n(* Strangen foljer flansens omkrets 760 mm vid 120 mm/s och tar 6,33 s.\n   Vakten pa 8,0 s faller nar roboten inte blir klar med sin bana. *)\ntmrStrang(IN := ST480_RB_START, PT := T#8s);\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Nodstoppet aterstalls av sig sjalvt nar donet dras upp. *)\n\n(* En strang som avbryts mitt i ar en kasserad detalj oavsett vad som avbrot\n   den. Detaljen far aldrig ga vidare omarkt. *)\nIF ST480_ADH_ON AND (NOT EMG_OK OR NOT AIR_OK OR NOT SYS_AUTO) THEN\n    xKassera := TRUE;\nEND_IF;\n\n(* Flodesfonstret 45,0 till 57,0 cm3/min kring det raknade 50,9 cm3/min. Under\n   fonstret ar munstycket igensatt eller materialet slut, over det ar\n   munstycket slitet eller matningstrycket for hogt. Bada ger en strang som\n   inte tatar, sa strangen stoppas OCH detaljen markas. *)\nIF tmrFlode.Q AND (ST480_ADH_FLW < 45.0 OR ST480_ADH_FLW > 57.0) THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\nIF tmrStrang.Q THEN\n    xLarm := TRUE;\n    xKassera := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Ett aterstallt\n   nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm;\n\nIF NOT EMG_OK THEN\n    ST480_CNV_RUN := FALSE;\n    ST480_CLP_CLOSE := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Larm eller vantad kvittens. Roboten stoppas och doseringsventilen\n       stangs i samma scan. Klamman lamnas dar den star: en detalj med\n       avbruten strang far inte lossna ur fixturen for att larmet kom. *)\n    ST480_CNV_RUN := FALSE;\n    ST480_RB_START := FALSE;\n    ST480_ADH_ON := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST480_CNV_RUN := TRUE;\n            ST480_CLP_CLOSE := FALSE;\n            IF NOT ST480_PRT_PRS THEN\n                (* Den markta detaljen har lamnat stationen. *)\n                xKassera := FALSE;\n            ELSIF NOT xKassera AND NOT ST480_ADH_LOW THEN\n                ST480_CNV_RUN := FALSE;\n                ST480_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Doseringen far borja forst nar fixturen bekraftat att detaljen\n               sitter fast. En strang pa en los detalj hamnar bredvid fogen. *)\n            IF ST480_CLP_CLOSED THEN\n                ST480_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            ST480_ADH_ON := TRUE;\n            IF ST480_RB_DONE THEN\n                (* Ventilen stangs i SAMMA scan som roboten blir klar. Star\n                   den kvar oppen med roboten stilla rinner limmet ut i en\n                   klump som nasta detalj pressar ut i fogen. *)\n                ST480_ADH_ON := FALSE;\n                ST480_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            ST480_CLP_CLOSE := FALSE;\n            steg := 4;\n        4:\n            IF NOT ST480_CLP_CLOSED THEN\n                ST480_CNV_RUN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST480_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Markeringen foljer kassationsbeslutet sa lange nodstoppet ar slutet. En\n   detalj med avbruten strang far aldrig ga vidare omarkt, sa markeringen far\n   inte falla for att larmet kom eller for att nagon kvitterat. *)\nST480_REJ_MARK := xKassera AND EMG_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret ar EMG_OK AND AIR_OK AND SYS_AUTO utan omstartskvittens. Stationen startar da av sig sjalv i samma stund nagon drar upp nodstoppsdonet, med en operator kvar i cellen och roboten redan pa vag ut pa flansen. Samma fel gor att stationen borjar arbeta direkt vid spanningspaslag.",
+        "faller_pa": [
+          "kallstart_utan_sjalvstart@200ms:ST480_CLP_CLOSE",
+          "nodstopp_kraver_kvittens@4000ms:ST480_CNV_RUN"
+        ]
+      }
+    ]
+  }
+}

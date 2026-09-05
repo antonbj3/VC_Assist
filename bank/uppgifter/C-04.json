@@ -333,5 +333,827 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: att aterstallningen av nodstoppsdonet inte i sig far starta om cellen star i ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och i IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" (\"the reset shall not initiate a restart\"). Stoppets art ar ett kategori 2-stopp enligt IEC 60204-1:2016 9.2.2 \"Categories of stop functions\": roboten halls stilla med matningen kvar och lagesbilden behalls. Tidskravet ar raknat ur kedjans egna tider: PLC:ns svarstid 40 ms (tva scan, M-20), utgangsreat 25 ms och stoppgrindens slag 120 ms = 185 ms, sa kravet 0,30 s lamnar 115 ms marginal. Rakningen och paragraferna star i M-106.",
+    "standard": "ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\", 9.2.2 \"Categories of stop functions\" (kategori 0, 1 och 2) och 7.5 \"Protection against the effects of supply interruption or voltage reduction and subsequent restoration\"; TON och R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK OR NOT ST420_LGT_CLEAR THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := tmrSafe.Q;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_kraver_kvittering",
+        "beskrivning": "Cellen far spanning med nodstoppskretsen sluten och ljusridan obruten. Ingen har kvitterat an.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_RB_START": false,
+              "ST420_STA_SAFE": true,
+              "ST420_STP_CLOSE": true,
+              "ST420_GRP_CLOSE": false,
+              "ST420_STA_STEP": 0,
+              "SYS_ALARM": false
+            },
+            "varfor": "en cell som far spanning far inte borja rora sig av sig sjalv (IEC 60204-1:2016 7.5); den star i sakert lage tills nagon kvitterar. Kedjan ar 185 ms, sa vid 300 ms ar sakert lage bekraftat."
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": false,
+              "ST420_STA_SAFE": false,
+              "ST420_RB_START": true,
+              "ST420_STA_STEP": 1
+            },
+            "varfor": "en kvitterad cell far ga, och forst da; kvittensen ar en stigande flank pa SYS_RESET med obruten ljusrida"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_greppet",
+        "beskrivning": "Nodstoppet slas medan roboten bar en konsol i griparen mot fixturen, och cellen aterstartas sedan med en kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST420_GRP_FORCE": 260.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST420_GRP_CLOSE": true,
+              "ST420_STA_STEP": 4,
+              "ST420_RB_START": true,
+              "ST420_RB_HOLD": false,
+              "ST420_STA_SAFE": false
+            },
+            "varfor": "greppet ar uppbyggt till 260 N och cellen bar konsolen mot fixturen; det ar laget dar ett nodstopp gor mest skada"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STP_CLOSE": true,
+              "ST420_GRP_CLOSE": true,
+              "ST420_STA_SAFE": false,
+              "ST420_STA_STEP": 4
+            },
+            "varfor": "hallet och stoppgrinden kommenderas direkt, men sakert lage ar en bekraftelse och inte ett kommando: kedjan ar 40 + 25 + 120 = 185 ms, sa 100 ms efter flanken har grinden inte hunnit sla och cellen far inte redan pasta att den star sakert"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST420_STA_SAFE": true,
+              "ST420_GRP_CLOSE": true,
+              "ST420_STA_STEP": 4,
+              "ST420_RB_START": true,
+              "ST420_RB_HOLD": true
+            },
+            "varfor": "kravet ar 0,30 s och kedjan ar 185 ms, sa 300 ms efter flanken ska sakert lage sta. Lagesbilden ar kvar pa steg 4 och greppet halls: en detalj som tappas i ett nodstopp ar ett varre lage an en som halls kvar."
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_STA_STEP": 4,
+              "ST420_GRP_CLOSE": true,
+              "ST420_RB_START": true
+            },
+            "varfor": "att dra upp nodstoppsdonet ar inget startbesked (ISO 13850:2015 4.1.4 och IEC 60204-1:2016 9.2.3.4.2); en person kan fortfarande sta i cellen"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": false,
+              "ST420_STA_SAFE": false,
+              "ST420_STA_STEP": 4,
+              "ST420_GRP_CLOSE": true,
+              "ST420_RB_START": true
+            },
+            "varfor": "kvittensen slapper hallet och cellen fortsatter fran samma steg 4 med konsolen kvar i griparen"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST420_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST420_GRP_CLOSE": false,
+              "ST420_STA_STEP": 6
+            },
+            "varfor": "cellen kor vidare fran det steg den stod pa och slapper konsolen forst i fixturen, aldrig i stoppet"
+          }
+        ]
+      },
+      {
+        "id": "nodstoppet_aterstalls_utan_kvittering",
+        "beskrivning": "Nodstoppet aterstalls men ingen trycker pa kvitteringsknappen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_STP_CLOSE": true
+            },
+            "varfor": "kedjan ar 185 ms, sa 300 ms efter flanken star sakert lage; kravet 0,30 s lamnar 115 ms marginal"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_RB_START": true,
+              "ST420_STA_STEP": 3,
+              "ST420_GRP_CLOSE": true
+            },
+            "varfor": "cellen star kvar i sakert lage hur lange som helst; ett aterstallt nodstoppsdon ar inget startbesked (ISO 13850:2015 4.1.4)"
+          }
+        ]
+      },
+      {
+        "id": "kvitteringsknappen_star_kvar_hog",
+        "beskrivning": "Kvitteringsknappen har tejpats ned och star hog hela tiden. Nodstoppet slas och aterstalls.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_STP_CLOSE": true
+            },
+            "varfor": "stoppet gar igenom aven med kvitteringsknappen nedtryckt; en knapp som star hog far aldrig hindra ett stopp"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_RB_START": true,
+              "ST420_STA_STEP": 3,
+              "ST420_GRP_CLOSE": true
+            },
+            "varfor": "kvittensen ar en handling och maste lasas som en stigande flank; lases den pa nivan startar cellen i samma stund som nodstoppsdonet dras upp, med knappen fortfarande nedtryckt och ingen som tittat in i cellen"
+          }
+        ]
+      },
+      {
+        "id": "ljusridan_bruten_vid_kvittering",
+        "beskrivning": "Nagon star kvar i ljusridan nar kvitteringsknappen trycks; forst senare ar cellen fri och kvitteras om.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_RB_START": true,
+              "ST420_STA_STEP": 3,
+              "ST420_GRP_CLOSE": true
+            },
+            "varfor": "aterstart kraver bade en stigande flank pa SYS_RESET OCH en obruten ljusrida; en kvittens med nagon kvar i cellen ar ingen kvittens"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST420_LGT_CLEAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true
+            },
+            "varfor": "att ljusridan ater ar obruten ar inte heller ett startbesked; kvittensen maste komma efter att cellen ar fri"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": false,
+              "ST420_STA_SAFE": false,
+              "ST420_RB_START": true,
+              "ST420_STA_STEP": 3
+            },
+            "varfor": "med obruten ljusrida och en ny stigande flank far cellen ga igen, och den fortsatter fran steg 3"
+          }
+        ]
+      },
+      {
+        "id": "greppkraften_sjunker_under_stoppet",
+        "beskrivning": "Greppkraften faller till 30 N under ett langt stopp och kommer sedan tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST420_LGT_CLEAR": true,
+              "ST420_PRT_PRS": false,
+              "ST420_GRP_FORCE": 0.0,
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST420_GRP_FORCE": 260.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST420_STA_SAFE": false,
+              "ST420_RB_HOLD": true,
+              "ST420_GRP_CLOSE": true,
+              "ST420_STA_STEP": 4
+            },
+            "varfor": "185 ms har inte gatt an, sa cellen far inte pasta att den star sakert; hallet daremot ligger direkt"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST420_GRP_FORCE": 30.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST420_GRP_CLOSE": true,
+              "ST420_RB_HOLD": true,
+              "ST420_STA_SAFE": true,
+              "ST420_STA_STEP": 4
+            },
+            "varfor": "30 N racker inte for att halla en konsol pa 2,6 kg. Styrningen larmar och haller anda kvar greppkommandot; att slappa en detalj som redan haller pa att glida ar det varsta den kan gora."
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST420_RB_HOLD": true,
+              "SYS_ALARM": true,
+              "ST420_STA_SAFE": true,
+              "ST420_GRP_CLOSE": true
+            },
+            "varfor": "en kvittens laker inte upp ett larm vars orsak star kvar; greppkraften ar fortfarande 30 N och cellen far inte fortsatta sekvensen"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST420_GRP_FORCE": 260.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST420_RB_HOLD": false,
+              "ST420_STA_SAFE": false,
+              "ST420_GRP_CLOSE": true,
+              "ST420_STA_STEP": 4
+            },
+            "varfor": "forst nar kraften ar tillbaka i spannet 120 till 500 N gar larmet att kvittera, och da fortsatter cellen fran steg 4 med konsolen kvar"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "greppet_behalls_over_stoppet",
+        "sekvens": "nodstopp_mitt_i_greppet",
+        "nar": {
+          "ST420_STA_SAFE": true
+        },
+        "kraver": {
+          "ST420_GRP_CLOSE": true
+        },
+        "varfor": "en detalj som tappas i ett nodstopp ar ett varre lage an en som halls kvar; greppet ska over hela stoppet vara kommenderat slutet"
+      },
+      {
+        "namn": "lagesbilden_ar_kvar_i_sakert_lage",
+        "sekvens": "nodstopp_mitt_i_greppet",
+        "nar": {
+          "ST420_STA_SAFE": true
+        },
+        "kraver": {
+          "ST420_STA_STEP": 4
+        },
+        "varfor": "lagesbilden ar cellens minne av var den var; nollstalls den borjar cellen om fran steg noll med en konsol i griparen"
+      },
+      {
+        "namn": "hallet_ligger_nar_cellen_star_sakert",
+        "sekvens": "*",
+        "nar": {
+          "ST420_STA_SAFE": true
+        },
+        "kraver": {
+          "ST420_RB_HOLD": true
+        },
+        "varfor": "en cell som rapporterar sakert lage men har slappt hallet pa roboten rapporterar nagot den inte har"
+      },
+      {
+        "namn": "stoppgrinden_ar_stangd_i_sakert_lage",
+        "sekvens": "*",
+        "nar": {
+          "ST420_STA_SAFE": true
+        },
+        "kraver": {
+          "ST420_STP_CLOSE": true
+        },
+        "varfor": "sakert lage omfattar inloppet; en oppen stoppgrind slapper in nasta detalj i en cell som star stilla med folk i"
+      },
+      {
+        "namn": "roboten_halls_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST420_RB_HOLD": true,
+          "ST420_STP_CLOSE": true
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den. Att ST420_RB_START star kvar hog ar meningen: stoppet ar ett kategori 2-stopp enligt IEC 60204-1:2016 9.2.2, dar roboten halls stilla med matningen kvar."
+      },
+      {
+        "namn": "ljusridan_bruten_haller_cellen",
+        "sekvens": "*",
+        "nar": {
+          "ST420_LGT_CLEAR": false
+        },
+        "kraver": {
+          "ST420_RB_HOLD": true
+        },
+        "varfor": "en bruten ljusrida betyder att nagon ar inne i cellen; da far hallet aldrig slappa, oavsett vad kvitteringsknappen gor"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "sakert_lage_bekraftas_en_gang",
+        "sekvens": "kallstart_kraver_kvittering",
+        "signal": "ST420_STA_SAFE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 600,
+        "antal": 1,
+        "varfor": "kallstarten ska ge exakt en bekraftelse pa sakert lage, 185 ms in i uppstarten; noll betyder att signalen laggs pa kommandot i stallet for efter kedjan"
+      },
+      {
+        "namn": "en_robotcykel_over_stoppet",
+        "sekvens": "nodstopp_mitt_i_greppet",
+        "signal": "ST420_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2500,
+        "antal": 1,
+        "varfor": "ett nodstopp mitt i en cykel far inte ge en ny robotcykel. En styrning som nollstaller lagesbilden borjar om fran steg noll med konsolen kvar i griparen, och det syns som en andra start."
+      },
+      {
+        "namn": "en_bekraftelse_per_stopp",
+        "sekvens": "nodstopp_mitt_i_greppet",
+        "signal": "ST420_STA_SAFE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2500,
+        "antal": 1,
+        "varfor": "ett stopp ska ge en bekraftelse; flera betyder att sakert lage fladdrar och att ingen vet vilken av dem som galler"
+      },
+      {
+        "namn": "ingen_start_utan_kvittering",
+        "sekvens": "nodstoppet_aterstalls_utan_kvittering",
+        "signal": "ST420_RB_HOLD",
+        "typ": "FALL",
+        "fran_ms": 700,
+        "till_ms": 2600,
+        "antal": 0,
+        "varfor": "hallet slapper bara pa en kvittens; en enda fallande flank i fonstret betyder att cellen startade av sig sjalv nar nodstoppet aterstalldes"
+      },
+      {
+        "namn": "ingen_start_pa_en_kvarhallen_knapp",
+        "sekvens": "kvitteringsknappen_star_kvar_hog",
+        "signal": "ST420_RB_HOLD",
+        "typ": "FALL",
+        "fran_ms": 700,
+        "till_ms": 1600,
+        "antal": 0,
+        "varfor": "en kvitteringsknapp som star kvar hog ar ingen handling; en fallande flank pa hallet i fonstret betyder att aterstarten lastes pa nivan i stallet for pa flanken"
+      },
+      {
+        "namn": "ingen_start_med_bruten_ljusrida",
+        "sekvens": "ljusridan_bruten_vid_kvittering",
+        "signal": "ST420_RB_HOLD",
+        "typ": "FALL",
+        "fran_ms": 700,
+        "till_ms": 2500,
+        "antal": 0,
+        "varfor": "sa lange ljusridan ar bruten far hallet inte slappa, och en kvittens som ges medan den ar bruten far inte heller verka nar den sedan blir hel"
+      },
+      {
+        "namn": "larmet_latchas_en_gang",
+        "sekvens": "greppkraften_sjunker_under_stoppet",
+        "signal": "SYS_ALARM",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "greppkraften faller en gang och larmet ska latchas en gang; ett larm som sjalvt gar ned nar kraften pendlar kring gransen ar inget larm"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "aterstart_pa_nivan_hos_kvitteringsknappen",
+        "st": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF SYS_RESET AND EMG_OK AND ST420_LGT_CLEAR THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK OR NOT ST420_LGT_CLEAR THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := tmrSafe.Q;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Aterstarten laser NIVAN pa SYS_RESET i stallet for den stigande flanken. Cellen ser felfri ut sa lange operatoren trycker och slapper, och startar av sig sjalv i samma stund som nodstoppsdonet dras upp den dag knappen har tejpats ned eller hangt sig hog.",
+        "faller_pa": [
+          "kvitteringsknappen_star_kvar_hog@1600ms:ST420_RB_HOLD",
+          "kvitteringsknappen_star_kvar_hog@1600ms:ST420_STA_SAFE",
+          "flank:ingen_start_pa_en_kvarhallen_knapp"
+        ]
+      },
+      {
+        "namn": "lagesbilden_nollstalls_vid_nodstopp",
+        "st": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK OR NOT ST420_LGT_CLEAR THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    (* Sakert lage betyder att allting slappes och att cellen borjar om. *)\n    ST420_RB_START := FALSE;\n    ST420_GRP_CLOSE := FALSE;\n    steg := 0;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := tmrSafe.Q;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stoppgrenen nollstaller steget och slapper bade robotstarten och greppet, i tron att sakert lage betyder utgangslage. Cellen borjar om fran steg noll med en konsol som ligger kvar i fixturen eller pa golvet, och en halvt utford rorelse aterupptas fran fel stalle.",
+        "faller_pa": [
+          "nodstopp_mitt_i_greppet@900ms:ST420_STA_STEP",
+          "invariant:lagesbilden_ar_kvar_i_sakert_lage@nodstopp_mitt_i_greppet",
+          "flank:en_robotcykel_over_stoppet"
+        ]
+      },
+      {
+        "namn": "ljusridan_ar_inte_forreglad",
+        "st": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF trigReset.Q AND EMG_OK THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := tmrSafe.Q;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Ljusridan lases aldrig av styrningen. Aterstarten kraver bara en flank pa kvitteringsknappen, sa cellen gar igen med nagon kvar innanfor ridan. Felet syns aldrig sa lange kvitteringen sker fran en panel utanfor cellen.",
+        "faller_pa": [
+          "ljusridan_bruten_vid_kvittering@1600ms:ST420_RB_HOLD",
+          "ljusridan_bruten_vid_kvittering@1600ms:ST420_STA_SAFE",
+          "invariant:ljusridan_bruten_haller_cellen@ljusridan_bruten_vid_kvittering",
+          "flank:ingen_start_med_bruten_ljusrida"
+        ]
+      },
+      {
+        "namn": "griparen_slapper_i_sakert_lage",
+        "st": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK OR NOT ST420_LGT_CLEAR THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    (* Sakert lage = ingen kraft pa nagot don. *)\n    ST420_GRP_CLOSE := FALSE;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := tmrSafe.Q;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stoppgrenen oppnar griparen, i tron att sakert lage betyder att inget don far vara kommenderat. Konsolen pa 2,6 kg faller ur griparen mitt i cellen, och den kan falla pa den person nodstoppet slogs for.",
+        "faller_pa": [
+          "nodstopp_mitt_i_greppet@900ms:ST420_GRP_CLOSE",
+          "nodstopp_mitt_i_greppet@1100ms:ST420_GRP_CLOSE",
+          "invariant:greppet_behalls_over_stoppet@nodstopp_mitt_i_greppet"
+        ]
+      },
+      {
+        "namn": "sakert_lage_meddelas_pa_kommandot",
+        "st": "PROGRAM ST420_CELLSTOPP\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrSafe      : TON;\n    tmrRor       : TON;\n    xStopp       : BOOL := FALSE;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDriftsklar  : BOOL := FALSE;\n    xRor         : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST420_LGT_CLEAR ligger pa sakerhets-PLC och lases bara har.\n   Den har logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV\n   den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen ar en HANDLING och lases som en stigande flank. Nivan racker\n   inte: en kvitteringsknapp som star kvar hog skulle starta cellen i samma\n   stund som nodstoppsdonet dras upp, och just det forbjuder ISO 13850:2015\n   4.1.4 och IEC 60204-1:2016 9.2.3.4.2. Aterstart kraver dessutom en\n   obruten ljusrida. *)\nIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR THEN\n    xStopp := FALSE;\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Stopptillstandet latchas. Cellen vaknar dessutom med xKravOmstart hog, sa\n   den startar inte heller nar spanningen kommer tillbaka\n   (IEC 60204-1:2016 7.5). *)\nIF NOT EMG_OK OR NOT ST420_LGT_CLEAR THEN\n    xStopp := TRUE;\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Greppet halls av tryckluft och kraften kan sjunka under ett langt stopp.\n   En konsol pa 2,6 kg kraver minst 120 N och deformeras over 500 N.\n   Kraften provas forst nar greppet ar uppbyggt, alltsa fran steg 4. *)\nIF ST420_GRP_CLOSE AND steg >= 4\n        AND (ST420_GRP_FORCE < 120.0 OR ST420_GRP_FORCE > 500.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Ett steg utanfor sekvensen 0 till 7 gar inte att fortsatta fran. *)\nIF steg < 0 OR steg > 7 THEN\n    xLarm := TRUE;\n    xStopp := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp\n        AND NOT xKravOmstart AND NOT xLarm;\n\n(* Sakert lage ar en BEKRAFTELSE och inte ett kommando. Kedjan ar PLC:ns\n   svarstid 40 ms, utgangsrelat 25 ms och stoppgrindens slag 120 ms, alltsa\n   185 ms. Forst da star cellen verkligen still med grinden slagen. Kravet\n   0,30 s lamnar 115 ms marginal. *)\ntmrSafe(IN := NOT xDriftsklar, PT := T#185ms);\n\n(* Sekvensen stegas BARA nar cellen ar driftsklar. Den nollstalls aldrig av\n   ett stopp: steget ar cellens lagesbild, och en cell som borjar om fran\n   noll med en detalj i griparen ar farligare an en som star still. *)\nxRor := xDriftsklar AND (steg = 1 OR steg = 4 OR steg = 6);\ntmrRor(IN := xRor, PT := T#400ms);\n\nIF xDriftsklar THEN\n    CASE steg OF\n        0:\n            (* Tomgang: fixturen ar tom och roboten far hamta en konsol. *)\n            ST420_GRP_CLOSE := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                ST420_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Roboten gar till hamtlaget bakom stoppgrinden. *)\n            IF tmrRor.Q THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen sluts om konsolen. *)\n            ST420_GRP_CLOSE := TRUE;\n            steg := 3;\n        3:\n            (* Greppet ska byggas upp till minst 120 N fore lyftet. *)\n            IF ST420_GRP_FORCE >= 120.0 THEN\n                steg := 4;\n            END_IF;\n        4:\n            (* Roboten bar konsolen till fixturen. *)\n            IF tmrRor.Q THEN\n                steg := 5;\n            END_IF;\n        5:\n            (* Konsolen sitter i fixturen och greppet far slappa. *)\n            IF ST420_PRT_PRS THEN\n                ST420_GRP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            (* Roboten gar tillbaka till hemlaget. *)\n            IF tmrRor.Q THEN\n                steg := 7;\n            END_IF;\n        7:\n            (* Cykeln ar klar och robotprogrammet stoppas forst har. *)\n            ST420_RB_START := FALSE;\n            IF NOT ST420_PRT_PRS THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Roboten halls stilla med matningen kvar och lagesbilden behallen: ett\n   kategori 2-stopp enligt IEC 60204-1:2016 9.2.2. Robotprogrammet stoppas\n   inte, det halls. *)\nST420_RB_HOLD := NOT xDriftsklar;\n\n(* Stoppgrinden stangs vid stopp och haller dessutom tillbaka nasta detalj\n   sa lange cellen arbetar med en. *)\nST420_STP_CLOSE := (NOT xDriftsklar) OR (steg > 0);\n\nST420_STA_SAFE := NOT xDriftsklar;\nST420_STA_STEP := steg;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST420_STA_SAFE laggs i samma scan som stoppet kommenderas. Signalen rapporterar da att kommandot ar givet, inte att cellen star sakert: utgangsrelat drar pa 25 ms och stoppgrindens slag tar 120 ms, sa inloppet star oppet i minst 145 ms efter att cellen sagt att den ar saker.",
+        "faller_pa": [
+          "nodstopp_mitt_i_greppet@900ms:ST420_STA_SAFE",
+          "greppkraften_sjunker_under_stoppet@900ms:ST420_STA_SAFE"
+        ]
+      }
+    ]
+  }
 }

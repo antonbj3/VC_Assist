@@ -278,7 +278,7 @@
     },
     "interlocks": [
       "ST530_LFT_UP och ST530_LFT_DOWN far aldrig vara hoga samtidigt",
-      "hissen far aldrig ro sig nar ST530_PEC_CAR och ST530_PEC_IN ar hoga samtidigt",
+      "hissen far aldrig rora sig nar ST530_PEC_CAR och ST530_PEC_IN ar hoga samtidigt",
       "ST530_CNV_IN far aldrig ga nar korgen inte star i ST530_LFT_BOT",
       "inget don far kommenderas nar EMG_OK ar lag",
       "ingen ny inmatning forran korgen ar tom och tillbaka i nedre andlaget"

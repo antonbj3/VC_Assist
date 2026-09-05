@@ -295,5 +295,985 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: buffertens langd och genomloppstid ur lastbararens egna matt. Tolv VDA KLT 6147 pa 600 mm blir 12*600 = 7200 mm buffertlangd, och vid 24 m/min = 0,4 m/s tar en tom buffert 7,2/0,4 = 18,0 s att kora igenom. Utloppets takt 8,0 s per lastbarare ar 3600/8,0 = 450 lastbarare i timmen. Rakningen star i M-106.",
+    "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"); ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet. Facit domer darfor att ingen grind rors medan EMG_OK ar lag och att stoppet varken i sig satter bufferten i drift igen eller nollstaller raknaren. Tidsovervakningen av uppehallet ar en TON och flankdetekteringen pa in- och utloppsfotocellerna R_TRIG respektive F_TRIG ur IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Hysteresen 12/11 ar INTE hamtad ur nagon standard: den ar stationens egen och star i uppgiftens egen text, liksom kravet att kvittensen ges pa lastbararens fallande flank och inte pa begaran.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF trigIn.Q THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := (antal >= 1) AND (ST040_WGT_LOAD < (4.0 * antal));\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nELSIF antal <= 11 THEN\n    xFull := FALSE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                ST040_DEM_ACK := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "raknaren_foljer_flanker",
+        "beskrivning": "Tolv lastbarare fyller bufferten, inflodet stoppas vid 12, en slapps ut och inflodet oppnar vid 11.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST040_WGT_LOAD": 0.0,
+              "ST040_PEC_IN": false,
+              "ST040_PEC_OUT": false,
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 28.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6100,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 38.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7600,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7800,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 47.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9300,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9500,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 57.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11000,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11200,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 66.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12700,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12900,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 76.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14400,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14600,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 85.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 16100,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 16300,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 95.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 17800,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 104.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19700,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 114.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 21200,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5000,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 3,
+              "ST040_BUF_FULL": false,
+              "ST040_STP_IN_OPEN": true
+            },
+            "varfor": "tre stigande flanker pa inloppsfotocellen ar tre lastbarare; de fallande flankerna raknas inte och de 75 scan stralen star bruten per lastbarare far inte ge 75 steg"
+          },
+          {
+            "t_ms": 19000,
+            "satt": {
+              "ST040_PEC_OUT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19800,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 12,
+              "ST040_BUF_FULL": true,
+              "ST040_STP_IN_OPEN": false
+            },
+            "varfor": "tolfte lastbararen fyller de 12*600 = 7200 mm bufferten; inflodet ska stoppas i samma scan som raknaren nar 12"
+          },
+          {
+            "t_ms": 21400,
+            "satt": {
+              "ST040_DEM_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 21800,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": false,
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "0,40 s efter begaran ar uppehallet 0,60 s inte fullgjort; lastbararen ska sta still innan grinden oppnar, annars rullar den ivag pa banans efterslapning"
+          },
+          {
+            "t_ms": 22100,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": true,
+              "ST040_DEM_ACK": false,
+              "ST040_BUF_COUNT": 12
+            },
+            "varfor": "efter uppehallet 0,60 s oppnar utloppsgrinden, men kvittensen hor till lastbararen och far inte ges nar grinden oppnar; raknaren star kvar pa 12 tills lastbararen verkligen lamnat"
+          },
+          {
+            "t_ms": 22400,
+            "satt": {
+              "ST040_PEC_OUT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 22500,
+            "satt": {},
+            "krav": {
+              "ST040_DEM_ACK": true,
+              "ST040_BUF_COUNT": 11,
+              "ST040_BUF_FULL": false,
+              "ST040_STP_IN_OPEN": true,
+              "ST040_STP_OUT_OPEN": false
+            },
+            "varfor": "pa utloppsfotocellens fallande flank har lastbararen lamnat: da ges kvittensen, raknaren gar till 11 och inflodet slapps in igen enligt hysteresen 12/11"
+          },
+          {
+            "t_ms": 22700,
+            "satt": {
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 22900,
+            "satt": {},
+            "krav": {
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "kvittensen slapps nar begaran slapps, sa nasta begaran blir en ny handskakning och inte en kvarstaende hog signal"
+          }
+        ]
+      },
+      {
+        "id": "stoppet_nollstaller_inte_raknaren",
+        "beskrivning": "Tre lastbarare in, nodstoppet bryts och aterstalls. Raknaren ar bokforing och overlever stoppet.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST040_WGT_LOAD": 0.0,
+              "ST040_PEC_IN": false,
+              "ST040_PEC_OUT": false,
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 28.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 3,
+              "ST040_STP_IN_OPEN": true,
+              "ST040_BUF_FULL": false
+            },
+            "varfor": "tre stigande flanker ger tre lastbarare i bufferten"
+          },
+          {
+            "t_ms": 6200,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6300,
+            "satt": {},
+            "krav": {
+              "ST040_STP_IN_OPEN": false,
+              "ST040_STP_OUT_OPEN": false,
+              "ST040_DEM_ACK": false,
+              "ST040_BUF_COUNT": 3
+            },
+            "varfor": "ett brutet nodstopp tar bort varje grindkommando i samma scan, men raknaren ar bokforing och inget don: de tre lastbararna star kvar i banan och styrningen far inte glomma dem"
+          },
+          {
+            "t_ms": 7000,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7400,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 3,
+              "ST040_STP_IN_OPEN": true
+            },
+            "varfor": "en raknare som nollstalls av ett stopp far bufferten att tro sig tom, och styrningen slapper in tolv nya lastbarare i en bana som redan bar tre"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hor_till_lastbararen",
+        "beskrivning": "Begaran slapps innan lastbararen hunnit ut. Utslappet ska anda fullfoljas och kvitteras.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST040_WGT_LOAD": 0.0,
+              "ST040_PEC_IN": false,
+              "ST040_PEC_OUT": false,
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 1,
+              "ST040_STP_IN_OPEN": true,
+              "ST040_BUF_FULL": false,
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "en lastbarare in ger ett steg pa raknaren och inget mer"
+          },
+          {
+            "t_ms": 19000,
+            "satt": {
+              "ST040_PEC_OUT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19200,
+            "satt": {
+              "ST040_DEM_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19500,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": false
+            },
+            "varfor": "lastbararen gick in vid 1,0 s och nar utloppet 18,0 s senare; 0,30 s efter begaran ar uppehallet 0,60 s inte fullgjort"
+          },
+          {
+            "t_ms": 19900,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": true,
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "efter 0,60 s stillastaende oppnar utloppsgrinden; kvittensen har inte givits an eftersom lastbararen fortfarande bryter utloppsfotocellen"
+          },
+          {
+            "t_ms": 20000,
+            "satt": {
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20400,
+            "satt": {
+              "ST040_PEC_OUT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20500,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": false,
+              "ST040_BUF_COUNT": 0,
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "utslappet fullfoljdes aven sedan begaran slapptes; raknaren gick till noll pa fotocellens fallande flank och kvittensen har redan givits och slappts igen eftersom begaran var borta"
+          }
+        ]
+      },
+      {
+        "id": "vikten_motsager_raknaren",
+        "beskrivning": "Vagcellen visar 2,0 kg medan raknaren star pa sju lastbarare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST040_WGT_LOAD": 0.0,
+              "ST040_PEC_IN": false,
+              "ST040_PEC_OUT": false,
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 28.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6100,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 38.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7600,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7800,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 47.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9300,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9500,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 57.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11000,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11200,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 66.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12700,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 13000,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 7,
+              "ST040_STP_IN_OPEN": true
+            },
+            "varfor": "sju stigande flanker ger sju lastbarare, och vagcellen foljer med upp till 7*9,5 = 66,5 kg"
+          },
+          {
+            "t_ms": 19000,
+            "satt": {
+              "ST040_PEC_OUT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19200,
+            "satt": {
+              "ST040_WGT_LOAD": 2.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19400,
+            "satt": {
+              "ST040_DEM_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20200,
+            "satt": {},
+            "krav": {
+              "ST040_STP_OUT_OPEN": false,
+              "ST040_DEM_ACK": false
+            },
+            "varfor": "uppehallet 0,60 s har lopt ut men vagcellen sager 2,0 kg medan raknaren sager sju lastbarare, alltsa 7*9,5 = 66,5 kg; bada kan inte ha ratt och styrningen far inte slappa ut lastbarare pa en rakning den inte kan lita pa"
+          }
+        ]
+      },
+      {
+        "id": "overlast_stoppar_inflodet",
+        "beskrivning": "Lasten pa banan nar 150 kg, over hogsta tillatna 130 kg, med bara en lastbarare raknad.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST040_WGT_LOAD": 0.0,
+              "ST040_PEC_IN": false,
+              "ST040_PEC_OUT": false,
+              "ST040_DEM_REQ": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST040_PEC_IN": true,
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST040_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_COUNT": 1,
+              "ST040_BUF_FULL": false,
+              "ST040_STP_IN_OPEN": true
+            },
+            "varfor": "en lastbarare pa 9,5 kg ligger langt under bade platsrakningen och lastgransen"
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST040_WGT_LOAD": 150.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_FULL": true,
+              "ST040_STP_IN_OPEN": false
+            },
+            "varfor": "150 kg ligger over banans hogsta tillatna last 130 kg; lastgransen ar hardare an platsrakningen och stoppar inflodet aven nar raknaren bara star pa 1"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "ST040_WGT_LOAD": 9.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {},
+            "krav": {
+              "ST040_BUF_FULL": false,
+              "ST040_STP_IN_OPEN": true
+            },
+            "varfor": "nar lasten ar tillbaka under gransen slapps inflodet in igen; overlasten ar ett matt tillstand och inget latchat fel"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "inget_inflode_nar_bufferten_ar_full",
+        "sekvens": "*",
+        "nar": {
+          "ST040_BUF_FULL": true
+        },
+        "kraver": {
+          "ST040_STP_IN_OPEN": false
+        },
+        "varfor": "en trettonde lastbarare i en buffert med tolv platser trycker upp mot den tolfte och bygger last mot utloppsgrinden; meddelandet uppstroms och grinden maste saga samma sak"
+      },
+      {
+        "namn": "ingen_kvittens_med_bruten_fotocell",
+        "sekvens": "*",
+        "nar": {
+          "ST040_DEM_ACK": true
+        },
+        "kraver": {
+          "ST040_PEC_OUT": false
+        },
+        "varfor": "kvittensen sager att lastbararen HAR lamnat utloppet; ges den medan fotocellen fortfarande ar bruten borjar nedstroms station rakna med en lastbarare som annu star kvar i grinden"
+      },
+      {
+        "namn": "ingen_grind_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST040_STP_IN_OPEN": false,
+          "ST040_STP_OUT_OPEN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen, men den maste vara forreglad av den: ingen grind kommenderad medan kretsen ar bruten"
+      },
+      {
+        "namn": "overlasten_stoppar_inflodet",
+        "sekvens": "*",
+        "nar": {
+          "ST040_WGT_LOAD": 150.0
+        },
+        "kraver": {
+          "ST040_STP_IN_OPEN": false,
+          "ST040_BUF_FULL": true
+        },
+        "varfor": "150 kg pa banan ligger over hogsta tillatna 130 kg; da ska inflodet stoppas och ST040_BUF_FULL sagas ifran uppstroms oavsett vad platsrakningen sager"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "inloppet_stangs_en_gang",
+        "sekvens": "raknaren_foljer_flanker",
+        "signal": "ST040_STP_IN_OPEN",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 21000,
+        "antal": 1,
+        "varfor": "under pafyllningen ska inloppsgrinden stangas exakt en gang, vid den tolfte lastbararen; flera stangningar betyder att raknaren rakat over 12 flera ganger eller att grinden fladdrar kring gransen"
+      },
+      {
+        "namn": "bufferten_blir_full_en_gang",
+        "sekvens": "raknaren_foljer_flanker",
+        "signal": "ST040_BUF_FULL",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 21000,
+        "antal": 1,
+        "varfor": "meddelandet uppstroms ska ga en gang nar bufferten fyllts; en signal som fladdrar upp och ner gor att uppstroms station startar och stannar i takt med raknarens brus"
+      },
+      {
+        "namn": "en_grindoppning_per_begaran",
+        "sekvens": "raknaren_foljer_flanker",
+        "signal": "ST040_STP_OUT_OPEN",
+        "typ": "RISE",
+        "fran_ms": 21000,
+        "till_ms": 23000,
+        "antal": 1,
+        "varfor": "en begaran ska slappa ut exakt en lastbarare; tva oppningar pa samma begaran slapper ut tva och nedstroms station far en den inte bett om"
+      },
+      {
+        "namn": "en_kvittens_per_utslapp",
+        "sekvens": "raknaren_foljer_flanker",
+        "signal": "ST040_DEM_ACK",
+        "typ": "RISE",
+        "fran_ms": 21000,
+        "till_ms": 23000,
+        "antal": 1,
+        "varfor": "kvittensen ska ges en gang per lastbarare som lamnat, pa utloppsfotocellens fallande flank"
+      },
+      {
+        "namn": "kvittens_aven_utan_kvarstaende_begaran",
+        "sekvens": "kvittensen_hor_till_lastbararen",
+        "signal": "ST040_DEM_ACK",
+        "typ": "RISE",
+        "fran_ms": 19000,
+        "till_ms": 21000,
+        "antal": 1,
+        "varfor": "kvittensen hor till lastbararen, inte till begaran: aven nar ST040_DEM_REQ slappts innan lastbararen hunnit ut ska kvittensen ges pa fotocellens fallande flank"
+      },
+      {
+        "namn": "inget_utslapp_under_stopp",
+        "sekvens": "stoppet_nollstaller_inte_raknaren",
+        "signal": "ST040_STP_OUT_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 7400,
+        "antal": 0,
+        "varfor": "ingen begaran har kommit och nodstoppet har varit brutet; utloppsgrinden far inte oppna en enda gang"
+      },
+      {
+        "namn": "inget_utslapp_pa_otillforlitlig_rakning",
+        "sekvens": "vikten_motsager_raknaren",
+        "signal": "ST040_STP_OUT_OPEN",
+        "typ": "RISE",
+        "fran_ms": 19000,
+        "till_ms": 20400,
+        "antal": 0,
+        "varfor": "med 2,0 kg pa vagcellen och sju raknade lastbarare far grinden inte oppna en enda gang; en styrning som slapper ut pa rakningen slapper ut lastbarare som kanske inte finns"
+      },
+      {
+        "namn": "bufferten_full_pa_overlast",
+        "sekvens": "overlast_stoppar_inflodet",
+        "signal": "ST040_BUF_FULL",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 4400,
+        "antal": 1,
+        "varfor": "overlasten ska ge exakt en full-signal och slappa den nar lasten ar tillbaka under gransen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "raknar_pa_niva_inte_pa_flank",
+        "st": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF ST040_PEC_IN THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := (antal >= 1) AND (ST040_WGT_LOAD < (4.0 * antal));\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nELSIF antal <= 11 THEN\n    xFull := FALSE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                ST040_DEM_ACK := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Raknaren okas sa lange inloppsfotocellen ar bruten i stallet for pa dess stigande flank. En lastbarare pa 600 mm haller stralen bruten i 1,5 s, alltsa 75 scan, och raknas darmed 75 ganger; bufferten tror sig full nastan direkt och linan tappar sin kapacitet utan att nagot larm gar.",
+        "faller_pa": [
+          "raknaren_foljer_flanker@5000ms:ST040_BUF_COUNT",
+          "raknaren_foljer_flanker@19800ms:ST040_BUF_COUNT",
+          "stoppet_nollstaller_inte_raknaren@6000ms:ST040_BUF_COUNT"
+        ]
+      },
+      {
+        "namn": "inflodet_oppnar_inte_igen_vid_11",
+        "st": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF trigIn.Q THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := (antal >= 1) AND (ST040_WGT_LOAD < (4.0 * antal));\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                ST040_DEM_ACK := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Full-signalen latchas och slapper aldrig. Bufferten sager full for alltid sa fort den varit full en gang, inloppsgrinden star kvar stangd aven nar en plats frigjorts, och hela linan uppstroms star still mot en buffert med elva lastbarare i.",
+        "faller_pa": [
+          "raknaren_foljer_flanker@22500ms:ST040_BUF_FULL",
+          "raknaren_foljer_flanker@22500ms:ST040_STP_IN_OPEN",
+          "overlast_stoppar_inflodet@4400ms:ST040_BUF_FULL",
+          "overlast_stoppar_inflodet@4400ms:ST040_STP_IN_OPEN"
+        ]
+      },
+      {
+        "namn": "kvitterar_nar_grinden_oppnar",
+        "st": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF trigIn.Q THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := (antal >= 1) AND (ST040_WGT_LOAD < (4.0 * antal));\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nELSIF antal <= 11 THEN\n    xFull := FALSE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                ST040_DEM_ACK := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST040_DEM_ACK ges nar utloppsgrinden oppnas i stallet for nar lastbararen faktiskt lamnat. Nedstroms station borjar rakna med en lastbarare som annu star kvar i grinden, och vid ett stopp mitt i utslappet har den kvitterat en lastbarare som aldrig kom.",
+        "faller_pa": [
+          "raknaren_foljer_flanker@22100ms:ST040_DEM_ACK",
+          "kvittensen_hor_till_lastbararen@19900ms:ST040_DEM_ACK",
+          "invariant:ingen_kvittens_med_bruten_fotocell@raknaren_foljer_flanker"
+        ]
+      },
+      {
+        "namn": "raknaren_nollstalls_av_stopp",
+        "st": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF trigIn.Q THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := (antal >= 1) AND (ST040_WGT_LOAD < (4.0 * antal));\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nELSIF antal <= 11 THEN\n    xFull := FALSE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    antal := 0;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                ST040_DEM_ACK := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Raknaren nollstalls sa fort stationen inte ar driftsklar. Efter ett nodstopp tror bufferten sig tom fast den bar tre lastbarare, slapper in tolv till och trycker ihop banan mot utloppsgrinden.",
+        "faller_pa": [
+          "stoppet_nollstaller_inte_raknaren@6300ms:ST040_BUF_COUNT",
+          "stoppet_nollstaller_inte_raknaren@7400ms:ST040_BUF_COUNT"
+        ]
+      },
+      {
+        "namn": "litar_blint_pa_raknaren",
+        "st": "PROGRAM ST040_ACKBUFFERT\nVAR\n    steg        : INT := 0;\n    antal       : INT := 0;\n    trigIn      : R_TRIG;\n    trigUt      : F_TRIG;\n    tmrStill    : TON;\n    xVantar     : BOOL := FALSE;\n    xFull       : BOOL := FALSE;\n    xViktfel    : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK lases bara. Logiken bar ingen sakerhetsfunktion; den ar forreglad AV\n   nodstoppskretsen. *)\n\n(* Rakningen sker pa FLANKER, aldrig pa nivaer. En lastbarare pa 600 mm haller\n   inloppsfotocellens stralen bruten i 600/400 = 1,5 s, alltsa 75 scan; raknas\n   nivan okas raknaren en gang per scan och bufferten tror sig full langt innan\n   den ar det. Utgangen raknas ner pa FALLANDE flank, alltsa nar lastbararen\n   verkligen lamnat utloppet. *)\ntrigIn(CLK := ST040_PEC_IN);\ntrigUt(CLK := ST040_PEC_OUT);\n\nIF trigIn.Q THEN\n    antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n    antal := antal - 1;\nEND_IF;\nST040_BUF_COUNT := antal;\n\n(* Vikten och rakningen ska ga ihop. En tom KLT 6147 vager drygt 1,5 kg och en\n   fylld 9,5 kg, sa under 4,0 kg per raknad lastbarare kan bara en av dem ha\n   ratt. Da far ingen lastbarare slappas ut pa en rakning styrningen inte kan\n   lita pa. Raknaren nollstalls INTE: den ar bokforing, inte ett don. *)\nxViktfel := FALSE;\n\n(* Hysteresen 12/11 ar stationens egen: full vid 12 platser om 600 mm, alltsa\n   12*600 = 7200 mm buffert, och inflodet slapps in igen forst nar antalet\n   fallit till 11. Lastgransen 130 kg ar hardare an platsrakningen. *)\nIF (antal >= 12) OR (ST040_WGT_LOAD > 130.0) THEN\n    xFull := TRUE;\nELSIF antal <= 11 THEN\n    xFull := FALSE;\nEND_IF;\nST040_BUF_FULL := xFull;\n\nxDriftsklar := EMG_OK AND NOT xViktfel;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\n\n(* Lastbararen ska sta stilla 0,60 s innan utloppsgrinden oppnar, langre an\n   rullbanans efterslapning vid 24 m/min = 0,4 m/s. *)\nxVantar := (steg = 1);\ntmrStill(IN := xVantar, PT := T#600ms);\n\nIF NOT xDriftsklar THEN\n    ST040_STP_OUT_OPEN := FALSE;\n    ST040_DEM_ACK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST040_STP_OUT_OPEN := FALSE;\n            IF ST040_DEM_REQ AND ST040_PEC_OUT AND (antal > 0) THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrStill.Q THEN\n                ST040_STP_OUT_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigUt.Q THEN\n                ST040_STP_OUT_OPEN := FALSE;\n                ST040_DEM_ACK := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST040_DEM_REQ THEN\n                ST040_DEM_ACK := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vagcellen lases aldrig mot raknaren. Star raknaren pa sju lastbarare medan banan bar 2,0 kg slapper styrningen anda ut pa begaran, alltsa pa en rakning som bevisligen inte stammer med vad som faktiskt star i banan.",
+        "faller_pa": [
+          "vikten_motsager_raknaren@20200ms:ST040_STP_OUT_OPEN",
+          "flank:inget_utslapp_pa_otillforlitlig_rakning"
+        ]
+      }
+    ]
+  }
 }

@@ -1,0 +1,1544 @@
+{
+  "task_id": "S-07",
+  "title": "Print-and-apply etikettering med verifieringslasare",
+  "goal": "Etikettera wellpappkartonger i 30 kartongers takt och verifiera varje etikett mot GS1:s minsta symbolkvalitet, sa att ingen kartong passerar olast, ingen etikett stamplas innan skrivaren ar klar och tre underkanda etiketter i rad stoppar stationen i stallet for att kasseras en och en.",
+  "grupp": "S",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar fyra missar pa print-and-apply-linjer. Den forsta: stampelarmet kommenderas i samma steg som utskriften bestalls, sa efter ett rullbyte gar stampeln mot en tom dyna och trycker lim rakt mot wellpappen. Den andra: kartongen slapps vidare nar verifieraren inte svarar, sa ett kolli utan verifierad etikett gar till kunden och ingen kan spara det. Den tredje: utskjutaren forreglas inte av tryckluften, sa kommandot ligger kvar under luftbortfallet och slar ut fel kartong nar luften kommer tillbaka. Den fjarde: underkanda etiketter kasseras en och en utan att nagon raknar dem, sa ett slut skrivhuvud ser ut som normal drift anda tills nagon oppnar kassationsladan.",
+  "prompt": "Bygg en print-and-apply etiketteringsstation med verifieringslasare och skriv\nstyrningen till den.\n\nScen: en bandtransportor med 600 mm bandbredd, en print-and-apply etikettmaskin med\nstampelarm, en genomgaende fotocell som ser kartongens framkant, en verifieringslasare\nsom betygsatter etiketten, en pneumatisk utskjutare och en kassationslada, samt\nnodstoppskretsen. Kartongen ar en wellpappkartong 400 x 300 x 250 mm som vager 8,5 kg.\nBandet gar 0,5 m/s och takten ar 30 kartonger per minut, alltsa en kartong var 2,0 s.\nStampelarmets slag ar 150 mm vid 0,6 m/s.\n\nUppgift, sekvensen:\n1. Pa kartongens framkant: satt ST510_LBL_PRINT hog och bestall en etikett.\n2. Nar ST510_PRN_READY ar hog: nollstall ST510_LBL_PRINT och satt ST510_LBL_APPLY hog.\n3. Vid ST510_LBL_APPLIED: nollstall ST510_LBL_APPLY och satt ST510_SCN_TRIG hog.\n4. Vid ST510_SCN_DONE: nollstall ST510_SCN_TRIG och dom etiketten pa ST510_SCN_GRADE.\n5. Ar etiketten underkand: skjut ut kartongen med ST510_PSH_REJ tills ST510_PSH_HOME\n   slappt, och slapp sedan kommandot sa cylindern gar tillbaka.\n\nUppgift, de fyra kraven som gor stationen driftsatt:\n* Stampeln kraver skrivaren. ST510_LBL_APPLY far aldrig ga hog innan ST510_PRN_READY\n  ar hog; ett slag mot en tom dyna trycker lim mot wellpappen och river av nasta\n  etikett i mataren.\n* Utskjutaren kraver tryckluft. ST510_PSH_REJ far aldrig kommenderas nar AIR_OK ar lag.\n* Ingen kartong far passera olast. Uteblir ST510_SCN_DONE ska kartongen kasseras, inte\n  slappas vidare.\n* Tre kartonger i rad under betygsgransen ska larma, inte bara kasseras en och en.\n  Tre underkanda etiketter i rad betyder ett slut eller smutsigt skrivhuvud.\n\nST510_SCN_GRADE ar lasarens symbolbetyg enligt ISO/IEC 15416 pa skalan 4,0 till 0,0.\nKravet ar minst 1,5, alltsa betyg C. En kartong under 1,5 ska skjutas ut till kassation\noch etiketten skrivas om. Ett varde over skalans tak 4,0 ar ett lasarfel och inte en bra\netikett: larma.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga.\n\nTakttiden ar 2,0 s per kartong. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F5",
+    "F6",
+    "F15"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "stampeln kommenderas innan skrivaren lagt etiketten pa dynan",
+    "kartongen slapps vidare nar verifieraren inte svarar, i stallet for att kasseras",
+    "utskjutaren forreglas inte av tryckluften, sa kommandot ligger kvar under luftbortfallet",
+    "underkanda etiketter kasseras en och en utan att nagon raknar upprepningen",
+    "cykeln startas pa fotocellens niva i stallet for pa kartongens framkant"
+  ],
+  "antaganden": [
+    {
+      "vad": "kartongens matt och massa",
+      "varde": "400 x 300 x 250 mm, 8,5 kg",
+      "motiv": "ANTAGNA: en vanlig wellpappkartong i orderplock med blandat innehall. Matten ar valda sa att kartongen ryms pa ett 600 mm band med marginal for etikettytan pa langsidan, och massan ar satt och inte vagd"
+    },
+    {
+      "vad": "bandhastigheten",
+      "varde": "0,5 m/s",
+      "motiv": "HAMTAT ur katalogposten bank://transport/band_600, som bar hastighet_mps 0,5. Posten ar sjalv stamplad ANTAGEN med noten att bandtransportorer gar 0,2 till 1,2 m/s, sa talet ar bankens antagande och inte en matt linjehastighet"
+    },
+    {
+      "vad": "takten pa linjen",
+      "varde": "30 kartonger per minut",
+      "motiv": "SATT och inte matt. Talet ar valt sa att delningen mellan kartongerna blir jamn och stampelarmets slag ryms med god marginal; det ar den takt en print-and-apply med stampelarm brukar dimensioneras for"
+    },
+    {
+      "vad": "delningen mellan kartongerna",
+      "varde": "1,00 m",
+      "motiv": "RAKNAT ur bandhastigheten och takten: 0,5 m/s / (30/60 per s) = 1,00 m. Talet ar inte satt utan foljer av de tva ovan, och det ar det som avgor att stampelslaget hinner klart innan nasta kartong ar framme"
+    },
+    {
+      "vad": "stampelarmets slagtid",
+      "varde": "0,25 s",
+      "motiv": "RAKNAT ur slaglangden 150 mm och armhastigheten 0,6 m/s, bada HAMTADE ur katalogposten bank://station/etikettmaskin_print_apply. Posten ar stamplad ANTAGEN, sa bade slaglangden och hastigheten ar bankens antaganden och rakningen arver det"
+    },
+    {
+      "vad": "kravet pa symbolkvalitet",
+      "varde": "betyg 1,5 pa skalan 4,0 till 0,0",
+      "motiv": "HAMTAT ur GS1 General Specifications Release 26.0 avsnitt 5.12.3 tabell 5-43, som satter minsta symbolkvalitet 1,5 (betyg C) for GS1-128 i allman distribution, med notationen 1.5/10/660. Det ar det enda talet i uppgiften som kommer ur en publicerad specifikation"
+    },
+    {
+      "vad": "symbolslaget som betygsatts",
+      "varde": "linjar GS1-128, betygsatt enligt ISO/IEC 15416",
+      "motiv": "ISO/IEC 15416 galler LINJARA streckkoder; tvadimensionella symboler som Data Matrix och QR betygsatts i stallet enligt ISO/IEC 15415, som har en annan uppsattning delbetyg. Uppgiften galler darfor uttryckligen en linjar GS1-128-symbol, och betygsskalan i ST510_SCN_GRADE far inte lasas som ett 15415-betyg"
+    },
+    {
+      "vad": "lasvakten efter triggning",
+      "varde": "0,50 s",
+      "motiv": "SATT ovanpa verifierarens bedomningstid 80 ms, som ar HAMTAD ur katalogposten bank://givare/streckkodslasare_verifierare (sjalv stamplad ANTAGEN). Marginalen ar drygt sex ganger bedomningstiden sa att en langsam lasning inte kasserar en frisk kartong"
+    },
+    {
+      "vad": "takttiden per kartong",
+      "varde": "2,0 s",
+      "motiv": "FOLJER av takten 30 kartonger per minut: 60 s / 30 = 2,0 s. Talet ar inte satt sjalvstandigt utan ar takten uttryckt per kartong, och det ar det som genomflodeskravet mats mot"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "wellpappkartong",
+      "l_mm": 400,
+      "b_mm": 300,
+      "h_mm": 250,
+      "massa_kg": 8.5
+    },
+    "arbetsradie_mm": 1200.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Kartonger kommer med 2,0 s takt och 1,00 m delning, far en etikett var och verifieras med betyg over 1,5.",
+      "forvantat": "En utskrift, en stampel och en lasning per kartong, ingen utskjutning, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "betyg_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST510_SCN_GRADE",
+      "beskrivning": "ST510_SCN_GRADE ar 1,2, alltsa betyg D och under GS1:s krav 1,5.",
+      "forvantat": "En etikett under betyg C kan inte lasas palitligt i hela distributionskedjan. Kartongen ska skjutas ut till kassation och etiketten skrivas om; en enskild underkand etikett ar annu inget larm."
+    },
+    {
+      "id": "betyg_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST510_SCN_GRADE",
+      "beskrivning": "ST510_SCN_GRADE ar 4,2, alltsa over ISO/IEC 15416:s hogsta betyg 4,0.",
+      "forvantat": "Ett betyg som inte kan finnas pa skalan ar ett lasarfel, inte en bra etikett. Styrningen ska larma och stanna i stallet for att lasa det som godkant och slappa vidare en overifierad kartong."
+    },
+    {
+      "id": "lasningen_uteblir",
+      "typ": "vandning",
+      "signal": "ST510_SCN_DONE",
+      "beskrivning": "ST510_SCN_DONE kommer aldrig efter att verifieraren triggats.",
+      "forvantat": "Lasvakten ska falla och kartongen skjutas ut till kassation. Ingen kartong far passera olast, och en utebliven lasning ar ett kasserat kolli och inte ett stopp."
+    },
+    {
+      "id": "skrivaren_ar_inte_klar",
+      "typ": "vandning",
+      "signal": "ST510_PRN_READY",
+      "beskrivning": "ST510_PRN_READY drojer langt efter kartongens framkant, till exempel efter ett rullbyte.",
+      "forvantat": "Stampelarmet ska sta still tills etiketten ligger pa dynan. Ett slag mot en tom dyna trycker lim mot wellpappen och river av nasta etikett i mataren."
+    },
+    {
+      "id": "tryckluften_faller",
+      "typ": "vandning",
+      "signal": "AIR_OK",
+      "beskrivning": "AIR_OK faller medan en kartong med underkand etikett ar pa vag mot utskjutaren.",
+      "forvantat": "Utskjutaren far inte kommenderas. Ett kommando som ligger kvar under luftbortfallet slar ut fel kartong i det ogonblick luften kommer tillbaka."
+    }
+  ],
+  "core_outputs": [
+    "ST510_LBL_PRINT",
+    "ST510_LBL_APPLY",
+    "ST510_SCN_TRIG",
+    "ST510_PSH_REJ",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "etikettmaskin",
+        "uri": "bank://station/etikettmaskin_print_apply",
+        "count": 1
+      },
+      {
+        "role": "verifierare",
+        "uri": "bank://givare/streckkodslasare_verifierare",
+        "count": 1
+      },
+      {
+        "role": "bana",
+        "uri": "bank://transport/band_600",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "kassation",
+        "uri": "bank://station/kassationslada",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "narvarogivare",
+        "to_role": "etikettmaskin"
+      },
+      {
+        "from_role": "etikettmaskin",
+        "to_role": "verifierare"
+      },
+      {
+        "from_role": "verifierare",
+        "to_role": "utskjutare"
+      },
+      {
+        "from_role": "utskjutare",
+        "to_role": "kassation"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST510_LBL_PRINT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bestall en etikett av skrivaren"
+      },
+      {
+        "name": "ST510_PRN_READY",
+        "dir": "in",
+        "type": "bool",
+        "comment": "skrivaren har etiketten pa stampeldynan"
+      },
+      {
+        "name": "ST510_LBL_APPLY",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor stampelarmet mot kartongen"
+      },
+      {
+        "name": "ST510_LBL_APPLIED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "etiketten sitter pa kartongen"
+      },
+      {
+        "name": "ST510_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "genomgaende fotocell, kartongens framkant"
+      },
+      {
+        "name": "ST510_SCN_TRIG",
+        "dir": "out",
+        "type": "bool",
+        "comment": "trigga verifieringslasaren"
+      },
+      {
+        "name": "ST510_SCN_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lasaren har bedomt symbolen"
+      },
+      {
+        "name": "ST510_SCN_GRADE",
+        "dir": "in",
+        "type": "real",
+        "comment": "symbolbetyg enligt ISO/IEC 15416, skalan 4,0 till 0,0"
+      },
+      {
+        "name": "ST510_PSH_REJ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "skjut ut kartongen till kassationsladan"
+      },
+      {
+        "name": "ST510_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "utskjutarcylindern i hemlage"
+      },
+      {
+        "name": "ST510_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandtransportoren gar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "satt ST510_LBL_PRINT hog pa en stigande flank pa ST510_PEC_PART, aldrig pa dess niva",
+      "nollstall ST510_LBL_PRINT och satt ST510_LBL_APPLY hog nar ST510_PRN_READY ar hog",
+      "vid ST510_LBL_APPLIED: nollstall ST510_LBL_APPLY och satt ST510_SCN_TRIG hog",
+      "vid ST510_SCN_DONE: nollstall ST510_SCN_TRIG och dom etiketten pa ST510_SCN_GRADE",
+      "skjut ut kartongen med ST510_PSH_REJ nar betyget ar under 1,5, och slapp kommandot nar ST510_PSH_HOME slappt",
+      "kassera kartongen ocksa nar lasvakten 0,50 s loser ut utan ST510_SCN_DONE",
+      "rakna underkanda etiketter i rad och larma pa den tredje; nollstall raknaren pa varje godkand etikett",
+      "larma nar ST510_SCN_GRADE ligger utanfor skalan 0,0 till 4,0"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST510": 0.25
+      },
+      "cycle_s": 2.0,
+      "tolerance_s": 0.05
+    },
+    "interlocks": [
+      "ST510_LBL_APPLY far aldrig ga hog innan ST510_PRN_READY ar hog",
+      "ST510_PSH_REJ far aldrig kommenderas nar AIR_OK ar lag",
+      "ingen kartong far passera olast; uteblir ST510_SCN_DONE ska kartongen kasseras",
+      "tre underkanda etiketter i rad ska larma, inte bara kasseras en och en",
+      "inget don far kommenderas nar EMG_OK ar lag"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 1800.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST510_LBL_PRINT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST510_LBL_APPLY RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST510_SCN_TRIG RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST510_LBL_APPLY -> etikettmaskin *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST510 *s req=0.25s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST510 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST kartong+stampelarm *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST510 *s req=0.25s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST510_LBL_APPLY+ST510_PSH_REJ dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: minimikravet pa tryckkvalitet 1,5 (betyg C) enligt GS1 General Specifications Release 26.0 avsnitt 5.12.3 tabell 5-43, med notationen 1.5/10/660 for allman distribution; betygsskalan 4,0 till 0,0 definieras i ISO/IEC 15416:2016 klausul 6.3 \"Expression of symbol grade\". Delningen mellan kartongerna ar raknad ur banans egen hastighet och takten: 0,5 m/s / (30/60 per s) = 1,00 m, alltsa en kartong var 2,0 s. Kallorna och rakningen star i M-106.",
+    "standard": "GS1 General Specifications Release 26.0 (2026-01) avsnitt 5.12.3 tabell 5-43: minsta symbolkvalitet 1,5 (C) for GS1-128, notation 1.5/10/660. Betyget uttrycks enligt ISO/IEC 15416:2016 klausul 6.3 \"Expression of symbol grade\" pa en skala fran 4,0 till 0,0 med en decimal; spannet 1,5 till strax under 2,5 motsvarar betyg C. Manuell aterstallning efter nodstopp enligt IEC 60204-1 och rakning av upprepade underkanda etiketter med CTU enligt IEC 61131-3.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\ncntUnder(CU := xUnderkand, R := xGodkand OR trigReset.Q, PV := 3);\nIF cntUnder.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF trigPart.Q THEN\n                ST510_LBL_PRINT := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            ELSIF tmrLas.Q THEN\n                (* Lasningen uteblev. Ingen kartong far passera olast. *)\n                ST510_SCN_TRIG := FALSE;\n                ST510_PSH_REJ := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nIF NOT AIR_OK THEN\n    ST510_PSH_REJ := FALSE;\nEND_IF;\n\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_godkand_kartong",
+        "beskrivning": "En kartong etiketteras, verifieras med betyg 3,2 och slapps vidare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute och ingen kartong har kommit; ingen etikett far skrivas ut av sig sjalv"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": true,
+              "ST510_LBL_APPLY": false
+            },
+            "varfor": "utskriften startar pa kartongens framkant; stampeln far annu inte ga, for skrivaren har inte lagt etiketten pa dynan"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": true
+            },
+            "varfor": "skrivaren har etiketten pa dynan och stampelarmet far ga; utskriftsordern slapps i samma scan"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": true,
+              "ST510_PSH_REJ": false
+            },
+            "varfor": "etiketten sitter pa kartongen och verifieraren triggas; stampeln far inte sta kvar kommenderad mot en kartong som redan rullat vidare"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "betyget 3,2 ligger over GS1:s minsta symbolkvalitet 1,5; kartongen slapps vidare och utskjutaren ror sig inte"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "kartongen har lamnat fotocellen och stationen star i vila utan nagot latchat kvar"
+          }
+        ]
+      },
+      {
+        "id": "betyget_under_kravet",
+        "beskrivning": "En kartong far betyg 1,2, alltsa betyg D, och ska skjutas ut till kassation.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": true
+            },
+            "varfor": "stampeln gar nar skrivaren ar klar"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": true
+            },
+            "varfor": "verifieraren triggas nar etiketten sitter"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "1,2 ar betyg D och ligger under GS1:s krav 1,5 (C); kartongen skjuts ut till kassation. En enskild underkand etikett ar annu inget larm utan ett kasserat kolli"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST510_PSH_HOME": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": false
+            },
+            "varfor": "utskjutaren har lamnat hemlaget; kommandot slapps sa cylindern kan ga tillbaka i stallet for att sta kvar utskjuten"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": false,
+              "ST510_LBL_PRINT": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utskjutaren ar hemma igen. Kartongen ligger kvar framfor fotocellen, och en cykel som startar pa narvaron i stallet for pa framkanten skulle skriva ut annu en etikett till en kartong som redan ar kasserad"
+          }
+        ]
+      },
+      {
+        "id": "betyget_over_skalans_tak",
+        "beskrivning": "Verifieraren rapporterar 4,2, alltsa over ISO/IEC 15416:s tak 4,0.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 4.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": true
+            },
+            "varfor": "verifieraren triggas nar etiketten sitter"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false,
+              "ST510_LBL_APPLY": false
+            },
+            "varfor": "4,2 finns inte pa ISO/IEC 15416:s skala 4,0 till 0,0. Ett betyg som inte kan finnas ar ett lasarfel, inte en bra etikett, och far aldrig lasas som godkant; stationen ska larma och stanna"
+          }
+        ]
+      },
+      {
+        "id": "lasningen_uteblir_tidsvakt",
+        "beskrivning": "Verifieraren svarar aldrig efter triggningen. Lasvakten 0,50 s ska falla och kartongen kasseras.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST510_SCN_TRIG": true,
+              "ST510_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "0,38 s efter triggningen far lasvakten annu inte ha fallit; verifieraren bedomer pa 80 ms och en for kort vakt kasserar hela produktionen"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": true
+            },
+            "varfor": "0,68 s efter triggningen har lasningen uteblivit. Kartongen far inte passera olast utan ska skjutas ut till kassation; en kartong utan verifierad etikett ar en kartong ingen kan spara"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": false
+            },
+            "varfor": "utskjutaren har lamnat hemlaget och kommandot slapps"
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utskjutaren ar hemma och stationen redo; en utebliven lasning ar ett kasserat kolli, inte ett stopp"
+          }
+        ]
+      },
+      {
+        "id": "tre_underkanda_i_rad_larmar",
+        "beskrivning": "Tre kartonger i rad far betyg 1,2. De tva forsta kasseras; den tredje ska stoppa stationen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "forsta underkanda etiketten kasseras och stationen fortsatter; en enda dalig etikett kan vara en veckad kartong"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "andra underkanda etiketten i rad kasseras ocksa, men tva ar annu inte ett monster"
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3500,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST510_PSH_REJ": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_LBL_PRINT": false
+            },
+            "varfor": "tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller smutsigt skrivhuvud. Att kassera en och en doljer felet tills en hel skiftlast ligger i kassationsladan, sa den tredje ska stoppa stationen"
+          }
+        ]
+      },
+      {
+        "id": "skrivaren_ar_inte_klar",
+        "beskrivning": "En kartong kommer men skrivaren far aldrig fram etiketten till dynan forran sent.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": true,
+              "ST510_LBL_APPLY": false
+            },
+            "varfor": "utskriften ar bestalld men skrivaren har inte lagt etiketten pa dynan; en stampel mot en tom dyna trycker dynans lim mot wellpappen och river av nasta etikett"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "skrivaren ar fortfarande inte klar och stampeln star fortfarande still; stationen vantar hellre an stampler tomt"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_APPLY": true,
+              "ST510_LBL_PRINT": false
+            },
+            "varfor": "nar etiketten ligger pa dynan far stampeln ga"
+          }
+        ]
+      },
+      {
+        "id": "utskjutning_utan_tryckluft",
+        "beskrivning": "Tryckluften faller bort medan en kartong med underkand etikett ar pa vag till utskjutaren.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false
+            },
+            "varfor": "utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar gor ingenting alls forran luften kommer tillbaka, och da slar utskjutaren ut en kartong som redan rullat vidare"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstoppet bryts mitt i en etikettcykel, aterstalls, och stationen far ga igen forst pa kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": true
+            },
+            "varfor": "utskriften ar bestalld"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta stationen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST510_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": true
+            },
+            "varfor": "forst kvittensen tar stationen tillbaka i drift, och forst nasta kartongs framkant startar en ny cykel"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "stampeln_kraver_skrivaren_klar",
+        "sekvens": "*",
+        "nar": {
+          "ST510_LBL_APPLY": true
+        },
+        "kraver": {
+          "ST510_PRN_READY": true
+        },
+        "varfor": "stampelarmet hamtar etiketten fran skrivarens dyna; gar det innan etiketten ligger dar trycker det dynans lim mot wellpappen och river av nasta etikett i mataren"
+      },
+      {
+        "namn": "utskjutaren_kraver_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST510_PSH_REJ": false
+        },
+        "varfor": "utan tryckluft gor kommandot ingenting alls, och nar luften kommer tillbaka slar cylindern ut den kartong som just da rakar sta framfor den"
+      },
+      {
+        "namn": "ingen_utskrift_medan_lasningen_pagar",
+        "sekvens": "*",
+        "nar": {
+          "ST510_SCN_TRIG": true
+        },
+        "kraver": {
+          "ST510_LBL_PRINT": false,
+          "ST510_LBL_APPLY": false
+        },
+        "varfor": "verifieringen hor till den kartong som just etiketterats; startar nasta kartongs utskrift medan lasningen pagar hamnar betyget pa fel kolli"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST510_LBL_PRINT": false,
+          "ST510_LBL_APPLY": false,
+          "ST510_SCN_TRIG": false,
+          "ST510_PSH_REJ": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larm_stoppar_stationen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST510_LBL_PRINT": false,
+          "ST510_LBL_APPLY": false,
+          "ST510_SCN_TRIG": false,
+          "ST510_PSH_REJ": false
+        },
+        "varfor": "ett larm som lamnar stampeln och utskjutaren kommenderade ar inget larm utan en lampa"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_utskrift_per_kartong",
+        "sekvens": "en_godkand_kartong",
+        "signal": "ST510_LBL_PRINT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "en kartong ska ge exakt en etikett; tva betyder att utskriften bestalls pa narvaro i stallet for pa framkant och att en etikett matas ut i luften"
+      },
+      {
+        "namn": "en_stampel_per_kartong",
+        "sekvens": "en_godkand_kartong",
+        "signal": "ST510_LBL_APPLY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "stampelarmet slar en gang per kartong; tva slag pa samma kartong lagger en etikett over den forra och gor bada olasliga"
+      },
+      {
+        "namn": "en_lasning_per_kartong",
+        "sekvens": "en_godkand_kartong",
+        "signal": "ST510_SCN_TRIG",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 1,
+        "varfor": "verifieraren triggas en gang per kartong; flera triggningar ger flera betyg pa samma kolli och raknaren over underkanda etiketter blir meningslos"
+      },
+      {
+        "namn": "ingen_utskjutning_pa_godkand_etikett",
+        "sekvens": "en_godkand_kartong",
+        "signal": "ST510_PSH_REJ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1500,
+        "antal": 0,
+        "varfor": "en godkand etikett far inte ge en enda utskjutningspuls; en puls racker for att valta kartongen ned i kassationsladan"
+      },
+      {
+        "namn": "en_utskrift_per_kasserad_kartong",
+        "sekvens": "betyget_under_kravet",
+        "signal": "ST510_LBL_PRINT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1800,
+        "antal": 1,
+        "varfor": "aven en kasserad kartong ska ge exakt en etikett; ligger kartongen kvar framfor fotocellen och cykeln startar pa niva skrivs en ny etikett ut till ett kolli som redan ar pa vag till kassationsladan"
+      },
+      {
+        "namn": "ingen_stampel_utan_skrivare_klar",
+        "sekvens": "skrivaren_ar_inte_klar",
+        "signal": "ST510_LBL_APPLY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1100,
+        "antal": 0,
+        "varfor": "sa lange skrivaren inte har etiketten pa dynan far stampeln inte ga en enda gang; ett slag racker for att trycka lim mot wellpappen"
+      },
+      {
+        "namn": "tva_utskjutningar_fore_larmet",
+        "sekvens": "tre_underkanda_i_rad_larmar",
+        "signal": "ST510_PSH_REJ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3800,
+        "antal": 2,
+        "varfor": "de tva forsta underkanda kartongerna kasseras var for sig, men den tredje ska stoppa stationen i stallet for att kasseras; en tredje utskjutningspuls betyder att ingen raknar hur ofta etiketterna underkanns"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "stampeln_gar_pa_kartongens_framkant",
+        "st": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\ncntUnder(CU := xUnderkand, R := xGodkand OR trigReset.Q, PV := 3);\nIF cntUnder.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF trigPart.Q THEN\n                ST510_LBL_PRINT := TRUE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            ELSIF tmrLas.Q THEN\n                (* Lasningen uteblev. Ingen kartong far passera olast. *)\n                ST510_SCN_TRIG := FALSE;\n                ST510_PSH_REJ := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nIF NOT AIR_OK THEN\n    ST510_PSH_REJ := FALSE;\nEND_IF;\n\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stampelarmet kommenderas i samma steg som utskriften, alltsa pa kartongens framkant och utan att skrivaren hunnit lagga etiketten pa dynan. Med en varm skrivare ligger etiketten nastan alltid dar i tid, sa felet syns forst efter ett rullbyte och da trycks dynans lim rakt mot wellpappen.",
+        "faller_pa": [
+          "skrivaren_ar_inte_klar@600ms:ST510_LBL_APPLY",
+          "invariant:stampeln_kraver_skrivaren_klar@skrivaren_ar_inte_klar",
+          "flank:ingen_stampel_utan_skrivare_klar"
+        ]
+      },
+      {
+        "namn": "kartongen_slapps_igenom_olast",
+        "st": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\ncntUnder(CU := xUnderkand, R := xGodkand OR trigReset.Q, PV := 3);\nIF cntUnder.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF trigPart.Q THEN\n                ST510_LBL_PRINT := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nIF NOT AIR_OK THEN\n    ST510_PSH_REJ := FALSE;\nEND_IF;\n\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lasvakten raknar men ingen agerar pa den; steget vantar bara pa ST510_SCN_DONE. En verifierare som tappat kontakten lamnar kartongen staende med lastriggern kvar, och nar linjen sedan rensas for hand gar kolli utan verifierad etikett vidare till kunden.",
+        "faller_pa": [
+          "lasningen_uteblir_tidsvakt@1600ms:ST510_PSH_REJ",
+          "lasningen_uteblir_tidsvakt@1600ms:ST510_SCN_TRIG"
+        ]
+      },
+      {
+        "namn": "underkanda_etiketter_raknas_aldrig",
+        "st": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF trigPart.Q THEN\n                ST510_LBL_PRINT := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            ELSIF tmrLas.Q THEN\n                (* Lasningen uteblev. Ingen kartong far passera olast. *)\n                ST510_SCN_TRIG := FALSE;\n                ST510_PSH_REJ := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nIF NOT AIR_OK THEN\n    ST510_PSH_REJ := FALSE;\nEND_IF;\n\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Varje underkand etikett kasseras var for sig och ingen raknar hur ofta det hander. Ett slut eller smutsigt skrivhuvud ser darfor ut som normal drift anda tills nagon oppnar kassationsladan och hittar en hel skiftlast i den.",
+        "faller_pa": [
+          "tre_underkanda_i_rad_larmar@3800ms:SYS_ALARM",
+          "flank:tva_utskjutningar_fore_larmet"
+        ]
+      },
+      {
+        "namn": "utskjutaren_kommenderas_utan_luft",
+        "st": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\ncntUnder(CU := xUnderkand, R := xGodkand OR trigReset.Q, PV := 3);\nIF cntUnder.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF trigPart.Q THEN\n                ST510_LBL_PRINT := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            ELSIF tmrLas.Q THEN\n                (* Lasningen uteblev. Ingen kartong far passera olast. *)\n                ST510_SCN_TRIG := FALSE;\n                ST510_PSH_REJ := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Tryckluften ingar inte i driftsvillkoret och utskjutaren forreglas inte av den. Kommandot ligger kvar under hela luftbortfallet, och nar luften kommer tillbaka slar cylindern ut den kartong som just da rakar sta framfor den i stallet for den som underkandes.",
+        "faller_pa": [
+          "utskjutning_utan_tryckluft@1200ms:ST510_PSH_REJ",
+          "invariant:utskjutaren_kraver_tryckluft@utskjutning_utan_tryckluft"
+        ]
+      },
+      {
+        "namn": "cykeln_startar_pa_narvaron",
+        "st": "PROGRAM ST510_ETIKETTERING\nVAR\n    steg        : INT := 0;\n    tmrLas      : TON;\n    trigReset   : R_TRIG;\n    trigPart    : R_TRIG;\n    trigDone    : R_TRIG;\n    cntUnder    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xLasklar    : BOOL := FALSE;\n    xOgiltig    : BOOL := FALSE;\n    xUnderkand  : BOOL := FALSE;\n    xGodkand    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\ntrigPart(CLK := ST510_PEC_PART);\ntrigDone(CLK := ST510_SCN_DONE);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Verifierarens svar lases pa lasningens egen flank, inte pa niva: ett svar\n   som ligger kvar hor till foregaende kartong. *)\nxLasklar := trigDone.Q AND ST510_SCN_TRIG;\nxOgiltig := xLasklar AND (ST510_SCN_GRADE > 4.0 OR ST510_SCN_GRADE < 0.0);\nxUnderkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE < 1.5);\nxGodkand := xLasklar AND (NOT xOgiltig) AND (ST510_SCN_GRADE >= 1.5);\n\n(* ISO/IEC 15416 gar fran 4,0 till 0,0. Ett betyg utanfor skalan ar ett\n   lasarfel, inte en bra etikett, och far aldrig lasas som godkant. *)\nIF xOgiltig THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller\n   smutsigt skrivhuvud. Raknaren nollstalls av varje godkand etikett. *)\ncntUnder(CU := xUnderkand, R := xGodkand OR trigReset.Q, PV := 3);\nIF cntUnder.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lasvakten. Verifieraren bedomer pa 80 ms; kommer inget svar inom 0,50 s har\n   lasningen uteblivit. *)\ntmrLas(IN := ST510_SCN_TRIG, PT := T#500ms);\n\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST510_LBL_PRINT := FALSE;\n    ST510_LBL_APPLY := FALSE;\n    ST510_SCN_TRIG := FALSE;\n    ST510_PSH_REJ := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST510_PSH_REJ := FALSE;\n            (* Cykeln startar pa kartongens framkant, inte pa narvaron: en\n               kartong som star kvar framfor fotocellen far inte utlosa en\n               ny etikett. *)\n            IF ST510_PEC_PART THEN\n                ST510_LBL_PRINT := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Stampeln gar forst nar skrivaren har etiketten pa dynan. *)\n            IF ST510_PRN_READY THEN\n                ST510_LBL_PRINT := FALSE;\n                ST510_LBL_APPLY := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST510_LBL_APPLIED THEN\n                ST510_LBL_APPLY := FALSE;\n                ST510_SCN_TRIG := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST510_SCN_DONE THEN\n                ST510_SCN_TRIG := FALSE;\n                IF ST510_SCN_GRADE < 1.5 THEN\n                    ST510_PSH_REJ := TRUE;\n                    steg := 4;\n                ELSE\n                    steg := 6;\n                END_IF;\n            ELSIF tmrLas.Q THEN\n                (* Lasningen uteblev. Ingen kartong far passera olast. *)\n                ST510_SCN_TRIG := FALSE;\n                ST510_PSH_REJ := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF NOT ST510_PSH_HOME THEN\n                ST510_PSH_REJ := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST510_PSH_HOME THEN\n                steg := 0;\n            END_IF;\n        6:\n            IF NOT ST510_PEC_PART THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Utan tryckluft finns ingen kraft i cylindern. Ett kommando som ligger kvar\n   slar ut kartongen forst nar luften kommer tillbaka. *)\nIF NOT AIR_OK THEN\n    ST510_PSH_REJ := FALSE;\nEND_IF;\n\nST510_CNV_RUN := xDriftsklar;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Cykeln startas pa fotocellens niva i stallet for pa kartongens framkant. Sa lange kartongerna rullar vidare direkt syns ingenting, men en kartong som stannat framfor fotocellen, till exempel efter en kassation, far en ny etikett utskriven och stationen borjar om pa samma kolli.",
+        "faller_pa": [
+          "betyget_under_kravet@1800ms:ST510_LBL_PRINT",
+          "flank:en_utskrift_per_kasserad_kartong"
+        ]
+      }
+    ]
+  }
+}

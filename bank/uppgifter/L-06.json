@@ -1,0 +1,1652 @@
+{
+  "task_id": "L-06",
+  "title": "Kartongresning och nedlaggning av tolv glasburkar per kartong",
+  "goal": "Resa en kartong, lagga tolv 720 ml glasburkar i den i monstret 3 x 4 med tva burkar per robotcykel, och forsluta den forst nar burkraknaren visar tolv.",
+  "grupp": "L",
+  "bransch": "livsmedelsforpackning",
+  "orsak": "Speglar tre missar pa nedlaggningsceller. Den forsta: forslutaren startas pa antalet robotcykler i stallet for pa antalet burkar, sa den dagen gripdonet tar en burk i stallet for tva tejpas kartongen igen med elva burkar och gar vidare till kund. Den andra: ST540_ERC_DONE behandlas som en kvittering langre fram i sekvensen i stallet for som startvillkor, sa roboten lagger de forsta burkarna dar kartongen skulle ha statt. Den tredje: vakuumet nollstalls i samma steg som robotcykeln kommenderas, vilket gar bra i en langsam provkorning och tappar tva glasburkar i golvet forsta gangen linjen kors i takt.",
+  "prompt": "Bygg en kartongresnings- och nedlaggningscell for glasburkar och skriv\nstyrningen till den.\n\nScen: en kartongresare, en robot med fyrkoppigt vakuumgripdon, ett inmatningsband\nmed glasburkar, en ackumulerande rullbana som for ut fardiga kartonger och en\nkartongforslutare med tejphuvud. Burken ar en 720 ml glasburk, 95 mm i diameter\noch 130 mm hog, som vager 0,55 kg. Kartongens innermatt ar 396 x 296 x 250 mm.\nRobotens arbetsradie i cellen ar 850 mm.\n\nMonstret: 4 * 95 = 380 mm ryms i kartongens 396 mm och 3 * 95 = 285 mm i dess\n296 mm, alltsa tolv burkar i ett lager, 3 x 4. Gripdonet tar tva burkar per\ncykel, alltsa sex cykler per kartong. Takten ar 30 burkar per minut, vilket ger\nen kartong var 24,0 s och en robotcykel var 4,0 s.\n\nUppgift, sekvensen:\n1. Res en kartong med ST540_ERC_START och vanta tills ST540_ERC_DONE bekraftar\n   att den star i lage vid roboten.\n2. Nar ST540_PEC_JAR ar hog och ST540_PCK_CNT ar under 12: satt ST540_VAC_ON hog.\n3. Nar ST540_VAC_OK bekraftar greppet: satt ST540_RB_START hog.\n4. Vid ST540_RB_DONE star burkarna i kartongen: nollstall ST540_RB_START och\n   ST540_VAC_ON och borja om.\n5. Nar ST540_PCK_CNT ar 12 ar kartongen full: satt ST540_SEA_START hog och vanta\n   pa ST540_SEA_DONE.\n\nUppgift, de fem kraven som gor cellen driftsatt:\n* Roboten far ALDRIG starta innan ST540_ERC_DONE bekraftat att en rest kartong\n  star i lage. Annars lagger den burkarna dar kartongen skulle ha statt.\n* Forslutaren far ALDRIG starta innan ST540_PCK_CNT ar 12. En kartong som tejpas\n  igen med farre burkar gar vidare till kund som en full kartong.\n* Vakuumet far aldrig slappas innan burken star i kartongen. ST540_VAC_ON ska\n  sta hog hela den tid ST540_RB_START ar hog.\n* Tidsovervakning. Kommer inte ST540_RB_DONE inom 6,0 s efter att\n  ST540_RB_START gatt hog ska SYS_ALARM latchas och cellen stanna. Larmet ska\n  falla tidigast 5,8 s och senast 6,4 s efter flanken. Faller ST540_VAC_OK medan\n  roboten bar ska cellen ocksa stanna.\n* Kvitterad omstart. Larm och omstartskvittens nollstalls bara pa en stigande\n  flank pa SYS_RESET. Att nodstoppet aterstalls far ALDRIG i sig starta cellen.\n  Tryckluft som kommer tillbaka far daremot aterta driften utan kvittens.\n\nST540_PCK_CNT kommer fran burkraknarens givare och ska ligga mellan 0 och 12.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far\ninte innehalla nagon sakerhetsfunktion, men ska vara forreglad av den.\n\nAnvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar\nvariablerna over OPC UA. Visual Components ar OPC UA-klient och mappar\nvariablerna mot simuleringsvariabler i scenen. VC kor ingen ST internt, sa allt\nsom ska handa i scenen maste ga via en mappad OPC UA-variabel. Signalnamnen i\nkartan ar alltsa OPC UA-variabelnamn.",
+  "targets_class": [
+    "F9",
+    "F5",
+    "F8"
+  ],
+  "stege": "palletering",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "forslutaren startas pa antalet robotcykler i stallet for pa burkraknaren",
+    "ST540_ERC_DONE vantas aldrig in, sa roboten plockar innan en rest kartong star i lage",
+    "vakuumet nollstalls nar robotcykeln kommenderas i stallet for nar burkarna star i kartongen",
+    "greppet kommenderas pa niva fran vakuumvakten, sa en vakt som hanger hog fran forra greppet startar en tom cykel",
+    "ST540_RB_DONE vantas in utan tidsgrans, sa en stannad robot star kvar med tva glasburkar over kartongen",
+    "driftsvillkoret saknar omstartskvittens, sa cellen startar sjalv nar nodstoppet aterstalls"
+  ],
+  "antaganden": [
+    {
+      "vad": "kartongens innermatt",
+      "varde": "396 x 296 x 250 mm",
+      "motiv": "matten ar antagna men valda sa att monstret gar ihop utan spel som inte finns: 4*95 = 380 mm ryms i 396 mm och 3*95 = 285 mm i 296 mm, alltsa 16 mm respektive 11 mm total sidokant. Hojden 250 mm ryms over burkens 130 mm med lock"
+    },
+    {
+      "vad": "tva burkar per robotcykel",
+      "varde": "2 burkar",
+      "motiv": "gripdonet har fyra sugkoppar 40 mm; tva burkar per cykel later tva koppar bara varje burk med marginal och ger jamnt tolv burkar pa sex cykler. Antalet ar valt, och kapaciteten gar ihop: gripdonet 1,2 kg plus tva burkar 1,10 kg ar 2,30 kg mot robotens 5,0 kg"
+    },
+    {
+      "vad": "takten pa inmatningsbandet",
+      "varde": "30 burkar/min",
+      "motiv": "30 burkar per minut ger en kartong var 24,0 s och en robotcykel var 4,0 s, vilket ar en normal takt for en liten monteringsrobot med vakuumgripdon; talet ar satt och inte matt mot en verklig linje"
+    },
+    {
+      "vad": "tidsvakten pa robotcykeln",
+      "varde": "6,0 s",
+      "motiv": "robotcykeln ar 4,0 s, sa vakten ligger 50 procent over nominell cykeltid: lang nog att inte falla pa en trog cykel, kort nog att en stannad robot syns inom en takt. Talet ar satt, och fonstret 5,8 till 6,4 s i facit gor domen okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "burkens matt och massa",
+      "varde": "95 x 95 x 130 mm, 0,55 kg",
+      "motiv": "en vanlig 720 ml konservburk i glas: diametern 95 mm skrivs som bade langd och bredd eftersom burken ar rund. Massan galler fylld burk och ar antagen, inte vagd"
+    },
+    {
+      "vad": "robotens arbetsradie i cellen",
+      "varde": "850 mm",
+      "motiv": "roboten nar 901 mm; 850 mm lamnar 51 mm marginal till yttergransen sa att cellen inte kors i sitt eget singularitetsomrade. Placeringen ar antagen och ska matas mot den byggda cellen"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "glasburk 720 ml",
+      "l_mm": 95,
+      "b_mm": 95,
+      "h_mm": 130,
+      "massa_kg": 0.55
+    },
+    "arbetsradie_mm": 850.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Burkar kommer med 30 per minut, roboten lagger tva per cykel och kartongen forsluts efter sex cykler.",
+      "forvantat": "Sex robotcykler per kartong, ingen robotrorelse utan bekraftad rest kartong och bekraftat grepp, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "cnt_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST540_PCK_CNT",
+      "beskrivning": "ST540_PCK_CNT star kvar pa 0 efter sex robotcykler.",
+      "forvantat": "Sex cykler har lagt tolv burkar men raknaren har inte rort sig: antingen ser givaren dem inte eller sa hamnar de bredvid kartongen. Styrningen ska larma och far aldrig starta forslutaren."
+    },
+    {
+      "id": "cnt_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST540_PCK_CNT",
+      "beskrivning": "ST540_PCK_CNT nar 12, alltsa lagrets hogsta antal burkar.",
+      "forvantat": "Vid tolv burkar ar kartongen full. Ingen ny robotcykel far startas; forslutaren ska ta over och en ny kartong resas efter ST540_SEA_DONE."
+    },
+    {
+      "id": "ingen_rest_kartong",
+      "typ": "vandning",
+      "signal": "ST540_ERC_DONE",
+      "beskrivning": "Kartongresaren kommenderas men ingen rest kartong bekraftas i lage; en kartongamne har fastnat i magasinet.",
+      "forvantat": "Roboten ska sta stilla. Utan bekraftad kartong lagger den burkarna pa transportoren eller mot kartongresarens flikar."
+    },
+    {
+      "id": "vakuumvakten_faller",
+      "typ": "vandning",
+      "signal": "ST540_VAC_OK",
+      "beskrivning": "ST540_VAC_OK faller medan ST540_RB_START ar hog, exempelvis pa en sugkopp som glidit av glaset.",
+      "forvantat": "Cellen ska larma och stanna i samma scan. Tva glasburkar pa vag i golvet stoppar linjen langre an ett larm gor."
+    },
+    {
+      "id": "nodstoppet_aterstalls",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "Nagon slar nodstopp mitt i en robotcykel och drar upp donet igen utan att trycka pa aterstallningsknappen.",
+      "forvantat": "Cellen ska sta kvar stilla. Ett aterstallt nodstopp ar ingen startorder; forst en stigande flank pa SYS_RESET far ta cellen tillbaka i drift."
+    }
+  ],
+  "core_outputs": [
+    "ST540_ERC_START",
+    "ST540_RB_START",
+    "ST540_VAC_ON",
+    "ST540_SEA_START",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "kartongresare",
+        "uri": "bank://station/kartongresare",
+        "count": 1
+      },
+      {
+        "role": "forslutare",
+        "uri": "bank://station/kartongforslutare",
+        "count": 1
+      },
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_1200_5_0900",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/vakuum_4_sug_40",
+        "count": 1
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "utmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "produkt",
+        "uri": "bank://last/glasburk_720",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 2
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "produkt"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "kartongresare",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "forslutare"
+      },
+      {
+        "from_role": "forslutare",
+        "to_role": "utmatning"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST540_ERC_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "res en kartong ur magasinet"
+      },
+      {
+        "name": "ST540_ERC_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "rest kartong star i lage vid roboten"
+      },
+      {
+        "name": "ST540_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens plock- och laggcykel"
+      },
+      {
+        "name": "ST540_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten star med burkarna i kartongen"
+      },
+      {
+        "name": "ST540_VAC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "sla pa vakuumet i gripdonet"
+      },
+      {
+        "name": "ST540_VAC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vakuumvakt, hog nar greppet haller"
+      },
+      {
+        "name": "ST540_PCK_CNT",
+        "dir": "in",
+        "type": "int",
+        "comment": "antal burkar i kartongen enligt burkraknarens givare"
+      },
+      {
+        "name": "ST540_SEA_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta forslutarens tejphuvud"
+      },
+      {
+        "name": "ST540_SEA_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "kartongen ar forsluten"
+      },
+      {
+        "name": "ST540_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "inmatningsbandet gar"
+      },
+      {
+        "name": "ST540_PEC_JAR",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell, hog nar burkar star framme vid plockplatsen"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute; ingenting gar forran SYS_RESET fatt en stigande flank",
+      "satt ST540_ERC_START hog och vanta pa ST540_ERC_DONE innan nagot plockas",
+      "satt ST540_VAC_ON hog nar ST540_PEC_JAR ar hog, ST540_PCK_CNT ar under 12 och vakuumvakten fallit",
+      "satt ST540_RB_START hog forst nar ST540_VAC_OK bekraftar greppet och kartongen star i lage",
+      "starta tidsovervakningen 6,0 s pa ST540_RB_START",
+      "vid ST540_RB_DONE: nollstall ST540_RB_START och ST540_VAC_ON och borja om",
+      "vid ST540_PCK_CNT lika med 12: satt ST540_SEA_START hog och vanta pa ST540_SEA_DONE",
+      "latcha SYS_ALARM vid tidsoverdrag, vid slappt vakuumvakt under rorelse och nar sex cykler gatt utan tolv raknade burkar",
+      "nollstall larm, omstartskvittens och cykelraknare bara pa stigande flank pa SYS_RESET"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST540": 4.0
+      },
+      "cycle_s": 24.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST540_RB_START far aldrig sta hog nar ST540_ERC_DONE ar lag",
+      "ST540_SEA_START far aldrig sta hog nar ST540_PCK_CNT ar under 12",
+      "ST540_VAC_ON far aldrig nollstallas medan ST540_RB_START ar hog",
+      "inget don far kommenderas nar EMG_OK eller AIR_OK ar lag",
+      "ingen ny robotcykel nar ST540_PCK_CNT ar 12 eller mer"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 150.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "MOTION",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST540_ERC_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST540_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST540_SEA_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST540_RB_START -> robot *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST540 *s req=4.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST540 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST glasburk+kartongflik *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST540 *s req=4.0s SHORT"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: monstret kommer ur kartongens egna innermatt och burkens diameter. Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa 4*95 = 380 mm <= 396 mm och 3*95 = 285 mm <= 296 mm ger 12 burkar i ett lager, 3 x 4. Roboten tar tva burkar per cykel, alltsa 12/2 = 6 cykler per kartong, och vid 30 burkar per minut blir det en kartong var 24,0 s och en robotcykel var 24,0/6 = 4,0 s. Rakningen star i M-106.",
+    "standard": "Monstret ar geometri och ingen standardfraga. Manuell aterstallning efter nodstopp enligt IEC 60204-1, rakning av lagda burkar med CTU och tidsovervakning med TON enligt IEC 61131-3.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF cntCykel.CV >= 6 AND ST540_PCK_CNT < 12 AND NOT ST540_RB_START\n        AND ST540_ERC_DONE THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\ntmrRobot(IN := ST540_RB_START, PT := T#6s);\nIF tmrRobot.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och vanta tills den star i lage vid roboten *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK AND ST540_ERC_DONE THEN\n                ST540_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_ingen_sjalvstart",
+        "beskrivning": "Spanning pa med rest kartong i lage och burkar pa inmatningen. Linjen far anda inte starta av sig sjalv.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0,
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": false,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_SEA_START": false,
+              "ST540_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; en cell som startar sig sjalv vid uppstart ar den klassiska driftsattningsmissen, och har star allt annat redan klart att ga"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST540_CNV_RUN": true,
+              "ST540_VAC_ON": true,
+              "ST540_RB_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter kvittensen gar linjen och gripdonet suger fast tva burkar, men roboten ror sig inte forran vakuumvakten bekraftat greppet"
+          }
+        ]
+      },
+      {
+        "id": "en_kartong_tolv_burkar",
+        "beskrivning": "Sex robotcykler om tva burkar fyller kartongen till tolv, forslutaren tejpar och en ny kartong reses. Sekvensen driver ST540_PCK_CNT direkt, tva steg per cykel, i stallet for att vanta ut linjens 24,0 s takt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": true,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_CNV_RUN": true
+            },
+            "varfor": "kartongresaren kommenderas forst; roboten far inte plocka forran en rest kartong bekraftats sta i lage"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": false,
+              "ST540_VAC_ON": true,
+              "ST540_RB_START": false
+            },
+            "varfor": "rest kartong i lage: gripdonet suger fast tva burkar, men roboten star kvar tills vakuumvakten bekraftat greppet"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST540_RB_START": true,
+              "ST540_VAC_ON": true
+            },
+            "varfor": "forsta cykeln gar forst nar vakuumvakten haller; vakuumet ska sta pa hela rorelsen"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 6
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 8
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 10
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST540_RB_DONE": true,
+              "ST540_PCK_CNT": 12
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST540_SEA_START": true,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "sex cykler om tva burkar ger tolv i lagret, 3 x 4; forst da far forslutaren startas och roboten ska sta stilla under tejpningen"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "ST540_SEA_DONE": true,
+              "ST540_ERC_DONE": false,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {},
+            "krav": {
+              "ST540_SEA_START": false,
+              "ST540_ERC_START": true,
+              "ST540_RB_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "den forslutna kartongen har lamnat lagesgivaren och en ny reses; roboten star stilla tills den nya star i lage"
+          },
+          {
+            "t_ms": 3700,
+            "satt": {
+              "ST540_SEA_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "raknaren_star_kvar_pa_noll",
+        "beskrivning": "Samma sex cykler, men ST540_PCK_CNT star kvar pa noll. Burkraknarens givare ser ingenting, eller sa hamnar burkarna bredvid kartongen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST540_RB_DONE": false,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST540_SEA_START": false,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_CNV_RUN": false
+            },
+            "varfor": "sex robotcykler har lagt tolv burkar men raknaren star kvar pa noll; antingen ser givaren dem inte eller sa hamnar de bredvid kartongen. En forslutare som tejpar igen en kartong ingen vet innehallet i skickar den vidare till kund"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST540_CNV_RUN": true
+            },
+            "varfor": "kvittensen borjar en ny kartong och nollstaller cykelraknaren; annars slar samma larm om direkt och gar inte att kvittera"
+          },
+          {
+            "t_ms": 3700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "roboten_vantar_pa_rest_kartong",
+        "beskrivning": "Burkar star framme men ingen rest kartong finns i lage. Vakuumvakten hanger dessutom hog fran forra greppet.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": true,
+              "ST540_VAC_ON": false,
+              "ST540_RB_START": false
+            },
+            "varfor": "ingen rest kartong star i lage, sa ingenting far plockas; kartongresaren ar kommenderad och roboten star stilla"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_ERC_START": true
+            },
+            "varfor": "en vakuumvakt som hanger hog fran forra greppet far inte i sig starta en robotcykel; da kor roboten mot en kartong som inte finns"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": false,
+              "ST540_VAC_ON": true,
+              "ST540_RB_START": false
+            },
+            "varfor": "nu star kartongen i lage och greppet far tas, men roboten vantar fortfarande pa vakuumvakten"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST540_RB_START": true,
+              "ST540_VAC_ON": true
+            },
+            "varfor": "bade rest kartong och bekraftat grepp finns; forst da far roboten ga"
+          }
+        ]
+      },
+      {
+        "id": "robotcykeln_fastnar_tidsovervakning",
+        "beskrivning": "ST540_RB_DONE kommer aldrig. Vakten pa 6,0 s ska falla i fonstret 5,8 till 6,4 s efter kommandot.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST540_RB_START": true
+            },
+            "varfor": "5,6 s efter att cykeln kommenderats far vakten annu inte ha fallit; robotcykeln ar 4,0 s och en for kort vakt stoppar linjen mitt i normal drift"
+          },
+          {
+            "t_ms": 7000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_CNV_RUN": false
+            },
+            "varfor": "6,2 s efter kommandot ska vakten ha fallit; roboten star nagonstans over kartongen med tva glasburkar och ingen far veta det annars"
+          },
+          {
+            "t_ms": 7200,
+            "satt": {
+              "ST540_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat: att kvittensen till slut kommer tar inte bort att cykeln stod stilla i sex sekunder"
+          },
+          {
+            "t_ms": 7600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST540_CNV_RUN": true
+            },
+            "varfor": "forst kvittensen far ta linjen tillbaka i drift"
+          },
+          {
+            "t_ms": 7900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "vakuumet_slapper_under_rorelsen",
+        "beskrivning": "ST540_VAC_OK faller medan roboten bar tva burkar over kartongen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST540_RB_START": true,
+              "ST540_VAC_ON": true
+            },
+            "varfor": "cykeln gar med bekraftat grepp"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST540_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_CNV_RUN": false
+            },
+            "varfor": "greppet har slappt mitt i rorelsen; tva glasburkar ar pa vag i golvet och linjen ska stanna i stallet for att kora cykeln fardigt"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_och_kommer_tillbaka",
+        "beskrivning": "AIR_OK faller och kommer tillbaka. Det ar inget skyddsstopp och kraver ingen kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": true,
+              "ST540_CNV_RUN": true
+            },
+            "varfor": "linjen gar och kartongresaren ar kommenderad"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST540_ERC_START": false,
+              "ST540_CNV_RUN": false,
+              "ST540_VAC_ON": false
+            },
+            "varfor": "utan tryckluft haller varken vakuumejektorn eller kartongresarens cylindrar, sa inget don far kommenderas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST540_CNV_RUN": true,
+              "ST540_ERC_START": true
+            },
+            "varfor": "tryckluft ar ingen skyddsfunktion; driften far atertas utan kvittens, till skillnad fran efter ett nodstopp"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_utan_automatisk_omstart",
+        "beskrivning": "Nodstopp mitt i en robotcykel, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST540_PCK_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST540_ERC_DONE": true,
+              "ST540_PEC_JAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST540_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST540_RB_START": false,
+              "ST540_VAC_ON": false,
+              "ST540_ERC_START": false,
+              "ST540_SEA_START": false,
+              "ST540_CNV_RUN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST540_CNV_RUN": false,
+              "ST540_RB_START": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; urkopplingen far bara mojliggora omstart, inte utfora den (IEC 60204-1, manuell aterstallning)"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST540_CNV_RUN": true
+            },
+            "varfor": "forst kvittensen far ta linjen tillbaka i drift"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_robotrorelse_utan_vakuum",
+        "sekvens": "*",
+        "nar": {
+          "ST540_RB_START": true
+        },
+        "kraver": {
+          "ST540_VAC_ON": true
+        },
+        "varfor": "vakuumet far inte slappas forran burkarna star i kartongen; slapps det nar rorelsen startar faller tva glasburkar i golvet mitt over transportbanan"
+      },
+      {
+        "namn": "ingen_robotrorelse_utan_rest_kartong",
+        "sekvens": "*",
+        "nar": {
+          "ST540_RB_START": true
+        },
+        "kraver": {
+          "ST540_ERC_DONE": true
+        },
+        "varfor": "roboten lagger burkarna dar kartongen ska sta; ar ingen rest kartong bekraftad i lage lagger den dem pa transportoren eller mot kartongresarens flikar"
+      },
+      {
+        "namn": "ingen_forslutning_utan_tolv_burkar",
+        "sekvens": "*",
+        "nar": {
+          "ST540_SEA_START": true
+        },
+        "kraver": {
+          "ST540_PCK_CNT": 12
+        },
+        "varfor": "en kartong som tejpas igen med farre an tolv burkar gar vidare till kund som en full kartong; antalet ar det enda linjen vet om innehallet"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST540_ERC_START": false,
+          "ST540_RB_START": false,
+          "ST540_VAC_ON": false,
+          "ST540_SEA_START": false,
+          "ST540_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den: inget don kommenderat medan kretsen ar bruten"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST540_ERC_START": false,
+          "ST540_RB_START": false,
+          "ST540_VAC_ON": false,
+          "ST540_SEA_START": false
+        },
+        "varfor": "att kommendera ett vakuumgripdon utan tryckluft ger ett kommando utan grepp, och logiken tror sedan att burkarna halls"
+      },
+      {
+        "namn": "larm_stoppar_linjen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST540_CNV_RUN": false,
+          "ST540_RB_START": false,
+          "ST540_SEA_START": false
+        },
+        "varfor": "ett larm som lamnar roboten och forslutaren igang ar ett larm ingen behover bry sig om"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "sex_robotcykler_per_kartong",
+        "sekvens": "en_kartong_tolv_burkar",
+        "signal": "ST540_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3200,
+        "antal": 6,
+        "varfor": "tolv burkar om tva per cykel ar exakt sex robotcykler; en sjunde flank betyder att cykeln startas pa niva i stallet for pa flank och att roboten hamtar tomt"
+      },
+      {
+        "namn": "en_kartongresning_per_kartong",
+        "sekvens": "en_kartong_tolv_burkar",
+        "signal": "ST540_ERC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3200,
+        "antal": 1,
+        "varfor": "en kartong per fylld kartong; tva flanker betyder att resaren kommenderas om medan en kartong redan star i lage och matar fram en tom kartong till"
+      },
+      {
+        "namn": "en_forslutning_per_full_kartong",
+        "sekvens": "en_kartong_tolv_burkar",
+        "signal": "ST540_SEA_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3700,
+        "antal": 1,
+        "varfor": "forslutaren ska startas exakt en gang, nar tolv burkar ligger i kartongen"
+      },
+      {
+        "namn": "ingen_forslutning_pa_halv_kartong",
+        "sekvens": "raknaren_star_kvar_pa_noll",
+        "signal": "ST540_SEA_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3700,
+        "antal": 0,
+        "varfor": "med raknaren pa noll far forslutaren aldrig startas; en tejpad kartong gar inte att oppna igen utan att den ser oppnad ut"
+      },
+      {
+        "namn": "ingen_robotcykel_utan_rest_kartong",
+        "sekvens": "roboten_vantar_pa_rest_kartong",
+        "signal": "ST540_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1200,
+        "antal": 0,
+        "varfor": "innan kartongen bekraftats sta i lage far roboten inte ga en enda gang, hur mycket burkar och vakuum som an finns"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "forslutaren_startar_pa_cykelraknaren",
+        "st": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\ntmrRobot(IN := ST540_RB_START, PT := T#6s);\nIF tmrRobot.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och vanta tills den star i lage vid roboten *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF cntCykel.CV >= 6 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK AND ST540_ERC_DONE THEN\n                ST540_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Losningen raknar robotcykler i stallet for burkar och startar forslutaren efter sex cykler. Pa en linje dar allt fungerar ser den exakt ratt ut - sex cykler ar tolv burkar - men den dagen en burk faller eller gripdonet tar bara en tejpas kartongen igen med farre burkar och gar vidare till kund.",
+        "faller_pa": [
+          "raknaren_star_kvar_pa_noll@3200ms:SYS_ALARM",
+          "raknaren_star_kvar_pa_noll@3200ms:ST540_SEA_START",
+          "invariant:ingen_forslutning_utan_tolv_burkar@raknaren_star_kvar_pa_noll",
+          "flank:ingen_forslutning_pa_halv_kartong"
+        ]
+      },
+      {
+        "namn": "roboten_startar_utan_rest_kartong",
+        "st": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF cntCykel.CV >= 6 AND ST540_PCK_CNT < 12 AND NOT ST540_RB_START\n        AND ST540_ERC_DONE THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\ntmrRobot(IN := ST540_RB_START, PT := T#6s);\nIF tmrRobot.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och ga vidare direkt *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            steg := 1;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n            END_IF;\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK THEN\n                ST540_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Kartongresaren kommenderas men kvittensen vantas aldrig in: ST540_ERC_DONE behandlas som en kvittering langre fram i stallet for som ett startvillkor. Roboten plockar sa fort burkar finns och lagger dem dar kartongen skulle ha statt.",
+        "faller_pa": [
+          "roboten_vantar_pa_rest_kartong@600ms:ST540_VAC_ON",
+          "roboten_vantar_pa_rest_kartong@1000ms:ST540_RB_START",
+          "invariant:ingen_robotrorelse_utan_rest_kartong@roboten_vantar_pa_rest_kartong",
+          "flank:ingen_robotcykel_utan_rest_kartong"
+        ]
+      },
+      {
+        "namn": "vakuumet_slapps_nar_rorelsen_startar",
+        "st": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF cntCykel.CV >= 6 AND ST540_PCK_CNT < 12 AND NOT ST540_RB_START\n        AND ST540_ERC_DONE THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\ntmrRobot(IN := ST540_RB_START, PT := T#6s);\nIF tmrRobot.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och vanta tills den star i lage vid roboten *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK AND ST540_ERC_DONE THEN\n                ST540_RB_START := TRUE;\n                ST540_VAC_ON := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vakuumet nollstalls i samma steg som robotcykeln kommenderas, alltsa innan burkarna star i kartongen. Gripdonet har efterslapp nog att klara en langsam provkorning och tappar burkarna forsta gangen linjen kors i takt.",
+        "faller_pa": [
+          "en_kartong_tolv_burkar@900ms:ST540_VAC_ON",
+          "invariant:ingen_robotrorelse_utan_vakuum@en_kartong_tolv_burkar"
+        ]
+      },
+      {
+        "namn": "utan_tidsovervakning_pa_robotcykeln",
+        "st": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF cntCykel.CV >= 6 AND ST540_PCK_CNT < 12 AND NOT ST540_RB_START\n        AND ST540_ERC_DONE THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och vanta tills den star i lage vid roboten *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK AND ST540_ERC_DONE THEN\n                ST540_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Losningen ar i ovrigt riktig men vantar in ST540_RB_DONE utan tidsgrans. En robot som stannat med tva glasburkar over kartongen star kvar tills nagon undrar varfor takten sjunkit.",
+        "faller_pa": [
+          "robotcykeln_fastnar_tidsovervakning@7000ms:SYS_ALARM",
+          "robotcykeln_fastnar_tidsovervakning@7000ms:ST540_RB_START",
+          "robotcykeln_fastnar_tidsovervakning@7400ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "automatisk_omstart_efter_nodstopp",
+        "st": "PROGRAM ST540_KARTONGLINJE\nVAR\n    steg        : INT := 0;\n    tmrRobot    : TON;\n    trigReset   : R_TRIG;\n    cntCykel    : CTU;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDrift      : BOOL := FALSE;\n    xNyKartong  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. Den har logiken ror inte\n   sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Kvittensen borjar en ny kartong. Utan det gar cykellarmet inte att\n   kvittera: raknaren star kvar pa sex och larmet slar om direkt igen. *)\nIF trigReset.Q THEN\n    xNyKartong := TRUE;\nEND_IF;\n\n(* Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa\n   4*95 = 380 mm och 3*95 = 285 mm ger tolv burkar i ett lager, 3 x 4.\n   Gripdonet tar tva burkar, alltsa sex cykler per kartong. Har sex cykler\n   gatt utan att burkraknaren natt tolv har burkarna inte hamnat i\n   kartongen. *)\ncntCykel(CU := ST540_RB_START, R := xNyKartong, PV := 6);\nxNyKartong := FALSE;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter de don den ska stoppa. --- *)\n\nIF cntCykel.CV >= 6 AND ST540_PCK_CNT < 12 AND NOT ST540_RB_START\n        AND ST540_ERC_DONE THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Robotcykeln ar 4,0 s. Kommer inte ST540_RB_DONE inom 6,0 s star roboten\n   still nagonstans over kartongen med tva glasburkar i gripdonet. *)\ntmrRobot(IN := ST540_RB_START, PT := T#6s);\nIF tmrRobot.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vakuumvakten faller medan roboten bar: burkarna ar pa vag i golvet. *)\nIF ST540_RB_START AND NOT ST540_VAC_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET och att nodstopp och\n   tryckluft ar tillbaka. Larmet slapper aldrig av sig sjalvt. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm;\n\nIF NOT xDrift THEN\n    ST540_CNV_RUN := FALSE;\n    ST540_ERC_START := FALSE;\n    ST540_RB_START := FALSE;\n    ST540_VAC_ON := FALSE;\n    ST540_SEA_START := FALSE;\n    steg := 0;\nELSE\n    ST540_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* res en kartong och vanta tills den star i lage vid roboten *)\n            ST540_SEA_START := FALSE;\n            ST540_ERC_START := TRUE;\n            IF ST540_ERC_DONE THEN\n                ST540_ERC_START := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* full kartong gar till forslutaren, annars nytt grepp. Greppet\n               far inte kommenderas forran vakuumvakten fallit - star den kvar\n               hog ar det forra greppet, inte det nya, som bekraftas. *)\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 4;\n            ELSIF ST540_PEC_JAR AND NOT ST540_VAC_OK THEN\n                ST540_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* roboten far rora sig forst nar greppet haller OCH en rest\n               kartong star i lage *)\n            IF ST540_VAC_OK AND ST540_ERC_DONE THEN\n                ST540_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            (* burkarna star i kartongen: forst da slapps vakuumet *)\n            IF ST540_RB_DONE THEN\n                ST540_RB_START := FALSE;\n                ST540_VAC_ON := FALSE;\n                steg := 1;\n            END_IF;\n        4:\n            ST540_SEA_START := TRUE;\n            IF ST540_SEA_DONE THEN\n                ST540_SEA_START := FALSE;\n                xNyKartong := TRUE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret ar EMG_OK AND AIR_OK AND SYS_AUTO utan omstartskvittens. Linjen startar i samma scan som nodstoppsdonet dras upp, med nagon kvar inne vid kartongresaren, och den startar av sig sjalv redan vid spanningspaslag.",
+        "faller_pa": [
+          "kallstart_ingen_sjalvstart@200ms:ST540_CNV_RUN",
+          "kallstart_ingen_sjalvstart@200ms:ST540_VAC_ON",
+          "nodstopp_utan_automatisk_omstart@2000ms:ST540_CNV_RUN"
+        ]
+      }
+    ]
+  }
+}
