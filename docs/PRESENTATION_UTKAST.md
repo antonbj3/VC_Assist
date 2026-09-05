@@ -57,8 +57,8 @@ measured run:
 An order that contradicts itself is **rejected** rather than built halfway. Ask
 for a robot that reaches both the conveyor and the pallet, in a cell no larger
 than 2 by 2 metres, and whether that is possible depends on the reach of the
-robot you picked — so it is looked up, not guessed. You get back the two
-conditions that collide, in your own words.
+robot you picked — so it is looked up, not guessed. You get back the
+two requirements that cannot both hold, and which one to change.
 
 **The scene** is assembled from component types the system builds itself —
 conveyor, feeder, buffer, sink — plus machines drawn from the simulator's
