@@ -62,7 +62,7 @@ BANKPOST = {
         "inget tyst hopp over en domare",
     ),
     "kraver": ("vc",),
-    "matningar": ("M-88",),
+    "matningar": ("M-88", "M-127"),
 }
 import argparse
 import json
@@ -361,40 +361,56 @@ def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0, satt_idle=False):
     Beteendet skapas med VC_STATISTICS (M-15: skapbart, ger vcStatistics).
     Skrivgrinden slapper det - det ar inget skriptbeteende (M-13).
 
-    TVA VARIANTER, for M-88 fann att de ger olika serier:
+    TRE VARIANTER:
       satt_idle=False  INERT. Ingen process har satt beteendets tillstand:
                        VC svarar state '' och 0,0 i alla procent, korningen
                        igenom. Ogat far INTE saga PASS pa det (falskt gront
                        i forsta korningen) - det ar obestambart.
-      satt_idle=True   tillstandet satts till VC_STATISTICS_IDLE en gang,
-                       som en process gor nar stationen vantar pa arbete.
-                       Da MATER statistiken, stationen ar ledig och tom, och
-                       genomflodesdomaren ska falla mot kravet.
+      satt_idle=True   Station med verklig process (katalogens Index Conveyor
+                       Process med ProcessExecutor och Statistics), satt till
+                       State='Idle'. Da MATER statistiken, stationen ar ledig
+                       och tom, och genomflodesdomaren ska falla mot kravet.
+      satt_idle='Busy' GRON KONTROLL: samma station med matning / arbete
+                       (State='Busy'). Stationen svalter inte (0 s svalt)
+                       och ska fa PASS aven med kravet 1.0 s.
     """
     station = "%s_station" % PREFIX
     kropp = "%s_kropp" % PREFIX
     bygg_kroppar(k, [(kropp, 0.0)])
-    kod = (
-        "import json\n"
-        "app = getApplication()\n"
-        "c = app.createComponent()\n"
-        "c.Name = %r\n"
-        "b = c.createBehaviour(VC_STATISTICS, 'stat')\n"
-        "d = {'beteende': None if b is None else type(b).__name__,\n"
-        "     'har_arrived': hasattr(b, 'ComponentsArrived'),\n"
-        "     'state_fore': '%%s' %% (b.State,)}\n"
-        "if %r:\n"
-        "    d['konstant'] = '%%r' %% (VC_STATISTICS_IDLE,)\n"
-        "    b.State = VC_STATISTICS_IDLE\n"
-        "    d['state_satt'] = '%%s' %% (b.State,)\n"
-        # VC:s Stackless 2.7.1-json foll pa den har raden i M-88:s andra
-        # korning ("expected string or Unicode object, int found") nar State
-        # var satt. Allt gors till text FORE dumps; talen har ar bara text.
-        "d = dict((k, '%%s' %% (v,)) for k, v in d.items())\n"
-        "print(json.dumps(d))\n"
-    ) % (str(station), bool(satt_idle))
-    skapat = _kor(k, kod, "fas15: station med vcStatistics%s"
-                  % (" (IDLE satt)" if satt_idle else " (inert)"))
+    if satt_idle is True or satt_idle == "Busy":
+        st_val = "Busy" if satt_idle == "Busy" else "Idle"
+        kod = (
+            "import json\n"
+            "app = getApplication()\n"
+            "uri = 'C:/users/Public/Documents/Visual Components/4.10/Models/Components/Visual Components/Advanced Motion/Index Conveyor Process.vcmx'\n"
+            "c = app.load(uri)\n"
+            "c.Name = %r\n"
+            "b = c.findBehaviour('Statistics')\n"
+            "b.Name = 'stat'\n"
+            "b.State = %r\n"
+            "d = {'beteende': type(b).__name__,\n"
+            "     'har_arrived': hasattr(b, 'ComponentsArrived'),\n"
+            "     'state_satt': str(b.State),\n"
+            "     'process': 'Index Conveyor Process'}\n"
+            "d = dict((k, str(v)) for k, v in d.items())\n"
+            "print(json.dumps(d))\n"
+        ) % (str(station), st_val)
+        desc = "fas15: station med process (State %s)" % st_val
+    else:
+        kod = (
+            "import json\n"
+            "app = getApplication()\n"
+            "c = app.createComponent()\n"
+            "c.Name = %r\n"
+            "b = c.createBehaviour(VC_STATISTICS, 'stat')\n"
+            "d = {'beteende': None if b is None else type(b).__name__,\n"
+            "     'har_arrived': hasattr(b, 'ComponentsArrived'),\n"
+            "     'state_fore': '%%s' %% (b.State,)}\n"
+            "d = dict((k, '%%s' %% (v,)) for k, v in d.items())\n"
+            "print(json.dumps(d))\n"
+        ) % (str(station),)
+        desc = "fas15: station med vcStatistics (inert)"
+    skapat = _kor(k, kod, desc)
     plan = {"template": "station_svalt", "parts": [kropp], "tools": [],
             "rate_hz": 20.0, "scen": "roles", "stat": ["%s/stat" % station],
             "genomstromning": {"max_svalt_s": max_svalt_s}}
@@ -526,7 +542,8 @@ def main():
             # i tva varianter. Den inerta ar den TRASIGA FIXTUREN for
             # fail-closed (M-88 §5: forsta korningen gav PASS pa den).
             for namn, satt_idle, vantat in (("station_svalt_inert", False, "INCONCLUSIVE"),
-                                            ("station_svalt", True, "FAIL")):
+                                            ("station_svalt", True, "FAIL"),
+                                            ("station_svalt_matad", "Busy", "PASS")):
                 if bara and namn not in bara:
                     continue
                 try:

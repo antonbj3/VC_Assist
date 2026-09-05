@@ -165,6 +165,7 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-124_de_23_svaren.md` | M-124 — de 23 svaren: facit_spar för bankens sista tredjedel |
 | `M-125_openplc_som_tredje_motor.md` | M-125 — OpenPLC som tredje motor (kö A, punkt A1) |
 | `M-126_matningsindexet_genereras.md` | M-126 — mätningsindexet genereras, och två sessioner tog samma nummer inom 91 sekunder |
+| `M-127_den_femte_domaren_falld_i_vc.md` | M-127 — den femte domaren fälld i VC: genomflödesdomaren mot en svulten station med verklig process |
 
 <!-- SLUT MATNINGSTABELL -->
 
