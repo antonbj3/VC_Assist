@@ -204,7 +204,7 @@ class Ovisshet:
 
     def __post_init__(self):
         if self.klass not in OVISSHETSKLASSER:
-            raise Forloppsfel("okänd ovisshetsklass %r" % (self.klass,))
+            raise Forloppsfel("unknown uncertainty class %r" % (self.klass,))
         if not (self.skal or "").strip():
             raise Forloppsfel(
                 "ovissheten %r saknar skäl; ett 'vet inte' utan skäl går inte "
@@ -232,7 +232,7 @@ class Steg:
 
     def satt(self, status: str, skal: str = "") -> None:
         if status not in STEGSTATUSAR:
-            raise Forloppsfel("okänd stegstatus %r" % (status,))
+            raise Forloppsfel("unknown step status %r" % (status,))
         self.status = status
         if skal:
             self.skal = skal
