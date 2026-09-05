@@ -112,6 +112,20 @@
       "signal": "ST490_XFR_REQ",
       "beskrivning": "Overlamningen kors tva ganger i rad utan aterstallning emellan.",
       "forvantat": "Bada overlamningarna fullfoljs; kvittens och aterstallning galler aven andra gangen."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
+    },
+    {
+      "id": "done_hallen_hog",
+      "typ": "vandning",
+      "signal": "ST490_XFR_DONE",
+      "beskrivning": "Mottagarens DONE halls hog genom tva overlamningar i rad utan att slappas.",
+      "forvantat": "Den andra overlamningens nollstallning kraver en ny stigande flank; en hallen niva far inte nollstalla handskakningen."
     }
   ],
   "core_outputs": [
@@ -1190,6 +1204,338 @@
             "satt": {
               "ST490_XFR_REQ": false,
               "ST490_XFR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": true,
+              "ST490_CNV_RUN": true
+            },
+            "varfor": "overforingen pagar"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false,
+              "ST490_XFR_RST": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; en bana som fortsatter drar lastbararen mot en AMR som redan borjat backa"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta overlamningen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4,
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
+          }
+        ]
+      },
+      {
+        "id": "done_hallen_hog",
+        "beskrivning": "Mottagarens DONE halls hog genom tva overlamningar i rad.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST490_PEC_GAP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST490_PEC_GAP": false,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST490_XFR_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST490_XFR_REQ": false,
+              "ST490_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST490_PEC_GAP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "ST490_PEC_GAP": false,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST490_XFR_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "ST490_XFR_RST": false,
+              "ST490_XFR_ACK": false,
+              "ST490_CNV_RUN": false
+            },
+            "varfor": "hall en DONE ger ingen ny flank: nollstallningen kommer bara pa niva (M-134 klass 5)"
+          },
+          {
+            "t_ms": 3900,
+            "satt": {
+              "ST490_XFR_REQ": false
             },
             "krav": {},
             "varfor": ""

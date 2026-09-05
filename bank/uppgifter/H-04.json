@@ -94,6 +94,13 @@
       "signal": "ST310_PRT_PRS",
       "beskrivning": "Overlamningen kors tva ganger i rad utan aterstallning emellan.",
       "forvantat": "Bada overlamningarna fullfoljs med kvittens var for sig; den andra startar inte pa den forstas kvittens."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
     }
   ],
   "core_outputs": [
@@ -1173,6 +1180,114 @@
             "satt": {},
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": false,
+              "ST320_RB_START": false,
+              "ST310_HSK_REQ": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderad rorelse i samma scan"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true,
+              "ST310_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST310_RB_START": false,
+              "ST320_RB_START": false
+            },
+            "varfor": "ett aterstallt nodstopp ar ingen startorder (IEC 60204-1); cellen star tills nagon kvitterar"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0,
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST310_HSK_REQ": false,
+              "ST310_RB_START": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
           }
         ]
       }

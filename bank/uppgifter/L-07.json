@@ -113,6 +113,13 @@
       "signal": "ST550_TBL_HOME",
       "beskrivning": "Vagnen kor tva hela varv i rad utan stopp emellan.",
       "forvantat": "Bada varven raknas och overvakas var for sig; andra varvet startar inte pa forstas pulsgivare."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
     }
   ],
   "core_outputs": [
@@ -1296,6 +1303,118 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST550_TBL_REV": 3,
+              "ST550_TBL_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false,
+              "ST550_FLM_DOWN": false,
+              "ST550_FLM_CUT": false,
+              "ST550_CNV_RUN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "EMG_OK": true,
+              "ST550_TBL_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; urkopplingen far bara mojliggora omstart, inte utfora den (IEC 60204-1, manuell aterstallning)"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": false,
+              "ST550_FLM_UP": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
           }
         ]
       }

@@ -108,6 +108,13 @@
       "signal": "ST530_PEC_CAR",
       "beskrivning": "ST530_PEC_CAR gar hog medan ST530_PEC_IN fortfarande ar hog: lastbararen ligger grensle over overlamningen.",
       "forvantat": "Hissen far inte rora sig i nagon riktning sa lange bada fotocellerna ar brutna. Inmatningen ska fortsatta dra tills bararen slappt inmatningens fotocell, och forst da far lyftet ga."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
     }
   ],
   "core_outputs": [
@@ -1017,6 +1024,115 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "inmatningen drar in bararen"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_CNV_OUT": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta hissen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
           }
         ]
       }

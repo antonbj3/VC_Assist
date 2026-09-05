@@ -107,6 +107,13 @@
       "signal": "SYS_AUTO",
       "beskrivning": "Lagesvaljaren slas fran auto till hand mitt i en automatcykel.",
       "forvantat": "Automatikens alla utsignaler ska nollstallas i samma scan och sekvensen borja om fran noll. Handkorningen far inte arva ett halvfardigt automatlage."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
     }
   ],
   "core_outputs": [
@@ -1337,6 +1344,114 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST260_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false,
+              "ST260_LFT_UP": false,
+              "ST260_LFT_DOWN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": true,
+              "ST260_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta cellen (ISO 13850:2015 4.1.4: urkopplingen far bara mojliggora omstart, inte utfora den)"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST260_VAC_PRS": 60.0,
+              "ST260_LAY_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST260_RB_START": false,
+              "ST260_VAC_ON": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
           }
         ]
       }

@@ -127,6 +127,20 @@
       "signal": "ST510_PEC_PART",
       "beskrivning": "Tre underkanda etiketter kommer i tva omgangar i samma korning.",
       "forvantat": "Raknaren nollstalls av godkand etikett; tre underkanda i rad stoppar stationen i bada omgangarna."
+    },
+    {
+      "id": "nystart_utan_kvittens_star_still",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningen halls inne genom nodstoppet och slapps; darefter kommenderas en ny cykel utan ny kvittens.",
+      "forvantat": "Utan ny stigande flank pa aterstallningen star stationen stilla; den hallna nivan far inte starta en ny cykel."
+    },
+    {
+      "id": "done_hallen_hog",
+      "typ": "vandning",
+      "signal": "ST510_SCN_DONE",
+      "beskrivning": "Verifierarens DONE halls hog genom tre lasningar i rad utan att slappas.",
+      "forvantat": "Varje lasning kraver en ny stigande flank pa verifierarens svar; en hallen niva far inte raknas som ett nytt svar."
     }
   ],
   "core_outputs": [
@@ -1738,6 +1752,504 @@
             "satt": {},
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nystart_utan_kvittens_star_still",
+        "beskrivning": "Aterstallningen halls genom nodstoppet och slapps; en ny cykel kommenderas utan ny kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": true
+            },
+            "varfor": "utskriften ar bestalld"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_PSH_REJ": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST510_LBL_PRINT": false,
+              "ST510_LBL_APPLY": false,
+              "ST510_CNV_RUN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta stationen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte) | transportbandet star still tills kvittens (M-134 klass 1)"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST510_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 3.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST510_CNV_RUN": false
+            },
+            "varfor": "nystart utan kvittens star still: hallen niva nollstallde, flanken gjorde det inte (M-134 klass 6)"
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "SYS_RESET": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PEC_PART": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4600,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4800,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5100,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5300,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5400,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "forsta underkanda etiketten kasseras och stationen fortsatter; en enda dalig etikett kan vara en veckad kartong"
+          },
+          {
+            "t_ms": 5600,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5800,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6200,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6400,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6600,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6700,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "andra underkanda etiketten i rad kasseras ocksa, men tva ar annu inte ett monster"
+          },
+          {
+            "t_ms": 6900,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7100,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7300,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7500,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7700,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7900,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST510_PSH_REJ": false,
+              "ST510_SCN_TRIG": false,
+              "ST510_LBL_PRINT": false
+            },
+            "varfor": "tre underkanda etiketter i rad ar inte tre olyckor utan ett slut eller smutsigt skrivhuvud. Att kassera en och en doljer felet tills en hel skiftlast ligger i kassationsladan, sa den tredje ska stoppa stationen"
+          }
+        ]
+      },
+      {
+        "id": "done_hallen_hog",
+        "beskrivning": "Verifierarens DONE halls hog genom tre lasningar i rad.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "forsta underkanda etiketten kasseras och stationen fortsatter; en enda dalig etikett kan vara en veckad kartong"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST510_PSH_REJ": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "andra underkanda etiketten i rad kasseras ocksa, men tva ar annu inte ett monster"
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3500,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST510_PSH_REJ": true,
+              "ST510_CNV_RUN": true
+            },
+            "varfor": "hall en DONE ger ingen ny lasflank: svaret hor till foregaende kartong (M-134 klass 5)"
           }
         ]
       }

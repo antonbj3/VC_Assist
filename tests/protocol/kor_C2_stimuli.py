@@ -509,6 +509,185 @@ STIMULI = [
                           "ST520_CNV_RUN star (M-134 klass 6)"}],
      "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 57,
                    "fore": "trigReset.Q", "forekomst": 0}]},
+    # --- klass 6 V4: nystart utan kvittens star still (M-134) ---
+    # Sju uppgifter dar lasdifferensen syns forst nar en ny cykel kommenderas
+    # efter slappet: referensen (fortfarande last, ingen ny flank) star stilla
+    # medan mutanten (nollstalld av den hallna nivan) kor. Designade med
+    # subagent, var for sig verifierade mot grinden fore filskrivning.
+    {"uppgift": "H-04", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3400, "satt": {},
+                "krav": {"ST310_HSK_REQ": False, "ST310_RB_START": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 30,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "H-05", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3000, "satt": {},
+                "krav": {"ST490_XFR_ACK": False, "ST490_CNV_RUN": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 46,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "L-05", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3400, "satt": {},
+                "krav": {"ST260_RB_START": False, "ST260_VAC_ON": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 32,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "L-06", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3600, "satt": {},
+                "krav": {"ST540_CNV_RUN": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"},
+               {"t_ms": 7400, "satt": {},
+                "krav": {"SYS_ALARM": True, "ST540_SEA_START": False,
+                         "ST540_RB_START": False, "ST540_VAC_ON": False,
+                         "ST540_CNV_RUN": False},
+                "varfor": "sex robotcykler har lagt tolv burkar men raknaren "
+                          "star kvar pa noll; antingen ser givaren dem inte "
+                          "eller sa hamnar de bredvid kartongen. En "
+                          "forslutare som tejpar igen en kartong ingen vet "
+                          "innehallet i skickar den vidare till kund"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 19,
+                   "fore": "trigReset.Q", "forekomst": 0},
+                  {"sort": "FLANK_TILL_NIVA", "rad": 57,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "L-07", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3600, "satt": {},
+                "krav": {"ST550_TBL_RUN": False, "ST550_FLM_UP": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 41,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "S-07", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3400, "satt": {},
+                "krav": {"ST510_CNV_RUN": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"},
+               {"t_ms": 8000, "satt": {},
+                "krav": {"SYS_ALARM": True, "ST510_PSH_REJ": False,
+                         "ST510_SCN_TRIG": False, "ST510_LBL_PRINT": False},
+                "varfor": "tre underkanda etiketter i rad ar inte tre "
+                          "olyckor utan ett slut eller smutsigt skrivhuvud. "
+                          "Att kassera en och en doljer felet tills en hel "
+                          "skiftlast ligger i kassationsladan, sa den tredje "
+                          "ska stoppa stationen"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 44,
+                   "fore": "trigReset.Q", "forekomst": 0},
+                  {"sort": "FLANK_TILL_NIVA", "rad": 53,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "T-09", "sekvens": "nystart_utan_kvittens_star_still",
+     "lage": "ny",
+     "scenario": {"id": "nystart_utan_kvittens_star_still",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningen halls inne genom "
+                                 "nodstoppet och slapps; darefter "
+                                 "kommenderas en ny cykel utan ny kvittens.",
+                  "forvantat": "Utan ny stigande flank pa aterstallningen "
+                               "star stationen stilla; den hallna nivan far "
+                               "inte starta en ny cykel."},
+     "steg": [{"t_ms": 3000, "satt": {},
+                "krav": {"ST530_CNV_IN": False, "ST530_LFT_UP": False,
+                         "ST530_LFT_DOWN": False},
+                "varfor": "nystart utan kvittens star still: hallen niva "
+                          "nollstallde, flanken gjorde det inte "
+                          "(M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 43,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    # --- klass 5/6: hallen DONE-signal (M-134) ---
+    {"uppgift": "H-05", "sekvens": "done_hallen_hog",
+     "lage": "ny",
+     "scenario": {"id": "done_hallen_hog", "typ": "vandning",
+                  "signal": "ST490_XFR_DONE",
+                  "beskrivning": "Mottagarens DONE halls hog genom tva "
+                                 "overlamningar i rad utan att slappas.",
+                  "forvantat": "Den andra overlamningens nollstallning "
+                               "kraver en ny stigande flank; en hallen niva "
+                               "far inte nollstalla handskakningen."},
+     "steg": [{"t_ms": 3700, "satt": {},
+                "krav": {"ST490_XFR_RST": False, "ST490_XFR_ACK": False,
+                         "ST490_CNV_RUN": False},
+                "varfor": "hall en DONE ger ingen ny flank: nollstallningen "
+                          "kommer bara pa niva (M-134 klass 5)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 78,
+                   "fore": "trigDone.Q", "forekomst": 0}]},
+    {"uppgift": "S-07", "sekvens": "done_hallen_hog",
+     "lage": "ny",
+     "scenario": {"id": "done_hallen_hog", "typ": "vandning",
+                  "signal": "ST510_SCN_DONE",
+                  "beskrivning": "Verifierarens DONE halls hog genom tre "
+                                 "lasningar i rad utan att slappas.",
+                  "forvantat": "Varje lasning kraver en ny stigande flank "
+                               "pa verifierarens svar; en hallen niva far "
+                               "inte raknas som ett nytt svar."},
+     "steg": [{"t_ms": 3800, "satt": {},
+                "krav": {"SYS_ALARM": False, "ST510_PSH_REJ": True,
+                         "ST510_CNV_RUN": True},
+                "varfor": "hall en DONE ger ingen ny lasflank: svaret hor "
+                          "till foregaende kartong (M-134 klass 5)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 31,
+                   "fore": "trigDone.Q", "forekomst": 0}]},
 ]
 
 
