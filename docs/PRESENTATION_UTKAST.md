@@ -169,14 +169,14 @@ being built.
 Every number here has a measurement file behind it, with the rig it ran on and
 what it does not show.
 
-**It reads the whole scene, cheaply.** A 812-object cell is captured in
-**3.5 milliseconds** — 4.3 microseconds per object — so it can sample 225 times
-a second while the simulation runs, without slowing it down. Positions come back
-with no drift.
+**Reading the scene is cheap, and stays cheap.** Cost is **4.3 microseconds per
+component per sample**, measured linear up to 800 components — well past the
+size of a real cell. That is what makes 225 samples a second possible while the
+simulation runs. Positions come back with no drift.
 
 **It finds faults a single station cannot show you.** On a two-station line it
-caught five that each station passed on its own — the kind that only exist in
-the gap between machines.
+caught all five classes of fault that each station passed on its own — the kind
+that only exist in the gap between machines.
 
 **It usually gets there in two tries.** Across 26 tasks with a known answer, 25
 were solved within four rounds of writing and correcting, median two. On the
