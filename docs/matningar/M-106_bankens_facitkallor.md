@@ -138,7 +138,37 @@ skäl, och den räknar nu ord på båda sidor om talet.
 
 ## 3. Facitkällan per uppgift
 
-<!-- FYLLS I NÄR ALLA UPPGIFTER ÄR KLARA -->
+Banken bär nu **63** uppgifter, varav **24** har ett spårfacit som går att
+döma i dag. Tolv av dem är nya industriuppgifter, åtta är gamla uppgifter som
+fått ett spårfacit, och fyra fanns sedan M-45. Före det här arbetet var talet
+fyra av 51.
+
+| Uppgift | Status | Bransch | Källklass | Vad facit vilar på |
+|---|---|---|---|---|
+| `A-03` | facit tillagt | fordonsmontering | `RAKNAD` | takten kommer ur stationernas egna arbetstider |
+| `A-07` | ny | svetsning | `RAKNAD+STANDARD` | bagtiden ar raknad ur fogarnas langd och svetshastigheten: fyra fogar a 120 mm ar 480 mm, och vid 8 mm/s blir bagtiden 480/8 = 60,0 s |
+| `A-08` | ny | limning | `RAKNAD` | limflodet kommer ur munstyckets egen area och robotens banhastighet |
+| `C-04` | facit tillagt | fordonsmontering | `STANDARD+RAKNAD` | att aterstallningen av nodstoppsdonet inte i sig far starta om cellen star i ISO 13850:2015 4.1.4 "Disengagement (e.g |
+| `C-06` | ny | fordonsmontering | `RAKNAD` | kapaciteten kommer ur cellens egna tider |
+| `H-01` | facit tillagt | elektronik | `RAKNAD` | tiderna kommer ur overlamningens egna matt |
+| `H-04` | fanns | svetsning | `STANDARD` | den manuella aterstallningen efter nodstopp star i IEC 60204-1:2016 9.2.3.4.2 "Emergency stop" och i ISO 13850:2015 4.1.4 "Disengagement (e.g |
+| `H-05` | ny | lager_orderplock | `STANDARD+RAKNAD` | handskakningens tillstand foljer VDA 5050 3.0.0 avsnitt 6.2.3.2 tabell 5, aktionerna pick och drop, och blockeringstypen i 6.2.2 tabell 3 |
+| `L-05` | fanns | logistik_pall | `STANDARD` | hall-for-att-kora star i IEC 60204-1:2016 9.2.3.7 "Hold-to-run control" |
+| `L-06` | ny | livsmedelsforpackning | `RAKNAD` | monstret kommer ur kartongens egna innermatt och burkens diameter |
+| `L-07` | ny | logistik_pall | `RAKNAD` | varvantalet kommer ur lastens hojd och filmbanans bredd |
+| `P-06` | ny | fordonsmontering | `STANDARD+RAKNAD` | att spindeln inte far starta utan bekraftad spanning och att spanningen inte far slappa medan spindeln roterar star i ISO 23125:2015 5.2.3 "Workpiece cl… |
+| `P-07` | ny | fordonsmontering | `STANDARD+RAKNAD` | sakerhetsavstandet ar raknat med ISO 13855:2010 5.2 "Minimum distance", S = K*T + C, for ett narmande vinkelratt mot detekteringsplanet enligt 6.2 |
+| `S-01` | facit tillagt | livsmedelsforpackning | `RAKNAD` | forhallningstiden kommer ur avstandet mellan hojdgivaren och utskjutaren och bandets hastighet |
+| `S-05` | fanns | kvalitetskontroll | `STANDARD` | tillstandsmaskinen ar ANSI/ISA-TR88.00.02-2022 "Machine and Unit States: An implementation example of ANSI/ISA-88.00.01", dar tillstanden definieras i k… |
+| `S-06` | ny | fordonsmontering | `RAKNAD` | tryckfallsmetoden ar ASTM E2930-13(2021) "Standard Practice for Pressure Decay Leak Test Method" |
+| `S-07` | ny | lager_orderplock | `STANDARD+RAKNAD` | minimikravet pa tryckkvalitet 1,5 (betyg C) enligt GS1 General Specifications Release 26.0 avsnitt 5.12.3 tabell 5-43, med notationen 1.5/10/660 for all… |
+| `T-01` | facit tillagt | livsmedelsforpackning | `RAKNAD` | uppehallet ar raknat ur fotocellens lage och bandets hastighet |
+| `T-02` | facit tillagt | lakemedel | `RAKNAD` | cykeltiden ar summan av stationens egna tider |
+| `T-04` | facit tillagt | fordonsmontering | `RAKNAD` | buffertens langd och genomloppstid ur lastbararens egna matt |
+| `T-05` | facit tillagt | elektronik | `RAKNAD` | tiderna ur stationens egna matt |
+| `T-07` | fanns | plastformsprutning | `STANDARD` | att ett latchat larm bara far nollstallas av en manuell kvittens, och att aterstallningen av nodstoppsdonet inte i sig far starta stationen, star i IEC … |
+| `T-08` | ny | fordonsmontering | `DATABLAD+RAKNAD` | uppehallstiden ar raknad ur ugnens egna matt, 12,0 m / 0,010 m/s = 1200 s = 20,0 min, och hardschemat kommer ur ett publicerat datablad: TIGER Drylac Se… |
+| `T-09` | ny | lager_orderplock | `RAKNAD` | restiden ur hissens egna matt med trapetsprofil |
 
 ---
 
@@ -306,3 +336,42 @@ att de är genomgångna, inte bortglömda.
   **ISO 14119:2013** numreras om i EN ISO 14119:2025 (4.3→5.3, 5.7→6.6,
   8.4→9.3). **ISO 3691-4:2020 är ersatt av :2023.** Varje citat bär sitt årtal.
 
+---
+
+## 6. Fyndet som kom på köpet: påståendeskalan belönar att inte göra något
+
+När banken växte från 4 till 24 dömbara uppgifter körde `test_baslinje.py` om
+sin egen kontrollriktning: **slår den klassiska baslinjen sitt eget golv, ett
+nollprogram som aldrig sätter en enda utgång?**
+
+Med fyra uppgifter gjorde den det på alla fyra. Med 24 gör den det inte på
+10 av dem:
+
+| Uppgift | Baslinjen | Nollprogrammet |
+|---|---|---|
+| `A-03` | 56 | **56** |
+| `A-08` | 124 | **127** |
+| `C-04` | 30 | **41** |
+| `C-06` | 112 | **117** |
+| `H-01` | 58 | **67** |
+| `P-07` | 85 | **90** |
+| `S-06` | 140 | **142** |
+| `S-07` | 89 | **96** |
+| `T-02` | 58 | **64** |
+| `T-05` | 85 | **87** |
+
+Det är inte ett fel i baslinjen. Det är skalan. Ett nollprogram uppfyller varje
+punktkrav som säger att en utgång ska vara **låg** — och ju fler förreglingar en
+uppgift bär, desto fler sådana krav har den. De nya uppgifterna är rikare på
+förreglingar än de fyra första, så de belönar inaktivitet hårdare.
+
+M-62 skrev raden redan: *"Ett procenttal ur en påståenderäkning får därför
+ALDRIG bli bankens huvudtal; bara den binära domen per uppgift skiljer dem åt."*
+Den raden hade fyra uppgifter under sig. Nu har den 24, och den håller ännu
+bättre än den gjorde då.
+
+Provet `test_baslinjen_ligger_over_golvet` är därför omskrivet: det kräver
+fortfarande att baslinjen slår nollprogrammet på varje uppgift där den gjorde
+det, och det bär listan över de uppgifter där skalan inverterar som en spärr
+som bara får krympa. En ny uppgift som hamnar under nollprogrammet fäller
+provet, för då har ingen mätt den.

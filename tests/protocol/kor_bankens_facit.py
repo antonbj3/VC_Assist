@@ -627,7 +627,7 @@ def trasiga_fall(bank, kanda_matningar):
 # Sparren far bara ga at ett hall. Faller talet har nagon tagit bort ett facit;
 # stiger det ska golvet skrivas upp har och i M-106, annars slutar sparren
 # mata sin egen storhet.
-SPARFACIT_GOLV = 22             # Matt i M-106.
+SPARFACIT_GOLV = 24             # Matt i M-106.
 
 
 def main(argv=None):

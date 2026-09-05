@@ -490,15 +490,47 @@ def test_nollprogrammet_uppfyller_anda_manga_pastaenden(facitposter):
         "'ratt av fel skal'" % (uppfyllda, totalt))
 
 
+# Uppgifterna dar pastaendeskalan INVERTERAR: nollprogrammet uppfyller fler
+# pastaenden an baslinjen. MATT i M-106 over bankens 24 dombara uppgifter.
+# Listan far bara KRYMPA. Vaxer den har en ny uppgift lagts in utan att nagon
+# matt den; krymper den ska talet skrivas ned har.
+BASLINJEN_UNDER_NOLLPROGRAMMET = {"H-01", "C-04", "T-02", "A-03", "S-07", "C-06", "P-07", "A-08", "T-05", "S-06"}
+
+
 def test_baslinjen_ligger_over_golvet(facitposter):
     """Kontrollriktningen. En baslinje som inte slar sitt eget golv mater
-    ingenting."""
+    ingenting - utom dar SKALAN ar vand.
+
+    Med fyra dombara uppgifter slog baslinjen nollprogrammet pa alla fyra. Med
+    24 gor den det inte pa 10 av dem, och det ar inte ett fel i baslinjen utan
+    i skalan: ett nollprogram uppfyller varje punktkrav som sager att en utgang
+    ska vara LAG, och ju fler forreglingar en uppgift bar desto fler sadana krav
+    har den. De uppgifter M-106 la till ar rikare pa forreglingar an de fyra
+    forsta, sa de beloner inaktivitet hardare. Det ar samma rad som M-62 redan
+    skrev: ett procenttal ur en pastaenderakning far aldrig bli bankens huvudtal.
+
+    Provet kraver darfor bada delarna: baslinjen ska sla golvet pa varje uppgift
+    dar den gjorde det, och listan over de uppgifter dar skalan inverterar far
+    inte vaxa.
+    """
     baslinje = Baslinje(niva=NIVA_SPEC)
+    under = set()
     for post in facitposter:
         golv = B.spardom(post, B.nollprogram(post)[0])
         bygge = B.bygg(post, baslinje)
         min_ = B.spardom(post, bygge.st_kalla)
-        assert min_.uppfyllda > golv.uppfyllda, post["task_id"]
+        if min_.uppfyllda <= golv.uppfyllda:
+            under.add(post["task_id"])
+    nya = sorted(under - BASLINJEN_UNDER_NOLLPROGRAMMET)
+    assert not nya, (
+        "baslinjen ligger under nollprogrammet pa %s, och de star inte i "
+        "BASLINJEN_UNDER_NOLLPROGRAMMET. En ny uppgift ar inlagd utan att nagon "
+        "matt den mot golvet." % ", ".join(nya))
+    borta = sorted(BASLINJEN_UNDER_NOLLPROGRAMMET - under)
+    assert not borta, (
+        "baslinjen slar nu nollprogrammet aven pa %s. Skriv ned den nya listan "
+        "i BASLINJEN_UNDER_NOLLPROGRAMMET och i M-106, annars ruttnar sparren."
+        % ", ".join(borta))
 
 
 def test_pastaendeskalan_skiljer_inte_pa_farligt_och_riktigt(facitposter):
@@ -664,10 +696,15 @@ def test_atgardstabellen_tacker_bara_formgrindarnas_koder():
 # Rakningen: nämnaren maste stamma med M-45:s egen.
 
 def test_pastaenderakningen_stammer_med_M45(facitposter):
+    """Namnaren far inte rora sig utan att nagon skriver ned den.
+
+    Talen var (190, 18, 10) nar banken hade fyra dombara uppgifter (M-45). De
+    ar nu M-106:s, over 24 uppgifter. Sparren gar bara at ett hall: andras
+    banken utan att talet skrivs ned faller provet."""
     punkt = sum(B.pastaenden(p).punktkrav for p in facitposter)
     namn = sum(B.pastaenden(p).invariantnamn for p in facitposter)
     flank = sum(B.pastaenden(p).flanker for p in facitposter)
-    assert (punkt, namn, flank) == (190, 18, 10)
+    assert (punkt, namn, flank) == (1634, 130, 132)
 
 
 def test_ett_tolkfel_raknas_som_noll_uppfyllda(facitposter):
