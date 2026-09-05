@@ -63,6 +63,52 @@ jämför variabelvärdena. `kor_m62_baslinjen_mot_strucpp.py` gör precis det mo
 STruC++ och är din mall. Timers är det intressanta: `TON` med `PT := T#4s` ska
 lösa ut på samma scan i båda.
 
+## Om steg 1 inte går att lösa på ett par timmar
+
+Steg 1 är uppdragets enda flaskhals: går OpenPLC inte att få igång står allt
+annat still. Kör inte fast där. **Tidsätt det, och byt spår om det inte
+lossnar** — och skriv ned exakt vad som hindrade, för det är i sig ett fynd om
+en kedja produkten påstår sig ha.
+
+Reservspåret är värt en dag för sig och kräver ingen OpenPLC:
+
+**R1. De tre falska rödgrindar `M-99` inte hann laga.** Fältinitieraren
+`:= [1,2,3]` och `[3(0)]`, samt `CONFIGURATION`. För fälten är kostnaden mätt
+till **noll på modellvägen** — `skelett.granska_arbetsvariabler` släpper bara
+elementära typer, så modellen kan inte deklarera ett fält alls. Avgör om det är
+rätt gräns eller en onödig begränsning, och mät vad den kostar.
+
+**R2. Satsnästlingen saknar vakt.** Mätt: 326 nästlade `IF` innan
+`RecursionError`. Ett djup utan vakt betyder att grinden kraschar i stället för
+att döma, och `M-99` fann redan ett sådant fall (`ARRAY[10..1]` tog med sig
+hela `granska_station`). Sätt ett tak som är **mätt** mot den verkliga
+kapaciteten, inte gissat — `M-99` bisekterade RecursionError för uttrycksdjupet
+och den metoden är din mall.
+
+**R3. Utöka svepet.** `M-99` svepte tio axlar och 490 konstruktioner plus
+40 000 muterade källor. Axlar den inte tog: `STRUCT` och `ARRAY OF STRUCT`,
+`FUNCTION` med `VAR_IN_OUT`, `REF_TO`, `CASE` med intervall och listor
+(`1..5, 7:`), `REPEAT ... UNTIL`, samt strängoperationer (`CONCAT`, `MID`,
+`FIND`). Samma tre klasser, samma facitregler.
+
+**R4. Hängproven.** `M-99` fann att `BOOL#7` utan avslutande radbrytning fick
+lexern att hänga för evigt — en grind som hänger lämnar **inget spår alls**:
+inget rött, ingen logg, bara ett prov som aldrig svarar. Det provet kör i egen
+process med tidsgräns. Sök fler av den formen: mutera systematiskt bort
+avslutande tecken, och kör varje fall med tidsgräns.
+
+## Om du blir klar
+
+Det finns mer på samma spår, i fallande värde:
+
+* **OPC UA-ledet.** Kedjan har fyra led och du prövar två. Vad händer när en
+  variabel mappas fel, när typen inte stämmer, när servern svarar långsamt?
+* **Scantiden.** OpenPLC har en cykeltid. Vår tolk har `scan_ms`. Är de samma
+  storhet? `strucpp_orakel.py` har en `_CYKELRAD` som läser `Cycle: N ms` —
+  jämför det talet mot vad tolken antar.
+* **Nedladdningen av OpenPLC** sker på digest i `verktygskedjan.py`. Verifiera
+  att digesten stämmer med den avbild som faktiskt körs.
+
 ## Trasiga fall som måste falla
 
 * En OpenPLC som inte svarar får **aldrig** ge en tyst grön. Slutkod ≠ 0 och

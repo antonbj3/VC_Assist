@@ -57,6 +57,34 @@ mitt i en hämtning? En halv fil med rätt namn och fel hash är det farliga
 utfallet. Prova det — kapa nedladdningen och se att hashkontrollen fäller och
 att filen tas bort.
 
+## Ordningen, och varför den spelar roll
+
+Punkterna är oberoende med flit. Faller en distribution ger de andra ändå
+resultat, så kör dem i den här ordningen och committa efter varje:
+
+**Alpine först.** Den är den enda som kan bryta löftet på riktigt — musl i
+stället för glibc. Går den är de andra sannolikt lättare, och går den inte har
+du dagens viktigaste fynd på en gång.
+
+Sedan Pythonversionerna, sedan de övriga distributionerna, sedan
+verktygskedjan, sist offline-fallet.
+
+## Om du blir klar
+
+* **macOS.** Manifestet bär `darwin-x64` och `darwin-arm64` och ingendera är
+  prövad. Utan en Mac går bara hashen och storleken att verifiera — gör det,
+  och skriv ut vad som återstår.
+* **En riktigt gammal Python.** `python:3.6` och `3.7` är EOL men finns på
+  maskiner i drift. Fungerar installationen? Om inte: vilket lägsta krav ska
+  README ange? Det står inget i dag.
+* **Ominstallation över en ÄNDRAD källa.** `M-90` mätte idempotensen över två
+  körningar av oförändrad källa. Att `uppdaterade` räknar rätt när en fil
+  faktiskt ändrats är prövat i enhetsprov men inte på en ren maskin.
+* **Avinstallationen.** `fas10_paketering.md` säger att trädet blir
+  byte-identiskt med före. Prövat på utvecklingsmaskinen, inte på en ren.
+* **Rättigheter.** Vad händer när målmappen inte går att skriva i? En
+  installation som misslyckas till hälften är värre än en som vägrar.
+
 ## Trasiga fall som måste falla
 
 * En **manipulerad nedladdning** måste avvisas på hashen. Fixturen finns
