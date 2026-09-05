@@ -31,10 +31,10 @@ två stdlib-vägar: (a) import av varje `install/`-modul på bildens minimala py
 - `ntpath.expanduser`-sömmen (M-92) bekräftad skarpt: `HOME=/home/x + USERPROFILE=C:\\Users\\x` ger `C:\\Users\\x` på **alla** 3.9–3.13 men `/home/x` på `python:2.7-slim` (2.7.18). Sömmen finns kvar; `plats.py`:s USERPROFILE-först-ordning är fortsatt rätt val.
 - Tilläggssidan 2.7: alla 11 `.py` i `ext/vc_addon/vc_assist` kompilerar med `compileall` + `py_compile(doraise=True)` på 2.7.18 (första försöket såg ut att falla men felet var riggens: skrivskyddad bindmontering, `.pyc` kunde inte skrivas bredvid källan — omkört mot `/tmp`-kopia: OK).
 
-## LIMITS
+## LIMITS (halv mätning — avslutad här)
 
-- Denna fil är under arbete; siffror ovanför är preliminära tills varje delsektion anger härkomst (bilddigest + `python3 --version`).
+- **Mätt:** Alpine 3.20 (musl) + Python 3.9–3.13 + tilläggssida 2.7.18. Allt grönt; två fynd (3.9 saknar `sys.stdlib_module_names`; `ntpath.expanduser`-sömmen 2.7 vs 3.x bekräftad).
+- **Omätt (kvar från ersatta uppdraget):** `debian:12`, `fedora:41`, `archlinux`, `ubuntu:22.04`; verktygskedjans sju hashposter (inkl. `linux-arm64`-emulering, `darwin-*` hash+storlek, win32-identiteten); node-versionsfästning; offline/halv-fil-fallet; nya `kor_plattformar_*.py`; fas 12/README-uppdatering.
+- Uppdraget som beställde denna mätning ersattes 2026-09-05 09:18 (commit 4c1486b) av tillförlitlighet-i-skala. Filen behålls som fristående delresultat; numret återanvänds inte.
 - Windows (fas 13) prövas inte — ingen Windows-maskin finns.
-- `darwin-*` verifieras endast som hash+storlek utan Mac.
-- `linux-arm64` prövas endast under emulering om värden klarar det, annars hash+storlek.
-- Disk på värden var 99% full vid start (7,8G ledigt); bilder dras en i taget och städas efteråt.
+- Disk på värden var 99% full vid start (7,6–7,9G ledigt); bilder drogs en i taget och städades med `docker image rm` efteråt.
