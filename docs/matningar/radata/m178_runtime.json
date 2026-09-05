@@ -1,0 +1,472 @@
+{
+ "grindar": [
+  {
+   "fil": "svc/vc_assist_svc/st/validator.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/st/tolk.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/deklarationsgrind.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/industrigrind.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/stationsgrind.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/forhandsregler.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/paket.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "svc/vc_assist_svc/plc/openplc.py",
+   "finns": true,
+   "traffar": [
+    {
+     "rad": 270,
+     "text": "`[task MAIN] scan overrun #N: body exceeds its 20 ms period` när"
+    }
+   ]
+  },
+  {
+   "fil": "bank/domare.py",
+   "finns": true,
+   "traffar": []
+  },
+  {
+   "fil": "bank/domare_openplc.py",
+   "finns": true,
+   "traffar": [
+    {
+     "rad": 168,
+     "text": "# OpenPLC:s cycle_time_avg mot tolk.SCAN_MS och paket.TASKINTERVALL."
+    },
+    {
+     "rad": 177,
+     "text": "# och matchar pluginets egen cykeltid (opcuakonfig.CYKELTID_MS)."
+    },
+    {
+     "rad": 178,
+     "text": "POLL_S = 0.010                  # M-20: pluginets egen cykeltid, 10 ms."
+    }
+   ]
+  }
+ ],
+ "nivaer": [
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     151
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     301
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 20.0,
+   "logg_fore": "2026-09-05T19:23:04+0000 [INFO] PLC State: STOPPED",
+   "logg_varningar": [
+    "2026-09-05T19:23:29+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:23:29+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:29+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:29+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:23:29+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:23:29+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:23:29+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling"
+   ],
+   "niva": "noll",
+   "overruns": 0,
+   "scan_count": 300,
+   "scan_i_fonstret": 150,
+   "scan_time_avg_ms": 0.002,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nIF FALSE THEN\n    acc := acc + 1.0;\nEND_IF;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 7,
+      "cycle_latency_max": 45,
+      "cycle_latency_min": -4,
+      "cycle_time_avg": 19009,
+      "cycle_time_max": 20044,
+      "cycle_time_min": 19957,
+      "name": "MAIN",
+      "overruns": 0,
+      "scan_count": 300,
+      "scan_time_avg": 2,
+      "scan_time_max": 4,
+      "scan_time_min": 1
+     }
+    ]
+   },
+   "varv": 0
+  },
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     341
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     491
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 20.0,
+   "logg_fore": "2026-09-05T19:23:35+0000 [INFO] [Python loader] Cleaning up 0 Python function block(s)...",
+   "logg_varningar": [
+    "2026-09-05T19:23:38+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:23:38+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:38+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:38+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:23:38+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:23:38+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:23:38+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling"
+   ],
+   "niva": "1e6",
+   "overruns": 0,
+   "scan_count": 501,
+   "scan_i_fonstret": 150,
+   "scan_time_avg_ms": 2.298,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nFOR i := 1 TO 1000 DO\n    FOR j := 1 TO 1000 DO\n        acc := acc + 1.0;\n    END_FOR;\nEND_FOR;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "TRANSITIONING",
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 10,
+      "cycle_latency_max": 1511,
+      "cycle_latency_min": 1,
+      "cycle_time_avg": 19869,
+      "cycle_time_max": 21495,
+      "cycle_time_min": 18505,
+      "name": "MAIN",
+      "overruns": 0,
+      "scan_count": 501,
+      "scan_time_avg": 2298,
+      "scan_time_max": 6557,
+      "scan_time_min": 2233
+     }
+    ]
+   },
+   "varv": 1000000
+  },
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     332
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     477
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 20.69,
+   "logg_fore": "2026-09-05T19:23:48+0000 [INFO] [Python loader] Cleaning up 0 Python function block(s)...",
+   "logg_varningar": [
+    "2026-09-05T19:23:52+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:23:52+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:52+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:23:52+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:23:52+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:23:52+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:23:52+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling",
+    "2026-09-05T19:23:53+0000 [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected"
+   ],
+   "niva": "5e6",
+   "overruns": 400,
+   "scan_count": 477,
+   "scan_i_fonstret": 145,
+   "scan_time_avg_ms": 11.864,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nFOR i := 1 TO 1000 DO\n    FOR j := 1 TO 5000 DO\n        acc := acc + 1.0;\n    END_FOR;\nEND_FOR;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "TRANSITIONING",
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 179331,
+      "cycle_latency_max": 260012,
+      "cycle_latency_min": -9,
+      "cycle_time_avg": 20648,
+      "cycle_time_max": 40009,
+      "cycle_time_min": 19973,
+      "name": "MAIN",
+      "overruns": 400,
+      "scan_count": 477,
+      "scan_time_avg": 11864,
+      "scan_time_max": 21708,
+      "scan_time_min": 11156
+     }
+    ]
+   },
+   "varv": 5000000
+  },
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     170
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     245
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 40.0,
+   "logg_fore": "2026-09-05T19:24:02+0000 [INFO] Stopping OPC UA server...",
+   "logg_varningar": [
+    "2026-09-05T19:24:05+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:24:05+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:05+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:05+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:24:05+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:24:05+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:24:05+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling",
+    "2026-09-05T19:24:05+0000 [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:07+0000 [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:09+0000 [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:11+0000 [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:13+0000 [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:15+0000 [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected"
+   ],
+   "niva": "1e7",
+   "overruns": 247,
+   "scan_count": 248,
+   "scan_i_fonstret": 75,
+   "scan_time_avg_ms": 20.931,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nFOR i := 1 TO 2000 DO\n    FOR j := 1 TO 5000 DO\n        acc := acc + 1.0;\n    END_FOR;\nEND_FOR;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "TRANSITIONING",
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 3143631,
+      "cycle_latency_max": 4960018,
+      "cycle_latency_min": 20017,
+      "cycle_time_avg": 36676,
+      "cycle_time_max": 59893,
+      "cycle_time_min": 39944,
+      "name": "MAIN",
+      "overruns": 247,
+      "scan_count": 248,
+      "scan_time_avg": 20931,
+      "scan_time_max": 43150,
+      "scan_time_min": 22341
+     }
+    ]
+   },
+   "varv": 10000000
+  },
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     114
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     164
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 60.0,
+   "logg_fore": "2026-09-05T19:24:15+0000 [INFO] Stopping OPC UA server...",
+   "logg_varningar": [
+    "2026-09-05T19:24:18+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:24:18+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:18+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:18+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:24:18+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:24:18+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:24:18+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling",
+    "2026-09-05T19:24:18+0000 [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:20+0000 [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:21+0000 [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:23+0000 [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:24+0000 [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:26+0000 [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:27+0000 [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected"
+   ],
+   "niva": "2e7",
+   "overruns": 163,
+   "scan_count": 164,
+   "scan_i_fonstret": 50,
+   "scan_time_avg_ms": 36.298,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nFOR i := 1 TO 4000 DO\n    FOR j := 1 TO 5000 DO\n        acc := acc + 1.0;\n    END_FOR;\nEND_FOR;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "TRANSITIONING",
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 3329544,
+      "cycle_latency_max": 6520010,
+      "cycle_latency_min": 40007,
+      "cycle_time_avg": 48340,
+      "cycle_time_max": 60015,
+      "cycle_time_min": 59988,
+      "name": "MAIN",
+      "overruns": 163,
+      "scan_count": 164,
+      "scan_time_avg": 36298,
+      "scan_time_max": 56425,
+      "scan_time_min": 44625
+     }
+    ]
+   },
+   "varv": 20000000
+  },
+  {
+   "avlasningar": [
+    [
+     "pulsraknaren@1000ms:O_HB",
+     27
+    ],
+    [
+     "pulsraknaren@4000ms:O_HB",
+     39
+    ]
+   ],
+   "brister": [
+    "pulsraknaren@1000ms:O_HB",
+    "pulsraknaren@4000ms:O_HB"
+   ],
+   "effektiv_cykel_ms": 250.0,
+   "logg_fore": "2026-09-05T19:24:28+0000 [INFO] [Python loader] Cleaning up 0 Python function block(s)...",
+   "logg_varningar": [
+    "2026-09-05T19:24:31+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)",
+    "2026-09-05T19:24:31+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:31+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)",
+    "2026-09-05T19:24:31+0000 [ERROR] mlockall failed: Cannot allocate memory",
+    "2026-09-05T19:24:31+0000 [ERROR] sched_setscheduler failed: Operation not permitted",
+    "2026-09-05T19:24:31+0000 [WARNING] dispatcher SCHED_FIFO(99) failed: Operation not permitted",
+    "2026-09-05T19:24:31+0000 [WARNING] [task MAIN] SCHED_FIFO(1) failed: Operation not permitted — running default scheduling",
+    "2026-09-05T19:24:31+0000 [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:32+0000 [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:34+0000 [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:35+0000 [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:36+0000 [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:37+0000 [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:38+0000 [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:39+0000 [WARNING] [task MAIN] scan overrun #350: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:40+0000 [WARNING] [task MAIN] scan overrun #400: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected",
+    "2026-09-05T19:24:41+0000 [WARNING] [task MAIN] scan overrun #450: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected"
+   ],
+   "niva": "1e8",
+   "overruns": 38,
+   "scan_count": 39,
+   "scan_i_fonstret": 12,
+   "scan_time_avg_ms": 77.363,
+   "st": "PROGRAM A11Tung\nVAR\n    i   : DINT;\n    j   : DINT;\n    acc : REAL := 0.0;\n    n   : INT := 0;\nEND_VAR\n\n(* Pulsraknaren skrivs FORST i varje scan. Skillnaden mellan tva avlasningar\n   delat med tiden emellan ar PLC:ns EFFEKTIVA cykeltid - matt ur PLC:n\n   sjalv, inte ur var klocka. *)\nn := n + 1;\n\n(* A11_TICK lases men satts aldrig av facit. Raden finns for att ingangen ska\n   ANVANDAS: en mappad ingang som ingen sats laser gav BadInternalError vid\n   skrivning over OPC UA (matt 2026-09-05), alltsa ett Domsfel i stallet for\n   en matning. *)\nIF A11_TICK THEN\n    n := n + 1;\nEND_IF;\n\nO_HB := n;\n\nacc := 0.0;\nFOR i := 1 TO 10000 DO\n    FOR j := 1 TO 10000 DO\n        acc := acc + 1.0;\n    END_FOR;\nEND_FOR;\n\n(* acc lases ut sa att kompilatorn inte kan optimera bort loopen. *)\nO_ACC := REAL_TO_INT(acc / 1000000.0);\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "statusar_under_korning": [
+    "TRANSITIONING",
+    "STOPPED",
+    "RUNNING"
+   ],
+   "timing_stats_under_korning": {
+    "tasks": [
+     {
+      "cycle_latency_avg": 1539955,
+      "cycle_latency_max": 8920017,
+      "cycle_latency_min": 220021,
+      "cycle_time_avg": 80895,
+      "cycle_time_max": 320006,
+      "cycle_time_min": 239990,
+      "name": "MAIN",
+      "overruns": 38,
+      "scan_count": 39,
+      "scan_time_avg": 77363,
+      "scan_time_max": 312423,
+      "scan_time_min": 223708
+     }
+    ]
+   },
+   "varv": 100000000
+  }
+ ],
+ "tak_ms": 20.0,
+ "tolk": [
+  {
+   "acc": 1.0,
+   "modellklocka_ms": 20.0,
+   "vaggtid_ms": 0.035,
+   "varv": 1
+  },
+  {
+   "acc": 400.0,
+   "modellklocka_ms": 20.0,
+   "vaggtid_ms": 0.624,
+   "varv": 400
+  },
+  {
+   "acc": 3600.0,
+   "modellklocka_ms": 20.0,
+   "vaggtid_ms": 5.388,
+   "varv": 3600
+  },
+  {
+   "acc": 14400.0,
+   "modellklocka_ms": 20.0,
+   "vaggtid_ms": 16.648,
+   "varv": 14400
+  }
+ ]
+}

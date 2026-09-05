@@ -1,0 +1,257 @@
+[2026-09-05 18:41:09] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:41:09] [INFO] PLC State: RUNNING
+[2026-09-05 18:41:16] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:41:16] [INFO] PLC State: STOPPED
+[2026-09-05 18:41:26] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:41:26] [INFO] PLC State: RUNNING
+[2026-09-05 18:41:28] [ERROR] [task MAIN] terminated by signal 8 — other tasks keep running
+[2026-09-05 18:41:28] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:41:28] [INFO] PLC State: STOPPED
+[2026-09-05 18:41:56] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:41:56] [INFO] PLC State: RUNNING
+[2026-09-05 18:41:58] [ERROR] [task MAIN] terminated by signal 8 — other tasks keep running
+[2026-09-05 18:41:59] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:41:59] [INFO] PLC State: STOPPED
+[2026-09-05 18:42:03] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:42:03] [INFO] PLC State: RUNNING
+[2026-09-05 18:42:09] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:42:09] [INFO] PLC State: STOPPED
+[2026-09-05 18:42:55] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:42:55] [INFO] PLC State: RUNNING
+[2026-09-05 18:43:01] [ERROR] [task MAIN] terminated by signal 8 — other tasks keep running
+[2026-09-05 18:43:02] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:43:02] [INFO] PLC State: STOPPED
+[2026-09-05 18:54:34] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:54:34] [INFO] PLC State: RUNNING
+[2026-09-05 18:54:37] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:54:38] [INFO] PLC State: STOPPED
+[2026-09-05 18:54:41] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:54:41] [INFO] PLC State: RUNNING
+[2026-09-05 18:54:49] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:54:49] [INFO] PLC State: STOPPED
+[2026-09-05 18:54:52] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:54:52] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:00] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:00] [INFO] PLC State: STOPPED
+[2026-09-05 18:55:03] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:55:03] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:11] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:12] [INFO] PLC State: STOPPED
+[2026-09-05 18:55:15] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:55:15] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:23] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:23] [INFO] PLC State: STOPPED
+[2026-09-05 18:55:26] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:55:26] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:34] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:34] [INFO] PLC State: STOPPED
+[2026-09-05 18:55:37] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:55:37] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:45] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:45] [INFO] PLC State: STOPPED
+[2026-09-05 18:55:49] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:55:49] [INFO] PLC State: RUNNING
+[2026-09-05 18:55:56] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:55:57] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:00] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:00] [INFO] PLC State: RUNNING
+[2026-09-05 18:56:08] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:56:08] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:11] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:11] [INFO] PLC State: RUNNING
+[2026-09-05 18:56:19] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:56:19] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:22] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:22] [INFO] PLC State: RUNNING
+[2026-09-05 18:56:30] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:56:30] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:33] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:33] [INFO] PLC State: RUNNING
+[2026-09-05 18:56:40] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:56:41] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:44] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:44] [INFO] PLC State: RUNNING
+[2026-09-05 18:56:51] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:56:51] [INFO] PLC State: STOPPED
+[2026-09-05 18:56:55] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:56:55] [INFO] PLC State: RUNNING
+[2026-09-05 18:57:02] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:57:02] [INFO] PLC State: STOPPED
+[2026-09-05 18:57:05] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:57:05] [INFO] PLC State: RUNNING
+[2026-09-05 18:57:13] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:57:13] [INFO] PLC State: STOPPED
+[2026-09-05 18:59:39] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:59:39] [INFO] PLC State: RUNNING
+[2026-09-05 18:59:44] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:59:45] [INFO] PLC State: STOPPED
+[2026-09-05 18:59:48] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 18:59:48] [INFO] PLC State: RUNNING
+[2026-09-05 18:59:58] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 18:59:58] [INFO] PLC State: STOPPED
+[2026-09-05 19:00:01] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:00:01] [INFO] PLC State: RUNNING
+[2026-09-05 19:00:01] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:11] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:00:11] [INFO] PLC State: STOPPED
+[2026-09-05 19:00:15] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:00:15] [INFO] PLC State: RUNNING
+[2026-09-05 19:00:15] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:16] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:18] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:19] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:20] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:22] [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:23] [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:24] [WARNING] [task MAIN] scan overrun #350: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:26] [WARNING] [task MAIN] scan overrun #400: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:27] [WARNING] [task MAIN] scan overrun #450: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:28] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:00:28] [INFO] PLC State: STOPPED
+[2026-09-05 19:00:29] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:00:29] [INFO] PLC State: RUNNING
+[2026-09-05 19:00:29] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:30] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:31] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:32] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:33] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:34] [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:35] [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:36] [WARNING] [task MAIN] scan overrun #350: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:37] [WARNING] [task MAIN] scan overrun #400: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:38] [WARNING] [task MAIN] scan overrun #450: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:39] [WARNING] [task MAIN] scan overrun #500: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:40] [WARNING] [task MAIN] scan overrun #550: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:43] [ERROR] Watchdog: No heartbeat detected - PLC program is unresponsive
+[2026-09-05 19:00:45] [ERROR] The loaded PLC program may contain an infinite loop. Upload a corrected program to recover.
+[2026-09-05 19:00:45] [WARNING] [task MAIN] scan overrun #600: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:00:49] [INFO] PLC State: ERROR
+[2026-09-05 19:06:44] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:06:44] [INFO] PLC State: RUNNING
+[2026-09-05 19:06:44] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:06:45] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:06:46] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:06:47] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:06:48] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:06:49] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:06:49] [INFO] PLC State: STOPPED
+[2026-09-05 19:06:52] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:06:52] [INFO] PLC State: RUNNING
+[2026-09-05 19:06:57] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:06:57] [INFO] PLC State: STOPPED
+[2026-09-05 19:07:00] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:07:00] [INFO] PLC State: RUNNING
+[2026-09-05 19:07:00] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:07:05] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:07:05] [INFO] PLC State: STOPPED
+[2026-09-05 19:18:07] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:18:07] [INFO] PLC State: RUNNING
+[2026-09-05 19:18:08] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:09] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:11] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:13] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:18:13] [INFO] PLC State: STOPPED
+[2026-09-05 19:18:16] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:18:16] [INFO] PLC State: RUNNING
+[2026-09-05 19:18:16] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:18] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:19] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:21] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:21] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:18:21] [INFO] PLC State: STOPPED
+[2026-09-05 19:18:24] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:18:24] [INFO] PLC State: RUNNING
+[2026-09-05 19:18:24] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:25] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:26] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:27] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:29] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:18:29] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:18:29] [INFO] PLC State: STOPPED
+[2026-09-05 19:19:34] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:19:34] [INFO] PLC State: RUNNING
+[2026-09-05 19:19:39] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:19:39] [INFO] PLC State: STOPPED
+[2026-09-05 19:20:28] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:20:28] [INFO] PLC State: RUNNING
+[2026-09-05 19:20:33] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:20:34] [INFO] PLC State: STOPPED
+[2026-09-05 19:21:26] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:21:26] [INFO] PLC State: RUNNING
+[2026-09-05 19:21:28] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:21:28] [INFO] PLC State: STOPPED
+[2026-09-05 19:21:30] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:21:30] [INFO] PLC State: RUNNING
+[2026-09-05 19:21:30] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:21:49] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:22:03] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:22:03] [INFO] PLC State: STOPPED
+[2026-09-05 19:22:04] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:22:04] [INFO] PLC State: RUNNING
+[2026-09-05 19:22:07] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:22:07] [INFO] PLC State: STOPPED
+[2026-09-05 19:22:08] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:22:08] [INFO] PLC State: RUNNING
+[2026-09-05 19:22:08] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:22:31] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:22:31] [INFO] PLC State: RUNNING
+[2026-09-05 19:22:32] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:22:43] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:22:43] [INFO] PLC State: STOPPED
+[2026-09-05 19:22:45] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:22:45] [INFO] PLC State: RUNNING
+[2026-09-05 19:22:50] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:22:51] [INFO] PLC State: STOPPED
+[2026-09-05 19:22:54] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:22:54] [INFO] PLC State: RUNNING
+[2026-09-05 19:22:54] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:23:04] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:23:04] [INFO] PLC State: STOPPED
+[2026-09-05 19:23:29] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:23:29] [INFO] PLC State: RUNNING
+[2026-09-05 19:23:35] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:23:35] [INFO] PLC State: STOPPED
+[2026-09-05 19:23:38] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:23:38] [INFO] PLC State: RUNNING
+[2026-09-05 19:23:48] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:23:49] [INFO] PLC State: STOPPED
+[2026-09-05 19:23:52] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:23:52] [INFO] PLC State: RUNNING
+[2026-09-05 19:23:53] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:02] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:24:02] [INFO] PLC State: STOPPED
+[2026-09-05 19:24:05] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:24:05] [INFO] PLC State: RUNNING
+[2026-09-05 19:24:05] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:07] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:09] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:11] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:13] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:15] [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:15] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:24:15] [INFO] PLC State: STOPPED
+[2026-09-05 19:24:18] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:24:18] [INFO] PLC State: RUNNING
+[2026-09-05 19:24:18] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:20] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:21] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:23] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:24] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:26] [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:27] [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:28] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:24:28] [INFO] PLC State: STOPPED
+[2026-09-05 19:24:31] [INFO] PLC State: TRANSITIONING_TO_RUN
+[2026-09-05 19:24:31] [INFO] PLC State: RUNNING
+[2026-09-05 19:24:31] [WARNING] [task MAIN] scan overrun #1: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:32] [WARNING] [task MAIN] scan overrun #50: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:34] [WARNING] [task MAIN] scan overrun #100: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:35] [WARNING] [task MAIN] scan overrun #150: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:36] [WARNING] [task MAIN] scan overrun #200: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:37] [WARNING] [task MAIN] scan overrun #250: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:38] [WARNING] [task MAIN] scan overrun #300: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:39] [WARNING] [task MAIN] scan overrun #350: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:40] [WARNING] [task MAIN] scan overrun #400: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:41] [WARNING] [task MAIN] scan overrun #450: body exceeds its 20 ms period — running at reduced rate, other tasks unaffected
+[2026-09-05 19:24:41] [INFO] PLC State: TRANSITIONING_TO_STOP
+[2026-09-05 19:24:42] [INFO] PLC State: STOPPED

@@ -169,10 +169,16 @@ Kedjan har alltså **ett** ställe som säger till, och ingen läser det:
 | OpenPLC:s **runtimelogg** | `[ERROR] [task MAIN] terminated by signal 8` |
 | `bank/domare_openplc.py` | ser bara frysta värden — dömer koden RÖD på fel grund |
 
-`svc/vc_assist_svc/plc/openplc.py` har redan metoden `logg(rader, niva)`.
-Skulden är alltså en rad kod, inte en saknad förmåga: **ingen grind läser
-runtimeloggen efter en körning.** Det är den enda konkreta åtgärden ur den här
-mätningen, och den hör hemma i `plc/stationsgrind.py`-kedjan.
+`svc/vc_assist_svc/plc/openplc.py` har metoden `logg(rader, niva)` — och
+**den var trasig**. Den läste `data["logs"]` medan `/api/runtime-logs` svarar
+`{"runtime-logs": […]}`, alltså lämnade den alltid en tom sträng. Det upptäcktes
+i M-178 (punkt A11) och är lagat, med tio permanenta prov i
+`tests/enhet/test_plc_cykeltak.py`. Raden ovan är därför läst ur den riktiga
+klienten, inte bara ur `docker logs`.
+
+Kvar står åtgärden: **ingen grind läser runtimeloggen efter en körning.** Det
+är den enda konkreta åtgärden ur den här mätningen, och den hör hemma i
+`plc/stationsgrind.py`-kedjan.
 
 ## 5. TIME över dygnsgränsen: TIME har ingen dygnsgräns — men TOD har ingen kontroll
 

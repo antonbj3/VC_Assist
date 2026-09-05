@@ -1,0 +1,63 @@
+
+=== niva noll (0 x 0 = 0 varv per scan) ===
+    scan i 3000 ms fonster: 150 -> effektiv cykel 20.0 ms
+    runtimens egen: scan_time_avg 0.002 ms, overruns 0 av 300 scan
+    status under: ['STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:23:29+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:23:29+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:29+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:29+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+=== niva 1e6 (1000 x 1000 = 1000000 varv per scan) ===
+disconnect_socket was called but connection is closed
+    scan i 3000 ms fonster: 150 -> effektiv cykel 20.0 ms
+    runtimens egen: scan_time_avg 2.298 ms, overruns 0 av 501 scan
+    status under: ['TRANSITIONING', 'STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:23:38+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:23:38+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:38+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:38+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+=== niva 5e6 (1000 x 5000 = 5000000 varv per scan) ===
+disconnect_socket was called but connection is closed
+    scan i 3000 ms fonster: 145 -> effektiv cykel 20.69 ms
+    runtimens egen: scan_time_avg 11.864 ms, overruns 400 av 477 scan
+    status under: ['TRANSITIONING', 'STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:23:52+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:23:52+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:52+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:23:52+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+=== niva 1e7 (2000 x 5000 = 10000000 varv per scan) ===
+disconnect_socket was called but connection is closed
+    scan i 3000 ms fonster: 75 -> effektiv cykel 40.0 ms
+    runtimens egen: scan_time_avg 20.931 ms, overruns 247 av 248 scan
+    status under: ['TRANSITIONING', 'STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:24:05+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:24:05+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:05+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:05+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+=== niva 2e7 (4000 x 5000 = 20000000 varv per scan) ===
+disconnect_socket was called but connection is closed
+    scan i 3000 ms fonster: 50 -> effektiv cykel 60.0 ms
+    runtimens egen: scan_time_avg 36.298 ms, overruns 163 av 164 scan
+    status under: ['TRANSITIONING', 'STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:24:18+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:24:18+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:18+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:18+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+=== niva 1e8 (10000 x 10000 = 100000000 varv per scan) ===
+disconnect_socket was called but connection is closed
+    scan i 3000 ms fonster: 12 -> effektiv cykel 250.0 ms
+    runtimens egen: scan_time_avg 77.363 ms, overruns 38 av 39 scan
+    status under: ['TRANSITIONING', 'STOPPED', 'RUNNING'] -> efter: TRANSITIONING
+    logg: 2026-09-05T19:24:31+0000 [WARNING] 'execute_command' function not found in native plugin './build/plugins/libs7comm_plugin.so' (optional)
+    logg: 2026-09-05T19:24:31+0000 [WARNING] 'cycle_start' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:31+0000 [WARNING] 'cycle_end' function not found in native plugin './build/plugins/libethercat_plugin.so' (optional)
+    logg: 2026-09-05T19:24:31+0000 [ERROR] mlockall failed: Cannot allocate memory
+
+--- trasiga fallet ---
+  tomgang: 20.000 ms mot taket 20.0 ms (0.0 % avvikelse, spärr 25 %)
+  tyngsta uppmatta cykel: 250.000 ms
