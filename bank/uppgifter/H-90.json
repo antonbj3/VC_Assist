@@ -165,7 +165,7 @@
     "min_clearance_mm": 10.0,
     "gate": "OGAT",
     "verdict": "FAIL",
-    "reason_contains": "kapplopning",
+    "reason_contains": "race",
     "lines": [
       {
         "section": "TIMING",
@@ -215,7 +215,7 @@
   "last_run": null,
   "broken": {
     "artefakt_typ": "oga",
-    "artefakt": "EYES v1\nTEMPLATE H-01_bandet_startar_i_samma_scan\nRUN 2026-09-04T21:48:03 DUR 75.000s SAMPLES 3750 RATE 50.00Hz\nSECTION MOTION\n  GRIP FORMED t=4.100s dist=6.200mm\n  CARRY RIGID rot=0.200deg span=1.900s\n  PLACE DROPPED err=118.000mm z=0.062m\nSECTION TIMING\n  EDGE ST290_HS_REQ RISE t=5.800s\n  EDGE ST300_HS_ACK RISE t=5.940s\n  EDGE ST290_GRP_OPEN RISE t=6.180s\n  EDGE ST300_CNV_RUN RISE t=6.184s\n  DWELL ST290 0.350s req=0.350s OK\n  RACE ST290_GRP_OPEN+ST300_CNV_RUN dt=4.000ms\nSECTION THROUGHPUT\n  STATION ST300 in=15 out=13 avg=5.000s min=4.900s max=5.400s\nSECTION SAFETY\n  MINDIST gripdon+bandkant 11.400mm t=6.184s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\n  NEVER_GRIPPED OK\nEYES VERDICT FAIL kapplopning: ST290_GRP_OPEN och ST300_CNV_RUN hoga inom 4 ms, bandet drog undan modulen medan griparen oppnade och modulen foll\n",
+    "artefakt": "EYES v1\nTEMPLATE H-01_bandet_startar_i_samma_scan\nRUN 2026-09-04T21:48:03 DUR 75.000s SAMPLES 3750 RATE 50.00Hz\nSECTION MOTION\n  GRIP FORMED t=4.100s dist=6.200mm\n  CARRY RIGID rot=0.200deg span=1.900s\n  PLACE DROPPED err=118.000mm z=0.062m\nSECTION TIMING\n  EDGE ST290_HS_REQ RISE t=5.800s\n  EDGE ST300_HS_ACK RISE t=5.940s\n  EDGE ST290_GRP_OPEN RISE t=6.180s\n  EDGE ST300_CNV_RUN RISE t=6.184s\n  DWELL ST290 0.350s req=0.350s OK\n  RACE ST290_GRP_OPEN+ST300_CNV_RUN dt=4.000ms\nSECTION THROUGHPUT\n  STATION ST300 in=15 out=13 avg=5.000s min=4.900s max=5.400s\nSECTION SAFETY\n  MINDIST gripdon+bandkant 11.400mm t=6.184s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\n  NEVER_GRIPPED OK\nEYES VERDICT FAIL race: ST290_GRP_OPEN och ST300_CNV_RUN hoga inom 4 ms, bandet drog undan modulen medan griparen oppnade och modulen foll\n",
     "vad_som_ar_fel": "ST290_GRP_OPEN och ST300_CNV_RUN gick hoga inom 4 ms, alltsa inom samma scanfonster. Bandet drog undan modulen medan backarna fortfarande slappte och modulen foll till z=0,062 m, 118 mm fran malet. RACE-raden ar orsaken och PLACE DROPPED foljden."
   }
 }

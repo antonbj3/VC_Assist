@@ -12,7 +12,7 @@ korningen ar det som gor det mojligt att andra.
 Fas 9:s slinga (`kor_fas9_slingan.py`) matar tillbaka GRINDARNAS ord. Den har
 matar tillbaka **OGATS** ord:
 
-    EYES VERDICT FAIL forregling: ST8A_Don/Slapp och ST8B_Don/Slapp hoga
+    EYES VERDICT FAIL interlock: ST8A_Don/Slapp och ST8B_Don/Slapp hoga
     samtidigt i 3.90 s, 45 prov
 
 Ogat ar ett `Grindsteg` som varje annat i `reparation.py`. Det ar inte en
@@ -621,10 +621,10 @@ class Inspelad_scen(object):
 
 _FAIL_FORREGLING = {
     "gold": False, "dom": "FAIL",
-    "orsak": "forregling: ST8A_Don/Slapp och ST8B_Don/Slapp hoga samtidigt "
+    "orsak": "interlock: ST8A_Don/Slapp och ST8B_Don/Slapp hoga samtidigt "
              "i 3.90 s, 45 prov"}
 _FAIL_KVAR = {"gold": False, "dom": "FAIL",
-              "orsak": "forregling: overlappet star kvar, 3.20 s i 38 prov"}
+              "orsak": "interlock: overlappet star kvar, 3.20 s i 38 prov"}
 _PASS = {"gold": True, "dom": "PASS", "orsak": "allt inom marginal"}
 
 

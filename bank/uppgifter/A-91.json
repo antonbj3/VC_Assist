@@ -172,7 +172,7 @@
     "min_clearance_mm": 20.0,
     "gate": "OGAT",
     "verdict": "FAIL",
-    "reason_contains": "forregling",
+    "reason_contains": "interlock",
     "lines": [
       {
         "section": "TIMING",
@@ -222,7 +222,7 @@
   "last_run": null,
   "broken": {
     "artefakt_typ": "oga",
-    "artefakt": "EYES v1\nTEMPLATE A-03_station2_startar_pa_narvaron\nRUN 2026-09-04T21:15:40 DUR 300.000s SAMPLES 6000 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST260_PRT_PRS RISE t=64.200s\n  EDGE ST260_STA_BUSY RISE t=64.350s\n  EDGE ST250_STA_DONE RISE t=71.800s\n  EDGE ST260_ACK_RST RISE t=95.400s\n  DWELL ST250 19.400s req=26.000s SHORT\n  DWELL ST260 31.050s req=31.000s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST250 in=10 out=10 avg=26.100s min=25.900s max=26.400s\n  STATION ST260 in=10 out=10 avg=31.050s min=30.900s max=31.300s\nSECTION SAFETY\n  MINDIST enhet+stationsvagg 34.000mm t=64.350s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL forregling: ST260_STA_BUSY steg 7.45 s fore ST250_STA_DONE, station 2 borjade arbeta i en enhet som station 1 inte var klar med\n",
+    "artefakt": "EYES v1\nTEMPLATE A-03_station2_startar_pa_narvaron\nRUN 2026-09-04T21:15:40 DUR 300.000s SAMPLES 6000 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST260_PRT_PRS RISE t=64.200s\n  EDGE ST260_STA_BUSY RISE t=64.350s\n  EDGE ST250_STA_DONE RISE t=71.800s\n  EDGE ST260_ACK_RST RISE t=95.400s\n  DWELL ST250 19.400s req=26.000s SHORT\n  DWELL ST260 31.050s req=31.000s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST250 in=10 out=10 avg=26.100s min=25.900s max=26.400s\n  STATION ST260 in=10 out=10 avg=31.050s min=30.900s max=31.300s\nSECTION SAFETY\n  MINDIST enhet+stationsvagg 34.000mm t=64.350s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL interlock: ST260_STA_BUSY steg 7.45 s fore ST250_STA_DONE, station 2 borjade arbeta i en enhet som station 1 inte var klar med\n",
     "vad_som_ar_fel": "ST260_STA_BUSY steg vid 64,350 s och ST250_STA_DONE forst vid 71,800 s, alltsa 7,45 s senare. Station 2 startade pa ST260_PRT_PRS i stallet for pa klarsignalen. DWELL ST250 SHORT ar en foljd: station 1 fick sin enhet bortslapp innan arbetet var klart. Genomflodet ser felfritt ut i bada stationerna."
   }
 }

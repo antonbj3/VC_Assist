@@ -204,7 +204,7 @@ def test_MISSING_paverkas_inte_av_taket():
     _satt_tak(b.rader, 0.005)
     _satt_tak(b.rader, 1.0, set(_flankrader(b.rader)))
     rapport, a = _doma(b, plan)
-    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("sekvens:")
+    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("sequence:")
     assert a.harledt["domar"]["sekvens"]["utfall"] == "FAIL"
     assert a.harledt["domar"]["timing"]["utfall"] != "FAIL"
 

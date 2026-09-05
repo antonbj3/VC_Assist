@@ -367,9 +367,9 @@ def test_en_trasig_cell_falls_av_RATT_domare_och_av_ingen_annan(namn, domare):
                  if k != domare and v["utfall"] == "FAIL")
     assert not andra, ("%s falls ocksa av %s - cellen ar inte osynlig for de "
                        "andra domarna" % (namn, andra))
-    ord_ = {"sekvens": ("sekvens", "forregling"), "timing": ("timing", "kapplopning"),
-            "grepp": ("grepp",), "kollision": ("kollision",),
-            "genomflode": ("genomflode",)}[domare]
+    ord_ = {"sekvens": ("sequence", "interlock"), "timing": ("timing", "race"),
+            "grepp": ("grasp",), "kollision": ("kollision",),
+            "genomflode": ("throughput",)}[domare]
     assert any(rapport.dom[1].startswith(o + ":") for o in ord_), \
         "domsraden namner inte domaren: %r" % rapport.dom[1]
 

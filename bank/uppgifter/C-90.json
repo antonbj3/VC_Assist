@@ -191,7 +191,7 @@
     "min_clearance_mm": 20.0,
     "gate": "OGAT",
     "verdict": "FAIL",
-    "reason_contains": "genomflode",
+    "reason_contains": "throughput",
     "lines": [
       {
         "section": "THROUGHPUT",
@@ -237,7 +237,7 @@
   "last_run": null,
   "broken": {
     "artefakt_typ": "oga",
-    "artefakt": "EYES v1\nTEMPLATE C-01_buffert_utan_ackumulering\nRUN 2026-09-04T22:05:00 DUR 3600.000s SAMPLES 72000 RATE 20.00Hz\nSECTION TIMING\n  DWELL ST340 32.100s req=32.000s OK\n  DWELL ST350 28.050s req=28.000s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST340 in=88 out=87 avg=41.300s min=32.100s max=58.700s\n  STATION ST350 in=87 out=87 avg=41.300s min=28.100s max=61.200s\n  STATION ST360 in=87 out=87 avg=0.900s min=0.800s max=1.100s\nSECTION SAFETY\n  MINDIST lastbarare+stationsvagg 42.000mm t=118.400s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL genomflode: 87 enheter pa 3600 s ar 87 per timme mot malet 100, bufferten holl i medeltal 0.9 s och ackumulerade aldrig\n",
+    "artefakt": "EYES v1\nTEMPLATE C-01_buffert_utan_ackumulering\nRUN 2026-09-04T22:05:00 DUR 3600.000s SAMPLES 72000 RATE 20.00Hz\nSECTION TIMING\n  DWELL ST340 32.100s req=32.000s OK\n  DWELL ST350 28.050s req=28.000s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST340 in=88 out=87 avg=41.300s min=32.100s max=58.700s\n  STATION ST350 in=87 out=87 avg=41.300s min=28.100s max=61.200s\n  STATION ST360 in=87 out=87 avg=0.900s min=0.800s max=1.100s\nSECTION SAFETY\n  MINDIST lastbarare+stationsvagg 42.000mm t=118.400s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL throughput: 87 enheter pa 3600 s ar 87 per timme mot malet 100, bufferten holl i medeltal 0.9 s och ackumulerade aldrig\n",
     "vad_som_ar_fel": "87 enheter pa 3600 s ar 87 per timme mot malet 100, alltsa 13 procent under. Orsaken star pa buffertens rad: STATION ST360 har avg 0,900 s, vilket betyder att den aldrig haller nagot. Bada stationerna far darfor avg 41,3 s trots arbetstider pa 32,0 och 28,0 s. Varje enskild enhet ar felfri."
   }
 }

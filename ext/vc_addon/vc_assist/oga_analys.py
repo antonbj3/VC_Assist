@@ -1231,8 +1231,8 @@ class Analys(object):
             # domare som ager fragan - inte bara regeln som tvingade domen.
             if hh.get("teleport") or (self.vantar_grepp() and mh.get("grip") is None
                                       and not mh.get("for_fa_prov")):
-                return "FAIL", self._orsak("grepp: hederlighetsgrind fälld")
-            return "FAIL", self._orsak("hederlighet: hederlighetsgrind fälld")
+                return "FAIL", self._orsak("grasp: hederlighetsgrind fälld")
+            return "FAIL", self._orsak("integrity: hederlighetsgrind fälld")
         if mh.get("for_fa_prov"):
             return "INCONCLUSIVE", self._orsak("för få prov")
         if scen.get("obestambar"):
@@ -1256,7 +1256,7 @@ class Analys(object):
                 % (100.0 * th["plc_axel"]["andel_otackt"]))
         grepp, timing = d["grepp"], d["timing"]
         if grepp["fynd"].get("aldrig"):
-            return "FAIL", self._orsak("grepp: greppet bildades aldrig")
+            return "FAIL", self._orsak("grasp: greppet bildades aldrig")
         if d["kollision"]["utfall"] == "FAIL":
             return "FAIL", self._orsak("kollision: " + d["kollision"]["skal"][0])
         if scen.get("oombedd"):
@@ -1269,17 +1269,17 @@ class Analys(object):
         if brott:
             return "FAIL", self._orsak("robot: " + brott)
         if d["genomflode"]["utfall"] == "FAIL":
-            return "FAIL", self._orsak("genomflode: genomströmningskravet hölls inte")
+            return "FAIL", self._orsak("throughput: genomströmningskravet hölls inte")
         if d["genomflode"]["utfall"] == "INCONCLUSIVE":
             return "INCONCLUSIVE", self._orsak(
-                "genomflode: " + d["genomflode"]["skal"][0])
+                "throughput: " + d["genomflode"]["skal"][0])
         # Stationens egna grindar. Forreglingen forst: den ar den enda av de
         # tva som ar farlig, och den ar sann aven i en korning dar sekvensen
         # for ovrigt holl.
         if d["sekvens"]["fynd"].get("forregling"):
-            return "FAIL", self._orsak("forregling: förreglingen bröts")
+            return "FAIL", self._orsak("interlock: förreglingen bröts")
         if d["sekvens"]["fynd"].get("uteblivet"):
-            return "FAIL", self._orsak("sekvens: stationens sekvens hölls inte")
+            return "FAIL", self._orsak("sequence: stationens sekvens hölls inte")
         if timing["fynd"].get("for_sent"):
             return "FAIL", self._orsak("timing: stationens tider hölls inte")
         if timing["fynd"].get("fas_ut"):
@@ -1303,17 +1303,17 @@ class Analys(object):
             if grepp["fynd"].get("kort"):
                 return "INCONCLUSIVE", self._orsak("bärsträckan för kort")
             if grepp["fynd"].get("glid"):
-                return "FAIL", self._orsak("grepp: delen gled i greppet")
+                return "FAIL", self._orsak("grasp: delen gled i greppet")
             if grepp["fynd"].get("plac_okand"):
                 return "INCONCLUSIVE", self._orsak("placeringen kunde inte dömas")
             if grepp["fynd"].get("tappad"):
-                return "FAIL", self._orsak("grepp: delen tappades")
+                return "FAIL", self._orsak("grasp: delen tappades")
             if grepp["fynd"].get("fel"):
-                return "FAIL", self._orsak("grepp: delen hamnade fel")
+                return "FAIL", self._orsak("grasp: delen hamnade fel")
         if timing["fynd"].get("uppehall"):
             return "FAIL", self._orsak("timing: uppehållet för kort")
         if timing["fynd"].get("kapplopning"):
-            return "FAIL", self._orsak("kapplopning: två utgångar gick höga inom "
+            return "FAIL", self._orsak("race: två utgångar gick höga inom "
                                        "samma fönster")
         if timing["fynd"].get("fas_okand"):
             return "INCONCLUSIVE", self._orsak(

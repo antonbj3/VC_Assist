@@ -76,7 +76,7 @@ def test_en_station_som_satts_IDLE_ar_svulten_och_falls():
     plan = celler.plan(genomstromning={"max_svalt_s": 1.0})
     _text, rapport, a = A.doma(b.data(), plan)
     assert a.harledt["domar"]["genomflode"]["utfall"] == "FAIL"
-    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("genomflode:")
+    assert rapport.dom[0] == "FAIL" and rapport.dom[1].startswith("throughput:")
 
 
 def test_samma_IDLE_serie_med_ett_krav_den_haller_ar_PASS():

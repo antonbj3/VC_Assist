@@ -152,7 +152,7 @@
     "min_clearance_mm": 12.0,
     "gate": "OGAT",
     "verdict": "FAIL",
-    "reason_contains": "sekvens",
+    "reason_contains": "sequence",
     "lines": [
       {
         "section": "TIMING",
@@ -194,7 +194,7 @@
   "last_run": null,
   "broken": {
     "artefakt_typ": "oga",
-    "artefakt": "EYES v1\nTEMPLATE T-01_stoppgrind_pa_niva\nRUN 2026-09-04T18:11:04 DUR 90.000s SAMPLES 1800 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST010_STP_OPEN RISE t=12.150s\n  EDGE ST010_PEC_PART RISE t=12.405s\n  EDGE ST010_STP_OPEN FALL t=13.050s\n  DWELL ST010 0.655s req=0.400s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST010 in=41 out=38 avg=2.180s min=1.900s max=3.400s\nSECTION SAFETY\n  MINDIST stoppgrind+sidostyrning 18.400mm t=12.405s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL sekvens: ST010_STP_OPEN steg 255 ms fore givarflanken ST010_PEC_PART, tva burkar slapptes pa en flank\n",
+    "artefakt": "EYES v1\nTEMPLATE T-01_stoppgrind_pa_niva\nRUN 2026-09-04T18:11:04 DUR 90.000s SAMPLES 1800 RATE 20.00Hz\nSECTION TIMING\n  EDGE ST010_STP_OPEN RISE t=12.150s\n  EDGE ST010_PEC_PART RISE t=12.405s\n  EDGE ST010_STP_OPEN FALL t=13.050s\n  DWELL ST010 0.655s req=0.400s OK\n  RACE none\nSECTION THROUGHPUT\n  STATION ST010 in=41 out=38 avg=2.180s min=1.900s max=3.400s\nSECTION SAFETY\n  MINDIST stoppgrind+sidostyrning 18.400mm t=12.405s\n  COLLISION none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK\n  UNDERGROUND OK\nEYES VERDICT FAIL sequence: ST010_STP_OPEN steg 255 ms fore givarflanken ST010_PEC_PART, tva burkar slapptes pa en flank\n",
     "vad_som_ar_fel": "ST010_STP_OPEN steg 255 ms fore ST010_PEC_PART. Donet kommenderades pa fotocellens niva i stallet for pa dess stigande flank, sa tva burkar slapptes pa en flank. in=41 mot out=38 ar foljden, inte orsaken."
   }
 }

@@ -44,7 +44,7 @@ def _kropp(fall):
     return L.kroppar(fall)["LINJE"]
 
 
-def _fail(orsak="forregling: ST8A_Don/Slapp och ST8B_Don/Slapp hoga samtidigt"):
+def _fail(orsak="interlock: ST8A_Don/Slapp och ST8B_Don/Slapp hoga samtidigt"):
     return {"gold": False, "dom": "FAIL", "orsak": orsak}
 
 

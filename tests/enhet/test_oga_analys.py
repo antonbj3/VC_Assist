@@ -528,7 +528,7 @@ def test_forreglingsbrottet_bar_sin_matta_overlapp_i_sekunder():
     post = a.harledt["station"]["forregling"][0]
     assert post["brott"] is True
     assert abs(post["overlapp_s"] - 0.75) < 1e-6, post
-    assert r.dom[1].startswith("forregling:"), r.dom
+    assert r.dom[1].startswith("interlock:"), r.dom
 
 
 def test_forreglingen_domer_inte_nar_planen_inte_bett_om_den():
