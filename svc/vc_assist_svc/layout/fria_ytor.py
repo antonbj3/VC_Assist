@@ -63,14 +63,14 @@ class Rasterkarta:
                  bortse_fran=(), extra_marginal_m=0.0,
                  undvik_zontyper=FRIHALLNA):
         if not isinstance(scen, Scen):
-            raise Layoutfel("Rasterkarta byggs över en Scen")
+            raise Layoutfel("Rasterkarta is built over a Scen")
         self.scen = scen
         self.omrade = omrade if omrade is not None else scen.hall.golv
         self.hojd_m = float(hojd_m)
         self.bortse_fran = frozenset(bortse_fran)
         steg = RASTER_M if raster_m is None else krav(raster_m, "raster_m").som_m
         if steg <= 0.0:
-            raise Layoutfel("rastret måste vara positivt")
+            raise Layoutfel("the grid step must be positive")
         self.grovnad = 1.0
         nx = max(1, int(math.ceil(self.omrade.bredd_m / steg)))
         ny = max(1, int(math.ceil(self.omrade.djup_m / steg)))
@@ -258,7 +258,7 @@ def far_plats(scen, objekt, raster_m=None, omrade=None, vridningar_grader=None,
         namn = str(objekt)
     o = scen.objekt(namn)
     if scen.ar_placerad(namn):
-        raise Layoutfel("%s står redan någonstans; ta bort läget först" % namn)
+        raise Layoutfel("%s already stands somewhere; remove the placement first" % namn)
     z0_m = 0.0 if z is None else krav(z, "z").som_m
     hojd_m = z0_m + o.hojd.som_m + o.kravd_fri_hojd.som_m
     vr = (o.tillatna_vridningar_grader if vridningar_grader is None
