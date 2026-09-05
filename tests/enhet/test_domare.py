@@ -261,6 +261,64 @@ class _Falldom(object):
     utdata = {"deklarationsmatchning": "F3 rad 12"}
 
 
+def test_tva_flankkrav_pa_samma_signal_i_samma_sekvens_raknar_bada():
+    """Trasig fixtur for domarens egen flankraknare.
+
+    FUNNET 2026-09-05 (M-106): `forra[signal]` skrevs inne i loopen over
+    flankkraven, sa det ANDRA kravet pa samma utsignal i samma sekvens fick det
+    redan uppdaterade vardet som sitt "foregaende scan". Det sag darfor aldrig
+    en flank, rapporterade alltid 0 och kunde aldrig fallas - en grind som inte
+    kan falla mater ingenting. Provet har tva krav pa samma signal: ett som ska
+    ga igenom och ett som ska FALLAS.
+    """
+    post = {
+        "task_id": "FLANK-1",
+        "control": {"signals": [
+            {"name": "ST900_PEC_PRT", "dir": "in", "type": "bool"},
+            {"name": "ST900_CNV_RUN", "dir": "out", "type": "bool"}]},
+        "facit_spar": {
+            "scan_ms": 20,
+            "sekvenser": [{
+                "id": "en_puls", "beskrivning": "en flank pa insignalen",
+                "steg": [
+                    {"t_ms": 0, "satt": {"ST900_PEC_PRT": False},
+                     "krav": {}, "varfor": ""},
+                    {"t_ms": 100, "satt": {"ST900_PEC_PRT": True},
+                     "krav": {}, "varfor": ""},
+                    {"t_ms": 200, "satt": {},
+                     "krav": {"ST900_CNV_RUN": True},
+                     "varfor": "utgangen foljer insignalen"},
+                    {"t_ms": 300, "satt": {"ST900_PEC_PRT": False},
+                     "krav": {}, "varfor": ""},
+                    {"t_ms": 400, "satt": {}, "krav": {"ST900_CNV_RUN": False},
+                     "varfor": "och slapper igen"}]}],
+            "flanker": [
+                {"namn": "ratt_antal", "sekvens": "en_puls",
+                 "signal": "ST900_CNV_RUN", "typ": "RISE",
+                 "fran_ms": 0, "till_ms": 400, "antal": 1,
+                 "varfor": "en puls in ger en puls ut"},
+                {"namn": "andra_kravet_samma_signal", "sekvens": "en_puls",
+                 "signal": "ST900_CNV_RUN", "typ": "RISE",
+                 "fran_ms": 0, "till_ms": 400, "antal": 1,
+                 "varfor": "samma sanning en gang till; med felet rapporterade "
+                           "det har kravet 0 och foll, fast det ar uppfyllt"},
+                {"namn": "fel_antal", "sekvens": "en_puls",
+                 "signal": "ST900_CNV_RUN", "typ": "RISE",
+                 "fran_ms": 0, "till_ms": 400, "antal": 7,
+                 "varfor": "sju flanker finns inte; det har kravet MASTE fallas"}],
+        }}
+    st = ("PROGRAM ST900_PROV\nVAR\nEND_VAR\n"
+          "ST900_CNV_RUN := ST900_PEC_PRT;\nEND_PROGRAM\n")
+    d = domare.dom(post, st)
+    assert "flank:andra_kravet_samma_signal" not in d.koder, (
+        "det andra flankkravet pa samma signal raknade inte alls och foll pa "
+        "ett krav som ar uppfyllt: %s" % d.koder)
+    assert "flank:fel_antal" in d.koder, (
+        "ett flankkrav med fel antal maste fallas aven som tredje krav pa "
+        "samma signal: %s" % d.koder)
+    assert "flank:ratt_antal" not in d.koder, d.koder
+
+
 def test_en_falld_forgrind_stoppar_spardomen(bank):
     u = med_sparfacit(bank)[0]
     d = domare.dom(u.data, u.data["facit_spar"]["referens"], stationsdom=_Falldom())

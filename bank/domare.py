@@ -247,16 +247,26 @@ def dom(post, st_text, spar=None, stationsdom=None):
                                          for n, v in inv["kraver"].items()),
                                inv.get("varfor") or "")))
 
+                # Foregaende scans varden skrivs FORST NAR alla flankkrav
+                # lasts. Skrevs de inne i loopen fick det andra flankkravet pa
+                # samma signal i samma sekvens redan det uppdaterade vardet som
+                # sitt "foregaende", sag alltsa aldrig en flank och kunde aldrig
+                # fallas. FUNNET 2026-09-05 i M-106: tva flankkrav pa
+                # ST470_ARC_ON i samma sekvens gick tyst igenom.
+                nu_varden = {}
                 for f in mina_flank:
-                    v = bool(motor.las(f["signal"]))
-                    p = forra.get(f["signal"])
+                    signal = f["signal"]
+                    if signal not in nu_varden:
+                        nu_varden[signal] = bool(motor.las(signal))
+                    v = nu_varden[signal]
+                    p = forra.get(signal)
                     t_ledd = nu - scan_ms
                     if p is not None and float(f["fran_ms"]) <= t_ledd <= float(f["till_ms"]):
                         if f["typ"] == "RISE" and v and not p:
                             flankraknare[f["namn"]] += 1
                         elif f["typ"] == "FALL" and p and not v:
                             flankraknare[f["namn"]] += 1
-                    forra[f["signal"]] = v
+                forra.update(nu_varden)
         except Tolkfel as fel:
             brister.append(Brist("tolkfel:%s" % sid, str(fel)))
 
