@@ -8,7 +8,29 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ## Mätningsnummer som fler än en fil gör anspråk på: 0
 
-## Vad mätningarna säger att de inte vet: 496 punkter
+## Ordlistor som bär två storheter: 0
+
+En lista som bär både felord och bara negationer svarar på frågan *bär texten något av de här orden?* — och det är inte den fråga någon grind ställer sig. Mätt tre gånger: M-94 fynd 1 och 4, M-98. Taket är noll, och kriteriet har ingen undantagslista: en lista som bär båda storheterna ska vara **sammansatt** ur de listor som bär var sin.
+
+## Ordlistor som står i två filer: 13
+
+`harness/text.py` säger det själv: *"de ligger PA ETT STALLE just for att en kopierad ordlista blir tva ordlistor sa fort nagon ratter den ena"*. Registret såg inte att regeln bröts. Listan nedan är ett **register**, inte en anklagelse: en delad ordlista kan vara rätt, men den måste vara sedd.
+
+* 12 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**DALIGA_ORD** ↔ `ext/vc_addon/vc_assist/oga_kontrakt.py`.**_FYNDORD**
+* 11 gemensamma — `svc/vc_assist_svc/plan/forfining.py`.**ANDELSER** ↔ `svc/vc_assist_svc/plan/lasning.py`.**_ANDELSER**
+* 7 gemensamma — `svc/vc_assist_svc/harness/oga.py`.**BARA_NEGATION_OGA** ↔ `svc/vc_assist_svc/harness/text.py`.**BARA_NEGATION**
+* 7 gemensamma — `svc/vc_assist_svc/harness/oga.py`.**GODKANNANDEORD** ↔ `svc/vc_assist_svc/harness/text.py`.**FRAMGANGSMARKORER**
+* 7 gemensamma — `svc/vc_assist_svc/st/lexer.py`.**NYCKELORD** ↔ `svc/vc_assist_svc/st/modell.py`.**VARSORTER**
+* 6 gemensamma — `svc/vc_assist_svc/st/skrivare.py`.**JAMFORELSER** ↔ `svc/vc_assist_svc/st/validator.py`.**JAMFORELSER**
+* 5 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/llm/urval.py`.**_RANGORDNING**
+* 4 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**INTE_NONE** ↔ `ext/vc_addon/vc_assist/oga_kontrakt.py`.**_INTE_NONE**
+* 3 gemensamma — `ext/vc_addon/vc_assist/plats.py`.**WINDOWSPLATTFORMAR** ↔ `install/upptackt.py`.**WINDOWSPLATTFORMAR**
+* 3 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**OBLIGATORISKA_SEKTIONER** ↔ `svc/vc_assist_svc/forlopp/yta.py`.**OBLIGATORISKA_SEKTIONER**
+* 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
+* 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
+* 1 gemensamma — `svc/vc_assist_svc/llm/urval.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
+
+## Vad mätningarna säger att de inte vet: 543 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -97,6 +119,44 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Kostnaden *"0,05 s"* är en körning på den här maskinen.
 * "Tre gånger nu har VC svalt ett fel tyst"* är en räkning av tre observerade
 * Slutsatsen att felet *"måste fångas på disk, före start"* är rätt för det här
+
+### M-100_personatackningen.md — LIMITS
+
+* Ingenting är mätt än. Den här filen är en reservation av numret, inte ett
+
+### M-101_komponentmodellen_byggd_ur_specen.md — LIMITS
+
+* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
+* Tak: **0** påståenden. Inget här får citeras förrän körningen finns.
+
+### M-102_modellagret_mot_riktiga_verktygssvar.md — LIMITS
+
+* Mätningen är inte klar.** Ingenting nedanför den här raden är ännu ett tal.
+* Ingen språkmodell och ingen leverantör är anropad. Allt mäts mot repots egna
+* Ingen brygga och ingen VC är igång. Verktygssvaren kommer ur de handlare som
+* deklarerade** `returns`, inte ur en körning.
+* Tokenräkningen är en omräkning ur byte, inte en leverantörs tokenisering.
+
+### M-103_aterhamtningen_som_anvandaren_ser_den.md — LIMITS
+
+* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
+* Tak: **0** påståenden. Inget här får citeras förrän körningen finns.
+
+### M-104_bankposterna_over_26_korningar.md — LIMITS
+
+* Ingenting är mätt än.** Tak: **0** påståenden. Inget här får citeras
+
+### M-105_ett_monster_som_aldrig_kort_mot_sin_text.md — LIMITS
+
+* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd.
+
+### M-106_bankens_facitkallor.md — LIMITS
+
+* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd. Tak: 0.
+
+### M-107_tillverkarens_datablad.md — LIMITS
+
+* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd. Tak: 0.
 
 ### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
 
@@ -652,7 +712,13 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ### M-86_ogat_mot_en_korande_vc.md — LIMITS
 
-* Mätningen är inte gjord än — filen reserverar bara numret.
+* En körning, en kväll, en maskin.** Talen i P15-3 har ingen spridning
+* Klockan inne i VC kvantiserar till ~1 ms.** Medel ur summan är rätt tal
+* Nollan i P15-2 är nollan ned till 1 µm.** Sub-mikrometerdrift, om VC har
+* Bara tomma komponenter i P15-2 och P15-3** (utan geometri). Kostnaden för
+* `uppdatera_fore_last=False`-svepet** (protokollets separata kostnadsmätning
+* `ST8_Mall` rörde sig** i en annan agents scen — det är ett bifynd, inte
+* Windows** (fas 13). Allt är mätt under Wine.
 
 ### M-87_hopfogningen_mot_vcs_egen_brygga.md — Vad som INTE är mätt
 
@@ -756,24 +822,65 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Fynd 13:s tal är en ögonblicksbild.** Fyra platshållarfiler fanns kl.
 * Misstanke, inte visad:** `NEKANDE`-listan används av minst fyra grindar
 
+### M-95_fyra_grindar_som_matte_fel_storhet.md — Fynd 5 — ett omätt par är inte ett fritt par
+
+* Detta är läst och kört mot mallens kod, inte mot VC.* Koden är en genererad
+
 ### M-95_fyra_grindar_som_matte_fel_storhet.md — LIMITS
 
-* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
+* Mätt på grindarnas egen dom, inte mot en körande VC.** Det som visas är att
+* Fynd 5 är läst, inte kört i VC.** Påståendet vilar på mallens text och på
+* `FELORD` fick sammansatta former** (`hittades inte`, `gick inte`, `kan
+* `NEGERAD_BESTAMNING` prövas på ordet närmast före felordet**, alltså på
+* Marginalen i `stodjer_tal` är oförändrad.** Fynd 3 rör vilken jämförelse
+* Bänken skiljer inte på lagningarna.** 56 av 56 både före och efter betyder
+* Fynd 2 och 9 ur M-94 ligger utanför.** Skrivgrinden lagades separat, och
 
 ### M-96_slingan_kor_sig_sjalv.md — LIMITS
 
-* Mätningen är inte klar än. Talen nedan fylls i när körningarna är gjorda.
+* Talen mot den lagade grinden är inte klara än.** Det som står ovan är
+* n = 1 per uppgift och läge.** Ingen upprepning, ingen spridning.
+* Fyra uppgifter av 51** — bara de har spårfacit.
+* En modell, en promptformulering.** Byts någotdera kan talen bli andra.
+* Domen kommer ur vår ST-tolk**, korsprövad mot STruC++ men inte mot OpenPLC.
+* Skiftlägessvepet är tretton konstruktioner på lexernivå**, inte hela
 
-## Produktionsmoduler som ingen provfil nämner: 1 (419 rader)
+### M-97_plc_axelns_giltighet.md — LIMITS
 
-* `svc/vc_assist_svc/st/lexer.py` — 419 rader
+* Mätningen är inte gjord än — filen reserverar bara numret.
+
+### M-98_den_sjatte_ordlistan.md — LIMITS
+
+* Allt är mätt på grindarnas egen dom, inte mot en körande VC.** Vad som
+* `SATSGRANSER` är vald, inte mätt.** Tolv tecken och bindeord, och varje
+* Ordningen inom satsen prövas inte.** Ett nekande räknas som att det negerar
+* `oga.GODKANNANDEORD` och `oga.BARA_NEGATION_OGA` är kvar som kopior.** De
+* `guldgrind.DALIGA_ORD` mot `oga_kontrakt._FYNDORD` är inte lagad.** Att de
+* Spärren ser bara moduldeklarerade literaler.** En ordlista byggd inne i en
+* Spärrens kärnor är `text.py`:s två.** En lista som blandar två *andra*
+* Kopiekriteriet missar en drivande kopia som är kortare än sex ord och har
+* Bänken har fortfarande ingen fälla av "ett nekande någon annanstans"-slaget
+* Tröskellintern är röd av annat.** `test_troskelharkomst.py` räknar 63
+* Sju konsumenter är alla jag hittade, inte alla som finns.** Sökningen gick
+
+### M-99_differentialsvepet_mot_kompilatorn.md — LIMITS
+
+* Mätningen är inte klar.** Ingenting nedanför den här raden är ännu ett tal.
+* Facit är STruC++ v0.6.6, inte standarden och inte OpenPLC.
+* STruC++ är ingen namnauktoritet: `HITTEPA(x)` passerar dess främmande.
+
+## Produktionsmoduler som ingen provfil nämner: 3 (778 rader)
+
+* `svc/vc_assist_svc/bankkontrakt.py` — 173 rader
+* `svc/vc_assist_svc/llm/ogontrim.py` — 432 rader
+* `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
 
 ## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 2 (218 rader)
 
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 106
+## Markörer i koden: 123
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -782,7 +889,26 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 ### vc_assist_svc/harness/fallor.py
 
 * vc_assist_svc/harness/fallor.py:24  trasig fixtur ar oprovad (S2 i 96_ingen_skuld.md, och 95_testprotokoll).
-* vc_assist_svc/harness/fallor.py:970  "orden 'kvar, och inte lagat': arlighetsgrinden fragade "
+* vc_assist_svc/harness/fallor.py:994  "orden 'kvar, och inte lagat': arlighetsgrinden fragade "
+
+### vc_assist_svc/llm/budget.py
+
+* vc_assist_svc/llm/budget.py:16  trimning. En bokforing som bara provas at ena hallet ar oprovad.
+* vc_assist_svc/llm/budget.py:73  "PRELIMINAR, M-29: ingen tokenrakning over verkliga turer finns"),
+* vc_assist_svc/llm/budget.py:75  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:80  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:86  "PRELIMINAR, M-29; EDGE och MINDIST vaxer med forloppet"),
+* vc_assist_svc/llm/budget.py:88  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:90  "PRELIMINAR, M-29"),
+
+### vc_assist_svc/llm/matt.py
+
+* vc_assist_svc/llm/matt.py:52  # PRELIMINAR, satt av matning M-28 (adapterprovets punkt 4 i
+
+### vc_assist_svc/llm/scenvy.py
+
+* vc_assist_svc/llm/scenvy.py:36  # PRELIMINAR, satts av matning M-29. Motivet ar matt: bankens storsta scen ar
+* vc_assist_svc/llm/scenvy.py:42  # Samma sak per komponent. PRELIMINAR, matning M-29.
 
 ### vc_assist_svc/verktyg/formagegrind.py
 
@@ -807,6 +933,17 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 * vc_assist_svc/verktyg/utforare.py:40  KO_POLL_S = 0.05            # PRELIMINAR. Satts av matning M-14.
 * vc_assist_svc/verktyg/utforare.py:41  KO_TIMEOUT_S = 60.0         # PRELIMINAR. Satts av matning M-14.
+
+### vc_assist_svc/aterhamtning/bild.py
+
+* vc_assist_svc/aterhamtning/bild.py:51  T_PING_S = 3.0      # PRELIMINÄR. 28_lagen_och_aterhamtning.md §1.3, ur M-03.
+* vc_assist_svc/aterhamtning/bild.py:52  T_NERE_S = 3.0      # PRELIMINÄR. 28_lagen_och_aterhamtning.md §1.3, ur M-03.
+* vc_assist_svc/aterhamtning/bild.py:55  T_MODAL_S = 300.0   # PRELIMINÄR. 26_appen.md A-3, sätts av M-21.
+
+### vc_assist_svc/aterhamtning/yta.py
+
+* vc_assist_svc/aterhamtning/yta.py:50  MAX_AVLASNINGSRADER = 8     # PRELIMINÄR. Samma form som M-64. Satt av M-103.
+* vc_assist_svc/aterhamtning/yta.py:131  d, "ingen avläsning gjord; om %s lever är inte prövat" % d,
 
 ### vc_assist_svc/plan/korning.py
 
@@ -838,18 +975,19 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ### vc_addon/vc_assist/oga_analys.py
 
-* vc_addon/vc_assist/oga_analys.py:35  GRIP_STABIL_MM = 2.0        # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:36  GRIP_RORELSE_MM = 5.0       # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:37  GRIP_FONSTER_S = 0.25       # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:38  TELEPORT_MAX_MM = 150.0     # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:39  CARRY_RIGID_DEG = 2.0       # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:40  CARRY_MIN_SPAN_S = 0.5      # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:41  PLACE_TOL_MM = 25.0         # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:42  BLOWUP_VMAX_MS = 25.0       # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:43  UNDERGROUND_MARGINAL_M = 0.005   # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:44  MIN_PROV = 10               # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:48  SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_analys.py:52  GENOMSTROMNING_MARGINAL_S = 0.0  # PRELIMINAR. Satts av matning M-19.
+* vc_addon/vc_assist/oga_analys.py:39  GRIP_STABIL_MM = 2.0        # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:40  GRIP_RORELSE_MM = 5.0       # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:41  GRIP_FONSTER_S = 0.25       # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:42  TELEPORT_MAX_MM = 150.0     # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:43  CARRY_RIGID_DEG = 2.0       # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:44  CARRY_MIN_SPAN_S = 0.5      # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:45  PLACE_TOL_MM = 25.0         # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:46  BLOWUP_VMAX_MS = 25.0       # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:47  UNDERGROUND_MARGINAL_M = 0.005   # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:48  MIN_PROV = 10               # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:52  SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-10.
+* vc_addon/vc_assist/oga_analys.py:56  GENOMSTROMNING_MARGINAL_S = 0.0  # PRELIMINAR. Satts av matning M-19.
+* vc_addon/vc_assist/oga_analys.py:80  PLC_AXEL_MAX_ANDEL = 0.10        # PRELIMINAR. Satts av matning M-97.
 
 ### vc_addon/vc_assist/oga_harledning.py
 
@@ -875,7 +1013,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * vc_addon/vc_assist/oga_harledning.py:91  UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:94  UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:96  FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_harledning.py:1169  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+* vc_addon/vc_assist/oga_harledning.py:1275  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
 
 ### vc_addon/vc_assist/oga_provtagning.py
 
@@ -926,8 +1064,8 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ### enhet/test_harness.py
 
-* enhet/test_harness.py:936  """S8: ingen TODO utan datum och ägare. Formen är TODO(datum, fas)."""
-* enhet/test_harness.py:942  for markor in ("TODO", "FIXME", "XXX"):
+* enhet/test_harness.py:964  """S8: ingen TODO utan datum och ägare. Formen är TODO(datum, fas)."""
+* enhet/test_harness.py:970  for markor in ("TODO", "FIXME", "XXX"):
 
 ### enhet/test_install.py
 
@@ -940,12 +1078,16 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ### enhet/test_mekanisering_m53.py
 
-* enhet/test_mekanisering_m53.py:568  """M-46:s 'kvar, och inte lagat'. Foll fore M-53: turen slapptes."""
-* enhet/test_mekanisering_m53.py:790  och lat fragan sta oprovad.
+* enhet/test_mekanisering_m53.py:583  """M-46:s 'kvar, och inte lagat'. Foll fore M-53: turen slapptes."""
+* enhet/test_mekanisering_m53.py:805  och lat fragan sta oprovad.
 
 ### enhet/test_oga_harledning.py
 
 * enhet/test_oga_harledning.py:87  fel.append("%s:%d %s -> %s utan PRELIMINAR" % (rel, nr, namn, L._mnr(r)))
+
+### enhet/test_personatackning.py
+
+* enhet/test_personatackning.py:212  """En felkod utan fixtur ar oprovad - och just den sortens kod ar det
 
 ### enhet/test_plan.py
 
