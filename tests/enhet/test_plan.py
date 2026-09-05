@@ -939,7 +939,7 @@ def test_en_placering_utan_motiv_avvisas():
             return svar
     with pytest.raises(Layoutfel) as fel:
         plan_for("T-01", layout=Layoutport(Utanmotiv()), frigang_mm=800.0)
-    assert "motiv" in str(fel.value)
+    assert "rationale" in str(fel.value)
 
 
 def test_en_position_som_inte_ar_tre_tal_avvisas():

@@ -206,8 +206,8 @@ class Layoutport(object):
             roll = post.get("roll")
             if roll not in roller:
                 raise Layoutfel(
-                    "layoutmotorn placerade rollen %r som inte finns i specen; "
-                    "kanda roller ar %s" % (roll, ", ".join(sorted(roller))))
+                    "the layout engine placed role %r which is not in the spec; "
+                    "known roles are %s" % (roll, ", ".join(sorted(roller))))
             instans = post.get("instans", 1)
             if not isinstance(instans, int) or isinstance(instans, bool) or instans < 1:
                 raise Layoutfel("the placement of %s has instance %r; an instance "
@@ -219,8 +219,8 @@ class Layoutport(object):
             motiv = post.get("motiv")
             if not isinstance(motiv, str) or not motiv.strip():
                 raise Layoutfel(
-                    "placeringen av %s saknar motiv; koordinater utan skal far "
-                    "inte in i en plan" % (roll,))
+                    "the placement of %s has no rationale; coordinates without a "
+                    "rationale must not enter a plan" % (roll,))
             placeringar.append(Placering(
                 roll,
                 _vektor(post.get("position_mm"), "position_mm", roll),
@@ -259,6 +259,6 @@ class Layoutport(object):
             konflikt.append(dict(post))
         if konflikt and placeringar:
             raise Layoutfel(
-                "layoutsvaret bar bade placeringar och en konflikt. En halv "
-                "layout ar farligare an ingen: den ser korbar ut (I3)")
+                "the layout response carries both placements and a conflict. A "
+                "half layout is more dangerous than none: it looks runnable (I3)")
         return Layoutsvar(placeringar, antaganden, fragor, status, konflikt)
