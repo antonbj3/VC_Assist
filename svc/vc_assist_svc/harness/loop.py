@@ -115,7 +115,7 @@ class Turprotokoll:
 
     def lagg(self, sort: str, kod: str, text: str, runda: int) -> Handelse:
         if sort not in SORTER:
-            raise Modellfel("okand handelsesort %r" % (sort,))
+            raise Modellfel("unknown event type %r" % (sort,))
         h = Handelse(sort=sort, kod=kod, text=text, runda=runda)
         self.handelser.append(h)
         return h
@@ -351,7 +351,7 @@ class Harness(object):
         """
         for i, anrop in enumerate(svar.anrop):
             if not isinstance(anrop, Verktygsanrop):
-                raise Modellfel("adaptern lamnade ett anrop av typen %s"
+                raise Modellfel("the adapter returned a call of type %s"
                                 % type(anrop).__name__)
             if not anrop.id:
                 anrop = Verktygsanrop(namn=anrop.namn, argument=anrop.argument,
