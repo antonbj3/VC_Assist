@@ -1,0 +1,101 @@
+{
+ "harkomst": "M-107. Varje uppgift bar url, hamtdatum, sha256 och ett ordagrant citat ur kallan. Enheten ar aldrig harledd ur vardet.",
+ "poster": [
+  {
+   "bank_uri": "bank://robot/fanuc_lrmate_200id_7l",
+   "ej_belagda": {
+    "diameter": "FANUC anger rackvidd, inte diameter.",
+    "repeterbarhet": "bladets varianttabell har lodrata rubriker som utdragningen bryter isar; kolumngrinden kan inte binda ±0.01 till 'Repeatability (mm)'.",
+    "vikt": "samma tabell, samma skal."
+   },
+   "modell": "FANUC LR Mate 200iD/7L",
+   "tillverkare": "Fanuc",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "at wrist: 7 kg",
+      "dokument": "1c2adf369a0ceb9a3a657ccd6d96e6b539d09c6a5fe52a7474ec6df4acabc0ea.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1c2adf369a0ceb9a3a657ccd6d96e6b539d09c6a5fe52a7474ec6df4acabc0ea",
+      "url": "https://www.fanucamerica.com/docs/default-source/robotics-files/lr-mate/lr-mate-200id-7l-data-sheet.pdf",
+      "utdrag": "3. BASIC SPECIFICATIONS B-8 LR Mate 200iD/7L Max. load capacity at wrist: 7 kg Max. reach: 911 mm Robot Motion range (°) Maximum speed (°/s) Moments (N·m)/Inertia (kg·m2) Protection Max.load capacity at consumption (kW) Controlled axes Average Power standard"
+     },
+     "varde": 7
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Max. reach: 911 mm",
+      "dokument": "1c2adf369a0ceb9a3a657ccd6d96e6b539d09c6a5fe52a7474ec6df4acabc0ea.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1c2adf369a0ceb9a3a657ccd6d96e6b539d09c6a5fe52a7474ec6df4acabc0ea",
+      "url": "https://www.fanucamerica.com/docs/default-source/robotics-files/lr-mate/lr-mate-200id-7l-data-sheet.pdf",
+      "utdrag": "3. BASIC SPECIFICATIONS B-8 LR Mate 200iD/7L Max. load capacity at wrist: 7 kg Max. reach: 911 mm Robot Motion range (°) Maximum speed (°/s) Moments (N·m)/Inertia (kg·m2) Protection Max.load capacity at consumption (kW) Controlled axes Average Power standard/optional standard/"
+     },
+     "varde": 911
+    }
+   },
+   "vc_namn": [
+    "LR Mate 200iD/7L"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/fanuc_m10id_12",
+   "ej_belagda": {
+    "diameter": "FANUC anger rackvidd, inte diameter.",
+    "repeterbarhet": "se LR Mate 200iD/7L: lodrata tabellrubriker.",
+    "vikt": "se LR Mate 200iD/7L."
+   },
+   "modell": "FANUC M-10iD/12",
+   "tillverkare": "Fanuc",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "at wrist: 12 kg",
+      "dokument": "0611c9f255d3fcc3aa71973f66c261534c65cb21968f46133245606b17e56960.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "0611c9f255d3fcc3aa71973f66c261534c65cb21968f46133245606b17e56960",
+      "url": "https://www.fanucamerica.com/docs/default-source/fanuc-robot-datasheets-new/flyer-m-10id-12-en.pdf",
+      "utdrag": "3.2 MECHANICAL UNIT EXTERNAL DIMENSIONS AND Max. load capacity WORK ENVELOPE M-10iD/12 at wrist: 12 kg Max. reach: 1441 mm Fig. 3.2 (a), (b) show the robot operating space. When installing peripheral devices, be careful not Robot Motion range (°) interfere with the robot and its op"
+     },
+     "varde": 12
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Max. reach: 1441 mm",
+      "dokument": "0611c9f255d3fcc3aa71973f66c261534c65cb21968f46133245606b17e56960.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "0611c9f255d3fcc3aa71973f66c261534c65cb21968f46133245606b17e56960",
+      "url": "https://www.fanucamerica.com/docs/default-source/fanuc-robot-datasheets-new/flyer-m-10id-12-en.pdf",
+      "utdrag": "3.2 MECHANICAL UNIT EXTERNAL DIMENSIONS AND Max. load capacity WORK ENVELOPE M-10iD/12 at wrist: 12 kg Max. reach: 1441 mm Fig. 3.2 (a), (b) show the robot operating space. When installing peripheral devices, be careful not Robot Motion range (°) interfere with the robot and its operating Maximum spac"
+     },
+     "varde": 1441
+    }
+   },
+   "vc_namn": [
+    "M-10iD/12"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/fanuc_m710ic_50",
+   "ej_belagda": {
+    "diameter": "FANUC anger rackvidd, inte diameter.",
+    "nyttolast": "PDF:ens textutdragning flatar samman tva stycken: raden lyder ordagrant 'Max. load capacity Fig. 3.2at(a)wrist: to (e) 50 show kg the robot operating'. Talet 50 och enheten kg star inte bredvid varandra, och varianttabellens rubriker ar lodrata. Ett oga ser 50 kg; grinden kan inte verifiera det, och da skrivs det inte.",
+    "rackvidd": "Samma dokument: 'Max. reach: 2050 mmspace. When installing peripheral devices' - enheten mm har vuxit ihop med nasta ord, sa pargrinden faller.",
+    "repeterbarhet": "lodrata tabellrubriker, se ovan.",
+    "vikt": "lodrata tabellrubriker, se ovan."
+   },
+   "modell": "FANUC M-710iC/50",
+   "not": "Provade ocksa fanuc.eu:s datablad for samma modell: HTTP 404.",
+   "tillverkare": "Fanuc",
+   "uppgifter": {},
+   "vc_namn": [
+    "M-710iC/50"
+   ]
+  }
+ ],
+ "tillverkare": "Fanuc"
+}

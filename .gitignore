@@ -10,3 +10,10 @@ __pycache__/
 # Coverage-data ur tests/protocol/kor_tackning.py. Genererad, aldrig i repot.
 .coverage
 .coverage-*
+
+# Ravyten ur tillverkarnas datablad (M-107). 22 MB PDF som INTE hor i repot:
+# korpusen bar url, hamtdatum, sha256 och ett ordagrant utdrag, och de tva
+# forsta grindarna kor utan cachen. Den tredje - att utdraget star i
+# dokumentet - kraver den, och hamtas om med
+# tests/protocol/kor_m107_bygg_korpus.py.
+data/tillverkardatablad/cache/

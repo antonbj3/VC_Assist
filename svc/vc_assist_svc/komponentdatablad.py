@@ -541,6 +541,14 @@ class Datablad:
     # "### Key properties ###"-rubrik och listar egenskaperna med sin BETYDELSE,
     # vilket ingen struktur i component.rsc bar.
     katalogbeskrivning: str = ""
+    # De ORDAGRANNA strangarna ur model.xml, med sina egna nycklar i gemener.
+    # Faltnamnen ovan (`nyttolast_kg`, `rackvidd_mm`) bar en enhet i SITT EGET
+    # NAMN som katalogposten aldrig deklarerar - filen skriver talet och
+    # ingenting mer (M-85). Den som behover talet ORDAGRANT, utan den pahangda
+    # enheten och utan float-omvandlingen, laser det harifran. M-107 bygger
+    # lagen enhet_saknas pa exakt den skillnaden: `MaxPayload = 0` ska kunna
+    # visas som "0" utan att nagon rad i systemet kan gora det till "0 kg".
+    katalogfalt: Dict[str, str] = field(default_factory=dict)
     egenskaper: List[Egenskap] = field(default_factory=list)
     beteenden: List[Beteende] = field(default_factory=list)
     granssnitt: List[Granssnitt] = field(default_factory=list)
@@ -866,6 +874,7 @@ def las(vcmx: str, tillverkare: str = "") -> Datablad:
     except zipfile.BadZipFile as fel:
         raise Databladfel("%s gar inte att oppna som arkiv: %s" % (vcmx, fel))
     blad = las_text(text, sokvag=vcmx)
+    blad.katalogfalt = dict(kat)
     blad.tillverkare = kat.get("manufacturer") or tillverkare
     blad.nyttolast_kg = _tal(kat.get("maxpayload"))
     blad.rackvidd_mm = _tal(kat.get("reach"))

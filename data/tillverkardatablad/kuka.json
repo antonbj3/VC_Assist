@@ -1,0 +1,40 @@
+{
+ "harkomst": "M-107. Varje uppgift bar url, hamtdatum, sha256 och ett ordagrant citat ur kallan. Enheten ar aldrig harledd ur vardet.",
+ "poster": [
+  {
+   "bank_uri": "bank://robot/kuka_kr10_r1100",
+   "ej_belagda": {
+    "diameter": "KUKA anger rackvidd, inte diameter.",
+    "nyttolast": "KUKA:s publika dokumentindex har ingen post for sixx-generationen. Produktsidan kr-agilus listar bara CR/EX/HM-SC/WP och -2-generationen; nedladdningscentralens tre DataSheets for modellen ar markerade public=false och gar till en inloggningsgatad xpert.kuka.com. Att lana 10 kg fran 'KR 10 R1100 WP' vore en grannmodells tal.",
+    "rackvidd": "se nyttolast: modellen finns inte i KUKA:s publika dokumentindex.",
+    "repeterbarhet": "se nyttolast.",
+    "vikt": "se nyttolast."
+   },
+   "modell": "KUKA KR 10 R1100 sixx",
+   "not": "Biblioteket har 'KR 10 R1100 sixx C', som ar den narmaste komponenten. Den bindningen ar utskriven, inte gissad.",
+   "tillverkare": "KUKA",
+   "uppgifter": {},
+   "vc_namn": [
+    "KR 10 R1100 sixx C"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/kuka_kr210_r2700",
+   "ej_belagda": {
+    "diameter": "KUKA anger rackvidd, inte diameter.",
+    "nyttolast": "KUKA:s nedladdningscentral ger totalResults=0 for 'KR 210 R2700 extra'. Produktsidan kr-quantec listar bara -2-generationen, och den har 2701 mm mot extra-variantens 2696 mm enligt tredjepartskallor - alltsa INTE utbytbara.",
+    "rackvidd": "se nyttolast.",
+    "repeterbarhet": "se nyttolast.",
+    "vikt": "se nyttolast."
+   },
+   "modell": "KUKA KR 210 R2700 extra",
+   "not": "Aldsta mekaniska nedladdningsvagen (kuka.com/-/media/kuka-downloads/imported/...) 301:ar numera till nedladdningscentralens HTML-skal.",
+   "tillverkare": "KUKA",
+   "uppgifter": {},
+   "vc_namn": [
+    "KR 210 R2700 extra"
+   ]
+  }
+ ],
+ "tillverkare": "KUKA"
+}

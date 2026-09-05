@@ -1,0 +1,156 @@
+{
+ "harkomst": "M-107. Varje uppgift bar url, hamtdatum, sha256 och ett ordagrant citat ur kallan. Enheten ar aldrig harledd ur vardet.",
+ "poster": [
+  {
+   "bank_uri": "bank://robot/ur10e",
+   "ej_belagda": {
+    "diameter": "UR anger rackvidd, inte diameter.",
+    "vikt": "techsheetet anger 33.3 kg 'Weight including cable' i en kolumn som utdragningen blandar med kraftsensorns rader."
+   },
+   "modell": "Universal Robots UR10e",
+   "tillverkare": "Universal Robots",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Payload 12.5 kg (27.6 lbs)",
+      "dokument": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR10e_techsheet_pdf_online/UR10e_techsheet_en.pdf",
+      "utdrag": "right © 2026 by Universal Robots A/S. All rights reserved. Analog Out 2 Quadrature digital inputs 4 UR10e I/O Power Supply 24V, 2A General specification Modbus TCP (Client/Server) Payload 12.5 kg (27.6 lbs) Features Ethernet/IP Adapter Industrial protocols IP Classification IP54 PROFINET device, PROFIsafe Reach 1300 mm (51.2 in) ROS/ROS2 Degrees of freedom 6 rotating joints Noise < 6"
+     },
+     "varde": 12.5
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Reach 1300 mm (51.2 in)",
+      "dokument": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR10e_techsheet_pdf_online/UR10e_techsheet_en.pdf",
+      "utdrag": " 2A General specification Modbus TCP (Client/Server) Payload 12.5 kg (27.6 lbs) Features Ethernet/IP Adapter Industrial protocols IP Classification IP54 PROFINET device, PROFIsafe Reach 1300 mm (51.2 in) ROS/ROS2 Degrees of freedom 6 rotating joints Noise < 65 dB(A) Ethernet 1 Gb/s 12 inch touchscreen with PolyScope Arm mounting Any orientation Programming USB 2.0 USB 3.0 graphica"
+     },
+     "varde": 1300
+    },
+    "repeterbarhet": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Pose repeatability per ISO 9283 ± 0.05 mm",
+      "dokument": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1d82d60fe340a4b4b0e265eaa67850b0c2e949eb14066e847a35b41cbbd65519",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR10e_techsheet_pdf_online/UR10e_techsheet_en.pdf",
+      "utdrag": "5 lbs) tool flange/torque sensor Range ± 100.0 N ± 10.0 Nm Humidity ≤ 90% RH (non-condensing) Precision ± 5.0 N ± 0.2 Nm Accuracy ± 5.5 N ± 0.5 Nm Movement Maximum TCP speed 4 m/s Pose repeatability per ISO 9283 ± 0.05 mm Axis movement Working range Maximum speed Base ± 360° ± 120˚/s Contact Shoulder ± 360° ± 120˚/s Elbow ± 360° ± 180˚/s Universal Robots A/S +45 89 93 89 89 Energivej 51 Wrist 1 ± 3"
+     },
+     "varde": 0.05
+    }
+   },
+   "vc_namn": [
+    "UR10e"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "UR anger rackvidd, inte diameter.",
+    "vikt": "se UR10e."
+   },
+   "modell": "Universal Robots UR5e",
+   "tillverkare": "Universal Robots",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Payload 5 kg",
+      "dokument": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR5e_techsheet_pdf_online/UR5e_techsheet_en.pdf",
+      "utdrag": "or UR5e Analog Out 2 Quadrature digital inputs 4 UR5e I/O Power Supply 24V, 2A General specification Features Modbus TCP (Client/Server) IP Classification IP54 Ethernet/IP Adapter Payload 5 kg (11 lbs) Industrial protocols PROFINET device, PROFIsafe Reach 850 mm (33.5 in) Noise < 67 dB(A) ROS/ROS2 Degrees of freedom 6 rotating joints Arm mounting Any orientation Etherne"
+     },
+     "varde": 5
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Reach 850 mm",
+      "dokument": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR5e_techsheet_pdf_online/UR5e_techsheet_en.pdf",
+      "utdrag": " 24V, 2A General specification Features Modbus TCP (Client/Server) IP Classification IP54 Ethernet/IP Adapter Payload 5 kg (11 lbs) Industrial protocols PROFINET device, PROFIsafe Reach 850 mm (33.5 in) Noise < 67 dB(A) ROS/ROS2 Degrees of freedom 6 rotating joints Arm mounting Any orientation Ethernet 1 Gb/s 12 inch touchscreen with PolyScope I/O Ports at tool flange U"
+     },
+     "varde": 850
+    },
+    "repeterbarhet": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "repeatability per ISO 9283 ± 0.03 mm",
+      "dokument": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "3f2ff238a537ea7dcdc356bf83d43f1566cb8d37f4a1e2c871e9e8b74a82c208",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR5e_techsheet_pdf_online/UR5e_techsheet_en.pdf",
+      "utdrag": "-z tool flange/torque sensor Humidity ≤ 90% RH (non-condensing) Range ± 50.0 N ± 10.0 Nm Precision ± 3.5 N ± 0.2 Nm Accuracy ± 4.0 N ± 0.3 Nm Movement Maximum TCP speed 4 m/s Pose repeatability per ISO 9283 ± 0.03 mm Axis movement Working range Maximum speed Contact Base ± 360° ± 180˚/s Shoulder ± 360° ± 180˚/s Universal Robots A/S +45 89 93 89 89 Energivej 51 Elbow ± 360° ± 180˚/s sales@unive"
+     },
+     "varde": 0.03
+    }
+   },
+   "vc_namn": [
+    "UR5e"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "UR anger rackvidd, inte diameter.",
+    "vikt": "se UR10e."
+   },
+   "modell": "Universal Robots UR16e",
+   "tillverkare": "Universal Robots",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Payload 16 kg",
+      "dokument": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR16e_techsheet_pdf_online/UR16e_techsheet_en.pdf",
+      "utdrag": "ange for UR16e Analog In 2 Analog Out 2 UR16e Quadrature digital inputs 4 General specification Features I/O Power Supply 24V, 2A IP Classification IP54 Modbus TCP (Client/Server) Payload 16 kg (35.3 lbs) Ethernet/IP Adapter Reach 900 mm (35.4 in) Noise < 65 dB(A) Industrial protocols PROFINET device, PROFIsafe Degrees of freedom 6 rotating joints Arm mounting Any orient"
+     },
+     "varde": 16
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "Reach 900 mm",
+      "dokument": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR16e_techsheet_pdf_online/UR16e_techsheet_en.pdf",
+      "utdrag": " Quadrature digital inputs 4 General specification Features I/O Power Supply 24V, 2A IP Classification IP54 Modbus TCP (Client/Server) Payload 16 kg (35.3 lbs) Ethernet/IP Adapter Reach 900 mm (35.4 in) Noise < 65 dB(A) Industrial protocols PROFINET device, PROFIsafe Degrees of freedom 6 rotating joints Arm mounting Any orientation ROS/ROS2 12 inch touchscreen with Poly"
+     },
+     "varde": 900
+    },
+    "repeterbarhet": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "repeatability per ISO 9283 ± 0.05 mm",
+      "dokument": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "554b556e0d99ea3141e8cc6f07effc47e866cf57f833017da16de268434c3a23",
+      "url": "https://www.universal-robots.com/manuals/EN/DataSheets/UR16e_techsheet_pdf_online/UR16e_techsheet_en.pdf",
+      "utdrag": "z tool flange/torque sensor Humidity ≤ 90% RH (non-condensing) Range ± 160.0 N ± 10.0 Nm Precision ± 5.0 N ± 0.2 Nm Accuracy ± 5.5 N ± 0.5 Nm Movement Maximum TCP speed 3 m/s Pose repeatability per ISO 9283 ± 0.05 mm Axis movement Working range Maximum speed Contact Base ± 360° ± 120˚/s Shoulder ± 360° ± 120˚/s Universal Robots A/S +45 89 93 89 89 Elbow ± 360° ± 180˚/s Energivej 51 sales@unive"
+     },
+     "varde": 0.05
+    }
+   },
+   "vc_namn": [
+    "UR16e"
+   ]
+  }
+ ],
+ "tillverkare": "Universal Robots"
+}

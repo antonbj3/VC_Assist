@@ -1,0 +1,783 @@
+{
+ "harkomst": "M-107. Varje uppgift bar url, hamtdatum, sha256 och ett ordagrant citat ur kallan. Enheten ar aldrig harledd ur vardet.",
+ "poster": [
+  {
+   "bank_uri": "bank://robot/abb_irb_1200_5_0900",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd for IRB 1200, inte diameter.",
+    "repeterbarhet": "ROB0275EN_A skriver ingen repeterbarhet per variant; bladet ar ett saljblad, inte produktspecifikationen.",
+    "vikt": "bladet skriver 'Weight 52 KG / 54 KG' i tva kolumner utan att raden sager vilken kolumn som ar vilken variant."
+   },
+   "modell": "ABB IRB 1200-5/0.9",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 1200-5/0.9 901mm 5kg",
+      "dokument": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022",
+      "url": "https://library.e.abb.com/public/6f866d55894a49a7b44384db76e01b4b/IRB1200_ROB0275EN_A.pdf",
+      "utdrag": "load − − Mountable at any angle −− Large useable working area in a compact footprint C X Specification Robot Version reach payload armload 202 202 IRB 1200-7/0.7 703mm 7kg 0.3kg D IRB 1200-5/0.9 901mm 5kg 0.3kg 703 703 703 703 1 2 3 4 5 6 7 8 9 10 11 12 Features 140210, 15:24 170° Supplementary document Doc. type Document Description Integrated A signal supply 10 signals on wrist A"
+     },
+     "varde": 5
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "IRB 1200-5/0.9 901mm 5kg 0.3kg",
+      "dokument": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022",
+      "url": "https://library.e.abb.com/public/6f866d55894a49a7b44384db76e01b4b/IRB1200_ROB0275EN_A.pdf",
+      "utdrag": "load − − Mountable at any angle −− Large useable working area in a compact footprint C X Specification Robot Version reach payload armload 202 202 IRB 1200-7/0.7 703mm 7kg 0.3kg D IRB 1200-5/0.9 901mm 5kg 0.3kg 703 703 703 703 1 2 3 4 5 6 7 8 9 10 11 12 Features 140210, 15:24 170° Supplementary document Doc. type Document Description Integrated A signal supply 10 signals on wrist A IRBsu"
+     },
+     "varde": 901
+    }
+   },
+   "vc_namn": [
+    "IRB 1200-5/0.9"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_1200_7_0700",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd for IRB 1200, inte diameter.",
+    "repeterbarhet": "se IRB 1200-5/0.9: bladet bar ingen repeterbarhet per variant.",
+    "vikt": "se IRB 1200-5/0.9: viktkolumnerna ar inte radbundna."
+   },
+   "modell": "ABB IRB 1200-7/0.7",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 1200-7/0.7 703mm 7kg",
+      "dokument": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022",
+      "url": "https://library.e.abb.com/public/6f866d55894a49a7b44384db76e01b4b/IRB1200_ROB0275EN_A.pdf",
+      "utdrag": "d 900 mm 1304 1304 reach/5 kg payload − − Mountable at any angle −− Large useable working area in a compact footprint C X Specification Robot Version reach payload armload 202 202 IRB 1200-7/0.7 703mm 7kg 0.3kg D IRB 1200-5/0.9 901mm 5kg 0.3kg 703 703 703 703 1 2 3 4 5 6 7 8 9 10 11 12 Features 140210, 15:24 170° Supplementary document Doc. type Document Description Integrated A si"
+     },
+     "varde": 7
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "IRB 1200-7/0.7 703mm 7kg 0.3kg",
+      "dokument": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4c1f3293f381c4ea24ea9919e902b20fe53369efe9b901fd5cfa9e672d174022",
+      "url": "https://library.e.abb.com/public/6f866d55894a49a7b44384db76e01b4b/IRB1200_ROB0275EN_A.pdf",
+      "utdrag": "d 900 mm 1304 1304 reach/5 kg payload − − Mountable at any angle −− Large useable working area in a compact footprint C X Specification Robot Version reach payload armload 202 202 IRB 1200-7/0.7 703mm 7kg 0.3kg D IRB 1200-5/0.9 901mm 5kg 0.3kg 703 703 703 703 1 2 3 4 5 6 7 8 9 10 11 12 Features 140210, 15:24 170° Supplementary document Doc. type Document Description Integrated A signal s"
+     },
+     "varde": 703
+    }
+   },
+   "vc_namn": [
+    "IRB 1200-7/0.7"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_2600_20_1650",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd for IRB 2600, inte diameter.",
+    "repeterbarhet": "3HAC035959 anger 0.04 mm i en kolumntabell vars rubrikrad utdragningen bryter isar; kolumngrinden kan inte binda talet till varianten.",
+    "vikt": "vikten star inte per variant i den lasta tabellen."
+   },
+   "modell": "ABB IRB 2600-20/1.65",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IR"
+     },
+     "kolumn": {
+      "index": 0,
+      "modell_i_rad": "IRB 2600-20/1.65",
+      "rad": "IRB 2600-20/1.65 20 1.65",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 20
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IR"
+     },
+     "kolumn": {
+      "index": 1,
+      "modell_i_rad": "IRB 2600-20/1.65",
+      "rad": "IRB 2600-20/1.65 20 1.65",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 1.65
+    }
+   },
+   "vc_namn": [
+    "IRB 2600-20/1.65"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 2600-20/1.65.",
+    "vikt": "se IRB 2600-20/1.65."
+   },
+   "modell": "ABB IRB 2600-12/1.65",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-1"
+     },
+     "kolumn": {
+      "index": 0,
+      "modell_i_rad": "IRB 2600-12/1.65",
+      "rad": "IRB 2600-12/1.65 12 1.65",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 12
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-1"
+     },
+     "kolumn": {
+      "index": 1,
+      "modell_i_rad": "IRB 2600-12/1.65",
+      "rad": "IRB 2600-12/1.65 12 1.65",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 1.65
+    }
+   },
+   "vc_namn": [
+    "IRB 2600-12/1.65"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 2600-20/1.65.",
+    "vikt": "se IRB 2600-20/1.65."
+   },
+   "modell": "ABB IRB 2600-12/1.85",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Air"
+     },
+     "kolumn": {
+      "index": 0,
+      "modell_i_rad": "IRB 2600-12/1.85",
+      "rad": "IRB 2600-12/1.85 12 1.85",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 12
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Air"
+     },
+     "kolumn": {
+      "index": 1,
+      "modell_i_rad": "IRB 2600-12/1.85",
+      "rad": "IRB 2600-12/1.85 12 1.85",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 1.85
+    }
+   },
+   "vc_namn": [
+    "IRB 2600-12/1.85"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 2600-20/1.65.",
+    "vikt": "se IRB 2600-20/1.65."
+   },
+   "modell": "ABB IRB 2600ID-15/1.85",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Airborn noise level The sound "
+     },
+     "kolumn": {
+      "index": 0,
+      "modell_i_rad": "IRB 2600ID-15/1.85",
+      "rad": "IRB 2600ID-15/1.85 15 1.85",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 15
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Airborn noise level The sound "
+     },
+     "kolumn": {
+      "index": 1,
+      "modell_i_rad": "IRB 2600ID-15/1.85",
+      "rad": "IRB 2600ID-15/1.85 15 1.85",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 1.85
+    }
+   },
+   "vc_namn": [
+    "IRB 2600ID-15/1.85"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 2600-20/1.65.",
+    "vikt": "se IRB 2600-20/1.65."
+   },
+   "modell": "ABB IRB 2600ID-8/2.00",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Airborn noise level The sound pressure < 69 dB (A) Leq "
+     },
+     "kolumn": {
+      "index": 0,
+      "modell_i_rad": "IRB 2600ID-8/2.00",
+      "rad": "IRB 2600ID-8/2.00 8 2.00",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 8
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00",
+      "dokument": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "1a3e45cf8e4ec07fb74b4627dd83d3660034649195fbe0ae41859cee7fe8ebfa",
+      "url": "https://library.e.abb.com/public/b158e2dcf8cc41b4a724eda1e22f87fb/3HAC035959%20PS%20IRB%202600%20on%20IRC5-en.pdf",
+      "utdrag": "iants and they can be wall mounted, inverted or tilted (up to 45 degrees around the Y-axis or X-axis). See Introduction to Robot load and load diagrams on page 39 for limitations. Robot variant Handling capacity (kg) Reach (m) IRB 2600-20/1.65 20 1.65 IRB 2600-12/1.65 12 1.65 IRB 2600-12/1.85 12 1.85 IRB 2600ID-15/1.85 15 1.85 IRB 2600ID-8/2.00 8 2.00 Other technical data Data Description Note IRB2600-12/1.85 IRB2600-20/1.65 IRB2600ID-15/1.85 IRB2600-12/1.65 IRB2600ID-8/20 Airborn noise level The sound pressure < 69 dB (A) Leq "
+     },
+     "kolumn": {
+      "index": 1,
+      "modell_i_rad": "IRB 2600ID-8/2.00",
+      "rad": "IRB 2600ID-8/2.00 8 2.00",
+      "rubrik": "Robot variant Handling capacity (kg) Reach (m)"
+     },
+     "varde": 2.0
+    }
+   },
+   "vc_namn": [
+    "IRB 2600ID-8/2.0"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_4600_60_2050",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd (sbraccio), inte diameter.",
+    "repeterbarhet": "bladet anger 0.05 - 0.06 mm som ETT INTERVALL over alla varianter, inte ett varde for den har.",
+    "vikt": "bladet anger 'Peso robot da 412 a 435 kg' - ett intervall over familjen, inte variantens vikt."
+   },
+   "modell": "ABB IRB 4600-60/2.05",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 4600-60/2.05 2.05 m 60 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "di conseguenza anche la capacità per metro quadro e la produttività. Speciﬁche Applicazioni principali Modelli: Sbraccio Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggi"
+     },
+     "varde": 60
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "IRB 4600-60/2.05 2.05 m 60 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "di conseguenza anche la capacità per metro quadro e la produttività. Speciﬁche Applicazioni principali Modelli: Sbraccio Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggi"
+     },
+     "varde": 2.05
+    }
+   },
+   "vc_namn": [
+    "IRB 4600-60/2.05"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 4600-60/2.05: intervall.",
+    "vikt": "se IRB 4600-60/2.05: intervall."
+   },
+   "modell": "ABB IRB 4600-45/2.05",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 4600-45/2.05 2.05 m 45 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "vità. Speciﬁche Applicazioni principali Modelli: Sbraccio Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assembl"
+     },
+     "varde": 45
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "IRB 4600-45/2.05 2.05 m 45 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "vità. Speciﬁche Applicazioni principali Modelli: Sbraccio Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assembl"
+     },
+     "varde": 2.05
+    }
+   },
+   "vc_namn": [
+    "IRB 4600-45/2.05"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 4600-60/2.05: intervall.",
+    "vikt": "se IRB 4600-60/2.05: intervall."
+   },
+   "modell": "ABB IRB 4600-40/2.55",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 4600-40/2.55 2.55 m 40 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "o Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assemblaggio Protezione Standard IP67, Foundry Plus 2 opzionale"
+     },
+     "varde": 40
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "IRB 4600-40/2.55 2.55 m 40 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "o Carico al polso Carico sul braccio − Asservimento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assemblaggio Protezione Standard IP67, Foundry Plus 2 opzionale"
+     },
+     "varde": 2.55
+    }
+   },
+   "vc_namn": [
+    "IRB 4600-40/2.55"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 4600-60/2.05: intervall.",
+    "vikt": "se IRB 4600-60/2.05: intervall."
+   },
+   "modell": "ABB IRB 4600-20/2.50",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 4600-20/2.50 2.51 m 20 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "imento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assemblaggio Protezione Standard IP67, Foundry Plus 2 opzionale − Pallettizzazione e confezionamento Fissagg"
+     },
+     "varde": 20
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "IRB 4600-20/2.50 2.51 m 20 kg",
+      "dokument": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "9cfcfd5281625347baf720f9a1fd8ba1c1798ef7dbbf68a6c5e5d55e7acc888d",
+      "url": "https://library.e.abb.com/public/7f776502855949bba39e2105e6d70209/IRB%204600_DATASHEET.pdf",
+      "utdrag": "imento macchine IRB 4600-60/2.05 2.05 m 60 kg 20 kg − Movimentazione materiali IRB 4600-45/2.05 2.05 m 45 kg 20 kg − Saldatura ad arco IRB 4600-40/2.55 2.55 m 40 kg 20 kg − Taglio IRB 4600-20/2.50 2.51 m 20 kg 11 kg − Dosaggio Numero di assi 6+3 esterni (ﬁno a 36 con MultiMove) − Assemblaggio Protezione Standard IP67, Foundry Plus 2 opzionale − Pallettizzazione e confezionamento Fissagg"
+     },
+     "varde": 2.51
+    }
+   },
+   "vc_namn": [
+    "IRB 4600-20/2.50"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_6700_235_2650",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "IRB_6700_EN ar ett saljblad och anger ingen repeterbarhet.",
+    "vikt": "bladet anger 'Weight 1250 - 1280 kg' for familjen, inte for varianten."
+   },
+   "modell": "ABB IRB 6700-235/2.65",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "6700-235 2.65 m 235 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": "mption percent. IRB 6700 Specification Physical Robot versions Reach Handling Center Wrist torque Dimensions robot base 1004 x 720 mm IRB capacity of gravity Weight 1250 - 1280 kg 6700-235 2.65 m 235 kg 300 mm 1324 Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°"
+     },
+     "varde": 235
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "6700-235 2.65 m 235 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": "mption percent. IRB 6700 Specification Physical Robot versions Reach Handling Center Wrist torque Dimensions robot base 1004 x 720 mm IRB capacity of gravity Weight 1250 - 1280 kg 6700-235 2.65 m 235 kg 300 mm 1324 Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°"
+     },
+     "varde": 2.65
+    }
+   },
+   "vc_namn": [
+    "IRB 6700-235/2.65"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 6700-235/2.65: saljblad.",
+    "vikt": "se IRB 6700-235/2.65: familjeintervall."
+   },
+   "modell": "ABB IRB 6700-205/2.80",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "6700-205 2.80 m 205 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": "bot versions Reach Handling Center Wrist torque Dimensions robot base 1004 x 720 mm IRB capacity of gravity Weight 1250 - 1280 kg 6700-235 2.65 m 235 kg 300 mm 1324 Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°C (122°F) * 6700-150 3.20 m 150 kg 300 mm 1135 Nm "
+     },
+     "varde": 205
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "6700-205 2.80 m 205 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": "bot versions Reach Handling Center Wrist torque Dimensions robot base 1004 x 720 mm IRB capacity of gravity Weight 1250 - 1280 kg 6700-235 2.65 m 235 kg 300 mm 1324 Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°C (122°F) * 6700-150 3.20 m 150 kg 300 mm 1135 Nm "
+     },
+     "varde": 2.8
+    }
+   },
+   "vc_namn": [
+    "IRB 6700-205/2.80"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "se IRB 6700-235/2.65: saljblad.",
+    "vikt": "se IRB 6700-235/2.65: familjeintervall."
+   },
+   "modell": "ABB IRB 6700-150/3.20",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "6700-150 3.20 m 150 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": " Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°C (122°F) * 6700-150 3.20 m 150 kg 300 mm 1135 Nm During transportation and - 25° C (13°F) -+55°C (131°F) © Copyright 2013 ABB Robotics. All rights reserved. ROB0252EN_A Nov 2013 Extra loads can be mounted on all v"
+     },
+     "varde": 150
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "6700-150 3.20 m 150 kg",
+      "dokument": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "4dc5b68644c80238a75996ee91574425f8302709d5b9ed3454503728d26b155e",
+      "url": "https://library.e.abb.com/public/a2698bc8d34a36a048257d4000330712/IRB_6700_EN.pdf",
+      "utdrag": " Nm Environment 6700-205 2.80 m 205 kg 300 mm 1263 Nm Ambient temperature for mechanical unit 6700-175 3.05 m 175 kg 300 mm 1179 Nm During operation + 5° C (41°F) -+50°C (122°F) * 6700-150 3.20 m 150 kg 300 mm 1135 Nm During transportation and - 25° C (13°F) -+55°C (131°F) © Copyright 2013 ABB Robotics. All rights reserved. ROB0252EN_A Nov 2013 Extra loads can be mounted on all v"
+     },
+     "varde": 3.2
+    }
+   },
+   "vc_namn": [
+    "IRB 6700-150/3.20"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_660_180_3150",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd, inte diameter.",
+    "repeterbarhet": "bladet anger 'Position repeatability 0.1 mm' for IRB 660 som familj, utan att raden binder talet till -180/3.15 eller -250/3.15.",
+    "vikt": "bladet anger ingen vikt."
+   },
+   "modell": "ABB IRB 660-180/3.15",
+   "not": "Biblioteket bar 'IRB 660' med MaxPayload 250, alltsa den ANDRA varianten. Ingen vc_namn-bindning.",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "660-180/3.15 180 kg 3.15 m",
+      "dokument": "35c856f776aeabf6023cfee5b3d3a5269caf46faf04c81b378163b5c72c05421.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "35c856f776aeabf6023cfee5b3d3a5269caf46faf04c81b378163b5c72c05421",
+      "url": "https://library.e.abb.com/public/bb6f658190ee693bc1257b28005760dc/IRB660_PR10284EN_D_HR.pdf",
+      "utdrag": "hput. well as ensuring those extra lengthy service intervals! IRB 660 Specification Cycles per hour Robot versions Handling Reach Load Cycles per hour IRB capacity 60 kg 2190 R400 660-180/3.15 180 kg 3.15 m 660-250/3.15 250 kg 3.15 m Number of axes: 4 Protection class: IP 67 z0 z0 Mounting: Floor mounted © Copyright ABB Robotics. PR10284EN_D Aug 2012 IRC5 Controller variants Single c"
+     },
+     "varde": 180
+    },
+    "rackvidd": {
+     "enhet": "m",
+     "kalla": {
+      "citat": "660-180/3.15 180 kg 3.15 m",
+      "dokument": "35c856f776aeabf6023cfee5b3d3a5269caf46faf04c81b378163b5c72c05421.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "35c856f776aeabf6023cfee5b3d3a5269caf46faf04c81b378163b5c72c05421",
+      "url": "https://library.e.abb.com/public/bb6f658190ee693bc1257b28005760dc/IRB660_PR10284EN_D_HR.pdf",
+      "utdrag": "hput. well as ensuring those extra lengthy service intervals! IRB 660 Specification Cycles per hour Robot versions Handling Reach Load Cycles per hour IRB capacity 60 kg 2190 R400 660-180/3.15 180 kg 3.15 m 660-250/3.15 250 kg 3.15 m Number of axes: 4 Protection class: IP 67 z0 z0 Mounting: Floor mounted © Copyright ABB Robotics. PR10284EN_D Aug 2012 IRC5 Controller variants Single c"
+     },
+     "varde": 3.15
+    }
+   },
+   "vc_namn": []
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_360_1_1130",
+   "ej_belagda": {
+    "rackvidd": "ABB publicerar 1130 mm under rubriken DIAMETER, inte Reach. Bankens 565 mm ar 1130/2 - en rakning pa ett publicerat tal, inte ett publicerat tal, och den star stamplad PUBLICERAD_SPEC.",
+    "repeterbarhet": "bladet anger 0.1 mm for IRB 360 som familj, inte per variant.",
+    "vikt": "bladet anger ingen vikt per variant."
+   },
+   "modell": "ABB IRB 360-1/1130",
+   "not": "Modellen finns inte i det installerade biblioteket; dar finns -3/1130, -8/1130, -1/1600 och -6/1600.",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "diameter": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "IRB 360-1/1130 * 1 kg 1130 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "cation Electrical Connections Robot versions Handling Diameter No. Axes Supply voltage 200-600 V, 60 Hz capacity Rated power IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg "
+     },
+     "varde": 1130
+    },
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 360-1/1130 * 1 kg 1130 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "cation Electrical Connections Robot versions Handling Diameter No. Axes Supply voltage 200-600 V, 60 Hz capacity Rated power IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg "
+     },
+     "varde": 1
+    }
+   },
+   "vc_namn": []
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "rackvidd": "se IRB 360-1/1130: ABB publicerar en DIAMETER.",
+    "repeterbarhet": "familjevarde, inte per variant.",
+    "vikt": "bladet anger ingen vikt per variant."
+   },
+   "modell": "ABB IRB 360-3/1130",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "diameter": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "IRB 360-3/1130 3 kg 1130 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "o. Axes Supply voltage 200-600 V, 60 Hz capacity Rated power IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg 1130 mm 4 cycle with 1 kg payload . Supplementary load Environ"
+     },
+     "varde": 1130
+    },
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 360-3/1130 3 kg 1130 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "o. Axes Supply voltage 200-600 V, 60 Hz capacity Rated power IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg 1130 mm 4 cycle with 1 kg payload . Supplementary load Environ"
+     },
+     "varde": 3
+    }
+   },
+   "vc_namn": [
+    "IRB 360-3/1130"
+   ]
+  },
+  {
+   "bank_uri": "",
+   "ej_belagda": {
+    "rackvidd": "se IRB 360-1/1130: ABB publicerar en DIAMETER.",
+    "repeterbarhet": "familjevarde, inte per variant.",
+    "vikt": "bladet anger ingen vikt per variant."
+   },
+   "modell": "ABB IRB 360-1/1600",
+   "tillverkare": "ABB",
+   "uppgifter": {
+    "diameter": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "IRB 360-1/1600 1 kg 1600 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "r IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg 1130 mm 4 cycle with 1 kg payload . Supplementary load Environment © Copyright ABB Robotics. ROB0082EN_F May 2013 on uppe"
+     },
+     "varde": 1600
+    },
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "IRB 360-1/1600 1 kg 1600 mm",
+      "dokument": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "804a1e22545344654b57cef54983528b22909f5fa3bee717d593b3c289f4a463",
+      "url": "https://library.e.abb.com/public/1c971fb90d8c34f8c1257c2100468677/ROB0082EN_F_HR.pdf",
+      "utdrag": "r IRB 360-1/800 1 kg 800 mm 4 Transformer rating 7.2 kVA IRB 360-1/1130 * 1 kg 1130 mm 3/4 Power consumption at max load IRB 360-3/1130 3 kg 1130 mm 3/4 Type of Movement IRB 360/1 IRB 360-1/1600 1 kg 1600 mm 4 Typical pick - and - place 0.477 kW IRB 360-8/1130 8 kg 1130 mm 4 cycle with 1 kg payload . Supplementary load Environment © Copyright ABB Robotics. ROB0082EN_F May 2013 on uppe"
+     },
+     "varde": 1
+    }
+   },
+   "vc_namn": [
+    "IRB 360-1/1600"
+   ]
+  },
+  {
+   "bank_uri": "bank://robot/abb_irb_910sc_3_0550",
+   "ej_belagda": {
+    "diameter": "ABB anger rackvidd for 910SC, inte diameter.",
+    "nyttolast": "Tabellrubriken 'Robot version Reach Payload (kg)*' bar EN parentesenhet (kg) pa plats 0, medan radens tal pa plats 0 ar rackvidden 0.55. Rubriken skriver ingen enhet vid Reach, sa kolumngrinden kan inte binda 3 till kg. Kallan sager dessutom 'Rated: 3, Max: 6' - tva tal, och vilket VC:s MaxPayload 3.0 avser ar inte lasbart har.",
+    "rackvidd": "Samma tabell: enheten (m) star efter 'Axis max speed' i den utdragna texten, inte efter 'Reach'. Lopetexten sager 'individual reaches of 450 mm, 550 mm and 650 mm, respectively' - en koppling via ordet 'respectively', vilket ar en positionslasning over en mening och inte en tabellkolumn.",
+    "repeterbarhet": "bladet anger repeterbarhet PER AXEL (Axis 1 + Axis 2 ±0.015 mm, Axis 3 ±0.01 mm), aldrig ett samlat TCP-varde.",
+    "vikt": "bladet anger ingen vikt."
+   },
+   "modell": "ABB IRB 910SC-3/0.55",
+   "not": "Enda posten i korpusen dar dokumentet FINNS och grinden anda sager nej. Det ar avsikten: en kolumnlasning som inte gar att verifiera far inte bli ett tal.",
+   "tillverkare": "ABB",
+   "uppgifter": {},
+   "vc_namn": [
+    "IRB 910SC-3/0.55"
+   ]
+  }
+ ],
+ "tillverkare": "ABB"
+}

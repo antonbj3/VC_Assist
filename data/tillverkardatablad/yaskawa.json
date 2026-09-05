@@ -1,0 +1,55 @@
+{
+ "harkomst": "M-107. Varje uppgift bar url, hamtdatum, sha256 och ett ordagrant citat ur kallan. Enheten ar aldrig harledd ur vardet.",
+ "poster": [
+  {
+   "bank_uri": "bank://robot/yaskawa_gp8",
+   "ej_belagda": {
+    "diameter": "Yaskawa anger rackvidd, inte diameter.",
+    "vikt": "bladet anger ingen vikt i den lasta texten."
+   },
+   "modell": "Yaskawa MOTOMAN GP8",
+   "not": "Ingen komponent i det installerade biblioteket heter GP8.",
+   "tillverkare": "Yaskawa",
+   "uppgifter": {
+    "nyttolast": {
+     "enhet": "kg",
+     "kalla": {
+      "citat": "GP8 8 kg payload",
+      "dokument": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc",
+      "url": "https://www.motoman.com/getmedia/1a40ce78-99c3-4e43-bbce-b9318263f464/GP7_GP8.pdf.aspx",
+      "utdrag": "maintenance IP67 rating for use in a wide variety of applications S P E C I F I C AT I O N S GP7 7 kg payload 927 mm horizontal reach 1,693 mm vertical reach 0.01 mm repeatability GP8 8 kg payload 727 mm horizontal reach • Increase your productivity with • Single power and control cable 1,312 mm vertical reach the fast and efficient GP7 and reduces wiring time and increases"
+     },
+     "varde": 8
+    },
+    "rackvidd": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "727 mm horizontal reach",
+      "dokument": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc",
+      "url": "https://www.motoman.com/getmedia/1a40ce78-99c3-4e43-bbce-b9318263f464/GP7_GP8.pdf.aspx",
+      "utdrag": "rating for use in a wide variety of applications S P E C I F I C AT I O N S GP7 7 kg payload 927 mm horizontal reach 1,693 mm vertical reach 0.01 mm repeatability GP8 8 kg payload 727 mm horizontal reach • Increase your productivity with • Single power and control cable 1,312 mm vertical reach the fast and efficient GP7 and reduces wiring time and increases 0.01 mm repeatability G"
+     },
+     "varde": 727
+    },
+    "repeterbarhet": {
+     "enhet": "mm",
+     "kalla": {
+      "citat": "0.01 mm repeatability",
+      "dokument": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc.pdf",
+      "hamtad": "2026-09-05",
+      "sha256": "a62c54385541d43131cdc30f7676222dcd228259cf95b9831aea72fecef8fddc",
+      "url": "https://www.motoman.com/getmedia/1a40ce78-99c3-4e43-bbce-b9318263f464/GP7_GP8.pdf.aspx",
+      "utdrag": "lation, operation and maintenance IP67 rating for use in a wide variety of applications S P E C I F I C AT I O N S GP7 7 kg payload 927 mm horizontal reach 1,693 mm vertical reach 0.01 mm repeatability GP8 8 kg payload 727 mm horizontal reach • Increase your productivity with • Single power and control cable 1,312 mm vertical reach the fast and efficient GP7 and reduces wiring t"
+     },
+     "varde": 0.01
+    }
+   },
+   "vc_namn": []
+  }
+ ],
+ "tillverkare": "Yaskawa"
+}
