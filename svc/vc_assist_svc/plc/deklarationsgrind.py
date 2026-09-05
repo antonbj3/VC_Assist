@@ -308,5 +308,11 @@ def granska(kalla: str, karta: Signalkarta,
                 "%s är en utgång (%s) som koden bara läser; inget driver den"
                 % (s.tagg, s.adress.text())))
 
+    # KOMBINERAD flagga: sann bara nar BADE grind 3 och grind 2 ar nojda.
+    # Den som vill veta vad GRIND 3 sjalv tyckte ska lasa `anmarkningar` - en
+    # tom lista ar grind 3:s eget godkannande. Skillnaden ar matt viktig:
+    # stationsgrinden laste den kombinerade som grind 3:s dom och rapporterade
+    # "0 anmarkningar" som ett underkannande, alltsa en grind som faller utan
+    # att saga varfor.
     ok = not anm and (st_rapport is None or st_rapport.ok)
     return Grind3Rapport(ok, tuple(anm), st_rapport)

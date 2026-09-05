@@ -117,12 +117,87 @@ def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None, index=None):
     return ut
 
 
+def skriv_aterkoppling(resultat, post, katalog):
+    """Grindens och domarens EGNA ord tillbaka till modellen, ordagrant.
+
+    Ingen omskrivning, ingen sammanfattning, ingen tolkning. Doktrinen star i
+    `50_grindar.md` och ar motiverad av en matt incident: en omimplementerad
+    positionsdom underkande 2 av 4 medan ogat visade 4 av 4. En grind som
+    tolkar om observatorens svar mater till slut sig sjalv.
+
+    Detsamma galler vagen ut. En atermatning som ar omformulerad ar inte
+    grindens dom - den ar var asikt om den.
+    """
+    tid = resultat["task_id"]
+    rader = ["# Grindernas dom over din losning for %s" % tid, ""]
+    if resultat.get("utfall") == "godkand":
+        rader.append("**GODKAND.** Ingen andring behovs.")
+    else:
+        rader.append("**UNDERKAND.** Nedan star grindarnas egna ord, ordagrant.")
+    rader.append("")
+
+    rader.append("## Forgrindarna")
+    rader.append("")
+    for namn in ("statisk_analys", "deklarationsmatchning", "anropsvalidering",
+                 "kompilering"):
+        v = (resultat.get("forgrindar") or {}).get(namn)
+        if v is True:
+            rader.append("* `%s` — GODKAND" % namn)
+        elif v is None:
+            rader.append("* `%s` — ej kord" % namn)
+        else:
+            rader.append("* `%s` — **%s**" % (namn, v))
+    rader.append("")
+
+    egna = resultat.get("grindens_egna_ord") or {}
+    for namn, text in sorted(egna.items()):
+        if not text or not text.strip():
+            continue
+        rader.append("### %s, ordagrant" % namn)
+        rader.append("")
+        rader.append("```")
+        rader.append(text.rstrip())
+        rader.append("```")
+        rader.append("")
+
+    brister = resultat.get("brister") or []
+    if brister:
+        rader.append("## Facit: vad koden gjorde mot vad den skulle gora")
+        rader.append("")
+        rader.append("Facit ar ett SPAR: insignaler satts vid en tidpunkt och "
+                     "utsignalerna lases. Varje rad nedan ar en avlasning som "
+                     "inte stamde.")
+        rader.append("")
+        for b in brister:
+            rader.append("* `%s`" % b["kod"])
+            for r in str(b.get("text") or "").splitlines():
+                if r.strip():
+                    rader.append("  %s" % r.strip())
+        rader.append("")
+        rader.append("En rad som borjar med `invariant:` ar ett villkor som "
+                     "ska galla HELA tiden, inte bara vid en tidpunkt.")
+        rader.append("")
+
+    rader.append("## Vad du ska gora")
+    rader.append("")
+    rader.append("Skriv om `%s_kropp.st` och vid behov `%s_arbetsvariabler.st`."
+                 % (tid, tid))
+    rader.append("Andra ingenting annat. Du far fortfarande inte oppna repot.")
+
+    sokvag = os.path.join(katalog, "%s_grinddom.md" % tid)
+    with open(sokvag, "w", encoding="utf-8") as f:
+        f.write("\n".join(rader) + "\n")
+    return sokvag
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--svar", required=True, help="katalogen med modellens svar")
     p.add_argument("--strucpp-cli", help="STruC++ CLI for grind 1")
     p.add_argument("--byggkatalog")
     p.add_argument("--json")
+    p.add_argument("--aterkoppling", action="store_true",
+                   help="skriv grindernas egna ord till <svar>/<ID>_grinddom.md")
     a = p.parse_args(argv)
 
     poster = [u.data for u in lasare.ladda() if u.data.get("facit_spar")]
@@ -187,6 +262,11 @@ def main(argv=None):
         print("    %-24s %d" % (kod, n))
     print("\n  Efter k varv: EJ MATT. Slingan kraver en modell som svarar")
     print("  automatiskt, och nagon sadan finns inte i repot.")
+
+    if a.aterkoppling:
+        print("\n  aterkoppling skriven:")
+        for post, r in zip(poster, resultat):
+            print("    %s" % skriv_aterkoppling(r, post, a.svar))
 
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:

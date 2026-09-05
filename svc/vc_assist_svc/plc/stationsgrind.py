@@ -159,7 +159,17 @@ def _grind_2_och_3(dom: Stationsdom, kandidat: Kandidat,
             len(st.anmarkningar), ", ".join(sorted(set(st.koder()))))
     dom.utdata[NAMN_STATISK] = str(st) if st is not None else ""
 
-    if rapport.ok:
+    # Grind 3:s EGEN dom, inte den kombinerade.
+    #
+    # `Grind3Rapport.ok` ar `not anm and st_rapport.ok` - alltsa falsk ocksa nar
+    # bara GRIND 2 fallde. Att lasa den som grind 3:s dom gav ett besked utan
+    # orsak: "deklarationsmatchning: 0 anmarkningar", vilket sag ut som en grind
+    # som faller utan att saga varfor. En modell som far det letar efter ett
+    # deklarationsfel som inte finns.
+    #
+    # Den kombinerade flaggan ar riktig for den som vill ha ETT svar. Har vill
+    # vi ha fyra, ett per grind, och da maste var och en svara for sig.
+    if not rapport.anmarkningar:
         dom.forgrindar[NAMN_DEKLARATION] = True
     else:
         dom.forgrindar[NAMN_DEKLARATION] = "%d anmarkningar: %s" % (

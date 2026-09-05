@@ -221,3 +221,25 @@ def test_ett_modellsvar_med_andrad_ram_blir_aldrig_en_kandidat():
     manipulerat = sk.satt_in(HEL_KROPP).replace("%IX0.0", "%IX0.7")
     with pytest.raises(Skelettfel):
         S.Kandidat.fran_modellsvar(sk, manipulerat, SCENKOD)
+
+
+def test_grind_3_domer_for_sig_sjalv_och_inte_for_grind_2():
+    """En grind som faller utan att saga varfor ar ett trasigt besked.
+
+    Grind3Rapport.ok ar KOMBINERAD - falsk ocksa nar bara grind 2 fallde. Laste
+    stationsgrinden den som grind 3:s dom blev beskedet
+    "deklarationsmatchning: 0 anmarkningar", och en modell som far det letar
+    efter ett deklarationsfel som inte finns.
+
+    Fixturen: en kropp med en dubbelskrivning. Grind 2 faller pa den; grind 3
+    har ingenting att anmarka och ska saga GODKAND.
+    """
+    k = karta()
+    kropp = "    don := givare;\n    don := givare;\n"
+    dom = S.granska_station(S.Kandidat(STATION, kalla(kropp), SCENKOD), k,
+                            index=FalsktIndex(), stanna_vid_forsta=False)
+    assert dom.forgrindar[S.NAMN_STATISK] is not True, "grind 2 ska falla"
+    assert dom.forgrindar[S.NAMN_DEKLARATION] is True, (
+        "grind 3 har noll egna anmarkningar och ska saga GODKAND, inte "
+        "underkanna for grind 2:s rakning: %r"
+        % dom.forgrindar[S.NAMN_DEKLARATION])
