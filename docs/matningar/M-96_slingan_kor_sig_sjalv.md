@@ -205,6 +205,19 @@ Talen står alltså kvar. Att `kroppar_per_varv` sparas är skälet att det gick
 att avgöra på minuter i stället för att köras om — och den raden lades till just
 efter att tidsliteralbuggen tvingade fram en omkörning från början.
 
+## Tillägg 2026-09-05 (M-121)
+
+Efterkontrollen ovan gällde teckenfelet i `_sekvens`. M-121 gick ett steg
+längre och lät grinden pröva om två skrivningars villkor **kan** vara sanna i
+samma scan (sökvägsvillkor + SAT, rena mellanvariabler substituerade). Genom
+den grinden faller **3 av de 13** `DUBBELSKRIVNING`-domarna över den här
+körningens sparade kroppar bort: H-04 varv 1 och 4 (`GRP_OPEN`, villkoren
+`NOT ST320_GRP_CLOSED` mot `ST320_GRP_CLOSED`) och T-07 varv 1 (`IDX_START`,
+`CLP_CLOSED` mot `NOT CLP_CLOSED`). De var falska röda, och modellen brände
+varv på dem. Tio står kvar; klassningen står i M-121. Kropparna ligger nu i
+`docs/matningar/m96_korpus_*.json` och körs om med
+`tests/protocol/kor_m121_uteslutning.py`.
+
 ## LIMITS
 
 * **Fyra uppgifter, en modell, en promptformulering.** 6 av 20 är mätt, inte
