@@ -73,6 +73,15 @@ _ADRESS = re.compile(r"%[IQMiqm][XBWDLxbwdl]?[0-9]+(?:\.[0-9]+)*")
 _STRANGKOD = {"$": "$", "'": "'", '"': '"', "L": "\n", "N": "\n",
               "P": "\f", "R": "\r", "T": "\t"}
 
+# Tecken som skiljer tokens at utan att sjalva vara nagot.
+#
+# MATT (M-99): vertikaltabb (0x0B) och sidmatning (0x0C) foll har som
+# "ovantat tecken", medan STruC++ 0.6.6 bygger bada. De ar ASCII, sa lagrets
+# EGET skal att avvisa tecken - teckenkodningen genom OpenPLC och vidare ut
+# som OPC UA-namn - galler dem inte. $P i tabellen ovan ar redan sidmatning,
+# alltsa kanner lagret tecknet i strangar men inte utanfor dem.
+BLANKSTEG = " \t\r\n\x0b\x0c"
+
 
 @dataclass(frozen=True)
 class Token:
@@ -235,7 +244,7 @@ class Lexer(object):
                 return ut
 
     def _nasta(self) -> Token:
-        while self.i < len(self.s) and self.s[self.i] in " \t\r\n":
+        while self.i < len(self.s) and self.s[self.i] in BLANKSTEG:
             self._fram()
         if self.i >= len(self.s):
             return Token("SLUT", "", self.rad, self.kol)
@@ -344,6 +353,15 @@ class Lexer(object):
             return Token("HELTAL", self.s[start:self.i], rad, kol, varde)
         if self._kika() == "." and self._kika(1) != ".":
             self._fram()
+            # IEC 61131-3: real_literal har en HELTALSDEL, en punkt och en
+            # BRAKDEL - bada med minst en siffra. MATT (M-99): `rA := 1.;`
+            # och `rA := 1.e3;` slapptes igenom av det har lagret medan
+            # STruC++ 0.6.6 avvisade bada. Ett hal at det hall som kostar
+            # mest: felet syns forst i bygget.
+            if not self._kika().isdigit():
+                raise Syntaxfel("SYNTAX", rad,
+                                "en decimalpunkt maste foljas av minst en "
+                                "siffra: %r" % self.s[start:self.i + 1])
             while self._kika().isdigit() or self._kika() == "_":
                 self._fram()
         if self._kika() in ("e", "E"):
@@ -381,7 +399,15 @@ class Lexer(object):
             self._fram()
         # '#' ingar: `WORD#16#FF` ar EN literal, inte en literal foljd av
         # ett skrapptecken. Utan det har blev basdelen ett oväntat tecken.
-        while self._kika().isalnum() or self._kika() in "_.#":
+        # Tupel, inte strang. MATT (M-99): `self._kika() in "_.#"` ar SANT
+        # for den tomma strangen, och `_kika()` lamnar tom strang vid
+        # kallans slut. En kalla som slutar mitt i en prefixad literal -
+        # `BOOL#7` UTAN avslutande radbrytning - snurrade darfor for evigt i
+        # lexern. En grind som hanger domer aldrig; den ar varre an en som
+        # kraschar, for den lamnar inte ens ett spar. `BOOL#7\n` foll ratt
+        # hela tiden, sa felet bet bara pa text utan radbrytning sist - och
+        # det ar precis vad ett kodstaket ur en modell kan ge.
+        while self._kika().isalnum() or self._kika() in ("_", ".", "#"):
             self._fram()
         kropp = self.s[krop_start:self.i]
         text = self.s[start:self.i]
