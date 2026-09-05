@@ -469,6 +469,9 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--json")
     p.add_argument("--brief", help="skriv anlaggningsbriefen hit")
+    p.add_argument("--brief-ur", choices=("provspar", "produktion"),
+                   default="provspar",
+                   help="vilken inspelning briefen ska harledas ur")
     p.add_argument("--svar", help="katalog med en modells ST att doma")
     p.add_argument("--varv", type=int, default=1,
                    help="vilket reparationsvarv svaren kommer fran")
@@ -495,7 +498,12 @@ def main(argv=None):
         rad, h_prov = mat_en(post)
         alla.append(rad)
         if a.brief:
-            briefer.append(skriv_brief(post, h_prov, a.brief))
+            if a.brief_ur == "produktion":
+                h = An.harled(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
+                                       UPPREPNINGAR[-1], "produktionssparet"))
+            else:
+                h = h_prov
+            briefer.append(skriv_brief(post, h, a.brief))
 
     print("  1. INSPELNINGARNA")
     print("     %-6s %8s %8s   %-34s %8s" %
@@ -612,9 +620,13 @@ def main(argv=None):
         print("     Modellen fick BARA anlaggningsbriefen: signalkartan och")
         print("     det harledda facit. Ingen uppgiftstext, ingen referens.\n")
         for post, r in zip(poster, alla):
-            prov = spela_in(post, set(s["id"] for s in post["facit_spar"]["sekvenser"]),
-                            1, "provsparet")
-            h = An.harled(prov)
+            if a.brief_ur == "produktion":
+                h = An.harled(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
+                                       UPPREPNINGAR[-1], "produktionssparet"))
+            else:
+                h = An.harled(spela_in(
+                    post, set(x["id"] for x in post["facit_spar"]["sekvenser"]),
+                    1, "provsparet"))
             m = kor_modellsvar(post, h.facit, a.svar, fas9, index)
             modell.append(m)
             print("     %-6s %-12s %s" % (m["task_id"], m.get("utfall"),
