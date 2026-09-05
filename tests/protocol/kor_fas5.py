@@ -7,6 +7,41 @@ gar isar (se M-11: kvaternionen ar skalar-forst, tvartemot vad namnen antyder).
 
     python3 tests/protocol/kor_fas5.py
 """
+
+BANKPOST = {
+    "pastar":
+        "Varje verktygsmall i registret gar att kora mot en riktig VC, och "
+        "set_transform foljt av get_transform laser tillbaka samma tal ur VC.",
+    "under_prov": (
+        "svc/vc_assist_svc/verktyg/register.py",
+        "svc/vc_assist_svc/verktyg/utforare.py",
+        "svc/vc_assist_svc/verktyg/scen.py",
+        "svc/vc_assist_svc/verktyg/kodmall.py",
+        "svc/vc_assist_svc/verktyg/formagegrind.py",
+    ),
+    "facit":
+        "alla verktyg i registret provade, varje anrop utan undantag, och "
+        "get_transform efter set_transform ger tillbaka [1.0, 2.0, 0.5]",
+    "facitkalla":
+        "VC:s egen API-yta i en korande VC: anropet lyckas eller kastar, och "
+        "talet som lases tillbaka ar VC:s eget. Vilka verktyg som maste "
+        "finnas star i 45_verktyg.md, skriven fore korningen.",
+    "facitkalla_filer": (
+        "docs/spec/45_verktyg.md",
+        "tests/protocol/fas5_verktygen.md",
+    ),
+    "trasiga_fall": (
+        "load_component mot en URI som inte finns far inte svara OK",
+        "verktyg utan forutsattningar redovisas som oprovade, aldrig som "
+        "grona",
+        "save_layout provas sist och separat: den stoppar simuleringen och "
+        "dodar pumpen (M-13)",
+        "urvalet tas ur bryggans formagerapport, aldrig ur en gissning "
+        "(36_versioner.md)",
+    ),
+    "kraver": ("vc",),
+    "matningar": (),
+}
 import argparse
 import json
 import os

@@ -10,6 +10,38 @@ alltsa samma vag som en riktig cell skulle ge.
 
     python3 tests/protocol/kor_fas2.py
 """
+
+BANKPOST = {
+    "pastar":
+        "Ogats dom matchar facit pa en handbyggd bra cell och pa fyra "
+        "handbyggda trasiga celler, byggda i VC:s riktiga scengraf och "
+        "provtagna genom bryggan.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_analys.py",
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "svc/vc_assist_svc/guldgrind.py",
+    ),
+    "facit":
+        "bra=PASS, teleport=FAIL, glider=FAIL, fel_placerad=FAIL, tappad=FAIL",
+    "facitkalla":
+        "cellerna ar handskrivna scenarier med en felklass var, och deras "
+        "ratta dom star i scenariespecen - en manniskas facit skrivet fore "
+        "korningen",
+    "facitkalla_filer": (
+        "tests/celler.py",
+        "docs/spec/83_scenarier.md",
+        "tests/protocol/fas2_ogat.md",
+    ),
+    "trasiga_fall": (
+        "cellen teleport maste fallas",
+        "cellen glider maste fallas",
+        "cellen fel_placerad maste fallas",
+        "cellen tappad maste fallas",
+        "en dom som inte stammer med facit ger returkod 1",
+    ),
+    "kraver": ("vc",),
+    "matningar": (),
+}
 import argparse
 import json
 import math

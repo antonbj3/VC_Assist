@@ -21,6 +21,39 @@ detektorn inte det ar den ingen grind, och da betyder de grona svaren ingenting.
 
     python3 tests/protocol/kor_fas5_layout.py [--scener N]
 """
+
+BANKPOST = {
+    "pastar":
+        "Layoutmotorns provscener har noll kollisioner ocksa nar VC:s egen "
+        "geometri domer avstanden, inte bara nar motorns egen "
+        "kollisionsmodell gor det.",
+    "under_prov": (
+        "svc/vc_assist_svc/layout/losare.py",
+        "svc/vc_assist_svc/layout/kollision.py",
+        "svc/vc_assist_svc/layout/provscener.py",
+        "svc/vc_assist_svc/layout/matt.py",
+    ),
+    "facit":
+        "noll objektpar med avstand 0,0 over provscenerna, och det medvetet "
+        "overlappande paret MASTE ge 0,0",
+    "facitkalla":
+        "VC:s egen geometri genom vcNode.measureDistance i en korande VC - en "
+        "oberoende domare pa samma fraga som layoutmotorns egen matning "
+        "(M-36: vcCollisionDetector duger inte, measureDistance ger exakt "
+        "avstand)",
+    "facitkalla_filer": (
+        "docs/matningar/M-36_measuredistance_ar_kollisionsmattet.md",
+        "tests/protocol/fas5_layout.md",
+    ),
+    "trasiga_fall": (
+        "tva objekt flyttade in i varandra maste ge avstand 0,0 - upptacks "
+        "det inte ar de grona svaren vardelosa",
+        "utan node.update() och sim.update() mellan flytt och matning mats "
+        "foregaende varv (M-11)",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-35",),
+}
 import argparse
 import json
 import os

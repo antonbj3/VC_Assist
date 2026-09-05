@@ -7,6 +7,41 @@ det den faktiskt provat.
 
     python3 tests/protocol/kor_fas1.py [--token FIL] [--port 8901]
 """
+
+BANKPOST = {
+    "pastar":
+        "Bryggan svarar ratt pa alla elva stegen i fas 1:s acceptans och "
+        "lever vidare efter vart och ett av de sex felfallen, med tur och "
+        "retur och provtagningstakt uppmatta.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/bridge_cmd.py",
+        "ext/vc_addon/vc_assist/protokoll.py",
+        "ext/vc_addon/vc_assist/pump.py",
+        "svc/vc_assist_svc/klient.py",
+    ),
+    "facit":
+        "de elva stegens vantade svar och de sex felkoderna E_EXEC, "
+        "E_TIMEOUT, E_PARSE, E_AUTH, E_TOO_LARGE och E_NOT_APPROVED, plus tur "
+        "och retur under 50 ms",
+    "facitkalla":
+        "protokollspecen och fasens acceptanslista, bada skrivna fore "
+        "korningen: 31_brygga_protokoll.md listar felkoderna, fas1_bryggan.md "
+        "de elva stegen och kraven",
+    "facitkalla_filer": (
+        "docs/spec/31_brygga_protokoll.md",
+        "tests/protocol/fas1_bryggan.md",
+    ),
+    "trasiga_fall": (
+        "kod som kastar ger E_EXEC med traceback och bryggan lever",
+        "overskriden timeout_ms ger E_TIMEOUT och degraded",
+        "trasig ram ger E_PARSE och servern lever",
+        "fel token ger E_AUTH och anslutningen stangs",
+        "kropp over 1 MB ger E_TOO_LARGE",
+        "skrivande kod genom exec ger E_NOT_APPROVED och hanvisar till kon",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-03",),
+}
 import argparse
 import json
 import os

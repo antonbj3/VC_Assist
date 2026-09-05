@@ -15,6 +15,33 @@ fortsatta med gamla varden.
 
     python3 tests/protocol/kor_fas6_slinga.py
 """
+
+BANKPOST = {
+    "pastar":
+        "En handskriven ST-rad styr scenens don hela vagen genom OPC UA, och "
+        "slingan faller nar PLC:n stoppas i stallet for att tyst fortsatta "
+        "med gamla varden.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/kopplare.py",
+        "svc/vc_assist_svc/plc/signalkarta.py",
+    ),
+    "facit":
+        "donet i scenen foljer givaren for vart och ett av tre satta varden "
+        "(sant, falskt, sant), och tiden till genomslag mats i ms",
+    "facitkalla":
+        "OpenPLC kor genomslappsprogrammet matut := matin - ett annat program "
+        "an var kod. Det ratta svaret ar det varde korningen sjalv satte i "
+        "scenen, last tillbaka ur VC.",
+    "facitkalla_filer": ("tests/protocol/fas6_plcbandet.md",),
+    "trasiga_fall": (
+        "PLC:n stoppas mitt i: slingan MASTE falla, aldrig tyst fortsatta med "
+        "gamla varden",
+        "ett don som aldrig foljer efter inom varvbudgeten rapporteras som "
+        "FEL, inte som langsamt",
+    ),
+    "kraver": ("vc", "openplc"),
+    "matningar": (),
+}
 import argparse
 import asyncio
 import json
