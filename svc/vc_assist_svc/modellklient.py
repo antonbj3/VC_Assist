@@ -138,8 +138,15 @@ class ClaudeCLI(Modellklient):
             except subprocess.TimeoutExpired:
                 raise Modellfel("modellen svarade inte inom %d s" % self.tidsgrans)
             if k.returncode != 0:
+                # CLI:t skriver sina egna besked pa stdout lika ofta som pa
+                # stderr ("Not logged in - Please run /login" kommer pa
+                # stdout). Las BADA: en tom felrad kostade en hel arm en dag
+                # innan orsaken hittades for hand.
+                ute = k.stderr.decode("utf-8", "replace").strip()
+                utu = k.stdout.decode("utf-8", "replace").strip()
+                besked = " | ".join(d for d in (ute, utu) if d)[:400]
                 raise Modellfel("claude gav slutkod %d: %s" % (
-                    k.returncode, k.stderr.decode("utf-8", "replace")[:400]))
+                    k.returncode, besked or "(varken stdout eller stderr sa nagot)"))
             try:
                 d = json.loads(k.stdout.decode("utf-8", "replace"))
             except ValueError as e:
