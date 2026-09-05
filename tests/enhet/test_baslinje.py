@@ -494,12 +494,20 @@ def test_nollprogrammet_uppfyller_anda_manga_pastaenden(facitposter):
 # pastaenden an baslinjen. MATT i M-106 over bankens 24 dombara uppgifter.
 # Listan far bara KRYMPA. Vaxer den har en ny uppgift lagts in utan att nagon
 # matt den; krymper den ska talet skrivas ned har.
-# 11 av 26 uppgifter, uppmatt i M-123. L-01 kom till nar den fick facit_spar:
-# nollprogrammet uppfyller 57 pastaenden dar, baslinjen 49. P-03 blev dombar
-# samtidigt och ligger 8 OVER sitt golv (66 mot 58), sa den star inte har.
-BASLINJEN_UNDER_NOLLPROGRAMMET = {"H-01", "C-04", "T-02", "A-03", "S-07",
-                                  "C-06", "P-07", "A-08", "T-05", "S-06",
-                                  "L-01"}
+# 22 av 44 uppgifter, uppmatt i M-164. Listan vaxte fran 11 nar ko B skrev
+# facit for 17 nya uppgifter. TVA forklaringar ar provade och FALLER:
+#   1. provets egen docstring (rika forreglingar beloner inaktivitet) -
+#      invariantantalet skiljer inte grupperna, matt i M-123 och igen har
+#   2. kvoten invarianter/punktkrav - basta troskeln klassar 66 % ratt
+#      mot en grundniva pa 50 %. Fordelningarna overlappar.
+# Orsaken ar alltsa OMATT. Sparren kraver att listan skrivs ned, inte att
+# den forstas - men en lista som vaxer utan att nagon vet varfor ar pa vag
+# att bli en lista ingen laser.
+BASLINJEN_UNDER_NOLLPROGRAMMET = {
+    "A-02", "A-03", "A-04", "A-06", "A-08", "C-01", "C-02", "C-03",
+    "C-04", "C-05", "C-06", "H-01", "H-02", "L-01", "L-04", "P-02",
+    "P-05", "P-07", "S-06", "S-07", "T-02", "T-05",
+}
 
 
 def test_baslinjen_ligger_over_golvet(facitposter):
@@ -709,10 +717,12 @@ def test_pastaenderakningen_stammer_med_M45(facitposter):
     punkt = sum(B.pastaenden(p).punktkrav for p in facitposter)
     namn = sum(B.pastaenden(p).invariantnamn for p in facitposter)
     flank = sum(B.pastaenden(p).flanker for p in facitposter)
-    # 26 dombara uppgifter. Rorelsen fran (1634, 130, 132) ar hela och enbart
-    # L-01 (+55, +5, +5) och P-03 (+58, +5, +5) - ingen befintlig uppgifts tal
-    # andrades. Harledningen per uppgift star i M-123.
-    assert (punkt, namn, flank) == (1747, 140, 142)
+    # 44 dombara uppgifter. Rorelsen fran (1747, 140, 142) har TVA orsaker,
+    # harledda per uppgift i M-164: +439/+42/+46 fran 17 nya uppgifter med
+    # facit, och +116/0/0 fran 21 BEFINTLIGA som fick fler punktkrav nar
+    # nya stimuli skrevs (storst S-07 +26, H-05/L-06/T-09 +13 var).
+    # 1747+439+116 = 2302.
+    assert (punkt, namn, flank) == (2302, 182, 188)
 
 
 def test_ett_tolkfel_raknas_som_noll_uppfyllda(facitposter):
