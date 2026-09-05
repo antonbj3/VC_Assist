@@ -1,0 +1,57 @@
+=== M-122 MUTATIONSSKIKTEN ===  26 uppgifter, referens GODKAND 26 av 26, 20 s
+
+skador 809   fangade 718 (89 %)   overlevde 91
+fangade per lager: {'beteende': 375, 'text': 343}
+vantat lager -> fangande lager: {('beteende', 'beteende'): 375, ('beteende', 'text'): 70, ('text', 'text'): 273}
+
+sort                         n  text  bete  over |  SKILL   PERT   OSYN
+AND_TILL_OR                 77     0    67    10 |      2      5      3
+END_IF_STRUKEN              78    78     0     0 |      0      0      0
+FALSKT_TILL_SANT            78     0    21    57 |      6      0     51
+FLANKENS_Q_TILL_SIGNAL      68    68     0     0 |      0      0      0
+FLANK_TILL_NIVA             30     0    30     0 |      0      0      0
+ICKE_ASCII                  78    78     0     0 |      0      0      0
+JAMFORELSE_VAND             57     2    54     1 |      0      0      1
+NOT_STRUKEN                 76     0    73     3 |      0      2      1
+OR_TILL_AND                 35     0    31     4 |      0      2      2
+SANT_TILL_FALSKT            76     0    63    13 |      3      2      8
+SEMIKOLON_STRUKET           78    78     0     0 |      0      0      0
+TID_FORDUBBLAD              39     0    36     3 |      1      1      1
+TID_OGILTIG                 39    39     0     0 |      0      0      0
+
+overlevande BETEENDEmutanter: 91
+  radtyp x klass: {('KOD', 'SYNLIG_BARA_UNDER_PERTURBATION'): 12, ('INITIERARE', 'SKILLNAD_PA_FACITSTIMULUS'): 9, ('INITIERARE', 'OSYNLIG'): 55, ('KOD', 'SKILLNAD_PA_FACITSTIMULUS'): 3, ('KOD', 'OSYNLIG'): 12}
+  kodrads-overlevare: 27  klass: {'SYNLIG_BARA_UNDER_PERTURBATION': 12, 'SKILLNAD_PA_FACITSTIMULUS': 3, 'OSYNLIG': 12}
+    synliga under facit      3 av 27
+    synliga under x0.25      1 av 27
+    synliga under x0.5       2 av 27
+    synliga under x2.0      10 av 27
+    synliga under upprepa2  10 av 27
+    synliga under hall3      9 av 27
+  kodrads-overlevare per uppgift: {'A-03': 3, 'C-04': 3, 'H-01': 1, 'H-04': 2, 'H-05': 1, 'L-07': 1, 'P-03': 7, 'P-07': 1, 'S-01': 2, 'S-05': 2, 'S-06': 1, 'S-07': 3}
+
+=== NIVA I STALLET FOR FLANK (M-115:s F15) ===
+nivamutanter 30 i 24 uppgifter   fangade av facit 13   overlevde 17
+  fangade: C-04:SYS_RESET, L-01:ST150_PLT_PRS, L-01:ST150_PRT_PRS, P-03:ST120_MLD_OPEN, S-01:ST190_PEC_PART, S-05:ST200_PML_SC, S-07:ST510_PEC_PART, T-01:ST010_PEC_PART, T-02:SYS_AUTO, T-02:ST020_IDX_HOME, T-04:ST040_PEC_IN, T-04:ST040_PEC_OUT, T-05:SYS_AUTO
+  overlevde: A-07:SYS_RESET[OSYNL], A-08:SYS_RESET[OSYNL], C-06:SYS_RESET[OSYNL], H-04:SYS_RESET[OSYNL], H-05:SYS_RESET[OSYNL], H-05:ST490_XFR_DONE[OSYNL], L-05:SYS_RESET[OSYNL], L-06:SYS_RESET[OSYNL], L-07:SYS_RESET[OSYNL], P-06:SYS_RESET[OSYNL], P-07:SYS_RESET[SKILL], S-06:SYS_RESET[OSYNL], S-07:SYS_RESET[OSYNL], S-07:ST510_SCN_DONE[OSYNL], T-07:SYS_RESET[OSYNL], T-08:SYS_RESET[OSYNL], T-09:SYS_RESET[OSYNL]
+
+=== GRIND 2:S FALLPLATSER ===
+mutanter 809   fangade av grind 2 (ny anmarkning utover referensens) 343
+   AND_TILL_OR                0 av  77
+   END_IF_STRUKEN            78 av  78
+   FALSKT_TILL_SANT           0 av  78
+   FLANKENS_Q_TILL_SIGNAL    68 av  68
+   FLANK_TILL_NIVA            0 av  30
+   ICKE_ASCII                78 av  78
+   JAMFORELSE_VAND            2 av  57
+   NOT_STRUKEN                0 av  76
+   OR_TILL_AND                0 av  35
+   SANT_TILL_FALSKT           0 av  76
+   SEMIKOLON_STRUKET         78 av  78
+   TID_FORDUBBLAD             0 av  39
+   TID_OGILTIG               39 av  39
+fallplatser i validator.py: 76   fyrade av referenserna: 0   fyrade av mutanterna: 4 [('TIDLITERAL', 506), ('TYP', 348), ('TYP', 421), ('TYP', 603)]
+referenser med egen grind-2-anmarkning (M-121 ager fragan): {}
+M-111: aldrig fyrade platser 35, varav mutanterna nar 0 []
+
+skrivet: /tmp/claude-1000/-home-anton/96f8ecd2-bf69-4040-be9e-53e0290900a0/scratchpad/m122.json
