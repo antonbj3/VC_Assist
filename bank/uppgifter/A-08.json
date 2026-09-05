@@ -434,6 +434,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: limflodet kommer ur munstyckets egen area och robotens banhastighet. Munstycket ar 3,0 mm, alltsa A = pi/4 * 3,0^2 = 7,0686 mm2, och vid banhastigheten 120 mm/s blir volymflodet 7,0686 * 120 = 848,2 mm3/s = 0,848 cm3/s = 50,9 cm3/min. Strangen foljer flansens omkrets 2*(220+160) = 760 mm, alltsa 760/120 = 6,33 s och 760 * 7,0686 = 5372 mm3 = 5,37 cm3 per detalj. Rakningen star i M-106.",
     "standard": "Flodet ar fysik och ingen standardfraga: volymflodet ar munstyckets area gange banhastigheten. Manuell aterstallning efter nodstopp enligt IEC 60204-1 och TON for strangens tidsovervakning enligt IEC 61131-3.",
     "scan_ms": 20,

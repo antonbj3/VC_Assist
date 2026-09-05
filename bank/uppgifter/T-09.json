@@ -375,6 +375,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: restiden ur hissens egna matt med trapetsprofil. Accelerationsstrackan v^2/(2a) = 0,8^2/(2*1,0) = 0,32 m i vardera anden, konstantfarten gar 3,6 - 2*0,32 = 2,96 m, restiden 2*(0,8/1,0) + 2,96/0,8 = 1,60 + 3,70 = 5,30 s. Tidsvakten 7,0 s lamnar 1,70 s marginal. Rakningen star i M-106.",
     "standard": "Omsesidig uteslutning mellan de tva korriktningarna och manuell aterstallning efter nodstopp enligt IEC 60204-1; TON for tidsvakten enligt IEC 61131-3. Sjalva restiden ar ingen standardfraga utan raknad ur hissens matt.",
     "scan_ms": 20,

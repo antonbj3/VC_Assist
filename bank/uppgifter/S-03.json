@@ -287,6 +287,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: godkant viktfonster ar 0,016 till 0,020 kg (16 till 20 g) runt medelvikten 0,018 kg (18 g). Takten 45 kartor per minut ger 60/45 = 1,333 s per karta och 2700 kartor/h teoretiskt. Detta ar manniskans facit skrivet ur scenarios normal, wgt_lag, wgt_hog, stable_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Vagning och kassationsrakning for lakemedelsforpackning foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och R_TRIG, tabell 44 och 46).",
     "scan_ms": 20,

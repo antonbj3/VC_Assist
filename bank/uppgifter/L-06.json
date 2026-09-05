@@ -421,6 +421,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: monstret kommer ur kartongens egna innermatt och burkens diameter. Kartongen ar 396 x 296 mm invandigt och burken 95 mm i diameter, sa 4*95 = 380 mm <= 396 mm och 3*95 = 285 mm <= 296 mm ger 12 burkar i ett lager, 3 x 4. Roboten tar tva burkar per cykel, alltsa 12/2 = 6 cykler per kartong, och vid 30 burkar per minut blir det en kartong var 24,0 s och en robotcykel var 24,0/6 = 4,0 s. Rakningen star i M-106.",
     "standard": "Monstret ar geometri och ingen standardfraga. Manuell aterstallning efter nodstopp enligt IEC 60204-1, rakning av lagda burkar med CTU och tidsovervakning med TON enligt IEC 61131-3.",
     "scan_ms": 20,

@@ -321,6 +321,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: kapacitetsberakning ur stationernas och buffertens tider. ST340 arbetar 32,0 s och ST350 28,0 s, sa flaskhalsen ST340 ger teoretiskt 3600/32,0 = 112,5 enheter i timmen. Med ackumulerande buffert ST360 for 10 lastbarare kan ST350 arbeta kontinuerligt och kapacitetsmalet 100 enheter/h uppnas vid stationar drift. Bufferten ar full vid ST360_BUF_CNT >= 10, alltsa 10 platser * 400 mm = 4000 mm buffertlangd. M-124 provar detta; människans facit skrivet ur normal, buf_lag, buf_hog, prs_uteblir och expect före körning.",
     "standard": "Kapacitetsberakningen ar en flaskhalsanalys och ingen standardfraga. IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att rorelser stoppas vid brutet nodstopp EMG_OK; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" for tidskretsarna TON. Buffertstyrning och forregling inlopp/utlopp foljer anlaggningens specifikation.",
     "scan_ms": 20,

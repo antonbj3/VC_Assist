@@ -414,6 +414,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD",
     "harkomst": "STANDARD: hall-for-att-kora star i IEC 60204-1:2016 9.2.3.7 \"Hold-to-run control\". Bankens tidigare hanvisning till \"kapitel 9.2.5\" var fel i bada utgavorna: i 2005 ars utgava lag kravet pa 9.2.6.1 under 9.2.6 \"Other control functions\", och 2016 flyttades det till 9.2.3.7. Att aterstallningen av nodstoppsdonet inte i sig far starta om cellen star i ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och i IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\". Lagesvaljarens tva lagen hor till 9.2.3.5 \"Operating modes\". Lyftvakten ar en TON enligt IEC 61131-3:2013 6.6.3.5.5 tabell 46. Paragraferna ar verifierade i M-106; bankens tackning och sparfacitets form kommer ur M-45. Lyftvaktens 4,0 s och vakuumfonstret ar DEKLARERADE antaganden och star som sadana i uppgiftens antaganden: de ar varken raknade eller hamtade ur ett datablad.",
     "standard": "IEC 60204-1:2016 9.2.3.7 \"Hold-to-run control\" for handkorningen; ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" for den manuella aterstallningen; 9.2.3.5 \"Operating modes\" for lagesvaljaren; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" for TON (6.6.3.5.5 tabell 46) och R_TRIG (6.6.3.5.3 tabell 44).",
     "scan_ms": 20,

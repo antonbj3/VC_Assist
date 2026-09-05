@@ -247,6 +247,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: cykeltiden ar summan av stationens egna tider. Indexrorelsen ar 150 mm pa 0,35 s, alltsa 150/0,35 = 428,6 mm/s i medel, forslutningen haller 0,90 s och resten av cykeln 1,60 - 0,35 - 0,90 = 0,35 s ar oppning och hantering. 1,60 s per cykel ar 60/1,60 = 37,5 blister per minut. Rakningen star i M-106.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"); ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet. Signalkartan bar ingen egen kvitteringsknapp, sa kvittensen ar automatlagesvaljaren, och facit domer att maskinen star kvar tills SYS_AUTO fatt en ny stigande flank. Tidsovervakningen av kvittensen ar en TON och flankdetekteringen pa hemlaget och automatlaget en R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Den barande forreglingen - ST020_IDX_START aldrig hog medan ST020_SEA_CLOSE ar hog - och presstiden 0,90 s ar stationens egna och star i uppgiftens egen text.",
     "scan_ms": 20,

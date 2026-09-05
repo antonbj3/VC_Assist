@@ -309,6 +309,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD+RAKNAD",
     "harkomst": "STANDARD+RAKNAD: lasningen tar 1,8 s och bytet hogst 8,0 s = tva rorelser plus tva lascykler 2 * 1,8 s = 3,6 s som ryms i 8,0 s med 4,4 s forflyttningsmarginal. Sakerhetskravet for forregling och att ett verktyg aldrig far lasas upp utanfor stallet star i ISO 10218-2:2011 5.6.3.4.2 samt ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\". M-124; människans facit skrivet ur normal, tool_lag, tool_hog, locked_uteblir och expect före körning.",
     "standard": "ISO 10218-2:2011 5.6.3.4.2 \"Manual reset, start/restart and unexpected start-up\"; IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och R_TRIG).",
     "scan_ms": 20,

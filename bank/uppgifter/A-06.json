@@ -341,6 +341,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: limningscellens egna matt ur uppgiftens text. Holjets omkrets ar (180 + 120) * 2 = 600 mm och med overlapp i skarven blir strangen 640 mm inom fonstret 620 till 660 mm. Doseringen 8,0 s ger 640/8,0 = 80 mm per sekund. Oppentiden 180,0 s raknas fran fallande flank pa ST290_ADH_VALVE, och lock och spanning ar klara cirka 0,8 s efter ventilnedslag, alltsa med 179 s marginal. Takten 46,0 s per enhet ger 3600/46,0 = 78,3 enheter i timmen, vilket ar expect genomflodet. Temperaturfonstret 150 till 190 grader och normalfallet 172 grader star i scenariotexten. Detta ar manniskans facit skrivet ur scenarios normal, temp_lag, temp_hog, len_lag, len_hog och closed_uteblir samt expect, fore korning. M-124 provar facitformen.",
     "standard": "Oppentiden 180,0 s, doseringstiden och langdfonstret ar limtypens och stationens egna tal ur uppgiftens text, inte nagon paragraf i en publicerad standard; facit sager det hellre an gissar en. Att en avbruten dosering inte far aterupptas och att nodstoppet forreglar ventilen lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\", och tidskretsarna ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

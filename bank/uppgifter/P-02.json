@@ -320,6 +320,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: bandhastigheten 0,45 m/s och kamerans bedomningstid 120 ms = 0,120 s ger bandforflyttningen 0,45 * 0,120 = 0,054 m = 54,0 mm. Takten 0,625 s per kex ger 60/0,625 = 96 kex/min eller 5760 kex/h teoretiskt. Detta ar manniskans facit skrivet ur scenarios normal, enc_lag, enc_hog, spd_lag, spd_hog, found_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Bandfoljning och synkronisation mot pulsgivare foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

@@ -383,6 +383,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD+RAKNAD",
     "harkomst": "STANDARD+RAKNAD: handskakningens tillstand foljer VDA 5050 3.0.0 avsnitt 6.2.3.2 tabell 5, aktionerna pick och drop, och blockeringstypen i 6.2.2 tabell 3. Tidsvakten ar raknad ur overforingsstrackan och banans hastighet: 1000 mm / 400 mm/s = 2,5 s ren gangtid, tidsvakten satt till 4,0 s vilket lamnar 1,5 s marginal. Rakningen och kallorna star i M-106.",
     "standard": "VDA 5050 3.0.0 avsnitt 6.2.3.2 tabell 5 for lastoverforingens tillstand (WAITING, INITIALIZING, RUNNING, PAUSED, RETRIABLE, FINISHED, FAILED) och 6.2.2 tabell 3 for blockeringstypen; ISO 3691-4:2023 4.5 \"Load handling\" och 4.8.2 \"Detection of persons in the path\" namnger kraven pa lasthantering och persondetektering. Paragrafnumren och rubrikerna ar verifierade mot ISO:s egen innehallsforteckning, men kravtexterna i 4.5 och 4.8.2 ar INTE lasta i full text: tidsgransen lutar sig darfor pa rakningen, inte pa en paragraf. Aterstallning efter nodstopp enligt IEC 60204-1 och TON enligt IEC 61131-3.",
     "scan_ms": 20,

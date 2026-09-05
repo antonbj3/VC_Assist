@@ -815,8 +815,19 @@ def _validera_variant(post, ar_variant):
 # Fältet är frivilligt. De 47 uppgifter som fanns före M-45 saknar det och ska
 # fortsätta gå igenom lintern oförändrade — annars är utvidgningen inte
 # bakåtkompatibel utan en omskrivning.
-SPARFACITFALT = ("harkomst", "standard", "scan_ms", "referens", "sekvenser",
+SPARFACITFALT = ("kallklass", "harkomst", "standard", "scan_ms", "referens", "sekvenser",
                  "invarianter", "flanker", "motbevis")
+KALLKLASSER = ("STANDARD", "RAKNAD", "DATABLAD", "SPAR", "ANNAN_IMPLEMENTATION")
+EGEN_KOD = (
+    "svc/vc_assist_svc/",
+    "svc/",
+    "bank/domare.py",
+    "bank/schema.py",
+    "ext/vc_addon/",
+    "tests/",
+    "plc/",
+    "st/tolk.py",
+)
 STEGFALT = ("t_ms", "satt", "krav", "varfor")
 SEKVENSFALT = ("id", "beskrivning", "steg")
 INVARIANTFALT = ("namn", "sekvens", "nar", "kraver", "varfor")
@@ -860,6 +871,23 @@ def _validera_sparfacit(post):
         fel.append(_fel("M33_SPARFACIT",
                         "facit_spar.standard säger inte vilken publicerad "
                         "tillståndsmodell eller standard facit lutar sig mot"))
+
+    kallklass = facit.get("kallklass")
+    if not isinstance(kallklass, str) or not kallklass.strip():
+        fel.append(_fel("M33_SPARFACIT", "facit_spar.kallklass saknas eller är tom"))
+    else:
+        for k in kallklass.split("+"):
+            k_clean = k.strip()
+            if k_clean not in KALLKLASSER:
+                fel.append(_fel("M33_SPARFACIT", "okänd kallklass %r" % (k_clean,)))
+
+    # 85_bankkontraktet.md §2: facitkällan får aldrig ligga i under_prov
+    for s in (str(facit.get("harkomst") or ""), str(facit.get("standard") or ""), str(kallklass or "")):
+        for sk in EGEN_KOD:
+            if sk in s:
+                fel.append(_fel("M33_SPARFACIT",
+                                "facitkällan får aldrig ligga i under_prov (%s)" % sk))
+                break
     referens = facit["referens"]
     if not isinstance(referens, str) or not referens.strip():
         fel.append(_fel("M33_SPARFACIT",

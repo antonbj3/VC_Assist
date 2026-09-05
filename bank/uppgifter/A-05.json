@@ -297,6 +297,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: punktsvetscellens egna tider ur uppgiftens text. Halltiden 0,25 s = 12,5 scan a 20 ms och vakten mot utebliven ST280_WLD_DONE ar 2,5 s. Varje punkt tar 2,0 s i sparet, alltsa 8*2,0 = 16,0 s svetsdel, och takten 34,0 s per detalj ger 3600/34,0 = 105,9 enheter i timmen, vilket ar expect genomflodet. Frasningsgransen 200 svetsar motsvarar 200/8 = 25 detaljer mellan frasningar. Scenariot elc_lag, en raknare som star pa 0, ar inte dombart mot sparet: ett larm kraver en larmsignal och signalkartan bar ingen, sa facit domer vad det kan och saga det har. Detta ar manniskans facit skrivet ur scenarios normal, elc_hog och done_uteblir samt expect, fore korning. M-124 provar facitformen.",
     "standard": "Att detaljen ska ligga spand i fixturen medan pistolen trycker lutar mot ISO 23125:2015 5.2.3 \"Workpiece clamping conditions\" for motstandsvetsning. Halltiden 0,25 s, svetstiden och frasningsgransen 200 svetsar ar stationens egna valda tal, inte nagon paragraf; facit sager det. Tidskretsarna ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46), och nodstoppets forregling av svets och pistol lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" med ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\".",
     "scan_ms": 20,

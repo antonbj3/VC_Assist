@@ -305,6 +305,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: tre lager om atta kollin ger 3 * 8 = 24 kollin. Med takten 5,5 s per kolli och 7,0 s per mellanlagg blir cykeltiden 24 * 5,5 + 2 * 7,0 = 132,0 + 14,0 = 146,0 s per pall, vilket ar 146 s per pall. Detta ar manniskans facit skrivet ur scenarios normal, hgt_lag, hgt_hog, sht_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Lagermonster och mellanlaggssekvens foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

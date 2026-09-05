@@ -317,6 +317,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: monstret kommer ur pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och kollit 400 x 300 mm: tva kolli i bredd langs 800 mm-sidan ar 2*400 = 800 mm och fyra i djup langs 1200 mm-sidan ar 4*300 = 1200 mm, alltsa 8 kolli i lagret. Arean stammer: 8*0,400*0,300 = 0,96 m2 mot pallens 1,200*0,800 = 0,96 m2, sa lagret tacker pallen exakt utan spill. Takten 5,5 s per kolli ger 8*5,5 = 44,0 s per lager. Rakningen star i M-106.",
     "standard": "EUR-pallens matt 1200 x 800 mm bar stampeln STANDARDMATT i bankens katalogindex; vilken standardparagraf som faststaller dem har INTE verifierats har, och facit lutar sig darfor pa geometrin och inte pa en citerad paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; CTU for lagerrakningen och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
     "scan_ms": 20,

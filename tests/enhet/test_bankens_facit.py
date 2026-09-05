@@ -73,9 +73,22 @@ def test_varje_uppgift_med_sparfacit_namnger_en_kallklass(bank):
     med = [u for u in bank if u.data.get("facit_spar")]
     assert med, "banken bar inget sparfacit alls"
     for u in med:
-        h = u.data["facit_spar"]["harkomst"].upper()
-        assert any(h.startswith(k) or ("%s:" % k) in h for k in G.KALLKLASSER), (
-            "%s: harkomsten namnger ingen kallklass" % u.id)
+        kk = u.data["facit_spar"].get("kallklass")
+        assert kk, "%s: facit_spar saknar kallklass-falt" % u.id
+        for k in kk.split("+"):
+            assert k.strip() in G.KALLKLASSER, "%s: okand kallklass %r" % (u.id, k)
+
+
+def test_saknad_kallklass_falls(bank, matningar, verifierade):
+    p = _fixtur(bank)
+    p["facit_spar"].pop("kallklass", None)
+    assert "KALLKLASS_SAKNAS" in _koder(p, matningar, verifierade)
+
+
+def test_okand_kallklass_falls(bank, matningar, verifierade):
+    p = _fixtur(bank)
+    p["facit_spar"]["kallklass"] = "PÅHITTAD_KLASS"
+    assert "OKAND_KALLKLASS" in _koder(p, matningar, verifierade)
 
 
 # ---------------------------------------------- trasiga fixturer (regel S2)

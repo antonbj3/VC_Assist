@@ -306,6 +306,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: takten 9,0 s per detalj ger 3600/9,0 = 400 detaljer/h teoretiskt. Overlamningsfonstret 0,20 s ar raknat med marginal mot griparens slagtid 0,35 s och ryms val i cykeltiden. Griparnas kraftfonster 80 till 300 N foljer detaljens hallfasthetsgranser i scenariotexten. Detta ar manniskans facit skrivet ur scenarios normal, force_lag, force_hog, closed_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Handskakning och tidsintervall for overlamning robot till robot foljer ISO 10218-2:2011 5.6.3.4.2 \"Manual reset, start/restart and unexpected start-up\"; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och tidskretsar enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

@@ -412,6 +412,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: varvantalet kommer ur lastens hojd och filmbanans bredd. Filmbanan ar 500 mm och lindas med 50 procent overlapp, alltsa 250 mm stigning per varv. Lasthojden med pall ar 1400 + 144 = 1544 mm, sa ett svep uppat kraver 1544/250 = 6,18 varv, avrundat 7 varv upp och 7 ned. Med 3 lasvarv i botten och 2 i topp blir det 19 varv, och vid 12 varv/min tar filmningen 19/12*60 = 95,0 s. Rakningen star i M-106.",
     "standard": "Varvantalet ar geometri och ingen standardfraga. Omsesidig uteslutning mellan filmvagnens tva korriktningar och manuell aterstallning efter nodstopp enligt IEC 60204-1; TON for tidsovervakningen och CTU for varvrakningen enligt IEC 61131-3.",
     "scan_ms": 20,

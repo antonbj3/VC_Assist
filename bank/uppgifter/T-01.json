@@ -248,6 +248,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: uppehallet ar raknat ur fotocellens lage och bandets hastighet. Fotocellen sitter 120 mm uppstroms grinden och bandet gar 0,5 m/s, sa burken behover 120/500 = 0,24 s pa sig att na fram till grinden. Uppehallet 0,40 s ligger 0,16 s over gangtiden, alltsa har burken hunnit fram och statt still innan grinden oppnar. Grindens slagtid ar 0,12 s och takten 45 burkar per minut ar 60/45 = 1,333 s per burk. Rakningen star i M-106.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"); ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet. Stationens signalkarta bar ingen kvitteringsknapp, sa facit domer det som GAR att doma i den har kartan: att inget don kommenderas medan EMG_OK eller AIR_OK ar lag, och att grinden - det enda don som slapper fram produkt - aldrig oppnar av att kretsen sluts igen utan bara pa en ny stigande flank pa fotocellen. Singuleringen ar en flankrakning och ingen nivaavlasning; R_TRIG och TON enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46).",
     "scan_ms": 20,

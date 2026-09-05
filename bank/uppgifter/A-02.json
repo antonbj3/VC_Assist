@@ -276,6 +276,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: skruvstationens egna tider ur uppgiftens text. Fyra dragningar a 2,8 s = 11,2 s och lasfordrojningen 0,10 s per dragning ar dubbelt momentgivarens svarstid 50 ms. Vakten mot utebliven ST240_SCR_DONE ar 6,0 s, alltsa mer an dubbla dragtiden 2*2,8 = 5,6 s. Takten 18,0 s per enhet ger 3600/18,0 = 200 enheter i timmen, vilket ar expect genomflodet. Momentfonstret 20,0 till 24,0 Nm kring atdragningsmomentet 22,0 Nm star i uppgiftens text. Detta ar manniskans facit skrivet ur scenarios normal, trq_lag, trq_hog och done_uteblir samt expect, fore korning. M-124 provar facitformen.",
     "standard": "Momentfonstret och korsordningen ar stationens egna krav ur uppgiftens text, inte nagon paragraf i en publicerad standard; facit sager det hellre an gissar en. Lasfordrojningens och vaktens tidskretsar ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46), och nodstoppets forregling av spindeln lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\".",
     "scan_ms": 20,

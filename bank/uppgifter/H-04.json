@@ -415,6 +415,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD",
     "harkomst": "STANDARD: den manuella aterstallningen efter nodstopp star i IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och i ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; aterstartssparren efter ett skyddsstopp i en robotcell star i ISO 10218-2:2011 5.6.3.4 \"Manual reset, start/restart and unexpected start-up\", dar 5.6.3.4.2 kraver att start och omstart manovreras manuellt utanfor det skyddade omradet. Kvittensvakten ar en TON enligt IEC 61131-3:2013 6.6.3.5.5 tabell 46. Handskakningens fyra steg ar bankens EGEN konvention och ar INTE hamtade ur en publicerad standard; facit sager det hellre an gissar en paragraf. Kvittensvaktens 3,0 s och gripkraftsomradet 40 till 260 N ar DEKLARERADE antaganden och star som sadana i uppgiftens antaganden. Paragraferna ar verifierade i M-106; tackningen kommer ur M-45.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" for den manuella aterstallningen; ISO 10218-2:2011 5.6.3.4 \"Manual reset, start/restart and unexpected start-up\" med aterstartssparren i 5.6.3.4.2 for robotcellen; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" for TON (6.6.3.5.5 tabell 46). Handskakningen begaran-kvittens-klar-aterstallning ar bankens egen konvention och ingen standard.",
     "scan_ms": 20,

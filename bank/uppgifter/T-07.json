@@ -351,6 +351,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD",
     "harkomst": "STANDARD: att ett latchat larm bara far nollstallas av en manuell kvittens, och att aterstallningen av nodstoppsdonet inte i sig far starta stationen, star i IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" (\"the reset shall not initiate a restart\") och i ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\". Att en aterstartssparr kravs nar matningen kommer tillbaka star i IEC 60204-1:2016 7.5 \"Protection against the effects of supply interruption or voltage reduction and subsequent restoration\". Tidsovervakningen ar en TON enligt IEC 61131-3:2013 6.6.3.5.5 tabell 46. Paragraferna ar verifierade i M-106; tackningen kommer ur M-45. Tidsgransen 2,0 s ar ett DEKLARERAT antagande och star som sadant i uppgiftens antaganden: den ar inte raknad ur matarens slag, eftersom uppgiften inte anger nagon matarhastighet.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och 7.5 \"Protection against the effects of supply interruption or voltage reduction and subsequent restoration\" for den kvitterade omstarten; ISO 13850:2015 4.1.4 for att aterstallningen av donet inte i sig startar om; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" for TON (6.6.3.5.5 tabell 46) och R_TRIG (6.6.3.5.3 tabell 44). Sjalva sekvensen ar stationens egen.",
     "scan_ms": 20,

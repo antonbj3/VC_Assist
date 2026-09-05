@@ -284,6 +284,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: forhallningstiden kommer ur avstandet mellan hojdgivaren och utskjutaren och bandets hastighet. Givaren sitter 400 mm uppstroms och bandet gar 0,35 m/s, sa burken behover 400/350 = 1,143 s pa sig. Utskjutarens slagtid ar 0,4 s, sa kommandot maste ges 1,143 - 0,4 = 0,743 s efter givarens flank, alltsa nar burken gatt 0,743*350 = 260 mm och har 140 mm kvar. Takten 60 burkar per minut ar 1,0 s per burk och vid 0,35 m/s 350 mm mellan burkarna, sa 400/350 = 1,14 burkar ryms mellan givaren och utskjutaren: skiftregistret maste bara tva besked, inte ett. Rakningen star i M-106.",
     "standard": "Forhallningen ar kinematik och ingen standardfraga: strackan delad med hastigheten minus donets slagtid. Att beskedet ska foljas med detaljen i ett skiftregister och inte lasas om vid utskjutaren ar sorteringens egen form. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; R_TRIG for flankdetektering och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46).",
     "scan_ms": 20,

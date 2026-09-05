@@ -324,6 +324,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: montagestationens egna tider ur uppgiftens text. Spannaren tar 0,6 s och vakten mot utebliven lagesgivare ar 2,0 s, alltsa mer an tre spannartider. Spannkraftens fonster 400 till 1100 N styrs av konsolens granser i scenariotexten, och normalfallet ligger pa 650 N. Takten 24,0 s per enhet ger 3600/24,0 = 150 enheter i timmen, vilket ar expect genomflodet. Detta ar manniskans facit skrivet ur scenarios normal, force_lag, force_hog och closed_uteblir samt expect, fore korning. M-124 provar facitformen.",
     "standard": "Ordningen A fore B med spannare mellan ar cellens egen sekvens och ingen paragraf i en publicerad standard; facit sager det hellre an gissar en. Nodstoppets forregling av robot och spannare lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; tidskretsen for spannvakten ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

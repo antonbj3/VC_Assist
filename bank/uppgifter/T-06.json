@@ -293,6 +293,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: bandhastigheten 0,50 m/s och kartonglangden 400 mm = 0,400 m ger normal passage over fotocellen pa 0,400 / 0,50 = 0,80 s. Tidsgransen for blockering ar satt till 2,0 s sammanhangande skymning (> 2 * 0,8 s). Mellan stoppen glesas kartongerna ut med 0,8 s * 0,50 m/s = 0,40 m = 400 mm, vilket motsvarar en hel kartonglangd och forhindrar inpressning over 15 mm. Detta ar manniskans facit skrivet ur scenarios normal, rate_lag, rate_hog, blk_flimrar samt expect fore korning. M-124 provar facitformen.",
     "standard": "Backtryckshantering och stegvis kaskadstopp foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

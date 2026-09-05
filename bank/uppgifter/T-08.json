@@ -341,6 +341,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "DATABLAD+RAKNAD",
     "harkomst": "DATABLAD+RAKNAD: uppehallstiden ar raknad ur ugnens egna matt, 12,0 m / 0,010 m/s = 1200 s = 20,0 min, och hardschemat kommer ur ett publicerat datablad: TIGER Drylac Series 49 (datablad 49-1000, version 10-18) anger 180 grader C i 15 till 30 minuter objekttemperatur for blank ytfinish. 20,0 min ligger mitt i fonstret; snabbaste tillatna kedjehastighet blir 12,0 m / (15*60 s) = 0,0133 m/s. Rakningen och databladet star i M-106.",
     "standard": "DATABLAD: TIGER Drylac Series 49, tekniskt datablad 49-1000 version 10-18, rubriken \"Cure parameters (substrate temperature versus curing time)\": 180 grader C i 15 till 30 min objekttemperatur. Manuell aterstallning efter nodstopp enligt IEC 60204-1 och rakning med CTU samt tidsovervakning med TON enligt IEC 61131-3.",
     "scan_ms": 20,

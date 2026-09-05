@@ -306,6 +306,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: fyra kollin i 12,0 s takt ger cykeltiden 4 * 12,0 = 48,0 s per AGV. Teoretiskt 3600/48,0 = 75 AGV-vagnar per timme eller 300 kollin/h. AGV:ns tillatna lastvikt ar 100 kg, vilket rymmer 4 * 22 kg = 88 kg med 12 kg marginal. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, dck_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "AGV-dockning och forregling foljer anlaggningens specifikation och ISO 3691-4:2023 4.5 \"Load handling\"; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

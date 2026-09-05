@@ -263,6 +263,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: tiderna ur stationens egna matt. Kretskortet ar 233 mm langt och bandet gar 0,35 m/s, sa kortet passerar narvarogivaren pa 233/350 = 0,666 s; takten ar 12,0 s per kort och aterstarten efter atervant material ska ske inom 2,0 s, alltsa under en sjattedel av takten. Rakningen star i M-106.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen efter nodstopp ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"), och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet; den har stationens signalkarta bar inget nodstopp, men samma regel styr larmet: SYS_ALARM latchas och slapper bara pa en manuell handling, att stationen tas ur och tillbaka i automatlage. Tidsovervakningen ar en TON och flankdetekteringen pa automatlaget en R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Svalt ar INGET fel och far darfor aldrig larma: materialbrist uppstroms ar ett vantlage som slapper av sig sjalvt nar materialet kommer tillbaka, och det ar stationens egen regel och ingen standardparagraf.",
     "scan_ms": 20,

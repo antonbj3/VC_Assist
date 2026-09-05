@@ -366,6 +366,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: cykeltiden 13,0 s per karta ger 3600/13,0 = 276,92 kartor/h teoretiskt. Med hogst 8 procent omarbete (276,92 * 0,92 = 254,77) uppnas kapacitetsmalet 240 godkanda kartor i timmen med 14,77 kartor/h i marginal. Detta ar manniskans facit skrivet ur scenarios normal, que_lag, que_hog, cnt_lag, cnt_hog, free_uteblir, rwk_lag, rwk_hog samt expect fore korning. M-124 provar facitformen.",
     "standard": "Forregling av sammanflode och omarbetningsloop foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

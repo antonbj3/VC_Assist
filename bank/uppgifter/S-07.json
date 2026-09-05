@@ -418,6 +418,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD+RAKNAD",
     "harkomst": "STANDARD+RAKNAD: minimikravet pa tryckkvalitet 1,5 (betyg C) enligt GS1 General Specifications Release 26.0 avsnitt 5.12.3 tabell 5-43, med notationen 1.5/10/660 for allman distribution; betygsskalan 4,0 till 0,0 definieras i ISO/IEC 15416:2016 klausul 6.3 \"Expression of symbol grade\". Delningen mellan kartongerna ar raknad ur banans egen hastighet och takten: 0,5 m/s / (30/60 per s) = 1,00 m, alltsa en kartong var 2,0 s. Kallorna och rakningen star i M-106.",
     "standard": "GS1 General Specifications Release 26.0 (2026-01) avsnitt 5.12.3 tabell 5-43: minsta symbolkvalitet 1,5 (C) for GS1-128, notation 1.5/10/660. Betyget uttrycks enligt ISO/IEC 15416:2016 klausul 6.3 \"Expression of symbol grade\" pa en skala fran 4,0 till 0,0 med en decimal; spannet 1,5 till strax under 2,5 motsvarar betyg C. Manuell aterstallning efter nodstopp enligt IEC 60204-1 och rakning av upprepade underkanda etiketter med CTU enligt IEC 61131-3.",
     "scan_ms": 20,

@@ -306,6 +306,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: takten kommer ur stationernas egna arbetstider. Station 1 arbetar 26,0 s och station 2 arbetar 31,0 s, sa linans takt satts av den langsammaste, 31,0 s, alltsa 3600/31,0 = 116,1 enheter i timmen. Station 1 star och vantar 31,0 - 26,0 = 5,0 s per enhet, 16 procent av takten. Rullbanan gar 24 m/min = 0,4 m/s och lastbararen ar 600 mm lang, sa en lastbarare lamnar en station pa 600/400 = 1,5 s. Rakningen star i M-106.",
     "standard": "Handskakningen at bada hall ar stationsgranssnittets egen form och ar INTE hamtad ur en publicerad standard; facit sager det hellre an gissar en paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; TON for arbetstiderna och R_TRIG for flankdetektering enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
     "scan_ms": 20,

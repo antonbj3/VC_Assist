@@ -336,6 +336,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD+RAKNAD",
     "harkomst": "STANDARD+RAKNAD: att aterstallningen av nodstoppsdonet inte i sig far starta om cellen star i ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och i IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" (\"the reset shall not initiate a restart\"). Stoppets art ar ett kategori 2-stopp enligt IEC 60204-1:2016 9.2.2 \"Categories of stop functions\": roboten halls stilla med matningen kvar och lagesbilden behalls. Tidskravet ar raknat ur kedjans egna tider: PLC:ns svarstid 40 ms (tva scan, M-20), utgangsrelat 25 ms och stoppgrindens slag 120 ms = 185 ms, sa kravet 0,30 s lamnar 115 ms marginal. Rakningen och paragraferna star i M-106.",
     "standard": "ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\", 9.2.2 \"Categories of stop functions\" (kategori 0, 1 och 2) och 7.5 \"Protection against the effects of supply interruption or voltage reduction and subsequent restoration\"; TON och R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46).",
     "scan_ms": 20,

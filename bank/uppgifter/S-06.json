@@ -434,6 +434,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "STANDARD",
     "harkomst": "RAKNAD: tryckfallsmetoden ar ASTM E2930-13(2021) \"Standard Practice for Pressure Decay Leak Test Method\". Gransen ar raknad ur den isoterma formen q = dP * V / dt: med den effektiva provvolymen 0,45 l och mattiden 10,0 s svarar ett tryckfall pa 1,5 mbar mot q = 1,5 * 0,45 / 10,0 = 0,0675 mbar*l/s, och 1 mbar*l/s = 59,22 cm3/min vid 1013,25 mbar, alltsa 0,0675 * 59,22 = 4,0 cm3/min. Rakningen star i M-106. Kallklassen ar RAKNAD och inte STANDARD: ASTM E2930 beskriver METODEN, men kasseringsgransen 1,5 mbar star i ingen standard - den ar raknad ur provvolymen och mattiden.",
     "standard": "ASTM E2930-13(2021) \"Standard Practice for Pressure Decay Leak Test Method\" beskriver metoden for styva karl: fyll, stabilisera, mat tryckfallet. Den isoterma formen q = dP*V/dt galler under stabila forhallanden med linjart tryckfall; ASTM E2930 raknar stringare via idealgaslagen med temperaturkorrigering, och skillnaden star som antagande. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; TON for provstegens tider enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON i 6.6.3.5.5 tabell 46).",
     "scan_ms": 20,

@@ -315,6 +315,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: 24 kollin i 5,5 s takt ger 132,0 s palleteringstid per pall. Forvarning ett lager i forvag vid 16 kollin ger 8 * 5,5 = 44,0 s, vilket overskrider vaxlingstiden 22,0 s med dubbel marginal (44,0 s > 22,0 s). Detta ar manniskans facit skrivet ur scenarios normal, inf_lag, inf_hog, gone_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Transportsekvens och forregling for pallvaxling foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

@@ -315,6 +315,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: linjens takt 6,0 s per kartong ger 3600/6,0 = 600 kartonger/h teoretiskt. Vid 480 s = 8 minuter formatbyte aterstar 52 minuter produktion = (52/60)*600 = 520 kartonger/h, vilket med marginal ger malet 500 kartonger/h. Detta ar manniskans facit skrivet ur scenarios normal, fmt_lag, fmt_hog, cnt_lag, cnt_hog, cam_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Styrsekvens och hastighetsreglering for formatbyte foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

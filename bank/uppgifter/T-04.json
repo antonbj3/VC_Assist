@@ -297,6 +297,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: buffertens langd och genomloppstid ur lastbararens egna matt. Tolv VDA KLT 6147 pa 600 mm blir 12*600 = 7200 mm buffertlangd, och vid 24 m/min = 0,4 m/s tar en tom buffert 7,2/0,4 = 18,0 s att kora igenom. Utloppets takt 8,0 s per lastbarare ar 3600/8,0 = 450 lastbarare i timmen. Rakningen star i M-106.",
     "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"); ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet. Facit domer darfor att ingen grind rors medan EMG_OK ar lag och att stoppet varken i sig satter bufferten i drift igen eller nollstaller raknaren. Tidsovervakningen av uppehallet ar en TON och flankdetekteringen pa in- och utloppsfotocellerna R_TRIG respektive F_TRIG ur IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Hysteresen 12/11 ar INTE hamtad ur nagon standard: den ar stationens egen och star i uppgiftens egen text, liksom kravet att kvittensen ges pa lastbararens fallande flank och inte pa begaran.",
     "scan_ms": 20,

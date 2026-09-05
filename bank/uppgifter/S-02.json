@@ -315,6 +315,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: banhastigheten 24 m/min = 0,40 m/s och avstandet mellan utgangarna 900 mm ger passagetiden 0,900 / 0,40 = 2,25 s mellan tva utgangar. Utskjutarens slagtid ar 0,40 s = 400 ms och takten 30 lastbarare/min ger 2,0 s per lastbarare. Detta ar manniskans facit skrivet ur scenarios normal, dest_lag, dest_hog, home_uteblir, enc_lag, enc_hog samt expect fore korning. M-124 provar facitformen.",
     "standard": "Inbordes forregling av utskjutare pa gemensam transportbana foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,

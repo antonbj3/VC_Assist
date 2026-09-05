@@ -298,6 +298,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: tiderna kommer ur overlamningens egna matt. Modulen ar 180 mm lang och bandet gar 0,30 m/s, sa modulen passerar reflexfotocellen pa 180/300 = 0,60 s, vilket ar uppehallet ST300 i uppgiftens timing. Griparens oppningstid 0,35 s ar katalogindexets anslag_s for den tvabackade pneumatiska griparen och ar uppehallet ST290. Takten 5,0 s per modul ar 3600/5,0 = 720 moduler i timmen. Handskakningens fyra steg ar stationsgranssnittets egen form och inte hamtade ur en standard. Rakningen star i M-106.",
     "standard": "Handskakningen i fyra steg (begaran, kvittens, klar, aterstallning) ar stationsgranssnittets egen form; den ar INTE hamtad ur en publicerad standard och facit sager det hellre an gissar en paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4; R_TRIG for flankdetektering och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
     "scan_ms": 20,

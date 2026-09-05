@@ -92,6 +92,7 @@ BANKPOST = {
         "en paragraf utan utgivare, som inte gar att sla upp",
         "ett uppfunnet paragrafnummer som inte star i M-106",
         "en karnutgang som sparfacit aldrig ror",
+        "ett facit vars kallklass saknas",
     ],
     "kraver": ["inget"],
     "matningar": ["M-106", "M-45"],
@@ -111,6 +112,7 @@ KALLKLASSER = {
     "DATABLAD": "en tillverkares publicerade datablad for den namngivna "
                 "komponenten",
     "SPAR": "ett inspelat I/O-spar fran en riktig anlaggning",
+    "ANNAN_IMPLEMENTATION": "en annan oberoende implementation, t.ex. STruC++",
 }
 
 # En paragrafhanvisning har minst tva led: 9.2.5, 6.2.2.1, 4.1.4. Ett bart
@@ -444,9 +446,21 @@ def granska_harkomst(post, kanda_matningar):
 
     harkomst = str(facit.get("harkomst") or "")
     standard = str(facit.get("standard") or "")
+    kallklass = facit.get("kallklass")
+
+    if not kallklass or not isinstance(kallklass, str) or not kallklass.strip():
+        brister.append(Brist(
+            tid, "KALLKLASS_SAKNAS",
+            "facit_spar.kallklass saknas; lagliga ar %s" % ", ".join(sorted(KALLKLASSER))))
+    else:
+        for k in kallklass.split("+"):
+            k_clean = k.strip()
+            if k_clean not in KALLKLASSER:
+                brister.append(Brist(
+                    tid, "OKAND_KALLKLASS", "okand kallklass %r" % k_clean))
 
     klasser = [k for k in KALLKLASSER if harkomst.strip().upper().startswith(k)
-               or ("%s:" % k) in harkomst.upper()]
+               or ("%s:" % k) in harkomst.upper() or ("+%s" % k) in harkomst.upper()]
     if not klasser:
         brister.append(Brist(
             tid, "HARKOMST_UTAN_KLASS",
@@ -610,6 +624,11 @@ def trasiga_fall(bank, kanda_matningar):
     p["facit_spar"]["flanker"] = [
         f for f in (p["facit_spar"]["flanker"] or []) if f.get("signal") != karn]
     ut.append(("karnutgang som sparfacit aldrig ror", p, "KARNUTGANG_UTAN_SPAR"))
+
+    p = _fixtur(bank)
+    p["task_id"] = "FIX-8"
+    p["facit_spar"].pop("kallklass", None)
+    ut.append(("ett facit vars kallklass saknas", p, "KALLKLASS_SAKNAS"))
 
     verifierade = las_verifierade_paragrafer()
     domar = []

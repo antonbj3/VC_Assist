@@ -304,6 +304,7 @@
   "verified_status": "unverified",
   "last_run": null,
   "facit_spar": {
+    "kallklass": "RAKNAD",
     "harkomst": "RAKNAD: takten 6,5 s per ask ger 3600/6,5 = 553,85 askar/h teoretiskt. En full gitterbox rymmer 48 askar. 3D-kamerans bildtagning tar 900 ms och tre tomma bilder i rad (3 * 0,9 s = 2,7 s bildtid) kraves for tom box. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, held_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "3D-bin picking och tomningsvillkor foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
