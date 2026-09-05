@@ -42,10 +42,14 @@ from vc_assist_svc.claudeadapter import ClaudeModell        # noqa: E402
 from vc_assist_svc.plc import reparation as R                       # noqa: E402
 
 
-def kor_en(post, lage, modellnamn, max_varv):
+def kor_en(post, lage, modellnamn, max_varv, forhandsregler=True):
     upps = RB.bygg_uppsattning(post)
+    # A/B:t. Utan forhandsregler far modellen bara uppdraget, precis som fore
+    # M-97 - grindarnas kunskap nar den forst NAR den skrivit fel.
+    prompt = R.SYSTEMPROMPT if forhandsregler else R._GRUNDPROMPT
     slinga = R.Reparationsslinga(upps["skelett"], upps["grindar"],
-                                 lage=lage, max_varv=max_varv)
+                                 lage=lage, max_varv=max_varv,
+                                 systemprompt=prompt)
     modell = ClaudeModell(modell=modellnamn)
     t0 = time.time()
     protokoll = slinga.kor(modell, upps["prompt"], uppgift=post["task_id"])
@@ -58,6 +62,7 @@ def kor_en(post, lage, modellnamn, max_varv):
         "varv_till_lost": protokoll.varv_till_lost,
         "slog_i_taket": len(protokoll.varv) >= max_varv and not protokoll.lost,
         "max_varv": max_varv,
+        "forhandsregler": bool(forhandsregler),
         "anrop": modell.anrop,
         "kostnad_usd": round(modell.kostnad_usd, 4),
         "sekunder": round(time.time() - t0, 1),
@@ -80,6 +85,8 @@ def main(argv=None):
     p.add_argument("--uppgift", action="append",
                    help="kor bara den har uppgiften (kan upprepas)")
     p.add_argument("--max-varv", type=int, default=R.MAX_VARV)
+    p.add_argument("--utan-forhandsregler", action="store_true",
+                   help="ge modellen bara uppdraget, inte grindarnas regler")
     p.add_argument("--json")
     a = p.parse_args(argv)
 
@@ -100,14 +107,16 @@ def main(argv=None):
         return 2
 
     print("=== FAS 9: reparationsslingan driven av en riktig modell ===\n")
-    print("  modell: %s   lage: %s   tak: %d varv (M-52)\n"
-          % (a.modell, a.lage, a.max_varv))
+    print("  modell: %s   lage: %s   tak: %d varv (M-52)   forhandsregler: %s\n"
+          % (a.modell, a.lage, a.max_varv,
+             "nej" if a.utan_forhandsregler else "ja"))
 
     resultat = []
     for post in poster:
         print("  %s ..." % post["task_id"], end="", flush=True)
         try:
-            r = kor_en(post, a.lage, a.modell, a.max_varv)
+            r = kor_en(post, a.lage, a.modell, a.max_varv,
+                       forhandsregler=not a.utan_forhandsregler)
         except Exception as e:                          # noqa: BLE001
             r = {"uppgift": post["task_id"], "lage": a.lage,
                  "utfall": "KORNINGSFEL", "lost": False, "fel": repr(e),
@@ -144,6 +153,7 @@ def main(argv=None):
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:
             json.dump({"modell": a.modell, "lage": a.lage,
+                       "forhandsregler": not a.utan_forhandsregler,
                        "max_varv": a.max_varv, "resultat": resultat,
                        "lost": len(losta), "slog_i_taket": len(taket),
                        "kostnad_usd": round(kostnad, 4)}, f,

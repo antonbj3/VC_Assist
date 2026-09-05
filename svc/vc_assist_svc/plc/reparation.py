@@ -50,6 +50,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+from . import forhandsregler
 from ..harness.modell import Meddelande, Modell, Modellsvar
 from .signalkarta import Signalkarta
 from .skelett import Skelett, Skelettfel
@@ -270,11 +271,25 @@ def kontrollera_ordagrant(text: str, domar: Sequence[Grinddom]) -> None:
                 "svar mäter till slut sig själv (50_grindar.md)." % (d.grind,))
 
 
-SYSTEMPROMPT = (
+_GRUNDPROMPT = (
     "Du skriver kroppen till ett ST-program enligt IEC 61131-3.\n"
     "Deklarationerna är redan skrivna och tillhör inte dig: skriv aldrig "
     "PROGRAM, VAR, END_VAR eller END_PROGRAM.\n"
     "Svara med enbart kroppens rader.")
+
+# Grindarnas regler sagda FÖRE modellen skriver, i stället för efter.
+#
+# Fas 9 mäter första försöket till 0 av 4 och efter ett reparationsvarv 4 av 4.
+# Operatörens krav är det omvända: enskott ska vara normalfallet och flerskott
+# en reserv. Så länge grindarnas kunskap når modellen först NÄR den redan
+# skrivit fel är flerskott inte en inställning utan en FORM.
+#
+# Reglerna GENERERAS ur grindarnas egna kodtabeller (`forhandsregler.REGLER`
+# mot `st.fel.KONTROLLER` och `deklarationsgrind.KONTROLLER_PLC`). En
+# handskriven lista hade varit samma felklass som fällde tre grindar på en
+# natt: någon skriver vad hen kommer ihåg, koden kommer att kräva något annat,
+# och de glider isär utan att någon ser det.
+SYSTEMPROMPT = _GRUNDPROMPT + "\n\n" + forhandsregler.text()
 
 
 # ------------------------------------------------------------- protokollet
