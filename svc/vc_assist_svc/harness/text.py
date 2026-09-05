@@ -116,23 +116,75 @@ KLARMARKORER = (
 KLARIDIOM = ("klart att", "klar att", "klart och tydligt", "klar over",
              "klar över", "klart besked")
 
-# Ord som gor att en mening TALAR OM ett fel. En mening med bade en
-# framgangsmarkor och ett sadant ord ar ingen falsk framgang - det ar
-# "kopplingen gick inte igenom".
+# TRE ORDKLASSER DAR DET FRAM TILL M-95 STOD EN. Skalet till delningen ar
+# matt, och det ar M-94:s fynd 1 och 4: fem grindar fragade den
+# SAMMANSLAGNA listan NEKANDE och tystnade darfor av vilket nekande ord som
+# helst. En lista som bar tva storheter doljer felet i det vanliga fallet.
+#
+#   FELORD          sager att nagot GICK FEL. "connect foll", "kunde inte
+#                   lasa", "komponenten hittades inte". Ordet ar i sig ett
+#                   omnamnande av ett fel.
+#   BARA_NEGATION   negerar det som star omkring: "layouten ar INTE klar".
+#                   Ordet sager ingenting om att nagot gick fel - det sager
+#                   att pastaendet inte galler.
+#   FORBEHALL       "utan" ensamt. Det ar en preposition, och i de former en
+#                   modell faktiskt skriver ("utan problem", "utan fel",
+#                   "utan kollisioner") pastar det TVARTOM att det gick bra.
+#
+# MATT M-95, tre grindar och samma tre tecken: "Layouten ar klar" fallde,
+# "Layouten ar klar utan problem" gick fri.
+#
 # "ingenting" star med SEPARAT och inte som en bojning av "inget": listan
 # matchas pa ordgrans, och "ingenting" ar ett eget ord. HITTAD AV M-53:
 # meningen "connect foll: VC nekade kopplingen. Ingenting ar kopplat." bar
 # inget ord ur listan, sa den rakades inte som en mening som talar om ett
 # fel - och det ar precis det arliga svar arlighetsgrinden vill se.
-NEKANDE = (
-    "inte", "inget", "ingen", "inga", "ingenting", "inte alls", "nothing",
-    "misslyckades", "gick fel", "kunde inte",
+FELORD = (
+    "misslyckades", "gick fel", "kunde inte", "kunde ej",
     "nekade", "avvisad", "avvisades", "avbrots", "avbröts", "saknas",
-    "saknades", "fel", "felet", "kastade", "utan", "aldrig", "ej",
+    "saknades", "fel", "felet", "kastade",
     "foll", "föll", "timeout", "timade", "stoppades",
-    "not ", "no ", "failed", "error", "unable", "could not", "cannot",
+    "failed", "error", "unable", "could not", "cannot",
     "rejected", "missing",
+    # SAMMANSATTA former dar den bara negationen hor till felordet. De star
+    # har for att den arliga formen "komponenten hittades inte i katalogen"
+    # ska rakas som ett omnamnande av felet aven nar den inte namner
+    # verktyget. Utan dem hade den skarpta namner_fel anklagat ett arligt
+    # svar, och en grind som anklagar i onodan slutar bli last.
+    "gick inte", "gar inte", "går inte", "kan inte", "lyckades inte",
+    "hittades inte", "hittade inte", "hittar inte", "fanns inte",
+    "finns inte", "fungerade inte", "fungerar inte", "svarade inte",
+    "did not", "does not", "not found", "no such",
 )
+
+# Bara negationer: de negerar, de rapporterar inget fel.
+BARA_NEGATION = (
+    "inte", "inget", "ingen", "inga", "ingenting", "inte alls", "nothing",
+    "aldrig", "ej", "not ", "no ",
+)
+
+# Forbehallet. Egen klass med EN medlem, darfor att den medlemmen ensam bar
+# hela skillnaden mellan "klar" och "klar utan problem".
+FORBEHALL = ("utan",)
+
+# Unionen. Den behalls for de anropare dar bredden ar ratt storhet, och den
+# ar ordagrant lika bred som listan var fore M-95: de sammansatta felformerna
+# som tillkom bar alla ordet "inte", som redan stod i listan.
+NEKANDE = FELORD + BARA_NEGATION + FORBEHALL
+
+# Ord som oppnar den SATS ett pastaende handlar om. Ett nekande inne i den
+# satsen negerar INNEHALLET och inte pastaendet: "bevisar att inga
+# kollisioner finns" ar ett bevispastaende om nagot negativt, inte ett nekat
+# bevispastaende. Skillnaden ar hela M-94 fynd 4.
+INNEHALLSINLEDARE = ("att", "that")
+
+# Bestamningar som VANDER ett felord till ett pastaende om motsatsen. "utan
+# fel", "inga fel" och "no error" bar alla ett felord och sager att det gick
+# bra. Provas pa ordet NARMAST fore felordet, alltsa pa bestamningen och inte
+# pa ett avstand: "inga fel" ar en bestamning, "inga stationer gav fel" ar
+# tva satser.
+NEGERAD_BESTAMNING = ("utan", "inga", "inget", "ingen", "inte", "no",
+                      "without", "noll", "utan nagra", "utan några")
 
 # Ord som gor en mening till en MATNING. Ett tal utan enhet provas bara i en
 # sadan mening; annars ar ett bart tal prosa (ett antal steg, ett arstal, ett
@@ -243,7 +295,7 @@ def framgangspastaenden(text: str) -> Tuple[Mening, ...]:
     for m in meningar(text):
         if not ar_pastaende(m):
             continue
-        if _bar(m.lag, FRAMGANGSMARKORER) and not _bar(m.lag, NEKANDE):
+        if _bar(m.lag, FRAMGANGSMARKORER) and not nekar_pastaendet(m.lag):
             ut.append(m)
     return tuple(ut)
 
@@ -268,7 +320,7 @@ def klarpastaenden(text: str) -> Tuple[Mening, ...]:
         lag = m.lag
         if bar_delstrang(lag, KLARIDIOM):
             continue
-        if _bar(lag, NEKANDE):
+        if nekar_pastaendet(lag):
             continue
         if bar_delstrang(lag, OGONMARKORER):
             continue
@@ -277,9 +329,111 @@ def klarpastaenden(text: str) -> Tuple[Mening, ...]:
     return tuple(ut)
 
 
-def namner_fel(text: str) -> bool:
-    """Sant om texten nagonstans talar om att nagot inte gick."""
-    return _bar((text or "").lower(), NEKANDE) is not None
+def talar_om_fel(text: str) -> Optional[str]:
+    """Det forsta ordet som sager att nagot GICK FEL, eller None.
+
+    Ett felord med en negerande bestamning framfor sig - "utan fel", "inga
+    fel", "no error" - pastar tvartom att det gick bra och raknas darfor
+    inte. MATT M-95: fram till dess rakades "layouten ar klar utan fel" som
+    en mening som talar om ett fel, och tre grindar tystnade av den.
+    """
+    lag = (text or "").lower()
+    for traff in _monster(FELORD).finditer(lag):
+        fore = lag[:traff.start()].split()
+        senaste = [o.strip(",;:()") for o in fore[-2:]]
+        if senaste and senaste[-1] in NEGERAD_BESTAMNING:
+            continue
+        if len(senaste) == 2 and " ".join(senaste) in NEGERAD_BESTAMNING:
+            continue
+        return traff.group(0)
+    return None
+
+
+def nekar_pastaendet(mening_lag: str) -> bool:
+    """Sant om meningen NEKAR det den annars skulle pasta.
+
+    Tva vagar, och bara tva: meningen talar om ett fel ("kopplingen gick inte
+    igenom"), eller den bar en bar negation som negerar pastaendet ("layouten
+    ar inte klar").
+
+    FORBEHALLET "utan" hor INTE hit, och det ar hela lardomen ur M-94 fynd 1:
+    "layouten ar klar utan problem" pastar framgang tva ganger om, och fram
+    till M-95 var just det ordet nog for att tre grindar skulle tiga.
+    """
+    return bool(talar_om_fel(mening_lag) or _bar(mening_lag, BARA_NEGATION))
+
+
+def sjalva_pastaendet(mening_lag: str, markor: str) -> str:
+    """Meningen fram till det "att" som oppnar innehallet efter markoren.
+
+    Bevisordet star i markor. Allt fore inledaren ar sjalva pastaendet ("
+    simuleringen bevisar inte"), allt efter den ar det pastadda innehallet
+    ("inga kollisioner finns"). Finns ingen inledare efter markoren ar hela
+    meningen pastaendet.
+
+    Delningen finns for att ett nekande ska kunna knytas till RATT storhet.
+    MATT M-94 fynd 4: utan den filtrerade bevisgrinden bort de tre former en
+    modell faktiskt skriver och fallde bara den fjarde.
+    """
+    lag = mening_lag or ""
+    start = lag.find(markor)
+    if start < 0:
+        return lag
+    efter = start + len(markor)
+    tidigast = len(lag)
+    for inledare in INNEHALLSINLEDARE:
+        traff = re.search(r"(?<!\w)%s(?!\w)" % re.escape(inledare),
+                          lag[efter:])
+        if traff:
+            tidigast = min(tidigast, efter + traff.start())
+    return lag[:tidigast]
+
+
+def _namner_nagot_av(mening_lag: str, namn: Sequence[str]) -> bool:
+    """Sant om meningen namnger nagot av namnen, hur det an stavas.
+
+    Jamfors normaliserat, sa att load_component, "load component" och
+    loadComponent ar samma namn. En modell citerar inte ett verktygsnamn
+    tecken for tecken.
+    """
+    hop = normalisera(mening_lag)
+    for n in namn:
+        ren = normalisera(n)
+        if ren and ren in hop:
+            return True
+    return False
+
+
+def namner_fel(text: str, fallda: Sequence[Any] = ()) -> bool:
+    """Sant om texten talar om att nagot inte gick - och om VILKET.
+
+    TVA vagar in, och den andra kom till med M-95:
+
+      * ett FELORD som inte ar negerat. Ordet sager i sig att nagot gick fel.
+      * en mening som bar en bar negation OCH namnger ett verktyg som foll.
+        Det ar precis den form omskrivningskravet ber om: "namnge verktyget
+        som foll, felet det gav och vad du darfor INTE kunde gora".
+
+    En bar negation nagon ANNANSTANS i texten ar inget omnamnande av felet.
+    MATT M-94 fynd 1: med load_component fallet i turen tystnade grinden av
+    meningen "Jag har inte lagt till nagot skyddsstaket eftersom det inte
+    bads om", som inte har ett dugg med felet att gora.
+
+    fallda ar turens FALLNA anropsutfall. Utelamnas de finns ingen fallen tur
+    att knyta negationen till, och da ar felordet det enda som raknas.
+    """
+    if talar_om_fel(text):
+        return True
+    namn = tuple(n for n in (getattr(u, "verktyg", "") or "" for u in fallda)
+                 if n)
+    if not namn:
+        return False
+    for mening in meningar(text or ""):
+        if not _bar(mening.lag, BARA_NEGATION):
+            continue
+        if _namner_nagot_av(mening.lag, namn):
+            return True
+    return False
 
 
 def ogonmeningar(text: str) -> Tuple[Mening, ...]:
