@@ -4,19 +4,11 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 1
+## Mätningar utan ärlighetsavsnitt: 0
 
-En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
+## Mätningsnummer som fler än en fil gör anspråk på: 0
 
-* `M-85_komponentdatabladet.md`
-
-## Mätningsnummer som fler än en fil gör anspråk på: 1
-
-Numret är mätningens enda identitet. Två filer på samma nummer gör varje hänvisning tvetydig, och både tröskellintern och rättelsegrinden slår upp på numret.
-
-* **M-90** — `M-90_ren_maskin_linux.md`, `M-93_speglingen_som_inte_aldras.md`
-
-## Vad mätningarna säger att de inte vet: 468 punkter
+## Vad mätningarna säger att de inte vet: 480 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -645,6 +637,19 @@ Numret är mätningens enda identitet. Två filer på samma nummer gör varje h�
 * "Rader" räknar icke-tomma rader**, kommentarer inräknade. Fördelningen är
 * Ordförrådet är inte kvalitet.** Att röra fler delar av API:t är inte samma
 
+### M-85_komponentdatabladet.md — LIMITS
+
+* Avbildningen rsc-typ → `VC_`-konstant är inte verifierad mot ett kört VC.**
+* inte** att `VC_BOOLEANSIGNAL` är den konstant `findBehavioursByType` vill
+* Signalordningen är filens, inte API:ets.** För de 310 komponenter som bär
+* Ingen komponent har laddats i VC.** Att en egenskap heter `SpeedIn` i filen
+* Enheterna är inte lösta, bara ärligt rapporterade.** 86 procent av
+* Bryggan bank ↔ bibliotek finns inte.** 11 av 65, noll i de tre scener M-84
+* Inget bibliotekstäckande egenskapsnamnindex byggs.** Frågan "vilka
+* `vcHelpers.Robot` mot `Robot2` står öppet**, oförändrat sedan M-84.
+* Täckningstalen gäller ETT bibliotek** — VC 4.10:s eCatalog-innehåll på den
+* Fördelningarna som satte taken mättes med de gamla taken på plats.**
+
 ### M-86_ogat_mot_en_korande_vc.md — LIMITS
 
 * Mätningen är inte gjord än — filen reserverar bara numret.
@@ -670,6 +675,7 @@ Numret är mätningens enda identitet. Två filer på samma nummer gör varje h�
 * `T3_UTAN_UNDERLAG` går att gå runt.** Kravet på nämnare gäller bara facit som
 * Ingen jämförelse mot vägen "läsa uppladdningsformatet".** `70_faser.md`
 * Domen är tolkens, inte en runtimes.** Samma förbehåll som hela bänken:
+* Två av repots egna grindar är oense om `T#3S`.** Grind 1:s statiska analys
 * Skelettets arbetsvariabelfack tar inte startvärden.**
 
 ### M-90_ren_maskin_linux.md — LIMITS
@@ -680,7 +686,27 @@ Numret är mätningens enda identitet. Två filer på samma nummer gör varje h�
 * Provsviten kördes inte** i containern, eftersom `pytest` inte finns där.
 * Idempotensen är mätt över två körningar**, inte över en ändrad källa följd
 
-### M-93_speglingen_som_inte_aldras.md — 7. Vad detta INTE bevisar
+### M-91_windowsregistret_mot_en_riktig_kupa.md — LIMITS
+
+* Ingen omdirigering fanns att mäta.** Den här maskinen har `Documents` på
+* Ingenting kördes på Windows.** Kupan lästes som en fil från Linux, med
+* `winreg` självt är fortfarande aldrig kört.** Proven matar en attrapp. Att
+* Ingen VC på den partitionen**, så ingenting säger något om fas 13:s
+* En användare, en Windows-build** (19041, en-US). Säger inget om andra
+
+### M-92_windowssommen_matt_i_stallet_for_last.md — LIMITS
+
+* Ingen Windows-maskin.** Divergensen är mätt mellan två `ntpath` på Linux,
+* `%OneDrive%`-rötterna är prövade som logik, inte mot en OneDrive.** Ingen
+* Coverage mättes över `tests/enhet`**, inte över protokollsviten. Rader som
+* `verktygskedjan.py` ligger på 58 %** och är inte åtgärdad. Den gör
+* 2.7-grinden prövar syntax, inte semantik.** En fil som kompilerar i 2.7 kan
+
+### M-93_speglingen_som_inte_aldras.md — 4. LIMITS lyftes dit den läses (Y12)
+
+* 
+
+### M-93_speglingen_som_inte_aldras.md — 8. Vad detta INTE bevisar
 
 * Ingen VC kördes, ingen brygga, ingen språkmodell.** Varje källa provas mot
 * Fem av sju rapportytor har fortfarande ingen förare.** Kopplaren,
@@ -699,22 +725,6 @@ Numret är mätningens enda identitet. Två filer på samma nummer gör varje h�
 * fem av sju rapportytor har ingen förare** — halva M-64:s hål står kvar,
 * ingen riktig körning** har passerat den här koden: ingen VC, ingen brygga,
 * ingen människa utanför bygget har läst ytan**, så att den är begriplig är
-
-### M-91_windowsregistret_mot_en_riktig_kupa.md — LIMITS
-
-* Ingen omdirigering fanns att mäta.** Den här maskinen har `Documents` på
-* Ingenting kördes på Windows.** Kupan lästes som en fil från Linux, med
-* `winreg` självt är fortfarande aldrig kört.** Proven matar en attrapp. Att
-* Ingen VC på den partitionen**, så ingenting säger något om fas 13:s
-* En användare, en Windows-build** (19041, en-US). Säger inget om andra
-
-### M-92_windowssommen_matt_i_stallet_for_last.md — LIMITS
-
-* Ingen Windows-maskin.** Divergensen är mätt mellan två `ntpath` på Linux,
-* `%OneDrive%`-rötterna är prövade som logik, inte mot en OneDrive.** Ingen
-* Coverage mättes över `tests/enhet`**, inte över protokollsviten. Rader som
-* `verktygskedjan.py` ligger på 58 %** och är inte åtgärdad. Den gör
-* 2.7-grinden prövar syntax, inte semantik.** En fil som kompilerar i 2.7 kan
 
 ### M-94_vad_registret_inte_ser.md — LIMITS
 
@@ -843,7 +853,7 @@ Numret är mätningens enda identitet. Två filer på samma nummer gör varje h�
 * vc_addon/vc_assist/oga_harledning.py:91  UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:94  UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:96  FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_harledning.py:1161  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+* vc_addon/vc_assist/oga_harledning.py:1169  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
 
 ### vc_addon/vc_assist/oga_provtagning.py
 

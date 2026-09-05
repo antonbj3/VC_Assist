@@ -348,11 +348,13 @@ API_TYP: Dict[str, Tuple[str, str]] = {
     "rSimKinController": ("VC_SERVOCONTROLLER", HANDSATT),
 }
 
-# MATT i M-85: de har trettio posterna tacker 88,0 procent av bibliotekets
-# 31403 beteendeforekomster. De 30 typer som INTE star har - rKinArticulated2
-# (1231 komponenter), rKinScara2 (406), rSimResourcePtrSignal (157),
-# rResourceSensor (80), rCustomFunctionality (72) och 25 till - ger `saknas`.
-# De ar oftast kinematik, som ingen skriver findBehavioursByType pa.
+# MATT i M-85: de har trettio posterna tacker 92,8 procent av bibliotekets
+# 31403 beteendeforekomster. Biblioteket bar 44 distinkta beteendetyper, och de
+# 14 som INTE star har - rKinArticulated2 (1231 komponenter), rKinScara2 (406),
+# rSimResourcePtrSignal (157), rResourceSensor (80), rCustomFunctionality (72)
+# och nio till - ger `saknas`. De ar till storsta delen kinematik, som ingen
+# skriver findBehavioursByType pa; namnet gar anda att fa, med
+# findBehaviour(namn).
 
 
 def api_konstant(rsc_typ: str) -> str:
