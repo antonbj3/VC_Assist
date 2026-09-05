@@ -48,7 +48,7 @@ class Meddelande:
 
     def __post_init__(self):
         if self.roll not in ROLLER:
-            raise Modellfel("okand roll %r; rollerna ar %s"
+            raise Modellfel("unknown role %r; the roles are %s"
                             % (self.roll, ", ".join(ROLLER)))
 
 
