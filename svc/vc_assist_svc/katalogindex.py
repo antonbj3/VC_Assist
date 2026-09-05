@@ -42,9 +42,53 @@ from typing import Dict, List, Optional, Tuple
 
 FORMAT = 1                      # Satt av M-58.
 
-# Namnet pa metadataposten inne i en .vcmx. Ar den borta ar filen inte en
-# komponent vi kan lasa, och den raknas som oläsbar i stallet for att tigas bort.
+# Tva metadataposter inne i en .vcmx, och de bar olika saker.
+#
+# KATALOGPOSTEN ar den som raknas forst. MATT i M-76: den finns i 3201 av 3201
+# komponenter, ar 2-3 kB stor, och hela biblioteket lases pa 0,5 SEKUNDER. Den
+# bar DEKLARERADE falt - VCID, Name, Type, Manufacturer, Revision och
+# IsDeprecated i 100 procent, MaxPayload i 93 och Reach i 80.
+#
+# MODELLEN ar 200-300 kB och bar komponentens inre: beteendena (som avgor
+# familjen), granssnitten och parametrarna. Den lases bara i djupt lage, och
+# kostar 12,8 s over biblioteket.
+#
+# Att katalogposten fanns hela tiden ar fjarde gangen i det har bygget som ett
+# tal visade sig komma fran fel letstalle (M-34, M-57, M-69, och nu detta). Den
+# forsta versionen av den har filen laste BARA modellen, harledde tillverkare
+# och kategori ur KATALOGNAMNET, och lat databladslagret harleda rackvidden ur
+# lanklangder - allt medan tre deklarerade falt lag i en fil pa tva kilobyte.
+KATALOGPOST = "model.xml"
 METADATA = "component.rsc"
+
+# Ett deklarerat falt i katalogposten.
+_EGENSKAP = re.compile(r'<Property name="([^"]+)">(.*?)</Property>', re.S)
+
+# De falt vi laser ur katalogposten. Description utelamnas med flit: den ar
+# hundratals ord bruksanvisning per komponent och skulle femdubbla indexet utan
+# att hjalpa nagon att VALJA (M-60: informationen maste vara billig).
+_KATALOGFALT = ("VCID", "Name", "Type", "Manufacturer", "MaxPayload", "Reach",
+                "Tags", "Revision", "IsDeprecated", "Author")
+
+
+def _katalogpost(z):
+    """De deklarerade falten, eller {} om posten saknas."""
+    if KATALOGPOST not in z.namelist():
+        return {}
+    try:
+        text = z.read(KATALOGPOST).decode("utf-8", "replace")
+    except (KeyError, OSError):
+        return {}
+    ut = {}
+    for namn, varde in _EGENSKAP.findall(text):
+        # Namnen forekommer i bada skiftlagen i biblioteket (imageuri mot
+        # ImageUri). Vi laser skiftlagesokansligt och behaller det kanoniska.
+        for kanon in _KATALOGFALT:
+            if namn.lower() == kanon.lower():
+                v = varde.strip()
+                if v:
+                    ut[kanon] = v
+    return ut
 
 _NAMN = re.compile(r'^\s*Name\s+"([^"]*)"', re.M)
 _KATEGORI = re.compile(r'^\s*Category\s+"([^"]*)"', re.M)
@@ -159,12 +203,27 @@ class Post:
     storlek: int
     granssnitt: int = 0
     familj: str = ""
+    vcid: str = ""
+    rackvidd_mm: Optional[float] = None
+    nyttolast_kg: Optional[float] = None
+    utfasad: bool = False
+    etiketter: str = ""
+    revision: str = ""
     parametrar: Dict[str, str] = field(default_factory=dict)
 
     def till_json(self):
         d = {"namn": self.namn, "tillverkare": self.tillverkare,
              "kategori": self.kategori, "sokvag": self.sokvag,
              "storlek": self.storlek, "granssnitt": self.granssnitt}
+        for nyckel, varde in (("vcid", self.vcid),
+                              ("rackvidd_mm", self.rackvidd_mm),
+                              ("nyttolast_kg", self.nyttolast_kg),
+                              ("etiketter", self.etiketter),
+                              ("revision", self.revision)):
+            if varde not in (None, ""):
+                d[nyckel] = varde
+        if self.utfasad:
+            d["utfasad"] = True
         if self.familj:
             d["familj"] = self.familj
         if self.parametrar:
@@ -237,29 +296,65 @@ def hitta(rotter: Optional[List[Tuple[str, str]]] = None,
     return ut
 
 
+def _tal(text):
+    """Ett tal ur ett deklarerat falt, eller None. Tomt och skrap ar None.
+
+    None och inte 0.0: en robot utan angiven rackvidd har inte rackvidden noll,
+    och den skillnaden ar hela poangen med falten.
+    """
+    try:
+        return float(str(text).strip().replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
 def _las(vcmx: str, djupt: bool) -> Optional[Post]:
+    """En post ur en .vcmx.
+
+    Katalogposten lases ALLTID - den ar 2-3 kB och bar de deklarerade falten.
+    Modellen lases bara i djupt lage; den ar 200-300 kB och bar familjen,
+    granssnitten och parametrarna.
+    """
     try:
         with zipfile.ZipFile(vcmx) as z:
-            if METADATA not in z.namelist():
+            namn_i_arkivet = z.namelist()
+            kat = _katalogpost(z)
+            text = ""
+            if METADATA in namn_i_arkivet:
+                if djupt:
+                    text = z.read(METADATA).decode("utf-8", "replace")
+                else:
+                    with z.open(METADATA) as f:
+                        text = f.read(_HUVUD).decode("utf-8", "replace")
+            elif not kat:
+                # Varken katalogpost eller modell: det har ar ingen komponent.
                 return None
-            if djupt:
-                text = z.read(METADATA).decode("utf-8", "replace")
-            else:
-                with z.open(METADATA) as f:
-                    text = f.read(_HUVUD).decode("utf-8", "replace")
     except (zipfile.BadZipFile, OSError, KeyError):
         return None
-    n = _NAMN.search(text)
-    k = _KATEGORI.search(text)
-    return Post(namn=(n.group(1) if n else os.path.splitext(
-                    os.path.basename(vcmx))[0]),
-                tillverkare="",
-                kategori=(k.group(1) if k else ""),
-                sokvag=vcmx,
-                storlek=os.path.getsize(vcmx),
-                granssnitt=(len(_GRANSSNITT.findall(text)) if djupt else 0),
-                familj=(_familj(text) if djupt else ""),
-                parametrar=(_parametrar(text) if djupt else {}))
+
+    n = _NAMN.search(text) if text else None
+    k = _KATEGORI.search(text) if text else None
+    return Post(
+        namn=(kat.get("Name") or (n.group(1) if n else
+              os.path.splitext(os.path.basename(vcmx))[0])),
+        # Tillverkaren ar DEKLARERAD i katalogposten (100 procent, M-76).
+        # Katalognamnet anvands bara nar posten saknas.
+        tillverkare=kat.get("Manufacturer", ""),
+        # Likasa kategorin: Type ar deklarerad. Fore M-76 kom den ur
+        # katalognamnet i grunt lage och ur modellen i djupt - tva olika
+        # storheter som nastan alltid var lika (M-58).
+        kategori=(kat.get("Type") or (k.group(1) if k else "")),
+        sokvag=vcmx,
+        storlek=os.path.getsize(vcmx),
+        granssnitt=(len(_GRANSSNITT.findall(text)) if (djupt and text) else 0),
+        familj=(_familj(text) if (djupt and text) else ""),
+        vcid=kat.get("VCID", ""),
+        rackvidd_mm=_tal(kat.get("Reach")),
+        nyttolast_kg=_tal(kat.get("MaxPayload")),
+        utfasad=(str(kat.get("IsDeprecated", "")).strip().lower() == "true"),
+        etiketter=kat.get("Tags", ""),
+        revision=kat.get("Revision", ""),
+        parametrar=(_parametrar(text) if (djupt and text) else {}))
 
 
 def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
@@ -291,7 +386,8 @@ def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
             if post is None:
                 olasliga.append(hel)
                 continue
-            post.tillverkare = tillverkare
+            if not post.tillverkare:
+                post.tillverkare = tillverkare
             if not post.kategori and len(delar) > 1:
                 post.kategori = delar[-1]
             poster.append(post)

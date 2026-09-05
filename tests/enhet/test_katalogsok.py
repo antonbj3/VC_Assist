@@ -137,10 +137,16 @@ def test_familjefiltret_hittar_den_som_ligger_i_fel_katalog():
     assert k.sok(familj="transportor").totalt == 2
 
 
-def test_familjen_star_fore_kategorin_pa_raden():
-    """Den sanna storheten forst, den harledda efter."""
+def test_familjen_visas_i_stallet_for_kategorin_nar_den_finns():
+    """Den sanna storheten vinner. Kategorin visas bara nar familjen saknas.
+
+    Raden bar fyra falt och en agent laser dem i ett svep; att visa bade
+    familj och kategori hade kostat plats pa tva namn for samma sak, och det
+    ar rackvidden och nyttolasten som avgor ett val (M-76).
+    """
     rad = kat().sok(fraga="gomd").traffar[0].rad()
-    assert rad.index("transportor") < rad.index("Legacy")
+    assert "transportor" in rad
+    assert "Legacy" not in rad, "kategorin ska ge plats at familjen"
 
 
 def test_familjer_raknas_per_familj():
@@ -154,3 +160,68 @@ def test_ett_grunt_index_har_ingen_familj_alls():
                                         "kategori": "Robots", "sokvag": "/x"}]})
     assert k.familjer() == {"": 1}
     assert k.sok(familj="robot").totalt == 0
+
+
+# ---- deklarerade falt ur katalogposten (M-76) ------------------------------
+
+def index_dekl():
+    return {"format": 1, "rot": "/x", "djupt": False, "poster": [
+        {"namn": "stor", "tillverkare": "KUKA", "kategori": "Robots",
+         "sokvag": "/x/a.vcmx", "rackvidd_mm": 3200.0, "nyttolast_kg": 240.0},
+        {"namn": "liten", "tillverkare": "ABB", "kategori": "Robots",
+         "sokvag": "/x/b.vcmx", "rackvidd_mm": 900.0, "nyttolast_kg": 6.0},
+        {"namn": "utan matt", "tillverkare": "ABB", "kategori": "Robots",
+         "sokvag": "/x/c.vcmx"},
+        {"namn": "gammal", "tillverkare": "ABB", "kategori": "Robots",
+         "sokvag": "/x/d.vcmx", "rackvidd_mm": 4000.0, "nyttolast_kg": 500.0,
+         "utfasad": True}]}
+
+
+def kat_dekl():
+    return Katalog.fran_index(index_dekl())
+
+
+def test_rackviddsfiltret_slar_bort_den_som_SAKNAR_faltet():
+    """En komponent utan angiven rackvidd har inte rackvidden noll.
+
+    Att jamfora None mot ett tal hade antingen kastat eller tyst tolkat den som
+    noll - och da hade varje robot utan faltet sett ut som en robot som inte nar
+    nagonstans.
+    """
+    k = kat_dekl()
+    s = k.sok(min_rackvidd_mm=1000)
+    assert sorted(t.namn for t in s.traffar) == ["stor"]
+    assert k.sok(min_rackvidd_mm=0).totalt == 2, "utan matt ska inte med"
+
+
+def test_nyttolastfiltret_foljer_samma_regel():
+    assert [t.namn for t in kat_dekl().sok(min_nyttolast_kg=100).traffar] == ["stor"]
+
+
+def test_utfasade_utelamnas_om_man_inte_ber_om_dem():
+    """73 av 3201 ar markta utfasade av tillverkaren (M-76)."""
+    k = kat_dekl()
+    assert k.sok(min_rackvidd_mm=3000).totalt == 1
+    assert k.sok(min_rackvidd_mm=3000, med_utfasade=True).totalt == 2
+
+
+def test_raden_bar_rackvidd_och_nyttolast_med_enhet():
+    rad = kat_dekl().sok(fraga="stor").traffar[0].rad()
+    assert "3200 mm" in rad and "240 kg" in rad
+
+
+def test_raden_sager_SAKNAS_nar_faltet_inte_finns():
+    rad = kat_dekl().sok(fraga="utan matt").traffar[0].rad()
+    assert rad.count(SAKNAS) >= 2
+    assert " 0 mm" not in rad and " 0 kg" not in rad
+
+
+def test_en_utfasad_komponent_ar_markt_i_raden():
+    rad = kat_dekl().sok(fraga="gammal", med_utfasade=True).traffar[0].rad()
+    assert "UTFASAD" in rad
+
+
+def test_beskrivningen_namner_filtren():
+    """Beskrivningen syns i sammandraget och i nolltraffsvaret."""
+    t = kat_dekl().sok(min_rackvidd_mm=99999, min_nyttolast_kg=50).text()
+    assert "rackvidd >= 99999 mm" in t and "nyttolast >= 50 kg" in t

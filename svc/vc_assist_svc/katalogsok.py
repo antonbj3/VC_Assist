@@ -68,6 +68,9 @@ class Traff:
     sokvag: str
     granssnitt: int = 0
     familj: str = ""
+    rackvidd_mm: Optional[float] = None
+    nyttolast_kg: Optional[float] = None
+    utfasad: bool = False
     parametrar: Dict[str, str] = field(default_factory=dict)
 
     def rad(self) -> str:
@@ -76,10 +79,14 @@ class Traff:
         Familjen star FORE kategorin, for den ar den sanna: kategorin kommer
         ur katalognamnet eller ur ett falt, familjen ur komponentens struktur.
         """
-        return "%s | %s | %s | %s | granssnitt %s" % (
-            self.tillverkare or SAKNAS, self.namn, self.familj or SAKNAS,
-            self.kategori or SAKNAS,
-            self.granssnitt if self.granssnitt else SAKNAS)
+        return "%s | %s | %s | rackvidd %s | nyttolast %s%s" % (
+            self.tillverkare or SAKNAS, self.namn,
+            self.familj or self.kategori or SAKNAS,
+            ("%.0f mm" % self.rackvidd_mm) if self.rackvidd_mm is not None
+            else SAKNAS,
+            ("%.0f kg" % self.nyttolast_kg) if self.nyttolast_kg is not None
+            else SAKNAS,
+            "  [UTFASAD]" if self.utfasad else "")
 
     def fullt(self, max_parametrar: int = 25) -> str:
         rader = ["namn: %s" % self.namn,
@@ -165,6 +172,9 @@ class Katalog(object):
                         sokvag=_text(p.get("sokvag")),
                         granssnitt=int(p.get("granssnitt") or 0),
                         familj=_text(p.get("familj")),
+                        rackvidd_mm=p.get("rackvidd_mm"),
+                        nyttolast_kg=p.get("nyttolast_kg"),
+                        utfasad=bool(p.get("utfasad")),
                         parametrar=dict(p.get("parametrar") or {}))
                    for p in index["poster"]]
         return Katalog(poster, _text(index.get("rot")),
@@ -181,6 +191,9 @@ class Katalog(object):
 
     def sok(self, fraga: str = "", tillverkare: str = "", kategori: str = "",
             har_parameter: str = "", familj: str = "",
+            min_rackvidd_mm: Optional[float] = None,
+            min_nyttolast_kg: Optional[float] = None,
+            med_utfasade: bool = False,
             max_rader: int = MAX_RADER) -> Svar:
         """Filtrera och lamna ett svar som bar sin egen arlighet.
 
@@ -188,9 +201,11 @@ class Katalog(object):
         en modell skriver "IRB 6700" nar filen heter "IRB 6700-150_3_20".
         """
         traffar = self._filtrera(fraga, tillverkare, kategori, har_parameter,
-                                 familj)
+                                 familj, min_rackvidd_mm, min_nyttolast_kg,
+                                 med_utfasade)
         beskrivning = self._beskriv_fraga(fraga, tillverkare, kategori,
-                                          har_parameter, familj)
+                                          har_parameter, familj,
+                                          min_rackvidd_mm, min_nyttolast_kg)
         if len(traffar) > BRED_FRAGA:
             fordelning: Dict[str, int] = {}
             for t in traffar:
@@ -200,7 +215,8 @@ class Katalog(object):
                     None, beskrivning)
 
     def _filtrera(self, fraga, tillverkare, kategori, har_parameter,
-                  familj="") -> List[Traff]:
+                  familj="", min_rackvidd=None, min_nyttolast=None,
+                  med_utfasade=False) -> List[Traff]:
         f = (fraga or "").strip().lower()
         tv = (tillverkare or "").strip().lower()
         kt = (kategori or "").strip().lower()
@@ -209,6 +225,17 @@ class Katalog(object):
         ut = []
         for t in self.poster:
             if fm and fm != t.familj.lower():
+                continue
+            # En komponent utan angiven rackvidd har inte rackvidden noll. Den
+            # slas darfor bort ur ett rackviddsfilter i stallet for att
+            # jamforas mot None - samma regel som bankens katalogverktyg.
+            if min_rackvidd is not None:
+                if t.rackvidd_mm is None or t.rackvidd_mm < min_rackvidd:
+                    continue
+            if min_nyttolast is not None:
+                if t.nyttolast_kg is None or t.nyttolast_kg < min_nyttolast:
+                    continue
+            if t.utfasad and not med_utfasade:
                 continue
             if f and f not in t.namn.lower():
                 continue
@@ -226,8 +253,12 @@ class Katalog(object):
 
     @staticmethod
     def _beskriv_fraga(fraga, tillverkare, kategori, har_parameter,
-                       familj="") -> str:
+                       familj="", min_rackvidd=None, min_nyttolast=None) -> str:
         delar = []
+        if min_rackvidd is not None:
+            delar.append("rackvidd >= %.0f mm" % min_rackvidd)
+        if min_nyttolast is not None:
+            delar.append("nyttolast >= %.0f kg" % min_nyttolast)
         if familj:
             delar.append("familj = %s" % familj)
         if fraga:

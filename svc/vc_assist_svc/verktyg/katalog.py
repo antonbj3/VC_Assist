@@ -567,12 +567,24 @@ _BIBLIOTEKSTRAFF = {
                                      "Ingendera ar samma sak som familj.")},
         "fil": {"type": "string",
                 "description": "Sokvagen till .vcmx-filen. Det ar den som laddas."},
+        "rackvidd_mm": {"type": ["number", "null"],
+                        "description": ("Robotens rackvidd i millimeter, DEKLARERAD i "
+                                        "komponentens katalogpost. Null nar faltet "
+                                        "saknas - det betyder INTE noll (M-76: 2556 "
+                                        "av 3201 bar det).")},
+        "nyttolast_kg": {"type": ["number", "null"],
+                         "description": ("Hogsta nyttolast i kilogram, deklarerad. Null "
+                                         "nar faltet saknas (2986 av 3201).")},
+        "utfasad": {"type": "boolean",
+                    "description": ("Komponenten ar markt IsDeprecated av tillverkaren. "
+                                    "73 av 3201 ar det, och de utelamnas om du inte "
+                                    "ber om dem.")},
         "granssnitt": {"type": ["integer", "null"],
                        "description": ("Antal granssnittsforekomster i metadatan, eller "
                                        "null nar indexet ar grunt och inte har rakmat dem.")},
     },
     "required": ["namn", "tillverkare", "familj", "kategori", "fil",
-                 "granssnitt"],
+                 "granssnitt", "rackvidd_mm", "nyttolast_kg", "utfasad"],
     "additionalProperties": False,
 }
 
@@ -581,6 +593,8 @@ def _traff_ut(t, djupt):
     return {"namn": t.namn, "tillverkare": t.tillverkare or "",
             "familj": (t.familj or None) if djupt else None,
             "kategori": t.kategori or "", "fil": t.sokvag,
+            "rackvidd_mm": t.rackvidd_mm, "nyttolast_kg": t.nyttolast_kg,
+            "utfasad": bool(t.utfasad),
             "granssnitt": (t.granssnitt if djupt else None)}
 
 
@@ -594,6 +608,9 @@ def _search_installed_library(argument):
                        kategori=argument.get("category") or "",
                        har_parameter=argument.get("has_parameter") or "",
                        familj=argument.get("family") or "",
+                       min_rackvidd_mm=argument.get("min_reach_mm"),
+                       min_nyttolast_kg=argument.get("min_payload_kg"),
+                       med_utfasade=bool(argument.get("include_deprecated")),
                        max_rader=int(argument.get("max_rows") or 10))
     ut = {
         "traffar": [_traff_ut(t, katalog.djupt) for t in svar.traffar],
@@ -616,7 +633,10 @@ def _search_installed_library(argument):
 
 _lagg(
     "search_installed_library",
-    "Soker i det komponentbibliotek som FAKTISKT ar installerat pa maskinen "
+    "Soker i det komponentbibliotek som FAKTISKT ar installerat pa maskinen. "
+    "Filtren min_reach_mm och min_payload_kg laser DEKLARERADE falt ur "
+    "komponentens katalogpost, sa en fraga som 'robot med minst 3 meters "
+    "rackvidd och 200 kg nyttolast' gar att stalla rakt av. "
     "(3201 komponenter, 149 tillverkare, darav 2169 robotar och 163 "
     "transportorer). Det ar det har du valjer ur nar du ska BYGGA en scen. "
     "search_catalog soker i nagot annat: bankens 65 handskrivna poster, som "
@@ -646,6 +666,19 @@ _lagg(
                                           "geometrilada. Det ar en namnlista, inte "
                                           "komponentens egenskaper (M-59). Kraver "
                                           "ett djupt index.")},
+        "min_reach_mm": {"type": "number",
+                         "description": ("Bara komponenter med minst den har "
+                                         "rackvidden. En komponent UTAN angiven "
+                                         "rackvidd slas bort - den har inte "
+                                         "rackvidden noll, den saknar faltet.")},
+        "min_payload_kg": {"type": "number",
+                           "description": ("Bara komponenter med minst den har "
+                                           "nyttolasten. Samma regel: saknat falt "
+                                           "slas bort, det tolkas inte som noll.")},
+        "include_deprecated": {"type": "boolean",
+                               "description": ("Ta med komponenter som tillverkaren "
+                                               "markt utfasade. Standard ar att "
+                                               "utelamna dem (73 av 3201).")},
         "max_rows": {"type": "integer", "minimum": 1, "maximum": 50,
                      "description": "Hogsta antal rader i listan. Standard 10."},
     }),

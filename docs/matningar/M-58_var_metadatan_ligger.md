@@ -31,6 +31,19 @@ två procent av filen. Talet var förut en gissning som såg rimlig ut.
 
 ### "Kategori" i grunt läge är KATALOGNAMNET, inte metadatans fält
 
+> **RÄTTAD av M-76.** Slutsatsen nedan gällde koden som fanns då, och den var
+> riktig för den. Men den byggde på ett antagande ingen prövade: att
+> `component.rsc` var komponentens enda metadatapost.
+>
+> Det finns en till. `model.xml` är **2–3 kB**, finns i **3201 av 3201**
+> komponenter, och **deklarerar** `Type`, `Manufacturer`, `Reach`, `MaxPayload`
+> och `IsDeprecated`. Grunt läge läser den nu, och kategorin kommer därför ur
+> ett deklarerat fält — samma tal som den djupa läsningen ger, till en
+> sextondel av kostnaden.
+>
+> Mätningen av var `Name` och `Category` ligger i `component.rsc` står kvar och
+> är oförändrad. Det som föll är slutsatsen som drogs av den.
+
 Det är den viktiga raden. Grunt läge läser 4 096 byte och når därför **aldrig**
 `Category`. Fältet i indexet fylls i stället från katalogen komponenten låg i
 (`ABB/Robots/` → `Robots`).
