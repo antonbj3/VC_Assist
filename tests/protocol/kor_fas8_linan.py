@@ -914,8 +914,6 @@ class Linjekopplare(Kopplare):
         Kopplare.__init__(self, *a, **kw)
         self.kor_signal = True
         self.anlaggning = []
-        self.konflikter = 0
-        self.sista = {}
         self.pollintervall = 0.1
         self._utestaende = []
         # En SKYDDAD ingang gar inte att driva harifran, och det ar ratt
@@ -963,11 +961,13 @@ class Linjekopplare(Kopplare):
             if ut["state"] != "done":
                 raise RuntimeError("anlaggningssteget %s slutade som %r"
                                    % (aldst, ut["state"]))
-            svar = ((ut.get("svar") or {}).get("result") or {}).get("result")
-            if isinstance(svar, dict):
-                self.sista = svar
-                if svar.get("konflikt"):
-                    self.konflikter += 1
+            # Anlaggningens EGET svar gar inte att lasa har, och det ar med
+            # flit: `_vanta_latt` hamtar posten UTAN resultat, for `queue_list`
+            # serialiserar annars hela kon med varje posts svar (M-49). Ett
+            # konflikttal hamtat harifran hade darfor alltid varit noll - ett
+            # matt som ser matt ut och strukturellt inte kan bli annat an
+            # gront. Konflikterna raknas i slingan i stallet, ur kopplarens
+            # egna varden.
         self.anlaggning.append(post["qid"])
         return {}
 
@@ -1310,9 +1310,7 @@ def kor_en(namn, konfig, kropp_, a, index, brygga):
         rad["kopplaren"] = kopplare.sammanfattning()
         rad["slinga"]["varv_efter_uppvarmning"] = (
             len(kopplare.varv) - rad["uppvarmning"]["varv"])
-        rad["anlaggning"] = {"steg": len(kopplare.anlaggning),
-                             "konflikter": kopplare.konflikter,
-                             "sista": kopplare.sista}
+        rad["anlaggning"] = {"steg": len(kopplare.anlaggning)}
         # De tva klockorna, matta i DEN HAR korningen. Ett facit vars fonster
         # ar snava maste veta att kvoten var 1 - annars mater fonstren
         # kopplingen mellan klockorna, inte stationen.
