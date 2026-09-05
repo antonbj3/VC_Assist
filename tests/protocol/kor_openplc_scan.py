@@ -16,6 +16,9 @@ Spar per program (20 ms cykel i bada andar):
   SCAN_TP       t(IN := g, PT := T#1s); u := t.Q  (3x, pulsbredd 50 scan jamfors)
   SCAN_CTU      c(CU := g, PV := 5); u := c.Q    (5 pulser 60ms isar, Q vid 5:e)
   SCAN_SR       sr(S1 := s1, R := r); u := sr.Q1 (latch set/hold/reset/dominans)
+  SCAN_CTD      c(CD := g, LD := ld, PV := 5); u := c.Q (5 pulser 60ms isar, Q vid 5:e)
+  SCAN_CTUD     c(CU := cu, CD := cd, R := r, LD := ld, PV := 5); cv := c.CV (upp till 3, ned till 0)
+  SCAN_FTRIG    ft(CLK := g); u := ft.Q     (fallande flank, exakt en hog scan)
 
 Fail-closed:
   * Ett program vars utgang aldrig andras FALLS - annars matts att OpenPLC
@@ -125,6 +128,30 @@ PROGRAMMEN = [
       ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
      "    sr(S1 := s1, R := r);\n    u := sr.Q1;\n",
      "    sr : SR;\n"),
+    ("SCAN_CTD",
+     [("Givare", "Sig", "g", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Givare", "Ladda", "ld", "BOOL", "TILL_PLC", "%IX0.1"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    c(CD := g, LD := ld, PV := 5);\n    u := c.Q;\n",
+     "    c : CTD;\n"),
+    ("SCAN_CTUD",
+     [("Givare", "Upp", "cu", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Givare", "Ned", "cd", "BOOL", "TILL_PLC", "%IX0.1"),
+      ("Givare", "Nolla", "r", "BOOL", "TILL_PLC", "%IX0.2"),
+      ("Givare", "Ladda", "ld", "BOOL", "TILL_PLC", "%IX0.3"),
+      ("Don", "SvarU", "qu", "BOOL", "FRAN_PLC", "%QX0.0"),
+      ("Don", "SvarD", "qd", "BOOL", "FRAN_PLC", "%QX0.1"),
+      ("Don", "Raknevarde", "cv", "INT", "FRAN_PLC", "%QW0")],
+     "    c(CU := cu, CD := cd, R := r, LD := ld, PV := 5);\n"
+     "    qu := c.QU;\n"
+     "    qd := c.QD;\n"
+     "    cv := c.CV;\n",
+     "    c : CTUD;\n"),
+    ("SCAN_FTRIG",
+     [("Givare", "Sig", "g", "BOOL", "TILL_PLC", "%IX0.0"),
+      ("Don", "Svar", "u", "BOOL", "FRAN_PLC", "%QX0.0")],
+     "    ft(CLK := g);\n    u := ft.Q;\n",
+     "    ft : F_TRIG;\n"),
 ]
 
 
@@ -269,6 +296,61 @@ async def kor_sr(nod_s1, nod_r, nod_ut, ua):
     return {"ok": True, "openplc_u": oplc_u}
 
 
+async def kor_ctd(nod_in, nod_ld, nod_ut, ua):
+    await _skriv(nod_in, ua, False)
+    await _skriv(nod_ld, ua, True)
+    await asyncio.sleep(0.06)
+    await _skriv(nod_ld, ua, False)
+    await asyncio.sleep(0.06)
+    u_efter_puls = []
+    for _ in range(5):
+        await _skriv(nod_in, ua, True)
+        await asyncio.sleep(0.06)
+        await _skriv(nod_in, ua, False)
+        await asyncio.sleep(0.06)
+        u_val = bool(await nod_ut.read_value())
+        u_efter_puls.append(u_val)
+    return {"ok": True, "openplc_u": u_efter_puls}
+
+
+async def kor_ctud(nod_cu, nod_cd, nod_r, nod_ld, nod_cv, ua):
+    await _skriv(nod_r, ua, True)
+    await asyncio.sleep(0.06)
+    await _skriv(nod_r, ua, False)
+    await asyncio.sleep(0.06)
+    oplc_cv = [int(await nod_cv.read_value())]
+    for _ in range(3):
+        await _skriv(nod_cu, ua, True)
+        await asyncio.sleep(0.06)
+        await _skriv(nod_cu, ua, False)
+        await asyncio.sleep(0.06)
+        oplc_cv.append(int(await nod_cv.read_value()))
+    for _ in range(3):
+        await _skriv(nod_cd, ua, True)
+        await asyncio.sleep(0.06)
+        await _skriv(nod_cd, ua, False)
+        await asyncio.sleep(0.06)
+        oplc_cv.append(int(await nod_cv.read_value()))
+    return {"ok": True, "openplc_cv": oplc_cv}
+
+
+async def kor_ftrig(nod_in, nod_ut, ua):
+    await _skriv(nod_in, ua, False)
+    await asyncio.sleep(0.06)
+    await _skriv(nod_in, ua, True)
+    await asyncio.sleep(0.1)
+    await _skriv(nod_in, ua, False)
+    hog = 0
+    prov = 0
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < 0.2:
+        prov += 1
+        if bool(await nod_ut.read_value()):
+            hog += 1
+        await asyncio.sleep(0.005)
+    return {"hog_avlasningar": hog, "avlasningar": prov}
+
+
 def ladda(klient, karta, pou, station, endpoint, strucpp_paket,
           runtime_include, byggrot):
     full = pou + P.konfigurationstext(station, intervall=P.TASKINTERVALL)
@@ -312,6 +394,9 @@ async def _mat_allt(args):
                 "SCAN_TP": 3.0,
                 "SCAN_CTU": 1.0,
                 "SCAN_SR": 1.0,
+                "SCAN_CTD": 1.0,
+                "SCAN_CTUD": 1.0,
+                "SCAN_FTRIG": 1.0,
             }.get(station, TAK_S)
 
             if station == "SCAN_SR":
@@ -345,6 +430,62 @@ async def _mat_allt(args):
                 if u_init:
                     resultat[station] = {"ok": False,
                                          "skal": "CTU startade inte med u=False"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+            elif station == "SCAN_CTD":
+                n_in = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "g"))
+                n_ld = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "ld"))
+                n_ut = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "u"))
+                u_init = bool(await n_ut.read_value())
+                if not u_init:
+                    resultat[station] = {"ok": False,
+                                         "skal": "CTD startade inte med u=True"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+            elif station == "SCAN_CTUD":
+                n_cu = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "cu"))
+                n_cd = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "cd"))
+                n_r = oplc.get_node("ns=2;s=%s"
+                                    % opcuakonfig.nodid(station, "r"))
+                n_ld = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "ld"))
+                n_qu = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "qu"))
+                n_qd = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "qd"))
+                n_cv = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "cv"))
+                await _skriv(n_ld, ua, True)
+                await asyncio.sleep(0.06)
+                cv_ld = await n_cv.read_value()
+                await _skriv(n_ld, ua, False)
+                await _skriv(n_r, ua, True)
+                await asyncio.sleep(0.06)
+                cv_r = await n_cv.read_value()
+                await _skriv(n_r, ua, False)
+                await asyncio.sleep(0.06)
+                if cv_ld != 5 or cv_r != 0:
+                    resultat[station] = {"ok": False,
+                                         "skal": "CTUD reagerade inte pa LD/R"}
+                    print("%s: %s" % (station, json.dumps(resultat[station],
+                                                          sort_keys=True)))
+                    continue
+            elif station == "SCAN_FTRIG":
+                n_in = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "g"))
+                n_ut = oplc.get_node("ns=2;s=%s"
+                                     % opcuakonfig.nodid(station, "u"))
+                u_init = bool(await n_ut.read_value())
+                if u_init:
+                    resultat[station] = {"ok": False,
+                                         "skal": "F_TRIG startade inte med u=False"}
                     print("%s: %s" % (station, json.dumps(resultat[station],
                                                           sort_keys=True)))
                     continue
@@ -472,6 +613,72 @@ async def _mat_allt(args):
                 # SR kraver EXAKT 0 avvikelse (ren logik)
                 o["ok"] = (o["ok"] and (o["openplc_u"] == tolk_u)
                            and (tolk_u == [True, True, False, False, True, False, False]))
+                resultat[station] = o
+            elif station == "SCAN_CTD":
+                ins = [
+                    (0.0, {"g": False, "ld": True}),
+                    (60.0, {"g": False, "ld": False}),
+                    (120.0, {"g": True, "ld": False}), (180.0, {"g": False, "ld": False}),
+                    (240.0, {"g": True, "ld": False}), (300.0, {"g": False, "ld": False}),
+                    (360.0, {"g": True, "ld": False}), (420.0, {"g": False, "ld": False}),
+                    (480.0, {"g": True, "ld": False}), (540.0, {"g": False, "ld": False}),
+                    (600.0, {"g": True, "ld": False}), (660.0, {"g": False, "ld": False}),
+                    (720.0, {})
+                ]
+                trad = tolk_spar(karta, pou, ins)
+                tolk_u = []
+                for t_check in (200.0, 320.0, 440.0, 560.0, 680.0):
+                    val = next(r["varden"]["U"] for r in trad if abs(r["t_ms"] - t_check) < 1e-3)
+                    tolk_u.append(val)
+                o = await kor_ctd(n_in, n_ld, n_ut, ua)
+                o["tolk_u"] = tolk_u
+                # CTD kraver EXAKT 0 avvikelse (ren logik)
+                o["ok"] = (o["ok"] and (o["openplc_u"] == tolk_u)
+                           and (tolk_u == [False, False, False, False, True]))
+                resultat[station] = o
+            elif station == "SCAN_CTUD":
+                ins = [
+                    (0.0, {"cu": False, "cd": False, "r": True, "ld": False}),
+                    (60.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (120.0, {"cu": True, "cd": False, "r": False, "ld": False}),
+                    (180.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (240.0, {"cu": True, "cd": False, "r": False, "ld": False}),
+                    (300.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (360.0, {"cu": True, "cd": False, "r": False, "ld": False}),
+                    (420.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (480.0, {"cu": False, "cd": True, "r": False, "ld": False}),
+                    (540.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (600.0, {"cu": False, "cd": True, "r": False, "ld": False}),
+                    (660.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (720.0, {"cu": False, "cd": True, "r": False, "ld": False}),
+                    (780.0, {"cu": False, "cd": False, "r": False, "ld": False}),
+                    (840.0, {})
+                ]
+                trad = tolk_spar(karta, pou, ins)
+                tolk_cv = []
+                for t_check in (80.0, 200.0, 320.0, 440.0, 560.0, 680.0, 800.0):
+                    val = next(r["varden"]["CV"] for r in trad if abs(r["t_ms"] - t_check) < 1e-3)
+                    tolk_cv.append(int(val))
+                o = await kor_ctud(n_cu, n_cd, n_r, n_ld, n_cv, ua)
+                o["tolk_cv"] = tolk_cv
+                # CTUD kraver EXAKT 0 avvikelse (ren logik)
+                o["ok"] = (o["ok"] and (o["openplc_cv"] == tolk_cv)
+                           and (tolk_cv == [0, 1, 2, 3, 2, 1, 0]))
+                resultat[station] = o
+            elif station == "SCAN_FTRIG":
+                ins = [
+                    (0.0, {"g": False}),
+                    (60.0, {"g": True}),
+                    (160.0, {"g": False}),
+                    (400.0, {})
+                ]
+                trad = tolk_spar(karta, pou, ins)
+                t_hog = sum(1 for r in trad if r["varden"]["U"])
+                o = await kor_ftrig(n_in, n_ut, ua)
+                o["tolk_hog_scan"] = t_hog
+                o["ok"] = (o["hog_avlasningar"] >= 1
+                           and o["hog_avlasningar"] <= 6
+                           and t_hog == 1)
                 resultat[station] = o
         finally:
             await oplc.disconnect()
