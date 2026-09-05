@@ -165,7 +165,13 @@ class Lasare(object):
             while not self._ar("NYCKELORD", "END_STRUCT"):
                 if self._ar("SLUT"):
                     raise self._obalans("STRUCT", sr.rad, "END_STRUCT")
-                falt.extend(self._las_deklarationsrad())
+                dekls = self._las_deklarationsrad()
+                for d in dekls:
+                    if isinstance(d.typ, T.Pekare):
+                        raise Syntaxfel("TYP", d.rad,
+                                        "STRUCT-fält av REF_TO-typ stöds inte "
+                                        "(backend genererar fel C++: IEC_INT i stället för pekare)")
+                falt.extend(dekls)
             self._ta()
             self.blockstack.pop()
             self._krav("OP", ";")
@@ -241,7 +247,10 @@ class Lasare(object):
         typ = self._las_typ()
         init = None
         if self._ta_om("OP", ":="):
-            init = self._uttryck()
+            if self._ar("OP", "["):
+                init = self._las_faltinit()
+            else:
+                init = self._uttryck()
         semi = self._krav("OP", ";")
         skyddad = False
         while self.tk[self.p].sort == "PRAGMA" and self.tk[self.p].rad == semi.rad:
@@ -260,6 +269,10 @@ class Lasare(object):
 
     def _las_typ(self) -> T.Typ:
         t = self._kika()
+        if t.sort == "NYCKELORD" and t.nyckel == "REF_TO":
+            self._ta()
+            mal = self._las_typ()
+            return T.Pekare(mal)
         if t.sort == "NYCKELORD" and t.nyckel == "STRING":
             self._ta()
             langd = None
@@ -305,6 +318,36 @@ class Lasare(object):
         neg = bool(self._ta_om("OP", "-"))
         t = self._krav("HELTAL", vad="ett heltal")
         return -int(t.varde) if neg else int(t.varde)
+
+    def _las_faltinit(self) -> M.Faltinit:
+        start = self._krav("OP", "[")
+        if self._ar("OP", "]"):
+            raise Syntaxfel("SYNTAX", start.rad, "en fältinitierare kan inte vara tom")
+        element = [self._las_faltinit_element()]
+        while self._ta_om("OP", ","):
+            element.append(self._las_faltinit_element())
+        self._krav("OP", "]")
+        return M.Faltinit(element=tuple(element), rad=start.rad)
+
+    def _las_faltinit_element(self) -> M.FaltinitElement:
+        if self._ar("OP", "["):
+            v = self._las_faltinit()
+            return M.FaltinitElement(v, None, getattr(v, "rad", 0))
+        if self._ar("HELTAL") and self._kika(1).sort == "OP" and self._kika(1).text == "(":
+            antal_token = self._ta()
+            antal = int(antal_token.varde)
+            if antal <= 0:
+                raise Syntaxfel("SYNTAX", antal_token.rad,
+                                "upprepningsantalet i fältinitieraren måste vara större än 0")
+            self._krav("OP", "(")
+            if self._ar("OP", "["):
+                varde = self._las_faltinit()
+            else:
+                varde = self._uttryck()
+            self._krav("OP", ")")
+            return M.FaltinitElement(varde, antal, antal_token.rad)
+        v = self._uttryck()
+        return M.FaltinitElement(v, None, getattr(v, "rad", 0))
 
     # ---- satser ---------------------------------------------------------
 
@@ -597,6 +640,8 @@ class Lasare(object):
             return M.Literal("STRANG", t.text, t.varde, None, t.rad)
         if t.sort == "NYCKELORD" and t.nyckel in ("TRUE", "FALSE"):
             return M.Literal("BOOL", t.nyckel, t.nyckel == "TRUE", None, t.rad)
+        if t.sort == "NYCKELORD" and t.nyckel == "NULL":
+            return M.Literal("NULL", t.nyckel, None, None, t.rad)
         if t.sort == "IDENT":
             return self._postfix(M.Namn(t.text, t.rad), ta_namn=False)
         raise Syntaxfel("SYNTAX", t.rad,
@@ -614,6 +659,10 @@ class Lasare(object):
         if ta_namn:
             self._ta()
         while True:
+            if self._ar("OP", "^"):
+                t = self._ta()
+                bas = M.Avreferering(bas, t.rad)
+                continue
             if self._ar("OP", "."):
                 self._ta()
                 falt = self._krav("IDENT", vad="ett fältnamn")

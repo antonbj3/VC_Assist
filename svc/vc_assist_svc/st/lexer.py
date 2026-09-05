@@ -31,7 +31,7 @@ NYCKELORD = {
     "REPEAT", "UNTIL", "END_REPEAT",
     "EXIT", "RETURN",
     "AND", "OR", "XOR", "NOT", "MOD",
-    "TRUE", "FALSE",
+    "TRUE", "FALSE", "NULL", "REF_TO",
 }
 
 # Blockavslutare -> blocköppnare. Används av läsaren för att kunna säga
@@ -47,7 +47,7 @@ AVSLUTARE = {
 # Tvateckenoperatorer. "**" ar IEC 61131-3:s exponentoperator och binder
 # hardare an allt utom parentes och funktionsanrop (tabell 71).
 TVATECKEN = ("<=", ">=", "<>", ":=", "=>", "..", "**")
-ENTECKEN = "+-*/<>=(),;:.[]&"
+ENTECKEN = "+-*/<>=(),;:.[]&^"
 
 # Tidsenheter, störst först. IEC 61131-3 (3:e utg.) tillåter d h m s ms us ns.
 # Ordningen i tupeln ÄR signifikansordningen som literalen måste följa.
