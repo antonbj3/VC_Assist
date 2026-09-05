@@ -774,10 +774,11 @@ def test_antalet_dokumenterade_avvikelser_gar_inte_upp_av_sig_sjalvt():
 
     Talet var M-51:s 19. M-99 svepte 394 nya konstruktioner over skiftlage,
     blanksteg, kommentarer, talformer, tidsliteraler, strangar, uttryck och
-    POU-ramen, lagade sex falska rodgrindar och tre hal, och lamnade 21 nya
-    dokumenterade avvikelser: elva dar vi ar avsiktligt strangare, sju dar
-    kompilatorversionen ar begransningen, och TRE falska rodgrindar som star
-    kvar med skal utskrivet (faltinitieraren i tva former och CONFIGURATION).
+    POU-ramen, lagade fyra falska rodgrindar och fyra hal, och lamnade 18
+    nya dokumenterade avvikelser: elva dar vi ar avsiktligt strangare - varav
+    TRE ar falska rodgrindar som star kvar med skal utskrivet
+    (faltinitieraren i tva former och CONFIGURATION) - och sju dar
+    kompilatorversionen ar begransningen.
 
     Taket ar hojt MEDVETET till 40. Det far sjunka nar en avvikelse lagas,
     men en ny rad ska fortsatta kosta ett beslut."""
