@@ -45,6 +45,12 @@ directory outside the repository.
 **OpenPLC** compiles and runs the code as a real soft-PLC. It drives the
 simulation over OPC UA, the same protocol a physical PLC would use.
 
+Generated logic is interlocked *by* the safety PLC and never part of it — the
+architecture every real cell already uses, and the one IEC 61508 and ISO 13849
+require. The bench contains tasks in exactly that shape: a press with two-hand
+control where the generated sequence runs only while the certified circuit
+permits it.
+
 **The eye** samples the entire scene while it runs — every object's position,
 every signal, every edge — and judges on five axes: sequence, timing, grasp,
 collision and throughput.
@@ -140,14 +146,6 @@ its stated limits. Nothing here is an estimate.
 * 247 permanent language cases cross-checked against a second compiler
 * and, since today, a third engine: code is judged by OpenPLC's own runtime,
   not only by our interpreter
-
-## The safety boundary
-
-Nothing generated touches a safety function. Emergency stops and protective
-circuits belong on a certified safety PLC, in a limited variability language,
-written by a person. Generated logic sits *beside* that, interlocked *by* it.
-This is not caution: IEC 61508 and ISO 13849 require it, and the bench contains
-tasks written in exactly that shape.
 
 ## Why it is built the way it is
 
