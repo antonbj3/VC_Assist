@@ -1,0 +1,44 @@
+=== C9: SKADA SPECEN (EXPECT) MOT DOMARE OCH REFERENSLÖSNING ===
+
+--- A-03 ---
+  THROUGHPUT_ORIMLIG       : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MAX_COLLISIONS_MINUS     : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  MIN_CLEARANCE_5M         : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MUST_PASS_EMPTY          : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  FORBIDDEN_LINE_WILDCARD  : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  VERDICT_FAIL             : dom=GRÖN  schema=RÖD   -> FÄLLDES
+
+--- P-03 ---
+  THROUGHPUT_ORIMLIG       : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MAX_COLLISIONS_MINUS     : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  MIN_CLEARANCE_5M         : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MUST_PASS_EMPTY          : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  FORBIDDEN_LINE_WILDCARD  : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  VERDICT_FAIL             : dom=GRÖN  schema=RÖD   -> FÄLLDES
+
+--- S-07 ---
+  THROUGHPUT_ORIMLIG       : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MAX_COLLISIONS_MINUS     : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  MIN_CLEARANCE_5M         : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MUST_PASS_EMPTY          : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  FORBIDDEN_LINE_WILDCARD  : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  VERDICT_FAIL             : dom=GRÖN  schema=RÖD   -> FÄLLDES
+
+--- C-04 ---
+  THROUGHPUT_ORIMLIG       : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MAX_COLLISIONS_MINUS     : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  MIN_CLEARANCE_5M         : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MUST_PASS_EMPTY          : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  FORBIDDEN_LINE_WILDCARD  : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  VERDICT_FAIL             : dom=GRÖN  schema=RÖD   -> FÄLLDES
+
+--- T-04 ---
+  THROUGHPUT_ORIMLIG       : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MAX_COLLISIONS_MINUS     : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  MIN_CLEARANCE_5M         : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  MUST_PASS_EMPTY          : dom=GRÖN  schema=GRÖN  -> GRÖN (OMÄTT)
+  FORBIDDEN_LINE_WILDCARD  : dom=GRÖN  schema=RÖD   -> FÄLLDES
+  VERDICT_FAIL             : dom=GRÖN  schema=RÖD   -> FÄLLDES
+
+Totalt provade spec-skador: 30
+Antal skador där referenslösningen förblir GRÖN (kravet mäts aldrig): 15 (50 %)
