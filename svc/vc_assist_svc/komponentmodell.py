@@ -646,6 +646,52 @@ def _granssnitt(logg, k, namn, ram, falttyp, kontakt, agare):
             "is_connected": bool(g.IsConnected)}
 
 
+def _las_granssnitt(g):
+    # Samma form som _granssnitt lamnar vid bygget, men last ur ett
+    # BEFINTLIGT granssnitt. Det ar det som gor att varfor_inte() kan koras
+    # pa VERKLIG VC-data i stallet for bara pa provfixturer.
+    if g is None:
+        return None
+    post = {"name": g.Name, "section": None, "field": None,
+            "field_type": None, "properties_after": [], "connector": None,
+            "is_connected": bool(g.IsConnected)}
+    for sek in g.Sections:
+        post["section"] = sek.Name
+        for falt in sek.Fields:
+            post["field"] = falt.Name
+            post["field_type"] = _enkelt(falt.Type)
+            post["properties_after"] = _egenskaper(falt)
+            break
+        break
+    return post
+
+
+def _kontakttyp_i(g, komp):
+    # Vilken kontakt faltets Port pekar pa, och vilken TYP den har. Riktningen
+    # bor i kontakten (R5), inte i granssnittets namn: ett granssnitt som
+    # HETER OutInterface men bar en Input-kontakt matchar som ingang.
+    post = _las_granssnitt(g)
+    if post is None:
+        return None
+    port = None
+    for p in post["properties_after"]:
+        if p["name"] == EGENSKAP_PORT:
+            port = p["value"]
+    if not isinstance(port, int) or isinstance(port, bool) or port < 0:
+        return post
+    for b in komp.Behaviours:
+        try:
+            kontakter = b.Connectors
+        except (AttributeError, NameError):
+            continue
+        for c in kontakter:
+            if c.Index == port:
+                post["connector"] = {"name": c.Name, "index": c.Index,
+                                     "type": _enkelt(c.Type)}
+                return post
+    return post
+
+
 def _placera(k, x, y, z):
     # translateAbs ar RELATIV i absoluta axlar (M-11), sa ett absolut lage
     # skickas som skillnaden mot det nuvarande.
@@ -961,6 +1007,11 @@ def koppla(a, b, granssnitt_a="OutInterface", granssnitt_b="InInterface",
         "        def utfor():",
         "            return bool(ga.connect(gb))",
         "        ok2, kopplad = _steg(steg, %s, utfor)" % lit("connect"),
+        # Las tillbaka BADA sidornas faltbindning och kontakttyp. Utan det
+        # ar ett False bara ett False; med det kan varfor_inte() peka ut
+        # vilken regel i matchningsregeln som brast -- pa verklig data.
+        "post_a = _kontakttyp_i(ga, ka)",
+        "post_b = _kontakttyp_i(gb, kb)",
         '_svara({"koppling": %s, "a": %s, "b": %s,'
         % (lit(etikett or (a + "->" + b)), lit(a), lit(b)),
         '        "granssnitt_a": %s, "granssnitt_b": %s,'
@@ -969,6 +1020,7 @@ def koppla(a, b, granssnitt_a="OutInterface", granssnitt_b="InInterface",
         '        "granssnitt_a_fanns": ga is not None,',
         '        "granssnitt_b_fanns": gb is not None,',
         '        "canConnect": kan, "connect": kopplad,',
+        '        "post_a": post_a, "post_b": post_b,',
         '        "a_is_connected": bool(ga.IsConnected) if ga is not None else None,',
         '        "b_is_connected": bool(gb.IsConnected) if gb is not None else None,',
         '        "steg": steg})',

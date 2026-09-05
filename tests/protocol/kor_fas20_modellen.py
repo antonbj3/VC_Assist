@@ -499,6 +499,14 @@ def _dom_trasiga(byggda, kopplingar):
             if fall["konstant"] not in rapport.text():
                 fel.append("%s: felet namner inte konstanten %s"
                            % (klass, fall["konstant"]))
+        regel = None
+        if trasig is not None:
+            r, text = K.varfor_inte(trasig.get("post_a"), trasig.get("post_b"))
+            regel = None if r is None else (r.id, text)
+            if not trasig.get("canConnect") and r is None:
+                fel.append("%s: VC sa nej men var matchningsregel hittar inget "
+                           "villkor som brast -- regeln forklarar inte utfallet"
+                           % klass)
         if trasig is None:
             fel.append("%s: kopplingen mot den trasiga provades aldrig" % klass)
         elif trasig.get("canConnect"):
@@ -515,7 +523,7 @@ def _dom_trasiga(byggda, kopplingar):
             "klass": klass, "beteende": fall["beteende"],
             "trasig_kan": None if trasig is None else trasig.get("canConnect"),
             "hel_kan": None if hel is None else hel.get("canConnect"),
-            "namngivet": namngivet,
+            "namngivet": namngivet, "regel": regel,
         })
     return fel, rader
 
@@ -571,6 +579,33 @@ def _dom_flodet(serie):
                    % (spann, TYSTA_INTERVALL * INTERVALL_S))
     return fel, {"spann": spann, "skapelser": skapelser, "mellanrum": mellanrum,
                  "kvoter": kvoter, "nadde": nadde}
+
+
+STADKOD = """import json
+app = getApplication()
+_bort = []
+for _c in list(app.Components):
+    if _c.Name[:4] == 'F20_':
+        _bort.append(_c.Name)
+        app.deleteComponent(_c)
+print(json.dumps({"bortagna": _bort}))
+"""
+
+
+def _stada(k):
+    """VC ar DELAD, och en annan agents oga provtar `scen: all`. Lamnar vi
+    sexton F20-komponenter kvar hamnar de i NAGON ANNANS matning. Mätt:
+    medan den har korningen forbereddes stod `ogat startat ... parts:
+    [F20_Produkt]` i bryggloggen -- vara komponenter i deras provtagning.
+    """
+    post = k.anrop("exec_queue", {"code": STADKOD,
+                                  "desc": "fas20: stada bort F20-komponenterna",
+                                  "tillat_skriptbeteende": False})["result"]
+    ut = k.godkann_och_vanta(post["qid"], timeout=60.0)
+    if ut["state"] != "done":
+        return None
+    svar = ((ut.get("svar") or {}).get("result") or {}).get("result") or {}
+    return svar.get("bortagna")
 
 
 def _aterstall_startskriptet():
@@ -659,9 +694,12 @@ def main(argv=None):
     for _ in range(a.prov):
         serie.append(_prov(k))
         time.sleep(a.paus)
+    bortagna = _stada(k)
     k.stang()
     flodesfel, flode = _dom_flodet(serie)
     _aterstall_startskriptet()
+    print("  stadade bort %s F20-komponenter ur den delade scenen"
+          % ("?" if bortagna is None else len(bortagna)))
 
     print("\n=== 1. de fyra minsta uppsattningarna, byggda ur specen ===")
     for namn, klass, r in byggrader:
@@ -679,6 +717,9 @@ def main(argv=None):
         print("  %-12s utan %-8s  trasig: canConnect=%-5s   hel: canConnect=%-5s"
               % (r["klass"], r["beteende"], r["trasig_kan"], r["hel_kan"]))
         print("               var granskning namnger: %s" % (r["namngivet"],))
+        if r.get("regel"):
+            print("               matchningsregeln brast pa %s: %s"
+                  % (r["regel"][0], r["regel"][1][:110]))
     print("\n=== 4. ror sig material igenom? ===")
     if flode:
         print("  simtid %.2f -> %.2f (%.1f s)"
