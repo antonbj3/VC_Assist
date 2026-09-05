@@ -182,6 +182,63 @@ tyngsta av dem står nedan.
 | 20 | **Komponentmodellen** | `49_komponentmodellen.md` svarar på vad som krävs för att `canConnect` blir sant, och vilken minsta uppsättning en TRANSPORTÖR, MATARE, SÄNKA och BUFFERT behöver. Allt var belagt eller mätt **i text** — ingenting byggt ur specen | De fyra minsta uppsättningarna byggda **ur specen**, i riktig VC: `canConnect` sant mellan rätt par, och material som verkligen rör sig igenom. Trasigt fall: en komponent som saknar ett av specens krävda beteenden får **inte** kunna kopplas — och felet ska säga vilket beteende som fattas. **Läge: modellen byggd** (`svc/vc_assist_svc/komponentmodell.py`, spec 49 avsnitt 7–10, 199 prov utan VC, fyra trasiga fixturer). Kvar: körningen mot VC, `tests/protocol/kor_fas20_modellen.py`, som skrivs in i **M-101** |
 | 21 | **Bänken i skala** | `M-80` mätte fyra uppgifter. Banken bär **51**, och 47 av dem har inget spårfacit. Fas 8 byggde **en** lina med två stationer. Ett tal ur fyra uppgifter säger lite om kapacitet, och n = 1 per uppgift säger ingenting om spridning | Spårfacit för minst 20 av bankens 51 uppgifter, körda genom hela kedjan mot riktig VC och OpenPLC, med **upprepning** så spridningen går att rapportera. Trasigt fall: ett facit som härletts ur samma tolk som dömer det måste avvisas — facit hör utanför koden som prövas |
 
+## Fas 23: användarlagret — vad användaren ser när något har dött
+
+Fas 17 svarade på *vad händer medan det arbetar?* Den här svarar på den fråga
+som kommer direkt efter, och som ingen fas rört: **vad ser användaren när något
+har dött, och kommer systemet tillbaka?**
+
+De två är inte samma fråga, och skillnaden är hela fasen. En körning som lever
+kan berätta vad den gör — dess egna händelser bär svaret. Ett delsystem som dog
+kan inte berätta någonting alls. Det som finns att tolka är en **tystnad**, och
+tystnad kan bara tolkas av någon annan än den som tystnade.
+
+| # | Fas | Varför den finns, med belägg | Grönt |
+|---|---|---|---|
+| 23 | **Användarlagret** (STÄNGD, M-103) | `26_appen.md`, `27_operatorsflodet.md` och `28_lagen_och_aterhamtning.md` bar 1 043 rader spec om vad användaren möter — och **ingen av de tre hade en fas**, samma form som fas 16 och 19. Mätt före koden fanns: `28` specar **sju lägen**, och **noll** av dem gick att härleda ur någon kod i `svc/`. Ordet `degraded` stod i pumpens `ping`-svar och lästes av ingen. Noll moduler räknade en avläsnings **ålder** mot läsarens klocka — den mekanism fas 17 mätte som ARBETAR i 60 av 60 | När ett delsystem slutat svara säger ytan **vad** som dog, **varför**, om något försöker igen och vad operatören själv kan göra — och den fäller sin egen grind. Trasiga fall som måste falla: en härledning som räknar en gammal avläsning som ett svar, en som räknar en lyckad `connect()` som ett livstecken, en visning som lovar ett nytt försök när ingenting försöker, och ett läge som inte gick att avgöra som visas som grönt eller tyst utelämnas. **STÄNGD (M-103):** `svc/vc_assist_svc/aterhamtning/` med **14 regler**, var och en med minst en trasig fixtur, **88 prov** utan VC. Talen: en härledning som fryser klockan sa LEVANDE i **60 av 60** avläsningar av en sond som dog efter den första — med läsarens egen klocka **3 av 60**. `connect()` mot en lyssnande socket som ingen accepterar lyckades **20 av 20**, median 0,12 ms, och `ping` svarade **0 av 20** (regel L-1:s premiss, mätt på Linux; Wine står kvar i M-25). Av **18 orsaker** har **3** ett automatiskt försök och **2** ett som är mätt att kunna lyckas — i **15 av 18** försöker ingenting igen, och ytan säger det med de orden. Mellan **31,8 %** och **42,9 %** av ytan handlar om vad systemet inte vet |
+
+### Varför en visning behöver en egen grind
+
+En visning är en dom om systemets tillstånd, ställd till den enda som inte kan
+kontrollera den. Vi som bygger kan läsa loggen; användaren kan bara läsa ytan.
+En yta som säger fel har därför en värre asymmetri än en logg som säger fel.
+
+Fas 17 fällde två sorters lögn: en **renderare** som skriver något annat än
+protokollet säger, och en **läsare** som fryser klockan. Fas 23 lägger till en
+tredje, och den är den som hör återhämtningen till: en **härledning**. Ett läge
+är en slutsats om en tystnad, och den som drar slutsatsen kan dra fel — räkna en
+lyckad `connect()` som liv, återanvända en avläsning som blivit gammal, eller
+låta en klocka som gått bakåt betyda att ingen tid gått. Alla tre ger samma
+svar: *ansluten* om något som inte svarar.
+
+Grinden räknar därför om varje delsystems läge **själv**, ur de råa
+avläsningarna och läsarens klocka. En grind som frågar den den dömer mäter till
+slut sig själv.
+
+### De tre trasiga fallen som fasen finns för
+
+1. **Ett dött läge får aldrig se ut som ett arbetande** — och inte heller som
+   *"Ett problem uppstod, vi försöker igen"* när ingenting försöker igen. Den
+   meningen är värre än tystnad: den ber användaren vänta på något som inte
+   händer.
+2. **Ett återhämtningsförsök som inte kan lyckas får inte rapporteras som
+   pågående.** Kanskapen har tre värden, aldrig två, och den räknas om vid
+   varje visning — slår bryggan av sin självstart mitt i ett självstartsförsök
+   blir försöket omöjligt utan att någon rör det.
+3. **Ett tillstånd som inte gick att avgöra ska stå som `obestämt`** — aldrig
+   som grönt, aldrig tyst utelämnat (fail-closed, I3).
+
+### Vad fasen INTE stänger
+
+* **Ingen sond går av sig själv.** Ytan läser avläsningar; vem som gör dem och
+  hur ofta är inte bestämt (`28_lagen_och_aterhamtning.md` §9 fråga 5).
+* **Ingen väg tillbaka har körts mot en VC som verkligen gick ned.** Alla fyra
+  dödsfallen är framprovocerade mot attrapper, och det står som en permanent
+  ovisshet i **varje** visning — inte som en fotnot i ett protokoll.
+* **Läget `blockerad` kan inte fyras.** Raden `modal oppen` är spec'ad i
+  `26_appen.md` A-3 och finns inte i koden. Väntar på **M-21**.
+* **Windows är oprövat**, hela vägen (M-44, I17).
+
 ## Regeln som gäller alla faser, också de nya
 
 En fas är klar först när dess acceptansprotokoll i `tests/protocol/` är **körd
