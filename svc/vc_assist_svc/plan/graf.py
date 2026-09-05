@@ -123,7 +123,7 @@ class Uppgiftsgraf(object):
         if kvar:
             cykler = self.cykler()
             raise Graffel(
-                "grafen har %d cykel(er) och gar inte att ordna: %s"
+                "the graph has %d cycle(s) and cannot be ordered: %s"
                 % (len(cykler), "; ".join(" -> ".join(c) for c in cykler)),
                 cykler)
         return ut
