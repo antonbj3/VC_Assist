@@ -117,3 +117,29 @@ def test_d12_trasig_fixtur_faller_i_ogat():
         f"Felaktig orsak i domen: {rap_fel.dom[1]}"
     )
 
+
+def test_d12_kodfallsgrind_fal_001_faller_felordning():
+    """FAL-001 fäller all genererad kod som läser getQuaternion() i namnordning."""
+    trasiga_kodblock = [
+        "q = m.getQuaternion()\nx, y, z, w = q.X, q.Y, q.Z, q.W\n",
+        "q = m.getQuaternion()\nx = q.X\n",
+        "q = m.getQuaternion()\nw = q.W\n",
+        "q = m.getQuaternion()\nvridning = [q.X, q.Y, q.Z, q.W]\n",
+        "q = nod.WorldPositionMatrix.getQuaternion()\nx = q.X\n",
+    ]
+
+    for kod in trasiga_kodblock:
+        skal = Kf.kvaternion_i_namnordning(kod)
+        assert len(skal) > 0, f"Kodfallsgrinden missade att fälla felordningen i:\n{kod}"
+        assert any("skalaren" in s.lower() or "skalären" in s.lower() for s in skal)
+
+    # Korrekt läsning ska släppas igenom
+    korrekta_kodblock = [
+        "q = m.getQuaternion()\nskalar = q.X\nvektor = [q.Y, q.Z, q.W]\n",
+        "q = m.getQuaternion()\nw = q.X\nx, y, z = q.Y, q.Z, q.W\n",
+    ]
+    for kod in korrekta_kodblock:
+        skal = Kf.kvaternion_i_namnordning(kod)
+        assert len(skal) == 0, f"Korrekt kod fälldes felaktigt:\n{kod}\nskäl: {skal}"
+
+
