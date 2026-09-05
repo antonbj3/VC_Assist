@@ -307,5 +307,269 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: lasningen tar 1,8 s och bytet hogst 8,0 s = tva rorelser plus tva lascykler 2 * 1,8 s = 3,6 s som ryms i 8,0 s med 4,4 s forflyttningsmarginal. Sakerhetskravet for forregling och att ett verktyg aldrig far lasas upp utanfor stallet star i ISO 10218-2:2011 5.6.3.4.2 samt ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" och IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\". M-124; människans facit skrivet ur normal, tool_lag, tool_hog, locked_uteblir och expect före körning.",
+    "standard": "ISO 10218-2:2011 5.6.3.4.2 \"Manual reset, start/restart and unexpected start-up\"; IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och R_TRIG).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST140_VERKTYGSBYTE\nVAR\n    steg        : INT := 0;\n    onskatVerkt : INT := 1;\n    trigDone    : R_TRIG;\n    tmrLas      : TON;\n    xDriftsklar : BOOL := FALSE;\n    xLasFel     : BOOL := FALSE;\nEND_VAR\n\ntrigDone(CLK := ST140_RB_DONE);\n\nIF trigDone.Q THEN\n    IF onskatVerkt = 1 THEN\n        onskatVerkt := 2;\n    ELSE\n        onskatVerkt := 1;\n    END_IF;\nEND_IF;\n\ntmrLas(IN := (steg = 3), PT := T#3s);\nIF tmrLas.Q AND NOT ST140_TCH_LOCKED THEN\n    xLasFel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xLasFel;\n\nIF NOT xDriftsklar THEN\n    ST140_RB_START := FALSE;\n    ST140_TCH_BUSY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST140_RB_START := FALSE;\n            IF ST140_TOOL_ID = onskatVerkt AND ST140_TCH_LOCKED THEN\n                ST140_TCH_BUSY := FALSE;\n                ST140_TCH_LOCK := TRUE;\n                steg := 10;\n            ELSIF ST140_TOOL_ID <> 0 AND ST140_TOOL_ID <> onskatVerkt THEN\n                ST140_TCH_BUSY := TRUE;\n                steg := 1;\n            ELSIF ST140_TOOL_ID = 0 THEN\n                ST140_TCH_BUSY := TRUE;\n                steg := 2;\n            END_IF;\n\n        1:\n            ST140_RB_START := FALSE;\n            ST140_TCH_BUSY := TRUE;\n            IF ST140_RCK_PRS1 OR ST140_RCK_PRS2 THEN\n                ST140_TCH_LOCK := FALSE;\n            END_IF;\n            IF ST140_TCH_UNLOCKED THEN\n                steg := 2;\n            END_IF;\n\n        2:\n            ST140_RB_START := FALSE;\n            ST140_TCH_BUSY := TRUE;\n            ST140_TCH_LOCK := FALSE;\n            IF (onskatVerkt = 1 AND ST140_RCK_PRS1) OR (onskatVerkt = 2 AND ST140_RCK_PRS2) THEN\n                steg := 3;\n            END_IF;\n\n        3:\n            ST140_RB_START := FALSE;\n            ST140_TCH_BUSY := TRUE;\n            ST140_TCH_LOCK := TRUE;\n            IF ST140_TCH_LOCKED AND (ST140_TOOL_ID = onskatVerkt) AND (ST140_TOOL_ID = 1 OR ST140_TOOL_ID = 2) THEN\n                ST140_TCH_BUSY := FALSE;\n                steg := 10;\n            END_IF;\n\n        10:\n            ST140_TCH_BUSY := FALSE;\n            IF ST140_RB_DONE THEN\n                ST140_RB_START := FALSE;\n                steg := 0;\n            ELSIF ST140_TCH_LOCKED AND (ST140_TOOL_ID = onskatVerkt) AND (ST140_TOOL_ID = 1 OR ST140_TOOL_ID = 2) THEN\n                ST140_RB_START := TRUE;\n                ST140_TCH_LOCK := TRUE;\n            ELSE\n                ST140_RB_START := FALSE;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM",
+    "sekvenser": [
+      {
+        "id": "normal_drift_med_byte",
+        "beskrivning": "Normaldrift dar verktyg 1 anvands, arbetsprogrammet slutfors, verktygsbyte till verktyg 2 sker och nytt arbete startas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST140_TCH_LOCKED": true,
+              "ST140_TCH_UNLOCKED": false,
+              "ST140_TOOL_ID": 1,
+              "ST140_RCK_PRS1": false,
+              "ST140_RCK_PRS2": true,
+              "ST140_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 60,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_LOCK": true,
+              "ST140_RB_START": true,
+              "ST140_TCH_BUSY": false
+            },
+            "varfor": "med monterat och last verktyg 1 startas arbetsprogrammet"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST140_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST140_RB_START": false,
+              "ST140_TCH_BUSY": true
+            },
+            "varfor": "vid RB_DONE avslutas arbetet och verktygsbyte paborjas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST140_RB_DONE": false,
+              "ST140_RCK_PRS1": true,
+              "ST140_RCK_PRS2": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_LOCK": false,
+              "ST140_TCH_BUSY": true
+            },
+            "varfor": "nar verktyget star i sitt fack lases vaxlaren upp"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST140_TCH_LOCKED": false,
+              "ST140_TCH_UNLOCKED": true,
+              "ST140_TOOL_ID": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_LOCK": false,
+              "ST140_TCH_BUSY": true
+            },
+            "varfor": "vaxlaren ar oppen och roboten forflyttar sig till fack 2"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST140_RCK_PRS2": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_LOCK": true,
+              "ST140_TCH_BUSY": true
+            },
+            "varfor": "i fack 2 kommenderas lasning av verktyg 2"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST140_TCH_LOCKED": true,
+              "ST140_TCH_UNLOCKED": false,
+              "ST140_TOOL_ID": 2,
+              "ST140_RCK_PRS2": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_LOCK": true,
+              "ST140_TCH_BUSY": false,
+              "ST140_RB_START": true
+            },
+            "varfor": "verktyg 2 ar last och identifierat sa arbetsprogrammet startas"
+          }
+        ]
+      },
+      {
+        "id": "ogiltigt_eller_felaktigt_tool_id",
+        "beskrivning": "Lasning genomfors men verktygs-id rapporterar okant varde 7.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST140_TCH_LOCKED": false,
+              "ST140_TCH_UNLOCKED": true,
+              "ST140_TOOL_ID": 0,
+              "ST140_RCK_PRS1": true,
+              "ST140_RCK_PRS2": false,
+              "ST140_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_BUSY": true,
+              "ST140_RB_START": false
+            },
+            "varfor": "byte pagar for att hamta verktyg"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST140_TCH_LOCKED": true,
+              "ST140_TCH_UNLOCKED": false,
+              "ST140_TOOL_ID": 7
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST140_RB_START": false
+            },
+            "varfor": "okant verktygs-id 7 far inte starta arbetsprogrammet"
+          }
+        ]
+      },
+      {
+        "id": "locked_uteblir_ger_stopp",
+        "beskrivning": "Lasning initieras men LOCKED uteblir i mer an 3 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST140_TCH_LOCKED": false,
+              "ST140_TCH_UNLOCKED": true,
+              "ST140_TOOL_ID": 0,
+              "ST140_RCK_PRS1": true,
+              "ST140_RCK_PRS2": false,
+              "ST140_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_BUSY": true,
+              "ST140_RB_START": false
+            },
+            "varfor": "byte pagar"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST140_RB_START": false
+            },
+            "varfor": "nar lasningskvittens uteblivit far arbetsprogrammet aldrig startas"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_start_under_byte",
+        "sekvens": "*",
+        "nar": {
+          "ST140_TCH_BUSY": true
+        },
+        "kraver": {
+          "ST140_RB_START": false
+        },
+        "varfor": "arbetsprogram far aldrig startas under pagaende verktygsbyte"
+      },
+      {
+        "namn": "start_kraver_las",
+        "sekvens": "*",
+        "nar": {
+          "ST140_RB_START": true
+        },
+        "kraver": {
+          "ST140_TCH_LOCK": true
+        },
+        "varfor": "arbetsprogram kraver att vaxlaren ar last"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "antal_starter",
+        "sekvens": "normal_drift_med_byte",
+        "signal": "ST140_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2200,
+        "antal": 2,
+        "varfor": "tva arbetsprogram koras under sekvensen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "startar_pa_ogiltigt_tool_id",
+        "st": "PROGRAM ST140_VERKTYGSBYTE_TRASIG\nVAR\n    steg : INT := 0;\nEND_VAR\n\nIF EMG_OK AND AIR_OK THEN\n    IF ST140_TCH_LOCKED THEN\n        ST140_RB_START := TRUE;\n        ST140_TCH_BUSY := FALSE;\n        ST140_TCH_LOCK := TRUE;\n    ELSE\n        ST140_RB_START := FALSE;\n        ST140_TCH_BUSY := TRUE;\n        ST140_TCH_LOCK := TRUE;\n    END_IF;\nELSE\n    ST140_RB_START := FALSE;\n    ST140_TCH_BUSY := FALSE;\n    ST140_TCH_LOCK := FALSE;\nEND_IF;\nEND_PROGRAM",
+        "vad_som_ar_fel": "Styrningen kontrollerar inte att ST140_TOOL_ID ar ett giltigt verktyg (1 eller 2) utan startar sa fort ST140_TCH_LOCKED ar hog, vilket gor att roboten startar med fel eller okant verktyg 7.",
+        "faller_pa": [
+          "ogiltigt_eller_felaktigt_tool_id@300ms:ST140_RB_START"
+        ]
+      }
+    ]
+  }
 }

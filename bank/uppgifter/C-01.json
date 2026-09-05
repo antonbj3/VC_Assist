@@ -319,5 +319,276 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: kapacitetsberakning ur stationernas och buffertens tider. ST340 arbetar 32,0 s och ST350 28,0 s, sa flaskhalsen ST340 ger teoretiskt 3600/32,0 = 112,5 enheter i timmen. Med ackumulerande buffert ST360 for 10 lastbarare kan ST350 arbeta kontinuerligt och kapacitetsmalet 100 enheter/h uppnas vid stationar drift. Bufferten ar full vid ST360_BUF_CNT >= 10, alltsa 10 platser * 400 mm = 4000 mm buffertlangd. M-124 provar detta; människans facit skrivet ur normal, buf_lag, buf_hog, prs_uteblir och expect före körning.",
+    "standard": "Kapacitetsberakningen ar en flaskhalsanalys och ingen standardfraga. IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att rorelser stoppas vid brutet nodstopp EMG_OK; IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" for tidskretsarna TON. Buffertstyrning och forregling inlopp/utlopp foljer anlaggningens specifikation.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST340_CELL_CONTROL\nVAR\n    tmr340       : TON;\n    tmr350       : TON;\n    xBusy1       : BOOL := FALSE;\n    xDone1       : BOOL := FALSE;\n    xBusy2       : BOOL := FALSE;\n    xDone2       : BOOL := FALSE;\n    xFull        : BOOL := FALSE;\n    xInOpen      : BOOL := FALSE;\n    xOutOpen     : BOOL := FALSE;\nEND_VAR\n\n(* Nodstopp forreglar all drift *)\nIF NOT EMG_OK THEN\n    xBusy1 := FALSE;\n    xDone1 := FALSE;\n    xBusy2 := FALSE;\n    xDone2 := FALSE;\n    xInOpen := FALSE;\n    xOutOpen := FALSE;\n    xFull := FALSE;\nELSE\n    (* Buffertens full-status *)\n    xFull := (ST360_BUF_CNT >= 10);\n\n    (* Station 1 (ST340): arbetar 32.0 s *)\n    IF ST340_PRT_PRS AND NOT xDone1 THEN\n        xBusy1 := TRUE;\n    END_IF;\n\n    tmr340(IN := xBusy1, PT := T#32s);\n\n    IF tmr340.Q THEN\n        xBusy1 := FALSE;\n        xDone1 := TRUE;\n    END_IF;\n\n    (* Inloppet till bufferten oppnas nar station 1 ar klar och bufferten inte ar full *)\n    xInOpen := xDone1 AND NOT xFull;\n\n    IF NOT ST340_PRT_PRS THEN\n        xDone1 := FALSE;\n        xInOpen := FALSE;\n    END_IF;\n\n    (* Utloppet fran bufferten oppnas nar det finns enheter och station 2 ar ledig *)\n    xOutOpen := (ST360_BUF_CNT > 0) AND NOT ST350_PRT_PRS AND NOT xBusy2;\n\n    (* Station 2 (ST350): arbetar 28.0 s *)\n    IF ST350_PRT_PRS AND NOT xDone2 THEN\n        xBusy2 := TRUE;\n    END_IF;\n\n    tmr350(IN := xBusy2, PT := T#28s);\n\n    IF tmr350.Q THEN\n        xBusy2 := FALSE;\n        xDone2 := TRUE;\n    END_IF;\n\n    IF NOT ST350_PRT_PRS THEN\n        xDone2 := FALSE;\n    END_IF;\nEND_IF;\n\nST340_STA_BUSY := xBusy1;\nST340_STA_DONE := xDone1;\nST350_STA_BUSY := xBusy2;\nST350_STA_DONE := xDone2;\nST360_BUF_FULL := xFull;\nST360_STP_IN_OPEN := xInOpen;\nST360_STP_OUT_OPEN := xOutOpen;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "enhet_genom_cellen",
+        "beskrivning": "En enhet bearbetas i station 1 i 32,0 s, slapps in i bufferten, slapps ut till station 2 och bearbetas i 28,0 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST340_PRT_PRS": false,
+              "ST350_PRT_PRS": false,
+              "ST360_BUF_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST340_STA_BUSY": false,
+              "ST340_STA_DONE": false,
+              "ST350_STA_BUSY": false,
+              "ST350_STA_DONE": false,
+              "ST360_BUF_FULL": false,
+              "ST360_STP_IN_OPEN": false,
+              "ST360_STP_OUT_OPEN": false
+            },
+            "varfor": "utan narvaro ska ingen station arbeta och inga grindar vara oppna"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST340_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST340_STA_BUSY": true,
+              "ST340_STA_DONE": false,
+              "ST360_STP_IN_OPEN": false
+            },
+            "varfor": "station 1 borjar arbeta nar enhet anlander"
+          },
+          {
+            "t_ms": 32000,
+            "satt": {},
+            "krav": {
+              "ST340_STA_BUSY": true,
+              "ST340_STA_DONE": false,
+              "ST360_STP_IN_OPEN": false
+            },
+            "varfor": "station 1 arbetar fortfarande vid 31,8 s och far inte slappa enheten i fortid"
+          },
+          {
+            "t_ms": 32400,
+            "satt": {},
+            "krav": {
+              "ST340_STA_BUSY": false,
+              "ST340_STA_DONE": true,
+              "ST360_STP_IN_OPEN": true
+            },
+            "varfor": "station 1 ar klar efter 32,0 s och inloppsgrinden oppnas eftersom bufferten har plats"
+          },
+          {
+            "t_ms": 32600,
+            "satt": {
+              "ST340_PRT_PRS": false,
+              "ST360_BUF_CNT": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 32800,
+            "satt": {},
+            "krav": {
+              "ST340_STA_DONE": false,
+              "ST360_STP_IN_OPEN": false,
+              "ST360_STP_OUT_OPEN": true
+            },
+            "varfor": "enheten har gatt in i bufferten och utloppet oppnas mot ledig station 2"
+          },
+          {
+            "t_ms": 33000,
+            "satt": {
+              "ST350_PRT_PRS": true,
+              "ST360_BUF_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 33200,
+            "satt": {},
+            "krav": {
+              "ST360_STP_OUT_OPEN": false,
+              "ST350_STA_BUSY": true,
+              "ST350_STA_DONE": false
+            },
+            "varfor": "station 2 borjar arbeta och utloppsgrinden stangs"
+          },
+          {
+            "t_ms": 60800,
+            "satt": {},
+            "krav": {
+              "ST350_STA_BUSY": true,
+              "ST350_STA_DONE": false
+            },
+            "varfor": "station 2 arbetar fortfarande vid 27,8 s"
+          },
+          {
+            "t_ms": 61200,
+            "satt": {},
+            "krav": {
+              "ST350_STA_BUSY": false,
+              "ST350_STA_DONE": true
+            },
+            "varfor": "station 2 ar fardig efter 28,0 s"
+          },
+          {
+            "t_ms": 61400,
+            "satt": {
+              "ST350_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 61600,
+            "satt": {},
+            "krav": {
+              "ST350_STA_DONE": false
+            },
+            "varfor": "enheten har lamnat station 2"
+          }
+        ]
+      },
+      {
+        "id": "buffert_full_blockerar_inlopp",
+        "beskrivning": "Bufferten fylls med 10 lastbarare, varpa inloppsgrinden halls stangd aven nar station 1 ar klar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST340_PRT_PRS": false,
+              "ST350_PRT_PRS": false,
+              "ST360_BUF_CNT": 10
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST360_BUF_FULL": true,
+              "ST360_STP_IN_OPEN": false,
+              "ST360_STP_OUT_OPEN": true
+            },
+            "varfor": "bufferten rapporterar full vid 10 enheter och inloppet ar sparrat"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST340_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 32500,
+            "satt": {},
+            "krav": {
+              "ST340_STA_DONE": true,
+              "ST360_BUF_FULL": true,
+              "ST360_STP_IN_OPEN": false
+            },
+            "varfor": "station 1 ar klar men far inte oppna inloppsgrinden eftersom bufferten ar full"
+          },
+          {
+            "t_ms": 32700,
+            "satt": {
+              "ST360_BUF_CNT": 9
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 32900,
+            "satt": {},
+            "krav": {
+              "ST360_BUF_FULL": false,
+              "ST360_STP_IN_OPEN": true
+            },
+            "varfor": "nar bufferten sjunker till 9 platser oppnas inloppsgrinden for den fardiga enheten"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "inlopp_stangt_vid_full_buffert",
+        "sekvens": "*",
+        "nar": {
+          "ST360_BUF_FULL": true
+        },
+        "kraver": {
+          "ST360_STP_IN_OPEN": false
+        },
+        "varfor": "buffertens inlopp far aldrig oppnas nar bufferten ar full"
+      },
+      {
+        "namn": "inget_arbete_vid_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST340_STA_BUSY": false,
+          "ST350_STA_BUSY": false,
+          "ST360_STP_IN_OPEN": false,
+          "ST360_STP_OUT_OPEN": false
+        },
+        "varfor": "inga rorelser eller stationsarbete nar nodstopp ar brutet"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_inloppsoppning_per_cykel",
+        "sekvens": "enhet_genom_cellen",
+        "signal": "ST360_STP_IN_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 35000,
+        "antal": 1,
+        "varfor": "inloppsgrinden ska oppna exakt en gang nar station 1 ar klar"
+      },
+      {
+        "namn": "en_station2_fardig",
+        "sekvens": "enhet_genom_cellen",
+        "signal": "ST350_STA_DONE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 65000,
+        "antal": 1,
+        "varfor": "station 2 ska bli klar exakt en gang nar enheten bearbetats"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "oppnar_inlopp_aven_nar_bufferten_ar_full",
+        "st": "PROGRAM ST340_CELL_CONTROL\nVAR\n    tmr340       : TON;\n    tmr350       : TON;\n    xBusy1       : BOOL := FALSE;\n    xDone1       : BOOL := FALSE;\n    xBusy2       : BOOL := FALSE;\n    xDone2       : BOOL := FALSE;\n    xFull        : BOOL := FALSE;\n    xInOpen      : BOOL := FALSE;\n    xOutOpen     : BOOL := FALSE;\nEND_VAR\n\nIF NOT EMG_OK THEN\n    xBusy1 := FALSE;\n    xDone1 := FALSE;\n    xBusy2 := FALSE;\n    xDone2 := FALSE;\n    xInOpen := FALSE;\n    xOutOpen := FALSE;\n    xFull := FALSE;\nELSE\n    xFull := (ST360_BUF_CNT >= 10);\n\n    IF ST340_PRT_PRS AND NOT xDone1 THEN\n        xBusy1 := TRUE;\n    END_IF;\n\n    tmr340(IN := xBusy1, PT := T#32s);\n\n    IF tmr340.Q THEN\n        xBusy1 := FALSE;\n        xDone1 := TRUE;\n    END_IF;\n\n    (* FEL: kontrollerar inte xFull fore oppning *)\n    xInOpen := xDone1;\n\n    IF NOT ST340_PRT_PRS THEN\n        xDone1 := FALSE;\n        xInOpen := FALSE;\n    END_IF;\n\n    xOutOpen := (ST360_BUF_CNT > 0) AND NOT ST350_PRT_PRS AND NOT xBusy2;\n\n    IF ST350_PRT_PRS AND NOT xDone2 THEN\n        xBusy2 := TRUE;\n    END_IF;\n\n    tmr350(IN := xBusy2, PT := T#28s);\n\n    IF tmr350.Q THEN\n        xBusy2 := FALSE;\n        xDone2 := TRUE;\n    END_IF;\n\n    IF NOT ST350_PRT_PRS THEN\n        xDone2 := FALSE;\n    END_IF;\nEND_IF;\n\nST340_STA_BUSY := xBusy1;\nST340_STA_DONE := xDone1;\nST350_STA_BUSY := xBusy2;\nST350_STA_DONE := xDone2;\nST360_BUF_FULL := xFull;\nST360_STP_IN_OPEN := xInOpen;\nST360_STP_OUT_OPEN := xOutOpen;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Inloppsgrinden oppnas sa fort station 1 ar klar utan att kontrollera om bufferten ar full (ST360_BUF_FULL). Fler an 10 lastbarare pressas in pa rullbanan och krockar.",
+        "faller_pa": [
+          "buffert_full_blockerar_inlopp@32500ms:ST360_STP_IN_OPEN",
+          "invariant:inlopp_stangt_vid_full_buffert@buffert_full_blockerar_inlopp"
+        ]
+      }
+    ]
+  }
 }
