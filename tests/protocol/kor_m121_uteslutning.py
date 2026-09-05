@@ -14,6 +14,45 @@ Kors som `python3 tests/protocol/kor_m121_uteslutning.py`.
 """
 from __future__ import annotations
 
+# Bankposten. En korning utan post ar en matning ingen vet om
+# (docs/spec/85_bankkontraktet.md).
+BANKPOST = {
+    "pastar":
+        "Dubbelskrivningsgrindens uteslutningsprov faller de referenser som "
+        "verkligen skriver samma utgang tva ganger utan att villkoren "
+        "utesluter varandra, och slapper dem dar villkoren gor det - och "
+        "priset i falska grona gar att lasa ur M-96-korpusen.",
+    "under_prov": (
+        "svc/vc_assist_svc/st/validator.py",
+        "svc/vc_assist_svc/st/uteslutning.py",
+    ),
+    "facit":
+        "bankens egna referenslosningar ar skrivna av manniska fore grinden "
+        "och ska ga igenom; en referens som fortfarande falls ar antingen en "
+        "riktig brist i referensen eller en falsk rodgrind, och korningen "
+        "namner vilken. Mutationer som tar bort uteslutningen MASTE fallas.",
+    "facitkalla":
+        "referenserna i bank/uppgifter/*.json och M-96-korpusen i "
+        "docs/matningar/m96_korpus_*.json - bada skrivna FORE den har "
+        "grinden, och ingendera genererad av koden som provas",
+    "facitkalla_filer": (
+        "bank/uppgifter/",
+        "docs/matningar/m96_korpus_f9r3.json",
+        "docs/matningar/m96_korpus_fler_hist.json",
+    ),
+    "trasiga_fall": (
+        "en mutation som tar bort uteslutningen mellan tva villkor maste ge "
+        "DUBBELSKRIVNING - gor den inte det mater grinden ingenting",
+        "en referens med omsesidigt uteslutande villkor (a = 1 mot a = 2) "
+        "far INTE ge DUBBELSKRIVNING; gor den det ar det en falsk rodgrind",
+        "en modellskriven kropp ur M-96-korpusen som redan var gron far inte "
+        "bli rod av grinden utan att korningen namner den",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-121",),
+}
+
+
 import glob
 import json
 import os
@@ -24,6 +63,34 @@ _ROT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 for _p in (_ROT, os.path.join(_ROT, "svc")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+BANKPOST = {
+    "pastar": "dubbelskrivningsgrinden faller tva skrivningar av samma utgang "
+              "bara nar deras villkor kan vara sanna i samma scan: bankens "
+              "egna referenser gar igenom, och modellskrivna kroppar med akta "
+              "overlapp faller fortfarande",
+    "under_prov": ("svc/vc_assist_svc/st/validator.py",
+                   "svc/vc_assist_svc/st/uteslutning.py"),
+    "facit": "referenserna ar manniskoskrivna och godkanda av sitt sparfacit "
+             "(ska ga igenom); korpusens domar ar handlasta en och en i M-121 "
+             "(tre bevisbart uteslutande, tio kvar med klass)",
+    "facitkalla": "bankens handskrivna referenser (85_bankkontraktet.md par 2 "
+                  "klass 4) och M-96:s sparade modellkroppar med M-121:s "
+                  "handlasning av varje dom (klass 5)",
+    "facitkalla_filer": ("bank/uppgifter",
+                         "docs/matningar/m96_korpus_f9r3.json",
+                         "docs/matningar/m96_korpus_fler_hist.json"),
+    "trasiga_fall": (
+        "mutationer som tar bort uteslutningen (xHand utan NOT SYS_AUTO, "
+        "xDriftsklar utan AIR_OK) maste falla - lasta i "
+        "tests/enhet/test_referenser_mot_grindkedjan.py",
+        "en naiv substitution utan stabilitetsprov slapper "
+        "xD := NOT xLarm; IF g THEN xLarm := TRUE; - fixtur i "
+        "tests/enhet/test_st_semantik.py",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-121",),
+}
 
 from bank import reparationsbank as RB  # noqa: E402
 
