@@ -213,8 +213,8 @@ def fran_planpost(f: Forlopp, post) -> None:
     """
     if post.status not in PLANSTATUSAR:
         raise Forloppsfel(
-            "okänd planstatus %r för steget %s; en post som inte passar "
-            "någon gren blir osynlig i visningen"
+            "unknown plan status %r for step %s; an entry that matches "
+            "no branch becomes invisible in the display"
             % (post.status, post.steg))
     if post.status == PLAN_KORD:
         f.steg_klart(post.steg)
