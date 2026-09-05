@@ -307,7 +307,7 @@ def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
     domen bit för bit densamma som förut.
     """
     if kandidat.station.upper() != karta.station.upper():
-        raise Stationsfel("kandidaten galler %r men kartan galler %r"
+        raise Stationsfel("the candidate is for %r but the map is for %r"
                           % (kandidat.station, karta.station))
 
     dom = Stationsdom()
