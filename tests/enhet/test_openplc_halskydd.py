@@ -26,7 +26,7 @@ import pytest
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.join(_ROT, "svc"))
 
-from vc_assist_svc.st import las, skriv_enhet, validera  # noqa: E402
+from vc_assist_svc.st import las, skriv_enhet, tolk, validera  # noqa: E402
 
 
 def _pou(dekl: str, kropp: str, extra: str = "", prolog: str = "") -> str:
@@ -148,12 +148,8 @@ def test_giltiga_jamforelser_och_tilldelningar_passerar(namn, kalla):
 TRASIGA_STRANGFUNKTIONER = [
     ("concat_lit_lit",
      _pou(DEKL_STRANG, " sA := CONCAT('foo', 'bar');\n"), "CONCAT"),
-    ("concat_lit_var",
-     _pou(DEKL_STRANG, " sA := CONCAT('foo', sB);\n"), "CONCAT"),
-    ("concat_namngiven_lit",
-     _pou(DEKL_STRANG, " sA := CONCAT(IN1 := 'foo', IN2 := sB);\n"), "CONCAT"),
-    ("concat_namngiven_omvand_ordning_lit",
-     _pou(DEKL_STRANG, " sA := CONCAT(IN2 := sB, IN1 := 'foo');\n"), "CONCAT"),
+    ("concat_namngiven_omvand_ordning_lit_VAR",
+     _pou(DEKL_STRANG, " sA := CONCAT(IN2 := 'bar', IN1 := 'foo');\n"), "CONCAT"),
     ("left_lit",
      _pou(DEKL_STRANG, " sA := LEFT('abcdef', 3);\n"), "LEFT"),
     ("left_namngiven_lit",
@@ -164,8 +160,6 @@ TRASIGA_STRANGFUNKTIONER = [
      _pou(DEKL_STRANG, " sA := MID('abcdef', 3, 2);\n"), "MID"),
     ("find_lit_lit",
      _pou(DEKL_STRANG, " iA := FIND('abcdef', 'cd');\n"), "FIND"),
-    ("find_lit_var",
-     _pou(DEKL_STRANG, " iA := FIND('abcdef', sB);\n"), "FIND"),
     ("len_lit",
      _pou(DEKL_STRANG, " iA := LEN('abcdef');\n"), "LEN"),
     ("insert_lit_lit",
@@ -194,6 +188,17 @@ def test_trasiga_strangfunktioner_med_literal_forst_falls(namn, kalla, fn):
 
 
 GILTIGA_STRANGFUNKTIONER = [
+    # M-108 ommätning: literalen static_castas när en variabel finns bland
+    # strängargumenten (FIND('abcdef', sB) bygger) — bara helt utan variabel
+    # faller backend.
+    ("concat_lit_var",
+     _pou(DEKL_STRANG, " sA := CONCAT('foo', sB);\n")),
+    ("concat_namngiven_lit",
+     _pou(DEKL_STRANG, " sA := CONCAT(IN1 := 'foo', IN2 := sB);\n")),
+    ("concat_namngiven_omvand_ordning_var",
+     _pou(DEKL_STRANG, " sA := CONCAT(IN2 := sB, IN1 := 'foo');\n")),
+    ("find_lit_var",
+     _pou(DEKL_STRANG, " iA := FIND('abcdef', sB);\n")),
     ("concat_var_lit",
      _pou(DEKL_STRANG, " sA := CONCAT(sB, 'bar');\n")),
     ("concat_var_var",
@@ -357,6 +362,11 @@ GILTIGA_REF_TO = [
      _pou("    pRef : REF_TO REAL;\n    rA : REAL;\n", "    rA := pRef^;\n    pRef^ := 3.14;\n")),
     ("deref_bool_pekare",
      _pou("    pRef : REF_TO BOOL;\n    bA : BOOL;\n", "    bA := pRef^;\n    pRef^ := TRUE;\n")),
+    # M-108 ommätning: pRef = NULL genererar PREF == IEC_NULL och bygger.
+    ("null_likhet",
+     _pou("    pRef : REF_TO INT;\n    bA : BOOL;\n", "    bA := (pRef = NULL);\n")),
+    ("null_olikhet",
+     _pou("    pRef : REF_TO INT;\n    bA : BOOL;\n", "    bA := (pRef <> NULL);\n")),
 ]
 
 
@@ -412,3 +422,185 @@ def test_trasiga_ref_to_falls(namn, kalla, exp_kod, exp_txt):
     assert any(exp_txt.lower() in a.text.lower() for a in rapport.anmarkningar), (
         "Felmeddelande ska innehålla %r: %s" % (exp_txt, [a.text for a in rapport.anmarkningar])
     )
+
+
+# =========================================================================
+# REGEL 5: M-108 Tolkstöd för REF_TO (tolk.kor-spår över pekarprogram)
+# =========================================================================
+
+def test_tolk_kor_pekare_genomslapp():
+    """M-108: Genomsläpp via pekare — läsning och skrivning genom dereferensiering."""
+    kalla = """\
+PROGRAM P
+VAR_INPUT
+    iIn : INT;
+END_VAR
+VAR_OUTPUT
+    iOut : INT;
+END_VAR
+VAR
+    pIn : REF_TO INT;
+    pOut : REF_TO INT;
+END_VAR
+    pIn := REF(iIn);
+    pOut := REF(iOut);
+    pOut^ := pIn^ * 2;
+END_PROGRAM
+"""
+    signaler = {"iIn": "int", "iOut": "int"}
+    riktningar = {"iIn": "in", "iOut": "out"}
+    insatser = [
+        (0.0, {"iIn": 5}),
+        (20.0, {"iIn": 10}),
+        (40.0, {"iIn": 25}),
+    ]
+    spar = tolk.kor(kalla, signaler, riktningar, insatser)
+    forvantat = [
+        {"t_ms": 0.0, "varden": {"IIN": 5, "IOUT": 10, "PIN": ("REF", "IIN"), "POUT": ("REF", "IOUT")}},
+        {"t_ms": 20.0, "varden": {"IIN": 10, "IOUT": 20, "PIN": ("REF", "IIN"), "POUT": ("REF", "IOUT")}},
+        {"t_ms": 40.0, "varden": {"IIN": 25, "IOUT": 50, "PIN": ("REF", "IIN"), "POUT": ("REF", "IOUT")}},
+    ]
+    assert spar == forvantat
+
+
+def test_tolk_kor_null_deref_falls_fail_closed():
+    """M-108: NULL-deref fäller med Tolkfel (fail-closed, aldrig tyst None)."""
+    # Fall 1: NULL-deref vid läsning i senare scan
+    kalla_las = """\
+PROGRAM P
+VAR_INPUT
+    bTrigga : BOOL;
+END_VAR
+VAR_OUTPUT
+    iOut : INT;
+END_VAR
+VAR
+    pRef : REF_TO INT := NULL;
+END_VAR
+    IF bTrigga THEN
+        iOut := pRef^;
+    END_IF;
+END_PROGRAM
+"""
+    signaler_las = {"bTrigga": "bool", "iOut": "int"}
+    riktningar_las = {"bTrigga": "in", "iOut": "out"}
+    insatser_las = [
+        (0.0, {"bTrigga": False}),
+        (20.0, {"bTrigga": True}),
+    ]
+    with pytest.raises(tolk.Tolkfel) as fel_las:
+        tolk.kor(kalla_las, signaler_las, riktningar_las, insatser_las)
+    assert "NULL" in str(fel_las.value) or "avreferering" in str(fel_las.value)
+
+    # Fall 2: NULL-deref vid skrivning med oinitierad pekare (standard NULL)
+    kalla_skriv = """\
+PROGRAM P
+VAR_INPUT
+    bTrigga : BOOL;
+END_VAR
+VAR_OUTPUT
+    iOut : INT;
+END_VAR
+VAR
+    pRef : REF_TO INT;
+END_VAR
+    IF bTrigga THEN
+        pRef^ := 42;
+    END_IF;
+END_PROGRAM
+"""
+    signaler_skriv = {"bTrigga": "bool", "iOut": "int"}
+    riktningar_skriv = {"bTrigga": "in", "iOut": "out"}
+    insatser_skriv = [
+        (0.0, {"bTrigga": False}),
+        (20.0, {"bTrigga": True}),
+    ]
+    with pytest.raises(tolk.Tolkfel) as fel_skriv:
+        tolk.kor(kalla_skriv, signaler_skriv, riktningar_skriv, insatser_skriv)
+    assert "NULL" in str(fel_skriv.value) or "avreferering" in str(fel_skriv.value)
+
+
+def test_tolk_kor_ompekning_mitt_i_spar():
+    """M-108: Ompekning mitt i spår — pekaren växlar mellan olika mål över tid."""
+    kalla = """\
+PROGRAM P
+VAR_INPUT
+    bValjB : BOOL;
+    iIn : INT;
+END_VAR
+VAR_OUTPUT
+    iA : INT;
+    iB : INT;
+END_VAR
+VAR
+    pMal : REF_TO INT;
+END_VAR
+    IF bValjB THEN
+        pMal := REF(iB);
+    ELSE
+        pMal := REF(iA);
+    END_IF;
+    pMal^ := iIn;
+END_PROGRAM
+"""
+    signaler = {"bValjB": "bool", "iIn": "int", "iA": "int", "iB": "int"}
+    riktningar = {"bValjB": "in", "iIn": "in", "iA": "out", "iB": "out"}
+    insatser = [
+        (0.0, {"bValjB": False, "iIn": 11}),
+        (20.0, {"bValjB": False, "iIn": 22}),
+        (40.0, {"bValjB": True, "iIn": 33}),
+        (60.0, {"bValjB": True, "iIn": 44}),
+        (80.0, {"bValjB": False, "iIn": 55}),
+    ]
+    spar = tolk.kor(kalla, signaler, riktningar, insatser)
+    forvantat = [
+        {"t_ms": 0.0, "varden": {"BVALJB": False, "IIN": 11, "IA": 11, "IB": 0, "PMAL": ("REF", "IA")}},
+        {"t_ms": 20.0, "varden": {"BVALJB": False, "IIN": 22, "IA": 22, "IB": 0, "PMAL": ("REF", "IA")}},
+        {"t_ms": 40.0, "varden": {"BVALJB": True, "IIN": 33, "IA": 22, "IB": 33, "PMAL": ("REF", "IB")}},
+        {"t_ms": 60.0, "varden": {"BVALJB": True, "IIN": 44, "IA": 22, "IB": 44, "PMAL": ("REF", "IB")}},
+        {"t_ms": 80.0, "varden": {"BVALJB": False, "IIN": 55, "IA": 55, "IB": 44, "PMAL": ("REF", "IA")}},
+    ]
+    assert spar == forvantat
+
+
+def test_tolk_kor_pekare_kopiering_och_null_aterstallning():
+    """M-108: Pekarkopiering och NULL-tilldelning under spårkörning."""
+    kalla = """\
+PROGRAM P
+VAR_INPUT
+    bNolla : BOOL;
+    iIn : INT;
+END_VAR
+VAR_OUTPUT
+    iOut : INT;
+    bAktiv : BOOL;
+END_VAR
+VAR
+    p1, p2 : REF_TO INT;
+END_VAR
+    IF bNolla THEN
+        p1 := NULL;
+    ELSE
+        p1 := REF(iOut);
+    END_IF;
+    p2 := p1;
+    bAktiv := (p2 <> NULL);
+    IF bAktiv THEN
+        p2^ := iIn;
+    END_IF;
+END_PROGRAM
+"""
+    signaler = {"bNolla": "bool", "iIn": "int", "iOut": "int", "bAktiv": "bool"}
+    riktningar = {"bNolla": "in", "iIn": "in", "iOut": "out", "bAktiv": "out"}
+    insatser = [
+        (0.0, {"bNolla": False, "iIn": 100}),
+        (20.0, {"bNolla": True, "iIn": 200}),
+        (40.0, {"bNolla": False, "iIn": 300}),
+    ]
+    spar = tolk.kor(kalla, signaler, riktningar, insatser)
+    forvantat = [
+        {"t_ms": 0.0, "varden": {"BNOLLA": False, "IIN": 100, "IOUT": 100, "BAKTIV": True, "P1": ("REF", "IOUT"), "P2": ("REF", "IOUT")}},
+        {"t_ms": 20.0, "varden": {"BNOLLA": True, "IIN": 200, "IOUT": 100, "BAKTIV": False, "P1": None, "P2": None}},
+        {"t_ms": 40.0, "varden": {"BNOLLA": False, "IIN": 300, "IOUT": 300, "BAKTIV": True, "P1": ("REF", "IOUT"), "P2": ("REF", "IOUT")}},
+    ]
+    assert spar == forvantat

@@ -33,6 +33,7 @@ from typing import Dict, List, Optional, Sequence
 
 from . import modell as M
 from . import stdbibliotek as SB
+from . import typer as T
 from .lasare import las
 from .lexer import tolka_tidliteral
 
@@ -337,6 +338,8 @@ class Tolk(object):
 
     @staticmethod
     def _nollvarde(typ):
+        if isinstance(typ, T.Pekare):
+            return None
         namn = getattr(typ, "namn", "") or ""
         stor = namn.upper()
         if stor in ("BOOL", "BYTE", "WORD", "DWORD", "LWORD"):
@@ -477,6 +480,15 @@ class Tolk(object):
 
     def _tilldela(self, s: M.Tilldelning):
         mal = s.mal
+        if isinstance(mal, M.Avreferering):
+            ref = self._varde(mal.bas)
+            if ref is None:
+                raise Tolkfel("avreferering av NULL-pekare på rad %d" % s.rad)
+            if not (isinstance(ref, tuple) and len(ref) == 2 and ref[0] == "REF"):
+                raise Tolkfel("kan inte avreferera icke-pekare på rad %d" % s.rad)
+            mal_namn = ref[1]
+            self._skriv(mal_namn, self._varde(s.uttryck), s.rad)
+            return
         if not isinstance(mal, M.Namn):
             raise Tolkfel("tolken tilldelar bara enkla namn, inte %s på rad %d"
                           % (type(mal).__name__, s.rad))
@@ -504,6 +516,8 @@ class Tolk(object):
         if isinstance(u, M.Literal):
             if u.klass == "TID":
                 return _tid_ms(u)
+            if u.klass == "NULL":
+                return None
             return u.varde
         if isinstance(u, M.Namn):
             namn = u.ident.upper()
@@ -521,6 +535,8 @@ class Tolk(object):
                 raise Tolkfel("%s har ingen utgång %s, rad %d"
                               % (inst.sort, u.falt, u.rad))
             return inst.ut[u.falt.upper()]
+        if isinstance(u, M.Avreferering):
+            return self._avreferera_las(u)
         if isinstance(u, M.Unar):
             v = self._varde(u.operand)
             if u.op == "NOT":
@@ -533,6 +549,17 @@ class Tolk(object):
         if isinstance(u, M.Anrop):
             return self._anropa(u)
         raise Tolkfel("tolken kan inte räkna ut %s" % type(u).__name__)
+
+    def _avreferera_las(self, u: M.Avreferering):
+        ref = self._varde(u.bas)
+        if ref is None:
+            raise Tolkfel("avreferering av NULL-pekare på rad %d" % u.rad)
+        if not (isinstance(ref, tuple) and len(ref) == 2 and ref[0] == "REF"):
+            raise Tolkfel("kan inte avreferera icke-pekare på rad %d" % u.rad)
+        mal_namn = ref[1]
+        if mal_namn not in self.varden:
+            raise Tolkfel("odeklarerat namn %r på rad %d" % (mal_namn, u.rad))
+        return self.varden[mal_namn]
 
     def _binar(self, u: M.Binar):
         op = u.op
@@ -594,6 +621,8 @@ class Tolk(object):
 
     def _anropa(self, a: M.Anrop):
         namn = a.namn.upper()
+        if namn == "REF":
+            return self._ref(a)
         if namn in self.block:
             return self._anropa_block(self.block[namn], a)
         if namn in SB.FUNKTIONER:
@@ -603,6 +632,17 @@ class Tolk(object):
                           % (a.namn, a.rad))
         raise Tolkfel("okänt anrop %r på rad %d; tolken kör bara "
                       "standardbibliotekets funktioner" % (a.namn, a.rad))
+
+    def _ref(self, a: M.Anrop):
+        if len(a.argument) != 1 or a.argument[0].ut:
+            raise Tolkfel("REF tar exakt ett argument på rad %d" % a.rad)
+        arg = a.argument[0].uttryck
+        if not isinstance(arg, M.Namn):
+            raise Tolkfel("tolken stöder bara REF till enkla namn på rad %d" % a.rad)
+        namn = arg.ident.upper()
+        if namn not in self.varden:
+            raise Tolkfel("odeklarerat namn %r i REF på rad %d" % (arg.ident, a.rad))
+        return ("REF", namn)
 
     def _anropa_block(self, inst: Blockinstans, a: M.Anrop):
         definition = SB.BLOCK[inst.sort]
