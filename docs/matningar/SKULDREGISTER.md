@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 580 punkter
+## Vad mätningarna säger att de inte vet: 589 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -152,19 +152,28 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-104_bankposterna_over_26_korningar.md — LIMITS
 
-* Ingen av de 33 körningarna kördes av den här mätningen.** Talen ovan är
+* Ingen av de 36 körningarna kördes av den här mätningen.** Talen ovan är
 * Facitkällans klass är min bedömning**, inte ett mätt tal. Gränsen mellan
 * "en mätning av verkligheten"* och *"en annan implementation"* är
 * Grinden kan inte se ett facit som är fel.** Den ser bara att facit kommer
 * Ett `under_prov` kan vara för smalt.** Ingen kontroll säger att modulerna
 * `kor_fas5.py`:s facit är svagt.** För de flesta verktygen är det rätta
 * Registret rör sig.** Sex körningar landade från andra agenter medan den
-* `kor_tackning.py` var ospårad** när posten skrevs in i den. Landar den
+* Tre filer var ospårade** när jag skrev i dem: `kor_tackning.py` och
 * Klassificeringstabellen ovan är en **ögonblicksbild**. Den räknas fram ur
 
 ### M-105_ett_monster_som_aldrig_kort_mot_sin_text.md — LIMITS
 
-* Ingenting är mätt ännu. Talen nedan skrivs när mätningen är körd.
+* Klassningen är ett omdöme, inte en mätning.** Gränsen "VC skriver filen" är
+* Spärren ser bara den yta som mättes.** 116 mönster, uppräknade i
+* De 68 "båda halvorna" är observationer, inte prov.** De kommer ur
+* En observerad miss är inte en avsedd miss.** Att ett mönster returnerade
+* Ordlistesvepet är inte kört till slutet.** 95 dömande listor hittades; sju
+* Fem filer rördes inte med flit** — `harness/arlighet.py`,
+* Fynd 3 är inte provat mot en riktig modell.** Att `granska_text` nu fångar
+* "vi byglar säkerhetsgrinden tillfälligt"* är mätt i ett enhetsprov, inte i en
+* Diakritiken är lagad åt ett håll i taget.** `text.utan_diakritik` används
+* Instrumenteringens tal åldras.** Svepet ligger i
 
 ### M-106_bankens_facitkallor.md — LIMITS
 
@@ -904,16 +913,14 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Grannfallen är prövade per lagning, inte uttömmande.** `T#5X` och `T#5S10M`
 * Talet 394 är konstruktioner, inte täckning.** Axlarna valdes ur M-96:s
 
-## Produktionsmoduler som ingen provfil nämner: 1 (173 rader)
+## Produktionsmoduler som ingen provfil nämner: 0 (0 rader)
 
-* `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 4 (1414 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
 
 * `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
-* `svc/vc_assist_svc/tillverkardatablad.py` — 1102 rader
 
 ## Markörer i koden: 131
 
@@ -1031,7 +1038,6 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * vc_addon/vc_assist/oga_analys.py:48  MIN_PROV = 10               # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_analys.py:52  SCEN_OLAST_MAX_ANDEL = 0.25      # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_analys.py:56  GENOMSTROMNING_MARGINAL_S = 0.0  # PRELIMINAR. Satts av matning M-19.
-* vc_addon/vc_assist/oga_analys.py:80  PLC_AXEL_MAX_ANDEL = 0.10        # PRELIMINAR. Satts av matning M-97.
 
 ### vc_addon/vc_assist/oga_harledning.py
 
@@ -1114,6 +1120,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### enhet/test_install.py
 
 * enhet/test_install.py:884  assert "OPROVAD SOKVAG" in ut, "5.0 + Python 3 ar inte kort av oss"
+
+### enhet/test_kontextbudget.py
+
+* enhet/test_kontextbudget.py:12  hallet ar oprovad, och det ar precis sa en tyst trimning overlever.
 
 ### enhet/test_layout.py
 
