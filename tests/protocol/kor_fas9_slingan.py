@@ -26,6 +26,41 @@ fyra varv kostar, och den som ska kora banken behover veta det.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Reparationsslingan driven av en riktig modell loser bankens "
+        "sparfacituppgifter inom M-52:s tak pa fyra varv, och kostnaden per "
+        "uppgift skrivs ut.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/reparation.py",
+        "svc/vc_assist_svc/claudeadapter.py",
+        "svc/vc_assist_svc/modellklient.py",
+    ),
+    "facit":
+        "uppgiftens handskrivna sparfacit avgor om en uppgift ar LOST, och "
+        "taket ar fyra varv (M-52)",
+    "facitkalla":
+        "bankens uppgifter, med facit skrivet av en manniska fore forsoket; "
+        "taket pa fyra varv kommer ur M-52, en tidigare matning",
+    "facitkalla_filer": (
+        "bank/uppgifter/H-04.json",
+        "bank/uppgifter/L-05.json",
+        "bank/uppgifter/S-05.json",
+        "bank/uppgifter/T-07.json",
+        "docs/matningar/M-52_reparationsslingan.md",
+    ),
+    "trasiga_fall": (
+        "saknas modellklient MASTE korningen avbryta med returkod 2; en "
+        "attrapp hade gjort talen till attrappens",
+        "en uppgift som slar i taket rapporteras som slog_i_taket, aldrig som "
+        "lost",
+        "ett korningsfel far inte doljas: talen ar da inte hela banken och "
+        "det skrivs ut",
+    ),
+    "kraver": ("modell",),
+    "matningar": ("M-96",),
+}
+
 import argparse
 import json
 import os
@@ -115,6 +150,10 @@ def main(argv=None):
                    help="ge modellen bara uppdraget, inte grindarnas regler")
     p.add_argument("--exempel", action="store_true",
                    help="lagg en godkand kropp fran en ANNAN uppgift i prompten")
+    p.add_argument("--upprepa", type=int, default=1,
+                   help="kor varje uppgift N ganger; n=1 sager ingenting om "
+                        "spridning och tre armar som alla gav 1 av 4 gav det "
+                        "pa OLIKA uppgift varje gang")
     p.add_argument("--json")
     a = p.parse_args(argv)
 
@@ -144,16 +183,20 @@ def main(argv=None):
 
     resultat = []
     for post in poster:
-        print("  %s ..." % post["task_id"], end="", flush=True)
+      for varv_nr in range(1, a.upprepa + 1):
+        etikett = post["task_id"] if a.upprepa == 1 else "%s #%d" % (
+            post["task_id"], varv_nr)
+        print("  %s ..." % etikett, end="", flush=True)
         try:
             r = kor_en(post, a.lage, a.modell, a.max_varv,
                        forhandsregler=not a.utan_forhandsregler,
                        exempel=exempel_fran_annan_uppgift(post, poster)
                        if a.exempel else None)
+            r["upprepning"] = varv_nr
         except Exception as e:                          # noqa: BLE001
             r = {"uppgift": post["task_id"], "lage": a.lage,
                  "utfall": "KORNINGSFEL", "lost": False, "fel": repr(e),
-                 "varv_korda": 0, "varv_till_lost": None,
+                 "varv_korda": 0, "varv_till_lost": None, "upprepning": varv_nr,
                  "slog_i_taket": False, "kostnad_usd": 0.0}
             print(" FEL: %r" % e)
         else:
@@ -167,6 +210,12 @@ def main(argv=None):
     fel = [r for r in resultat if r["utfall"] == "KORNINGSFEL"]
     kostnad = sum(r.get("kostnad_usd") or 0.0 for r in resultat)
 
+    if a.upprepa > 1:
+        print("\n  Per uppgift (andelen ar hela poangen med upprepning):")
+        for tid in [x["task_id"] for x in poster]:
+            mina = [r for r in resultat if r["uppgift"] == tid]
+            k = sum(1 for r in mina if r["lost"])
+            print("    %-8s %d av %d" % (tid, k, len(mina)))
     print("\n  %-22s %s" % ("lost:", "%d av %d" % (len(losta), len(resultat))))
     if losta:
         varv = [r["varv_till_lost"] for r in losta]
