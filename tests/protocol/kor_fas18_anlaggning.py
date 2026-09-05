@@ -197,6 +197,12 @@ def mat_en(post):
         ut["produktion"]["x%d" % n] = post_n
 
     # 3. Diskriminerande kraft: samma motbevis, tre facit.
+    ut["aterfunna"] = {
+        "ur_provsparet": _aterfunna(post, h_prov.facit),
+        "ur_produktionssparet": _aterfunna(
+            post, An.harled(spela_in(post, {prod_id}, UPPREPNINGAR[-1],
+                                     "produktionssparet")).facit),
+    }
     ut["motbevis"] = {
         "antal": len(fs["motbevis"]),
         "handskrivet": _motbevis(post, None),
@@ -205,6 +211,46 @@ def mat_en(post):
             ut["produktion"]["x%d" % UPPREPNINGAR[-1]]["motbevis_fallda"],
     }
     return ut, h_prov
+
+
+def _pargrupp(inv):
+    """Ett handskrivet invariantpastaende som forbjudna tvasignalstillstand.
+
+    "nar A=a ska B=b och C=c" ar tva forbud: (A=a, B=!b) och (A=a, C=!c). Att
+    bryta ned dem sa gar bara for boolska villkor, och det ar precis den form
+    harledningen letar efter - annars jamfor man appelsiner med formuleringar.
+    """
+    ut = set()
+    for n, v in (inv.get("nar") or {}).items():
+        if not isinstance(v, bool):
+            continue
+        for k, w in (inv.get("kraver") or {}).items():
+            if not isinstance(w, bool) or k == n:
+                continue
+            ut.add(frozenset([(n, v), (k, not w)]))
+    return ut
+
+
+def _forbud(facit):
+    """Alla forbjudna tillstand ett harlett facit pastar."""
+    ut = set()
+    for inv in facit.get("invarianter") or []:
+        ut |= _pargrupp(inv)
+    return ut
+
+
+def _aterfunna(post, facit):
+    """Hur manga av manniskans forreglingar harledningen aterfann.
+
+    Talet har ett KANT tak: manniskans egna invarianter, nedbrutna i par.
+    Det ar den enda jamforelsen som svarar pa fragan fasen stallde - hur mycket
+    av det nagon redan vet gar att lasa ur kontaktdonen?
+    """
+    vill = set()
+    for inv in post["facit_spar"]["invarianter"]:
+        vill |= _pargrupp(inv)
+    har = _forbud(facit)
+    return len(vill & har), len(vill)
 
 
 def _motbevis(post, facit):
@@ -488,7 +534,21 @@ def main(argv=None):
     print("     %-6s %6d %12d %12d %12d"
           % ("SUMMA", s["antal"], s["hand"], s["prov"], s["prod"]))
 
-    print("\n  5. KORRELATION AR INTE ORSAK, som ett tal")
+    print("\n  5. ATERFANN HARLEDNINGEN MANNISKANS FORREGLINGAR?")
+    print("     Bankens handskrivna invarianter, nedbrutna i forbjudna")
+    print("     tvasignalstillstand, och hur manga av dem harledningen fann.\n")
+    print("     %-6s %10s %14s %16s" % ("", "manniskans", "ur provsparet",
+                                        "ur produktionen"))
+    for r in alla:
+        a_prov, tak = r["aterfunna"]["ur_provsparet"]
+        a_prod, _ = r["aterfunna"]["ur_produktionssparet"]
+        print("     %-6s %10d %14d %16d" % (r["task_id"], tak, a_prov, a_prod))
+    tak = sum(r["aterfunna"]["ur_provsparet"][1] for r in alla)
+    ap = sum(r["aterfunna"]["ur_provsparet"][0] for r in alla)
+    ad = sum(r["aterfunna"]["ur_produktionssparet"][0] for r in alla)
+    print("     %-6s %10d %14d %16d" % ("SUMMA", tak, ap, ad))
+
+    print("\n  5b. KORRELATION AR INTE ORSAK, som ett tal")
     print("     Invarianter harledda ur PRODUKTIONSSPARET som PROVSPARET")
     print("     motbevisar. Varje sadan sag ut som en forregling i normaldrift.\n")
     print("     %-6s %12s %12s" % ("", "harledda", "motbevisade"))
