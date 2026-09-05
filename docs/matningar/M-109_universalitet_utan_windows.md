@@ -13,7 +13,14 @@ två stdlib-vägar: (a) import av varje `install/`-modul på bildens minimala py
 
 ## Resultat
 
-(TODO — fylls per bild i ordningen Alpine → Python → övriga → kedja → offline.)
+### 1. Alpine först — musl bryter INTE löftet (2026-09-06)
+
+- Bild: `alpine:3.20` (digest `sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`, amd64). `python3` saknas i basen; installerat via `apk add --no-cache python3 git` → `Python 3.12.13 [GCC 13.2.1]` (musl).
+- `sok` utan VC: exit **2**, noll dokumentmappar / noll VC-mappar + utskrift av exakt `--mal`-kommando. Kravet (aldrig tyst nolla) håller på musl.
+- `installera --mal /tmp/vc/My\ Commands/Python\ 2/vc_assist`: exit 0, `nya:11 uppdaterade:0 oforandrade:0`, `verifierat pa plats: 11 filer parsar och kompilerar`. Andra körningen: `nya:0 uppdaterade:0 oforandrade:11` — idempotent.
+- Stdlib väg (a): `json hashlib urllib.request tarfile zipfile sqlite3 lzma ctypes ssl zlib bz2 xml.etree.ElementTree dataclasses ast argparse` — alla **OK**, inget saknas (Alpine-`python3` är komplett här).
+- Stdlib väg (b): AST över `/src/install/*.py` ger importerna `argparse ast dataclasses datetime hashlib json ntpath os re shutil subprocess sys tarfile urllib winreg zipfile + __future__/install`. Minus `sys.stdlib_module_names` (innehåller `winreg` även på Linux) minus egna (`install paket upptackt installera verktygskedjan`): **inga externa**. (`install` är repots eget paket; min första körning listade det som externt för att egna-mängden var för snäv — korrigerat här.)
+- Slutsats: dagens viktigaste fynd är positivt — den enda bild som kunde bryta löftet på riktigt gör det inte.
 
 ## LIMITS
 
