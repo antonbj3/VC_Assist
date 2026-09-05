@@ -178,6 +178,21 @@ NEKANDE = FELORD + BARA_NEGATION + FORBEHALL
 # bevispastaende. Skillnaden ar hela M-94 fynd 4.
 INNEHALLSINLEDARE = ("att", "that")
 
+# SATSGRANSER. Ett nekande ord horde till den sats det star i, och inte till
+# hela meningen. Skalet ar matt (M-98): ogongrinden fragade "bar MENINGEN
+# nagot nekande ord?" och tystnade darfor av "Ogat sa PASS och inget fel
+# uppstod" - nekandet horde till felen, godkannandet stod kvar.
+#
+# Listan ar med FLIT kort. Varje granstecken som laggs till gor satserna
+# mindre, och en mindre sats hittar FARRE nekanden - alltsa fler anklagelser.
+# "att" star INTE har: "det ar inte sant att ogat sa PASS" ar ett nekande av
+# just det pastaendet, och en grans vid "att" hade gjort den meningen till en
+# anklagelse. Delningen vid "att" ar sjalva_pastaendets sak, och den gar at
+# ANDRA hallet: dar ligger markoren FORE inledaren.
+SATSGRANSER = (",", ";", ":", " och ", " men ", " samt ", " fast ",
+               " eftersom ", " medan ", " and ", " but ", " while ")
+
+
 # Bestamningar som VANDER ett felord till ett pastaende om motsatsen. "utan
 # fel", "inga fel" och "no error" bar alla ett felord och sager att det gick
 # bra. Provas pa ordet NARMAST fore felordet, alltsa pa bestamningen och inte
@@ -361,6 +376,37 @@ def nekar_pastaendet(mening_lag: str) -> bool:
     till M-95 var just det ordet nog for att tre grindar skulle tiga.
     """
     return bool(talar_om_fel(mening_lag) or _bar(mening_lag, BARA_NEGATION))
+
+
+def satser(mening_lag: str) -> Tuple[str, ...]:
+    """Meningen delad i satser vid SATSGRANSER.
+
+    Ingen sprakanalys, och det ar med flit: en satsdelare som gissar for
+    mycket blir sjalv en ordlista som avgor en dom. Den har delar vid tecken
+    och bindeord som star i listan, och inget annat.
+    """
+    lag = mening_lag or ""
+    delar = [lag]
+    for grans in SATSGRANSER:
+        nasta = []
+        for bit in delar:
+            nasta.extend(bit.split(grans))
+        delar = nasta
+    return tuple(d.strip() for d in delar if d.strip())
+
+
+def satsen_med(mening_lag: str, ord_: Sequence[str]) -> Optional[str]:
+    """Den forsta satsen som bar nagot ord ur ord_, eller None.
+
+    Finns for att ett nekande ska kunna knytas till RATT storhet. Fragan
+    "bar meningen ett nekande ord?" svarar pa fel storhet sa fort meningen
+    har mer an en sats; fragan "bar SATSEN med godkannandet ett nekande
+    ord?" svarar pa ratt.
+    """
+    for sats in satser(mening_lag):
+        if bar_ord(sats, ord_):
+            return sats
+    return None
 
 
 def sjalva_pastaendet(mening_lag: str, markor: str) -> str:

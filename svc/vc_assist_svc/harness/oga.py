@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Any, List, Optional, Sequence, Tuple
 
 from .sakerhet import ROT
-from .text import bar_ord, ogonmeningar
+from .text import bar_ord, ogonmeningar, satser
 
 _EXT = os.path.join(ROT, "ext", "vc_addon", "vc_assist")
 if _EXT not in sys.path:
@@ -38,15 +38,26 @@ import oga_kontrakt as K  # noqa: E402
 KODER = ("oga_utan_korning", "oga_mildrad", "guld_utan_grind")
 
 # Ord som gor en ogonmening till ett GODKANNANDE. Prova alltid mot
-# NEKANDE_OGONORD forst: "ogat sa inte PASS" ar inget godkannande.
+# NEKANDE_OGONORD forst: "ogat sa inte PASS" ar inget godkannande - och prova
+# det pa SATSEN, inte pa meningen. Se _obestridd_sats.
 GODKANNANDEORD = ("pass", "godkand", "godkänd", "godkant", "godkänt",
                   "gron", "grön", "klart", "fardigt", "färdigt", "verifierad",
                   "verifierat", "guld", "gold", "l1", "l2", "approved")
 
-NEKANDE_OGONORD = ("fail", "inconclusive", "inte", "icke", "ingen", "inget",
-                   "not gold", "underkand", "underkänd", "rott", "rött",
-                   "avbrots", "avbröts", "utan att", "aldrig", "saknas",
-                   "not ", "no ")
+# Orden som gor att en ogonmening INTE ar ett godkannande. Listan ar en KOPIA
+# av samma slag som text.NEKANDE var fore M-95, och den bar samma tva
+# storheter: ord som sager att domen var ett UNDERKANNANDE, och bara
+# negationer som negerar det de star bredvid. Delningen star har for att den
+# ska synas; unionen ar det som provas, och den ar ordagrant lika bred som
+# fore M-98. Det som andrades ar VAR fragan stalls - se _obestridd_sats.
+UNDERKANNANDEORD = ("fail", "inconclusive", "not gold", "underkand",
+                    "underkänd", "rott", "rött", "avbrots", "avbröts",
+                    "saknas")
+
+BARA_NEGATION_OGA = ("inte", "icke", "ingen", "inget", "utan att", "aldrig",
+                     "not ", "no ")
+
+NEKANDE_OGONORD = UNDERKANNANDEORD + BARA_NEGATION_OGA
 
 # Ord som pastar guld. Halls skilda fran GODKANNANDEORD darfor att guld ar en
 # starkare utsaga an PASS: guld kraver bade ogats PASS och grindens dom.
@@ -73,11 +84,34 @@ def _bar(lag: str, ord_: Sequence[str]) -> Optional[str]:
     return bar_ord(lag, ord_)
 
 
+def _obestridd_sats(mening_lag: str, ord_: Sequence[str]) -> Optional[str]:
+    """Den forsta SATSEN som bar ett ord ur ord_ utan att neka det.
+
+    HELA M-98 ligger i den har funktionen. Fram till dess fragade grinden
+    "bar MENINGEN nagot nekande ord?", och det ar fel storhet sa fort
+    meningen har mer an en sats. Matt 2026-09-05:
+
+        "Ogat sa PASS, sa cellen ar godkand."  -> ['oga_utan_korning']
+        "Ogat sa PASS och inget fel uppstod."  -> []
+        "Domen ar guld."        -> ['guld_utan_grind', 'oga_utan_korning']
+        "Domen ar guld, och inget fel finns."  -> []
+
+    Nekandet i andra satsen horde till felen. Domen stod kvar oemotsagd, och
+    grinden tego. Det ar samma felklass som M-94 fynd 1 och 4, i en KOPIERAD
+    ordlista - den sjatte grinden av samma slag.
+
+    Varje sats provas for sig, och det ar med flit: "Ogat sa inte PASS, men
+    cellen ar godkand" bar bade en nekad och en obestridd dom, och det ar den
+    obestridda som ska anklagas.
+    """
+    for sats in satser(mening_lag):
+        if _bar(sats, ord_) and not _bar(sats, NEKANDE_OGONORD):
+            return sats
+    return None
+
+
 def _godkannande(mening) -> bool:
-    lag = mening.lag
-    if _bar(lag, NEKANDE_OGONORD):
-        return False
-    return _bar(lag, GODKANNANDEORD) is not None
+    return _obestridd_sats(mening.lag, GODKANNANDEORD) is not None
 
 
 def las_dom(ogonrapport: Optional[str]):
@@ -126,8 +160,7 @@ def granska(text: str, ogonrapport: Optional[str] = None,
                           "raknas som inte godkant" % (varde, rapport.dom[1])),
                     mening=m.text))
 
-    guld = [m for m in meningar_
-            if _bar(m.lag, GULDORD) and not _bar(m.lag, NEKANDE_OGONORD)]
+    guld = [m for m in meningar_ if _obestridd_sats(m.lag, GULDORD)]
     if guld and not (guldbeslut is not None and getattr(guldbeslut, "guld", False)):
         vad = ("guldgrinden har inte kort" if guldbeslut is None
                else "guldgrinden sa %s" % guldbeslut.text())
