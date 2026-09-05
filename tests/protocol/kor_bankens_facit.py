@@ -13,7 +13,7 @@ Bankkontraktet mekaniserar den regeln för de 26 körningarna under
 `tests/protocol/` (`svc/vc_assist_svc/bankkontrakt.py`). Den har aldrig gällt
 bankens 51 uppgifter, och där ligger den största facitmängden i repot.
 
-Den här körningen är regeln applicerad på uppgifterna. Fem frågor per uppgift:
+Den här körningen är regeln applicerad på uppgifterna. Sex frågor per uppgift:
 
 1. **Har den ett spårfacit?** Utan ett går uppgiften inte att döma idag; den är
    en prompt och inte en bänkpost. Täckningen räknas och jämförs mot ett golv.
@@ -23,15 +23,19 @@ Den här körningen är regeln applicerad på uppgifterna. Fem frågor per uppgi
 3. **Ligger källan utanför koden som döms?** Ett facit härlett ur
    `svc/vc_assist_svc/st/` eller `plc/` är tautologiskt: tolken som räknar
    fram facit är samma tolk som dömer mot det.
-4. **Går signalkartan ihop?** Kärnutgångar som inte är utsignaler, scenarier
+4. **Går varje citerad paragraf att slå upp?** Paragrafnumren jämförs mot
+   tabellerna i `docs/matningar/M-106_bankens_facitkallor.md`, där de faktiskt
+   slogs upp. Ett uppfunnet paragrafnummer ser ut precis som ett riktigt, och
+   MÄTT 2026-09-05 stod två sådana i banken.
+5. **Går signalkartan ihop?** Kärnutgångar som inte är utsignaler, scenarier
    som pekar på signaler som inte finns, kärnutgångar som spårfacit aldrig rör.
-5. **Håller facit?** Referenslösningen ska uppfylla sitt eget facit och varje
+6. **Håller facit?** Referenslösningen ska uppfylla sitt eget facit och varje
    motbevis ska falla på de brister det namnger. Ett facit ingen lösning
    uppfyller fäller alla; ett facit inget motbevis faller på mäter ingenting.
 
 TRASIGA FALL
 ------------
-Sex fixturer körs sist och MASTE falla. En grind utan trasig fixtur är en
+Sju fixturer körs sist och MASTE falla. En grind utan trasig fixtur är en
 förhoppning som fått ett filnamn (regel S2, `docs/spec/96_ingen_skuld.md`).
 
 Körs utan VC, utan OpenPLC och utan STruC++.
@@ -86,6 +90,7 @@ BANKPOST = {
         "ett tal med enhet i namnet men utan enhet i vardet",
         "ett facit som kallar sig STANDARD men bara namner standardnumret",
         "en paragraf utan utgivare, som inte gar att sla upp",
+        "ett uppfunnet paragrafnummer som inte star i M-106",
         "en karnutgang som sparfacit aldrig ror",
     ],
     "kraver": ["inget"],
@@ -163,6 +168,106 @@ TAL_MED_ORD = re.compile(
 HAR_SIFFRA = re.compile(r"\d")
 
 _MNUMMER = re.compile(r"\bM-\d+\b")
+
+
+# --------------------------------------------- de verifierade paragraferna
+
+# Uppslagningen av en paragraf gors INTE mot en lista i den har filen. Den gors
+# mot tabellerna i M-106, som ar den matning dar paragraferna faktiskt slogs upp
+# mot standardorganens innehallsforteckningar. En kopia har hade kunnat drifta
+# fran matningen utan att nagon markte det - samma skal som bank/schema.py laser
+# felklasserna ur specen i stallet for att bara en kopia.
+#
+# VARFOR KONTROLLEN FINNS: MATT 2026-09-05 skrev en agent "IEC 60204-1:2016
+# 9.2.4" i tva uppgifters standardfalt. Paragrafen finns inte; ratt nummer ar
+# 9.2.3.4.2. Lintern sag den inte, och grinden sag den inte heller sa lange den
+# bara kravde att NAGOT paragrafnummer stod dar. Ett uppfunnet paragrafnummer
+# ser exakt ut som ett riktigt.
+M106 = os.path.join(MATNINGAR, "M-106_bankens_facitkallor.md")
+
+# Utgivarbeteckningen i en tabellcell: "IEC 60204-1:2016", "ISO/IEC 15416:2016",
+# "ANSI/ISA-TR88.00.02-2022", "EUROMAP 67 v1.11 (2015)", "GS1 General
+# Specifications R26.0". Namnet normaliseras till utgivare + nummer, utan ar.
+_BETECKNING = re.compile(
+    r"^\**\s*(IEC/?T?S?\s*\d+(?:-\d+)*"
+    r"|ISO/IEC\s*\d+"
+    r"|ISO\s*\d+(?:-\d+)*"
+    r"|ASTM\s*[A-Z]\d+"
+    r"|(?:ANSI/)?ISA-TR[\d.]+"
+    r"|VDA\s*\d+"
+    r"|EUROMAP\s*\d+"
+    r"|VDI/VDE\s*\d+"
+    r"|GS1"
+    r"|TIGER)")
+
+
+def _normalisera(namn):
+    return re.sub(r"\s+", " ", namn).strip().replace("ANSI/ISA-TR", "ISA-TR")
+
+
+def las_verifierade_paragrafer(sokvag=M106):
+    """{(beteckning, paragraf)} ur M-106:s tabeller.
+
+    Varje tabellrad vars forsta cell ar en standardbeteckning bidrar med alla
+    paragrafliknande tal i sina tva forsta kolumner efter beteckningen. Bade
+    paragraftabellen och tabellen over utgavebeteckningar lases, sa ett
+    versionsnummer inte fells som en uppfunnen paragraf.
+    """
+    ut = set()
+    if not os.path.exists(sokvag):
+        return ut
+    with open(sokvag, "r", encoding="utf-8") as f:
+        for rad in f:
+            if not rad.lstrip().startswith("|"):
+                continue
+            celler = [c.strip() for c in rad.strip().strip("|").split("|")]
+            if len(celler) < 2:
+                continue
+            m = _BETECKNING.match(celler[0])
+            if not m:
+                continue
+            namn = _normalisera(m.group(1))
+            for cell in celler[1:3]:
+                for p in PARAGRAF.findall(cell):
+                    ut.add((namn, p))
+    return ut
+
+
+def _citat(text):
+    """(beteckning, paragraf) ur en fritext. Paragrafen knyts till narmaste
+    foregaende beteckning, sa "IEC 60204-1:2016 9.2.3.7" blir ett par."""
+    par = []
+    senaste = None
+    monster = re.compile(
+        r"(IEC/?T?S?\s*\d+(?:-\d+)*|ISO/IEC\s*\d+|ISO\s*\d+(?:-\d+)*"
+        r"|ASTM\s*[A-Z]\d+|(?:ANSI/)?ISA-TR[\d.]+|VDA\s*\d+|EUROMAP\s*\d+"
+        r"|VDI/VDE\s*\d+|GS1|TIGER)|(\b\d+\.\d+(?:\.\d+)*\b)")
+    for m in monster.finditer(text):
+        if m.group(1):
+            senaste = _normalisera(m.group(1))
+        elif senaste is not None:
+            par.append((senaste, m.group(2)))
+    return par
+
+
+def granska_paragrafer(post, verifierade):
+    """Varje citerad paragraf ska vara uppslagen. Ett nummer ingen slagit upp
+    ar ett pastaende med falsk precision."""
+    brister = []
+    if not verifierade:
+        return brister
+    facit = post.get("facit_spar")
+    if not isinstance(facit, dict):
+        return brister
+    text = str(facit.get("harkomst") or "") + " " + str(facit.get("standard") or "")
+    for namn, p in sorted(set(_citat(text))):
+        if (namn, p) not in verifierade:
+            brister.append(Brist(
+                post.get("task_id", "?"), "OVERIFIERAD_PARAGRAF",
+                "%s %s star inte i M-106:s tabell over uppslagna paragrafer. "
+                "Ett uppfunnet paragrafnummer ser ut precis som ett riktigt."
+                % (namn, p)))
+    return brister
 
 
 class Brist(object):
@@ -389,11 +494,13 @@ def granska_domen(post):
     return brister
 
 
-def granska_uppgift(post, kanda_matningar, kor_domen=True):
+def granska_uppgift(post, kanda_matningar, kor_domen=True, verifierade=None):
     brister = []
     brister += granska_antaganden(post)
     brister += granska_signalkarta(post)
     brister += granska_harkomst(post, kanda_matningar)
+    brister += granska_paragrafer(
+        post, las_verifierade_paragrafer() if verifierade is None else verifierade)
     if kor_domen:
         brister += granska_domen(post)
     return brister
@@ -438,6 +545,13 @@ def trasiga_fall(bank, kanda_matningar):
     ut.append(("tal med enhet i namnet men inte i vardet", p, "TAL_UTAN_ENHET"))
 
     p = _fixtur(bank)
+    p["task_id"] = "FIX-7"
+    p["facit_spar"]["harkomst"] = (
+        "STANDARD: manuell aterstallning efter nodstopp enligt "
+        "IEC 60204-1:2016 9.2.4 \"Reset\". M-45")
+    ut.append(("uppfunnet paragrafnummer", p, "OVERIFIERAD_PARAGRAF"))
+
+    p = _fixtur(bank)
     p["task_id"] = "FIX-5"
     p["facit_spar"]["harkomst"] = (
         "STANDARD: hall-for-att-kora enligt IEC 60204-1. M-45")
@@ -466,10 +580,12 @@ def trasiga_fall(bank, kanda_matningar):
         f for f in (p["facit_spar"]["flanker"] or []) if f.get("signal") != karn]
     ut.append(("karnutgang som sparfacit aldrig ror", p, "KARNUTGANG_UTAN_SPAR"))
 
+    verifierade = las_verifierade_paragrafer()
     domar = []
     for vad, fixtur, vantad in ut:
         koder = [b.kod for b in granska_uppgift(fixtur, kanda_matningar,
-                                                kor_domen=False)]
+                                                kor_domen=False,
+                                                verifierade=verifierade)]
         domar.append((vad, vantad, vantad in koder, koder))
     return domar
 
