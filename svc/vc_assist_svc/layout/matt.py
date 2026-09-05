@@ -44,11 +44,11 @@ class Langd:
     def __init__(self, meter, _losen=None):
         if _losen is not _LOSEN:
             raise Enhetsfel(
-                "Langd byggs med Langd.m(x) eller Langd.mm(x), aldrig direkt. "
-                "Ett bart tal bär ingen enhet och får inte bli en längd.")
+                "Langd is built with Langd.m(x) or Langd.mm(x), never directly. "
+                "A bare number carries no unit and must not become a length.")
         v = float(meter)
         if math.isnan(v) or math.isinf(v):
-            raise Enhetsfel("en längd får inte vara NaN eller oändlig")
+            raise Enhetsfel("a length must not be NaN or infinite")
         self._m = v
 
     # ---- fabriker ------------------------------------------------------
@@ -89,8 +89,8 @@ class Langd:
 
     def __mul__(self, faktor):
         if isinstance(faktor, Langd):
-            raise Enhetsfel("längd gånger längd är en yta, inte en längd; "
-                            "använd area_m2()")
+            raise Enhetsfel("length times length is an area, not a length; "
+                            "use area_m2()")
         return Langd.m(self._m * float(faktor))
 
     __rmul__ = __mul__
@@ -138,21 +138,21 @@ def krav(varde, vad):
     if isinstance(varde, Langd):
         return varde
     raise Enhetsfel(
-        "%s måste vara en Langd, fick %r av typen %s. "
-        "Skriv Langd.mm(1200) eller Langd.m(1.2) - talet ensamt säger inte "
-        "vilken enhet det bär." % (vad, varde, type(varde).__name__))
+        "%s must be a Langd, got %r of type %s. "
+        "Write Langd.mm(1200) or Langd.m(1.2) - the number alone doesn't say "
+        "which unit it carries." % (vad, varde, type(varde).__name__))
 
 
 def krav_vinkel(varde, vad):
     """Kräver en vinkel i GRADER som float. Normaliserar till [0, 360)."""
     if isinstance(varde, Langd):
-        raise Enhetsfel("%s är en vinkel i grader, inte en längd" % vad)
+        raise Enhetsfel("%s is an angle in degrees, not a length" % vad)
     try:
         v = float(varde)
     except (TypeError, ValueError):
-        raise Enhetsfel("%s måste vara ett tal i grader, fick %r" % (vad, varde))
+        raise Enhetsfel("%s must be a number in degrees, got %r" % (vad, varde))
     if math.isnan(v) or math.isinf(v):
-        raise Enhetsfel("%s får inte vara NaN eller oändlig" % vad)
+        raise Enhetsfel("%s must not be NaN or infinite" % vad)
     return v % 360.0
 
 
