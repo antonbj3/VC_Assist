@@ -17,3 +17,4 @@ __pycache__/
 # dokumentet - kraver den, och hamtas om med
 # tests/protocol/kor_m107_bygg_korpus.py.
 data/tillverkardatablad/cache/
+*.forhandsvisning.html

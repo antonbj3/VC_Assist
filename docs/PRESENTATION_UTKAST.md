@@ -1,136 +1,99 @@
 # VC Assist
 
-**Skriver PLC-koden. Kör den på riktigt. Ser efter vad som faktiskt hände.**
+VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
+code on a real soft-PLC against a simulated plant, and reads what actually
+happened in the simulation to decide whether the code is correct.
 
-De flesta verktyg som genererar styrkod svarar på frågan *kompilerar den?*
-Det är fel fråga. En station kan kompilera perfekt och ändå släppa greppet
-innan bandet stannat, starta nästa index 180 ms för tidigt, eller stå tyst för
-evigt när en givare tystnar.
+The distinction that matters: most code-generation tools answer *does it
+compile?* This one answers *what happened in the plant?* — and feeds the answer
+back until the code is right.
 
-Det här verktyget svarar på frågan *vad hände i anläggningen?* — och matar
-tillbaka svaret tills koden är rätt.
+## How it works
 
 ```mermaid
 flowchart LR
-    A["fritext<br/>beställning"] --> B["byggplan"]
-    B --> C["scen i<br/>simulatorn"]
-    C --> D["ST-kod"]
+    A["plain-text<br/>order"] --> B["build plan"]
+    B --> C["scene in the<br/>simulator"]
+    C --> D["ST code"]
     D --> E["OpenPLC<br/>runtime"]
-    E -->|OPC UA| F["anläggningen<br/>kör"]
-    F --> G(["ögat läser hela scenen<br/>som tidsserie"])
-    G -->|"allt rätt"| H["GULD"]
-    G -->|"ST260_STA_BUSY steg 7,45 s före<br/>ST250_STA_DONE"| D
+    E -->|OPC UA| F["the plant<br/>runs"]
+    F --> G(["the eye reads every object<br/>as a time series"])
+    G -->|all correct| H["GOLD"]
+    G -->|"ST260_STA_BUSY rose 7.45 s<br/>before ST250_STA_DONE"| D
 
     style G fill:#1f6feb,color:#fff
     style H fill:#238636,color:#fff
 ```
 
-Den röda pilen tillbaka till ST-koden är hela poängen. Modellen får inte
-"det gick fel" — den får **vilken signal som steg för tidigt, med hur många
-sekunder, och vilken station som därför började arbeta i en enhet som inte var
-klar.**
+Each step, concretely:
 
-Det sista steget är det som inte finns någon annanstans. Vi har gått igenom
-den publicerade litteraturen: LLM4PLC, Agents4PLC, AutoPLC, SemaPLC,
-Spec2Control. **Ingen har publicerat kedjan där genererad kod deployas till en
-soft-PLC, körs mot en anläggningsmodell, och resultatet matas tillbaka.**
-Deras "closed loop" betyder formell verifiering, inte en körande fabrik.
+**The order** is free text. *"A conveyor feeds cartons to a robot that
+palletises eight boxes per layer on a EUR pallet. Place height is measured from
+the top of the layer. Buffer ahead of the station, target 100 units per hour."*
 
----
+**The build plan** turns that into a runnable sequence of components and
+conditions — and rejects the order if it contradicts itself, naming which
+condition collides, rather than building half of it.
 
-## Vad du faktiskt gör med det
+**The scene** is assembled from component types the system knows: conveyor,
+feeder, buffer, sink. Robots and grippers come from the simulator's library.
 
-Du beskriver cellen i vanlig text:
+**The ST code** is written by a language model that cannot see the answer key.
+The transport enforces this in two layers: an empty tool list, and a working
+directory outside the repository.
 
-> *"Ett band matar kartonger till en robot som palleterar åtta kolli per lager
-> på EUR-pall. Avläggshöjden räknas från lagrets överkant. Buffert framför
-> stationen, kapacitetsmål 100 enheter i timmen."*
+**OpenPLC** compiles and runs the code as a real soft-PLC. It drives the
+simulation over OPC UA, the same protocol a physical PLC would use.
 
-Verktyget gör resten: planerar bygget och **avvisar beställningen om den
-motsäger sig själv**, med vilket villkor som krockar. Bygger scenen av kända
-komponenter. Skriver ST-koden. Kör den på OpenPLC. Låter den driva
-simuleringen. Och läser sedan hela scenen som en tidsserie — varje objekts
-läge, varje signal, varje flank — och dömer på fem axlar: sekvens, timing,
-grepp, kollision och genomflöde.
+**The eye** samples the entire scene while it runs — every object's position,
+every signal, every edge — and judges on five axes: sequence, timing, grasp,
+collision and throughput.
 
-Faller något får modellen ögats egna ord tillbaka och skriver om.
+**The loop back** is the part that does not exist elsewhere. The model does not
+receive "it failed". It receives which signal rose too early, by how many
+seconds, and which station therefore began working on a part the previous
+station had not finished.
 
----
+## The gate chain
 
-## Grindkedjan
-
-Sju filter står mellan modellens första utkast och något du vågar köra. Det
-avgörande är att de fyra första bara läser **texten** — och att en station kan
-passera alla fyra och ändå släppa greppet på en meters höjd.
+Seven filters stand between the model's first draft and code you would run. The
+first four read only the *text* — and a station can pass all four and still
+release its grip a metre above the pallet.
 
 ```mermaid
 flowchart LR
-    M["modellens<br/>utkast"] --> T["1-4 · läser texten<br/><i>syntax, analys,<br/>namn, anrop</i>"]
-    T --> O["5 · ÖGAT<br/><i>kör koden mot<br/>anläggningen</i>"]
-    O --> K["6 · komposition<br/><i>hela linan,<br/>inte stationen</i>"]
-    K --> H["7 · människa"] --> G["GULD"]
-    O -.->|"felet i klartext"| M
+    M["model's<br/>draft"] --> T["1-4 · reads the text<br/><i>syntax, analysis,<br/>names, calls</i>"]
+    T --> O["5 · THE EYE<br/><i>runs the code<br/>against the plant</i>"]
+    O --> K["6 · composition<br/><i>the whole line,<br/>not the station</i>"]
+    K --> H["7 · human"] --> G["GOLD"]
+    O -.->|"the failure, in words"| M
 
     style O fill:#1f6feb,color:#fff
     style G fill:#238636,color:#fff
 ```
 
-Grind 5 är den enda som kör koden. Den fångar en klass fel de fyra första
-strukturellt inte kan se: *greppet bildades medan verktyget stod 642 mm från
-kortet.* Texten var felfri.
+Gate 5 is the only one that executes. It catches a class of fault the first four
+structurally cannot see: *the grasp formed while the tool was 642 mm from the
+board.* The text was flawless.
 
-Grind 6 finns för att fem fel i vår mätning passerade **båda** stationerna var
-för sig, och syntes först när de kopplades ihop.
+Gate 6 exists because five faults in our own measurement passed **both**
+stations individually and appeared only once they were connected.
 
-## Vad som är mätt
-
-Varje siffra nedan står i en mätningsfil i repot, med sin rigg och sina
-gränser. Inget här är uppskattat.
-
-**Ögat**
-* 812 objekt i tidsserie, **noll drift**, 4,3 µs per komponent och prov
-* provtagning **224,7 Hz** under trafik, 17,2 Hz i vila
-* **4 av 5 domare** fäller celler byggda i riktig simulator, med en grön
-  kontrollcell som inte får fällas
-
-**Slingan**
-* handskriven ST styr scenen genom OPC UA, tur och retur i **9,91 ms** median
-* två stationer på en lina: **fem kompositionsfel fällda** som båda
-  enstationskörningarna släppte igenom
-* fyra komponenttyper byggda ur specen i riktig simulator, **13 produkter
-  genom kedjan med exakt 3,0000 s** mellan varje
-
-**Bänken**
-* **63 uppgifter** i sju familjer: transport, plock, montering, sortering,
-  palletering, cell och linje, överlämning
-* flerskott: **25 av 26 lösta** inom fyra varv, median två varv
-* enskott: **4 av 26** — och det talet är varför reparationsslingan finns
-* mutationsprov: **809 kända skador**, 718 fångade
-
-**Grindkedjan**
-* sju grindar: kompilering, statisk analys, deklarationsmatchning,
-  anropsvalidering, ögat, komposition, människa
-* 247 permanenta språkfall korsprövade mot en andra kompilator
-* och sedan idag en **tredje** motor: koden döms av OpenPLC:s egen runtime,
-  inte bara av vår tolk
-
----
-
-## Var vi står, ritat ärligt
+## Where the project stands
 
 ```mermaid
 flowchart LR
-    subgraph P1["BEVISAD"]
+    subgraph P1["PROVEN"]
         direction LR
-        H1["ST skriven<br/>utanför slingan"] --> H2["OpenPLC"] --> H3["riktig scen"] --> H4["ögat dömer"]
+        H1["ST written<br/>outside the loop"] --> H2["OpenPLC"] --> H3["real scene"] --> H4["the eye judges"]
     end
-    subgraph P2["BEVISAD"]
+    subgraph P2["PROVEN"]
         direction LR
-        M1["ST skriven<br/>inuti slingan"] --> M2["vår tolk"] --> M3["dom mot<br/>spårfacit"]
+        M1["ST written<br/>inside the loop"] --> M2["our interpreter"] --> M3["verdict against<br/>a trace"]
     end
-    subgraph P3["ALDRIG GJORD"]
+    subgraph P3["NEVER DONE"]
         direction LR
-        X1["ST skriven<br/>inuti slingan"] --> X2["OpenPLC"] --> X3["riktig scen"] --> X4["ögat dömer"]
+        X1["ST written<br/>inside the loop"] --> X2["OpenPLC"] --> X3["real scene"] --> X4["the eye judges"]
     end
 
     style P1 fill:#0d3320,stroke:#238636,color:#fff
@@ -138,66 +101,94 @@ flowchart LR
     style P3 fill:#3d1418,stroke:#da3633,color:#fff
 ```
 
-Två halvor byggdes var för sig, med avsikt: de tidiga faserna skulle bevisa
-att **vägen** finns, en senare fas att **modellen** hittar den. Mätningarna
-säger det själva — *"Fas 8 påstår att kompositionen går att döma, inte att en
-språkmodell hittar den."*
+Two halves were built separately, on purpose: the early phases proved the *path*
+exists, a later phase that a *model* can find it. The measurements say so
+themselves — *"phase 8 claims composition can be judged, not that a language
+model finds it."*
 
-De har ännu inte satts ihop, och det steget är nästa. Faller det, är produkten
-bänken och inte slingan — och det svaret är värt mer än att inte veta.
+They have not yet been joined. That step is next, and a negative result is a
+real result: if it fails, the product is the test bench rather than the loop.
 
-## Vad det inte gör, sagt rakt ut
+## What has been measured
 
-Den här listan är kort med flit. Ett verktyg som inte säger var det slutar är
-ett verktyg man inte kan lita på.
+Every number below has a measurement file in the repository, with its rig and
+its stated limits. Nothing here is an estimate.
 
-* **Ingenting genererat rör en säkerhetsfunktion.** Nödstopp och skyddskretsar
-  ligger på certifierad säkerhets-PLC i begränsat variabelt språk, skrivet av
-  människa. Genererad logik ligger *bredvid* den, förreglad av den. Det är
-  inte försiktighet — IEC 61508 och ISO 13849 kräver det.
-* **Ögat är felfinnande, aldrig bevis.** Det säger att något gick fel. Det kan
-  inte säga att allt är rätt.
-* **Simuleringen saknar verkligheten.** Sensorstuds, ställdonsdynamik,
-  fältbussjitter och degraderade lägen finns inte. "Simuleringen kraschade
-  inte" är inget godkännandekriterium, här eller någon annanstans.
-* **Ingen riktig anläggning är ännu inspelad**, och ingen hårdvaru-PLC har
-  körts. Soft-PLC:n är den motor produkten riktar sig mot, men den är inte en
-  fabrik.
+**The eye**
+* 812 objects in a time series, **zero drift**, 4.3 µs per component per sample
+* sampling at **224.7 Hz** under traffic, 17.2 Hz idle
+* **4 of 5 judges** fail cells built in the real simulator, with a green control
+  cell that must not fail
 
----
+**The loop**
+* hand-written ST drives the scene over OPC UA, round trip **9.91 ms** median
+* two stations on one line: **five composition faults caught** that both
+  single-station runs passed
+* four component types built from the specification in the real simulator,
+  **13 products through the chain at exactly 3.0000 s** apart
 
-## Varför det är byggt som det är
+**The bench**
+* **63 tasks** in seven families: transport, picking, assembly, sorting,
+  palletising, cell and line, handover
+* multi-shot: **25 of 26 solved** within four rounds, median two
+* single-shot: **4 of 26** — which is why the repair loop exists
+* mutation testing: **809 known faults injected**, 718 caught
 
-Tre regler har format varje rad i repot:
+**The gate chain**
+* 247 permanent language cases cross-checked against a second compiler
+* and, since today, a third engine: code is judged by OpenPLC's own runtime,
+  not only by our interpreter
 
-**Ingen tröskel utan mätreferens.** Står det `if x > 0.8` finns en mätning som
-säger varifrån 0,8 kommer. Annars är talet en gissning som ser ut som kunskap.
+## What it does not do
 
-**Ingen grind utan trasig fixtur.** En grind som aldrig fällt något är inte
-prövad. Fixturen skrivs först, ses vara röd, och sedan byggs mekanismen.
+This list is short deliberately. A tool that does not say where it stops is a
+tool you cannot rely on.
 
-**Ett facit får aldrig komma ur koden som döms.** Fem lagliga facitkällor står
-i kontraktet, och ett facit härlett ur samma tolk som dömer det avvisas.
+* **Nothing generated touches a safety function.** Emergency stops and
+  protective circuits belong on a certified safety PLC, in a limited
+  variability language, written by a person. Generated logic sits *beside* it,
+  interlocked *by* it. This is not caution — IEC 61508 and ISO 13849 require it.
+* **The eye finds faults; it never proves correctness.** It can say something
+  went wrong. It cannot say everything is right.
+* **The simulation is not reality.** Sensor bounce, actuator dynamics, fieldbus
+  jitter and degraded modes are absent. "The simulation did not crash" is not an
+  acceptance criterion, here or anywhere.
+* **No real plant has been recorded**, and no hardware PLC has been driven. The
+  soft-PLC is the engine the product targets, but it is not a factory.
 
-Det syns i talen. Nio av sexton grinddomar i en tidig körning var vår egen
-bugg — vi mätte det, skrev ned det, och lagade grinden. Tre av tretton
-dubbelskrivningsdomar var falska röda som brände reparationsvarv; de kostade
-oss en dag att hitta och står nu som permanenta provfall.
+## Why it is built the way it is
 
----
+Three rules shaped every line in the repository.
 
-## Kom igång
+**No threshold without a measured reference.** If the code says `if x > 0.8`,
+a measurement states where 0.8 came from. Otherwise the number is a guess
+wearing the clothes of knowledge.
+
+**No gate without a failing fixture.** A gate that has never caught anything is
+untested. The fixture is written first, observed to be red, and only then is the
+mechanism built.
+
+**An answer key may never come from the code being judged.** Five legitimate
+sources are listed in the bench contract, and an answer key derived from the
+same interpreter that judges it is rejected.
+
+The effect is visible in the numbers. Nine of sixteen gate verdicts in an early
+run were our own bug — measured, written down, and fixed. Three of thirteen
+double-write verdicts were false positives that burned repair rounds; they cost
+a day to find and are now permanent test cases.
+
+## Getting started
 
 ```bash
 git clone <repo>
 cd vc-assist
-python3 install/installera.py sok        # visa vad som finns, skriv ingenting
-python3 install/installera.py installera # lägg tillägget på plats
+python3 install/installera.py sok        # show what is present, write nothing
+python3 install/installera.py installera # put the add-on in place
 ```
 
-Enbart Python 3 och standardbiblioteket. Kört på 3.10, 3.12 och 3.13, på
-Linux under Wine och på Windows. Koden som körs inne i simulatorn är giltig i
-både Python 2.7 och 3.x, eftersom den inbäddade tolken är 2.7.
+Python 3 and the standard library only. Tested on 3.10, 3.12 and 3.13, on Linux
+under Wine and on Windows. Code that runs inside the simulator is valid in both
+Python 2.7 and 3.x, because the embedded interpreter is 2.7.
 
-Avinstallationen tar bort exakt det installationen la dit — trädet blir
-byte-identiskt med före.
+Uninstalling removes exactly what was installed — the tree is byte-identical to
+before.
