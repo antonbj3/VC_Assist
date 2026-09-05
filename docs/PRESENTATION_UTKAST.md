@@ -178,7 +178,29 @@ being built.
 | **63** | cells in the task set: transport, picking, assembly, sorting, palletising, whole lines, robot handover |
 
 Every number has a measurement file behind it, stating the rig it ran on and
-what it does not show.
+what it does not show. Figures above are as of **2026-09-06**; they change as the
+project measures more.
+
+## What is being built next
+
+**Letting the model design the line.** Today a person describes the cell and the
+model writes the control code. The next step is the model laying out the line
+itself and correcting it from what the eye reports. The rig for it is built and
+waiting on a run. If it fails, that is worth knowing: it would mean the value is
+in the testing, not in the generation.
+
+**Existing plants.** If a line is already running, its original code is often
+lost. Point the tool at a recording of the plant's inputs and outputs and it can
+reconstruct the logic — 28 of 28 interlocks recovered from a clean recording.
+From a production recording, 3 of 28: normal operation never exercises the
+emergency stop or the fault paths, so a recording of a good day cannot teach
+them. This works today on a purpose-made recording; it needs a real one from a
+real plant to be more than that.
+
+**Getting the code into your PLC.** Export to PLCopen XML works and survives a
+round trip, verified against the official schema and a second toolchain. Whether
+it opens cleanly in CODESYS or TwinCAT is untested — one exported file from
+someone who owns either would settle it.
 
 ## Getting started
 

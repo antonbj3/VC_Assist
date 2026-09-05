@@ -84,3 +84,28 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def datumet_ar_aktuellt(kalla_fil: str, matningskatalog: str = "docs/matningar"):
+    """Faller nar presentationens 'as of'-datum halkat efter nyaste matningen.
+
+    Ett datum nagon ska minnas att uppdatera ar redan inaktuellt. Den har
+    kontrollen gor att det inte behover minnas.
+    """
+    import glob
+    import re
+    senast = ""
+    for f in glob.glob(os.path.join(matningskatalog, "M-*.md")):
+        with io.open(f, encoding="utf-8") as fh:
+            m = re.search(r"\*\*Datum:\*\*\s*(\d{4}-\d{2}-\d{2})", fh.read(600))
+        if m and m.group(1) > senast:
+            senast = m.group(1)
+    with io.open(kalla_fil, encoding="utf-8") as fh:
+        text = fh.read()
+    star = re.search(r"as of \*\*(\d{4}-\d{2}-\d{2})\*\*", text)
+    if not star:
+        return False, "presentationen saknar ett 'as of'-datum"
+    if star.group(1) < senast:
+        return False, ("presentationen sager %s, nyaste matningen ar %s"
+                       % (star.group(1), senast))
+    return True, ""
