@@ -46,19 +46,60 @@ _PYNIVA_RE = re.compile(r"^Python[ _]?(\d+)$", re.IGNORECASE)
 # det gar att injicera - annars gar Windows-vagen inte att prova alls harifran.
 # --------------------------------------------------------------------------
 
-def skalmapp_windows():
-    """Windows egen "Personal"-mapp ur registret.
+# De tva registernycklar som bar Personal-mappen, i den ordning de ska provas.
+# "User Shell Folders" ar den som Windows sjalv skriver till nar mappen flyttas
+# eller omdirigeras till OneDrive. "Shell Folders" ar en aldre cache som finns
+# kvar for bakatkompatibilitet - den lastes forst av den har koden, alltsa just
+# den nyckel som kan slapa efter i exakt det OneDrive-fall funktionen skrevs
+# for. MATT (M-91): pa en riktig Windows 10 19041-kupa finns BADA, och de
+# stammer overens - men den maskinen har ingen omdirigering, sa den kan inte
+# visa fallet dar de gar isar.
+_NYCKLAR = (
+    (r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+     "User Shell Folders\\Personal"),
+    (r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+     "Shell Folders\\Personal"),
+)
+
+
+def skalmapp_windows(winreg_modul=None):
+    """Windows egen "Personal"-mapp ur registret, med kallan den kom ur.
 
     Behovs for att ``~/Documents`` kan vara omdirigerad till OneDrive. Ren
     stdlib: ``winreg`` foljer med Python pa Windows och finns inte alls
-    pa Linux, darfor importen inne i funktionen.
-    """
-    import winreg  # finns bara pa Windows
+    pa Linux, darfor importen inne i funktionen. ``winreg_modul`` finns bara
+    for att kunna prova bada nycklarna och expansionen harifran.
 
-    nyckel = r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, nyckel) as k:
-        varde, _typ = winreg.QueryValueEx(k, "Personal")
-    return varde
+    ``User Shell Folders`` levererar REG_EXPAND_SZ, alltsa "%USERPROFILE%\\
+    Documents" och inte en fardig sokvag. Att bara byta nyckel utan att
+    expandera hade gett en sokvag med ett procenttecken i - samma fel som
+    forut, fast tystare.
+    """
+    if winreg_modul is None:
+        import winreg as winreg_modul  # finns bara pa Windows
+
+    fel = []
+    for nyckel, kallnamn in _NYCKLAR:
+        try:
+            with winreg_modul.OpenKey(winreg_modul.HKEY_CURRENT_USER, nyckel) as k:
+                varde, typ = winreg_modul.QueryValueEx(k, "Personal")
+        except Exception as e:                      # noqa: BLE001 - samlas nedan
+            fel.append("%s: %r" % (kallnamn, e))
+            continue
+        if typ == getattr(winreg_modul, "REG_EXPAND_SZ", 2):
+            # ntpath, INTE os.path. Pa Linux ar os.path posixpath, som bara
+            # kanner $VAR och lamnar %USERPROFILE% orort - koden hade da varit
+            # ratt pa Windows och oprovbar harifran, vilket ar samma sak som
+            # oprovad. ntpath.expandvars gor Windows-expansionen pa bada
+            # plattformarna och lases av provet nedan.
+            import ntpath
+            varde = ntpath.expandvars(varde)
+        skalmapp_windows.senaste_kalla = "registret: " + kallnamn
+        return varde
+    raise OSError("Personal fanns i ingen av registernycklarna: " + "; ".join(fel))
+
+
+skalmapp_windows.senaste_kalla = None
 
 
 class Miljo(object):
@@ -79,6 +120,7 @@ class Miljo(object):
         # S9: ingenting far svaljas tyst. Allt som gick fel under sokningen
         # hamnar har och skrivs ut av kommandoraden.
         self.varningar = []
+        self.skalmapp_kalla = "registret"
 
     @property
     def ar_windows(self):
@@ -89,10 +131,17 @@ class Miljo(object):
         if not self.ar_windows:
             return None
         try:
-            return self._skalmapp()
+            svar = self._skalmapp()
         except Exception as e:                      # noqa: BLE001 - loggas nedan
             self.varningar.append("kunde inte lasa Personal ur registret: %r" % (e,))
             return None
+        # Kallan maste namna nyckeln som faktiskt svarade. Stod forst som en
+        # fast strang "Shell Folders\\Personal" i konsumenten, vilket hade
+        # blivit ett falskt harkomstpastaende sa fort varden kom ur den andra
+        # nyckeln. En sokvags harkomst hor till sokvagen.
+        self.skalmapp_kalla = getattr(self._skalmapp, "senaste_kalla",
+                                      None) or "registret"
+        return svar
 
     def varna(self, text):
         self.varningar.append(text)
@@ -255,7 +304,7 @@ def _windowsrotter(miljo):
     ut = []
     personal = miljo.hemta_skalmapp()
     if personal:
-        ut.append((personal, "registret: Shell Folders\\Personal"))
+        ut.append((personal, miljo.skalmapp_kalla))
     profil = miljo.env.get("USERPROFILE")
     if profil:
         ut.append((os.path.join(profil, "Documents"), "%USERPROFILE%\\Documents"))
