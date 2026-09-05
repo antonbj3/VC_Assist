@@ -26,7 +26,7 @@ PYTHONPATH=svc python3 -m vc_assist_svc.forlopp <spegelfil> --folj 1.0
 ```
 
 Ingen VC, ingen brygga, ingen OPC UA-server, ingen språkmodell. Varje källa
-provas mot attrapper, och det står som en begränsning i M-64 §9 och M-93 §7.
+provas mot attrapper, och det står som en begränsning i M-64 §9 och M-93 §8.
 
 ## Vad som prövas
 
@@ -103,7 +103,7 @@ systemet inte vet.
   reparationsslingan, ögonkopplingen och guldgrinden har sin översättning
   byggd och provad i `forlopp/kallor.py`, och noll anropare i `svc/`.
 * **Filen växer utan tak.** 4 000 händelser kostar 403 kB och 6,2 ms per
-  skrivning; kostnaden över en körning är kvadratisk (M-93 §5.2).
+  skrivning; kostnaden över en körning är kvadratisk (M-93 §6.2).
 * **Två skrivare mot samma fil är oprövat.** `os.replace` gör varje skrivning
   atomisk, men ingen låsning finns.
 * **Fält 1 och 7** i `26_appen.md` §3 — samtalet och systemläget — kräver en

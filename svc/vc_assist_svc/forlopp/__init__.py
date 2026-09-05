@@ -36,8 +36,8 @@ from .kallor import (fran_guldbeslut, fran_kopplarvarv, fran_ogonkoppling,
                      kor_kopplaren)
 from .yta import (FORLOPPSVERSION, Forlopp, MAX_HANDELSERADER,
                   OBLIGATORISKA_SEKTIONER, RUBRIK_VET_INTE, SAKNAS,
-                  SEKTION_SAKNAS, TYSTNADSTAK_S, okorda_steg, rendera,
-                  saknade_sektioner)
+                  SEKTION_SAKNAS, TYSTNADSTAK_S, ogats_granser, okorda_steg,
+                  rendera, saknade_sektioner)
 from .spegel import (AVSLUTADE, FRAMTID, OLASBAR, Ogonblick,
                      REGLER as SPEGELREGLER, RUBRIK_SPEGLING, STILLASTAENDE,
                      Spegel, Speglingsdom, granska_spegling,
@@ -62,6 +62,6 @@ __all__ = [
     "granska", "granska_eller_kasta", "granska_spegling",
     "granska_spegling_eller_kasta", "kor_kopplaren", "las_spegling",
     "okorda_steg",
-    "rendera", "rendera_spegling",
+    "ogats_granser", "rendera", "rendera_spegling",
     "saknade_sektioner", "spegla",
 ]

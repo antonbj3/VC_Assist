@@ -52,6 +52,15 @@ körning odödlig — mätt i M-64.
 **Y11 En avslutad körning räknar stegen som aldrig kördes.** Ett levererat
 svar över en halvkörd plan är den klassiska falska grönen: allt som står är
 sant, och det som avgör saknas.
+
+**Y12 Ögats egna gränser står i avsnittet om vad systemet inte vet.** Regeln
+handlar om PLACERING, och den är därför inte samma sak som Y4. Ögats
+`SECTION LIMITS` når användaren ordagrant så snart rapporten skrivs ut hel —
+men på rad sexton av tjugofem, mellan en genomflödesrad och domen. En gräns
+som bara går att hitta genom att läsa hela rapporten är inte lika synlig som
+utfallet, och guldgrinden kräver sektionen just därför att en dom utan den
+inte betyder något. Raderna ska alltså stå EFTER `VET INTE:`, tecken för
+tecken, utöver att de står i rapporten.
 """
 from __future__ import annotations
 
@@ -61,14 +70,14 @@ from typing import List, Optional, Tuple
 
 from .handelser import (ARBETAR, Forloppsfel, PAGAR_MARKOR, STILLA,
                         UTANFOR_RACKVIDD)
-from .yta import (Forlopp, RUBRIK_VET_INTE, _saknade_i_domarna, okorda_steg,
-                  rendera)
+from .yta import (Forlopp, RUBRIK_VET_INTE, _saknade_i_domarna,
+                  ogats_granser, okorda_steg, rendera)
 
 _RAKNING = re.compile(r"HÄNDELSER: (\d+) totalt, visar (\d+)")
 _DOLDA = re.compile(r"\.\.\. (\d+) till, ej visade\.")
 
 REGLER = ("Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9", "Y10",
-          "Y11")
+          "Y11", "Y12")
 
 
 @dataclass(frozen=True)
@@ -232,6 +241,22 @@ def granska(f: Forlopp, text: Optional[str] = None) -> Forloppsdom:
                 brott.append(Brott(
                     "Y10", "läget är ARBETAR men visningen säger inte hur "
                            "länge sedan något hände"))
+    # Y12 -- ögats egna gränser står i avsnittet om vad systemet inte vet
+    #
+    # Placeringen prövas mot POSITIONEN i texten, inte mot att raden finns:
+    # den finns redan i den råa rapporten, och det är just det som inte
+    # räcker.
+    vet_inte_vid = text.find(RUBRIK_VET_INTE)
+    for h in f.domar():
+        for rad in ogats_granser(h.ordagrant):
+            vid = text.find(rad, vet_inte_vid) if vet_inte_vid >= 0 else -1
+            if vid < 0:
+                brott.append(Brott(
+                    "Y12", "ögats gräns %r står inte i avsnittet om vad "
+                           "systemet inte vet. En gräns som bara går att "
+                           "hitta inne i rapporten är inte lika synlig som "
+                           "utfallet" % (rad[:70],)))
+
     # Y11 -- en avslutad körning räknar stegen som aldrig kördes
     for steg in okorda_steg(f, lage):
         if ("steg " + steg.namn) not in text:

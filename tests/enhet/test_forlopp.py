@@ -745,6 +745,45 @@ def test_Y10_ett_arbetande_lage_utan_besked_om_vad_som_pagar_falls():
     assert "Y10" in granska(f, text).brutna
 
 
+def test_Y12_ogats_egna_granser_star_i_avsnittet_om_ovisshet():
+    """LIMITS ska vara lika synligt som utfallet.
+
+    Ogats `SECTION LIMITS` sager vad ogat INTE ser: vad som inte finns i
+    simuleringen alls, hur fint det kan skilja tva tidpunkter, och vad som ar
+    uteslutet ur talen. Ligger de raderna bara inne i den raa rapporten star
+    upplosningen pa rad sexton av tjugofem, och den som laser ser domen men
+    inte gransen den galler i.
+    """
+    from vc_assist_svc.forlopp import ogats_granser
+    f, _k = klar()
+    text = rendera(f)
+    granser = ogats_granser(OGONDOM)
+    assert len(granser) == 6, granser        # fem NOT_SIMULATED + RESOLUTION
+    vet_inte = text.index(RUBRIK_VET_INTE)
+    for rad in granser:
+        assert text.find(rad, vet_inte) > 0, (
+            "%r star inte efter %r" % (rad, RUBRIK_VET_INTE))
+    assert granska(f, text).ok
+
+
+def test_Y12_en_visning_som_bara_lamnar_granserna_i_rapporten_falls():
+    """TRASIG: rapporten skrivs ut hel och ordagrant - och det ar allt.
+
+    Ingen rad ar omskriven, sa Y4 haller. Det som saknas ar att gransen ocksa
+    star dar den lases: i avsnittet om vad systemet inte vet.
+    """
+    from vc_assist_svc.forlopp import ogats_granser
+    f, _k = klar()
+    text = rendera(f)
+    vet_inte = text.index(RUBRIK_VET_INTE)
+    huvud, svans = text[:vet_inte], text[vet_inte:]
+    for rad in ogats_granser(OGONDOM):
+        svans = "\n".join(r for r in svans.splitlines() if r.strip() != rad)
+    dom = granska(f, huvud + svans)
+    assert "Y12" in dom.brutna
+    assert "Y4" not in dom.brutna, "rapporten ar fortfarande hel; Y4 far inte fyra"
+
+
 def test_alla_regler_har_minst_en_trasig_fixtur():
     """En grind utan en trasig fixtur ar en forhoppning som fatt ett namn.
 
