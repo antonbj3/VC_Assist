@@ -15,9 +15,15 @@ inget prov, inget verktyg startat.
 
 ## Metod, och vad som räknas som "ingen kod uppfyller"
 
-Specen är 152 rader. Rubriker, tabellhuvuden, rättelseboxar och citat av
-tidigare versioner räknas inte — de gör inga påståenden om nuvarande kod.
-Kvar blir **31 meningar** som påstår något om vad koden gör.
+Specen var **152 rader** när den lästes (commit `daf4578`). Rubriker,
+tabellhuvuden, rättelseboxar och citat av tidigare versioner räknas inte — de
+gör inga påståenden om nuvarande kod. Kvar blir **31 meningar** som påstår
+något om vad koden gör.
+
+> **Efter inventeringen** la samma session till avsnittet *"Vägen ut: PLCopen
+> XML"* i `60_plc.md` (`M-154`). Det avsnittet är **inte** med i de 31
+> meningarna och inte granskat här. Det står infogat FÖRE `## Vad som inte är
+> prövat`, så alla radnummer nedan (rad 12 till 89) pekar fortfarande rätt.
 
 En mening räknas som **UPPFYLLD** när det finns kod som gör det den säger, och
 den koden går att peka ut med fil och rad. Den räknas som **OUPPFYLLD** när

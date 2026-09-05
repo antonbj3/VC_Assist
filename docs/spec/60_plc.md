@@ -143,6 +143,46 @@ märkt `skyddad` får agenten läsa men aldrig skriva (I15), och kartan bär den
 märkningen så att förbudet går att kontrollera mekaniskt i stället för att
 förlita sig på att modellen låter bli.
 
+## Vägen ut: PLCopen XML
+
+Allt ovan handlar om att få koden **in** i vår egen kedja. Användaren behöver
+också få ut den: koden ska lämna vårt verktyg och landa i hans.
+
+`svc/vc_assist_svc/plc/plcopen.py` skriver en `st.Enhet` som ett **PLCopen
+TC6 XML v2.01**-dokument (namnrymd `http://www.plcopen.org/xml/tc6_0201`) och
+läser tillbaka det. Deklarationerna bor i `<interface>` som riktiga
+`<variable>`-element med `address` och `constant`/`retain`; `<ST>` bär bara
+satserna.
+
+**Regeln som styr modulen: en export som inte överlever sin egen import är
+ingen export.** `exportera()` skriver, läser tillbaka och jämför modellerna.
+Skiljer de sig kastas `ExportFel` med varje avvikelse utskriven. Det finns
+ingen växel som slår av kontrollen.
+
+Mätt i `M-154`: 77 av 77 fall (bankens 63 program plus 14 konstruktioner)
+överlever turen och retur, är giltiga mot det officiella schemat, godtas av
+**Beremiz egen laddare**, och får **samma dom av matiec före och efter**.
+En riktig ST-konstruktion överlever inte och fälls därför: `VAR NON_RETAIN
+CONSTANT` blir två XML-attribut, och attribut har ingen ordning.
+
+Två gränser hör hit och står utskrivna i `M-154 §LIMITS`:
+
+* **Det är inte IEC 61131-10:2019.** PLCopen skriver själva att den nya
+  versionen *"is not compatible to previous versions of PLCopen XML"*
+  (`M-155 §0`). v2.01 är den version CODESYS och TwinCAT dokumenterar import
+  av, och den enda vars schema är fritt tillgängligt.
+* **`skyddad` har ingen plats i standarden.** Säkerhetsmärkningen (I15) skrivs
+  i `addData` under vår egen namnrymd med `handleUnknown="preserve"` — en
+  *rekommendation* i schemat, inte en garanti. Vår tur och retur bevarar den;
+  att ett främmande verktyg gör det är oprövat.
+
+Vad som faktiskt går att importera hos CODESYS, TIA Portal och TwinCAT — med
+belägg, och med det oprövade utskrivet — står i `M-155`. Kort: CODESYS och
+TwinCAT dokumenterar båda PLCopen XML-import; TIA Portals Openness-manual
+nämner inte PLCopen med ett ord och tar i stället `.scl`/`.awl`/`.db`/`.udt`
+som ren text. Ingen av de tre har öppnat vår fil — ingen licens, ingen
+Windowsmaskin.
+
 ## Vad som inte är prövat
 
 * **Fler än två signaler.** Varvets tider är mätta på två.
