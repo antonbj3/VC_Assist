@@ -116,7 +116,7 @@ utsträckning, inget fotavtryck. **VC cachar den alltså inte heller** — vilke
 | `component.rsc` grunt, 4 096 byte (M-58) | 1,8 s |
 | `component.rsc` helt | 7,3 s |
 | helt + gränssnitt, ramar, leder | 125 s |
-| helt + alla 79 035 geometriblobbar | ~11 min |
+| helt + alla 79 035 geometriblobbar | **261 s** |
 
 ### Detta stänger M-58:s öppna fråga
 
@@ -562,8 +562,16 @@ nodhänvisning inne i ett gränssnitt som inte får räknas som en nod.
   står här så att den som vill lyfta frågan vet hur stor den är.
 * **Om `Name` någonsin ligger efter byte 181** — M-58:s öppna rad står kvar,
   men den spelar mindre roll nu: namnet läses ur `model.xml`.
-* **Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
-  en radbaserad tolk som med flit hoppar över `Feature`-block; den här modulen
-  läser just de blocken och behöver en teckenbaserad tolk, för biblioteket bär
-  `Frame { Name "x" }` på en rad. De löser olika uppgifter, men två tolkare av
+* **Vilken av de fyra läsningarna av "kategori" som en agent ska få.** Den här
+  mätningen säger vad de fyra ger, inte vilken sökskiktet ska servera. Det
+  valet hör till M-69.
+* **Om delsträngssökningen efter familjemarkörer förblir ofarlig.** Noll
+  skillnader i dag, mätt över 3201. En ny komponent med markören i ett skript
+  ändrar det, och ingenting varnar — provet visar bara att mekanismen finns.
+* **Tre tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
+  en radbaserad tolk som med flit hoppar över `Feature`-block; `katalogindex.py`
+  läser med reguljära uttryck rakt över texten; den här modulen läser
+  feature-trädet och behöver en teckenbaserad tolk, för biblioteket bär
+  `Frame { Name "x" }` på en rad. De löser olika uppgifter, men tre tolkare av
   ett format är skuld tills någon mätt att en av dem räcker.
+
