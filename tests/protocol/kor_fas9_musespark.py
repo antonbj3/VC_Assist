@@ -103,10 +103,24 @@ class OpencodeCLI(modellklient.Modellklient):
         try:
             modellklient._neka_repot(katalog)
             try:
+                env = os.environ.copy()
+                cfg = {
+                    "provider": {
+                        "google-vertex": {
+                            "models": {
+                                "gemini-3.8-flash": {
+                                    "tool_call": False
+                                }
+                            }
+                        }
+                    }
+                }
+                env["OPENCODE_CONFIG_CONTENT"] = json.dumps(cfg)
                 k = subprocess.run(
-                    [self.korbar, "run", "--agent", "vcassist_forfattare", "-m", self.modell,
+                    [self.korbar, "run", "--title", "korning",
+                     "--agent", "vcassist_forfattare", "-m", self.modell,
                      "--format", "json", prompt + _TRANSPORTSUFFIX],
-                    cwd=katalog, stdout=subprocess.PIPE,
+                    cwd=katalog, env=env, stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE, timeout=self.tidsgrans)
             except subprocess.TimeoutExpired:
                 raise modellklient.Modellfel(
@@ -225,6 +239,8 @@ def main(argv=None):
     p.add_argument("--max-varv", type=int, default=R.MAX_VARV)
     p.add_argument("--utan-forhandsregler", action="store_true")
     p.add_argument("--upprepa", type=int, default=1)
+    p.add_argument("--append", action="store_true",
+                   help="lagg till i befintlig json-fil i stallet for att skriva over")
     p.add_argument("--json")
     a = p.parse_args(argv)
 
@@ -249,6 +265,14 @@ def main(argv=None):
 
     resultat = []
     bank_vid_start = [x["task_id"] for x in poster]
+    if a.append and a.json and os.path.exists(a.json):
+        try:
+            with open(a.json, "r", encoding="utf-8") as f:
+                gammal = json.load(f)
+                resultat = gammal.get("resultat", [])
+                bank_vid_start = list(dict.fromkeys(gammal.get("bank_vid_start", []) + bank_vid_start))
+        except Exception:
+            pass
 
     def skriv_delresultat():
         # Inkrementell flush efter VARJE uppgift: en avbruten korning tappar
