@@ -174,8 +174,8 @@ def granska(blick: Blick, text: Optional[str] = None,
     if text is None:
         text = rendera(blick, loggar)
     if not isinstance(text, str):
-        raise Aterhamtningsfel("en återhämtningsyta är text; renderaren "
-                               "lämnade %s" % type(text).__name__)
+        raise Aterhamtningsfel("a recovery surface is text; the renderer "
+                               "returned %s" % type(text).__name__)
     brott: List[Brott] = []
     rader = text.splitlines()
     forsta = next((r.strip() for r in rader if r.strip()), "")
