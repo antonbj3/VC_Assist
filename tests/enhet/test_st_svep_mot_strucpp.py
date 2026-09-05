@@ -616,7 +616,11 @@ STRANGARE = {
         "laser startvarden som ETT uttryck och har ingen nod for en "
         "faltinitierare. Lagningen ror modell, lasare, skrivare och "
         "typkontroll pa en gang, och tur-och-retur-provet maste halla hela "
-        "vagen. Skulden ar bokford i M-99, inte gomd.",
+        "vagen. Kostnaden ar dessutom MATT till noll pa modellvagen: "
+        "skelett.granska_arbetsvariabler slapper bara elementara typer och "
+        "standardfunktionsblocken, sa modellen kan inte deklarera ett falt "
+        "over huvud taget - resten av deklarationsdelen genererar kedjan "
+        "sjalv. Skulden ar bokford i M-99, inte gomd.",
     "dekl_faltinitiering_upprepning":
         "ARRAY[1..3] OF INT := [3(0)], upprepningsformen. FALSK RODGRIND, "
         "LAGAS INTE AN, exakt samma skal och samma lagning som "

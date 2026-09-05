@@ -88,7 +88,14 @@ laga, och den tar med sig hela `granska_station`.
 upprepningsformen `[3(0)]`. Båda står i IEC 61131-3 och STruC++ bygger dem.
 Läsaren läser startvärden som **ett uttryck** och har ingen nod för en
 fältinitierare; lagningen rör modell, läsare, skrivare och typkontroll på en
-gång och måste hålla genom tur-och-retur-provet. Bokförd som skuld, inte gömd.
+gång och måste hålla genom tur-och-retur-provet.
+
+Kostnaden på modellvägen är dessutom **mätt till noll**:
+`skelett.granska_arbetsvariabler` släpper bara elementära typer och
+standardfunktionsblocken, så modellen kan inte deklarera ett fält över huvud
+taget — och resten av deklarationsdelen genererar kedjan själv. Formen kan bara
+nås av kod som skrivs för hand eller av ett annat lager. Bokförd som skuld,
+inte gömd.
 
 **7. `CONFIGURATION` / `RESOURCE` / `TASK`.** Står i standarden, kompilatorn
 bygger den. Lagrets domän är POU:er: konfigurationen runt dem genereras av
