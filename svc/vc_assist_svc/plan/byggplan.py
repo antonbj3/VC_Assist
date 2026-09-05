@@ -79,7 +79,7 @@ class Byggplan(object):
             problem.append("okand omfattning %r; kanda ar %s"
                            % (omfattning, ", ".join(OMFATTNINGAR)))
         if problem:
-            raise Specfel("byggplanen %r" % (id,), problem)
+            raise Specfel("the build plan %r" % (id,), problem)
 
     def __repr__(self):
         return "Byggplan(%s, %d steg, %s)" % (self.id, len(self.graf),
@@ -356,10 +356,10 @@ class Byggplan(object):
         granska_nycklar(data, ("v", "niva", "id", "omfattning", "spec", "graf"),
                  "byggplan")
         if data["v"] != SPECVERSION:
-            raise Specfel("byggplan", ["formatversion %r, lasaren kan %d"
+            raise Specfel("byggplan", ["format version %r, the reader can handle %d"
                                        % (data["v"], SPECVERSION)])
         if data["niva"] != "byggplan":
-            raise Specfel("byggplan", ["niva %r, forvantade byggplan"
+            raise Specfel("byggplan", ["level %r, expected byggplan"
                                        % (data["niva"],)])
         return cls(data["id"], DetaljeradSpec.fran_json(data["spec"]),
                    Uppgiftsgraf.fran_json(data["graf"]), data["omfattning"])
