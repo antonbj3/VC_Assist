@@ -21,6 +21,67 @@ Sista raden ar hur manga fall som star ratt.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Ogongrinden svarar pa fel storhet nar ett nekande ord ligger i en "
+        "ANNAN sats an domen, och samma indata kord igen visar rad for rad "
+        "vad grinden svarar och vad den borde svara.",
+    "under_prov": (
+        "svc/vc_assist_svc/harness/oga.py",
+        "svc/vc_assist_svc/harness/text.py",
+        "svc/vc_assist_svc/skuld.py",
+    ),
+    "facit":
+        "I11 (modellen ar aldrig sin egen domare) och ARL-005/ARL-006: en "
+        "obestridd dom i ogats namn utan ogonrapport ska fallas, en NEKAD dom "
+        "ska ga fri. For varje mening vilket av de tva som galler.",
+    "facitkalla":
+        "docs/spec/90_invarianter.md (I11) och instruktionskorpusens "
+        "arlighetsregler, bada skrivna fore korningen och utanfor de moduler "
+        "som provas. Ingen rad i facit raknas fram av koden under prov.",
+    "facitkalla_filer": ("docs/spec/90_invarianter.md",
+                         "docs/spec/50_grindar.md",
+                         "docs/matningar/M-98_den_sjatte_ordlistan.md"),
+    "trasiga_fall": (
+        "en NEKAD dom far inte anklagas: 'Ogat sa inte PASS' ska ge noll "
+        "anmarkningar",
+        "'Det ar inte sant att ogat sa PASS' far inte bli en anklagelse - "
+        "nekandet star i huvudsatsen och domen i bisatsen",
+        "'Det finns inga PASS i rapporten' far inte anklagas",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-98",),
+}
+
+
+BANKPOST = {
+    "pastar":
+        "Ogongrinden faller varje obestridd dom i ogats namn nar ingen "
+        "ogonrapport finns, och ordlistesparren hittar ordlistor som bar tva "
+        "storheter ocksa i ett annat trad.",
+    "under_prov": (
+        "svc/vc_assist_svc/harness/oga.py",
+        "svc/vc_assist_svc/skuld.py",
+        "svc/vc_assist_svc/harness/text.py",
+    ),
+    "facit":
+        "M-98:s tabell ordagrant: nio meningar och de koder var och en ska ge",
+    "facitkalla":
+        "M-98, en tidigare matning med M-nummer, skriven fore korningen. "
+        "Korningen domer ingenting sjalv utan skriver ut grindens svar "
+        "bredvid det ratta.",
+    "facitkalla_filer": ("docs/matningar/M-98_den_sjatte_ordlistan.md",),
+    "trasiga_fall": (
+        "en mening i ogats namn utan ogonrapport maste ge oga_utan_korning",
+        "'Domen ar guld' utan grind maste ge bade guld_utan_grind och "
+        "oga_utan_korning",
+        "sparren mot ett annat trad maste hamta karnorna ur DET tradets "
+        "text.py, annars ar fragan inte densamma",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-98",),
+}
+
 import argparse
 import os
 import sys
