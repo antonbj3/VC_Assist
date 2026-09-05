@@ -92,7 +92,7 @@ class Kopplare:
 
     def __init__(self, karta, ua, brygga, max_raka_fel=MAX_RAKA_FEL, oga=None):
         if not isinstance(karta, Signalkarta):
-            raise Kopplarfel("kopplaren tar en Signalkarta, inte %s"
+            raise Kopplarfel("the connector takes a Signalkarta, not %s"
                              % type(karta).__name__)
         self.karta = karta
         self.ua = ua
@@ -166,7 +166,7 @@ class Kopplare:
         post = self.brygga.koa(kod, desc="kopplaren skriver %d signaler" % len(skrivbara))
         ut = self.brygga.godkann_och_vanta(post["qid"], timeout=OPCUA_TIDSGRANS_S * 6)
         if ut["state"] != "done":
-            raise Kopplarfel("scenskrivningen slutade som %r" % ut["state"])
+            raise Kopplarfel("the scene write ended as %r" % ut["state"])
         svar = (ut.get("svar") or {}).get("result") or {}
         return svar.get("result", svar) if isinstance(svar, dict) else {}
 
