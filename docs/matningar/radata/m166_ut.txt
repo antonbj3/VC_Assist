@@ -1,0 +1,126 @@
+--- trasigt fall 2: blindhetskontrollen ---
+     5.0 ms  GODKAND  
+    10.0 ms  GODKAND  
+    20.0 ms  GODKAND  
+    40.0 ms  UNDERKAND  vakten_loper_ut@20ms:LARM
+   100.0 ms  UNDERKAND  flank:en_enda_larmflank,vakten_loper_ut@20ms:LARM
+  cykelberoende UPPTACKT -> svepet kan se skillnaden
+
+--- trasigt fall 1: sjalvkontrollen vid 20 ms ---
+  217 enheter, 0 avvikelser, 25.1 s
+  identisk med bank/domare.py
+
+  A-01   klar
+  A-02   klar
+  A-03   klar
+  A-04   klar
+  A-05   klar
+  A-06   klar
+  A-07   klar
+  A-08   klar
+  C-01   klar
+  C-02   klar
+  C-03   klar
+  C-04   klar
+  C-05   klar
+  C-06   klar
+  H-01   klar
+  H-02   klar
+  H-03   klar
+  H-04   klar
+  H-05   klar
+  L-01   klar
+  L-02   klar
+  L-03   klar
+  L-04   klar
+  L-05   klar
+  L-06   klar
+  L-07   klar
+  P-01   klar
+  P-02   klar
+  P-03   klar
+  P-04   klar
+  P-05   klar
+  P-06   klar
+  P-07   klar
+  S-01   klar
+  S-02   klar
+  S-03   klar
+  S-04   klar
+  S-05   klar
+  S-06   klar
+  S-07   klar
+  T-01   klar
+  T-02   klar
+  T-03   klar
+  T-04   klar
+  T-05   klar
+  T-06   klar
+  T-07   klar
+  T-08   klar
+  T-09   klar
+
+=== per uppgift: enheter vars UTFALL andras mot 20 ms ===
+uppgift        5       10       40      100
+A-01           0        0        0        1
+A-02           1        1        0        1
+A-03           0        0        0        0
+A-04           0        0        0        0
+A-05           0        0        0        0
+A-06           0        0        0        1
+A-07           0        0        0        1
+A-08           0        0        0        1
+C-01           0        0        0        0
+C-02           0        0        0        0
+C-03           0        0        0        0
+C-04           0        0        1        1
+C-05           0        0        0        0
+C-06           0        0        0        0
+H-01           0        0        1        1
+H-02           0        0        0        1
+H-03           0        0        0        0
+H-04           0        0        0        0
+H-05           0        0        0        0
+L-01           0        0        1        1
+L-02           0        0        0        1
+L-03           0        0        0        0
+L-04           0        0        1        1
+L-05           0        0        0        0
+L-06           0        0        0        0
+L-07           0        0        0        0
+P-01           0        0        0        0
+P-02           0        0        0        0
+P-03           0        0        0        0
+P-04           0        0        0        1
+P-05           0        0        0        0
+P-06           0        0        0        0
+P-07           0        0        0        1
+S-01           0        0        0        0
+S-02           0        0        0        0
+S-03           0        0        0        0
+S-04           0        0        0        0
+S-05           0        0        0        1
+S-06           0        0        0        1
+S-07           0        0        0        0
+T-01           0        0        0        1
+T-02           0        0        0        1
+T-03           0        0        0        0
+T-04           0        0        0        0
+T-05           0        0        0        0
+T-06           0        0        0        0
+T-07           0        0        0        0
+T-08           0        0        0        0
+T-09           0        0        0        0
+
+=== totalt ===
+       5 ms: 1 enheter byter utfall (1 uppgifter), 7 enheter byter bara koder
+      10 ms: 1 enheter byter utfall (1 uppgifter), 8 enheter byter bara koder
+      40 ms: 4 enheter byter utfall (4 uppgifter), 24 enheter byter bara koder
+     100 ms: 17 enheter byter utfall (17 uppgifter), 64 enheter byter bara koder
+
+=== rutnatet: vad facit inte kan lasas pa ===
+       5 ms: 13041 punktkrav, varav 0 off-grid och 0 kollapsade i samma scan; 0 flankfonster utan en enda scanpunkt
+      10 ms: 13041 punktkrav, varav 0 off-grid och 0 kollapsade i samma scan; 0 flankfonster utan en enda scanpunkt
+      20 ms: 13041 punktkrav, varav 0 off-grid och 0 kollapsade i samma scan; 0 flankfonster utan en enda scanpunkt
+      40 ms: 13041 punktkrav, varav 4768 off-grid och 0 kollapsade i samma scan; 0 flankfonster utan en enda scanpunkt
+     100 ms: 13041 punktkrav, varav 1442 off-grid och 18 kollapsade i samma scan; 0 flankfonster utan en enda scanpunkt

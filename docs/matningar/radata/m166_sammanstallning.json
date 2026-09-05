@@ -1,0 +1,1395 @@
+{
+ "enheter": 217,
+ "matsumma": {
+  "5.0": {
+   "flankfonster": 1061,
+   "flankfonster_utan_scanpunkt": 0,
+   "punktkrav": 13041,
+   "punktkrav_kollapsade": 0,
+   "punktkrav_offgrid": 0,
+   "steg_kollapsade": 22
+  },
+  "10.0": {
+   "flankfonster": 1061,
+   "flankfonster_utan_scanpunkt": 0,
+   "punktkrav": 13041,
+   "punktkrav_kollapsade": 0,
+   "punktkrav_offgrid": 0,
+   "steg_kollapsade": 22
+  },
+  "20.0": {
+   "flankfonster": 1061,
+   "flankfonster_utan_scanpunkt": 0,
+   "punktkrav": 13041,
+   "punktkrav_kollapsade": 0,
+   "punktkrav_offgrid": 0,
+   "steg_kollapsade": 22
+  },
+  "40.0": {
+   "flankfonster": 1061,
+   "flankfonster_utan_scanpunkt": 0,
+   "punktkrav": 13041,
+   "punktkrav_kollapsade": 0,
+   "punktkrav_offgrid": 4768,
+   "steg_kollapsade": 91
+  },
+  "100.0": {
+   "flankfonster": 1061,
+   "flankfonster_utan_scanpunkt": 0,
+   "punktkrav": 13041,
+   "punktkrav_kollapsade": 18,
+   "punktkrav_offgrid": 1442,
+   "steg_kollapsade": 441
+  }
+ },
+ "per_uppgift": {
+  "A-01": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:spannkraften_lases_aldrig",
+     "motbevis:nodstoppskretsen_forreglar_inte"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "A-02": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:rakneordningen_istallet_for_korsordning",
+     "motbevis:underkand_skruv_dras_om_automatiskt",
+     "motbevis:vakten_pa_done_saknas"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:rakneordningen_istallet_for_korsordning",
+     "motbevis:underkand_skruv_dras_om_automatiskt",
+     "motbevis:vakten_pa_done_saknas"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:momentet_lases_innan_svarstiden",
+     "motbevis:underkand_skruv_dras_om_automatiskt"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:rakneordningen_istallet_for_korsordning",
+     "motbevis:momentet_lases_innan_svarstiden",
+     "motbevis:underkand_skruv_dras_om_automatiskt",
+     "motbevis:vakten_pa_done_saknas"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "A-03": {
+   "5.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "A-04": {
+   "5.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 4,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "A-05": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:nasta_punkt_pa_fast_tid"
+    ],
+    "utfall_andrad": []
+   }
+  },
+  "A-06": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:oppentiden_raknas_fran_programstart",
+     "motbevis:langden_lases_efter_fogningen",
+     "motbevis:temperaturen_lases_bara_vid_start",
+     "motbevis:nodstoppet_forreglar_inte_ventilen"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "A-07": {
+   "5.0": {
+    "enheter": 8,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 8,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 8,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 8,
+    "koder_andrad": [
+     "motbevis:bagen_tands_utan_spand_fixtur",
+     "motbevis:strommen_lases_aldrig",
+     "motbevis:tandfonstret_saknas",
+     "motbevis:kvittensen_startar_om_av_sig_sjalv"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "A-08": {
+   "5.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 7,
+    "koder_andrad": [
+     "motbevis:ventilen_utan_bekraftad_klamma",
+     "motbevis:ventilen_stangs_forst_nar_klamman_oppnar",
+     "motbevis:flodet_lases_aldrig",
+     "motbevis:avbruten_strang_markas_inte",
+     "motbevis:ingen_tidsvakt_pa_strangen"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "C-01": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "C-02": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "C-03": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "C-04": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:aterstart_pa_nivan_hos_kvitteringsknappen",
+     "motbevis:ljusridan_ar_inte_forreglad",
+     "motbevis:griparen_slapper_i_sakert_lage",
+     "motbevis:sakert_lage_meddelas_pa_kommandot"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:aterstart_pa_nivan_hos_kvitteringsknappen",
+     "motbevis:lagesbilden_nollstalls_vid_nodstopp",
+     "motbevis:ljusridan_ar_inte_forreglad",
+     "motbevis:griparen_slapper_i_sakert_lage",
+     "motbevis:sakert_lage_meddelas_pa_kommandot"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "C-05": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "C-06": {
+   "5.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "H-01": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:griparen_oppnas_pa_begaran",
+     "motbevis:bandet_startar_pa_fotocellen",
+     "motbevis:handskakningen_saknar_aterstallning",
+     "motbevis:vantan_pa_kvittens_utan_tidsgrans",
+     "motbevis:bandet_gar_under_kvittensen"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:bandet_startar_pa_fotocellen",
+     "motbevis:handskakningen_saknar_aterstallning",
+     "motbevis:vantan_pa_kvittens_utan_tidsgrans",
+     "motbevis:bandet_gar_under_kvittensen"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "H-02": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:oppnar_pa_close_kommando"
+    ],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:oppnar_pa_close_kommando"
+    ],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:oppnar_pa_close_kommando"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:oppnar_pa_close_kommando"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "H-03": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "H-04": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "H-05": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "L-01": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:rakningen_pa_niva"
+    ],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:rakningen_pa_niva"
+    ],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:rakningen_pa_niva",
+     "motbevis:vakuumet_slapps_pa_hojd",
+     "motbevis:rakningen_nollstalls_aldrig",
+     "motbevis:avlagg_utan_pall",
+     "motbevis:utan_greppvakt"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:rakningen_pa_niva",
+     "motbevis:vakuumet_slapps_pa_hojd",
+     "motbevis:rakningen_nollstalls_aldrig",
+     "motbevis:avlagg_utan_pall",
+     "motbevis:utan_greppvakt"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "L-02": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:lagerraknaren_okas_fore_mellanlagg"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "L-03": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "L-04": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:tom_pall_slapps_in_innan_full_lamnat"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [
+     "motbevis:tom_pall_slapps_in_innan_full_lamnat"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "L-05": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:automatiken_kor_i_handlage"
+    ],
+    "utfall_andrad": []
+   }
+  },
+  "L-06": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "L-07": {
+   "5.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "P-01": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "P-02": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "P-03": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:uttaget_pa_niva_i_stallet_for_flank"
+    ],
+    "utfall_andrad": []
+   }
+  },
+  "P-04": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "P-05": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "P-06": {
+   "5.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 7,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "P-07": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:mutingen_pa_en_ensam_givare",
+     "motbevis:stopptiden_lases_aldrig",
+     "motbevis:aterstallt_nodstopp_startar_cellen"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "S-01": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:for_registret_framat_pa_tid"
+    ],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:for_registret_framat_pa_tid"
+    ],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:laser_hojdgivaren_vid_utskjutaren",
+     "motbevis:for_registret_framat_pa_tid"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [
+     "motbevis:laser_hojdgivaren_vid_utskjutaren",
+     "motbevis:for_registret_framat_pa_tid"
+    ],
+    "utfall_andrad": []
+   }
+  },
+  "S-02": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "S-03": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "S-04": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "S-05": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:abort_genvagas_till_stopped",
+     "motbevis:reset_tar_maskinen_ur_aborted",
+     "motbevis:stop_kastar_om_abortsekvensen",
+     "motbevis:bandet_gar_redan_i_starting",
+     "motbevis:hold_och_suspend_ar_samma_gren"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "S-06": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:larmet_latchas_inte"
+    ],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:larmet_latchas_inte"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:matning_utan_stabilisering",
+     "motbevis:fyllning_och_avluftning_samtidigt",
+     "motbevis:noll_tryckfall_godkanns",
+     "motbevis:klamman_slapper_med_trycket_kvar",
+     "motbevis:larmet_latchas_inte"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "S-07": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-01": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:oppnar_pa_niva_i_stallet_for_pa_flank",
+     "motbevis:oppnar_utan_uppehall",
+     "motbevis:utan_tidsovervakning_pa_andlaget",
+     "motbevis:slapper_fram_pa_fel_bandfart",
+     "motbevis:grinden_star_kvar_oppen_vid_nodstopp"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "T-02": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:ingen_temperaturgrind"
+    ],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:ingen_temperaturgrind"
+    ],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:nasta_index_pa_timer",
+     "motbevis:verktyget_gar_ner_pa_niva_i_hemlaget"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:nasta_index_pa_timer",
+     "motbevis:verktyget_gar_ner_pa_niva_i_hemlaget",
+     "motbevis:for_kort_uppehall",
+     "motbevis:ingen_temperaturgrind",
+     "motbevis:automatisk_omstart_efter_nodstopp"
+    ],
+    "utfall_andrad": [
+     "referens"
+    ]
+   }
+  },
+  "T-03": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-04": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-05": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [
+     "motbevis:avbryter_kortet_vid_materialbrist"
+    ],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-06": {
+   "5.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 2,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-07": {
+   "5.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 5,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-08": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  },
+  "T-09": {
+   "5.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "10.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "40.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   },
+   "100.0": {
+    "enheter": 6,
+    "koder_andrad": [],
+    "utfall_andrad": []
+   }
+  }
+ },
+ "perioder": [
+  5.0,
+  10.0,
+  20.0,
+  40.0,
+  100.0
+ ],
+ "totalt": {
+  "5.0": {
+   "enheter_koder_andrat": 7,
+   "enheter_utfall_andrat": 1,
+   "uppgifter_med_utfallsandring": 1
+  },
+  "10.0": {
+   "enheter_koder_andrat": 8,
+   "enheter_utfall_andrat": 1,
+   "uppgifter_med_utfallsandring": 1
+  },
+  "40.0": {
+   "enheter_koder_andrat": 24,
+   "enheter_utfall_andrat": 4,
+   "uppgifter_med_utfallsandring": 4
+  },
+  "100.0": {
+   "enheter_koder_andrat": 64,
+   "enheter_utfall_andrat": 17,
+   "uppgifter_med_utfallsandring": 17
+  }
+ },
+ "uppgifter": [
+  "A-01",
+  "A-02",
+  "A-03",
+  "A-04",
+  "A-05",
+  "A-06",
+  "A-07",
+  "A-08",
+  "C-01",
+  "C-02",
+  "C-03",
+  "C-04",
+  "C-05",
+  "C-06",
+  "H-01",
+  "H-02",
+  "H-03",
+  "H-04",
+  "H-05",
+  "L-01",
+  "L-02",
+  "L-03",
+  "L-04",
+  "L-05",
+  "L-06",
+  "L-07",
+  "P-01",
+  "P-02",
+  "P-03",
+  "P-04",
+  "P-05",
+  "P-06",
+  "P-07",
+  "S-01",
+  "S-02",
+  "S-03",
+  "S-04",
+  "S-05",
+  "S-06",
+  "S-07",
+  "T-01",
+  "T-02",
+  "T-03",
+  "T-04",
+  "T-05",
+  "T-06",
+  "T-07",
+  "T-08",
+  "T-09"
+ ]
+}
