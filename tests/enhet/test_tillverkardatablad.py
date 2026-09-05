@@ -450,8 +450,12 @@ def test_databladets_katalogfalt_bar_de_ordagranna_strangarna(tmp_path):
         z.writestr("component.rsc", 'Node "rSimResource"\n{\nName "Provet"\n}\n')
     blad = KD.las(str(vcmx))
     assert blad.katalogfalt["maxpayload"] == "0"
-    # Den gamla vägen ger en float vars NAMN påstår kilo.
-    assert blad.nyttolast_kg == 0.0
+    # Kontrasten den här raden en gang drog ar STANGD: `nyttolast_kg` gav
+    # forr floaten 0.0, vars NAMN pastod kilo om ett falt filen aldrig fyllt.
+    # E3a (ko E, M-119) lagade lasningen 2026-09-05 - en ofylld nolla blir nu
+    # None och tvingar lasaren till `katalogfalt`, dar talet star ordagrant
+    # utan pahangd enhet. Provet star kvar for att lagningen ska halla.
+    assert blad.nyttolast_kg is None
     svar = TD.berika(blad, korpus=None, falt=("nyttolast",))["nyttolast"]
     assert svar.lage == TD.ENHET_SAKNAS and svar.ordagrant == "0"
 

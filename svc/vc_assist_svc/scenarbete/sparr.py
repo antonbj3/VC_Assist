@@ -47,7 +47,7 @@ Endast standardbiblioteket plus tjanstens egna lager.
 """
 from __future__ import annotations
 
-from ..plan.harkomst import normalisera
+from ..plan.harkomst import KALLOR as _PLANKALLOR, normalisera
 from ..verktyg.formagegrind import Urval
 
 # Kallorna. Sluten lista: en kalla som inte star har finns inte, och ett falt
@@ -58,7 +58,20 @@ from ..verktyg.formagegrind import Urval
 #   scen      ett lasande verktygssvar i den har turen.
 #   ogat      en rad ur ogats rapport, ordagrant i ogats grammatik.
 #   fraga     inte ett varde alls: en oppen fraga till operatoren.
-KALLOR = ("begaran", "scen", "ogat", "fraga")
+# HARLEDD ur planeringslagrets lista, aldrig skriven av. Skalet ar drift:
+# tva listor som skrivits var for sig glider isar sa fort nagon rattar den ena,
+# och skuldregistrets kopiegrind fangade just det har paret. Genom att plocka
+# de tva vi delar UR harkomst.KALLOR bryter en omdopning dar hogljutt har,
+# i stallet for att tyst gora en kalla okand.
+_DELADE = ("begaran", "fraga")
+_EGNA = ("scen", "ogat")           # finns inte i en byggspec: se stycket ovan
+for _k in _DELADE:
+    if _k not in _PLANKALLOR:
+        raise ImportError(
+            "scenarbete/sparr.py delar kallan %r med plan/harkomst.KALLOR, "
+            "men den finns inte langre dar. Nagon har dopt om eller tagit "
+            "bort den; de tva lagren far inte glida isar tyst." % _k)
+KALLOR = _DELADE[:1] + _EGNA + _DELADE[1:]
 
 # Kortaste belagg som sager nagot alls. Samma tal och samma skal som
 # plan/harkomst.MIN_BELAGG_TECKEN (satt av M-63): ett belagg pa ett eller tva
