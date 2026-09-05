@@ -52,7 +52,16 @@ ENTECKEN = "+-*/<>=(),;:.[]&"
 # Tidsenheter, störst först. IEC 61131-3 (3:e utg.) tillåter d h m s ms us ns.
 # Ordningen i tupeln ÄR signifikansordningen som literalen måste följa.
 TIDSENHETER = ("d", "h", "m", "s", "ms", "us", "ns")
-_TIDSDEL = re.compile(r"([0-9][0-9_]*(?:\.[0-9][0-9_]*)?)(ms|us|ns|d|h|m|s)")
+# re.I: IEC 61131-3 ar skiftlagesokansligt, och T#3S ar samma literal som
+# T#3s. Regexen saknade flaggan medan PREFIXET T#/TIME# hade den, sa
+# halva literalen var skiftlagesokanslig och halva inte.
+#
+# MATT (M-96): STruC++ v0.6.6 - kompilatorn i var EGEN kedja - accepterar
+# T#3S, T#3.0S, T#500MS, t#3S och T#1H30M, alla nio provade formerna.
+# Grinden avvisade dem. Nio av sexton grinddomar i fas 9:s forsta
+# modelldrivna korning var alltsa VART fel, bokforda som modellens.
+_TIDSDEL = re.compile(r"([0-9][0-9_]*(?:\.[0-9][0-9_]*)?)(ms|us|ns|d|h|m|s)",
+                      re.I)
 # Faktor till millisekunder. Rena enhetsdefinitioner, inga valda tal.
 _TILL_MS = {"d": 86400000.0, "h": 3600000.0, "m": 60000.0, "s": 1000.0,
             "ms": 1.0, "us": 0.001, "ns": 0.000001}
@@ -98,7 +107,10 @@ def tolka_tidliteral(text: str) -> Tuple[bool, Optional[float], str]:
         if not d:
             return False, None, ("%r går inte att läsa som tid; enheterna är %s"
                                  % (kropp[pos:], " ".join(TIDSENHETER)))
-        delar.append((d.group(1), d.group(2)))
+        # Enheten normaliseras. Signifikansordningen och _TILL_MS slar upp
+        # pa gemener, sa ett versalt MS maste bli ms har - annars byter
+        # felet bara skepnad fran "gar inte att lasa" till KeyError.
+        delar.append((d.group(1), d.group(2).lower()))
         pos = d.end()
     sett = []
     for i, (tal, enhet) in enumerate(delar):

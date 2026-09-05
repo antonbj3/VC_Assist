@@ -40,6 +40,22 @@ GILTIGA_TIDER = [
     ("T#1.5h", 5400000.0),
     ("T#1_000ms", 1000.0),
     ("T#10us", 0.01),
+    # Versalerna. IEC 61131-3 ar skiftlagesokansligt, och STruC++ v0.6.6 -
+    # kompilatorn i var egen kedja - accepterar alla fem (MATT, M-96).
+    # Grinden avvisade dem tidigare: prefixregexen bar re.I men delregexen
+    # gjorde det inte, sa halva literalen var skiftlagesokanslig.
+    #
+    # Det kostade riktiga varv. I fas 9:s forsta modelldrivna korning var NIO
+    # av sexton grinddomar den har falska rodgrinden, och tre av fyra uppgifter
+    # slog i taket. Provfilen test_st_svep_mot_strucpp.py sager sjalv varfor
+    # det ar dyrt: en modell som far ett fel som inte finns lagar nagot som
+    # redan fungerade och lar sig fel sak.
+    ("T#3S", 3000.0),
+    ("T#3.0S", 3000.0),
+    ("T#500MS", 500.0),
+    ("t#3S", 3000.0),
+    ("T#1H30M", 5400000.0),
+    ("TIME#2S", 2000.0),
 ]
 
 OGILTIGA_TIDER = [
@@ -49,6 +65,9 @@ OGILTIGA_TIDER = [
     "T#1.5h30m",    # decimal i annat än minsta delen
     "T#",           # tomt
     "T#5x",         # okänd enhet
+    "T#5X",         # okand enhet, versal - rattelsen far inte oppna for den
+    "T#5S10M",      # fel ordning, versalt: normaliseringen far inte tappa domen
+    "T#1S1S",       # samma enhet tva ganger, versalt
 ]
 
 
