@@ -94,16 +94,16 @@ on a part the previous station had not finished.
 
 ## Finding the right machine
 
-The library holds **3 201 machines**, around 2 200 of them robots. Search it by what
-you need — reach, payload, manufacturer — not by guessing a part number.
+Search the installed library by what you need — reach, payload, manufacturer —
+rather than by guessing a part number.
 
 Ask something broad like *"robots"* and you get a breakdown by manufacturer and
-a prompt to narrow down, not two thousand rows. Every result says how many hits there
+a prompt to narrow down, not a wall of rows. Every result says how many hits there
 were and how many you are seeing.
 
 If the library does not know a machine's reach, it says so. It never shows a
-blank as zero — a distinction that matters, because the library reports zero
-reach for 1 119 machines whose datasheets say otherwise.
+blank as zero — a distinction that matters, because a great many entries carry
+no reach at all while their datasheets do.
 
 ## The gate chain
 
