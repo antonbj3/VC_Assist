@@ -122,6 +122,13 @@
       "signal": "ST470_CLP_CLOSED",
       "beskrivning": "Spannaren kommenderas men lagesgivaren gar aldrig hog.",
       "forvantat": "Varken gas eller bage far ga. Cellen ska sta kvar och vanta i stallet for att svetsa pa en konsol som krympningen drar ur lage."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -1274,6 +1281,68 @@
               "ST470_CLP_CLOSE": false
             },
             "varfor": "en avbruten matning som kommer tillbaka far inte starta om cellen av sig sjalv; omstartssparren galler bada matningarna"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST470_CLP_CLOSE star (M-134 klass 6)"
           }
         ]
       }

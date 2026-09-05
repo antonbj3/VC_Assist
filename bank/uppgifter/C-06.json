@@ -123,6 +123,13 @@
       "signal": "EMG_OK",
       "beskrivning": "Nodstoppsdonet dras upp igen efter ett nodstopp mitt i ett robotbyte.",
       "forvantat": "Cellen ska sta kvar tills SYS_RESET fatt en stigande flank, och betjaningen ska borja om fran noll i stallet for mitt i kedjan."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -1459,6 +1466,72 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST560_DOR_OPEN star (M-134 klass 6)"
           }
         ]
       }

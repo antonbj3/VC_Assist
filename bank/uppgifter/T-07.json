@@ -94,6 +94,13 @@
       "signal": "ST050_CLP_CLOSED",
       "beskrivning": "ST050_CLP_CLOSED faller mitt under indexet, exempelvis pa ett tryckfall i klamcylindern.",
       "forvantat": "ST050_IDX_START ska nollstallas i samma scan och SYS_ALARM ga hog. En los detalj som foljer med indexet hamnar under formverktyget."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -964,6 +971,63 @@
               "ST050_CNV_RUN": true
             },
             "varfor": "tryckluft ar ingen skyddsfunktion; driften far atertas utan kvittens, till skillnad fran efter ett nodstopp"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST050_IDX_POS": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST050_CNV_RUN star (M-134 klass 6)"
           }
         ]
       }

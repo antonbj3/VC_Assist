@@ -399,6 +399,116 @@ STIMULI = [
                           "(M-134 klass 5)"}],
      "mutanter": [{"sort": "SANT_TILL_FALSKT", "rad": 30, "fore": "TRUE",
                    "forekomst": 0}]},
+    # --- klass 6: kort tryck pa SYS_RESET (M-134) ---
+    # Kvittensen halls inne medan nodstoppet bryts pa nytt: referensen
+    # nollstaller en gang (flank), mutanten nollstaller hela hallet (niva).
+    # Sju uppgifter dar tomgangens utgangar skiljer (V1); sju dar en ny cykel
+    # maste kommenderas efter slappet (V4) - se M-135.
+    {"uppgift": "A-07", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST470_CLP_CLOSE": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST470_CLP_CLOSE star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 51,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "A-08", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST480_CNV_RUN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST480_CNV_RUN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 54,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "C-06", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST560_DOR_OPEN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST560_DOR_OPEN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 27,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "P-06", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST450_CNV_RUN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST450_CNV_RUN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 35,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "S-06", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST500_CNV_RUN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST500_CNV_RUN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 69,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "T-07", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST050_CNV_RUN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST050_CNV_RUN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 44,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    {"uppgift": "T-08", "sekvens": "kvittensen_hallen_medan_felet_kommer",
+     "lage": "ny",
+     "scenario": {"id": "kvittensen_hallen_medan_felet_kommer",
+                  "typ": "vandning", "signal": "SYS_RESET",
+                  "beskrivning": "Aterstallningsknappen halls inne medan "
+                                 "nodstoppet bryts pa nytt.",
+                  "forvantat": "Den hallna kvittensen nollstaller en gang; "
+                               "felet som kommer under hallet star kvar "
+                               "tills ny kvittens."},
+     "steg": [{"t_ms": 3200, "satt": {},
+                "krav": {"ST520_CNV_RUN": False},
+                "varfor": "felet som kom under hallet star kvar: "
+                          "ST520_CNV_RUN star (M-134 klass 6)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 57,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
 ]
 
 

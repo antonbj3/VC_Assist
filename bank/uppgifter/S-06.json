@@ -134,6 +134,13 @@
       "signal": "AIR_OK",
       "beskrivning": "AIR_OK faller mitt i fyllningen och kommer tillbaka en halv sekund senare.",
       "forvantat": "Ingen ventil och ingen utskjutare far kommenderas utan tryckluft, men bortfallet ar inget skyddsstopp: nar luften kommer tillbaka ska driften atertas utan manuell kvittens."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -1420,6 +1427,65 @@
               "ST500_VLV_FILL": true
             },
             "varfor": "tryckluft som kommer tillbaka far aterta driften utan kvittens; AIR_OK ar inget skyddsstopp och kraver ingen manuell atgard"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST500_CNV_RUN star (M-134 klass 6)"
           }
         ]
       }

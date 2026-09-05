@@ -138,6 +138,13 @@
       "signal": "AIR_OK",
       "beskrivning": "AIR_OK faller mitt i en strang och kommer tillbaka en halv sekund senare.",
       "forvantat": "Varken fixturen eller doseringen far vara kommenderad utan tryckluft, men bortfallet ar inget skyddsstopp: driften ska atertas utan kvittens. Strangen ar anda avbruten, sa detaljen ska vara markad."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -1388,6 +1395,64 @@
               "ST480_REJ_MARK": false
             },
             "varfor": "markeringen slapper forst nar detaljen lamnat stationen"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST480_ADH_FLW": 0.0,
+              "ST480_ADH_LOW": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST480_CNV_RUN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST480_CNV_RUN star (M-134 klass 6)"
           }
         ]
       }

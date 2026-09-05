@@ -110,6 +110,13 @@
       "signal": "EMG_OK",
       "beskrivning": "Nagon slar nodstopp och drar upp donet igen en halv minut senare utan att trycka pa aterstallningsknappen.",
       "forvantat": "Kedjan ska sta kvar stilla. Ett aterstallt nodstopp ar ingen startorder; forst en stigande flank pa SYS_RESET far ta ugnen tillbaka i drift."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -885,6 +892,62 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST520_OVN_TMP": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST520_CNV_RUN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST520_CNV_RUN star (M-134 klass 6)"
           }
         ]
       }

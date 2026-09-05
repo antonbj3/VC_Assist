@@ -119,6 +119,13 @@
       "signal": "ST450_CHK_CLAMPED",
       "beskrivning": "Chucken slapper medan spindeln roterar och halles oppen.",
       "forvantat": "Larmet star och bandet stoppar tills chucken ar spanned och aterstallning kvitterats."
+    },
+    {
+      "id": "kvittensen_hallen_medan_felet_kommer",
+      "typ": "vandning",
+      "signal": "SYS_RESET",
+      "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+      "forvantat": "Den hallna kvittensen nollstaller en gang; felet som kommer under hallet star kvar tills ny kvittens."
     }
   ],
   "core_outputs": [
@@ -1557,6 +1564,67 @@
               "ST450_CNV_RUN": true
             },
             "varfor": "aterstallt: larmet nere och bandet gar (M-134 klass 5)"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_hallen_medan_felet_kommer",
+        "beskrivning": "Aterstallningsknappen halls inne medan nodstoppet bryts pa nytt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST450_CNV_RUN": false
+            },
+            "varfor": "felet som kom under hallet star kvar: ST450_CNV_RUN star (M-134 klass 6)"
           }
         ]
       }
