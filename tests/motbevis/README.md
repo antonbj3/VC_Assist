@@ -8,4 +8,8 @@ Körs separat, så den vanliga sviten står kvar grön:
 
     python3 -m pytest tests/motbevis -q
 
-Full genomgång: `docs/motbevis_2026_09_04.md`.
+Full genomgång av de nio första: `docs/motbevis_2026_09_04.md`.
+
+Senare tillskott bär sin genomgång i den mätning som byggde dem:
+
+* `test_tillverkardatablad_motbevis.py` — 7 röda, se `docs/matningar/M-107_tillverkarens_datablad.md`.
