@@ -55,7 +55,7 @@
     {
       "vad": "takttiden per detalj pa kedjan",
       "varde": "30,0 s",
-      "motiv": "med 30,0 s mellan hangarna ligger fyrtio detaljer samtidigt i ugnen vid 1200 s uppehallstid, vilket ar en rimlig belaggning for en genomloppsugn; talet ar satt och inte matt"
+      "motiv": "med 30,0 s mellan hangarna ligger fyrtio detaljer samtidigt i ugnen vid 1200 s uppehallstid, vilket ar en rimlig belaggning for en genomloppsugn; talet ar satt och inte matt. Delningen gar ihop med detaljens matt: 0,010 m/s gange 30,0 s ar 300 mm mellan hangarna, och konsolen hanger med sin 180 mm-sida i fardriktningen, sa det blir 120 mm luft mellan tva detaljer. Hade den hangt med 320 mm-sidan framat hade de tagit i varandra"
     }
   ],
   "fysik": {
