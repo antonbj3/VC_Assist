@@ -115,18 +115,18 @@ class OpenPlcV4(object):
         except urllib.error.HTTPError as fel:
             return fel.code, fel.read()
         except urllib.error.URLError as fel:
-            raise OpenPlcFel("nådde inte %s: %s" % (self.bas, fel.reason))
+            raise OpenPlcFel("could not reach %s: %s" % (self.bas, fel.reason))
         except OSError as fel:
-            raise OpenPlcFel("nådde inte %s: %s" % (self.bas, fel))
+            raise OpenPlcFel("could not reach %s: %s" % (self.bas, fel))
 
     def _json(self, kod: int, kropp: bytes, vad: str) -> object:
         try:
             data = json.loads(kropp.decode("utf-8", "replace"))
         except ValueError:
-            raise OpenPlcFel("%s svarade %d med något som inte är JSON: %r"
+            raise OpenPlcFel("%s answered %d with something that is not JSON: %r"
                              % (vad, kod, kropp[:200]))
         if kod >= 400:
-            raise OpenPlcFel("%s svarade %d: %s" % (vad, kod, data))
+            raise OpenPlcFel("%s answered %d: %s" % (vad, kod, data))
         return data
 
     def _hamta(self, stig: str, parametrar: Optional[Dict[str, str]] = None,
@@ -167,7 +167,7 @@ class OpenPlcV4(object):
                                      {"username": self.anvandare,
                                       "password": self.losenord})
         if kod != 200 or not isinstance(data, dict) or "access_token" not in data:
-            raise OpenPlcFel("inloggning som %s avvisades (%d): %s"
+            raise OpenPlcFel("login as %s was rejected (%d): %s"
                              % (self.anvandare, kod, data))
         return data["access_token"]
 
@@ -190,20 +190,20 @@ class OpenPlcV4(object):
             # Det finns redan användare och vi är inte inloggade. Det är inte
             # ett fel här: kontot vi vill ha kan mycket väl vara ett av dem.
             return False
-        raise OpenPlcFel("create-user svarade %d: %s" % (kod, data))
+        raise OpenPlcFel("create-user answered %d: %s" % (kod, data))
 
     # ---- läsningar utan inloggning --------------------------------------
 
     def version(self) -> str:
         data = self._hamta("/api/version", kraver_token=False)
         if not isinstance(data, dict) or "version" not in data:
-            raise OpenPlcFel("/api/version svarade utan version: %s" % (data,))
+            raise OpenPlcFel("/api/version answered without a version: %s" % (data,))
         return data["version"]
 
     def formagor(self) -> Dict[str, object]:
         data = self._hamta("/api/capabilities", kraver_token=False)
         if not isinstance(data, dict):
-            raise OpenPlcFel("/api/capabilities svarade %s" % (data,))
+            raise OpenPlcFel("/api/capabilities answered %s" % (data,))
         return data
 
     # ---- PLC-styrning ---------------------------------------------------
@@ -212,13 +212,13 @@ class OpenPlcV4(object):
         param = {"include_stats": "true"} if med_statistik else None
         data = self._hamta("/api/status", param)
         if not isinstance(data, dict) or "status" not in data:
-            raise OpenPlcFel("/api/status svarade utan status: %s" % (data,))
+            raise OpenPlcFel("/api/status answered without a status: %s" % (data,))
         return _efter_kolon(data["status"])
 
     def statistik(self) -> Dict[str, object]:
         data = self._hamta("/api/status", {"include_stats": "true"})
         if not isinstance(data, dict):
-            raise OpenPlcFel("/api/status svarade %s" % (data,))
+            raise OpenPlcFel("/api/status answered %s" % (data,))
         return data.get("timing_stats", {})
 
     def svarar(self) -> bool:
@@ -242,7 +242,7 @@ class OpenPlcV4(object):
         """
         svar = self.starta()
         if svar != "OK":
-            raise OpenPlcFel("start-plc svarade %r" % (svar,))
+            raise OpenPlcFel("start-plc answered %r" % (svar,))
         slut = time.time() + tidsgrans
         senaste = ""
         while time.time() < slut:
@@ -251,10 +251,10 @@ class OpenPlcV4(object):
                 return senaste
             if senaste == TOM:
                 raise OpenPlcFel(
-                    "runtimen gick till EMPTY efter start; programmet laddades "
-                    "inte. Senaste loggrader:\n%s" % self.logg(rader=12))
+                    "the runtime went to EMPTY after start; the program was not "
+                    "loaded. Last log lines:\n%s" % self.logg(rader=12))
             time.sleep(paus)
-        raise OpenPlcFel("runtimen nådde inte RUNNING inom %.0f s (sist: %s)"
+        raise OpenPlcFel("the runtime did not reach RUNNING within %.0f s (last: %s)"
                          % (tidsgrans, senaste))
 
     def logg(self, rader: int = 40, niva: Optional[str] = None) -> str:
@@ -294,7 +294,7 @@ class OpenPlcV4(object):
     def kompileringsstatus(self) -> Kompilering:
         data = self._hamta("/api/compilation-status")
         if not isinstance(data, dict) or "status" not in data:
-            raise OpenPlcFel("/api/compilation-status svarade %s" % (data,))
+            raise OpenPlcFel("/api/compilation-status answered %s" % (data,))
         loggar = data.get("logs") or []
         return Kompilering(data["status"], data.get("exit_code"),
                            "".join(loggar))
@@ -325,7 +325,7 @@ class OpenPlcV4(object):
         kod, svar = self._oppna(forfragan)
         data = self._json(kod, svar, "POST /api/upload-file")
         if isinstance(data, dict) and data.get("UploadFileFail"):
-            raise OpenPlcFel("uppladdningen avvisades: %s"
+            raise OpenPlcFel("the upload was rejected: %s"
                              % data["UploadFileFail"])
         return data if isinstance(data, dict) else {}
 
@@ -344,10 +344,10 @@ class OpenPlcV4(object):
             time.sleep(paus)
             senaste = self.kompileringsstatus()
         if senaste.pagar:
-            raise OpenPlcFel("kompileringen stod kvar i %s efter %.0f s"
+            raise OpenPlcFel("the compilation stayed in %s after %.0f s"
                              % (senaste.status, tidsgrans))
         if not senaste.klar:
-            raise OpenPlcFel("kompileringen föll (%s, exit %s):\n%s"
+            raise OpenPlcFel("the compilation failed (%s, exit %s):\n%s"
                              % (senaste.status, senaste.exit_kod,
                                 senaste.logg[-2000:]))
         return senaste
