@@ -66,10 +66,56 @@ BANKPOST = {
         "en referens som inte godkanns av sitt eget facit avbryter korningen "
         "med slutkod 2 - en mutationsanalys pa en rod referens mater inget",
         "noll skador ger slutkod 2",
+        "fangstgrad under golvet (M-135) ger slutkod 2 - sparr som bara far ga uppat",
     ),
     "kraver": ("inget",),
-    "matningar": ("M-122", "M-131"),
+    "matningar": ("M-122", "M-131", "M-135"),
 }
+
+# MATT 2026-09-05 av M-135. Golven far bara ga UPPAT (M-53-monster).
+# Golvet satts till det faktiskt uppmatta vardet, aldrig till ett runt tal.
+GOLV_SKADOR = 1054              # M-135
+GOLV_FANGADE = 1010             # M-135
+GOLV_FANGSTGRAD = GOLV_FANGADE / GOLV_SKADOR  # M-135: 0.9582542694497154
+
+GOLV_PER_SORT = {
+    "AND_TILL_OR": (91, 98),
+    "END_IF_STRUKEN": (99, 99),
+    "FALSKT_TILL_SANT": (78, 97),
+    "FLANKENS_Q_TILL_SIGNAL": (82, 82),
+    "FLANK_STRUKEN": (32, 32),
+    "FLANK_TILL_NIVA": (35, 36),
+    "ICKE_ASCII": (96, 96),
+    "JAMFORELSE_VAND": (74, 75),
+    "NOT_STRUKEN": (95, 97),
+    "OR_TILL_AND": (40, 46),
+    "SANT_TILL_FALSKT": (92, 97),
+    "SEMIKOLON_STRUKET": (99, 99),
+    "TID_FORDUBBLAD": (47, 50),
+    "TID_OGILTIG": (50, 50),
+}
+
+
+def validera_mutationsgolv(fangade: int, skador_totalt: int, per_sort=None):
+    """Mekanisk grind: fangstgraden far bara ga UPPAT (M-53-monster)."""
+    if skador_totalt <= 0:
+        return False, "noll skador"
+    kvot = fangade / skador_totalt
+    if kvot < GOLV_FANGSTGRAD - 1e-9:
+        return False, (
+            "fangstgrad %.4f under golvet %.4f (%d av %d mot golv %d av %d, M-135)"
+            % (kvot, GOLV_FANGSTGRAD, fangade, skador_totalt, GOLV_FANGADE, GOLV_SKADOR)
+        )
+    if per_sort:
+        for sort, (g_fang, g_tot) in GOLV_PER_SORT.items():
+            if sort in per_sort:
+                f, tot = per_sort[sort]
+                if f < g_fang:
+                    return False, (
+                        "sort %s: %d fangade under golvet %d (av %d, M-135)"
+                        % (sort, f, g_fang, tot)
+                    )
+    return True, "godkand mot golvet"
 
 from vc_assist_svc.plc.mutation import skador, var_rader  # noqa: E402
 from vc_assist_svc.st import tolk as T                 # noqa: E402
@@ -316,6 +362,13 @@ def main(argv=None):
     print("fangade per lager:", dict(collections.Counter(r["lager"] for r in fang)))
     print("vantat lager -> fangande lager:",
           dict(collections.Counter((r["vantat"], r["lager"]) for r in fang)))
+
+    per_sort_res = {}
+    for sort in set(r["sort"] for r in rader):
+        rs = [r for r in rader if r["sort"] == sort]
+        per_sort_res[sort] = (sum(1 for r in rs if r["utfall"] == "FANGAD"), len(rs))
+    ok_golv, fel_golv = validera_mutationsgolv(len(fang), len(rader), per_sort=per_sort_res)
+    print("grind (M-53-golv, M-135): %s" % ("GODKAND" if ok_golv else "UNDERKAND: " + fel_golv))
     print("\n%-24s %5s %5s %5s %5s | %6s %6s %6s" % (
         "sort", "n", "text", "bete", "over", "SKILL", "PERT", "OSYN"))
     for sort in sorted(set(r["sort"] for r in rader)):
@@ -372,6 +425,9 @@ def main(argv=None):
         with open(a.json, "w", encoding="utf-8") as h:
             json.dump(dict(uppgifter=res, fallplatser=fp), h, ensure_ascii=False, indent=1)
         print("\nskrivet:", a.json)
+    if not ok_golv:
+        print("KORNINGEN FALLS MOT GOLVET (M-135): %s" % fel_golv, file=sys.stderr)
+        return 2
     return 0
 
 
