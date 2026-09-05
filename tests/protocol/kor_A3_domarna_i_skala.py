@@ -312,6 +312,13 @@ def sammanstall(rader, n_kravd):
                 "utfallsinstabil": len(set(utfall)) > 1,
                 "kodinstabil": len(set(utfall)) == 1 and len(set(koder)) > 1,
                 "instabil": len(set(resultat)) > 1,
+                # VAR instabiliteten sitter: koder som fanns i nagot varv men
+                # inte i alla. M-146 gissade invariantregelns fem scan; det ar
+                # den har listan som avgor om gissningen haller.
+                "vacklande_koder": sorted(
+                    set().union(*[set(k) for k in koder])
+                    - set.intersection(*[set(k) for k in koder])) if koder
+                    else [],
                 "sekunder_median": _median([r["sekunder"] for r in varv]),
                 "omatt": len(varv) < n_kravd,
                 "skal": next((r["skal"] for r in varv if r.get("skal")), None),
@@ -400,6 +407,16 @@ def sammanstall(rader, n_kravd):
             if any(u not in DOMAR
                    for u in p["domare"]["tolk"]["utfall_rakning"])),
     }
+    vack = {}
+    for p in matta:
+        for k in p["domare"]["openplc"]["vacklande_koder"]:
+            vack[k.split(":")[0]] = vack.get(k.split(":")[0], 0) + 1
+    ut["tal"]["vacklande_kodslag_openplc"] = dict(sorted(vack.items()))
+    vackt = {}
+    for p in matta:
+        for k in p["domare"]["tolk"]["vacklande_koder"]:
+            vackt[k.split(":")[0]] = vackt.get(k.split(":")[0], 0) + 1
+    ut["tal"]["vacklande_kodslag_tolk"] = dict(sorted(vackt.items()))
     mb = [p for p in matta if p["etikett"].startswith("motbevis:")]
     ref = [p for p in matta if p["etikett"] == "referens"]
     ut["tal"]["motbevis"] = {
@@ -561,6 +578,8 @@ def _skriv_sammanstallning(args):
           "(varav utfall %d)"
           % (t["c_sjalvinstabil_openplc"], t["c_sjalvinstabil_openplc_utfall"],
              t["c_sjalvinstabil_tolk"], t["c_sjalvinstabil_tolk_utfall"]))
+    print("    vacklande kodslag (openplc): %s"
+          % (t["vacklande_kodslag_openplc"] or "inga"))
     r, m = t["referenser"], t["motbevis"]
     print("referenser grona i alla varv: tolk %d/%d, openplc %d/%d %s"
           % (r["gron_i_tolken_alla_varv"], r["matta"],
