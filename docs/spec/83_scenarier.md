@@ -3,6 +3,11 @@
 Tjugo scenarier i sju grupper. Var och en **isolerar en felklass** ur
 `82_felklasser.md`, så bänken blir diagnostisk och inte bara en hög med prov.
 
+> **Tabellerna nedan är den ursprungliga tjugon, inte banken som den ser ut i
+> dag.** `bank/uppgifter/` bär **63** uppgifter (M-106, 2026-09-05), varav 24
+> med spårfacit. Katalogen här är avsikten och felklasstäckningen; den faktiska
+> banken är sanningen, och `python3 bank/lasare.py` svarar på vad den innehåller.
+
 Kolumnen "fångar" är den klass scenariot är byggt för att avslöja.
 
 ## T — transport
