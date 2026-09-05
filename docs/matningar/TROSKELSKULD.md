@@ -11,7 +11,12 @@ uppmaningen att skriva ned det nya talet — annars ruttnar spärren.
 
 ## Nuvarande skuld
 
-    UTAN_HARKOMST = 58
+    UTAN_HARKOMST = 57
+
+Sänkt från 58 den 2026-09-05: spärren föll med *"skulden är nere i 57"*.
+Talet sjönk medan `svc/vc_assist_svc/llm/` växte fram — nio nya trösklar
+kom in och fick härkomst i samma svep, och en gammal ströks. Spärren såg
+både tillskottet och avdraget utan att någon berättade om dem.
 
 Av 125 tröskelkonstanter i `ext/`, `svc/` och `bank/`.
 
