@@ -1,0 +1,15 @@
+disconnect_socket was called but connection is closed
+
+=== A8-HELTALSNOLL2: heltalsdivision med noll: skrev den, och overlevde scanet? ===
+    tolken: Tolkfel vid divisionen - O_DIV star kvar pa 111 och O_EFTER nas aldrig
+    OpenPLC: UNDERKAND
+      en_puls@400ms:O_EFTER
+        O_EFTER skulle vara 222 men var 0 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+    runtime efter proben: STOPPED
+
+=== A8-REALNOLL: REAL-division med noll vid korning ===
+    tolken: Tolkfel, 'division med noll' - ingen dom alls
+    OpenPLC: UNDERKAND
+      en_puls@400ms:O_RDIV
+        O_RDIV skulle vara 0.0 men var inf inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+    runtime efter proben: TRANSITIONING

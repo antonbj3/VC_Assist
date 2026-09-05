@@ -1,0 +1,32 @@
+{
+ "prober": [
+  {
+   "brister": [
+    {
+     "kod": "en_puls@400ms:O_EFTER",
+     "text": "O_EFTER skulle vara 222 men var 0 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    }
+   ],
+   "st": "PROGRAM A8Div2\nVAR\n  iTio : INT := 10;\n  iNoll : INT := 0;\nEND_VAR\nIF TRIG THEN\n  O_DIV := 111;\n  O_DIV := iTio / iNoll;\n  O_EFTER := 222;\nEND_IF;\nEND_PROGRAM\n",
+   "status_efter": "STOPPED",
+   "task_id": "A8-HELTALSNOLL2",
+   "tolk": "tolken: Tolkfel vid divisionen - O_DIV star kvar pa 111 och O_EFTER nas aldrig",
+   "utfall": "UNDERKAND",
+   "vad": "heltalsdivision med noll: skrev den, och overlevde scanet?"
+  },
+  {
+   "brister": [
+    {
+     "kod": "en_puls@400ms:O_RDIV",
+     "text": "O_RDIV skulle vara 0.0 men var inf inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    }
+   ],
+   "st": "PROGRAM A8RDiv\nVAR\n  rEtt : REAL := 1.0;\n  rNoll : REAL := 0.0;\nEND_VAR\nIF TRIG THEN\n  O_RDIV := rEtt / rNoll;\nEND_IF;\nEND_PROGRAM\n",
+   "status_efter": "TRANSITIONING",
+   "task_id": "A8-REALNOLL",
+   "tolk": "tolken: Tolkfel, 'division med noll' - ingen dom alls",
+   "utfall": "UNDERKAND",
+   "vad": "REAL-division med noll vid korning"
+  }
+ ]
+}

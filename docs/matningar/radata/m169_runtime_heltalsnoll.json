@@ -1,0 +1,13 @@
+{
+ "prober": [
+  {
+   "brister": [],
+   "st": "PROGRAM A8Div\nVAR\n  iTio : INT := 10;\n  iNoll : INT := 0;\nEND_VAR\nIF TRIG THEN\n  O_DIV := iTio / iNoll;\nEND_IF;\nEND_PROGRAM\n",
+   "status_efter": "STOPPED",
+   "task_id": "A8-HELTALSNOLL",
+   "tolk": "tolken: Tolkfel, 'division med noll' - ingen dom alls",
+   "utfall": "GODKAND",
+   "vad": "heltalsdivision med noll vid korning"
+  }
+ ]
+}

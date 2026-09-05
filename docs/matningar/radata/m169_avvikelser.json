@@ -1,0 +1,559 @@
+{
+ "fall": [
+  {
+   "dekl": "  i : INT := 40000;",
+   "forvantat": "TRASIG FIXTUR: matiec avvisar, tolken tar emot 40000",
+   "grupp": "spill",
+   "klass": "MATIEC_STRANGARE",
+   "kropp": "  i := i;",
+   "matiec": {
+    "ord": [
+     "rad 3 kol 14: Initial value has incompatible data type."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "spill_init_utanfor_vidd",
+   "standard": "OPROVAD PARAGRAF: INT ar 16 bitar (tabell 10); vad ett initialvarde utanfor vidden betyder star inte i repot",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "40000"
+   }
+  },
+  {
+   "dekl": "  i : INT;",
+   "forvantat": "KONTROLLFALL: bada godkanner",
+   "grupp": "spill",
+   "klass": "OVERENS",
+   "kropp": "  i := 32766 + 1;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "spill_kontroll_inom_vidd",
+   "standard": "OPROVAD PARAGRAF: 32767 ryms i INT",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "32767"
+   }
+  },
+  {
+   "dekl": "  i : INT;",
+   "forvantat": "matiec viker konstanten och avvisar tilldelningen; tolken ger 32768",
+   "grupp": "spill",
+   "klass": "MATIEC_STRANGARE",
+   "kropp": "  i := 32767 + 1;",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 4: Incompatible data types for ':=' operation."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "spill_konstantvikning",
+   "standard": "OPROVAD PARAGRAF: summan 32768 ryms inte i INT",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "32768"
+   }
+  },
+  {
+   "dekl": "  i : INT := 32767;",
+   "forvantat": "matiec godkanner (spillet sker vid korning); tolken ger 32768, OpenPLC sveper till -32768 (M-125 a10)",
+   "grupp": "spill",
+   "klass": "OVERENS",
+   "kropp": "  i := i + 1;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "spill_variabel_int",
+   "standard": "OPROVAD PARAGRAF: spillets verkan ar implementationsberoende",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "32768"
+   }
+  },
+  {
+   "dekl": "  d : DINT := 2147483647;",
+   "forvantat": "matiec godkanner; tolken ger 2147483648, OpenPLC -2147483648 (M-125 a09)",
+   "grupp": "spill",
+   "klass": "OVERENS",
+   "kropp": "  d := d + 1;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "spill_variabel_dint",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "2147483648"
+   }
+  },
+  {
+   "dekl": "  s : SINT := 127;",
+   "forvantat": "matiec godkanner; tolken ger 128 (SINT ar 8 bitar)",
+   "grupp": "spill",
+   "klass": "OVERENS",
+   "kropp": "  s := s + 1;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "spill_sint",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "128"
+   }
+  },
+  {
+   "dekl": "  u : UINT := 0;",
+   "forvantat": "matiec godkanner; tolken ger -1, alltsa ett NEGATIVT varde i en teckenlos typ",
+   "grupp": "spill",
+   "klass": "OVERENS",
+   "kropp": "  u := u - 1;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "spill_uint_under_noll",
+   "standard": "OPROVAD PARAGRAF: UINT ar teckenlos",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "-1"
+   }
+  },
+  {
+   "dekl": "  b : BYTE := 255;",
+   "forvantat": "matiec avvisar '+' pa BYTE; tolken raknar 256",
+   "grupp": "spill",
+   "klass": "MATIEC_STRANGARE",
+   "kropp": "  b := b + 1;",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 9: Data type mismatch for '+' expression."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "spill_byte_plus_ett",
+   "standard": "OPROVAD PARAGRAF: BYTE ar en bitstrang, inte ett tal; ADD ar definierad over ANY_NUM",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "256"
+   }
+  },
+  {
+   "dekl": "  i : INT;",
+   "forvantat": "matiec avvisar redan vid kompilering; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "OVERENS",
+   "kropp": "  i := 10 / 0;",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 9: Data type mismatch for '/' expression."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "noll_heltal_literal",
+   "standard": "OPROVAD PARAGRAF: DIV med noll ar ett feltillstand; ENO-semantiken star inte i repot",
+   "tolk": {
+    "ord": [
+     "division med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  i : INT; n : INT := 0;",
+   "forvantat": "matiec GODKANNER - nollan syns forst vid korning; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  i := 10 / n;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_heltal_variabel",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "ord": [
+     "division med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  i : INT;",
+   "forvantat": "matiec GODKANNER trots att '/'-fallet avvisas - asymmetri i samma kompilator; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  i := 10 MOD 0;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_mod_literal",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "ord": [
+     "MOD med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  i : INT; n : INT := 0;",
+   "forvantat": "matiec godkanner; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  i := 10 MOD n;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_mod_variabel",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "ord": [
+     "MOD med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  r : REAL;",
+   "forvantat": "matiec godkanner; tolken kastar Tolkfel - ingen av dem ger inf",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  r := 1.0 / 0.0;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_real_literal",
+   "standard": "OPROVAD PARAGRAF: IEEE 754 ger +inf, IEC sager inget om det",
+   "tolk": {
+    "ord": [
+     "division med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  r : REAL; z : REAL := 0.0;",
+   "forvantat": "matiec godkanner; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  r := 1.0 / z;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_real_variabel",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "ord": [
+     "division med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  r : REAL; z : REAL := 0.0;",
+   "forvantat": "matiec godkanner; tolken kastar Tolkfel",
+   "grupp": "noll",
+   "klass": "VI_STRANGARE",
+   "kropp": "  r := z / z;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "noll_real_noll_genom_noll",
+   "standard": "OPROVAD PARAGRAF: IEEE 754 ger NaN",
+   "tolk": {
+    "ord": [
+     "division med noll på rad 5"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  t : TIME;",
+   "forvantat": "bada godkanner; tolken ger 90 000 000 ms",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  t := T#25h;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_25h",
+   "standard": "OPROVAD PARAGRAF: TIME ar en varaktighet utan ovre grans i standarden",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "90000000.0"
+   }
+  },
+  {
+   "dekl": "  t : TIME;",
+   "forvantat": "bada godkanner; samma varde som T#25h",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  t := T#1d1h;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_1d1h",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "90000000.0"
+   }
+  },
+  {
+   "dekl": "  t : TIME;",
+   "forvantat": "bada godkanner; tolken ger 8 640 000 000 ms - over int32:s 2 147 483 647, och OpenPLC sveper (M-125 t07: TIME_TO_DINT(T#100d) = 50 065 408)",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  t := T#100d;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_100d",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "8640000000.0"
+   }
+  },
+  {
+   "dekl": "  t : TIME;",
+   "forvantat": "bada godkanner; ingen dygnsmodul - TIME ar en varaktighet",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  t := T#23h + T#2h;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_summa_over_dygn",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "90000000.0"
+   }
+  },
+  {
+   "dekl": "  d : DINT;",
+   "forvantat": "2 160 000 000 ms ryms i DINT; kontrollfall precis under svepgransen",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  d := TIME_TO_DINT(T#25d);",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_time_to_dint_25d",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "2160000000"
+   }
+  },
+  {
+   "dekl": "  q : TOD;",
+   "forvantat": "matiec GODKANNER en omojlig klockslag; tolkens lasare avvisar TOD-literaler helt",
+   "grupp": "tid",
+   "klass": "VI_STRANGARE",
+   "kropp": "  q := TOD#25:00:00;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_tod_utanfor_dygnet",
+   "standard": "OPROVAD PARAGRAF: TIME_OF_DAY ar en tid PA DYGNET; 25:00:00 finns inte",
+   "tolk": {
+    "ord": [
+     "koden går inte att läsa: rad 5: TOD-literaler stöds inte av det här lagret"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  q : TOD;",
+   "forvantat": "matiec GODKANNER; tolkens lasare avvisar TOD-literaler helt",
+   "grupp": "tid",
+   "klass": "VI_STRANGARE",
+   "kropp": "  q := TOD#12:99:00;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_tod_ogiltig_minut",
+   "standard": "OPROVAD PARAGRAF: 99 minuter finns inte",
+   "tolk": {
+    "ord": [
+     "koden går inte att läsa: rad 5: TOD-literaler stöds inte av det här lagret"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  dd : DATE;",
+   "forvantat": "matiec GODKANNER; tolkens lasare avvisar DATE-literaler helt",
+   "grupp": "tid",
+   "klass": "VI_STRANGARE",
+   "kropp": "  dd := D#2026-02-30;",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "tid_datum_som_inte_finns",
+   "standard": "OPROVAD PARAGRAF: 30 februari finns inte",
+   "tolk": {
+    "ord": [
+     "koden går inte att läsa: rad 5: D-literaler stöds inte av det här lagret"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  t : TIME;",
+   "forvantat": "KONTROLLFALL at andra hallet: bada avvisar",
+   "grupp": "tid",
+   "klass": "OVERENS",
+   "kropp": "  t := T#5s10m;",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 14: ';' missing at the end of statement in ST statement.",
+     "rad 5 kol 15: invalid statement in ST statement."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "tid_enheter_i_fel_ordning",
+   "standard": "OPROVAD PARAGRAF: enheterna ska sta i fallande ordning",
+   "tolk": {
+    "ord": [
+     "TIME-literalen 'T#5s10m' går inte att läsa: enheterna står i fel ordning: m efter s"
+    ],
+    "utfall": "AVVISAR",
+    "varde": null
+   }
+  },
+  {
+   "dekl": "  s : STRING[4];",
+   "forvantat": "matiec tappar variabeln ur scope; tolken har ingen langdmodell alls",
+   "grupp": "strang",
+   "klass": "EJ_JAMFORBAR",
+   "kropp": "  s := 'abcd';",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 4: Variable not declared in this scope."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "strang_deklarerad_langd",
+   "standard": "OPROVAD PARAGRAF: STRING[n] ar standardens form for en strang med maxlangd n",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "'abcd'"
+   }
+  },
+  {
+   "dekl": "  s : STRING[4] := 'abcdefgh';",
+   "forvantat": "matiec tappar variabeln ur scope; tolken lagrar hela strangen",
+   "grupp": "strang",
+   "klass": "EJ_JAMFORBAR",
+   "kropp": "  s := s;",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 4: Variable not declared in this scope.",
+     "rad 5 kol 8: Variable not declared in this scope."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "strang_for_langt_init",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "'abcdefgh'"
+   }
+  },
+  {
+   "dekl": "  s : STRING[4]; n : INT;",
+   "forvantat": "matiec tappar variabeln; tolken ger LEN = 8 i en STRING[4]",
+   "grupp": "strang",
+   "klass": "EJ_JAMFORBAR",
+   "kropp": "  s := 'abcdefgh';\n  n := LEN(s);",
+   "matiec": {
+    "ord": [
+     "rad 5 kol 4: Variable not declared in this scope.",
+     "rad 6 kol 12: Data type incompatibility for value passed in position 1 when invoking function 'LEN'",
+     "rad 6 kol 12: Variable not declared in this scope."
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "strang_for_lang_tilldelning",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "8"
+   }
+  },
+  {
+   "dekl": "  s : STRING; n : INT;",
+   "forvantat": "KONTROLLFALL: bada godkanner, tolken ger 30",
+   "grupp": "strang",
+   "klass": "OVERENS",
+   "kropp": "  s := '123456789012345678901234567890';\n  n := LEN(s);",
+   "matiec": {
+    "ord": [],
+    "utfall": "ACCEPTERAR"
+   },
+   "namn": "strang_utan_langd",
+   "standard": "OPROVAD PARAGRAF: STRING utan langd har en implementationsberoende maxlangd",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "30"
+   }
+  },
+  {
+   "dekl": "  s : STRING[4];\n  i : INT;",
+   "forvantat": "matiec SEGMENTATION FAULT (rc -11) pa ren IEC-syntax; tolken godkanner",
+   "grupp": "strang",
+   "klass": "EJ_JAMFORBAR",
+   "kropp": "  i := 1;",
+   "matiec": {
+    "ord": [
+     "rad 0 kol 0: matiec avvisade källkoden (returkod -11)"
+    ],
+    "utfall": "AVVISAR"
+   },
+   "namn": "strang_deklaration_utan_bruk",
+   "standard": "OPROVAD PARAGRAF",
+   "tolk": {
+    "utfall": "KOR",
+    "varde": "1"
+   }
+  }
+ ],
+ "matiec": "/tmp/opencode/matiec/iec2c",
+ "raknat": {
+  "EJ_JAMFORBAR": 4,
+  "MATIEC_STRANGARE": 3,
+  "OVERENS": 13,
+  "VI_STRANGARE": 9
+ }
+}

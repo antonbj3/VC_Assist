@@ -1,0 +1,22 @@
+{
+ "prober": [
+  {
+   "brister": [
+    {
+     "kod": "en_puls@400ms:O_SPILL",
+     "text": "O_SPILL skulle vara 32768 men var -32768 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    },
+    {
+     "kod": "en_puls@400ms:O_REAL",
+     "text": "O_REAL skulle vara 1e+40 men var inf inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    }
+   ],
+   "st": "PROGRAM A8Spill\nVAR\n  iMax : INT := 32767;\n  rStor : REAL := 1.0E20;\nEND_VAR\nIF TRIG THEN\n  O_SPILL := iMax + 1;\n  O_REAL := rStor * rStor;\nEND_IF;\nEND_PROGRAM\n",
+   "status_efter": "STOPPED",
+   "task_id": "A8-SPILL",
+   "tolk": "tolken: O_SPILL = 32768, O_REAL = 1e40 (float64)",
+   "utfall": "UNDERKAND",
+   "vad": "heltalsspill och REAL-bredd vid korning"
+  }
+ ]
+}

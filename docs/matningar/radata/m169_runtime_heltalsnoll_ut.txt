@@ -1,0 +1,5 @@
+
+=== A8-HELTALSNOLL: heltalsdivision med noll vid korning ===
+    tolken: Tolkfel, 'division med noll' - ingen dom alls
+    OpenPLC: GODKAND
+    runtime efter proben: STOPPED

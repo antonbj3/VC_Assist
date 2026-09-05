@@ -1,0 +1,10 @@
+disconnect_socket was called but connection is closed
+
+=== A8-SPILL: heltalsspill och REAL-bredd vid korning ===
+    tolken: O_SPILL = 32768, O_REAL = 1e40 (float64)
+    OpenPLC: UNDERKAND
+      en_puls@400ms:O_SPILL
+        O_SPILL skulle vara 32768 men var -32768 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+      en_puls@400ms:O_REAL
+        O_REAL skulle vara 1e+40 men var inf inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+    runtime efter proben: STOPPED

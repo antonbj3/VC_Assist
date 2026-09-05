@@ -1,0 +1,14 @@
+disconnect_socket was called but connection is closed
+
+=== A8-HELTALSNOLL3: heltalsdivision med noll: lever scanslingan efteråt? ===
+    tolken: Tolkfel vid divisionen i forsta scanet efter TRIG; O_HB star kvar och O_EFTER nas aldrig
+    OpenPLC: UNDERKAND
+      en_puls@200ms:O_HB
+        O_HB skulle vara 999 men var 304 inom 4 scan efter 200 ms. tidig avlasning; bristtexten bar vardet
+      en_puls@200ms:O_EFTER
+        O_EFTER skulle vara 999 men var 0 inom 4 scan efter 200 ms. tidig avlasning; bristtexten bar vardet
+      en_puls@400ms:O_HB
+        O_HB skulle vara 999 men var 304 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+      en_puls@400ms:O_EFTER
+        O_EFTER skulle vara 999 men var 0 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text
+    runtime efter proben: STOPPED

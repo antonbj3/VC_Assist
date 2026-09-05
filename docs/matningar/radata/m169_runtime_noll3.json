@@ -1,0 +1,30 @@
+{
+ "prober": [
+  {
+   "brister": [
+    {
+     "kod": "en_puls@200ms:O_HB",
+     "text": "O_HB skulle vara 999 men var 304 inom 4 scan efter 200 ms. tidig avlasning; bristtexten bar vardet"
+    },
+    {
+     "kod": "en_puls@200ms:O_EFTER",
+     "text": "O_EFTER skulle vara 999 men var 0 inom 4 scan efter 200 ms. tidig avlasning; bristtexten bar vardet"
+    },
+    {
+     "kod": "en_puls@400ms:O_HB",
+     "text": "O_HB skulle vara 999 men var 304 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    },
+    {
+     "kod": "en_puls@400ms:O_EFTER",
+     "text": "O_EFTER skulle vara 999 men var 0 inom 4 scan efter 400 ms. kravet ar TOLKENS varde; ett rott utfall bar OpenPLC:s varde i sin egen text"
+    }
+   ],
+   "st": "PROGRAM A8Div3\nVAR\n  n : INT := 0;\n  iTio : INT := 10;\n  iNoll : INT := 0;\n  iSkrap : INT := 0;\nEND_VAR\nn := n + 1;\nO_HB := n;\nIF TRIG THEN\n  iSkrap := iTio / iNoll;\n  O_EFTER := 222;\nEND_IF;\nEND_PROGRAM\n",
+   "status_efter": "STOPPED",
+   "task_id": "A8-HELTALSNOLL3",
+   "tolk": "tolken: Tolkfel vid divisionen i forsta scanet efter TRIG; O_HB star kvar och O_EFTER nas aldrig",
+   "utfall": "UNDERKAND",
+   "vad": "heltalsdivision med noll: lever scanslingan efteråt?"
+  }
+ ]
+}

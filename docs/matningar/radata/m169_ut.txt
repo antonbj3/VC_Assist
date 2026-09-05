@@ -1,0 +1,39 @@
+spill_init_utanfor_vidd          spill   AVVISAR     KOR 40000                MATIEC_STRANGARE
+spill_kontroll_inom_vidd         spill   ACCEPTERAR  KOR 32767                OVERENS
+spill_konstantvikning            spill   AVVISAR     KOR 32768                MATIEC_STRANGARE
+spill_variabel_int               spill   ACCEPTERAR  KOR 32768                OVERENS
+spill_variabel_dint              spill   ACCEPTERAR  KOR 2147483648           OVERENS
+spill_sint                       spill   ACCEPTERAR  KOR 128                  OVERENS
+spill_uint_under_noll            spill   ACCEPTERAR  KOR -1                   OVERENS
+spill_byte_plus_ett              spill   AVVISAR     KOR 256                  MATIEC_STRANGARE
+noll_heltal_literal              noll    AVVISAR     AVVISAR                  OVERENS
+noll_heltal_variabel             noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+noll_mod_literal                 noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+noll_mod_variabel                noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+noll_real_literal                noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+noll_real_variabel               noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+noll_real_noll_genom_noll        noll    ACCEPTERAR  AVVISAR                  VI_STRANGARE
+tid_25h                          tid     ACCEPTERAR  KOR 90000000.0           OVERENS
+tid_1d1h                         tid     ACCEPTERAR  KOR 90000000.0           OVERENS
+tid_100d                         tid     ACCEPTERAR  KOR 8640000000.0         OVERENS
+tid_summa_over_dygn              tid     ACCEPTERAR  KOR 90000000.0           OVERENS
+tid_time_to_dint_25d             tid     ACCEPTERAR  KOR 2160000000           OVERENS
+tid_tod_utanfor_dygnet           tid     ACCEPTERAR  AVVISAR                  VI_STRANGARE
+tid_tod_ogiltig_minut            tid     ACCEPTERAR  AVVISAR                  VI_STRANGARE
+tid_datum_som_inte_finns         tid     ACCEPTERAR  AVVISAR                  VI_STRANGARE
+tid_enheter_i_fel_ordning        tid     AVVISAR     AVVISAR                  OVERENS
+strang_deklarerad_langd          strang  AVVISAR     KOR 'abcd'               EJ_JAMFORBAR
+strang_for_langt_init            strang  AVVISAR     KOR 'abcdefgh'           EJ_JAMFORBAR
+strang_for_lang_tilldelning      strang  AVVISAR     KOR 8                    EJ_JAMFORBAR
+strang_utan_langd                strang  ACCEPTERAR  KOR 30                   OVERENS
+strang_deklaration_utan_bruk     strang  AVVISAR     KOR 1                    EJ_JAMFORBAR
+
+--- trasiga fallen ---
+  spill_init_utanfor_vidd -> MATIEC_STRANGARE (ska vara MATIEC_STRANGARE)
+  spill_kontroll_inom_vidd -> OVERENS (ska vara OVERENS)
+
+--- klassning ---
+  EJ_JAMFORBAR       4
+  MATIEC_STRANGARE   3
+  OVERENS            13
+  VI_STRANGARE       9
