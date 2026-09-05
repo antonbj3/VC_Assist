@@ -92,11 +92,15 @@ Formel = object
 
 # Tak for SAT-sokningen. Over taket svarar modulen "vet inte", och vet-inte
 # raknas som forenligt: grinden faller da precis som fore M-121.
-MAX_ATOMER = 24
+MAX_ATOMER = 24  # M-121: 96 prov over 182 kroppar (bank + M-96-korpus) gav hogst 15 atomer, median 11
 
 # Fler CASE-varden an sa har i en gren gors till en ogenomskinlig atom i stallet
 # for en likhetsgrupp. Sunt: ogenomskinlig ar "vet inte", och vet-inte faller.
-MAX_ETIKETTVARDEN = 16
+MAX_ETIKETTVARDEN = 16  # M-121: bankens 1144 CASE-grenar har hogst 1 varde var
+
+# Tak for hur manga mellanvariabler i rad som substitueras (xAuto -> uttryck
+# vars namn i sin tur ar definierade ...). Over taket star namnet kvar som atom.
+MAX_SUBSTITUTIONSDJUP = 8  # M-121: L-05 behover 2 (LFT_UP -> xHand -> ingangar); hogst 2 uppmatt over 182 kroppar
 
 _raknare = itertools.count(1)
 
@@ -366,7 +370,8 @@ class Uteslutning(object):
             b = self.substituera(f[2], miljo, djup, kedja)
             return och(a, b) if slag == "&" else eller(a, b)
         atom: Atom = f[1]
-        if djup >= 8 or len(atom.varr) != 1 or atom.kanon not in atom.varr:
+        if (djup >= MAX_SUBSTITUTIONSDJUP or len(atom.varr) != 1
+                or atom.kanon not in atom.varr):
             return f
         namn = atom.kanon
         d = miljo.get(namn)
