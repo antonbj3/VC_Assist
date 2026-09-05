@@ -20,7 +20,13 @@
 **Rådata:** `docs/matningar/radata/m153_svep.jsonl` (1110 körningar, en rad per
   körning), `docs/matningar/radata/m153_sammanstallning.json` (per enhet och
   varv), `docs/matningar/radata/m153_ut.txt` (körningens egen utskrift),
-  `docs/matningar/radata/m153_flankprob_ut.txt` (proberna i §4).
+  `docs/matningar/radata/m153_flankprob_ut.txt` (proberna i §4 och
+  provtagningstakten i §5),
+  `docs/matningar/radata/m153_omprov_parallellt.jsonl` och
+  `…_omprov_seriellt.jsonl` (de två kontrollarmarna i §5, 78 körningar var).
+  Sammanställningen görs om med
+  `python3 tests/protocol/kor_A3_domarna_i_skala.py --sammanstall
+  docs/matningar/radata/m153_svep.jsonl --n 3 --tabell`.
 
 ## Frågan
 
@@ -189,14 +195,15 @@ värdet inom 4 scan, tolken kräver exakt scan). En mildare regel som ändå fä
 sju gånger fler punktkrav betyder att spåren har gått isär före punkten, inte
 att punkten lästes strängare.
 
-## 4. Varför: tre mekanismer, alla mätta, alla i DOMAREN och inte i motorerna
+## 4. Varför: två mekanismer i domaren, och en tredje som inte går att hänföra
 
 Att `flank:*` bär oenigheten var svaret på *var*. Proben
 (`docs/matningar/radata/m153_flankprob.py`) svarar på *varför*: den kör en
 signal genom båda domarnas egna slingor och skriver ut vid vilka millisekunder
-var och en ser flanken, bredvid facits fönster. Tre mekanismer föll ut, och
-**ingen av dem är en oenighet mellan motorerna** — alla tre ligger i hur de två
-domarna läser ett spår.
+var och en ser flanken, bredvid facits fönster. Tre saker föll ut. De två
+första (§4a, §4b) ligger **i domarmekaniken** och är inga oenigheter mellan
+motorerna alls; den tredje (§4c) går inte att hänföra på den här datan, och
+varför den inte går att hänföra är i sig mätt.
 
 ### 4a. Toleransen töjer flankfönstret åt ett håll
 
@@ -277,8 +284,8 @@ sekvensens början, och facit skrevs mot den ena.
 
 ### 4c. Den intermittenta enskansglitchen — och att provtagningen inte håller sin egen takt
 
-T-04:s referens är GRÖN–RÖD–GRÖN. Proben, körd elva gånger på samma text,
-fångade skillnaden två gånger:
+T-04:s referens är GRÖN–RÖD–GRÖN. Proben, körd **fjorton gånger på samma
+text**, fångade skillnaden **två** gånger:
 
 ```
 varv 1: OPLC RISE [20.0, 22440.0]           FALL [19740.0]        -> 1 FALL, GRON
@@ -339,10 +346,11 @@ oberoende — se LIMITS):
 | 12 arbetare | samma som svepet | **4 av 13** |
 | 1 arbetare | ingen annan A3-last | **4 av 13** |
 
-Samma tal. Och det är inte samma fyra enheter: L-01 och S-01:s motbevis
-vacklade bara i det parallella omprovet, P-07:s och T-05:s bara i det seriella.
-Det ser ut som en slumpprocess med ungefär konstant intensitet, inte som något
-lasten driver.
+Samma tal — och **inte en enda enhet vacklade i båda omproven**. Det parallella
+tog L-01:s och S-01:s motbevis, L-07/`klippet…` och S-01:s referens; det
+seriella tog L-07/`pallen…`, P-07/`aterstallt…`, T-05:s motbevis och T-04:s
+referens. Fyra av tretton i båda armarna, med tom skärning: det ser ut som en
+slumpprocess med ungefär konstant intensitet, inte som något lasten driver.
 
 Provtagningstakten pekar åt samma håll. Samma text, samma signal:
 
