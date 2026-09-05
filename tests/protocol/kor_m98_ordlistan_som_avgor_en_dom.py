@@ -54,34 +54,6 @@ BANKPOST = {
 }
 
 
-BANKPOST = {
-    "pastar":
-        "Ogongrinden faller varje obestridd dom i ogats namn nar ingen "
-        "ogonrapport finns, och ordlistesparren hittar ordlistor som bar tva "
-        "storheter ocksa i ett annat trad.",
-    "under_prov": (
-        "svc/vc_assist_svc/harness/oga.py",
-        "svc/vc_assist_svc/skuld.py",
-        "svc/vc_assist_svc/harness/text.py",
-    ),
-    "facit":
-        "M-98:s tabell ordagrant: nio meningar och de koder var och en ska ge",
-    "facitkalla":
-        "M-98, en tidigare matning med M-nummer, skriven fore korningen. "
-        "Korningen domer ingenting sjalv utan skriver ut grindens svar "
-        "bredvid det ratta.",
-    "facitkalla_filer": ("docs/matningar/M-98_den_sjatte_ordlistan.md",),
-    "trasiga_fall": (
-        "en mening i ogats namn utan ogonrapport maste ge oga_utan_korning",
-        "'Domen ar guld' utan grind maste ge bade guld_utan_grind och "
-        "oga_utan_korning",
-        "sparren mot ett annat trad maste hamta karnorna ur DET tradets "
-        "text.py, annars ar fragan inte densamma",
-    ),
-    "kraver": ("inget",),
-    "matningar": ("M-98",),
-}
-
 import argparse
 import os
 import sys
