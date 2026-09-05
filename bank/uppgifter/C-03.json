@@ -318,7 +318,7 @@
     "harkomst": "RAKNAD: linjens takt 6,0 s per kartong ger 3600/6,0 = 600 kartonger/h teoretiskt. Vid 480 s = 8 minuter formatbyte aterstar 52 minuter produktion = (52/60)*600 = 520 kartonger/h, vilket med marginal ger malet 500 kartonger/h. Detta ar manniskans facit skrivet ur scenarios normal, fmt_lag, fmt_hog, cnt_lag, cnt_hog, cam_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Styrsekvens och hastighetsreglering for formatbyte foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_C03_FORMATBYTE\nVAR\n    steg       : INT := 1;\n    tmrCam     : TON;\n    formatValt : INT := 1;\nEND_VAR\n\ntmrCam(IN := (steg = 3), PT := T#5000ms);\n\nIF NOT EMG_OK THEN\n    ST410_CNV_RUN  := FALSE;\n    ST410_LNE_SPD  := 0.0;\n    ST410_FMT_CHG  := FALSE;\n    ST410_CAM_TRIG := FALSE;\n    ST410_STA_STOP := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST410_STA_STOP := FALSE;\n            ST410_FMT_CHG  := FALSE;\n            ST410_CAM_TRIG := FALSE;\n            ST410_CNV_RUN  := TRUE;\n            ST410_LNE_SPD  := 10.0;\n            IF NOT ST410_FMT_RDY THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_FMT_CHG  := TRUE;\n            ST410_CAM_TRIG := FALSE;\n            IF ST410_FMT_RDY THEN\n                formatValt := ST410_FMT_SEL;\n                IF formatValt < 1 OR formatValt > 2 THEN\n                    ST410_STA_STOP := TRUE;\n                    ST410_FMT_CHG  := FALSE;\n                    steg := 9;\n                ELSE\n                    ST410_FMT_CHG  := FALSE;\n                    ST410_CNV_RUN  := TRUE;\n                    ST410_LNE_SPD  := 5.0;\n                    ST410_CAM_TRIG := TRUE;\n                    steg := 3;\n                END_IF;\n            END_IF;\n        3:\n            IF ST410_CAM_OK THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_LNE_SPD  := 10.0;\n                steg := 1;\n            ELSIF tmrCam.Q THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_CNV_RUN  := FALSE;\n                ST410_LNE_SPD  := 0.0;\n                ST410_STA_STOP := TRUE;\n                steg := 9;\n            END_IF;\n        9:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_CAM_TRIG := FALSE;\n            ST410_STA_STOP := TRUE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_C03_FORMATBYTE\nVAR\n    steg       : INT := 1;\n    tmrCam     : TON;\n    tmrRakn    : TON;\n    prdForra   : INT := 0;\n    xRaknefel  : BOOL := FALSE;\n    formatValt : INT := 1;\nEND_VAR\n\ntmrCam(IN := (steg = 3), PT := T#5000ms);\n\n(* Kartongraknaren ar scenens, inte styrningens, och den kan bara provas mot\n   det styrningen sjalv vet: om bandet gar och hur fort.\n   Halv takt ar 5,0 kartonger per minut, alltsa 12,0 s per kartong; tva sadana\n   takter = 24,0 s ar den langsta lucka som kan vara en lucka i flodet i\n   stallet for en trasig raknare (scenariot cnt_lag: raknaren star kvar pa 0 i\n   300 s medan bandet gar). Och en raknare som stiger medan bandet star kan\n   inte rakna kartonger (scenariot cnt_hog: 700 pa en timme mot de 520 takten\n   medger). Bada ar rakningsfel, och ett kapacitetsmal mat med en trasig\n   raknare ar inget mal: linan stannar och begar manuell kontroll. *)\ntmrRakn(IN := ST410_CNV_RUN AND (ST410_PRD_CNT = prdForra), PT := T#24000ms);\nIF tmrRakn.Q THEN\n    xRaknefel := TRUE;\nEND_IF;\nIF NOT ST410_CNV_RUN AND ST410_PRD_CNT > prdForra THEN\n    xRaknefel := TRUE;\nEND_IF;\nprdForra := ST410_PRD_CNT;\n\nIF NOT EMG_OK THEN\n    ST410_CNV_RUN  := FALSE;\n    ST410_LNE_SPD  := 0.0;\n    ST410_FMT_CHG  := FALSE;\n    ST410_CAM_TRIG := FALSE;\n    ST410_STA_STOP := FALSE;\n    steg := 0;\nELSE\n    IF xRaknefel THEN\n        steg := 9;\n    END_IF;\n    CASE steg OF\n        0:\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST410_STA_STOP := FALSE;\n            ST410_FMT_CHG  := FALSE;\n            ST410_CAM_TRIG := FALSE;\n            ST410_CNV_RUN  := TRUE;\n            ST410_LNE_SPD  := 10.0;\n            IF NOT ST410_FMT_RDY THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_FMT_CHG  := TRUE;\n            ST410_CAM_TRIG := FALSE;\n            IF ST410_FMT_RDY THEN\n                formatValt := ST410_FMT_SEL;\n                IF formatValt < 1 OR formatValt > 2 THEN\n                    ST410_STA_STOP := TRUE;\n                    ST410_FMT_CHG  := FALSE;\n                    steg := 9;\n                ELSE\n                    ST410_FMT_CHG  := FALSE;\n                    ST410_CNV_RUN  := TRUE;\n                    ST410_LNE_SPD  := 5.0;\n                    ST410_CAM_TRIG := TRUE;\n                    steg := 3;\n                END_IF;\n            END_IF;\n        3:\n            IF ST410_CAM_OK THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_LNE_SPD  := 10.0;\n                steg := 1;\n            ELSIF tmrCam.Q THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_CNV_RUN  := FALSE;\n                ST410_LNE_SPD  := 0.0;\n                ST410_STA_STOP := TRUE;\n                steg := 9;\n            END_IF;\n        9:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_CAM_TRIG := FALSE;\n            ST410_STA_STOP := TRUE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "formatbyte_med_verifiering",
@@ -497,6 +497,105 @@
               "ST410_CNV_RUN": false
             },
             "varfor": "nar kamerabedomning uteblir stoppas linan"
+          }
+        ]
+      },
+      {
+        "id": "raknaren_star_still_medan_bandet_gar",
+        "beskrivning": "Bandet gar i full takt men ST410_PRD_CNT star kvar pa noll. Kapacitetsmalet gar da inte att prova, och linan ska stanna i stallet for att rapportera en matning ingen kan lita pa.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST410_FMT_SEL": 1,
+              "ST410_FMT_RDY": true,
+              "ST410_CAM_OK": false,
+              "ST410_PRD_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": true,
+              "ST410_LNE_SPD": 10.0,
+              "ST410_STA_STOP": false
+            },
+            "varfor": "linan gar i full takt; raknaren har annu inte statt still lange nog for att vara ett fel"
+          },
+          {
+            "t_ms": 20000,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": true,
+              "ST410_STA_STOP": false
+            },
+            "varfor": "efter 20,0 s har annu inte tva halvtaktscykler om 12,0 s gatt; en lucka i flodet far inte stoppa linan i fortid"
+          },
+          {
+            "t_ms": 26000,
+            "satt": {},
+            "krav": {
+              "ST410_STA_STOP": true,
+              "ST410_CNV_RUN": false,
+              "ST410_LNE_SPD": 0.0
+            },
+            "varfor": "efter 24,0 s med gaende band och orord raknare ar rakningen inte trovardig och linan stannar"
+          }
+        ]
+      },
+      {
+        "id": "raknaren_stiger_medan_bandet_star",
+        "beskrivning": "Bandet star stilla under ett formatbyte men ST410_PRD_CNT stiger anda. En raknare som raknar nar inget produceras raknar inte kartonger.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST410_FMT_SEL": 1,
+              "ST410_FMT_RDY": true,
+              "ST410_CAM_OK": false,
+              "ST410_PRD_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST410_FMT_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": false,
+              "ST410_FMT_CHG": true
+            },
+            "varfor": "bandet star och formatbytet pagar"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST410_PRD_CNT": 3
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST410_STA_STOP": true,
+              "ST410_CNV_RUN": false
+            },
+            "varfor": "raknaren steg med tre kartonger medan bandet stod; rakningen ar inte trovardig och linan far inte startas pa den"
           }
         ]
       }
