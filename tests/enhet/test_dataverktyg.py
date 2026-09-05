@@ -614,14 +614,15 @@ def test_en_okand_ogonversion_gissas_aldrig():
 
 
 def test_banken_ar_den_matta():
-    """80_bank.md: 51 uppgifter, varav 14 medvetet trasiga varianter.
+    """80_bank.md: 63 uppgifter, varav 14 medvetet trasiga varianter.
 
     Talet var 47 fram till M-45, som la till fyra uppgifter med sparfacit
-    (T-07, H-04, S-05, L-05). Sparren star kvar och gar bara at ett hall: en
-    uppgift som dyker upp utan att nagon skrivit ned det nya talet ar en
-    uppgift ingen granskat.
+    (T-07, H-04, S-05, L-05), och 51 fram till M-106, som tog in tolv nya
+    industriuppgifter. Sparren star kvar och gar bara at ett hall: en uppgift
+    som dyker upp utan att nagon skrivit ned det nya talet ar en uppgift ingen
+    granskat.
     """
-    assert len(ogonverktyg.BANK) == 51
+    assert len(ogonverktyg.BANK) == 63
     assert len(ogonverktyg.BANK.varianter()) == 14
 
 
@@ -640,7 +641,7 @@ def test_en_bankuppgift_ger_prompt_facit_och_scen():
 def test_ett_okant_uppgifts_id_ger_bankens_verkliga_id():
     r = kor("bench_task", {"task_id": "Z-99"})
     assert r["found"] is False and r["uppgift"] is None
-    assert len(r["kanda_id"]) == 51
+    assert len(r["kanda_id"]) == 63
     assert "A-01" in r["kanda_id"]
 
 
@@ -679,4 +680,4 @@ def test_okant_uppgifts_id_i_jamforelsen_ger_inget_tyst_godkannande():
     r = kor("bench_compare", {"task_id": "Z-99", "report": GRON_RAPPORT})
     assert r["found"] is False and r["jamforbar"] is False
     assert r["uppfyllt"] is False
-    assert len(r["kanda_id"]) == 51
+    assert len(r["kanda_id"]) == 63

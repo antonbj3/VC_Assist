@@ -1212,7 +1212,8 @@ def test_en_bankuppgift_domes_av_samma_grindar_som_en_bestallning():
 
 
 def test_bankens_forreglingar_blir_prosakrav_med_konsument():
-    """125 forreglingar i 51 uppgifter ar akta krav som K6:s trippelsprak inte
+    """125 forreglingar i bankens uppgifter (matt vid 51 uppgifter, M-45) ar
+    akta krav som K6:s trippelsprak inte
     kan uttrycka. De far darfor en egen form - men aldrig utan en konsument."""
     import json
     import glob
@@ -1278,7 +1279,7 @@ def test_en_koppling_utan_harkomst_faller_i_harkomstgrinden():
 # HELA BANKEN GENOM GRINDKEDJAN
 # ======================================================================
 #
-# 51 uppgifter ur bank/uppgifter/ ar det narmaste verkliga bestallningar vi
+# Bankens uppgifter ur bank/uppgifter/ ar det narmaste verkliga bestallningar vi
 # har. Att kora dem alla svarar pa den fraga en handplockad fixtur aldrig kan
 # svara pa: ar grindarna for TRANGA? En grind som faller pa riktig data den
 # borde slappa igenom ar lika trasig som en som slapper igenom allt.
@@ -1318,14 +1319,18 @@ def _banksvep():
 
 
 def test_hela_banken_gar_genom_grindkedjan_utan_falska_roda():
-    """46 av 51 uppgifter blir BYGGBARA. De fem som inte blir det ar de som
+    """58 av 63 uppgifter blir BYGGBARA. De fem som inte blir det ar de som
     banken sjalv faller FORE ogat (grind 1-4) och som darfor inte bar en enda
-    rad ogat kan skriva - de har inget facit att stalla planen mot."""
+    rad ogat kan skriva - de har inget facit att stalla planen mot.
+
+    Talen var 46 av 51 fram till M-106, som tog in tolv nya industriuppgifter.
+    Alla tolv gick genom grindkedjan utan anmarkning, sa de fem ofullstandiga
+    ar samma fem som forut. Sparren gar bara at ett hall."""
     svep = _banksvep()
     byggbara = [t for t, _s, b in svep if b.status == B.BYGGBAR]
     ofullstandiga = [t for t, _s, b in svep if b.status == B.OFULLSTANDIG]
-    assert len(svep) == 51
-    assert len(byggbara) == 46, sorted(set(t for t, _s, _b in svep)
+    assert len(svep) == 63
+    assert len(byggbara) == 58, sorted(set(t for t, _s, _b in svep)
                                        - set(byggbara))
     assert sorted(ofullstandiga) == ["A-90", "P-90", "S-90", "S-91", "T-90"]
 
