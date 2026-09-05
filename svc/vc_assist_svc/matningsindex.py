@@ -156,10 +156,10 @@ def _main() -> int:
         return 0 if ok else 1
     index = las(katalog)
     andrad = skriv_in(indexfil, tabell(index))
-    print("%d mätningar, %d titellösa, %d nummerkollisioner - %s"
+    print("%d measurements, %d untitled, %d number collisions - %s"
           % (len(index.matningar), len(index.titellosa),
              len(index.kollisioner),
-             "skrev om tabellen" if andrad else "oförändrad"))
+             "rewrote the table" if andrad else "unchanged"))
     return 0
 
 
