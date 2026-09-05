@@ -183,7 +183,7 @@ class Stationssteg(Grindsteg):
                  strucpp_cli: Optional[str] = None):
         okanda = [g for g in grindar if g not in KORORDNING]
         if okanda:
-            raise Reparationsfel("okänd grind %s; grindarna är %s"
+            raise Reparationsfel("unknown gate %s; the gates are %s"
                                  % (", ".join(okanda), ", ".join(KORORDNING)))
         if not grindar:
             raise Reparationsfel(
@@ -414,7 +414,7 @@ class Reparationsslinga(object):
                 "en slinga utan grindar dömer ingenting och skulle släppa "
                 "igenom varje svar; ingen grind utan trasig fixtur")
         if lage not in LAGEN:
-            raise Reparationsfel("okänt läge %r; lägena är %s"
+            raise Reparationsfel("unknown mode %r; the modes are %s"
                                  % (lage, ", ".join(LAGEN)))
         if max_varv is None or isinstance(max_varv, bool) or \
                 not isinstance(max_varv, int):
@@ -492,7 +492,7 @@ class Reparationsslinga(object):
             svar = modell.svara(self.systemprompt,
                                 self.historik(uppgiftstext, protokoll.varv), ())
             if not isinstance(svar, Modellsvar):
-                raise Reparationsfel("adaptern lämnade %s, inte ett Modellsvar"
+                raise Reparationsfel("the adapter returned %s, not a Modellsvar"
                                      % type(svar).__name__)
             if svar.tomt:
                 protokoll.utfall = UTFALL_TYSTNAD
