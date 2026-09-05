@@ -115,6 +115,9 @@ Tolkens cykel 20.0 ms bekräftad lika före körning.
 | SCAN_TP, PT=T#1s | 50 höga scan | 51, 52, 52 | överens (kanalfas) |
 | SCAN_CTU, PV=5, 5 pulser | F,F,F,F,T | F,F,F,F,T | **exakt 0** |
 | SCAN_SR, 7 steg set/reset | T,T,F,F,T,F,F | T,T,F,F,T,F,F | **exakt 0** |
+| SCAN_CTD, LD=5 + 5 pulser ned | F,F,F,F,T (Q=True vid CV=0 initialt) | F,F,F,F,T | **exakt 0** |
+| SCAN_CTUD, 3 upp/3 ned, CV-sekvens | 0,1,2,3,2,1,0 | 0,1,2,3,2,1,0 | **exakt 0** |
+| SCAN_FTRIG, fallande flank | exakt 1 hög scan | 3–4 höga avläsningar à 5 ms (≈1 scan) | överens |
 
 Ren logik utan tid (CTU, SR, R_TRIG) är exakt överens — noll scan
 avvikelse. Tidsblocken (TON, TOF, TP) bär samma konstanta +2 kanalfas.
