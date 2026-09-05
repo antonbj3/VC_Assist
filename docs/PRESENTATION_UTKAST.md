@@ -10,18 +10,25 @@ evigt när en givare tystnar.
 Det här verktyget svarar på frågan *vad hände i anläggningen?* — och matar
 tillbaka svaret tills koden är rätt.
 
+```mermaid
+flowchart LR
+    A["fritext&lt;br/&gt;beställning"] --> B["byggplan"]
+    B --> C["scen i&lt;br/&gt;simulatorn"]
+    C --> D["ST-kod"]
+    D --> E["OpenPLC&lt;br/&gt;runtime"]
+    E -->|OPC UA| F["anläggningen&lt;br/&gt;kör"]
+    F --> G(["ögat läser hela scenen&lt;br/&gt;som tidsserie"])
+    G -->|"allt rätt"| H["GULD"]
+    G -->|"ST260_STA_BUSY steg 7,45 s före&lt;br/&gt;ST250_STA_DONE"| D
+
+    style G fill:#1f6feb,color:#fff
+    style H fill:#238636,color:#fff
 ```
-   fritext ──▶ byggplan ──▶ scen i simulatorn ──▶ ST-kod ──▶ OpenPLC
-                                                               │
-                                                          OPC UA
-                                                               ▼
-   ┌──────────────── ögat ◀──────────────── anläggningen kör ───┘
-   │
-   └─▶ "ST260_STA_BUSY steg 7,45 s före ST250_STA_DONE — station 2
-        började arbeta i en enhet som station 1 inte var klar med"
-                              │
-                              └─▶ modellen lagar rätt sak
-```
+
+Den röda pilen tillbaka till ST-koden är hela poängen. Modellen får inte
+"det gick fel" — den får **vilken signal som steg för tidigt, med hur många
+sekunder, och vilken station som därför började arbeta i en enhet som inte var
+klar.**
 
 Det sista steget är det som inte finns någon annanstans. Vi har gått igenom
 den publicerade litteraturen: LLM4PLC, Agents4PLC, AutoPLC, SemaPLC,
@@ -49,6 +56,37 @@ grepp, kollision och genomflöde.
 Faller något får modellen ögats egna ord tillbaka och skriver om.
 
 ---
+
+## Grindkedjan: sju filter, och vad var och en fångar
+
+```mermaid
+flowchart TD
+    M["modellen skriver ST"] --> G1
+    G1{"1 · kompilerar?"} -->|nej| R1["syntax, semikolon,&lt;br/&gt;ogiltig tid"]
+    G1 -->|ja| G2
+    G2{"2 · statisk analys"} -->|nej| R2["oåtkomlig kod,&lt;br/&gt;dubbelskrivning"]
+    G2 -->|ja| G3
+    G3{"3 · deklarationer"} -->|nej| R3["namn som inte finns,&lt;br/&gt;fel typ"]
+    G3 -->|ja| G4
+    G4{"4 · anrop"} -->|nej| R4["uppfunna&lt;br/&gt;funktionsblock"]
+    G4 -->|ja| G5
+    G5{"5 · ÖGAT&lt;br/&gt;kör den mot scenen"} -->|nej| R5["greppet bildades 642 mm&lt;br/&gt;från kortet"]
+    G5 -->|ja| G6
+    G6{"6 · komposition"} -->|nej| R6["fem fel som varje station&lt;br/&gt;klarade ensam"]
+    G6 -->|ja| G7
+    G7{"7 · människa"} --> OK["GULD"]
+
+    style G5 fill:#1f6feb,color:#fff
+    style OK fill:#238636,color:#fff
+```
+
+Grind 1 till 4 läser **texten**. De fyra fångar mycket, men en station kan
+passera alla fyra och ändå släppa greppet på en meters höjd. Grind 5 är den
+enda som kör koden mot en anläggning — och den fångar en klass fel de andra
+strukturellt inte kan se.
+
+Grind 6 finns för att fem fel i vår mätning passerade **båda** stationerna var
+för sig och syntes först när de kopplades ihop.
 
 ## Vad som är mätt
 
@@ -83,6 +121,36 @@ gränser. Inget här är uppskattat.
   inte bara av vår tolk
 
 ---
+
+## Var vi står, ritat ärligt
+
+```mermaid
+flowchart LR
+    subgraph P1["BEVISAD"]
+        direction LR
+        H1["ST skriven&lt;br/&gt;utanför slingan"] --> H2["OpenPLC"] --> H3["riktig scen"] --> H4["ögat dömer"]
+    end
+    subgraph P2["BEVISAD"]
+        direction LR
+        M1["ST skriven&lt;br/&gt;inuti slingan"] --> M2["vår tolk"] --> M3["dom mot&lt;br/&gt;spårfacit"]
+    end
+    subgraph P3["ALDRIG GJORD"]
+        direction LR
+        X1["ST skriven&lt;br/&gt;inuti slingan"] --> X2["OpenPLC"] --> X3["riktig scen"] --> X4["ögat dömer"]
+    end
+
+    style P1 fill:#0d3320,stroke:#238636,color:#fff
+    style P2 fill:#0d3320,stroke:#238636,color:#fff
+    style P3 fill:#3d1418,stroke:#da3633,color:#fff
+```
+
+Två halvor byggdes var för sig, med avsikt: de tidiga faserna skulle bevisa
+att **vägen** finns, en senare fas att **modellen** hittar den. Mätningarna
+säger det själva — *"Fas 8 påstår att kompositionen går att döma, inte att en
+språkmodell hittar den."*
+
+De har ännu inte satts ihop, och det steget är nästa. Faller det, är produkten
+bänken och inte slingan — och det svaret är värt mer än att inte veta.
 
 ## Vad det inte gör, sagt rakt ut
 
