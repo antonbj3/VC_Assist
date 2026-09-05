@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 647 punkter
+## Vad mätningarna säger att de inte vet: 947 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -203,7 +203,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-106_bankens_facitkallor.md — LIMITS
 
-* Tak: se avsnittet "Vad som INTE är mätt".** Talen nedan är räknade och
+* Tak: 24 av 63 uppgifter.** Trettionio bär fortfarande inget spårfacit och
 * Spårfacit döms av `bank/domare.py` genom vår egen ST-tolk. Tolken är **inte**
 * Paragrafnumren nedan är verifierade mot standardorganens egna
 * Referenslösningarna är inte prövade mot grind 1–4.** MÄTT 2026-09-05:
@@ -231,9 +231,26 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-108_openplc_som_tredje_motor.md — LIMITS
 
-* Inget i denna mätning är ännu mätt.** Filen är en reservation; alla tal ovan är plan, inte resultat.
 * Facit är OpenPLC v4 i Docker, inte fysisk PLC-hårdvara.** Fältbussjitter och hårdvaru-I/O ingår inte.
 * Tidsupplösning 20 ms.** Timers under en scancykel prövas inte.
+* TVAFALL (23) och LATTARE_OPROVAD (9) vilar på entailment, inte mätning.** Samma frontend i kedjan och i runtimen; backend kan bara avvisa det frontenden redan avvisat. Logiskt tätt, men ingen uppladdning.
+* Kanalen kan själv fela — redan demonstrerat en gång.** `icke_ascii` fastnar i `paket.kompilera`:s ascii-mur före kompilatorn (svepets CLI säger True). Ett kanalstop ser ut som motoroenighet om man inte läser skalet.
+* Scan-jämförelsen mäter logik + 2 scan kanalfas.** "Samma scan" gäller timerns logik; det avlästa talet är +2 (tre PT-horisonter som referens).
+* Enprogramsbehållare, två signaler, Linux, anonym OPC UA.** Hundra taggar, certifikat, Windows och VC-scen ingår inte.
+* Den delade ST8-behållaren rördes aldrig.** Alla M-108-körningar gick mot `vcassist-openplc-m108` (18444/14841); ST8-linan lämnades åt sin ägare.
+* IEC-citatet för CONCAT är kvalitativt.** Exakt tabellnummer i 61131-3 är inte verifierat mot standardtext — stdbibliotekets egen signatur (`=IN1`, variadisk STRING) är den kontrollerade referensen.
+* OPC UA-coercion är permissiv:** INT/Float/STRING till BOOL konverteras tyst med status Good. En typförväxling i kopplaren syns inte i returkoden.
+* Stopp nollställer allt:** sessioner bryts, bildtabellen återgår till default. Ingen persistens över REST-omstart är mätt — eller lovad.
+* RTT-spannet 24–42 ms är fas, inte last.** En mätning vid ett fasläge är ingen fördelning; I5 kräver serier.
+* Klassificeringslogiken är låst i `tests/enhet/test_openplc_klassificering.py`** (43 prov, ingen docker): alla `klassificera`-grenar + BENCH-4-vakt (`facitkalla_filer ∩ under_prov = ∅`) för alla fyra kor-skripten.
+* R3 är en sondering, inte ett svep.** 24 STRUCT-fall mäter verdict, inte körning; STRUCT-jämförelsens backend-fel är verifierat i kompileringslogg, inte i drift.
+* STRUCT-fynden är skuldförda, inte lagade.** Initieringsstödet kräver läsarändring (`st/`, annan sessions område), likhetsgrinden kräver typregel — båda utanför uppdragets ägda filer.
+* Enhetssvitens 2 röda 2026-09-05 är inte M-108.** `test_baslinje.py` (2 prov) är rött i arbetsträdet men `kor_svit_mot_head.py` är grönt (7198 passed) — någon annans pågående arbete, ingen regression från detta uppdrag (ägda filer: M-108 + 5 kor/test-filer, inga lib-ändringar).
+* R3 våg 2 vilar delvis på agentrapporterad IEC-paragraf.** Tabellnummer för REF_TO/NULL/CASE-väljare är inte verifierade mot standardtext — backendloggarna (SUCCESS/FAILED) är den kontrollerade delen.
+* Håltäppningen ändrar svepets dom för `concat`.** Ett medvetet STRANGARE-radval (38/40 i taket), verifierat mot containern (funktion-gruppen 31/31 överens). Raden står med skäl; tas den bort faller svepet — som avsett.
+* R2-vakten räknar alla blockstack-ramar.** FUNCTION/TYPE-ramar ingår i djupet — konservativt (fäller tidigt), aldrig sent. 230-nivårstestet verifierar felmeddelande, inte krasch.
+* R4 bevisar svar, inte snabbhet.** 10 s-gränsen är en hängdefinition, ingen prestandagaranti; patologiskt långsamma (men terminerande) inmatningar fångas inte.
+* Tolken kör REF_TO till enkla namn.** `REF(var)`, `^`-läsning/skrivning, NULL och ompekning är sonderade i `tolk.kor`-spår (fail-closed NULL-deref). `REF(arr[i])`/`REF(s.f)` avvisas med Tolkfel; scan-jämförelse mot OpenPLC för pekarprogram är ännu okörd.
 
 ### M-109_universalitet_utan_windows.md — LIMITS (halv mätning — avslutad här)
 
@@ -245,12 +262,118 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-110_tillforlitligheten_i_skala.md — LIMITS
 
-* Denna fil är under arbete; tal ovanför är preliminära tills varje arm anger bankens storlek vid körning (banken växer under dagen — cellagenten arbetar vidare).
-* Vid körstart: 21 uppgifter med `facit_spar` (A-08 C-04 C-06 H-01 H-04 H-05 L-05 L-06 L-07 P-06 P-07 S-05 S-06 S-07 T-01 T-02 T-04 T-05 T-07 T-08 T-09) — en mer än session B:s lista (P-06 tillkom).
-* n = 1 per uppgift räcker inte för förbättringspåståenden (se §4 i uppdraget); spridning kräver `--upprepa`.
-* En modell, en promptformulering per arm — byts någotdera är det en ny mätning.
-* Domen kommer ur vår ST-tolk, korsprövad mot STruC++ men inte mot OpenPLC.
-* Körningar kostar pengar och kvot — ingen arm körs om av misstag; varje arm har egen --json.
+* Bankstorlek per del: pilot 2 + skärva A 8 + skärva B 8 + skärva C 8 = 26 unika uppgifter (full bank vid körtillfället: A-03 A-07 A-08 C-04 C-06 H-01 H-04 H-05 L-01 L-05 L-06 L-07 P-03 P-06 P-07 S-01 S-05 S-06 S-07 T-01 T-02 T-04 T-05 T-07 T-08 T-09). Banken växer under dagen — talen gäller banken 2026-09-06.
+* n = 1 per uppgift: spridning omätt; ingen förbättrings- eller försämringsjämförelse mot M-96 görs (annan modell).
+* Enskott med/utan förhandsregler: EJ KÖRDA på Muse Spark (kräver 2×26×5≈260 modellsvar; avvaktar operatörens prioritering).
+* Sonnet-armarna (flerskott + enskott + utan-regler): BLOCKERADE på `claude`-login i denna miljö.
+* H-01 tak8: obestämd (transport, ej uppgift). Domen kommer ur vår ST-tolk, korsprövad mot STruC++ men inte mot OpenPLC.
+
+### M-111_halva_grinden_har_aldrig_fyrat.md — LIMITS
+
+* Att en plats fyrar betyder inte att den fyrar RÄTT.** En falsk rödgrind
+* Bara `validator.py`.** Lexern och läsaren kastar `Syntaxfel` på egna
+* Bara `tests/enhet`.** En plats som bara nås under en VC-körning eller ett
+* Ingen spärr satt.** Talet är mätt en gång; det finns inget tak som hindrar
+* Ingen av de 31 är undersökt.** Om någon är död kod, om någon är onåbar via
+
+### M-112_vc_startar_med_installationens_filer.md — LIMITS
+
+* En körning, en maskin, en VC-version.** Wine 11.16, VC Premium 4.10,
+* Tillägget kördes, scenen prövades inte.** Bryggan svarar och kör kod; att
+* `avinstallera` kördes inte** i den här sekvensen. Att trädet blir
+* Installationen skedde med `--mal`**, alltså en utpekad sökväg. Automatiken
+
+### M-113_vagen_ur_visual_components.md — Vad som INTE är mätt
+
+* Ingen faktisk export kördes ur VC.** Allt i del 1 om FBX/STEP/STL/JT/IGES/
+* CAEX 3.0 (IEC 62714-1:2018, den faktiskt gällande AutomationML-standarden)
+* IEC 61131-10:2019 som betald standard hämtades inte.** `plcopen`-paketets
+* Hur fel en täthetshärledd massa blir** mot en verklig komponents verkliga
+* Om en riktig AutomationML-editor/valideringsmotor** (utöver XSD:t)
+* Friktion och ledfriktion** i VC — sökt efter i M-55 (noll träffar) men inte
+* `ILayoutWriter`/`ILayoutReader`:s faktiska lista av stödda filändelser**
+
+### M-114_ingen_vag_ger_tillbaka_kallkoden.md — Vad API-ytan faktiskt exponerar (mätt, inte läst i en README)
+
+* `python-snap7` (Siemens, S7comm) — enda biblioteket med ett
+* `pycomm3` (Rockwell, CIP) — inget uppladdningsanrop finns:**
+* `pyads` (Beckhoff, ADS) — symboltabellen, inte programmet:**
+* `pymcprotocol` (Mitsubishi, MC-protokollet) — rått minne per adress:**
+* `asyncua` (OPC UA) — vad servern väljer att exponera, och inget annat:**
+
+### M-114_ingen_vag_ger_tillbaka_kallkoden.md — Vad jag inte kunde avgöra
+
+* Om Rockwells "Upload" i Studio5000 (den knapp operatörens fråga
+* Om CODESYS-styrningar i praktiken exponerar OPC UA eller Modbus TCP så
+* Fulltexten i CLEVER (IEEE TIFS 2024) och PLC-BinX (arXiv 2605.17392) är
+* Siemens TIA Portals exakta PLCopen-XML-status vilar delvis på en domän
+* Ingen jämförelse är gjord mot en riktig L5X- eller AWL-exportfil från en
+
+### M-114_ingen_vag_ger_tillbaka_kallkoden.md — LIMITS
+
+* Ingen riktig PLC i drift är kontaktad.** Allt i fråga 1 är mätt mot
+* PyPI-sökningen efter CODESYS-bibliotek testade fyra rimliga namn och
+* Dekompileringsavsnittet läser abstract/README, inte fulltext**, för
+* PLCopen XML-testet är en konstruerad representativ ST-kropp, inte en
+* formen** skelettet genererar (platta deklarationer, IF/ELSE-kropp,
+* Ingen fulltextläsning av van der Aalsts artiklar.** Slutsatsen om
+* "Learning Moore Machines..." (arXiv 1605.07805) lästes via ett
+* Juridiska avsnitt är inte juridisk rådgivning.** EU-direktivets
+* `opcua` (0.98.13, det gamla "python-opcua"-paketet operatörens fråga
+* Ingen av de fem protokollen är jämförda mot varandra i genomströmning,
+
+### M-115_flanken_sags_i_kallan_inte_i_sparet.md — LIMITS
+
+* PLCverif, S-TaLiRo, Breach, MoonLight, Arcade.PLC — inte installerade
+* Endast en bankuppgift (T-01) kördes genom RTAMT.** F8:s formel (A-03) är
+* RTAMT-fyndet i §2 (enhet `'ms'` → tyst -inf) är isolerat till versionen
+* Hänget i §2 fynd 3 (flera spec-objekt i samma process)** är observerat en
+* NuSMV-modellerna är en förenkling.** De fångar WAIT/ARM/OPEN-formen och
+* "Bugg"-modellen är min egen, labeled-as-F15 konstruktion** (nivåläsning
+* Robusthet (§3) beräknad på binära 0/1-signaler ger bara ±0,5** — inget
+* IA-STL (RTAMT:s `Semantics.OUTPUT_ROBUSTNESS`/`INPUT_VACUITY`) kördes och
+* Property-based-sveptalet (35 %, §3/§5) gäller en enda konstgjord
+* En maskin, en session.** Ingen extern replikering.
+
+### M-116_namnaren_provad_mot_verkligheten.md — LIMITS
+
+* Allt här är DOK, inte MÄTT.** Ingen sida lästes på den här maskinen mot
+* Ingen tidsstudie på steg-nivå existerar publikt.** §2:s slutsats om att
+* Fastems- och EROWA-siffrorna är enda källor för VC-specifika tidstal.**
+* Reddit gick inte att söka alls** (verktygsbegränsning i den här
+* De sju profilernas verkliga motsvarigheter är alltid mer specifika och
+* namnen** eller deras exakta stegindelning är hämtade ur en verklig
+* P7 "Utbildaren" kan vara formad efter VC:s egen anställda, inte en
+* Maintenance/kvalitet/säkerhet/inköp förblir genuint obelagda åt bägge
+* Konkurrensavsnittets negativa fynd om VC ("ingen AI-funktion")
+* Ingen av de fyra forskningsspåren körde mer än ~20–48 sökningar var** —
+
+### M-118_maskinsakerhet_rakningsbart_och_ansvarsgransen.md — LIMITS
+
+* Ingen paragraf i det här dokumentet är ny "sanning" för banken.** Allt som
+* Två fynd är EGET, direktverifierat mot primärkälla** (inte ett referat av
+* Förordningen 2023/1230:s artikelnummer (32, 19, 3(3)) är OVERIFIERADE.**
+* ISO 13857:2019:s exakta klausulnummer för "reaching over"/"reaching
+* Ingen litteratur hittades som svarar direkt på fråga 5** (falsklarmsfrekvens
+* Alla standardutgåvor är daterade den 2026-09-05.** Flera av dem har rörliga
+* 
+
+### M-119_kunskapstackningen_over_frageslag.md — Vad mätningen inte gjorde
+
+* Visual Components startades aldrig.** 211 frågor (S12) hör till en körande
+* Frågorna är inte modellens.** De är härledda ur bank och spec. En riktig
+
+### M-119_kunskapstackningen_over_frageslag.md — LIMITS
+
+* Ingen modell var med i körningen.** Mätningen frågar verktygen direkt.
+* Klassgränserna är mina regler, inte en naturlag.** Att ett svar som namnger
+* Frågesorterna är olika stora och det gör dem inte jämförbara.** 238
+* S6 vilar på 14 frågor.** Bara sju bankposter går alls att brygga till
+* Facit finns bara för en del av frågorna.** De fyra nollfelen och
+* `S11` dömer dokumentationstexten, inte VC.** Regeln är mekanisk: bär
+* Ett bibliotek, en installation.** 3 201 komponenter i VC 4.10:s eCatalog på
+* Delsträngsregeln kan ge falska tysta fel.** `MINDIST` mot
+* Cachen.** 814 körda frågor blev 694 distinkta anrop; identiska `(verktyg,
 
 ### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
 
@@ -262,6 +385,127 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * `getAxisAngle()`:s vinkel i grader är **läst ur medföljande dokumentation**,
 * Sidofynden om `vcMatrix.identity()`, saknad `__getattribute__` och `vcMatrix`
 
+### M-120_tillforlitlighetstalens_yttervarld.md — LIMITS
+
+* Ingen kod kördes.** Allt nedan är läsning av andras publicerade text, inte
+* Fem artiklar fulltextverifierade** (LLM4PLC, Agents4PLC, AutoPLC, SemaPLC,
+* Tre titlar hittades men lämnades overifierade**: `LLM4SFC` (arXiv
+* Sökningen efter en icke-LLM-baslinje är en frånvaromätning.** Fyra
+* `docs/research/R-01`s siffror höll vid stickprovskontroll** (se §0), men
+* `M-119` reserverar ett annat nummer, oberoende arbete** — ingen
+* 
+
+### M-120_tillforlitlighetstalens_yttervarld.md — Vad jag inte kunde belägga
+
+* PLC-GPT** som namngiven artikel eller modell — hittades inte i någon
+* PLCverif:s exakta täckningsprocent** (STL ~66/~55 %, SCL ~40/~25 %) —
+* Haag m.fl.:s exakta 9-DPO-iterationssiffra** och Kersting/Rummel/Benndorfs
+* Vad "Liu et al., 2026" (117-uppgiftsversionen av Agents4PLC) faktiskt är
+* Om `bank/README.md`:s omtvistade 17,3 %/7,1 %-tal** (flaggat redan i
+* Tre titlar** (`LLM4SFC` arXiv 2512.06787, en IEEE-artikel om PLC-kod från
+
+### M-121_dubbelskrivning_mot_egna_referenser.md — Vad som INTE ändrades, och varför
+
+* Regelns tröskel.** Två villkorade block med olika värden vars villkor kan
+* "Samma literal"-undantaget** står kvar; SAT-provet läggs ovanpå.
+* Fixturerna `a = 1` / `a = 2`.** Tre prov använde det paret som "två
+* Bankens övriga 19 referenser.** Orörda; alla gröna före och efter.
+* `tests/motbevis`**: 29 röda / 26 gröna före och efter, samma mängd.
+
+### M-121_dubbelskrivning_mot_egna_referenser.md — LIMITS
+
+* Villkorliga tilldelningar följs inte.** `IF g THEN xLarm := TRUE; END_IF;`
+* Tillstånd över scan följs inte, med flit.** En modellkontroll (NuSMV
+* Ogenomskinliga atomer.** Funktionsanrop i villkor, `CASE`-grenar med
+* Jämförelser är oberoende atomer.** `x < 25.0` och `x > 35.0` räknas som
+* IEC 61131-3:2013:s exakta klausulnummer** för implicit konvertering är
+* T-04:s motbevis**: tre av fem mäts inte av spårfacit (se ovan). Inte
+* Korpusen är 25 kroppar från en modell (sonnet).** Klassningen av de tio
+* Bankens baslinjeprov** (`test_baslinje.py`, två röda) var röda före M-121
+* Tak 3 (MAX_ATOMER 24, MAX_ETIKETTVARDEN 16, MAX_SUBSTITUTIONSDJUP 8), alla
+
+### M-122_mutationsskikten_omkorda.md — LIMITS
+
+* Domaren är vår tolk, inte OpenPLC och inte STruC++.** Vad som här kallas
+* "OSYNLIG" betyder inte ekvivalent.** Det betyder att fem handvalda
+* Radtypen (kommentar/initierare/kod) är en radskanning**, inte en parsning:
+* Perturbationerna är fem och handvalda:** tidsskala 0,25/0,5/2,0,
+* Högst tre skador per sort och referens** (`per_sort=3`, motorns eget tak).
+* Varför den första körningen gav 471/806 och 14 i beteendelagret går inte
+* Del 4 (grind 2) deklarerar signalkartan genom att skjuta in ett
+* En maskin, en förmiddag, andra agenter på samma dator och i samma träd.**
+* Det här är en A-klassmätning** i `55_innovationsplanen.md`:s mening: vår
+* 
+
+### M-123_namnaren_flyttade_sig_och_golvet_med.md — LIMITS
+
+* Räkningen är en avstämning, inte en oberoende mätning.** Att
+* Golvjämförelsen körs med baslinjen på `NIVA_SPEC`.** De två andra nivåerna
+* `uppfyllda` är ett antal, inte en kvot.** Två domar med samma antal
+* Motbeviset mot docstringens förklaring är korrelationsfritt, inte kausalt.**
+* Elva av 26 med inverterad skala är inte mätt mot en orsak.** Listan är en
+* Uppgifternas facit skrevs av en annan agent samma förmiddag**, i samma träd,
+
+### M-124_de_23_svaren.md — LIMITS
+
+* Denna fil är under arbete; rader ovanför är preliminära tills varje uppgift
+* Mekanismen mot facit-ur-egen-tolk (`FACIT_UR_EGEN_KOD` i
+* Klass 4 är svagast av de fyra första källklasserna: människan kan ha fel.
+
+### M-125_openplc_som_tredje_motor.md — LIMITS
+
+* Facit är OpenPLC v4.2.1 + matiec 0.1 i Docker, inte fysisk hårdvara;
+* Grinden läcker 18/48 typfel som kedjan fäller — skicka inga blandade
+* Avrundning REAL→INT, svepsemantik och float→int-mättnad är oprövade
+* Tolken kan inte köra SHL/SHR/ROL/ROR, MUX, EXPT(), CONCAT/LEFT/RIGHT/MID
+* 4 uppladdningar för 81 fall delar aldrig tillstånd (en tilldelning per
+* TIME-regelns matiec-överensstämmelse är implementationslikhet, inte
+* Behållare `vcassist-openplc-v4` (annan sessions ST8-lina) rördes aldrig;
+
+### M-126_matningsindexet_genereras.md — LIMITS
+
+* Tabellen mäter att filen finns och har en titel, inte att den går att
+* Titeln är mätningens egen rubrik, oprövad mot innehållet.** En mätning vars
+* Numret är unikt, inte rätt.** Verktyget hindrar två filer på samma nummer.
+* Kapplöpningen är stängd bara för dem som använder verktyget.** En session
+* 74 var talet 14:05.** Sessionerna skriver mätningar medan detta skrivs;
+
+### M-127_den_femte_domaren_falld_i_vc.md — LIMITS
+
+* Katalogberoende:** Cellen använder en katalogkomponent ur Visual Components eCatalog
+* Tillståndsstyrning via skript:** I provet sätts stationens tillstånd explicit till
+* Provtakt:** Provtagningen skedde vid 20 Hz (110 prov på 6 sekunder).
+* 
+
+### M-127_den_femte_domaren_falld_i_vc.md — Vad som INTE är mätt
+
+* Flera stationer samtidigt i genomflödesanalysen:** Provet mätte en enskild station.
+* Blockering (`BLOCKED`):** Endast svält (`IDLE`) fälldes här. Att en station som är
+* Repeterbarhet över lång tid:** Körningen var 6,0 sekunder. Statistikens drift över
+
+### M-128_p15_7_fasdom_och_den_felstallda_fragan.md — LIMITS
+
+* Signaldrivning:** Fördröjningen 300 ms styrs av provriggens väggklocka och triggas
+* Upplösningsberoende:** Vid 20 Hz provtakt kan ögat inte särskilja fördröjningar finare
+* Systemlast:** Vid extrem belastning på värdmaskinen expanderar hopfogningsosäkerheten
+* 
+
+### M-128_p15_7_fasdom_och_den_felstallda_fragan.md — Vad som INTE är mätt
+
+* Negativa fasförskjutningar:** Provet mätte fallet där PLC-flanken kom före signalen
+* Frekvenser över 20 Hz:** Provet kördes enbart vid 20 Hz. Hur fasupplösningen skalar
+
+### M-129_braketten_pa_korningsniva_falld_i_verkligheten.md — LIMITS
+
+* Kopplarvarvet:** Provet kördes med efterliknad kopplare (`Ogonkoppling` med 89 ms varvtid),
+* Bakgrundsbelastningen:** Belastningen på värddatorn bestod av övriga parallella sessioner
+* 
+
+### M-129_braketten_pa_korningsniva_falld_i_verkligheten.md — Vad som INTE är mätt
+
+* Optimal brakettnivå:** Om tröskeln 10 % är optimal eller om den borde kalibreras mot
+* Tröskelns hysteres:** Grinden har ingen hysteres: 9,9 % otäckt släpper igenom till
+
 ### M-12_onidle_fyrar_inte.md — Vad som INTE är mätt
 
 * Frånvaron är mätt över **90 sekunder**, i en körning, headless. En `OnIdle` som
@@ -270,6 +514,97 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * De 13 sekunderna mellan `OnStart` och `OnAppInitialized` kommer ur **en**
 * Att kroken *"bevisligen laddades"* vilar på att två andra händelser kom fram.
 * Slutsatsen *"att en händelse står i dokumentationen betyder inte att den fyrar"*
+
+### M-130_taket_under_naturlig_belastning_och_stopp.md — LIMITS
+
+* Provad ålder:** Klämmätningen kördes med simulerad ålder 100 ms (motsvarande
+* SIGSTOP mot naturlig last:** Mätningen jämför artificiell SIGSTOP (M-97) med
+* 
+
+### M-130_taket_under_naturlig_belastning_och_stopp.md — Vad som INTE är mätt
+
+* Övergångszon mellan kontinuerlig last och frysning:** Hur lång en tillfällig
+* Kopplarens beteende vid faktiskt avbrott:** Mätningen använde efterliknad kopplare;
+
+### M-131_motorn_rattad_c0.md — LIMITS
+
+* Domaren är vår tolk, inte OpenPLC och inte STruC++.** "Fångad av
+* "OSYNLIG" betyder inte ekvivalent.** Fem handvalda perturbationer
+* Radtypen är en radskanning** (`mutation.var_rader`), nu
+* Tillbakafyllnaden ändrade nämnarens sammansättning.** Booleska
+* Nivåoperatorn omfattas av taket** (`per_sort=3`, 35 mutanter i 25
+* 28 uppgifter, inte 26.** C-01 och P-05 fick facit av kö B medan kön
+* Trädet rör sig.** Svepet kördes på `f48dbab`; två andra sessioner
+* Svepet startade på smutsigt träd.** `HEAD` var `f48dbab`, men
+* En maskin, en eftermiddag, andra sessioner på samma dator.** Tiderna
+* De 5 röda enhetsproven vid C0 tillhör andra köer** (D ×2, B ×2,
+
+### M-132_en_riktig_anlaggning_i_vc_och_gransen_3_av_28.md — LIMITS
+
+* Riggen i VC:** Riggen modellerar en linjär bandtransportör med digitala insignaler
+* Scanfrekvens:** Spåret spelades in vid 50 ms scanintervall. Händelser snabbare än 50 ms
+* 
+
+### M-132_en_riktig_anlaggning_i_vc_och_gransen_3_av_28.md — Vad som INTE är mätt
+
+* Oavsiktliga driftstopp i produktion:** Om en verklig anläggning körs i veckor och
+* Analoga signaler:** Riggen prövade enbart booleska I/O-signaler.
+
+### M-133_kompositionsdomarna_over_fyra_linjetopologier.md — LIMITS
+
+* Diskretisering och samplingsfrekvens:** Mätningen utfördes vid 20 Hz (50 ms per sample). Samtidiga signaler kortare än 50 ms kan inte särskiljas.
+* Stationstillstånd:** Stationernas tillstånd modelleras via `BUSY`, `IDLE` och `BLOCKED` enligt Visual Components processtermer och mappas via `oga_harledning.py`.
+* Kravspecifikation:** Gränsvärdena (`max_svalt_s` och `max_blockerad_s`) är satta utifrån anläggningens taktcykel (3.0 s per cykel; tillåten icke-produktiv tid satt till < 1 cykeltid).
+* 
+
+### M-133_kompositionsdomarna_over_fyra_linjetopologier.md — Vad som INTE är mätt
+
+* Kontinuerlig hastighetsreglering:** Transportörer med analog variabel hastighet där friktion och glidning påverkar avståndet mellan artiklar.
+* Godsidentifiering (RFID/streckkod):** Sortering baserad på produkt-ID i parallella grenar eller återflödesslingor.
+
+### M-134_de_29_skadorna_facit_kan_se.md — LIMITS
+
+* Klassningen vilar på M-131-svepets 29.** Trädet har rört sig sedan dess
+* Divergensen är första avvikelsen i utgångsspåret**, inte ett bevis för
+* 1-scans fallen (T-05/32 för. 0, H-01/35) kräver punktkrav på exakt scan.**
+* P-05:s facit är B:s (M-124) och rör sig.** Klass 2 kan vara lagad av B
+* "Osynlig" är inte "ekvivalent".** Inte heller för de 17: ingen har
+* Orsakerna är författarpsykologi ur spårdata**, inte intervjuer. "Ingen
+
+### M-135_stimuli_som_ser_skadorna.md — LIMITS
+
+* Referenserna och banken rör sig under mätningen.** Fem nya uppgifter (`A-01` t.o.m. `A-06`)
+* Den sista F15-överlevaren i S-05 är osynlig.** `trigSc.Q` i rad 39 (Clearing) nås inte
+* Att referensen är grön bevisar inte att specifikationen är optimal.** Det bevisar bara
+* Tolkens scansteg är diskreta (20 ms).** Mätpunkter närmare än 40 ms från en insignaländring
+
+### M-136_llm_informationsatkomst.md — LIMITS
+
+* Ingen LLM genererade scenkod under körningen.** Mätningen är en mekanisk pseudo-simulering av informationsåtkomst; att informationen finns och är nåbar innebär inte att en given språkmodell väljer att ställa rätt fråga eller tolka svaret utan logiska fel i styrlogiken.
+* Täckningen gäller bankens 63 uppgifter.** Även om uppgifterna spänner över sex tillverkningsgrupper (A, P, L, S, H, C, T) med fordonsmontering, palletering, svetsning och transport, täcker de inte alla tänkbara industriella layouter.
+* Visual Components kördes inte under mätningen.** Uppslagen kördes mot tjänstens datahandlare och indexfiler på disk, inte mot en levande simulering i VC.
+* Standardtäckningen (31 frågor) vilar på bankens referenser.** Bankens uppgifter bär 31 uttryckliga standardklausuler i `facit_spar`; industriella standarder utanför dessa 31 ingick inte i korpusen.
+
+### M-137_domarnas_oenighet_over_inspelade_scener.md — LIMITS
+
+* Diskret samplingsfrekvens:** Spåren är inspelade vid 20 Hz (50 ms tidssteg). Händelser med varaktighet under 50 ms kan inte upplösas.
+* Domändeklaration:** En domare är endast aktiv (`PASS`/`FAIL`/`INCONCLUSIVE`) om dess motsvarande krav har deklarerats i planfilen eller om dess underlagsdata finns i tidsserien; i övriga fall förblir domaren `INAKTIV` för att undvika falskt grönt (I3).
+* 
+
+### M-137_domarnas_oenighet_over_inspelade_scener.md — Vad som INTE är mätt
+
+* Kontinuerlig processreglering:** Analoga reglerkretsar (t.ex. PID-tryckreglering eller analog hastighetsstyrning) där avvikelser inte har diskreta flanker eller tillstånd.
+
+### M-138_vad_ogat_inte_kan_se_av_konstruktion.md — LIMITS
+
+* Klassificeringen:** Utgår strikt från de 15 felklasserna definierade i `docs/spec/82_felklasser.md`.
+* Modellkontroll:** Även om formell modellkontroll (t.ex. NuSMV/PLCverif) teoretiskt kan se F15 och latenta förreglingar i källkoden, begränsas den i praktiken av timersemantikens komplexitet (~25–40 % täckning av ST, se M-115 och R-01).
+
+### M-139_universaliteten.md — LIMITS
+
+* Ingen mätning har skett på en körande fysisk Windows-maskin.** Alla Windows-grenar är prövade via injicerade miljöer, statiska registerkupor eller attrappträd på Linux.
+* VC 5.0 förblir oprövat.** Skolans licensserver tillhandahåller endast licens för VC 4.10.
+* Headless-begränsning:** Samtliga mätningar med körande VC har skett i virtuell skärmbuffert (`DISPLAY=:99`). Grafisk rendering och UI-frysningar vid tung interaktion är inte mätta.
 
 ### M-13_vad_som_dodar_pumpen.md — Vad som INTE är mätt
 
@@ -282,6 +617,153 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Att `wineserver` håller port 8901 kvar är mätt under Wine. Motsvarande fråga på
 * Punkt 2 i M-16 — att `skrivgrind.DODANDE_ANROP` behöver en **läsande** gren —
 
+### M-140_provtagningsfrekvensen_mot_vad_som_ska_ses.md — LIMITS
+
+* Beräkningen:** Bygger på deterministisk sampling utan faslåsning mellan ögats klocka och PLC-scanklockan.
+* Jitter:** Eventuellt tråd- och schemaläggningsjitter i Windows/Wine kan öka det effektiva provintervallet (M-97 mätte upp till +1,09 s under extrem störning).
+* 
+
+### M-140_provtagningsfrekvensen_mot_vad_som_ska_ses.md — Vad som INTE är mätt
+
+* Mikrosekundstransienter:** Fältbussfel och kontaktstuds i hårdvara under 1 ms (simuleras ej i VC).
+
+### M-141_kontextbudgeten_mot_verkligheten.md — LIMITS
+
+* Tokenberäkningen vilar på standardkvot.** 4 byte per token är specens definition; verkliga tokenizers (t.ex. cl100k_base eller Claude) varierar mellan 3,2 och 4,1 byte/token beroende på språk.
+* Mätningen avser enskotts-systemprompten.** Vid flerskott och reparation tillkommer tidigare felmeddelanden och grindord i historiken (Post 8 och 9).
+* Ingen live LLM anropades i denna mätning.** Mätningen beräknar stränglängder och tokenbudgetar mekaniskt mot budgetmodellen i `svc/vc_assist_svc/llm/budget.py`.
+
+### M-142_millimeter_och_meter_omvandling_bada_hallen.md — LIMITS
+
+* Enhetsdefinition:** Utgår strikt från SI-standarden ($1\text{ m} = 1000\text{ mm}$).
+* Icke-metriska enheter:** Engelska enheter (`inch`, `foot`) omvandlas i databladstolken (`tillverkardatablad.py`) men används inte i det interna gränssnittet mot VC.
+
+### M-143_kvaternionens_felordning_motbevis.md — LIMITS
+
+* Representation:** Gäller relationen mellan Visual Components interna C#-klass `vcVector` och ögats kanoniska representation.
+* Axlar:** Verifierat på alla tre axlarna X, Y, Z (M-72).
+
+### M-144_beteende_fangat_av_text.md — LIMITS
+
+* Analysen av `FLANKENS_Q_TILL_SIGNAL` förutsätter mappingen till `FLANK_TILL_NIVA`.**
+* Jämförelserna provades med likhet (`=`).** Att vända `<>` till `=` är den
+* Talen baseras på bankens 26 respektive 33 referenser.** När nya uppgifter
+
+### M-145_de_svaga_uppgifterna.md — LIMITS
+
+* Att en mutant bevisas ekvivalent innebär inte att koden är ren.**
+* Talen gäller enskilda mutationer (first-order).** Som C-04 bevisar kan
+* P-05 (ny uppgift) har 2 överlevare.** Dessa härrör från transienta
+
+### M-146_domare_ur_runtime.md — LIMITS
+
+* Tre uppgifter av 33, inte hela banken.** P-05, L-01 och P-07 är valda på
+* kortast spår**, inte slumpvis och inte på utfall. De 30 andra är odömda av
+* n = 2 för OpenPLC-domaren, n = 1 för tolkdomaren.** Två körningar räcker
+* Divergens (a) är rapporterad, inte utredd.** Vilken av de två domarna som
+* Divergens (b) är visad, inte förklarad.** Att samma text fick två olika
+* Toleransens 0-offset gäller punktkrav, inte flanker.** 654 punktkrav låg
+* Fem scan i rad är en tröskel utan egen mätning.** Invariantens regel
+* Ingen jämförelse med STruC++ som tredje domare.** Mätningen ställer vår
+* Bara en maskin, en runtime-version, en scanperiod.** 20 ms. Vad som händer
+* `openplc:skriver_egen_ingang` vilar på en statisk analys.** Namnet räknas
+* Mätningen säger inget om vilken domare som är auktoritativ.** Den raden i
+
+### M-147_atta_nya_skadesorter.md — LIMITS
+
+* De 31 överlevarna i `FLANK_TAVLAR` kräver scannivåanalys.** Att flytta
+* De 16 överlevarna i `LARM_KVITTERAT_UTAN_ORSAK` kräver nya scenarier.**
+* Banken rör sig.** 33 uppgifter döms här; om fler uppgifter tillkommer
+
+### M-148_mutera_domaren.md — LIMITS
+
+* Provsviten som användes är bankens 33 uppgifter och motbevis.**
+* 12 utvalda mutationer representerar semantiska regler**, inte slumpmässig
+
+### M-149_skada_specen.md — LIMITS
+
+* Provningen gjordes mot spårdomaren och schemat.** Den gjordes inte
+* Fem uppgifter provades.** Alla 33 uppgifter delar samma schema och samma
+
+### M-150_parvisa_skador.md — LIMITS
+
+* Körningen gjordes på parvisa skador på olika rader (2-order).** Tre eller fler
+* Urvalet begränsades till enradiga skador.** Mutationer som flyttar rader
+* Spåret provar utsignalerna.** Att paret blir grönt bevisar att cellens
+
+### M-151_stimuli_redundans.md — LIMITS
+
+* Analysen mäter unik fångstkraft mot de 22 skadesorterna.** En sekvens med
+* Sekvenserna togs bort en och en (first-order ablation).** Grupper av
+
+### M-152_kalibrera_verkliga_buggar.md — LIMITS
+
+* Kalibreringen är kvalitativ på felklassnivå.** Att motorn kan framkalla
+* Fysiska fel (F9–F12) kräver scen och öga.** En ST-motor kan aldrig
+
+### M-154_plcopen_export_ut.md — LIMITS — vad den här mätningen INTE visar
+
+* Ingen kommersiell PLC-IDE har öppnat filen.** Varken CODESYS, TIA Portal
+* Beremiz laddare är inte Beremiz.** `LoadProjectXML` parsar och validerar;
+* inte** (kräver hela targets-trädet).
+* Säkerhetsmärkningens överlevnad hos tredje part är oprövad.** Se §4.
+* Det är TC6 v2.01, inte IEC 61131-10:2019.** PLCopen skriver själva att den
+* Bara ST.** `IL`, `LD`, `FBD` och `SFC` skrivs inte och läses inte. Ett
+* Ingen `<configuration>`/`<resource>`/`<task>`-modell.** Vi skriver en
+* `OBJECT`/`METHOD`/`INTERFACE` (61131-3 3:e utg.) rörs inte.** Vår
+* Tidsstämpeln i `fileHeader` är påhittad** (`1970-01-01T00:00:00`) för att
+* `STRING`-längder skrivs som `length`-attribut på `<string>` men ingen
+* 51 av 77 tal säger ingenting om kvalitet.** matiec accepterade 51 av 77 av
+* Ingen mätning av storlek eller tid.** Filstorlekar, exporttider och hur de
+
+### M-155_vad_som_oppnas_hos_tillverkaren.md — §5 — Vad som skulle krävas för att flytta varje OPRÖVAT till KÖRD
+
+* 
+
+### M-155_vad_som_oppnas_hos_tillverkaren.md — LIMITS — vad den här mätningen INTE visar
+
+* Ingen kommersiell PLC-IDE kördes.** Noll av CODESYS, TIA Portal och
+* "Öppnas i Beremiz laddare" är inte "öppnas i Beremiz".** Se §4, sista
+* De negativa Siemens-fynden gäller de hämtade dokumenten**, inte hela
+* `M-113`:s HOOPS/FBX-spår rörs inte här.** Den här punkten handlar om
+* Ingen av tillverkarnas dokumentation anger vilken PLCopen-version de
+* Ingen fil har gått **från** ett tillverkarverktyg **till** oss.** Vår
+* Sökningen är en frånvaromätning.** Att en riktad sökning på
+
+### M-156_specen_60_plc_mot_koden.md — LIMITS — vad den här inventeringen INTE visar
+
+* Den mäter ingenting.** Inget prov kördes, ingen siffra producerades. Att en
+* inte** att koden är riktig, prövad eller körd. Flera av de 26 vilar på
+* Frånvaro av träff är inte frånvaro av kod.** De fyra ouppfyllda bygger på
+* Meningsräkningen är min bedömning.** "31 meningar som påstår något om
+* Avsnittet "Vad som inte är prövat" (rad 146-152) granskades inte.** Det är
+* Ingen av de fyra ouppfyllda är lagad.** Inventeringen är listan, inte
+* Bara `60_plc.md`.** `61_st_generering.md`, som rad 96 hänvisar till, är
+
+### M-157_ren_maskin_hela_kedjan.md — LIMITS
+
+* Visual Components kördes inte:** En ren Ubuntu-container kan inte köra Visual Components utan ett Wine-prefix och licensserver.
+* Verktygskedjans fulla nedladdning (30 MB) kördes med `--lista`:** Full hämtning av binärerna prövas i M-56 och testas lokalt; i containern kördes endast manifest- och sha256-kontrollen för att spara disk och nätkvot.
+
+### M-158_den_riktiga_f15_mutationen.md — LIMITS
+
+* Skriv vad mätningen INTE visar. En mätning utan det här avsnittet fälls av
+
+### M-159_larmet_tidsvakten_och_forreglingen.md — LIMITS
+
+* Inkopplingen i kedjan är villkorad, och det är ett val.** `granska_station`
+* Ingen modellkörning.** Grinden är prövad mot referenser, mutationer och
+* Bara 56 av 254 deklarerade förreglingar döms.** Resten lämnas åt
+* 115 obundna väntelägen döms inte.** Grinden ser dem och rapporterar dem;
+* Regel 2 missar ett larm som latchas inne i stegmaskinen.** Kravet "utanför
+* Feltillståndets två utlösare är tidsur och analog gräns.** En insignal som
+* Larmutgången känns igen på uppgiftens egna ord** — namnet `SYS_ALARM` eller
+* Ingen heltalsvärdesanalys.** En stegmaskin i `INT` som styr utgångar direkt
+* Klartextparsern läser 50 av 150 interlockrader.** De 100 andra namnger
+* De två fällda referenserna är inte rättade.** `bank/uppgifter` är kö B:s yta
+* Domen är vår tolks modell av ST, inte OpenPLC:s.** Samma förbehåll som hela
+* Antalet referenser växte under mätningen.** 33 vid första körningen, 38 vid
+
 ### M-15_skapbara_beteenden.md — Vad som INTE är mätt
 
 * De 80 träffarna är mätta som *"`createBehaviour` returnerade ett objekt"*. Att
@@ -291,6 +773,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Att svepet dödade bryggan i nästa körning står som omätt orsak. Mätningen
 * `VC_TRANSPORT` som kandidat till `Ref<ComponentProcessor>` är märkt oprövad i
 * Python-typen i högerkolumnen är läst av typnamnet på det returnerade objektet.
+
+### M-160_f1_modellen_skriver_linan.md — LIMITS
+
+* Skriv vad mätningen INTE visar. En mätning utan det här avsnittet fälls av
 
 ### M-16_canconnect_dodar_pumpen.md — Vad som INTE är mätt
 
@@ -995,7 +1481,11 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 131
+## Markörer i koden: 144
+
+### vc_assist_svc/processer.py
+
+* vc_assist_svc/processer.py:175  `90_invarianter.md`: operatorens prefix ror vi aldrig med oprovad kod. Den
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -1090,12 +1580,16 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### vc_addon/vc_assist/bridge_cmd.py
 
 * vc_addon/vc_assist/bridge_cmd.py:53  OMSTART_MINSTA_MELLANRUM_S = 0.5    # PRELIMINAR. Satts av matning M-13.
+* vc_addon/vc_assist/bridge_cmd.py:387  """Kontrollera VC-version vid start: oprovad version sager ifran (E10)."""
+* vc_addon/vc_assist/bridge_cmd.py:398  _log("VARNING (E10): VC-version %s ar OPROVAD. Endast VC 4.10 ar matt i det har repot (M-01, M-139). Fortsatter i oprovat lage." % ver)
+* vc_addon/vc_assist/bridge_cmd.py:399  return "oprovad"
 
 ### vc_addon/vc_assist/formaga.py
 
 * vc_addon/vc_assist/formaga.py:95  oprovade = [y for y, d in ytor.items() if d["finns"] is None]
-* vc_addon/vc_assist/formaga.py:107  "oprovade": len(oprovade),
-* vc_addon/vc_assist/formaga.py:110  "oprovade_ytor": sorted(oprovade),
+* vc_addon/vc_assist/formaga.py:99  vc_status = "matt" if str(vc_ver).startswith("4.10") else ("oprovad" if vc_ver else "okand")
+* vc_addon/vc_assist/formaga.py:113  "oprovade": len(oprovade),
+* vc_addon/vc_assist/formaga.py:116  "oprovade_ytor": sorted(oprovade),
 
 ### vc_addon/vc_assist/oga_analys.py
 
@@ -1226,9 +1720,31 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * enhet/test_plan_villkor.py:6  hallet ar oprovad (docs/spec/95_testprotokoll.md).
 * enhet/test_plan_villkor.py:517  # En grind som aldrig fallt ar oprovad (docs/spec/95_testprotokoll.md).
 
+### enhet/test_plc_industrigrind.py
+
+* enhet/test_plc_industrigrind.py:303  # referens andrar sitt eget spar. Bristen ar rapporterad, inte lagad.
+
+### enhet/test_processer.py
+
+* enhet/test_processer.py:71  """`90_invarianter.md`: operatorens prefix ror vi aldrig med oprovad kod.
+
+### enhet/test_readme_faser.py
+
+* enhet/test_readme_faser.py:114  assert "inte prövat, och det är fasens öppna punkt" not in text.lower()
+
 ### enhet/test_troskelharkomst.py
 
 * enhet/test_troskelharkomst.py:153  fel.append("%s:%d %s -> %s utan PRELIMINAR" % (rel, nr, namn, _mnr(r)))
+
+### enhet/test_vc_start_skarmen.py
+
+* enhet/test_vc_start_skarmen.py:86  """Operatorens eget prefix ~/.wine-vc ror vi aldrig med oprovad kod."""
+
+### enhet/test_vc_versionskontroll.py
+
+* enhet/test_vc_versionskontroll.py:26  """E10: VC 5.0 ska saga oprovad, inte krascha och inte latsas fungera."""
+* enhet/test_vc_versionskontroll.py:30  assert rap["vc_version_status"] == "oprovad"
+* enhet/test_vc_versionskontroll.py:37  assert rap["vc_version_status"] == "oprovad"
 
 ### enhet/test_verktyg.py
 
@@ -1264,6 +1780,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * protocol/kor_fas5.py:5  VC. Det ar precis den sortens oprovade yta dar dokumentationen och verkligheten
 * protocol/kor_fas5.py:35  "verktyg utan forutsattningar redovisas som oprovade, aldrig som "
 * protocol/kor_fas5.py:207  (", oprovade: " + ", ".join(saknas)) if saknas else ""))
+
+### protocol/kor_kunskapstackning.py
+
+* protocol/kor_kunskapstackning.py:472  kalla = sedda_api.get(namn) or ("M-84/M-85 oppen punkt: %s" % namn)
 
 ### motbevis/test_grindar_som_aldrig_fallt_motbevis.py
 
