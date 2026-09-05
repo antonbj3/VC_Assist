@@ -200,7 +200,7 @@ oss — Beremiz egna testprojekt:
 | Fil | Utfall |
 |---|---|
 | `tests/projects/plc_sdk_minimal/plc.xml` (1 590 byte) | **läses**: 1 POU, 1 sats |
-| `tests/projects/iec61131_lang_test/plc.xml` (152 806 byte) | **avvisas med skäl**: `<dataType name='array_type_0'> har en baseType som inte är en <struct>` |
+| `tests/projects/iec61131_lang_test/plc.xml` (152 831 byte) | **avvisas med skäl**: `<dataType name='array_type_0'> har en baseType som inte är en <struct>` |
 
 Den andra filen är gränsen ritad i tal. Den har **14 POU:er**, och deras
 kroppar är `ST` 5, `FBD` 4, `LD` 3, `SFC` 1, `IL` 1 — alltså **9 av 14 i

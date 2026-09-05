@@ -138,15 +138,16 @@ Ett verktyg accepterade våra filer, och det är inte något av de tre ovan.
 | Laddaren **säger nej** när filen är trasig | **KÖRD** | tre mutationer, tre avslag: `pouType="hittepa"` (*"is not an element of the set"*), ett okänt element i `<pou>`, ett omdöpt `<body>` |
 | Vår importör läser Beremiz **egen** projektfil | **KÖRD** | `plc_sdk_minimal/plc.xml` (1 590 byte): 1 POU, 1 sats |
 | Vår importör avvisar Beremiz stora språktestfil, med skäl | **KÖRD** | `iec61131_lang_test/plc.xml`: `<dataType name='array_type_0'>` är ingen `<struct>`. Filens 14 POU:er är `ST` 5, `FBD` 4, `LD` 3, `SFC` 1, `IL` 1 |
-| `OpenPLC_Editor` är en **fork av Beremiz** och bär samma XSD-filer | **KÖRD** (GitHub-API) | `thiagoralves/editor`: `"fork": true`, `parent: beremiz/beremiz`, gren `openplc-master`; dess `plcopen/plcopen.py` skiljer **1 byte** från Beremiz |
+| `OpenPLC_Editor` är en **fork av Beremiz** och bär samma XSD-filer | **KÖRD** (GitHub-API) | `thiagoralves/editor`: `"fork": true`, `parent: beremiz/beremiz`, gren `openplc-master`; dess `plcopen/plcopen.py` är **1 byte mindre** än Beremiz upstream (en storleksjämförelse, inte en diff) |
 | Beremiz `plc.xml` **är** ett TC6 v2.01-dokument | **KÖRD** | `<project xmlns="http://www.plcopen.org/xml/tc6_0201" …>` i den hämtade filen; samma `targetNamespace` i `tc6_xml_v201.xsd` |
 
 Den tredje raden är den som gör de två första värda något. En laddare som
 aldrig sagt nej mäter ingenting.
 
 **Att den fjärde och sjätte raden hänger ihop är hela poängen för produkten.**
-OpenPLC Editor — verktyget i vår egen kedja (`docs/spec/60_plc.md`) — är
-Beremiz med en byte skillnad i just den modul som läser PLCopen XML. Att
+OpenPLC Editor — verktyget i vår egen kedja (`docs/spec/60_plc.md`) — är en
+bekräftad fork av Beremiz vars PLCopen-modul är praktiskt taget lika stor
+(1 byte mindre). Filerna är **inte** diffade tecken för tecken här. Att
 Beremiz laddare godtar våra 77 filer är alltså det starkaste tillgängliga
 belägget för att **OpenPLC Editor** gör det också. Men det är en slutledning ur
 en identisk källfil, **inte** en körning av OpenPLC Editor: den är oprövad.
