@@ -212,6 +212,8 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-171_markeringen_och_scenens_sort.md` | M-171 — Markeringen headless, och scenens sort ur strukturen |
 | `M-172_kostnad_opencode.md` | M-172 — Kostnaden som aldrig mattes: opencode rapporterar kostnad i step_finish |
 | `M-173_omstarten_och_retain.md` | M-173 — Omstarten mitt i spåret: RETAIN, varmstart och vad banken förutsätter |
+| `M-174_gemini_enskott_spridning.md` | M-174 — Enskott med och utan regler over banken pa Gemini 3.8: n>=3 och spridning |
+| `M-175_gemini_flerskott_varv.md` | M-175 — Flerskottets varvfordelning pa Gemini 3.8: n>=3 och takanalys |
 
 <!-- SLUT MATNINGSTABELL -->
 
