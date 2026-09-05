@@ -111,7 +111,7 @@ class Utforare(object):
 
         kod = self._kodgen[namn](args)
         if not isinstance(kod, str):
-            raise Svarsfel("%s: kodgeneratorn lamnade %s, inte en strang"
+            raise Svarsfel("%s: the code generator returned %s, not a string"
                            % (namn, type(kod).__name__))
 
         # HAR, och ingen annanstans, valjs laget.
@@ -126,7 +126,7 @@ class Utforare(object):
         if op == "exec_queue":
             qid = (resultat or {}).get("qid")
             if not qid:
-                raise Svarsfel("%s: bryggan koade utan att lamna nagot qid"
+                raise Svarsfel("%s: the bridge queued without returning a qid"
                                % namn)
             self.koade[qid] = namn
             return Resultat(namn, verktyg.effect, verktyg.mode, op=op, kod=kod,
@@ -167,7 +167,7 @@ class Utforare(object):
                             resultat=None, stdout="", svar=kvitto)
         post = self._vanta_pa_utfall(qid, namn)
         if post["state"] != "done":
-            raise Svarsfel("%s: koposten %s slutade som %r, inte done"
+            raise Svarsfel("%s: queue item %s ended as %r, not done"
                            % (namn, qid, post["state"]))
         svar = post.get("svar") or {}
         resultat = svar.get("result")
@@ -200,6 +200,6 @@ class Utforare(object):
                                          "rejected"):
                         return post
             time.sleep(KO_POLL_S)
-        raise Svarsfel("%s: koposten %s fick inget utfall inom %.0f s (sist: %r)"
+        raise Svarsfel("%s: queue item %s got no outcome within %.0f s (last: %r)"
                        % (namn, qid, timeout or self.ko_timeout_s,
                           (sist or {}).get("state")))

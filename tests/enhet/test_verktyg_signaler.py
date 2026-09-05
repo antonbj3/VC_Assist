@@ -850,7 +850,7 @@ def test_en_kopost_som_inte_gick_igenom_raknas_inte_som_lyckad(utf, brygga):
     brygga.nasta_utfall = "failed"
     with pytest.raises(V.Svarsfel) as e:
         utf.godkann("q1")
-    assert "slutade som 'failed'" in str(e.value)
+    assert "ended as 'failed'" in str(e.value)
 
 
 # ==========================================================================
