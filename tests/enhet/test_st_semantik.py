@@ -52,9 +52,11 @@ TRASIGA_FIXTURER = [
     ("RIKTNING",
      _pou(" a : INT;\n", " inn := 3;\n", extra="VAR_INPUT\n inn : INT;\nEND_VAR\n")),
     ("DUBBELSKRIVNING",
-     _pou(" a : INT;\n",
+     # a = 1 och b = 2 kan vara sanna samtidigt. Fixturen stod som a = 1 och
+     # a = 2, som utesluter varandra - efter M-121 slapps det igenom, med ratt.
+     _pou(" a : INT;\n b : INT;\n",
           " IF a = 1 THEN\n  ut := TRUE;\n END_IF;\n"
-          " IF a = 2 THEN\n  ut := FALSE;\n END_IF;\n",
+          " IF b = 2 THEN\n  ut := FALSE;\n END_IF;\n",
           extra="VAR_OUTPUT\n ut : BOOL;\nEND_VAR\n")),
     ("OATKOMLIG",
      _pou(" a : INT;\n", " RETURN;\n a := 1;\n")),
@@ -199,7 +201,8 @@ def test_egen_struktur_gar_att_lasa_och_okant_falt_falls():
 # ---- dubbelskrivning, gränsfallen ---------------------------------------
 
 def _med_utgang(kropp):
-    return _pou(" a : INT;\n", kropp, extra="VAR_OUTPUT\n ut : BOOL;\nEND_VAR\n")
+    return _pou(" a : INT;\n b : INT;\n", kropp,
+                extra="VAR_OUTPUT\n ut : BOOL;\nEND_VAR\n")
 
 
 def test_ovillkorlig_grundskrivning_plus_ett_undantag_ar_normal_kod():
@@ -211,6 +214,23 @@ def test_ovillkorlig_grundskrivning_plus_ett_undantag_ar_normal_kod():
 
 def test_tva_villkorade_skrivningar_ar_dubbelskrivning():
     r = validera(_med_utgang(" IF a = 1 THEN\n  ut := TRUE;\n END_IF;\n"
+                             " IF b = 2 THEN\n  ut := FALSE;\n END_IF;\n"))
+    assert r.koder() == ("DUBBELSKRIVNING",)
+
+
+def test_tva_villkor_pa_samma_variabel_med_olika_varden_utesluter_varandra():
+    """a = 1 och a = 2 kan inte bada vara sanna i samma scan (M-121). Fore
+    M-121 var det den trasiga fixturen for DUBBELSKRIVNING - en falsk rod."""
+    r = validera(_med_utgang(" IF a = 1 THEN\n  ut := TRUE;\n END_IF;\n"
+                             " IF a = 2 THEN\n  ut := FALSE;\n END_IF;\n"))
+    assert r.ok is True, str(r)
+
+
+def test_samma_variabel_men_omskriven_emellan_utesluter_inte():
+    """Skrivs a om mellan de tva villkoren ar `a = 1` och `a = 2` tva olika
+    varden, och bada skrivningarna kan koras i samma scan. Det ar den klassiska
+    stegmaskinsbuggen: IF-kedjan gar tva steg pa en scan."""
+    r = validera(_med_utgang(" IF a = 1 THEN\n  ut := TRUE;\n  a := 2;\n END_IF;\n"
                              " IF a = 2 THEN\n  ut := FALSE;\n END_IF;\n"))
     assert r.koder() == ("DUBBELSKRIVNING",)
 
@@ -244,9 +264,9 @@ def test_mellanlagring_som_inte_ar_utgang_raknas_inte():
 
 def test_utgang_via_signalkartan_raknas_ocksa():
     """En variabel med %Q-adress är en utgång även utan VAR_OUTPUT."""
-    kalla = _pou(" a : INT;\n lampa AT %QX0.3 : BOOL;\n",
+    kalla = _pou(" a : INT;\n b : INT;\n lampa AT %QX0.3 : BOOL;\n",
                  " IF a = 1 THEN\n  lampa := TRUE;\n END_IF;\n"
-                 " IF a = 2 THEN\n  lampa := FALSE;\n END_IF;\n")
+                 " IF b = 2 THEN\n  lampa := FALSE;\n END_IF;\n")
     assert validera(kalla).koder() == ("DUBBELSKRIVNING",)
 
 
@@ -383,9 +403,9 @@ def test_extern_utgang_far_skrivas_och_dubbelskrivs_den_falls():
     skriv = _pou(" a : INT;\n", " ventil := TRUE;\n")
     assert validera(skriv, externa={"ventil": T.BOOL},
                     utgangar=("ventil",)).ok is True
-    dubbelt = _pou(" a : INT;\n",
+    dubbelt = _pou(" a : INT;\n b : INT;\n",
                    " IF a = 1 THEN\n  ventil := TRUE;\n END_IF;\n"
-                   " IF a = 2 THEN\n  ventil := FALSE;\n END_IF;\n")
+                   " IF b = 2 THEN\n  ventil := FALSE;\n END_IF;\n")
     r = validera(dubbelt, externa={"ventil": T.BOOL}, utgangar=("ventil",))
     assert r.koder() == ("DUBBELSKRIVNING",)
 
@@ -604,3 +624,93 @@ def test_hopslagna_grenars_villkorlighet(namn, kropp, ska_falla):
                  kropp)
     koder = [x.kod for x in validera(kalla).anmarkningar]
     assert ("DUBBELSKRIVNING" in koder) is ska_falla, namn
+
+
+# ---- M-121: uteslutning genom mellanvariabler --------------------------------
+#
+# Sex av bankens 26 egna referenser folls av DUBBELSKRIVNING fast skrivningarnas
+# villkor utesluter varandra. Grinden bar nu varje skrivnings sokvagsvillkor och
+# provar parvis med SAT om bada kan vara sanna i samma scan; rena
+# mellanvariabler (`x := uttryck;`) substitueras nar de inte skrivits om
+# emellan (st/uteslutning.py). Raderna med ska_falla=False FOLL fore M-121.
+# Raderna med ska_falla=True ar de falska grona en naiv substitution hade gett.
+
+def _pou_m121(kropp):
+    return _pou(" a : BOOL;\n b : BOOL;\n c : BOOL;\n g : BOOL;\n x : BOOL;\n"
+                " y : BOOL;\n xD : BOOL;\n xLarm : BOOL;\n n : INT;\n r : REAL;\n",
+                kropp, extra="VAR_OUTPUT\n ut : BOOL;\n ut2 : BOOL;\nEND_VAR\n")
+
+
+@pytest.mark.parametrize("namn,kropp,ska_falla", [
+    ("L-05: uteslutning genom tva mellanvariabler och en utgang",
+     " x := a AND b;\n y := a AND NOT b;\n"
+     " IF x THEN\n  CASE n OF\n  3: ut := TRUE;\n  END_CASE;\n END_IF;\n"
+     " ut2 := y AND c;\n IF ut2 THEN\n  ut := FALSE;\n END_IF;\n", False),
+    ("S-07: forreglingen pa en ingang som mellanvariabeln redan kraver",
+     " x := a AND b;\n"
+     " IF NOT x THEN\n  ut := FALSE;\n ELSE\n  IF c THEN\n   ut := TRUE;\n  END_IF;\n END_IF;\n"
+     " IF NOT b THEN\n  ut := FALSE;\n END_IF;\n", False),
+    ("P-06: samma ingang direkt i bada villkoren",
+     " IF a AND NOT b THEN\n  ut := TRUE;\n END_IF;\n"
+     " IF b THEN\n  ut := FALSE;\n END_IF;\n", False),
+    ("IF/ELSE-formen `IF c THEN y := TRUE ELSE y := FALSE` ar en definition",
+     " x := a AND b;\n IF NOT b THEN\n  y := TRUE;\n ELSE\n  y := FALSE;\n END_IF;\n"
+     " IF x THEN\n  ut := TRUE;\n END_IF;\n IF y THEN\n  ut := FALSE;\n END_IF;\n", False),
+    ("komplementara jamforelser: r < 1.5 mot r >= 1.5",
+     " IF r < 1.5 THEN\n  ut := TRUE;\n END_IF;\n"
+     " IF r >= 1.5 THEN\n  ut := FALSE;\n END_IF;\n", False),
+    ("definitionen mellan de tva skrivningarna galler den senare",
+     " IF a THEN\n  ut := TRUE;\n END_IF;\n x := NOT a;\n"
+     " IF x THEN\n  ut := FALSE;\n END_IF;\n", False),
+    # --- de falska grona som stabilitetsregeln hindrar ---
+    ("mellanvariabelns atom skrivs om emellan: xD := NOT xLarm; xLarm := TRUE",
+     " xD := NOT xLarm;\n IF g THEN\n  xLarm := TRUE;\n END_IF;\n"
+     " IF xD THEN\n  ut := TRUE;\n END_IF;\n IF xLarm THEN\n  ut := FALSE;\n END_IF;\n", True),
+    ("mellanvariabeln sjalv skrivs om emellan: den senare definitionen galler",
+     " x := NOT a;\n IF a THEN\n  ut := TRUE;\n END_IF;\n x := a;\n"
+     " IF x THEN\n  ut := FALSE;\n END_IF;\n", True),
+    ("en VILLKORLIG tilldelning ar ingen definition",
+     " IF g THEN\n  x := NOT a;\n END_IF;\n"
+     " IF a THEN\n  ut := TRUE;\n END_IF;\n IF x THEN\n  ut := FALSE;\n END_IF;\n", True),
+    ("utgangen last efter att den skrivits (T-09-formen)",
+     " IF a THEN\n  ut := TRUE;\n END_IF;\n"
+     " IF ut AND ut2 THEN\n  ut := FALSE;\n END_IF;\n", True),
+    ("ett funktionsanrop i villkoret ar ogenomskinligt",
+     " IF a THEN\n  ut := TRUE;\n END_IF;\n"
+     " IF BOOL_TO_INT(a) = 0 THEN\n  ut := FALSE;\n END_IF;\n", True),
+    ("olika variabler, overlappande villkor: den akta kapplopningen",
+     " IF a THEN\n  ut := TRUE;\n END_IF;\n IF b THEN\n  ut := FALSE;\n END_IF;\n", True),
+])
+def test_uteslutning_genom_mellanvariabler(namn, kropp, ska_falla):
+    r = validera(_pou_m121(kropp))
+    koder = [x.kod for x in r.anmarkningar]
+    assert ("DUBBELSKRIVNING" in koder) is ska_falla, "%s: %s" % (namn, r)
+    assert [k for k in koder if k != "DUBBELSKRIVNING"] == [], "fixturen bar ett annat fel: %s" % r
+
+
+def test_domen_namner_de_tva_loven_och_ett_vittne():
+    """Fore M-121 namndes forsta raden i varje block; nu de tva skrivningar
+    som faktiskt kan kollidera, och en tilldelning som gor bada villkoren
+    sanna. Det ar det modellen behover for att laga ratt sak."""
+    kalla = _pou_m121(" IF a THEN\n  IF b THEN\n   ut := TRUE;\n  END_IF;\n END_IF;\n"
+                      " IF g THEN\n  ut := FALSE;\n END_IF;\n")
+    r = validera(kalla)
+    assert r.koder() == ("DUBBELSKRIVNING",)
+    rader = kalla.splitlines()
+    rad_sann = 1 + next(i for i, x in enumerate(rader) if "ut := TRUE" in x)
+    rad_falsk = 1 + next(i for i, x in enumerate(rader) if "ut := FALSE" in x)
+    text = r.anmarkningar[0].text
+    assert "rad %d och rad %d" % (rad_sann, rad_falsk) in text, text
+    assert "t.ex. nar" in text and "G ar TRUE" in text, text
+
+
+def test_real_ganger_int_kraver_konvertering_T04():
+    """T-04:s referens skrev `4.0 * antal` med antal INT. matiec (OpenPLC:s
+    kompilator) avvisar det: "Data type mismatch for '*' expression", och
+    IEC 61131-3:2003 2.5.1.4 kraver att alla ingangar av samma generiska typ
+    har samma typ. STruC++ accepterar det - men STruC++ accepterar ocksa
+    `b := 4.0 * i` med b BOOL, sa den ar inget typfacit (M-121)."""
+    dekl = " r : REAL;\n n : INT;\n"
+    r = validera(_pou(dekl, " r := 4.0 * n;\n"))
+    assert r.koder() == ("TYP",) and "konvertera uttryckligen" in r.anmarkningar[0].text
+    assert validera(_pou(dekl, " r := 4.0 * INT_TO_REAL(n);\n")).ok is True
