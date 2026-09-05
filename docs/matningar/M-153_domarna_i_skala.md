@@ -151,6 +151,17 @@ tolkdomaren GRÖN och OpenPLC-domaren RÖD.** Inte en enda gång tvärtom.
 | T-02 | `flank:inget_index_utanfor_temperaturfonstret` |
 | T-08 | ett enda punktkrav: `en_detalj_genom_ugnen@1300ms:ST520_PRT_CNT` |
 
+Nio av de tio fälls alltså på minst en `flank:*`. Den tionde, T-08, fälls på ett
+enda punktkrav — och det kravet är en flankräkning i räknarform:
+
+```
+ST520_PRT_CNT skulle vara 0 men var 1 inom 4 scan efter 1300 ms.
+fotocellen ut raknar ned; ugnen ar tom igen och det ar inget larm
+```
+
+Räknaren står på ett där ugnen ska vara tom: en flank för mycket eller en
+nedräkning för lite. Vilken av dem är **inte** spårat.
+
 Räknar man in de tre referenser vars OpenPLC-dom **vacklar** mellan varven
 (P-05, S-01, T-04, alla GRÖN–RÖD–GRÖN) står det så här:
 
@@ -390,7 +401,37 @@ tre varv.)*
 
 ## 8. Raden i bankkontraktet
 
-(fylls i)
+`M-146` avstod medvetet från raden: två körningar visar varians, inte vem som
+har rätt. Med n = 3 över hela banken finns underlaget, och **raden gick att
+skriva** — men inte som *"OpenPLC-domaren vinner"*. Den står nu som §6 i
+`docs/spec/85_bankkontraktet.md`, och skälet att den inte kunde bli enklare är
+det här:
+
+* Kontraktets §2 diskvalificerar tolkdomaren som **auktoritet**: den dömer
+  genom det som prövas. Det talar för OpenPLC-domaren, och det talet står
+  fast.
+* Men den här mätningen hittade **inte en enda oenighet som gick tillbaka på
+  att motorerna gör olika saker.** Nio av tio utfallsoenigheter fälls på
+  `flank:*`, den tionde på en flankräknare, och de tre mekanismer som är
+  spårade (§4a, §4b, §4c) ligger alla i domarmekaniken. Där reglerna skiljer
+  sig är den ena domaren inte "rätt" — de svarar på olika frågor, och att välja
+  vinnare hade gjort en defekt till en dom.
+* Och en auktoritet som ger två olika svar på samma text är ingen auktoritet:
+  13 av 185 enheter vacklade, 4 av dem bytte utfall, och omprovet visar att det
+  inte är riggens fel (§5).
+
+Raden blev därför en regel i tre led plus ett villkor. Det andra ledet — *"är
+reglerna desamma gäller OpenPLC-domaren"* — vilar uttryckligen på §2 och på
+`M-125`, **inte** på M-153: den här mätningen fann inget sådant fall och kan
+alltså inte belägga ledet, bara låta bli att motsäga det. Det står så i
+kontraktet också, för ett led utan belägg som ser ut som ett med är värre än
+inget led.
+
+Det som INTE gick att skriva, och som därför inte står någonstans: vilken av de
+två som har rätt om A-01, A-05, C-04, H-01, P-03, P-06, S-05, T-02 och T-08.
+Nästa punkt är att laga de två defekterna i §4a och §4b och köra om svepet; det
+talet blir då *"hur mycket skiljer sig domarna när de ställer samma fråga"*, och
+det är först det talet som är bänkens felstapel.
 
 ## LIMITS
 
@@ -401,6 +442,11 @@ tre varv.)*
   här banken inte råkar reta vet jag inte. Att kalla talen "hur mycket vår tolk
   och OpenPLC skiljer sig" vore fel: de flesta oenigheterna går tillbaka på
   domarmekaniken, inte på motorerna.
+* **Bara tre av de tio utfallsoenigheterna är spårade till en mekanism.**
+  A-07 (§4a), P-03 och C-04 (§4b) är mätta hela vägen. A-01, A-05, H-01, P-06,
+  S-05, T-02 och T-08 fälls på samma kodslag och har samma form, men de är
+  **inte** enskilt utredda, och att kalla dem "samma mekanism" vore en gissning
+  som ser ut som en mätning.
 * **Ingen tredje domare avgör vem som har rätt.** Där de två skiljer sig säger
   mätningen VEM som säger VAD, inte vem som har rätt. §4a är det enda ställe
   där rättvisan är avgjord — och där har facit rätt och OpenPLC-domarens

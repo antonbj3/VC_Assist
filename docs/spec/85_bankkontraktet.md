@@ -88,3 +88,43 @@ och det gäller varje post.
 Och den kan inte se ett facit som är fel. Den kan bara se att facit kommer
 någon annanstans ifrån än koden — vilket är den enda kontroll som går att
 mekanisera, och exakt den som saknades när `BENCH-4` stod grön i månader.
+
+---
+
+## 6. Vilken domare som gäller när två domare är oense
+
+Banken har sedan `M-146` **två** domare över samma spårfacit: `bank/domare.py`
+genom vår egen ST-tolk, och `bank/domare_openplc.py` genom OpenPLC Runtime v4.
+`M-153` körde hela banken genom båda — 185 enheter, n = 3, 1110 körningar — och
+regeln nedan är skriven ur den mätningen, inte ur en princip.
+
+**Auktoriteten ligger hos motorn, inte hos domarmekaniken.** Ett spår ur
+OpenPLC är en laglig facitkälla (§2 sort 1); tolkens spår är det inte, för
+tolken är både den som prövas och den som dömer. Men ett spår är ingen dom.
+Domen gäller bara när de två domarna ställer **samma fråga** om spåret, och
+`M-153` mätte att de inte alltid gör det.
+
+I tre led:
+
+1. **Domarna är överens** — domen står, oavsett vilken som fällde den. Så är
+   det för 107 av 184 jämförbara enheter och för 151 av bankens 152 motbevis.
+2. **De skiljer sig, och domarreglerna är desamma** — då gäller
+   OpenPLC-domaren. Skälet är §2 och `M-125`, **inte** `M-153`: den mätningen
+   hittade inget sådant fall, så ledet står oemotsagt men obelagt.
+3. **De skiljer sig därför att REGLERNA skiljer sig** — då gäller ingen av dem.
+   `M-153` namnger tre sådana ställen: flankfönstrets ensidiga tolerans
+   (`domare.py` räknar i `[från, till]`, `domare_openplc.py` i
+   `[från, till + 4 scan]`), sekvensens startvillkor (OpenPLC-domaren kör PLC:n
+   150 ms med nollade ingångar före klockan, tolken börjar med `t=0`-stimulit
+   redan verkställt) och `tolkfel:*`, som OpenPLC-domaren aldrig kan lämna
+   (1 av bankens 152 motbevis). Skillnaden är bänkens egen defekt och ska
+   lagas, inte vinnas. Nio av `M-153`:s tio utfallsoenigheter fälls på
+   `flank:*` och den tionde på en flankräknare; tre av dem (A-07, P-03, C-04)
+   är spårade hela vägen till en av de tre mekanismerna, resten är inte
+   enskilt utredda.
+
+Och över alla tre: **en dom ur OpenPLC-domaren gäller bara om den är stabil
+över n ≥ 3.** Den domaren var oense med sig själv om 13 av 185 enheter och bytte
+utfall på 4 av dem, och omprov visar att det inte beror på maskinens last. En
+enhet som är grön i två körningar av tre är inte grön — den är omätt tills
+instabiliteten är förklarad.
