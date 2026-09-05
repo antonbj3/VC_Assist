@@ -24,6 +24,7 @@ from typing import Dict, List, Optional, Tuple
 from . import modell as M
 from . import stdbibliotek as SB
 from . import typer as T
+from . import uteslutning as U
 from .fel import Anmarkning, Syntaxfel
 from .lasare import las
 from .lexer import tolka_tidliteral
@@ -126,6 +127,28 @@ def _signatur_av_funktion(f: SB.Funktionsdef) -> Signatur:
                     tuple(p.namn for p in f.parametrar if p.styrande))
 
 
+@dataclass(frozen=True)
+class Lov:
+    """En enskild skrivning av en utgang: sokvagsvillkoret relativt den sats
+    pa aktuell niva som bar den, raden och literalvardet (None for uttryck)."""
+    villkor: object
+    rad: int
+    varde: object
+
+
+@dataclass
+class Bidrag:
+    """Vad en sats bidrar med till en utgang: villkorad eller inte, forsta
+    raden, det gemensamma literalvardet (None om grenarna skiljer sig eller
+    nagon skriver ett uttryck), loven och miljon (mellanvariablernas
+    definitioner) som galler fore satsen."""
+    villkorad: bool
+    rad: int
+    varde: object
+    lov: Tuple[Lov, ...]
+    miljo: object = None
+
+
 class Granskning(object):
     def __init__(self, enhet: M.Enhet, externa: Dict[str, T.Typ],
                  skyddade, utgangar):
@@ -140,6 +163,10 @@ class Granskning(object):
         self.utgangsnamn = set()
         self.styrvariabler = set()
         self.slingdjup = 0
+        self._ordning: Dict[int, int] = {}
+        self._slut: Dict[int, int] = {}
+        self._skrivpositioner: Dict[str, List[int]] = {}
+        self._uteslutning = U.Uteslutning({})
 
     def fel(self, kod, rad, text):
         self.anm.append(Anmarkning(kod, rad, text))
@@ -243,6 +270,11 @@ class Granskning(object):
                                 Post(p.namn, p.returtyp, "VAR", rad=p.rad))
         self._satser(p.kropp)
         self._oatkomlighet(p.kropp)
+        self._ordning = {}
+        self._slut = {}
+        self._skrivpositioner = {}
+        self._numrera_satser(p.kropp)
+        self._uteslutning = U.Uteslutning(self._skrivpositioner)
         self._sekvens(p.kropp)
 
     def _kontrollera_kvalificerare(self, b: M.Varblock):
@@ -866,22 +898,70 @@ class Granskning(object):
                 self._oatkomlighet(lista)
 
     # ---- dubbelskrivning ------------------------------------------------
+    #
+    # Varje skrivning bar sitt SOKVAGSVILLKOR (uteslutning.py). Tva villkorade
+    # skrivningar med olika varden falls bara om villkoren KAN vara sanna i
+    # samma scan - avgjort med en SAT-sokning, inte med ett syntaktiskt "tva
+    # IF-block". Mellanvariabler foljs nar det ar sunt (M-121).
 
-    def _sekvens(self, satser) -> Dict[str, Tuple[bool, int, object]]:
-        """namn -> (villkorad, forsta raden, literalvarde eller None).
+    def _numrera_satser(self, satser) -> None:
+        """Forordning over alla satser och var varje variabel tilldelas.
 
-        Tredje faltet bar VARDET nar skrivningen ar en literal. Det behovs for
-        att skilja tva skrivningar som kan sta i konflikt fran tva som
-        bevisligen inte kan; se `_doma_dubbelskrivning`.
+        Positionerna ar det som gor uteslutningsprovet sunt: ett namn betyder
+        samma sak pa tva stallen bara om ingen skrivit det emellan.
         """
-        poster: Dict[str, List[Tuple[bool, int, object]]] = {}
         for s in satser:
-            for namn, post in self._bidrag(s).items():
-                poster.setdefault(namn, []).append(post)
+            self._ordning[id(s)] = len(self._ordning) + 1
+            pos = self._ordning[id(s)]
+            if isinstance(s, M.Tilldelning):
+                self._notera_skrivning(self._rotnamn(s.mal), pos)
+            elif isinstance(s, M.Anropssats):
+                self._notera_skrivning(s.anrop.namn.upper(), pos)
+                for arg in s.anrop.argument:
+                    if arg.ut:
+                        self._notera_skrivning(self._rotnamn(arg.uttryck), pos)
+            elif isinstance(s, M.ForSats):
+                self._notera_skrivning(s.styrvar.upper(), pos)
+            for lista in underlistor(s):
+                self._numrera_satser(lista)
+            self._slut[id(s)] = len(self._ordning)
+
+    def _notera_skrivning(self, namn: Optional[str], pos: int) -> None:
+        if namn:
+            self._skrivpositioner.setdefault(namn, []).append(pos)
+
+    @staticmethod
+    def _rotnamn(mal: M.Uttryck) -> Optional[str]:
+        rot = mal
+        while isinstance(rot, (M.Medlem, M.Element)):
+            rot = rot.bas
+        return rot.ident.upper() if isinstance(rot, M.Namn) else None
+
+    def _pos(self, s: M.Sats) -> int:
+        return self._ordning.get(id(s), 0)
+
+    def _sekvens(self, satser, miljo=None) -> Dict[str, "Bidrag"]:
+        """namn -> Bidrag for en satslista.
+
+        `miljo` ar definitionerna av mellanvariabler som galler nar listan
+        borjar (omgivande nivaers ovillkorade tilldelningar). Listans egna
+        ovillkorade tilldelningar laggs till efter hand, sa varje bidrag bar
+        miljon som galler FORE dess sats.
+        """
+        miljo = dict(miljo or {})
+        poster: Dict[str, List[Bidrag]] = {}
+        for s in satser:
+            for namn, b in self._bidrag(s, miljo).items():
+                b.miljo = miljo
+                poster.setdefault(namn, []).append(b)
+            d = U.definition_av(s, self._pos(s), self._slut.get(id(s)))
+            if d is not None:
+                miljo = dict(miljo)
+                miljo[d[0]] = d[1]
         ut = {}
         for namn, lista in poster.items():
             self._doma_dubbelskrivning(namn, lista)
-            varden = set(p[2] for p in lista)
+            varden = set(p.varde for p in lista)
             # Falt 1 heter VILLKORAD, och en hopslagen gren ar villkorad bara
             # om VARJE bidrag ar det. Raden stod som `any(not p[0] ...)`,
             # alltsa "minst ett bidrag ar OVILLKORAT" - tecknet var vant, och
@@ -895,9 +975,10 @@ class Granskning(object):
             #   nastlade villkor i bada grenar + villkorad  SLAPPTES  ska falla
             #     - a=F, b=T, c=T ger FALSE och sedan TRUE i samma scan, alltsa
             #       precis den F7-kapplopning grinden finns for
-            ut[namn] = (all(p[0] for p in lista),
-                        min(p[1] for p in lista),
-                        lista[0][2] if len(varden) == 1 else None)
+            ut[namn] = Bidrag(all(p.villkorad for p in lista),
+                              min(p.rad for p in lista),
+                              lista[0].varde if len(varden) == 1 else None,
+                              tuple(l for p in lista for l in p.lov))
         return ut
 
     def _visningsnamn(self, nyckel):
@@ -906,18 +987,18 @@ class Granskning(object):
 
     def _doma_dubbelskrivning(self, nyckel, lista):
         namn = self._visningsnamn(nyckel)
-        ovillkorade = [i for i, p in enumerate(lista) if not p[0]]
-        villkorade = [i for i, p in enumerate(lista) if p[0]]
+        ovillkorade = [i for i, p in enumerate(lista) if not p.villkorad]
+        villkorade = [i for i, p in enumerate(lista) if p.villkorad]
         if len(ovillkorade) >= 2:
-            self.fel("DUBBELSKRIVNING", lista[ovillkorade[1]][1],
+            self.fel("DUBBELSKRIVNING", lista[ovillkorade[1]].rad,
                      "utgången %s skrivs ovillkorat både på rad %d och rad %d; "
                      "den första skrivningen syns aldrig"
-                     % (namn, lista[ovillkorade[0]][1], lista[ovillkorade[1]][1]))
+                     % (namn, lista[ovillkorade[0]].rad, lista[ovillkorade[1]].rad))
         elif ovillkorade and ovillkorade[0] != 0:
-            self.fel("DUBBELSKRIVNING", lista[ovillkorade[0]][1],
+            self.fel("DUBBELSKRIVNING", lista[ovillkorade[0]].rad,
                      "utgången %s skrivs ovillkorat på rad %d efter en villkorad "
                      "skrivning på rad %d, som därmed är verkningslös"
-                     % (namn, lista[ovillkorade[0]][1], lista[0][1]))
+                     % (namn, lista[ovillkorade[0]].rad, lista[0].rad))
         if len(villkorade) >= 2:
             # Tva VILLKORADE skrivningar av samma LITERAL ar bevisbart ofarliga.
             #
@@ -927,19 +1008,38 @@ class Granskning(object):
             # skriver `IF NOT AIR_OK THEN don := FALSE; END_IF;` efter en sekvens
             # gor precis ratt.
             #
-            # MATT: tre av bankens fyra referenser undviker monstret helt, sa
-            # regeln ar foljbar. Den fjarde (L-05) skriver ST260_LFT_DOWN pa rad
-            # 63 och 105 - BADA gangerna FALSE. Den fallningen var en falsk rod,
-            # och en falsk rod ar dyr: modellen brinner ett reparationsvarv pa
-            # att laga nagot som redan var ratt.
-            varden = set(lista[i][2] for i in villkorade)
+            # Skriver de OLIKA varden faller de bara om bada kan koras i samma
+            # scan. Det avgors lov for lov: varje skrivnings sokvagsvillkor, med
+            # mellanvariabler substituerade dar det ar sunt, provas parvis med
+            # SAT. M-121: sex av bankens 26 referenser folls har fast villkoren
+            # utesluter varandra (xAuto mot xHand genom SYS_AUTO), och en falsk
+            # rod kostar modellen ett reparationsvarv.
+            varden = set(lista[i].varde for i in villkorade)
             if not (len(varden) == 1 and None not in varden):
-                self.fel("DUBBELSKRIVNING", lista[villkorade[1]][1],
-                         "utgången %s skrivs på rad %d och rad %d, och båda kan "
-                         "köras i samma scan; lägg ihop villkoren till en enda "
-                         "skrivning"
-                         % (namn, lista[villkorade[0]][1],
-                            lista[villkorade[1]][1]))
+                konflikt = self._forsta_konflikt([lista[i] for i in villkorade])
+                if konflikt is not None:
+                    la, lb, vittne = konflikt
+                    self.fel("DUBBELSKRIVNING", lb.rad,
+                             "utgången %s skrivs på rad %d och rad %d, och båda kan "
+                             "köras i samma scan%s; lägg ihop villkoren till en "
+                             "enda skrivning"
+                             % (namn, la.rad, lb.rad, U.vittnestext(vittne)))
+
+    def _forsta_konflikt(self, bidrag):
+        """Forsta paret lov ur tva olika satser som skriver olika varden och
+        vars sokvagsvillkor kan vara sanna samtidigt. None om inget finns."""
+        for i in range(len(bidrag)):
+            for j in range(i + 1, len(bidrag)):
+                for la in bidrag[i].lov:
+                    for lb in bidrag[j].lov:
+                        if la.varde is not None and la.varde == lb.varde:
+                            continue
+                        kan, vittne = self._uteslutning.forenliga(
+                            la.villkor, lb.villkor,
+                            bidrag[i].miljo or {}, bidrag[j].miljo or {})
+                        if kan:
+                            return la, lb, vittne
+        return None
 
     @staticmethod
     def _literalvarde(uttryck):
@@ -953,56 +1053,85 @@ class Granskning(object):
             return (uttryck.typnamn or "", uttryck.varde)
         return None
 
-    def _bidrag(self, s: M.Sats) -> Dict[str, Tuple[bool, int, object]]:
+    def _bidrag(self, s: M.Sats, miljo) -> Dict[str, "Bidrag"]:
         if isinstance(s, M.Tilldelning):
             namn = self._utgangsnamn(s.mal)
             if not namn:
                 return {}
-            return {namn: (False, s.rad, self._literalvarde(s.uttryck))}
+            v = self._literalvarde(s.uttryck)
+            return {namn: Bidrag(False, s.rad, v, (Lov(True, s.rad, v),))}
         if isinstance(s, M.Anropssats):
             ut = {}
             for arg in s.anrop.argument:
                 if arg.ut:
                     namn = self._utgangsnamn(arg.uttryck)
                     if namn:
-                        ut[namn] = (False, arg.rad, None)
+                        ut[namn] = Bidrag(False, arg.rad, None,
+                                          (Lov(True, arg.rad, None),))
             return ut
         if isinstance(s, M.Om):
-            grenar = [self._sekvens(g.satser) for g in s.grenar]
+            pos = self._pos(s)
+            grenar = []
+            hittills = False
+            for g in s.grenar:
+                c = U.formel_av(g.villkor, pos)
+                grenar.append((self._sekvens(g.satser, miljo),
+                               U.och(c, U.icke(hittills))))
+                hittills = U.eller(hittills, c)
             har_annars = s.annars is not None
             if har_annars:
-                grenar.append(self._sekvens(s.annars))
+                grenar.append((self._sekvens(s.annars, miljo), U.icke(hittills)))
             return self._sla_ihop_grenar(grenar, har_annars)
         if isinstance(s, M.Fall):
-            grenar = [self._sekvens(g.satser) for g in s.grenar]
+            pos = self._pos(s)
+            grenar = []
+            hittills = False
+            for g in s.grenar:
+                c = U.fall_villkor(s.uttryck, g, pos)
+                grenar.append((self._sekvens(g.satser, miljo),
+                               U.och(c, U.icke(hittills))))
+                hittills = U.eller(hittills, c)
             har_annars = s.annars is not None
             if har_annars:
-                grenar.append(self._sekvens(s.annars))
+                grenar.append((self._sekvens(s.annars, miljo), U.icke(hittills)))
             return self._sla_ihop_grenar(grenar, har_annars)
         if isinstance(s, (M.ForSats, M.Medan, M.Upprepa)):
-            inre = self._sekvens(s.satser)
-            return dict((n, (True, rad, v)) for n, (_c, rad, v) in inre.items())
+            # En slinga kan kora noll ganger: villkorad, med ett villkor som
+            # ingen annan atom slas ihop med.
+            inre = self._sekvens(s.satser, miljo)
+            slinga = U.ogenomskinlig(self._pos(s))
+            return dict((n, Bidrag(True, b.rad, b.varde,
+                                   tuple(Lov(U.och(slinga, l.villkor), l.rad, l.varde)
+                                         for l in b.lov)))
+                        for n, b in inre.items())
         return {}
 
     @staticmethod
-    def _sla_ihop_grenar(grenar, har_annars) -> Dict[str, Tuple[bool, int]]:
+    def _sla_ihop_grenar(grenar, har_annars) -> Dict[str, "Bidrag"]:
         """Grenar utesluter varandra: två skrivningar i olika grenar är ingen
         dubbelskrivning. Ovillkorlig blir skrivningen bara om varje gren —
-        inklusive ELSE — skriver namnet ovillkorat."""
+        inklusive ELSE — skriver namnet ovillkorat.
+
+        `grenar` ar par (bidrag per namn, grenens villkor). Varje lov far
+        grenens villkor pahangt, sa att provet pa nivan ovanfor ser hela
+        sokvagen ner till skrivningen."""
         ut = {}
         alla = set()
-        for g in grenar:
+        for g, _v in grenar:
             alla |= set(g)
         for namn in alla:
-            poster = [g[namn] for g in grenar if namn in g]
-            rader = [p[1] for p in poster]
-            i_alla = har_annars and all(namn in g and not g[namn][0] for g in grenar)
+            poster = [g[namn] for g, _v in grenar if namn in g]
+            rader = [p.rad for p in poster]
+            i_alla = har_annars and all(namn in g and not g[namn].villkorad
+                                        for g, _v in grenar)
             # Vardet foljer med bara nar ALLA grenar skriver samma literal.
             # Skiljer de sig kan grenvalet avgora vardet, och da ar det inte
             # langre ett bevisbart ofarligt varde.
-            varden = set(p[2] for p in poster)
-            varde = poster[0][2] if len(varden) == 1 else None
-            ut[namn] = (not i_alla, min(rader), varde)
+            varden = set(p.varde for p in poster)
+            varde = poster[0].varde if len(varden) == 1 else None
+            lov = tuple(Lov(U.och(v, l.villkor), l.rad, l.varde)
+                        for g, v in grenar if namn in g for l in g[namn].lov)
+            ut[namn] = Bidrag(not i_alla, min(rader), varde, lov)
         return ut
 
     def _utgangsnamn(self, mal: M.Uttryck) -> Optional[str]:
