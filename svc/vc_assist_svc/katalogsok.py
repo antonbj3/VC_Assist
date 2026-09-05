@@ -340,10 +340,20 @@ class Katalog(object):
         # 3. Tillverkarledet last som TILLVERKARE och inte som en del av
         #    namnet. Det ar ett filter och inte ett bortstruket ord - en
         #    beteckning som bars av en ANNAN tillverkare traffar inte.
-        kn = normalisera(kvar)
-        steg.append((lambda namn, x=kn: x in normalisera(namn), tv,
+        #
+        #    Tva rungor och inte en, av samma skal som steg 1 kommer fore
+        #    steg 2: den RAKA delstrangen inom tillverkaren provas fore den
+        #    skiljeteckenslosa. MATT i M-161 att det behovs: "FANUC C4" har
+        #    ingen rak traff bland Fanuc, men "c4" ligger inne i
+        #    normaliserade "m710ic45m". Ordningen gor att den losare rungan
+        #    bara nas av det den strangare inte kunde ta.
+        steg.append((lambda namn, x=kvar.lower(): x in namn.lower(), tv,
                      "\"%s\" last som tillverkare, \"%s\" som namn"
                      % (tv, kvar)))
+        kn = normalisera(kvar)
+        steg.append((lambda namn, x=kn: x in normalisera(namn), tv,
+                     "\"%s\" last som tillverkare, \"%s\" som namn "
+                     "(skiljetecken utelamnade)" % (tv, kvar)))
 
         # 4. Efterstallda RENA BOKSTAVSORD slappta, ett i taget, sa lange
         #    minst ett sifferbarande ord star kvar. Banken skriver
