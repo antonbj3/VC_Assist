@@ -6,7 +6,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ## Mätningar utan ärlighetsavsnitt: 0
 
-## Vad mätningarna säger att de inte vet: 330 punkter
+## Vad mätningarna säger att de inte vet: 366 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -395,8 +395,13 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Om lådan beror på ställningen och på parametrarna.** Sannolikt ja för båda,
 * Om VC:s gränssnittsnamn är samma som filens.** Läsningen här är oprövad mot
 * De 75 flödesfälten med port 2–6.**
+* De 36 profiler som inte är snitt utan 3D-höljen.** Radien är största
+* Vad en `Custom`-led är.** Den är den vanligaste ledtypen, 13 806 av
+* Den sammansatta lådan för de 140 komponenter vars geometri har en helt
 * Om `Name` någonsin ligger efter byte 181** — M-58:s öppna rad står kvar,
-* Två tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
+* Vilken av de fyra läsningarna av "kategori" som en agent ska få.** Den här
+* Om delsträngssökningen efter familjemarkörer förblir ofarlig.** Noll
+* Tre tolkare av samma format.** `datablad.py` läser rotens variabelrymd med
 
 ### M-62_baslinjen.md — 12. Vad som INTE är prövat
 
@@ -424,6 +429,9 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Att `INGEN_MOTSAGELSE_FUNNEN` betyder att layouten går.** Det betyder att just
 * Att rasterstegen är rätt.** Tre steg är mätta över 81 körningar i **en**
 * Att bankvägen och fritextvägen ger samma detaljering.** De döms av samma
+* Att samtalet håller för en riktig operatör.** Två turer räcker i provet, med
+* inte mätt**, och det är samma oprövade yta som textläsningen — bara ett steg
+* Att `get_transform` svarar med exakt de tal `set_transform` fick.**
 * Att felen jag inte letade efter inte finns.** Mätningen jämförde spec mot kod.
 * 
 
@@ -466,6 +474,13 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * `41_ogat_kontrakt.md` beskriver v1** medan koden talar v2. Förslaget står
 * Windows.**
 
+### M-67_kopplingen_ar_logisk.md — Vad som INTE är visat
+
+* Andra gränssnittstyper.** Provet använder `VC_ONETOONEINTERFACE` med ett
+* Ett satt `DistanceTolerance`.** Avståndets roll är mätt bara vid förvalet.
+* Vad som händer vid `disconnect()`.** Provet kopplar och river komponenterna;
+* Om en produkt faktiskt går över kopplingen.** M-41 mätte flödet, men på en
+
 ### M-68_kod_utan_prov.md — Vad som INTE är mätt
 
 * Om proven faktiskt provar något.** Kriteriet är grovt: nämns modulens
@@ -506,15 +521,56 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Bara `getQuaternion()`.** `setQuaternion()` är inte prövad, och att läsa
 * Bara VC 4.10.**
 
-## Produktionsmoduler som ingen provfil nämner: 1 (143 rader)
+### M-75_vad_ett_spar_avslojar.md — Vad som INTE är mätt
 
-* `svc/vc_assist_svc/layout/vc_utdata.py` — 143 rader
+* Bara fyra uppgifter**, och alla fyra är våra egna. En riktig anläggnings
+* Grenräkningen är statisk.** Den räknar grenar i källan, inte vilka som
+* kördes**. Att mäta det kräver en instrumenterad tolk, och den finns inte.
+* Ingen rekonstruktion är försökt.** Mätningen säger vad spåret innehåller,
+* Inre tillstånd räknas ur ett regex** över referensens `steg`-tilldelningar
+
+### M-76_katalogposten_fanns_hela_tiden.md — Vad som INTE är mätt
+
+* Om de deklarerade fälten är sanna.** De är tillverkarens uppgift om sin egen
+* De 645 utan `Reach`.** Vilka de är och varför fältet saknas är inte
+* `Description` läses inte.** Den är hundratals ord bruksanvisning per
+* `ModelType`, `Author`, `Website`, `Email`, `Modified`** läses inte heller.
+
+### M-77_ett_lofte_utan_namn.md — Vad som INTE är mätt
+
+* Bara `.py`-filer** under `svc/`, `ext/`, `bank/` och `install/`. Löften i
+* Bara löften om prov.** Kommentarer som påstår att något är *mätt* utan att
+* Om de tre träffarna är alla.** Mönstret är smalt nu, och ett smalt mönster
+
+### M-78_modellen_mot_baslinjen.md — Vad talet INTE säger
+
+* Inte att modeller är sämre än regelmotorer.** Det säger att *den här*
+* Inte hur det går efter k varv.** Reparationsslingan finns (`M-52`) men
+* Inte ett fel per klass i statistisk mening.** Fyra uppgifter, åtta
+* Ingenting om andra modeller, andra promptar eller andra försök.**
+
+### M-78_modellen_mot_baslinjen.md — Vad som INTE är mätt
+
+* Bara de fyra uppgifter som har spårfacit.** Banken har 51.
+* Inget reparationsvarv.** Det är den enskilt största luckan: hela poängen med
+* Grind 4 kunde inte döma något.** Modellen ombads inte skriva scenkod, så
+* Ingen körning i VC.** Domen kommer ur vår egen ST-tolk, korsprövad mot
+* En enda modell, en enda prompt.** Formuleringen i uppgiftspaketet kan ha
+
+### M-79_dubbelskrivningen_hade_ratt.md — Vad som INTE är mätt
+
+* Bara fyra referenser.** Bankens 51 uppgifter har inte körts genom grind 2
+* Om det finns fler falska röda i regeln.** Skärpningen täcker literaler.
+* Om L-05:s referens borde ändras.** Den bryter mot vår egen grind 2, och det
+
+## Produktionsmoduler som ingen provfil nämner: 0 (0 rader)
+
 
 ## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 1 (135 rader)
 
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 103
+## Markörer i koden: 104
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -646,7 +702,8 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 ### enhet/test_bestallning.py
 
 * enhet/test_bestallning.py:14  slapper igenom det korrekta. En grind som bara provats at ena hallet ar oprovad
-* enhet/test_bestallning.py:1163  oprovad - och en oprovad grind ar en forhoppning som har fatt ett namn.
+* enhet/test_bestallning.py:1170  oprovad - och en oprovad grind ar en forhoppning som har fatt ett namn.
+* enhet/test_bestallning.py:1875  # (M-68 raknade den som helt oprovad.)
 
 ### enhet/test_dataverktyg.py
 

@@ -169,6 +169,21 @@ def test_hopfogningens_tak_bar_felet_ocksa_vid_VCs_tur_och_retur(tmp_path, paus_
     Det som provas ar TAKET: ogat bar nu kopplarens matta rtt_tak i serien
     som plc_hopfogning_s. Det talet ar bara vart nagot om felet d verkligen
     ligger inom det - at bada hallen - i varje varv.
+
+    OBSERVERAT 2026-09-05, EN GANG, EJ ATERSKAPAT. Fallet [0.005] foll en gang
+    i en full svitkorning. Darefter:
+
+        5 riktade korningar ensamt          alla grona
+        6 riktade korningar under CPU-last  alla grona
+        2 fulla sviter                      alla grona
+
+    Alltsa en gang pa tre fulla sviter och noll pa elva riktade. Jag antog forst
+    att provet var belastningskansligt - det mater vaggklocka med riktiga tradar
+    och sleep - men LASTPROVET MOTBEVISADE DET. Orsaken ar okand.
+
+    Raden star har for att en sallsynt slumpfallning ar varre an en vanlig: den
+    lar den som ser den att bortse fran provet. Aterkommer den ska den mätas,
+    inte tystas. Det som redan ar uteslutet: ren CPU-last.
     """
     import test_ogonkoppling as TO
 
