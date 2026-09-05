@@ -400,6 +400,51 @@ def test_inspelningen_bar_bara_signalkartan():
         assert set(r["varden"]) == set(SIGNALER)
 
 
+def test_tathet_andringar_ar_glesare_och_slapper_igenom_mer():
+    """MATT i M-89: en glesare avlasning slapper igenom verkliga fel.
+
+    Harleder man bara vid utsignalandringar star facit tyst mellan tva
+    andringar, och dar far koden gora vad den vill. Provet visar bada halvorna:
+    den glesa formen ar faktiskt glesare, och den tata faller ett program som
+    den glesa slapper igenom.
+    """
+    spar = spar_med_nodstopp()
+    tat = A.harled(spar, tathet="varje_rad")
+    gles = A.harled(spar, tathet="andringar")
+
+    def krav(h):
+        return sum(1 for s in h.facit["sekvenser"] for st in s["steg"] if st["krav"])
+    assert krav(tat) > krav(gles)
+
+    # En station som SLAPPER KLAMMAN FOR TIDIGT: den stiger i samma scan som
+    # originalet och faller i samma scan som givaren, sa flankantalet ar
+    # oforandrat och bada andringspunkterna stammer. Skillnaden ligger helt och
+    # hallet MELLAN dem, och det ar precis dar ett glest facit star tyst.
+    for_tidig = """
+PROGRAM Prov
+VAR
+    n : INT;
+END_VAR
+    IF NOT EMG_OK THEN
+        BAND := FALSE;
+        KLAMMA := FALSE;
+        n := 0;
+    ELSE
+        BAND := START;
+        IF DETALJ THEN
+            n := n + 1;
+        ELSE
+            n := 0;
+        END_IF;
+        KLAMMA := START AND DETALJ AND (n <= 5);
+    END_IF;
+END_PROGRAM
+"""
+    assert not D.dom(POST, for_tidig, spar=tat.facit).godkand
+    assert D.dom(POST, for_tidig, spar=gles.facit).godkand, (
+        "den glesa formen fangade det - da mater provet inte skillnaden")
+
+
 def test_harledningen_ar_deterministisk():
     """Samma inspelning ska ge samma facit, tecken for tecken.
 

@@ -83,8 +83,18 @@ PRODUKTIONSFONSTER = {
 # tusentals varv och sett exakt lika manga lagen som efter det forsta.
 UPPREPNINGAR = (1, 10)          # 70_faser.md, fas 18: "ett dygns spar".
 
+# Hur tatt det harledda facit laser av. Satts av --tathet och skickas vidare
+# till bank/anlaggning.harled. Se TATHETER dar for vad de tva betyder och
+# vilket fynd som gav dem.
+TATHET = ["varje_rad"]
+
 
 # ------------------------------------------------------------- inspelningen
+
+def harled_t(spar, standard=None):
+    """An.harled med korningens valda tathet, pa ETT stalle."""
+    return An.harled(spar, standard, tathet=TATHET[0])
+
 
 def _signalkarta(post):
     sig = dict((s["name"], str(s["type"]).lower())
@@ -144,7 +154,7 @@ def mat_en(post):
     alla = set(s["id"] for s in fs["sekvenser"])
 
     prov = spela_in(post, alla, 1, "provsparet (alla bankens sekvenser)")
-    h_prov = An.harled(prov)
+    h_prov = harled_t(prov)
     ut = {"task_id": tid, "produktionsfonster": prod_id,
           "provspar": {"rader": prov.antal_rader, "avsnitt": len(prov.avsnitt),
                        "avsnittskarta": prov.avsnittskarta},
@@ -171,7 +181,7 @@ def mat_en(post):
     for n in UPPREPNINGAR:
         prod = spela_in(post, {prod_id}, n, "produktionssparet x%d" % n)
         t = An.Tackning(prod)
-        h = An.harled(prod)
+        h = harled_t(prod)
         # Bankens EGNA handskrivna invarianter, provade mot produktionssparet.
         # Det ar fasens huvudfraga: bar den har inspelningen upp de pastaenden
         # nagon redan vet ar sanna?
@@ -200,7 +210,7 @@ def mat_en(post):
     ut["aterfunna"] = {
         "ur_provsparet": _aterfunna(post, h_prov.facit),
         "ur_produktionssparet": _aterfunna(
-            post, An.harled(spela_in(post, {prod_id}, UPPREPNINGAR[-1],
+            post, harled_t(spela_in(post, {prod_id}, UPPREPNINGAR[-1],
                                      "produktionssparet")).facit),
     }
     tomt = _tomt_program(post)
@@ -208,7 +218,7 @@ def mat_en(post):
         "handskrivet": not domare.dom(post, tomt).godkand,
         "ur_provsparet": not domare.dom(post, tomt, spar=h_prov.facit).godkand,
         "ur_produktionssparet": not domare.dom(
-            post, tomt, spar=An.harled(spela_in(
+            post, tomt, spar=harled_t(spela_in(
                 post, {prod_id}, UPPREPNINGAR[-1], "produktionssparet")).facit).godkand,
     }
     ut["motbevis"] = {
@@ -387,17 +397,28 @@ def brieftext(post, harlett, skelett):
     ut.append("")
     ut.append("`SATT` ar vad givarna gjorde. `AVLAST` ar vad utsignalerna stod")
     ut.append("pa vid den tidpunkten. Ingen rad ar en onskan - varje rad hande.")
+    ut.append("")
+    ut.append("Inspelningen ar tagen VARJE scan. Har visas bara de avlasningar")
+    ut.append("dar nagot andrade sig - **mellan tva rader stod utsignalerna")
+    ut.append("stilla hela tiden**, scan for scan, anda fram till nasta rad.")
     for sekv in f["sekvenser"]:
         ut.append("")
         ut.append("### %s" % sekv["id"])
         ut.append("")
         ut.append("```")
         ut.append("%8s  %-46s %s" % ("t_ms", "SATT", "AVLAST"))
+        forra_krav = None
         for st in sekv["steg"]:
             satt = " ".join("%s:=%s" % (k, _v(v))
                             for k, v in sorted((st["satt"] or {}).items()))
-            krav = " ".join("%s=%s" % (k, _v(v))
-                            for k, v in sorted((st["krav"] or {}).items()))
+            kravd = st["krav"] or {}
+            if kravd and kravd == forra_krav:
+                if not satt:
+                    continue
+                kravd = {}
+            elif kravd:
+                forra_krav = dict(kravd)
+            krav = " ".join("%s=%s" % (k, _v(v)) for k, v in sorted(kravd.items()))
             ut.append("%8g  %-46s %s" % (st["t_ms"], satt, krav))
         ut.append("```")
     ut.append("")
@@ -473,6 +494,8 @@ def main(argv=None):
                    default="provspar",
                    help="vilken inspelning briefen ska harledas ur")
     p.add_argument("--svar", help="katalog med en modells ST att doma")
+    p.add_argument("--tathet", choices=An.TATHETER, default="varje_rad",
+                   help="hur tatt det harledda facit laser av utsignalerna")
     p.add_argument("--varv", type=int, default=1,
                    help="vilket reparationsvarv svaren kommer fran")
     p.add_argument("--aterkoppling", action="store_true",
@@ -480,6 +503,7 @@ def main(argv=None):
                         "<svar>/<ID>_grinddom.md")
     a = p.parse_args(argv)
 
+    TATHET[0] = a.tathet
     poster = [u.data for u in lasare.ladda()
               if u.data.get("facit_spar") and u.data["task_id"] in PRODUKTIONSFONSTER]
     fas9 = _fas9()
@@ -499,7 +523,7 @@ def main(argv=None):
         alla.append(rad)
         if a.brief:
             if a.brief_ur == "produktion":
-                h = An.harled(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
+                h = harled_t(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
                                        UPPREPNINGAR[-1], "produktionssparet"))
             else:
                 h = h_prov
@@ -621,10 +645,10 @@ def main(argv=None):
         print("     det harledda facit. Ingen uppgiftstext, ingen referens.\n")
         for post, r in zip(poster, alla):
             if a.brief_ur == "produktion":
-                h = An.harled(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
+                h = harled_t(spela_in(post, {PRODUKTIONSFONSTER[post["task_id"]]},
                                        UPPREPNINGAR[-1], "produktionssparet"))
             else:
-                h = An.harled(spela_in(
+                h = harled_t(spela_in(
                     post, set(x["id"] for x in post["facit_spar"]["sekvenser"]),
                     1, "provsparet"))
             m = kor_modellsvar(post, h.facit, a.svar, fas9, index)

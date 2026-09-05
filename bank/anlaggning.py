@@ -410,7 +410,22 @@ def _invariant_ur_par(spar, tackning, A, a, B, b):
     }
 
 
-def _sekvens_ur_avsnitt(spar, avsnitt):
+# Hur tätt ett härlett facit läser av utsignalerna.
+#
+#   "varje_rad"   varje avläsning marginalregeln tillåter blir ett punktkrav.
+#   "andringar"   bara de avläsningar där utsignalvektorn ändrade sig.
+#
+# MÄTT i M-89, och det var inte en detalj: med "andringar" gick L-05:s
+# modellösning igenom det härledda facit och föll på bankens handskrivna, på
+# `nodstopp_kraver_kvittens@1800ms` — en robot som startade om efter nödstopp
+# utan kvittens. Mellan två ändringar i inspelningen stod facit tyst, och där
+# fick koden göra vad den ville. En inspelning ÄR varje rad, så tätheten
+# "varje_rad" är den trogna, och den glesa finns kvar bara för att brieftexten
+# ska gå att läsa.
+TATHETER = ("varje_rad", "andringar")
+
+
+def _sekvens_ur_avsnitt(spar, avsnitt, tathet="varje_rad"):
     """Ett avsnitt blir en sekvens: insignaländringarna och de utsignaler som
     faktiskt lästes av, aldrig något annat.
 
@@ -420,6 +435,8 @@ def _sekvens_ur_avsnitt(spar, avsnitt):
     värdet DÄR, inte det man hade velat se. Ett facit som flyttar ett värde
     bakåt i tiden är inte längre en inspelning.
     """
+    if tathet not in TATHETER:
+        raise Anlaggningsfel("okänd täthet %r" % (tathet,))
     ingangar = [n for n in spar.ingangar()]
     utgangar = [n for n in spar.utgangar()]
     steg = []
@@ -441,9 +458,9 @@ def _sekvens_ur_avsnitt(spar, avsnitt):
         ut = dict((n, r["varden"][n]) for n in utgangar)
         krav = {}
         marginal_ok = senaste_satt is None or (t - senaste_satt) >= marginal - 1e-9
-        if marginal_ok and (senast_pastadd is None or
-                            any(not _lika(senast_pastadd.get(n), ut[n])
-                                for n in utgangar)):
+        andrat = (senast_pastadd is None or
+                  any(not _lika(senast_pastadd.get(n), ut[n]) for n in utgangar))
+        if marginal_ok and (tathet == "varje_rad" or andrat):
             krav = ut
             senast_pastadd = dict(ut)
         if satt or krav:
@@ -515,7 +532,7 @@ class Harlett(object):
                                      len(self.ej_pastatt)))
 
 
-def harled(spar, standard=None):
+def harled(spar, standard=None, tathet="varje_rad"):
     """Härled ett spårfacit ur inspelningen. Formen är den domaren äter.
 
     Facit får därutöver två fält bankens schema inte känner: `tackning` och
@@ -526,7 +543,7 @@ def harled(spar, standard=None):
     en avläsning som redan har hänt.
     """
     tackning = Tackning(spar)
-    sekvenser = [_sekvens_ur_avsnitt(spar, a) for a in spar.avsnitt]
+    sekvenser = [_sekvens_ur_avsnitt(spar, a, tathet) for a in spar.avsnitt]
     flanker = []
     for a in spar.avsnitt:
         flanker.extend(_flanker_ur_avsnitt(spar, a))
@@ -570,6 +587,7 @@ def harled(spar, standard=None):
 
     facit = {
         "harledd": True,
+        "tathet": tathet,
         "harkomst": spar.harkomst,
         "standard": standard or ("inspelat I/O-spår; ingen publicerad "
                                  "tillståndsmodell åberopas"),
