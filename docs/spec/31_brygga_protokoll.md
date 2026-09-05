@@ -143,15 +143,27 @@ Post i kön:
 { "qid": "...", "desc": "...", "code": "...", "requested_at": "...", "state": "pending|approved|rejected|done|failed" }
 ```
 
-## Säkerhet
+## Säkerhet och tokenbeslut (E14)
 
-- Bindning endast till loopback.
-- Delad hemlighet skrivs av bryggan vid start till en fil i VC:s användarmapp
-  med restriktiva rättigheter. Tjänsten läser den. Fel token ⇒ `E_AUTH`,
-  anslutningen stängs.
-- Ingen sandlåda. `exec` kör godtycklig kod med VC:s rättigheter. Det är avsiktligt
-  och samma val som källprojektet — därför är loopback-bindningen och kön
-  de enda skydden, och de är obligatoriska.
+### Formellt beslut om autentisering och tokenhantering
+
+1. **Sluten loopback-bindning:**
+   Bryggan binder **uteslutande** till `127.0.0.1` (`pump.py:203`). Bindning till `0.0.0.0` eller externa nätverksgränssnitt är strikt förbjuden. Ingen extern maskin kan nå porten.
+
+2. **Session-unik slumpmässig token:**
+   Konstanten `plats.TOKEN = "vc_assist_token"` är **filnamnet**, inte token-strängen. Vid varje uppstart genererar bryggan en ny, kryptografiskt säker 24-byte (48 hexadecimala tecken) token via `os.urandom(24)` (`pump.py:221-227`). Inga fasta hemligheter eller standardtokens accepteras.
+
+3. **Filplacering och rättigheter:**
+   Tokenfilen skrivs i användarens privata profilmapp (`plats.anvandarmapp()`, `%USERPROFILE%` på Windows, `$HOME` på POSIX). Filen skapas med restriktiva rättigheter (`os.chmod(self.tokenfil, 0o600)`), vilket innebär att endast processer som körs under samma användarkonto kan läsa den.
+
+4. **Bindning före token-skrivning (M-44, F3):**
+   `Brygga.starta()` binder socketen **före** tokenfilen skrivs. Detta förhindrar att en andra brygginstans i samma process (t.ex. ur en sparad komponent) skriver över en levande bryggas token och gör den onåbar med `E_AUTH`.
+
+5. **Omedelbar avstängning vid fel:**
+   En begäran med felaktig eller saknad token avvisas omedelbart med felkod `E_AUTH`, och TCP-anslutningen stängs utan exekvering.
+
+6. **Ingen godtycklig skrivning utan kö (I12):**
+   Läsande anrop körs via `exec`, medan alla tillståndsförändrande och skrivande operationer tvingas genom godkännandekön (`exec_queue` och `queue_approve`). Detta ger djupförsvar även om en lokal process på samma användarkonto skulle läsa tokenfilen.
 
 ## Felkoder
 

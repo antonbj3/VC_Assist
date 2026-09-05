@@ -77,3 +77,17 @@ def test_avkoda_kraver_objekt_pa_toppnivan():
         P.avkoda(b"[1, 2, 3]")
     with pytest.raises(P.Ramfel):
         P.avkoda(b"inte json")
+
+
+def test_pump_genererar_slumpmassig_sessionstoken(tmp_path):
+    """E14: Token ar inte en fast strang utan slumpmassig per session."""
+    import pump
+    tfil = tmp_path / "vc_assist_token"
+    b = pump.Brygga(tokenfil=str(tfil))
+    b._skriv_token()
+    assert len(b.token) == 48
+    assert tfil.read_text().strip() == b.token
+    # Kontrollera att tva anrop ger OLIKA tokens
+    b2 = pump.Brygga(tokenfil=str(tmp_path / "t2"))
+    b2._skriv_token()
+    assert b.token != b2.token
