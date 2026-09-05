@@ -275,7 +275,7 @@ class Harness(object):
                                      verktygslista)
             if not isinstance(svar, Modellsvar):
                 raise Modellfel(
-                    "adaptern lamnade %s, inte ett Modellsvar"
+                    "the adapter returned %s, not a Modellsvar"
                     % type(svar).__name__)
 
             if svar.tomt:
