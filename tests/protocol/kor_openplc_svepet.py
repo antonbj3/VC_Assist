@@ -154,9 +154,23 @@ def lager_b_ett(post, kalla, klient, strucpp_paket, runtime_include,
 
 
 def klassificera(rad, STRANGARE, LATTARE):
+    """Klasser. EJ_KORD ar bara for fall dar en sida som BORDE ha korts inte
+    gjorde det (krasch, uppladdningsfel). Fall dar bada motor 1+2 avvisar har
+    inget att ladda upp - det ar ingen utebliven korning utan en tom fraga -
+    och de far egna klasser sa att de aldrig rapporteras som OVERENS men
+    inte heller som fel. Samma sak for LATTARE: frontenden avvisar fore
+    backend, sa runtimens dom ar entailed, inte matt."""
     namn = rad["namn"]
-    v, o = rad.get("var"), rad.get("openplc")
-    if v is None or o is None:
+    v, s, o = rad.get("var"), rad.get("strucpp"), rad.get("openplc")
+    if v is None or (o is None and s is None):
+        return "EJ_KORD"
+    if o is None:
+        if v is False and s is False:
+            return "TVAFALL"
+        if v is True and s is False:
+            return "LATTARE_OPROVAD"
+        if v is False and s is True:
+            return "STRANGARE_OPROVAD"
         return "EJ_KORD"
     if v == o:
         return "OVERENS"
@@ -281,7 +295,8 @@ def main(argv=None) -> int:
     print("klasser: %s" % json.dumps(klasser, sort_keys=True))
     for rad in sorted(rader.values(), key=lambda r: r["namn"]):
         if rad["klass"] not in ("OVERENS", "STRANGARE_BEKRAFTAD",
-                                "HAL_BEKRAFTAD"):
+                                "HAL_BEKRAFTAD", "TVAFALL",
+                                "LATTARE_OPROVAD", "STRANGARE_OPROVAD"):
             print("  %-36s %s" % (rad["namn"], rad["klass"]))
 
     if a.json:
