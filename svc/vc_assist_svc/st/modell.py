@@ -57,6 +57,13 @@ class Element(Uttryck):
 
 
 @dataclass(frozen=True)
+class Avreferering(Element):
+    """bas^ — dereferensiering av pekare (REF_TO)."""
+
+    index: Tuple[Uttryck, ...] = field(default=(), init=False)
+
+
+@dataclass(frozen=True)
 class Literal(Uttryck):
     """klass: HELTAL | REAL | BOOL | TID | STRANG.
 
@@ -70,6 +77,37 @@ class Literal(Uttryck):
     varde: object = None
     typnamn: Optional[str] = None       # INT#5 ger typnamn="INT"
     rad: int = _rad()
+
+
+@dataclass(frozen=True)
+class FaltinitElement:
+    """Ett element i en fältinitierare, antingen ett enkelt uttryck eller
+    en upprepningsform `antal(varde)`.
+    """
+
+    varde: Uttryck
+    antal: Optional[int] = None
+    rad: int = _rad()
+
+
+@dataclass(frozen=True)
+class Faltinit(Literal):
+    """Fältinitierare: `[1, 2, 3]` eller `[3(0)]` eller `[2(1), 3(0)]`.
+
+    Ärver från Literal för att passa i Uttryck och litteraltypskontrollen.
+    `element` innehåller de deklarerade fältinitierarelementen.
+    """
+
+    element: Tuple[FaltinitElement, ...] = ()
+    klass: str = "FALT"
+    text: str = ""
+    varde: object = None
+    typnamn: Optional[str] = None
+    rad: int = _rad()
+
+    def __post_init__(self):
+        if self.varde is None:
+            object.__setattr__(self, "varde", self.element)
 
 
 @dataclass(frozen=True)

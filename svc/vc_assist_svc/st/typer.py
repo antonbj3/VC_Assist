@@ -12,7 +12,7 @@ IEC 61131-3 (3:e utg.) tabell 10; mantissbredderna i IEEE 754-2008.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 
@@ -86,6 +86,20 @@ class Falt(Typ):
     def st(self) -> str:
         omr = ", ".join("%d..%d" % g for g in self.granser)
         return "ARRAY [%s] OF %s" % (omr, self.element.st())
+
+
+@dataclass(frozen=True)
+class Pekare(Falt):
+    """REF_TO typ — pekartyp i IEC 61131-3 (3:e utg.)."""
+
+    element: Typ
+    granser: Tuple[Tuple[int, int], ...] = field(default=(), init=False)
+
+    def __post_init__(self):
+        pass
+
+    def st(self) -> str:
+        return "REF_TO %s" % self.element.st()
 
 
 @dataclass(frozen=True)
@@ -192,6 +206,28 @@ def _heltalsliteral_ryms(varde: int, mal: Typ) -> Tuple[bool, str]:
     return False, "en heltalsliteral kan inte tilldelas %s" % mal.st()
 
 
+def _typ_av_init(u: object) -> Optional[Typ]:
+    if getattr(u, "typnamn", None):
+        return Elementar(getattr(u, "typnamn"))
+    klass = getattr(u, "klass", None)
+    if klass:
+        if klass == "BOOL":
+            return BOOL
+        if klass == "TID":
+            return TIME
+        return Literaltyp(klass, getattr(u, "varde", None))
+    if getattr(u, "op", None) and hasattr(u, "operand"):
+        op = getattr(u, "op")
+        sub = _typ_av_init(getattr(u, "operand"))
+        if op == "NOT":
+            return BOOL
+        if op == "-" and isinstance(sub, Literaltyp) and sub.klass in ("HELTAL", "REAL"):
+            varde = sub.varde
+            return Literaltyp(sub.klass, -varde if varde is not None else None)
+        return sub
+    return None
+
+
 def far_tilldelas(mal: Typ, kalla: Typ) -> Tuple[bool, str]:
     """Får ett värde av typen `kalla` skrivas till ett mål av typen `mal`?
 
@@ -199,6 +235,10 @@ def far_tilldelas(mal: Typ, kalla: Typ) -> Tuple[bool, str]:
     som hamnar i anmärkningen.
     """
     if isinstance(kalla, Literaltyp):
+        if kalla.klass == "NULL":
+            if isinstance(mal, Pekare):
+                return True, ""
+            return False, "NULL kan bara tilldelas REF_TO-typer, inte %s" % mal.st()
         if kalla.klass == "HELTAL":
             return _heltalsliteral_ryms(int(kalla.varde), mal)
         if kalla.klass == "REAL":
@@ -221,6 +261,27 @@ def far_tilldelas(mal: Typ, kalla: Typ) -> Tuple[bool, str]:
                 return False, ("strängliteralen är %d tecken, målet rymmer %d"
                                % (langd, mal.langd))
             return False, "en strängliteral kan inte tilldelas %s" % mal.st()
+        if kalla.klass == "FALT":
+            if not isinstance(mal, Falt):
+                return False, "en fältinitierare kan bara tilldelas ett fält, inte %s" % mal.st()
+            kapacitet = 1
+            for lo, hi in mal.granser:
+                kapacitet *= (hi - lo + 1)
+            element_lista = kalla.varde or ()
+            totalt_antal = 0
+            for elem in element_lista:
+                antal = elem.antal if elem.antal is not None else 1
+                totalt_antal += antal
+                elem_typ = _typ_av_init(elem.varde)
+                if elem_typ is None:
+                    return False, "ogiltigt uttryck i fältinitierare"
+                ok, skal = far_tilldelas(mal.element, elem_typ)
+                if not ok:
+                    return False, skal
+            if totalt_antal != kapacitet:
+                return False, ("fältet rymmer %d element men initieraren har %d"
+                               % (kapacitet, totalt_antal))
+            return True, ""
         return False, "okänd literalklass %s" % kalla.klass
 
     if isinstance(mal, Strang) and isinstance(kalla, Strang):
@@ -322,5 +383,7 @@ def nollvarde_text(t: Typ) -> str:
             return "0.0"
     if isinstance(t, Strang):
         return "''"
+    if isinstance(t, Pekare):
+        return "NULL"
     raise ValueError("vet inte hur %s nollas; utgången kan inte återställas säkert"
                      % t.st())
