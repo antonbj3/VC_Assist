@@ -757,3 +757,37 @@ def test_kommandoraden_visar_ett_enskilt_datablad(tmp_path, capsys):
     capsys.readouterr()
     assert D.main(["--rot", str(rot), "--visa", "6700", "--fullt"]) == 0
     assert "ledgranser" in capsys.readouterr().out
+
+
+def test_rPythonKinematics_med_artikulerade_namn_ger_HARLEDD_rackvidd(tmp_path):
+    """TRASIG FIXTUR. Kedjan kanns igen pa VARIABLERNA, inte pa typnamnet.
+
+    MATT 2026-09-05: av 509 robotar utan rackvidd bar 143 exakt de
+    artikulerade namnen L12X/L23Z/L34*/L45* men har blocktypen
+    rPythonKinematics - de definierar kinematiken i ett skript och behaller
+    kedjans namn. Att lasa typnamnet gjorde dem rackviddslosa fastan datan
+    fanns. Fore lagningen gav det har fallet SAKNAS.
+    """
+    rsc = robot_rsc().replace('Functionality "rKinArticulated2"',
+                              'Functionality "rPythonKinematics"')
+    b = D.las(skriv_vcmx(str(tmp_path / "py.vcmx"), rsc), "ABB")
+    v = b["rackvidd"]
+    assert v.harkomst == D.HARLEDD, v.kalla
+    assert abs(v.varde - 2723.9) < 0.2, "samma kedja ska ge samma tal"
+    assert "rPythonKinematics" in v.kalla, (
+        "kallan ska saga vilken blocktyp talet kom ur, inte pasta articulated")
+
+
+def test_rPythonKinematics_UTAN_lanklangder_saknar_fortfarande_rackvidd(tmp_path):
+    """Kontrollriktningen: lagningen far inte gora saknas till en gissning.
+
+    293 av de 509 har inga L-namn alls. De ska forbli SAKNAS.
+    """
+    rsc = robot_rsc().replace('Functionality "rKinArticulated2"',
+                              'Functionality "rPythonKinematics"')
+    for namn in ("L12X 350", "L23Z 1145"):
+        rsc = rsc.replace(namn, "RevolveOffset 12")
+    b = D.las(skriv_vcmx(str(tmp_path / "tom.vcmx"), rsc), "ABB")
+    v = b["rackvidd"]
+    assert v.harkomst == D.SAKNAS
+    assert "lanklangder" in v.kalla

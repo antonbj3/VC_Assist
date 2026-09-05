@@ -659,15 +659,26 @@ def _rackvidd(kin: Optional[Block], rotvar: Dict[str, Variabel]) -> Varde:
     def t(n):
         return _kin_tal(kin, rotvar, n)
 
-    if typ == "rKinArticulated2":
-        if t("L12X") is None or t("L23Z") is None:
+    # Kedjan kanns igen pa sina VARIABLER, inte pa blockets typnamn.
+    #
+    # MATT 2026-09-05: av de 509 robotar som saknade rackvidd bar 143 exakt de
+    # artikulerade namnen L12X/L23Z/L34*/L45* men har typen rPythonKinematics.
+    # De definierar sin kinematik i ett skript och behaller kedjans namn; den
+    # artikulerade formeln raknar dem korrekt. Att lasa typnamnet i stallet for
+    # variablerna gjorde 143 robotar rackviddslosa utan att datan saknades.
+    # Kvar star 293 utan L-namn alls (en annan kedjeform) och 73 med dem bara
+    # delvis - de forblir saknas, och det ar ratt.
+    artikulerad_kedja = t("L12X") is not None and t("L23Z") is not None
+    if typ == "rKinArticulated2" or artikulerad_kedja:
+        if not artikulerad_kedja:
             return saknas("rackvidd",
                           "rKinArticulated2 utan lanklangderna L12X/L23Z")
         delar = [t("L12X"), _hyp(t("L23X"), t("L23Z")),
                  _hyp(t("L34X"), t("L34Z")), _hyp(t("L45X"), t("L45Z"))]
-        formel = ("L12X+|L23|+|L34|+|L45| ur rKinArticulated2 (flanslanken L56 "
-                  "ar inte med, tillverkaren matter till handledscentrum); "
-                  "provad mot 386 modellnamn, median 1,001 (M-59)")
+        formel = ("L12X+|L23|+|L34|+|L45| ur den artikulerade kedjan "
+                  "(blocktyp %s; flanslanken L56 ar inte med, tillverkaren "
+                  "matter till handledscentrum); provad mot 386 modellnamn, "
+                  "median 1,001 (M-59)" % typ)
     elif typ == "rKinScara2":
         a, b = t("L12X"), t("L23X")
         if a is None or b is None:
