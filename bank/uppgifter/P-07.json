@@ -1,0 +1,1344 @@
+{
+  "task_id": "P-07",
+  "title": "Robotbetjanad excenterpress med ljusrida och muting",
+  "goal": "Lagga in platamnen i en excenterpress med robot, mata forbi ljusridan med en muting som kraver bada givarna, och halla pressen still sa fort den uppmatta stopptiden gor det raknade sakerhetsavstandet for kort.",
+  "grupp": "P",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar tre missar pa robotbetjanade pressar. Den forsta: mutingen kopplas pa en ensam givare, sa en platbit som blir liggande framfor givaren overbryggar ljusridan hur lange som helst - kravet pa tva oberoende signaler finns just for att en enda gar att lura. Den andra: sakerhetsavstandet raknas ur pressens katalogsiffra for bromstiden och stopptiden mats sedan aldrig i drift, sa en broms som gar trogare gor avstandet for kort utan att nagon far veta det. Den tredje, och den vanligaste: ljusridans signal tvingas hog i programmet nar den stoppar produktionen for ofta.",
+  "prompt": "Bygg en robotbetjanad excenterpress med ljusrida och muting, och skriv\nstyrningen till den.\n\nScen: en KUKA KR 10 R1100 med magnetgripdon for plat, en excenterpress med\noppen matzon, ett inmatningsband med bandbredden 400 mm, en sakerhetsklassad\nljusrida framfor matzonen och tva induktiva mutinggivare. Amnet ar en platbit\ni stal, 250 x 180 x 2 mm, som vager 0,71 kg. Robotens arbetsradie i cellen ar\n1050 mm.\n\nLjusridan har upplosningen 30 mm och ar monterad 688 mm fran narmaste\nriskpunkt. Det avstandet haller sa lange kedjans totala stopptid stannar\nunder 0,350 s, och i den tiden ligger pressens egen broms med 275 ms. Gar\nbromsen trogare racker inte 688 mm langre.\n\nUppgift, automatiken:\n1. Nar ST460_PRT_PRS ar hog: nollstall ST460_CNV_RUN och satt ST460_RB_START\n   hog. Nar inget amne ligger framme ska ST460_CNV_RUN vara hog och mata\n   fram nasta.\n2. Vid ST460_RB_DONE: nollstall ST460_RB_START.\n3. Nar ridan ar fri, ingen arm ar kvar i matzonen och ST460_PRS_TDC ar hog:\n   satt ST460_PRS_STROKE hog i 1,4 s och borja sedan om.\n\nUppgift, de fyra kraven som gor cellen driftsatt:\n* Mutingen. ST460_MUT_ON far bara vara hog nar BADA mutinggivarna\n  ST460_MUT_A och ST460_MUT_B ar hoga, och den ska upphora i samma scan som\n  nagon av dem faller. En ensam givare mutar ingenting.\n* Ridan. ST460_LGT_CLEAR lag utan giltig muting ar ett skyddsstopp: varje\n  don ska falla och cellen sta kvar tills nagon kvitterar.\n* Stopptiden. ST460_STP_TIME ar den uppmatta stopptiden i ms. Ligger den\n  utanfor 200,0 till 275,0 ms ska SYS_ALARM latchas och pressen sta still.\n  Over 275,0 ms racker inte de 688 mm ridan sitter pa; under 200,0 ms har\n  mataren inte fangat hela stoppet och vardet gar inte att rakna pa.\n* Kvitterad omstart. Efter spanningspaslag, efter nodstopp och efter ett\n  skyddsstopp kravs en stigande flank pa SYS_RESET innan nagot far ga. Att\n  nodstoppsdonet dras upp far ALDRIG i sig starta cellen.\n\nEMG_OK och ST460_LGT_CLEAR kommer fran en certifierad sakerhets-PLC och ska\nbara lasas. Din logik far aldrig skriva i dem och far inte innehalla nagon\nsakerhetsfunktion.\n\nTakttiden ar 6,0 s per platbit. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar\nvariablerna over OPC UA. Visual Components ar OPC UA-klient och mappar\nvariablerna mot simuleringsvariabler i scenen. VC kor ingen ST internt, sa\nallt som ska handa i scenen maste ga via en mappad OPC UA-variabel.\nSignalnamnen i kartan ar alltsa OPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F6",
+    "F9"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "mutingen kopplas pa en ensam givare, sa en kvarglomd platbit overbryggar ridan",
+    "mutingen latchas och slapper inte i samma scan som en givare faller",
+    "sakerhetsavstandet raknas ur pressens katalogsiffra i stallet for ur den uppmatta stopptiden",
+    "stopptiden lases aldrig i drift, sa en trog broms gor det raknade avstandet for kort",
+    "ljusridans signal tvingas hog i programmet nar den stoppar produktionen",
+    "ett aterstallt nodstopp startar cellen utan kvittens"
+  ],
+  "antaganden": [
+    {
+      "vad": "ljusridans upplosning",
+      "varde": "30 mm",
+      "motiv": "upplosningen ar den storhet C = 8*(d-14) raknas ur, och 30 mm ar en vanlig handskyddsupplosning for en matzon i den har storleken. Talet ar satt har och inte hamtat ur ett datablad for en namngiven rida"
+    },
+    {
+      "vad": "sakerhetsavstandet fran riskpunkten till detekteringsplanet",
+      "varde": "688 mm",
+      "motiv": "raknat med ISO 13855: 1600*0,350 + 128 = 688 mm. Det ar en rakning och inte ett matt i cellen, och den haller bara sa lange den uppmatta stopptiden ligger kvar under 275 ms"
+    },
+    {
+      "vad": "pressens bromstid",
+      "varde": "275 ms",
+      "motiv": "star som ANTAGEN i katalogindexet for excenterpressen. ISO 13855 raknar avstandet ur den UPPMATTA stopptiden, sa ett avstand raknat ur en katalogsiffra ar inget sakerhetsavstand forran stopptiden matts upp pa den verkliga pressen. Det ar darfor ST460_STP_TIME finns som signal i cellen"
+    },
+    {
+      "vad": "utgangsrelats bortfallstid i stoppkedjan",
+      "varde": "15 ms",
+      "motiv": "tiden fran att utgangen slapper till att pressens ventil ar bruten. Talet ar satt och ligger i det spann relakataloger brukar ange, men det ar inte hamtat ur ett datablad for ett namngivet rela"
+    },
+    {
+      "vad": "undre rimlighetsgransen for den uppmatta stopptiden",
+      "varde": "200,0 ms",
+      "motiv": "pressens egen broms ar angiven till 275 ms; ett uppmatt varde langt under det betyder att mataren inte fangat hela stoppet, inte att pressen blivit snabbare. Gransen ar satt och finns for att ett for kort matvarde ger ett for kort avstand"
+    },
+    {
+      "vad": "platamnets massa",
+      "varde": "0,71 kg",
+      "motiv": "raknad ur matten: 0,250 * 0,180 * 0,002 m3 * 7850 kg/m3 = 0,7065 kg. Densiteten ar standardvardet for konstruktionsstal, sa massan ar raknad ur geometrin och inte vagd"
+    },
+    {
+      "vad": "takttiden per platbit",
+      "varde": "6,0 s",
+      "motiv": "robotens in- och urtagning plus pressens 1,4 s slag ryms i sex sekunder for en KUKA KR 10 i den har storleken; talet ar satt och inte matt pa en verklig cell"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "platamne i stal",
+      "l_mm": 250,
+      "b_mm": 180,
+      "h_mm": 2,
+      "massa_kg": 0.71
+    },
+    "arbetsradie_mm": 1050.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Platamnen kommer med 6,0 s takt, roboten lagger in dem genom den mutade ridan och pressen slar sitt 1,4 s slag.",
+      "forvantat": "Ett slag per amne, mutingen hog bara nar bada givarna ar hoga, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "stopptid_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST460_STP_TIME",
+      "beskrivning": "ST460_STP_TIME rapporterar 180,0 ms, alltsa under den undre rimlighetsgransen 200,0 ms.",
+      "forvantat": "Ett matvarde langt under pressens egen bromstid betyder att mataren inte fangat hela stoppet. Styrningen ska larma och halla pressen still; ett for kort varde ger ett for kort avstand."
+    },
+    {
+      "id": "stopptid_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST460_STP_TIME",
+      "beskrivning": "ST460_STP_TIME stiger till 320,0 ms, alltsa over den stopptid 688 mm ar raknat for.",
+      "forvantat": "Vid 320 ms kraver ISO 13855 760 mm och ridan sitter pa 688 mm. Styrningen ska latcha larm och halla pressen still tills bromsen setts over och stopptiden matts om."
+    },
+    {
+      "id": "en_ensam_mutinggivare",
+      "typ": "vandning",
+      "signal": "ST460_MUT_B",
+      "beskrivning": "Bara ST460_MUT_A gar hog och ridan bryts; ST460_MUT_B kommer aldrig.",
+      "forvantat": "Mutingen ska sta lag och ridans brott ska bli ett skyddsstopp. En ensam givare gar att lura med en kvarglomd platbit och far darfor aldrig overbrygga ridan."
+    },
+    {
+      "id": "ridan_bryts_utan_muting",
+      "typ": "vandning",
+      "signal": "ST460_LGT_CLEAR",
+      "beskrivning": "ST460_LGT_CLEAR faller medan ingen giltig muting star ute, alltsa nagon har gatt in i matzonen.",
+      "forvantat": "Varje don ska falla i samma scan och cellen sta kvar tills nagon kvitterar. En aterstalld rida far aldrig starta cellen av sig sjalv."
+    },
+    {
+      "id": "nodstoppet_aterstalls",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "Nodstoppsdonet dras upp igen efter ett nodstopp mitt i en cykel.",
+      "forvantat": "Cellen ska sta kvar tills SYS_RESET fatt en stigande flank. Urkopplingen av nodstoppsdonet far mojliggora omstart men aldrig utfora den."
+    }
+  ],
+  "core_outputs": [
+    "ST460_PRS_STROKE",
+    "ST460_MUT_ON",
+    "ST460_RB_START",
+    "ST460_CNV_RUN",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/kuka_kr10_r1100",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/magnet_plat",
+        "count": 1
+      },
+      {
+        "role": "press",
+        "uri": "bank://station/excenterpress_630",
+        "count": 1
+      },
+      {
+        "role": "ljusrida",
+        "uri": "bank://givare/ljusridla",
+        "count": 1
+      },
+      {
+        "role": "mutinggivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 2
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "press"
+      },
+      {
+        "from_role": "ljusrida",
+        "to_role": "press"
+      },
+      {
+        "from_role": "mutinggivare",
+        "to_role": "ljusrida"
+      },
+      {
+        "from_role": "nodstopp",
+        "to_role": "press"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST460_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "platamne framme pa inmatningsbandet"
+      },
+      {
+        "name": "ST460_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor inmatningsbandet"
+      },
+      {
+        "name": "ST460_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens in- och urtagningscykel"
+      },
+      {
+        "name": "ST460_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten ute ur matzonen med amnet lagt i pressen"
+      },
+      {
+        "name": "ST460_MUT_A",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mutinggivare A, ser armen eller amnet i matzonen"
+      },
+      {
+        "name": "ST460_MUT_B",
+        "dir": "in",
+        "type": "bool",
+        "comment": "mutinggivare B, oberoende av A"
+      },
+      {
+        "name": "ST460_MUT_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "mutingen aktiv, ljusridan overbryggad"
+      },
+      {
+        "name": "ST460_LGT_CLEAR",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ljusridan obruten; ligger pa sakerhets-PLC och ar skrivskyddad"
+      },
+      {
+        "name": "ST460_PRS_STROKE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera pressens slag"
+      },
+      {
+        "name": "ST460_PRS_TDC",
+        "dir": "in",
+        "type": "bool",
+        "comment": "koppen i ovre lage"
+      },
+      {
+        "name": "ST460_STP_TIME",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt stopptid for pressen, ms"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "i automatlage utan amne framme: satt ST460_CNV_RUN hog",
+      "nar ST460_PRT_PRS ar hog: nollstall ST460_CNV_RUN och satt ST460_RB_START hog",
+      "vid ST460_RB_DONE: nollstall ST460_RB_START",
+      "nar ST460_LGT_CLEAR ar hog, ST460_MUT_ON ar lag och ST460_PRS_TDC ar hog: satt ST460_PRS_STROKE hog",
+      "slapp ST460_PRS_STROKE efter presstiden 1,4 s och borja om",
+      "satt ST460_MUT_ON hog bara nar bade ST460_MUT_A och ST460_MUT_B ar hoga, pa niva varje scan",
+      "latcha SYS_ALARM nar ST460_STP_TIME ligger utanfor 200,0 till 275,0 ms"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST460": 1.4
+      },
+      "cycle_s": 6.0,
+      "tolerance_s": 0.1
+    },
+    "interlocks": [
+      "ST460_PRS_STROKE far aldrig vara hog nar ST460_LGT_CLEAR ar lag och ST460_MUT_ON ar lag",
+      "ST460_MUT_ON far bara vara hog nar bade ST460_MUT_A och ST460_MUT_B ar hoga",
+      "ST460_MUT_ON ska falla i samma scan som nagon av mutinggivarna faller",
+      "ST460_PRS_STROKE far aldrig vara hog nar ST460_STP_TIME ligger over 275,0 ms",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "logiken far aldrig skriva i ST460_LGT_CLEAR eller EMG_OK"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 600.0,
+    "runs": 3,
+    "warmup_s": 30.0,
+    "must_pass": [
+      "TIMING",
+      "SEQUENCE",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 20.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST460_RB_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST460_PRS_STROKE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST460_PRS_STROKE -> press *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST460 *s req=1.4s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST460_PRS_STROKE+ST460_MUT_ON OK overlap=*s"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "COUNT * ST460_PRS_STROKE n=* max=* OK"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST arm+kopp *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST460_PRS_STROKE+ST460_MUT_ON dt=*ms"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST460_PRS_STROKE+ST460_MUT_ON BROKEN overlap=*s"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: sakerhetsavstandet ar raknat med ISO 13855:2010 5.2 \"Minimum distance\", S = K*T + C, for ett narmande vinkelratt mot detekteringsplanet enligt 6.2. Med ljusridans upplosning d = 30 mm blir C = 8*(30-14) = 128 mm. Den totala stopptiden ar summan av kedjans egna tider: ljusridan 20 ms, PLC:n 40 ms (tva scan, matt i M-20), utgangsreat 15 ms och pressens broms 275 ms = 0,350 s. Forsta rakningen med K = 2000 mm/s ger S = 2000*0,350 + 128 = 828 mm, vilket ar over 500 mm, sa avstandet raknas om med K = 1600 mm/s: S = 1600*0,350 + 128 = 688 mm, och 688 mm ligger over minimivardet 500 mm. Ljusridan monteras darfor 688 mm fran narmaste riskpunkt. Vid en uppmatt stopptid pa 320 ms blir samma rakning 1600*0,395 + 128 = 760 mm, alltsa mer an de 688 mm ridan sitter pa. Rakningen star i M-106.",
+    "standard": "ISO 13855:2010 5.2 \"Minimum distance\" (S = K*T + C) och 6.2 \"Detection zone orthogonal to the direction of approach\"; vardena K = 2000 respektive 1600 mm/s, minimivardet 500 mm och C = 8*(d-14) for d hogst 40 mm star i 6.2.3.1. OBS: ISO 13855:2010 ar ersatt av ISO 13855:2024, som ar omstrukturerad sa att varken 5.2, 6.2 eller beteckningen C overlever - facit citerar 2010-utgavan och sager det. Mutingens form foljer IEC 62046:2018 5.7 \"Muting\" (5.7.1 General, 5.7.2 Muting to allow access by persons, 5.7.3 Muting to allow access by materials, 5.7.4 Mute dependent override). Kravet pa tva oberoende mutingsignaler ligger som punktkrav inne i 5.7 och ar INTE en egen numrerad paragraf, och nagon normativ tidsgrans for muting har inte kunnat verifieras: de 4 s som cirkulerar star bara i den informativa bilagan D. IEC 62046:2018 ar dessutom tillbakadragen 2026-07-28 och ersatt av IEC 62046:2026 Ed. 2.0. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; TON och R_TRIG enligt IEC 61131-3:2013 6.6.3.5.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := ST460_STP_TIME >= 200.0 AND ST460_STP_TIME <= 275.0;\nIF ST460_STP_TIME > 275.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF ST460_STP_TIME > 0.0 AND ST460_STP_TIME < 200.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nST460_MUT_ON := EMG_OK AND AIR_OK AND SYS_AUTO AND ST460_MUT_A AND ST460_MUT_B\n                AND NOT xLarm AND NOT xKravOmstart;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK\n          AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanningspaslag med ett platamne redan framme och alla villkor uppfyllda. Ingenting far ga forran nagon kvitterat.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": true,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST460_CNV_RUN": false,
+              "ST460_RB_START": false,
+              "ST460_PRS_STROKE": false,
+              "ST460_MUT_ON": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; en cell som borjar mata och slar sa fort spanningen kommer tillbaka gor det med den som star kvar vid matzonen"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": true,
+              "ST460_CNV_RUN": false,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "forst den stigande flanken pa kvittensen slapper fram cellen, och da hamtar roboten det amne som redan ligger framme"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "ett_amne_i_automatlage",
+        "beskrivning": "Normalcykeln: bandet matar fram ett amne, roboten lagger in det genom den mutade ridan, drar sig ur och pressen slar sitt 1,4 s slag.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST460_CNV_RUN": true,
+              "ST460_RB_START": false,
+              "ST460_PRS_STROKE": false,
+              "ST460_MUT_ON": false
+            },
+            "varfor": "utan amne framme matar bandet fram nasta; ingenting annat ar kommenderat"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": true,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "bandet stannar nar amnet ar framme och roboten far sin cykel; ett band som gar vidare skjuter in nasta amne under gripdonet"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST460_MUT_A": true,
+              "ST460_MUT_B": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST460_LGT_CLEAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": true,
+              "ST460_PRS_STROKE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "bada mutinggivarna ser armen innan ridan bryts, sa mutingen ar giltig och armens egen passage stoppar inte cellen; pressen star still sa lange armen ar i zonen"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_LGT_CLEAR": true,
+              "ST460_RB_DONE": true,
+              "ST460_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": false,
+              "ST460_RB_START": false,
+              "ST460_PRS_STROKE": true
+            },
+            "varfor": "mutingen upphor i samma scan som givarna slapper, och forst med fri rida och tom zon far pressen sitt slag"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST460_PRS_STROKE": true
+            },
+            "varfor": "slaget halls hela presstiden 1,4 s; en puls som slapper tidigare lamnar koppen halvvags"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST460_PRS_STROKE": false,
+              "ST460_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter 1,4 s slapper slaget och bandet matar fram nasta amne"
+          }
+        ]
+      },
+      {
+        "id": "en_ensam_mutinggivare_mutar_inte",
+        "beskrivning": "Bara ST460_MUT_A gar hog - en platbit har blivit liggande framfor givaren - och sedan bryts ridan. Mutingen ar ogiltig och det ar ett skyddsstopp.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": true
+            },
+            "varfor": "cykeln har startat normalt innan mutingen provas"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST460_MUT_A": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": false
+            },
+            "varfor": "en ensam givare mutar ingenting; tva oberoende signaler ar hela poangen med muting och en enda gar att lura med en kvarglomd platbit"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST460_LGT_CLEAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": false,
+              "ST460_RB_START": false,
+              "ST460_PRS_STROKE": false,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "ridan bryts utan giltig muting, alltsa ett skyddsstopp: varje don faller"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST460_LGT_CLEAR": true,
+              "ST460_MUT_A": false,
+              "ST460_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "en aterstalld rida far inte starta cellen av sig sjalv; den som gick in ar kanske kvar"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST460_CNV_RUN": true,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "forst kvittensen tar cellen tillbaka i drift"
+          }
+        ]
+      },
+      {
+        "id": "mutingen_upphor_nar_en_givare_faller",
+        "beskrivning": "Giltig muting med bada givarna, sedan faller ST460_MUT_B medan ridan fortfarande ar bruten.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST460_MUT_A": true,
+              "ST460_MUT_B": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": true
+            },
+            "varfor": "bada givarna hoga ger giltig muting"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST460_LGT_CLEAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": true,
+              "SYS_ALARM": false,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "den giltiga mutingen overbryggar ridan under armens passage"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST460_MUT_B": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST460_MUT_ON": false,
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "mutingen upphor i samma scan som en givare faller, och da ar ridan bruten utan overbryggning: cellen stoppar. En muting som halls kvar tills nagot annat hander lamnar ridan overbryggad medan nagon gar in"
+          }
+        ]
+      },
+      {
+        "id": "stopptiden_for_lang",
+        "beskrivning": "Den uppmatta stopptiden stiger till 320,0 ms mitt i en cykel. Vid 320 ms kraver ISO 13855 760 mm och ridan sitter pa 688 mm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST460_STP_TIME": 320.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST460_PRS_STROKE": false,
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "med 320 ms uppmatt stopptid blir det raknade avstandet 1600*0,395 + 128 = 760 mm, alltsa mer an de 688 mm ridan sitter pa; avstandet racker inte langre och cellen ska sta"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST460_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST460_PRS_STROKE": false,
+              "SYS_ALARM": true
+            },
+            "varfor": "pressen far inte sla aven om roboten ar klar; det ar avstandet som inte racker, inte cykeln som ar ofardig"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST460_STP_TIME": 248.0,
+              "ST460_RB_DONE": false,
+              "ST460_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "ett latchat larm slapper inte for att matvardet kom tillbaka; bromsen ska ses over och stopptiden matas om"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST460_CNV_RUN": true,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "forst kvittensen tar bort larmet, och da matar bandet fram nasta amne"
+          }
+        ]
+      },
+      {
+        "id": "stopptiden_for_kort",
+        "beskrivning": "Stopptidsmataren rapporterar 180,0 ms, alltsa langt under pressens egen bromstid. Ett for kort matvarde ger ett for kort avstand.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 180.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false,
+              "ST460_PRS_STROKE": false
+            },
+            "varfor": "pressens egen broms ar angiven till 275 ms; 180 ms betyder att mataren inte fangat hela stoppet, inte att pressen blivit snabbare, och ett avstand raknat ur det vardet blir for kort"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST460_STP_TIME": 248.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST460_RB_START": true
+            },
+            "varfor": "med ett rimligt matvarde och en kvittens far cellen ga igen"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i en cykel, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST460_LGT_CLEAR": true,
+              "ST460_PRS_TDC": true,
+              "ST460_STP_TIME": 248.0,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false,
+              "ST460_PRT_PRS": false,
+              "ST460_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST460_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST460_MUT_A": true,
+              "ST460_MUT_B": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false,
+              "ST460_PRS_STROKE": false,
+              "ST460_MUT_ON": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan, mutingen inkluderad: en muting som lever kvar over ett nodstopp lamnar ridan overbryggad i den stund nagon gar in"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": true,
+              "ST460_MUT_A": false,
+              "ST460_MUT_B": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": false,
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta cellen; ISO 13850:2015 4.1.4 sager att urkopplingen bara ska mojliggora omstart, aldrig utfora den"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST460_RB_START": true
+            },
+            "varfor": "forst kvittensen far ta cellen tillbaka i drift"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "pressen_slar_aldrig_mot_en_obruten_muting",
+        "sekvens": "*",
+        "nar": {
+          "ST460_LGT_CLEAR": false,
+          "ST460_MUT_ON": false
+        },
+        "kraver": {
+          "ST460_PRS_STROKE": false
+        },
+        "varfor": "en bruten rida utan giltig muting betyder att nagot ar i matzonen; ett slag da ar precis det ridan ar monterad for att hindra"
+      },
+      {
+        "namn": "muting_kraver_givare_a",
+        "sekvens": "*",
+        "nar": {
+          "ST460_MUT_A": false
+        },
+        "kraver": {
+          "ST460_MUT_ON": false
+        },
+        "varfor": "mutingen vilar pa tva oberoende signaler; faller den ena ar overbryggningen inte langre motiverad av nagot som passerar"
+      },
+      {
+        "namn": "muting_kraver_givare_b",
+        "sekvens": "*",
+        "nar": {
+          "ST460_MUT_B": false
+        },
+        "kraver": {
+          "ST460_MUT_ON": false
+        },
+        "varfor": "samma krav at andra hallet; en ensam givare gar att lura med en kvarglomd platbit och da star ridan overbryggad hur lange som helst"
+      },
+      {
+        "namn": "pressen_slar_aldrig_med_for_lang_stopptid",
+        "sekvens": "*",
+        "nar": {
+          "ST460_STP_TIME": 320.0
+        },
+        "kraver": {
+          "ST460_PRS_STROKE": false,
+          "SYS_ALARM": true
+        },
+        "varfor": "vid 320 ms uppmatt stopptid kraver ISO 13855 760 mm och ridan sitter pa 688 mm; avstandet ar da inte langre ett sakerhetsavstand"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST460_PRS_STROKE": false,
+          "ST460_RB_START": false,
+          "ST460_CNV_RUN": false,
+          "ST460_MUT_ON": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den, och mutingen far inte overleva nodstoppet"
+      },
+      {
+        "namn": "larm_stoppar_pressen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST460_PRS_STROKE": false,
+          "ST460_RB_START": false
+        },
+        "varfor": "ett larm som lamnar pressen och roboten i rorelse ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ett_slag_per_amne",
+        "sekvens": "ett_amne_i_automatlage",
+        "signal": "ST460_PRS_STROKE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "ett amne ska ge exakt ett slag; tva betyder att slaget kommenderas pa niva och pressen slar mot en tom kopp"
+      },
+      {
+        "namn": "en_mutingperiod_per_inmatning",
+        "sekvens": "ett_amne_i_automatlage",
+        "signal": "ST460_MUT_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "armens enda passage ger en enda mutingperiod; fler betyder att mutingen flimrar och overbryggar ridan i skov"
+      },
+      {
+        "namn": "mutingen_slapper_nar_givaren_faller",
+        "sekvens": "mutingen_upphor_nar_en_givare_faller",
+        "signal": "ST460_MUT_ON",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 1200,
+        "antal": 1,
+        "varfor": "mutingen ska falla en gang, i samma scan som givaren; noll fallande flanker betyder att den ar latchad"
+      },
+      {
+        "namn": "inget_slag_med_for_lang_stopptid",
+        "sekvens": "stopptiden_for_lang",
+        "signal": "ST460_PRS_STROKE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1900,
+        "antal": 0,
+        "varfor": "med 320 ms uppmatt stopptid far pressen inte sla en enda gang; avstandet ridan sitter pa ar raknat for hogst 275 ms"
+      },
+      {
+        "namn": "inget_slag_med_for_kort_stopptid",
+        "sekvens": "stopptiden_for_kort",
+        "signal": "ST460_PRS_STROKE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1200,
+        "antal": 0,
+        "varfor": "ett matvarde som inte gar att lita pa far inte bara ett slag; avstandet ar bara sa bra som stopptiden det raknats ur"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "mutingen_pa_en_ensam_givare",
+        "st": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := ST460_STP_TIME >= 200.0 AND ST460_STP_TIME <= 275.0;\nIF ST460_STP_TIME > 275.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF ST460_STP_TIME > 0.0 AND ST460_STP_TIME < 200.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nST460_MUT_ON := EMG_OK AND AIR_OK AND SYS_AUTO\n                AND (ST460_MUT_A OR ST460_MUT_B)\n                AND NOT xLarm AND NOT xKravOmstart;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK\n          AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Mutingen slas pa av ETT hogt givarvarde i stallet for av bada. Cellen kor felfritt sa lange roboten passerar bada givarna, och blir farlig forsta gangen en platbit blir liggande framfor den ena: da star ridan overbryggad hur lange som helst.",
+        "faller_pa": [
+          "invariant:muting_kraver_givare_b@en_ensam_mutinggivare_mutar_inte",
+          "en_ensam_mutinggivare_mutar_inte@700ms:ST460_MUT_ON"
+        ]
+      },
+      {
+        "namn": "mutingen_latchas",
+        "st": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := ST460_STP_TIME >= 200.0 AND ST460_STP_TIME <= 275.0;\nIF ST460_STP_TIME > 275.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF ST460_STP_TIME > 0.0 AND ST460_STP_TIME < 200.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nIF EMG_OK AND AIR_OK AND SYS_AUTO AND ST460_MUT_A AND ST460_MUT_B\n   AND NOT xLarm AND NOT xKravOmstart THEN\n    ST460_MUT_ON := TRUE;\nEND_IF;\nIF NOT EMG_OK OR NOT SYS_AUTO OR ST460_PRS_STROKE THEN\n    ST460_MUT_ON := FALSE;\nEND_IF;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK\n          AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Mutingen satts pa givarna men nollstalls forst av nasta pressslag. Den ser riktig ut i en provkorning dar armen gar rakt igenom, och lamnar ridan overbryggad sa fort en givare faller ifran med armen kvar i zonen.",
+        "faller_pa": [
+          "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+          "flank:mutingen_slapper_nar_givaren_faller",
+          "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller"
+        ]
+      },
+      {
+        "namn": "stopptiden_lases_aldrig",
+        "st": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := TRUE;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nST460_MUT_ON := EMG_OK AND AIR_OK AND SYS_AUTO AND ST460_MUT_A AND ST460_MUT_B\n                AND NOT xLarm AND NOT xKravOmstart;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK\n          AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Sakerhetsavstandet ar raknat en gang vid driftsattningen och stopptiden lases sedan aldrig i drift. En broms som gar trogare gor de 688 mm for korta utan att nagon far veta det, och signalen ST460_STP_TIME ligger dar oanvand.",
+        "faller_pa": [
+          "stopptiden_for_lang@700ms:SYS_ALARM",
+          "stopptiden_for_kort@600ms:SYS_ALARM",
+          "flank:inget_slag_med_for_lang_stopptid",
+          "invariant:pressen_slar_aldrig_med_for_lang_stopptid@stopptiden_for_lang"
+        ]
+      },
+      {
+        "namn": "ridans_signal_tvingas_hog_i_koden",
+        "st": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := ST460_STP_TIME >= 200.0 AND ST460_STP_TIME <= 275.0;\nIF ST460_STP_TIME > 275.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF ST460_STP_TIME > 0.0 AND ST460_STP_TIME < 200.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nST460_MUT_ON := EMG_OK AND AIR_OK AND SYS_AUTO AND ST460_MUT_A AND ST460_MUT_B\n                AND NOT xLarm AND NOT xKravOmstart;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\n(* Ridan stor produktionen, sa biten tvingas hog i programmet. *)\nST460_LGT_CLEAR := TRUE;\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK\n          AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Ridan stoppade produktionen for ofta, sa biten ST460_LGT_CLEAR skrivs hog i programmet. Cellen gar sedan felfritt i veckor och ridan ar en lampa pa vaggen. Att skriva i en signal som kommer fran sakerhets-PLC:n ar inte en genvag utan en borttagen skyddsfunktion.",
+        "faller_pa": [
+          "tolkfel:kallstart_utan_sjalvstart"
+        ]
+      },
+      {
+        "namn": "aterstallt_nodstopp_startar_cellen",
+        "st": "PROGRAM ST460_PRESSBETJANING\nVAR\n    steg         : INT := 0;\n    trigReset    : R_TRIG;\n    tmrPress     : TON;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\n    xStopptidOK  : BOOL := FALSE;\n    xRidaOK      : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\ntmrPress(IN := ST460_PRS_STROKE, PT := T#1400ms);\n\n(* Ett brutet nodstopp staller ut omstartskvittensen. Att donet dras upp igen\n   far aldrig i sig starta cellen. *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Den uppmatta stopptiden ar den storhet hela sakerhetsavstandet ar raknat ur.\n   Over 275,0 ms racker inte de 688 mm ridan sitter pa. Under 200,0 ms har\n   mataren inte fangat hela stoppet, och ett for kort varde ger ett for kort\n   avstand. Bada fallen ar larm. *)\nxStopptidOK := ST460_STP_TIME >= 200.0 AND ST460_STP_TIME <= 275.0;\nIF ST460_STP_TIME > 275.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF ST460_STP_TIME > 0.0 AND ST460_STP_TIME < 200.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Mutingen kraver BADA givarna och lases pa niva varje scan. En ensam givare\n   mutar ingenting, och mutingen upphor i samma scan som en givare faller. *)\nST460_MUT_ON := EMG_OK AND AIR_OK AND SYS_AUTO AND ST460_MUT_A AND ST460_MUT_B\n                AND NOT xLarm AND NOT xKravOmstart;\n\n(* Ridan ar overbryggad bara av en giltig muting. Bryts den utan muting ar det\n   ett skyddsstopp som kraver kvittens. *)\nxRidaOK := ST460_LGT_CLEAR OR ST460_MUT_ON;\nIF NOT xRidaOK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK AND AIR_OK AND xRidaOK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND AIR_OK AND SYS_AUTO AND xRidaOK AND NOT xLarm;\n\nIF xDrift THEN\n    CASE steg OF\n        0:\n            ST460_PRS_STROKE := FALSE;\n            IF ST460_PRT_PRS THEN\n                ST460_CNV_RUN := FALSE;\n                ST460_RB_START := TRUE;\n                steg := 1;\n            ELSE\n                ST460_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            IF ST460_RB_DONE THEN\n                ST460_RB_START := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Slaget kraver fri rida, ingen arm kvar i zonen, koppen i ovre\n               lage och en uppmatt stopptid som avstandet haller for. *)\n            IF ST460_LGT_CLEAR AND NOT ST460_MUT_ON AND ST460_PRS_TDC\n               AND xStopptidOK THEN\n                ST460_PRS_STROKE := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPress.Q THEN\n                ST460_PRS_STROKE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nELSE\n    ST460_PRS_STROKE := FALSE;\n    ST460_RB_START := FALSE;\n    ST460_CNV_RUN := FALSE;\n    steg := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret laser bara nodstoppskretsen och larmet, inte omstartskvittensen. Cellen startar i samma stund nagon drar upp nodstoppsdonet, och den som drar upp det star vid pressen.",
+        "faller_pa": [
+          "kallstart_utan_sjalvstart@200ms:ST460_RB_START",
+          "nodstopp_kraver_kvittens@1200ms:ST460_RB_START",
+          "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_CNV_RUN"
+        ]
+      }
+    ]
+  }
+}
