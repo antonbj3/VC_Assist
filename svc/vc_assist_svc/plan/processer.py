@@ -70,7 +70,7 @@ class Process(object):
             problem.append("processen bar ingen harkomst; en process ingen "
                            "bett om ar en process vi hittat pa")
         if problem:
-            raise Specfel("processen %r" % (id,), problem)
+            raise Specfel("the process %r" % (id,), problem)
 
     def __repr__(self):
         return "Process(%s)" % self.id
@@ -105,7 +105,7 @@ class Ordningskrav(object):
         if not isinstance(harkomst, Harkomst):
             problem.append("ordningskravet bar ingen harkomst")
         if problem:
-            raise Specfel("ordningskravet %s fore %s" % (fore, efter), problem)
+            raise Specfel("the ordering requirement %s before %s" % (fore, efter), problem)
 
     def __repr__(self):
         return "Ordningskrav(%s fore %s)" % (self.fore, self.efter)
@@ -157,7 +157,7 @@ class Processordning(object):
             if not isinstance(k, Ordningskrav):
                 problem.append("%r ar inget Ordningskrav" % (k,))
         if problem:
-            raise Specfel("processordningen", problem)
+            raise Specfel("the process order", problem)
 
     def __len__(self):
         return len(self.processer)
@@ -176,7 +176,7 @@ class Processordning(object):
         for p in self.processer:
             if p.id == id:
                 return p
-        raise Specfel("processordningen", ["ingen process heter %r" % (id,)])
+        raise Specfel("the process order", ["no process is named %r" % (id,)])
 
     # -- kanterna ---------------------------------------------------------
 
