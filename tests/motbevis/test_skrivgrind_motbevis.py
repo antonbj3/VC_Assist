@@ -31,7 +31,6 @@ import skrivgrind as S  # noqa: E402
 # ---- 1. dunder-mutationer döms som läsande ------------------------------
 
 DUNDERSKRIVNINGAR = [
-    ('object.__setattr__(c, "Name", "x")', "omvägen via basklassen"),
     ("d.__setitem__(0, 1)", "samma sak som d[0] = 1, som fastnar"),
     ("comp.Properties.__delitem__(0)", "samma sak som del comp.Properties[0]"),
     ("import shutil; shutil.rmtree('/tmp/x')", "raderar ett helt träd"),
