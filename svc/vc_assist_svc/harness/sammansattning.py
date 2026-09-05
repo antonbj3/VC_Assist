@@ -87,7 +87,7 @@ STANDARDBUDGET = 12000    # 45_verktyg.md, promptens utrymme
 def budget_ur_tokentak(tokentak: int) -> int:
     """Tokentak -> teckenbudget. ANTAGET, se TECKEN_PER_TOKEN."""
     if tokentak < 1:
-        raise Budgetfel("tokentaket %r ar inte ett tak" % (tokentak,))
+        raise Budgetfel("the token cap %r is not a cap" % (tokentak,))
     return int(tokentak * TECKEN_PER_TOKEN)
 
 
@@ -177,10 +177,10 @@ def bygg_systemprompt(korpus: Korpus, budget: int = STANDARDBUDGET,
     """
     golvproblem = granska_golv(korpus)
     if golvproblem:
-        raise Budgetfel("korpusen och kodens kapgolv star mot varandra: %s"
+        raise Budgetfel("the corpus and the code's cut floor conflict: %s"
                         % "; ".join(golvproblem))
     if budget < 1:
-        raise Budgetfel("budgeten %r ar ingen budget" % (budget,))
+        raise Budgetfel("the budget %r is not a budget" % (budget,))
 
     behall = {b.id: len(b.regler) for b in korpus.block}
     kapade: List[str] = []
