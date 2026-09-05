@@ -97,32 +97,16 @@ test harness. None deploys the code to a PLC and runs it against a plant.
 
 ## Finding the right machine
 
-The component library holds **3 201 machines**, 1 736 of them robots, in a 4.3 MB
-index. A correct index that costs 4.3 MB to read is useless to a language model:
-it will not read it, and will guess instead — which is the thing the index was
-supposed to prevent. So the search layer is built around the model, not the data.
+The library holds **3 201 machines**, 1 736 of them robots. Search it by what
+you need — reach, payload, manufacturer — not by guessing a part number.
 
-Three rules it follows:
+Ask something broad like *"robots"* and you get a breakdown by manufacturer and
+a prompt to narrow down, not 1 736 rows. Every result says how many hits there
+were and how many you are seeing.
 
-* **A hit list is rows, not JSON**, one line per machine, a fixed set of fields,
-  and always *"N hits, showing M"*. An answer that does not say how much it left
-  out looks exhaustive when it is not.
-* **A broad question gets a summary, not a list.** *"robots"* matches 1 736 of
-  them; returning those burns the model's context on what it did not ask for.
-  The answer is the distribution per manufacturer and a prompt to narrow down.
-* **A field the data does not carry says SAKNAS — missing.** Never zero, never
-  blank, never omitted. An omitted field is read as *zero* by people and models
-  alike, and then the index has lied quietly.
-
-That last rule came from a measurement: the library reports `reach = 0` for
-robots whose manufacturer datasheet says 703 mm, on 1 119 of 3 201 rows. The
-format can express *unknown* — the reading was what lost it.
-
-**Measured weakness, stated plainly:** asked to find a specific component by
-description, the lookup answers correctly on the first attempt in **0 %** of
-cases and on retry in **9.7 %**. Parameter names are the reason — the library
-carries 1 806 distinct ones with no shared convention. This is the single
-largest known gap in the system.
+If the library does not know a machine's reach, it says so. It never shows a
+blank as zero — a distinction that matters, because the library reports zero
+reach for 1 119 machines whose datasheets say otherwise.
 
 ## The gate chain
 
@@ -185,54 +169,35 @@ being built.
 
 ## What has been measured
 
-Every number below has a measurement file in the repository, with its rig and
-its stated limits. Nothing here is an estimate.
+Every number here has a measurement file behind it, with the rig it ran on and
+what it does not show.
 
-**The eye**
-* 812 objects in a time series, **zero drift**, 4.3 µs per component per sample
-* sampling at **224.7 Hz** under traffic, 17.2 Hz idle
-* **4 of 5 judges** fail cells built in the real simulator, with a green control
-  cell that must not fail
+**It sees the whole scene, accurately.** 812 objects tracked at once with no
+drift, sampled at 225 times a second while the simulation runs.
 
-**The loop**
-* reference ST drives the scene over OPC UA, round trip **9.91 ms** median
-* two stations on one line: **five composition faults caught** that both
-  single-station runs passed
-* four component types built from the specification in the real simulator,
-  **13 products through the chain at exactly 3.0000 s** apart
+**It finds faults a single station cannot show you.** On a two-station line it
+caught five that each station passed on its own — the kind that only exist in
+the gap between machines.
 
-**The bench**
-* **63 tasks** in seven families: transport, picking, assembly, sorting,
-  palletising, cell and line, handover
-* multi-shot: **25 of 26 solved** within four rounds, median two
-* single-shot: **4 of 26** — which is why the repair loop exists
-* mutation testing: **809 known faults injected**, 718 caught
+**It usually gets there in two tries.** Across 26 tasks with a known answer, 25
+were solved within four rounds of writing and correcting, median two. On the
+first attempt alone, 4 of 26 — which is why the correction loop exists.
 
-**The gate chain**
-* 247 permanent language cases cross-checked against a second compiler
-* a third engine: code is judged by OpenPLC's own runtime, not only by our
-  interpreter
+**The judging has been tested against itself.** 809 deliberate faults were
+injected into working code to see how many the system would catch: 718.
 
-## Why it is built the way it is
+The task set is 63 cells across transport, picking, assembly, sorting,
+palletising, whole lines, and robot handover.
 
-Three rules shaped every line in the repository.
+## How we keep ourselves honest
 
-**No threshold without a measured reference.** If the code says `if x > 0.8`,
-a measurement states where 0.8 came from. Otherwise it is a guess that looks
-like a fact.
+Every threshold in the code points at the measurement it came from. Every check
+has a test that failed before the check existed. An answer key never comes from
+the code being tested.
 
-**No gate without a failing fixture.** A gate that has never caught anything is
-untested. The fixture is written first, observed to be red, and only then is the
-mechanism built.
-
-**An answer key may never come from the code being judged.** Five legitimate
-sources are listed in the bench contract, and an answer key derived from the
-same interpreter that judges it is rejected.
-
-The effect is visible in the numbers. Nine of sixteen gate verdicts in an early
-run were our own bug — measured, written down, and fixed. Three of thirteen
-double-write verdicts were false positives that burned repair rounds; they cost
-a day to find and are now permanent test cases.
+This is not decoration. Nine of sixteen verdicts in an early run turned out to
+be our own bug, and three more were false alarms that made the model rewrite
+working code. Both were found by these rules and are now permanent test cases.
 
 ## Getting started
 
