@@ -3,7 +3,289 @@
   "lage": "historik",
   "forhandsregler": true,
   "max_varv": 4,
-  "resultat": [],
-  "lost": 0,
+  "bank_vid_start": [
+    "S-06",
+    "S-07",
+    "T-01",
+    "T-02",
+    "T-04",
+    "T-05",
+    "T-08",
+    "T-09"
+  ],
+  "resultat": [
+    {
+      "uppgift": "S-06",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 30900,
+      "tokens_ut": 2339,
+      "sekunder": 286.6,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 17 brister, 4064 scan\n  [normalcykel_tatt_hus@9200ms:ST500_VLV_MEAS/F5] ST500_VLV_MEAS skulle vara 1 men var 0. stabiliseringen ar klar och matfonstret ar oppet; bara matventilen\n  [normalcykel_tatt_hus@18000ms:ST500_VLV_MEAS/F5] ST500_VLV_MEAS skulle vara 1 men var 0. mattiden"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\ntmrKlamma(IN:=(steg = 1), PT:=T#2s);\ntmrFyll(IN:=(steg = 2), PT:=T#3s);\ntmrStab(IN:=(steg = 3), PT:=T#5s);\ntmrMat(IN:=(steg = 4), PT:=T#10s);\ntmrAvluft(IN:=(steg = 5), PT:=T#1s);\ntmrUtskjut(IN:=(steg = 7), PT:=T#1s);\nxKravOmstart := (xKravOmstart OR NOT EMG_OK) AND NOT (trigReset.Q AND EMG_OK);\nxDriftsklar := NOT xKravOmstart AND NOT xLarm AND SYS_AUTO AND EMG_OK;\nIF trigReset.Q AND EMG_OK THEN\n  xLarm := FALSE;\nELSIF (steg = 1 AND tmrKlamma.Q AND NOT ST500_CLP_CLOSED) OR ((steg = 3 OR steg = 4) AND (ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0)) OR (steg = 4 AND tmrMat.Q AND ST500_TST_DP <= 0.0) THEN\n  xLarm := TRUE;\nEND_IF;\nxTrycksatt := (steg >= 2) AND (steg <= 5);\nCASE steg OF\n  0:\n    IF ST500_PEC_PART AND xDriftsklar AND AIR_OK AND NOT xLarm THEN\n      steg := 1;\n    END_IF;\n  1:\n    IF ST500_CLP_CLOSED AND xDriftsklar AND NOT xLarm THEN\n      steg := 2;\n    END_IF;\n  2:\n    IF tmrFyll.Q AND xDriftsklar AND NOT xLarm THEN\n      steg := 3;\n    END_IF;\n  3:\n    IF tmrStab.Q AND xDriftsklar AND NOT xLarm THEN\n      steg := 4;\n    END_IF;\n  4:\n    IF tmrMat.Q THEN\n      IF ST500_TST_DP <= 0.0 THEN\n        xKassera := FALSE;\n      ELSIF ST500_TST_DP > 1.5 THEN\n        xKassera := TRUE;\n      ELSE\n        xKassera := FALSE;\n      END_IF;\n      steg := 5;\n    END_IF;\n  5:\n    IF tmrAvluft.Q THEN\n      steg := 6;\n    END_IF;\n  6:\n    IF NOT xLarm THEN\n      IF xKassera THEN\n        IF ST500_PSH_HOME AND AIR_OK THEN\n          steg := 7;\n        END_IF;\n      ELSE\n        steg := 8;\n      END_IF;\n    END_IF;\n  7:\n    IF tmrUtskjut.Q THEN\n      steg := 8;\n    END_IF;\n  8:\n    IF NOT ST500_PEC_PART THEN\n      xKassera := FALSE;\n      steg := 0;\n    END_IF;\n  ELSE\n    steg := 0;\nEND_CASE;\nST500_CNV_RUN := ((steg = 0) OR (steg = 6) OR (steg = 8)) AND xDriftsklar AND NOT xLarm AND EMG_OK AND SYS_AUTO;\nST500_CLP_CLOSE := ((steg >= 1) AND (steg <= 5)) OR xTrycksatt;\nST500_VLV_FILL := (steg = 2) AND xDriftsklar AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT ST500_VLV_VENT;\nST500_VLV_MEAS := (steg = 4) AND tmrStab.Q AND xDriftsklar AND EMG_OK AND AIR_OK AND NOT xLarm;\nST500_VLV_VENT := (steg = 5) AND EMG_OK AND xDriftsklar AND NOT xLarm AND NOT ST500_VLV_FILL;\nST500_TST_OK := ((steg = 5) OR (steg = 6) OR (steg = 8)) AND NOT xKassera AND NOT xLarm AND xDriftsklar AND EMG_OK;\nST500_PSH_REJ := (steg = 7) AND AIR_OK AND (ST500_PSH_HOME OR ST500_PSH_REJ) AND xDriftsklar AND EMG_OK AND NOT xLarm;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\ntmrKlamma(IN:=(steg = 1), PT:=T#2s);\ntmrFyll(IN:=(steg = 2), PT:=T#3s);\ntmrStab(IN:=(steg = 3), PT:=T#5s);\ntmrMat(IN:=(steg = 4), PT:=T#10s);\ntmrAvluft(IN:=((steg = 5) OR (steg = 10)), PT:=T#1s);\ntmrUtskjut(IN:=(steg = 7), PT:=T#1s);\nxKravOmstart := (xKravOmstart OR NOT EMG_OK) AND NOT (trigReset.Q AND EMG_OK);\nxDriftsklar := NOT xKravOmstart AND NOT xLarm AND SYS_AUTO AND EMG_OK;\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\nxLarm := FALSE;\nELSIF (steg = 1 AND tmrKlamma.Q AND NOT ST500_CLP_CLOSED) OR (steg = 2 AND ST500_TST_PRS > 330.0) OR (steg = 2 AND tmrFyll.Q AND (ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0)) OR (steg = 3 AND (ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0)) OR (steg = 4 AND (ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0)) OR (steg = 4 AND tmrMat.Q AND ST500_TST_DP <= 0.0) THEN\nxLarm := TRUE;\nEND_IF;\nIF NOT EMG_OK THEN\nsteg := 0;\nxKassera := FALSE;\nELSE\nCASE steg OF\n0:\nIF ST500_PEC_PART AND xDriftsklar AND AIR_OK AND NOT xLarm THEN\nsteg := 1;\nEND_IF;\n1:\nIF steg = 1 AND tmrKlamma.Q AND NOT ST500_CLP_CLOSED THEN\nsteg := 9;\nELSIF ST500_CLP_CLOSED AND xDriftsklar AND NOT xLarm THEN\nsteg := 2;\nEND_IF;\n2:\nIF ST500_TST_PRS > 330.0 THEN\nsteg := 10;\nELSIF tmrFyll.Q THEN\nIF ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0 THEN\nsteg := 10;\nELSIF xDriftsklar AND NOT xLarm THEN\nsteg := 3;\nEND_IF;\nEND_IF;\n3:\nIF ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0 THEN\nsteg := 10;\nELSIF tmrStab.Q AND xDriftsklar AND NOT xLarm THEN\nsteg := 4;\nEND_IF;\n4:\nIF ST500_TST_PRS < 270.0 OR ST500_TST_PRS > 330.0 THEN\nsteg := 10;\nELSIF tmrMat.Q THEN\nIF ST500_TST_DP <= 0.0 THEN\nxKassera := FALSE;\nELSIF ST500_TST_DP > 1.5 THEN\nxKassera := TRUE;\nELSE\nxKassera := FALSE;\nEND_IF;\nsteg := 5;\nEND_IF;\n5:\nIF tmrAvluft.Q THEN\nsteg := 6;\nEND_IF;\n6:\nIF xKassera THEN\nIF ST500_PSH_HOME AND AIR_OK THEN\nsteg := 7;\nEND_IF;\nELSE\nsteg := 8;\nEND_IF;\n7:\nIF tmrUtskjut.Q THEN\nsteg := 8;\nEND_IF;\n8:\nIF NOT ST500_PEC_PART THEN\nxKassera := FALSE;\nsteg := 0;\nEND_IF;\n9:\nIF NOT xLarm AND NOT ST500_PEC_PART THEN\nxKassera := FALSE;\nsteg := 0;\nEND_IF;\n10:\nIF tmrAvluft.Q THEN\nsteg := 11;\nEND_IF;\n11:\nIF NOT xLarm AND NOT ST500_PEC_PART THEN\nxKassera := FALSE;\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nEND_IF;\nxTrycksatt := ((steg = 2) OR (steg = 3) OR (steg = 4) OR (steg = 5) OR (steg = 10));\nST500_CNV_RUN := ((steg = 0 AND NOT ST500_PEC_PART) OR (steg = 6 AND NOT xKassera) OR (steg = 8)) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nST500_CLP_CLOSE := ((steg = 1) OR xTrycksatt) AND EMG_OK AND NOT xKravOmstart;\nST500_VLV_FILL := (steg = 2) AND EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm AND NOT ST500_VLV_VENT;\nST500_VLV_MEAS := (steg = 4) AND EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nST500_VLV_VENT := ((steg = 5) OR (steg = 10)) AND EMG_OK AND NOT xKravOmstart AND NOT ST500_VLV_FILL;\nST500_TST_OK := ((steg = 5) OR (steg = 6) OR (steg = 8)) AND NOT xKassera AND NOT xLarm AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart;\nST500_PSH_REJ := (steg = 7) AND EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "S-07",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 3,
+      "varv_till_lost": 3,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 3,
+      "kostnad_usd": 0.0,
+      "tokens_in": 48337,
+      "tokens_ut": 2175,
+      "sekunder": 201.7,
+      "domar_per_varv": [
+        [
+          "EJ GODKAND\n  rad 106: [ARGUMENT/F2] cntUnder har ingen ingång som heter RESET"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 2 brister, 758 scan\n  [lasningen_uteblir_tidsvakt@1600ms:ST510_SCN_TRIG/F5] ST510_SCN_TRIG skulle vara 0 men var 1. 0,68 s efter triggningen har lasningen uteblivit. Kartongen far inte passera olast utan ska skjutas ut till kassation; en kartong utan verifierad etikett ar en ka"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\ntrigPart(CLK:=ST510_PEC_PART);\ntrigDone(CLK:=ST510_SCN_DONE);\nIF NOT EMG_OK THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := NOT xKravOmstart AND EMG_OK AND SYS_AUTO AND NOT xLarm;\nIF trigDone.Q THEN\nxLasklar := TRUE;\nELSIF trigPart.Q THEN\nxLasklar := FALSE;\nEND_IF;\ntmrLas(IN:=(steg = 3), PT:=T#2s);\nIF xKravOmstart OR NOT EMG_OK OR xLarm THEN\nsteg := 0;\nELSE\nCASE steg OF\n0:\nIF trigPart.Q AND xDriftsklar AND ST510_PSH_HOME THEN\nsteg := 1;\nEND_IF;\n1:\nIF ST510_PRN_READY AND xDriftsklar THEN\nsteg := 2;\nEND_IF;\n2:\nIF ST510_LBL_APPLIED THEN\nsteg := 3;\nEND_IF;\n3:\nIF trigDone.Q THEN\nsteg := 4;\nELSIF tmrLas.Q THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xLasklar THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE > 4.0 THEN\nxOgiltig := TRUE;\nxUnderkand := FALSE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE < 1.5 THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSE\nxOgiltig := FALSE;\nxUnderkand := FALSE;\nxGodkand := TRUE;\nEND_IF;\nIF xGodkand THEN\nsteg := 0;\nELSE\nsteg := 5;\nEND_IF;\n5:\nIF NOT ST510_PSH_HOME THEN\nsteg := 6;\nEND_IF;\n6:\nIF ST510_PSH_HOME THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\ncntUnder(CU:=(steg = 5) AND xUnderkand, RESET:=xGodkand OR (trigReset.Q AND EMG_OK), PV:=3);\nIF trigReset.Q AND EMG_OK THEN\nxLarm := FALSE;\nELSIF cntUnder.Q OR xOgiltig THEN\nxLarm := TRUE;\nEND_IF;\nST510_LBL_PRINT := (steg = 1) AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_APPLY;\nST510_LBL_APPLY := (steg = 2) AND ST510_PRN_READY AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_PRINT;\nST510_SCN_TRIG := (steg = 3) AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_PSH_REJ := (steg = 5) AND AIR_OK AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_CNV_RUN := xDriftsklar AND EMG_OK AND NOT xLarm AND SYS_AUTO;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\ntrigPart(CLK:=ST510_PEC_PART);\ntrigDone(CLK:=ST510_SCN_DONE);\nIF NOT EMG_OK THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := NOT xKravOmstart AND EMG_OK AND SYS_AUTO AND NOT xLarm;\nIF trigDone.Q THEN\nxLasklar := TRUE;\nELSIF trigPart.Q THEN\nxLasklar := FALSE;\nEND_IF;\ntmrLas(IN:=(steg = 3), PT:=T#2s);\nIF xKravOmstart OR NOT EMG_OK OR xLarm THEN\nsteg := 0;\nELSE\nCASE steg OF\n0:\nIF trigPart.Q AND xDriftsklar AND ST510_PSH_HOME THEN\nsteg := 1;\nEND_IF;\n1:\nIF ST510_PRN_READY AND xDriftsklar THEN\nsteg := 2;\nEND_IF;\n2:\nIF ST510_LBL_APPLIED THEN\nsteg := 3;\nEND_IF;\n3:\nIF trigDone.Q THEN\nsteg := 4;\nELSIF tmrLas.Q THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xLasklar THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE > 4.0 THEN\nxOgiltig := TRUE;\nxUnderkand := FALSE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE < 1.5 THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSE\nxOgiltig := FALSE;\nxUnderkand := FALSE;\nxGodkand := TRUE;\nEND_IF;\nIF xGodkand THEN\nsteg := 0;\nELSE\nsteg := 5;\nEND_IF;\n5:\nIF NOT ST510_PSH_HOME THEN\nsteg := 6;\nEND_IF;\n6:\nIF ST510_PSH_HOME THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\ncntUnder(CU:=(steg = 5) AND xUnderkand, R:=xGodkand OR (trigReset.Q AND EMG_OK), PV:=3);\nIF trigReset.Q AND EMG_OK THEN\nxLarm := FALSE;\nELSIF cntUnder.Q OR xOgiltig THEN\nxLarm := TRUE;\nEND_IF;\nST510_LBL_PRINT := (steg = 1) AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_APPLY;\nST510_LBL_APPLY := (steg = 2) AND ST510_PRN_READY AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_PRINT;\nST510_SCN_TRIG := (steg = 3) AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_PSH_REJ := (steg = 5) AND AIR_OK AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_CNV_RUN := xDriftsklar AND EMG_OK AND NOT xLarm AND SYS_AUTO;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\ntrigPart(CLK:=ST510_PEC_PART);\ntrigDone(CLK:=ST510_SCN_DONE);\nIF NOT EMG_OK THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := NOT xKravOmstart AND EMG_OK AND SYS_AUTO AND NOT xLarm;\nIF trigDone.Q THEN\nxLasklar := TRUE;\nELSIF trigPart.Q THEN\nxLasklar := FALSE;\nEND_IF;\ntmrLas(IN:=(steg = 3), PT:=T#500ms);\nIF xKravOmstart OR NOT EMG_OK OR xLarm THEN\nsteg := 0;\nELSE\nCASE steg OF\n0:\nIF trigPart.Q AND xDriftsklar AND ST510_PSH_HOME THEN\nsteg := 1;\nEND_IF;\n1:\nIF ST510_PRN_READY AND xDriftsklar THEN\nsteg := 2;\nEND_IF;\n2:\nIF ST510_LBL_APPLIED THEN\nsteg := 3;\nEND_IF;\n3:\nIF trigDone.Q THEN\nsteg := 4;\nELSIF tmrLas.Q THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xLasklar THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE > 4.0 THEN\nxOgiltig := TRUE;\nxUnderkand := FALSE;\nxGodkand := FALSE;\nELSIF ST510_SCN_GRADE < 1.5 THEN\nxOgiltig := FALSE;\nxUnderkand := TRUE;\nxGodkand := FALSE;\nELSE\nxOgiltig := FALSE;\nxUnderkand := FALSE;\nxGodkand := TRUE;\nEND_IF;\nIF xGodkand THEN\nsteg := 0;\nELSE\nsteg := 5;\nEND_IF;\n5:\nIF NOT ST510_PSH_HOME THEN\nsteg := 6;\nEND_IF;\n6:\nIF ST510_PSH_HOME THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\ncntUnder(CU:=(steg = 5) AND xUnderkand, R:=xGodkand OR (trigReset.Q AND EMG_OK), PV:=3);\nIF trigReset.Q AND EMG_OK THEN\nxLarm := FALSE;\nELSIF cntUnder.Q OR xOgiltig THEN\nxLarm := TRUE;\nEND_IF;\nST510_LBL_PRINT := (steg = 1) AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_APPLY;\nST510_LBL_APPLY := (steg = 2) AND ST510_PRN_READY AND xDriftsklar AND EMG_OK AND NOT xLarm AND NOT ST510_LBL_PRINT;\nST510_SCN_TRIG := (steg = 3) AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_PSH_REJ := (steg = 5) AND AIR_OK AND xDriftsklar AND EMG_OK AND NOT xLarm;\nST510_CNV_RUN := xDriftsklar AND EMG_OK AND NOT xLarm AND SYS_AUTO;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-01",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 15920,
+      "tokens_ut": 780,
+      "sekunder": 179.2,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 15 brister, 677 scan\n  [en_burk_en_oppning@860ms:ST010_STP_OPEN/F5] ST010_STP_OPEN skulle vara 1 men var 0. 0,46 s efter flanken har uppehallet 0,40 s lopt ut och grinden ska ha oppnat; bandet gar hela tiden\n  [en_burk_en_oppning@1300ms:ST010_STP_OPEN/F5] ST010_STP_OPEN skulle "
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigPec(CLK:=ST010_PEC_PART);\nxFartOK := ST010_CNV_SPD >= 0.4 AND ST010_CNV_SPD <= 0.6;\nxVantarAndlage := (steg = 30) AND NOT ST010_STP_OPENED;\ntmrUppehall(IN:=(steg = 20), PT:=T#400ms);\ntmrAndlage(IN:=xVantarAndlage OR ((steg = 50) AND ST010_STP_OPENED), PT:=T#500ms);\ntmrOppen(IN:=(steg = 40), PT:=T#300ms);\nxUppehall := tmrUppehall.Q;\nxBurkenUt := tmrOppen.Q;\nxLagesfel := tmrAndlage.Q;\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSE\nCASE steg OF\n0:\nIF trigPec.Q THEN\nsteg := 10;\nEND_IF;\n10:\nIF NOT ST010_PEC_PART THEN\nsteg := 20;\nEND_IF;\n20:\nIF xUppehall THEN\nsteg := 30;\nEND_IF;\n30:\nIF ST010_STP_OPENED THEN\nsteg := 40;\nEND_IF;\n40:\nIF xBurkenUt THEN\nsteg := 50;\nEND_IF;\n50:\nIF NOT ST010_STP_OPENED THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nEND_IF;\nST010_CNV_RUN := EMG_OK AND AIR_OK AND NOT xLagesfel;\nST010_STP_OPEN := (steg = 30) OR (steg = 40);\n",
+        "trigPec(CLK:=ST010_PEC_PART);\nxFartOK := ST010_CNV_SPD >= 0.2 AND ST010_CNV_SPD <= 0.8;\nxVantarAndlage := (steg = 30) AND NOT ST010_STP_OPENED;\ntmrUppehall(IN:=(steg = 20), PT:=T#400ms);\ntmrAndlage(IN:=xVantarAndlage OR ((steg = 50) AND ST010_STP_OPENED), PT:=T#1s);\ntmrOppen(IN:=(steg = 40), PT:=T#300ms);\nxUppehall := tmrUppehall.Q;\nxBurkenUt := tmrOppen.Q;\nIF tmrAndlage.Q THEN\nxLagesfel := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSE\nCASE steg OF\n0:\nIF trigPec.Q THEN\nsteg := 20;\nEND_IF;\n20:\nIF xUppehall THEN\nsteg := 30;\nEND_IF;\n30:\nIF ST010_STP_OPENED THEN\nsteg := 40;\nEND_IF;\n40:\nIF xBurkenUt THEN\nsteg := 50;\nEND_IF;\n50:\nIF NOT ST010_STP_OPENED THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nEND_IF;\nST010_CNV_RUN := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\nST010_STP_OPEN := (steg = 30) OR (steg = 40);\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-02",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 3,
+      "varv_till_lost": 3,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 3,
+      "kostnad_usd": 0.0,
+      "tokens_in": 46416,
+      "tokens_ut": 1870,
+      "sekunder": 703.3,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 24 brister, 730 scan\n  [en_cykel@320ms:ST020_IDX_START/F5] ST020_IDX_START skulle vara 1 men var 0. indexordern star kvar medan mataren drar bandet, och forslutningen far inte ga ner pa ett band i rorelse; hemlagesgivaren stod hog i tre scan efter indexstart och en niva last da"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 2 brister, 730 scan\n  [nodstopp_kraver_manuell_aterstallning@1200ms:ST020_IDX_START/F5] ST020_IDX_START skulle vara 0 men var 1. att nodstoppsdonet dras upp ar ingen startorder; aterstallning ska vara en avsiktlig manuell handling och maskinen star kvar tills nagon gor den\n  [f"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "(* index feeder then seal with dwell *)\nxTempfel := ST020_SEA_TEMP < 0.0 OR ST020_SEA_TEMP > 300.0;\ntrigAuto(CLK := SYS_AUTO AND EMG_OK);\ntrigHome(CLK := ST020_IDX_HOME);\nxVantarDone := (steg = 30) OR (steg = 40);\ntmrUppehall(IN := (steg = 30) OR (steg = 40), PT := T#900ms);\ntmrKvittens(IN := xVantarDone AND NOT ST020_SEA_DONE, PT := T#2s);\nIF tmrKvittens.Q THEN\nxTidsfel := TRUE;\nELSIF NOT SYS_AUTO THEN\nxTidsfel := FALSE;\nEND_IF;\nIF NOT EMG_OK OR xTempfel OR xTidsfel THEN\nxKravOmstart := TRUE;\nELSIF trigAuto.Q AND EMG_OK AND NOT xTempfel AND NOT xTidsfel THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := SYS_AUTO AND EMG_OK AND NOT xTempfel AND NOT xTidsfel AND NOT xKravOmstart;\nCASE steg OF\n0:\nIF xDriftsklar AND ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\n10:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF NOT ST020_IDX_HOME THEN\nsteg := 12;\nEND_IF;\n12:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF trigHome.Q AND ST020_IDX_HOME THEN\nsteg := 30;\nEND_IF;\n30:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF tmrUppehall.Q AND ST020_IDX_HOME THEN\nsteg := 40;\nEND_IF;\n40:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST020_IDX_START := (((steg = 10) AND ST020_SEA_DONE) OR (steg = 12)) AND NOT ((steg = 30) OR (steg = 40)) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel;\nST020_SEA_CLOSE := ((steg = 30) OR (steg = 40)) AND NOT ((steg = 10) OR (steg = 12)) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel AND ST020_IDX_HOME;\n",
+        "xTempfel := ST020_SEA_TEMP < 150.0 OR ST020_SEA_TEMP > 200.0;\ntrigAuto(CLK := SYS_AUTO AND EMG_OK);\ntrigHome(CLK := ST020_IDX_HOME);\nxVantarDone := (steg = 30);\ntmrUppehall(IN := (steg = 30), PT := T#900ms);\ntmrKvittens(IN := xVantarDone AND NOT ST020_SEA_DONE, PT := T#3s);\nIF tmrKvittens.Q THEN\nxTidsfel := TRUE;\nELSIF NOT SYS_AUTO THEN\nxTidsfel := FALSE;\nEND_IF;\nIF NOT EMG_OK OR xTidsfel THEN\nxKravOmstart := TRUE;\nELSIF trigAuto.Q AND EMG_OK AND NOT xTidsfel THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := SYS_AUTO AND EMG_OK AND NOT xTempfel AND NOT xTidsfel AND NOT xKravOmstart;\nCASE steg OF\n0:\nIF xDriftsklar AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\n10:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF NOT ST020_IDX_HOME THEN\nsteg := 12;\nEND_IF;\n12:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF trigHome.Q AND ST020_IDX_HOME THEN\nsteg := 30;\nEND_IF;\n30:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF tmrUppehall.Q AND ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 40;\nEND_IF;\n40:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF NOT ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST020_IDX_START := ((steg = 10) OR (steg = 12)) AND NOT (steg = 30) AND NOT (steg = 40) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel;\nST020_SEA_CLOSE := (steg = 30) AND NOT (steg = 10) AND NOT (steg = 12) AND NOT (steg = 40) AND ST020_IDX_HOME AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel;\n",
+        "xTempfel := ST020_SEA_TEMP < 150.0 OR ST020_SEA_TEMP > 200.0;\ntrigAuto(CLK := SYS_AUTO);\ntrigHome(CLK := ST020_IDX_HOME);\nxVantarDone := (steg = 30);\ntmrUppehall(IN := (steg = 30), PT := T#900ms);\ntmrKvittens(IN := xVantarDone AND NOT ST020_SEA_DONE, PT := T#3s);\nIF tmrKvittens.Q THEN\nxTidsfel := TRUE;\nELSIF NOT SYS_AUTO THEN\nxTidsfel := FALSE;\nEND_IF;\nIF NOT EMG_OK OR xTidsfel THEN\nxKravOmstart := TRUE;\nELSIF trigAuto.Q AND EMG_OK AND NOT xTidsfel THEN\nxKravOmstart := FALSE;\nEND_IF;\nxDriftsklar := SYS_AUTO AND EMG_OK AND NOT xTempfel AND NOT xTidsfel AND NOT xKravOmstart;\nCASE steg OF\n0:\nIF xDriftsklar AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\n10:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF NOT ST020_IDX_HOME THEN\nsteg := 12;\nEND_IF;\n12:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF trigHome.Q AND ST020_IDX_HOME THEN\nsteg := 30;\nEND_IF;\n30:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF tmrUppehall.Q AND ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 40;\nEND_IF;\n40:\nIF NOT EMG_OK OR NOT SYS_AUTO OR xTempfel OR xTidsfel THEN\nsteg := 0;\nELSIF NOT ST020_SEA_DONE AND ST020_IDX_HOME THEN\nsteg := 10;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST020_IDX_START := ((steg = 10) OR (steg = 12)) AND NOT (steg = 30) AND NOT (steg = 40) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel;\nST020_SEA_CLOSE := (steg = 30) AND NOT (steg = 10) AND NOT (steg = 12) AND NOT (steg = 40) AND ST020_IDX_HOME AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xTempfel AND NOT xTidsfel;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-04",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 3,
+      "varv_till_lost": 3,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 3,
+      "kostnad_usd": 0.0,
+      "tokens_in": 44556,
+      "tokens_ut": 1699,
+      "sekunder": 316.7,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 5 brister, 3815 scan\n  [vikten_motsager_raknaren@20200ms:ST040_STP_OUT_OPEN/F5] ST040_STP_OUT_OPEN skulle vara 0 men var 1. uppehallet 0,60 s har lopt ut men vagcellen sager 2,0 kg medan raknaren sager sju lastbarare, alltsa 7*9,5 = 66,5 kg; bada kan inte ha ratt och styrningen"
+        ],
+        [
+          "EJ GODKAND\n  rad 44: [TYP/F4] INT och literal:REAL går inte ihop i *; konvertera uttryckligen\n  rad 46: [TYP/F4] INT och literal:REAL går inte ihop i *; konvertera uttryckligen"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigIn(CLK:=ST040_PEC_IN);\ntrigUt(CLK:=ST040_PEC_OUT);\n(* count on flanks only *)\nIF trigIn.Q AND antal < 20 THEN\n  antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n  antal := antal - 1;\nEND_IF;\n(* hysteresis 12 full, 11 release *)\nIF antal >= 12 THEN\n  xFull := TRUE;\nELSIF antal <= 11 THEN\n  xFull := FALSE;\nEND_IF;\n(* plausibility from load cell *)\nIF ST040_WGT_LOAD > 125.0 OR ST040_WGT_LOAD < -2.0 THEN\n  xViktfel := TRUE;\nELSE\n  xViktfel := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xViktfel;\nCASE steg OF\n0:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF ST040_DEM_REQ THEN\n    xVantar := TRUE;\n  END_IF;\n  IF xVantar AND ST040_PEC_OUT AND (antal > 0) AND xDriftsklar THEN\n    steg := 1;\n  END_IF;\n1:\n  tmrStill(IN:=ST040_PEC_OUT AND xDriftsklar, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF NOT ST040_PEC_OUT THEN\n    steg := 0;\n  ELSIF tmrStill.Q THEN\n    steg := 2;\n  END_IF;\n2:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF trigUt.Q THEN\n    xVantar := FALSE;\n    steg := 3;\n  END_IF;\n3:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  xVantar := FALSE;\n  IF NOT ST040_DEM_REQ THEN\n    steg := 0;\n  END_IF;\nEND_CASE;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\nST040_STP_OUT_OPEN := xDriftsklar AND (steg = 2);\nST040_BUF_FULL := xFull;\nST040_BUF_COUNT := antal;\nST040_DEM_ACK := (steg = 3);\n",
+        "trigIn(CLK:=ST040_PEC_IN);\ntrigUt(CLK:=ST040_PEC_OUT);\n(* count on flanks only *)\nIF trigIn.Q AND antal < 20 THEN\n  antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n  antal := antal - 1;\nEND_IF;\n(* hysteresis 12 full, 11 release *)\nIF antal >= 12 THEN\n  xFull := TRUE;\nELSIF antal <= 11 THEN\n  xFull := FALSE;\nEND_IF;\n(* plausibility from load cell, overload and counter check *)\nIF ST040_WGT_LOAD > 130.0 OR ST040_WGT_LOAD < -2.0 THEN\n  xViktfel := TRUE;\nELSIF ST040_WGT_LOAD > antal * 9.5 + 20.0 THEN\n  xViktfel := TRUE;\nELSIF ST040_WGT_LOAD < antal * 9.5 - 20.0 THEN\n  xViktfel := TRUE;\nELSE\n  xViktfel := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xViktfel;\nCASE steg OF\n0:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF ST040_DEM_REQ THEN\n    xVantar := TRUE;\n  END_IF;\n  IF xVantar AND ST040_PEC_OUT AND (antal > 0) AND xDriftsklar THEN\n    steg := 1;\n  END_IF;\n1:\n  tmrStill(IN:=ST040_PEC_OUT AND xDriftsklar, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF NOT ST040_PEC_OUT THEN\n    steg := 0;\n  ELSIF tmrStill.Q THEN\n    steg := 2;\n  END_IF;\n2:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF trigUt.Q THEN\n    xVantar := FALSE;\n    steg := 3;\n  END_IF;\n3:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  xVantar := FALSE;\n  IF NOT ST040_DEM_REQ THEN\n    steg := 0;\n  END_IF;\nEND_CASE;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\nST040_STP_OUT_OPEN := xDriftsklar AND (steg = 2);\nST040_BUF_FULL := xFull OR (ST040_WGT_LOAD > 130.0);\nST040_BUF_COUNT := antal;\nST040_DEM_ACK := (steg = 3);\n",
+        "trigIn(CLK:=ST040_PEC_IN);\ntrigUt(CLK:=ST040_PEC_OUT);\n(* count on flanks only *)\nIF trigIn.Q AND antal < 20 THEN\n  antal := antal + 1;\nEND_IF;\nIF trigUt.Q AND antal > 0 THEN\n  antal := antal - 1;\nEND_IF;\n(* hysteresis 12 full, 11 release *)\nIF antal >= 12 THEN\n  xFull := TRUE;\nELSIF antal <= 11 THEN\n  xFull := FALSE;\nEND_IF;\n(* plausibility from load cell, overload and counter check *)\nIF ST040_WGT_LOAD > 130.0 OR ST040_WGT_LOAD < -2.0 THEN\n  xViktfel := TRUE;\nELSIF ST040_WGT_LOAD > INT_TO_REAL(antal) * 9.5 + 20.0 THEN\n  xViktfel := TRUE;\nELSIF ST040_WGT_LOAD < INT_TO_REAL(antal) * 9.5 - 20.0 THEN\n  xViktfel := TRUE;\nELSE\n  xViktfel := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xViktfel;\nCASE steg OF\n0:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF ST040_DEM_REQ THEN\n    xVantar := TRUE;\n  END_IF;\n  IF xVantar AND ST040_PEC_OUT AND (antal > 0) AND xDriftsklar THEN\n    steg := 1;\n  END_IF;\n1:\n  tmrStill(IN:=ST040_PEC_OUT AND xDriftsklar, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF NOT ST040_PEC_OUT THEN\n    steg := 0;\n  ELSIF tmrStill.Q THEN\n    steg := 2;\n  END_IF;\n2:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  IF NOT xDriftsklar THEN\n    steg := 0;\n  ELSIF trigUt.Q THEN\n    xVantar := FALSE;\n    steg := 3;\n  END_IF;\n3:\n  tmrStill(IN:=FALSE, PT:=T#600ms);\n  xVantar := FALSE;\n  IF NOT ST040_DEM_REQ THEN\n    steg := 0;\n  END_IF;\nEND_CASE;\nST040_STP_IN_OPEN := xDriftsklar AND NOT xFull;\nST040_STP_OUT_OPEN := xDriftsklar AND (steg = 2);\nST040_BUF_FULL := xFull OR (ST040_WGT_LOAD > 130.0);\nST040_BUF_COUNT := antal;\nST040_DEM_ACK := (steg = 3);\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-05",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 31284,
+      "tokens_ut": 1080,
+      "sekunder": 323.0,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 29 brister, 2460 scan\n  [takten_12_sekunder@11200ms:ST050_STA_DONE/F5] ST050_STA_DONE skulle vara 1 men var 0. kortet ar fardigt och slapps ut, och bandet gar igen for att hamta nasta\n  [takten_12_sekunder@11200ms:ST050_STA_BUSY/F5] ST050_STA_BUSY skulle vara 0 men var 1. korte"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigAuto(CLK:=SYS_AUTO);\nxTomt := ST050_MAG_EMPTY;\nxLarm := FALSE;\nIF ST050_MAG_LEVEL < 0 THEN\nxLarm := TRUE;\nEND_IF;\nxArbetar := steg = 20;\nxVantarKort := (steg = 10) AND NOT ST050_PRT_PRS;\ntmrArbete(IN := xArbetar, PT := T#12s);\ntmrNarvaro(IN := (steg = 50) AND NOT xTomt, PT := T#2s);\nCASE steg OF\n0:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 20;\nELSIF xTomt THEN\nsteg := 50;\nELSIF trigAuto.Q THEN\nsteg := 10;\nELSIF SYS_AUTO THEN\nsteg := 10;\nEND_IF;\n10:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 20;\nELSIF xTomt THEN\nsteg := 50;\nELSE\nsteg := 10;\nEND_IF;\n20:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF tmrArbete.Q AND ST050_PRT_PRS THEN\nsteg := 30;\nELSE\nsteg := 20;\nEND_IF;\n30:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF xTomt THEN\nsteg := 50;\nELSIF SYS_AUTO THEN\nsteg := 0;\nEND_IF;\n50:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS AND NOT xTomt THEN\nsteg := 20;\nELSIF NOT xTomt OR tmrNarvaro.Q THEN\nsteg := 10;\nELSE\nsteg := 50;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST050_CNV_RUN := (steg = 10) AND SYS_AUTO AND NOT ST050_PRT_PRS AND NOT xTomt;\nST050_STA_BUSY := (steg = 20) AND SYS_AUTO AND NOT (steg = 50);\nST050_STA_STARVED := (steg = 50) AND SYS_AUTO AND NOT xArbetar;\nST050_STA_DONE := steg = 30;\nSYS_ALARM := xLarm;\n",
+        "trigAuto(CLK:=SYS_AUTO);\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL = 0);\nxVantarKort := ((steg = 10) OR (steg = 50)) AND NOT ST050_PRT_PRS;\nxArbetar := (steg = 20) AND ST050_PRT_PRS;\ntmrArbete(IN := xArbetar, PT := T#10s);\ntmrNarvaro(IN := xVantarKort AND NOT xTomt AND SYS_AUTO, PT := T#5s);\nIF NOT SYS_AUTO THEN\nxLarm := FALSE;\nELSIF (ST050_MAG_LEVEL < 0) OR (ST050_MAG_LEVEL > 60) OR tmrNarvaro.Q THEN\nxLarm := TRUE;\nEND_IF;\nCASE steg OF\n0:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 20;\nELSIF xTomt THEN\nsteg := 50;\nELSE\nsteg := 10;\nEND_IF;\n10:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 20;\nELSIF xTomt THEN\nsteg := 50;\nELSE\nsteg := 10;\nEND_IF;\n20:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF tmrArbete.Q AND ST050_PRT_PRS THEN\nsteg := 30;\nELSE\nsteg := 20;\nEND_IF;\n30:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 30;\nELSIF xTomt THEN\nsteg := 50;\nELSE\nsteg := 10;\nEND_IF;\n50:\nIF NOT SYS_AUTO THEN\nsteg := 0;\nELSIF ST050_PRT_PRS THEN\nsteg := 20;\nELSE\nsteg := 50;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST050_CNV_RUN := SYS_AUTO AND NOT xLarm AND ((steg = 10) OR (steg = 30) OR ((steg = 50) AND NOT xTomt));\nST050_STA_BUSY := (steg = 20) AND SYS_AUTO AND ST050_PRT_PRS AND NOT xLarm;\nST050_STA_STARVED := (steg = 50) AND SYS_AUTO;\nST050_STA_DONE := (steg = 30) AND SYS_AUTO;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-08",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 4,
+      "varv_till_lost": 4,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 4,
+      "kostnad_usd": 0.0,
+      "tokens_in": 63585,
+      "tokens_ut": 1334,
+      "sekunder": 309.6,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 8 brister, 0 scan\n  [tolkfel:kallstart_varmer_utan_kvittens/F1] anropet till cntDetalj (CTUD) saknar PV\n  [flank:ett_inmatningsslapp_nar_ugnen_natt_fonstret/F15] ST520_STP_IN_OPEN skulle ha 1 RISE-flank(er) mellan 0 och 1000 ms, hade 0. inmatningen far oppna exakt en gang, och "
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 10 brister, 686 scan\n  [invariant:larm_stoppar_ugnen@kallstart_varmer_utan_kvittens/F8] vid t=0 ms gällde SYS_ALARM=1 men inte ST520_CNV_RUN=0, ST520_STP_IN_OPEN=0, ST520_OVN_HEAT=0. ett larm som lamnar kedjan igang matar in fler detaljer i en ugn ingen litar pa, och ett larm s"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 5 brister, 686 scan\n  [temperaturen_faller_under_fonstret@1000ms:SYS_ALARM/F5] SYS_ALARM skulle vara 1 men var 0. en detalj i ugnen med zonen under 175,0 grader C kommer ut ohardad; lacken sitter inte och felet syns forst hos kunden, sa kedjan ska stanna och inmatningen sparras"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "(* oven ok window 175 to 195 C *)\nxTempOk := (ST520_OVN_TMP >= 175.0) AND (ST520_OVN_TMP <= 195.0);\ntrigReset(CLK:=SYS_RESET);\ncntDetalj(CU:=ST520_PEC_IN, CD:=ST520_PEC_OUT);\nST520_PRT_CNT := cntDetalj.CV;\nxStilla := NOT xDrift;\ntmrKvar(IN:=(ST520_PRT_CNT > 0) AND xStilla, PT:=T#60s);\nIF trigReset.Q AND EMG_OK AND xTempOk THEN\nxLarm := FALSE;\nxKravOmstart := FALSE;\nELSIF (NOT xTempOk) OR tmrKvar.Q OR (NOT EMG_OK) THEN\nxLarm := TRUE;\nxKravOmstart := TRUE;\nEND_IF;\nxDrift := SYS_AUTO AND EMG_OK AND (NOT xLarm) AND (NOT xKravOmstart);\nST520_CNV_RUN := xDrift;\nST520_STP_IN_OPEN := xDrift AND xTempOk AND (NOT xLarm);\nST520_OVN_HEAT := EMG_OK AND (ST520_OVN_TMP < 195.0) AND (xDrift OR (ST520_PRT_CNT = 0));\nSYS_ALARM := xLarm;\n",
+        "(* oven ok window 175 to 195 C *)\nxTempOk := (ST520_OVN_TMP >= 175.0) AND (ST520_OVN_TMP <= 195.0);\ntrigReset(CLK := SYS_RESET);\ncntDetalj(CU := ST520_PEC_IN, CD := ST520_PEC_OUT, PV := 9999);\nST520_PRT_CNT := cntDetalj.CV;\nxStilla := NOT xDrift;\ntmrKvar(IN := (ST520_PRT_CNT > 0) AND xStilla, PT := T#60s);\nIF trigReset.Q AND EMG_OK AND xTempOk THEN\nxLarm := FALSE;\nxKravOmstart := FALSE;\nELSIF (NOT xTempOk) OR tmrKvar.Q OR (NOT EMG_OK) THEN\nxLarm := TRUE;\nxKravOmstart := TRUE;\nEND_IF;\nxDrift := SYS_AUTO AND EMG_OK AND (NOT xLarm) AND (NOT xKravOmstart);\nST520_CNV_RUN := xDrift;\nST520_STP_IN_OPEN := xDrift AND xTempOk AND (NOT xLarm);\nST520_OVN_HEAT := EMG_OK AND (ST520_OVN_TMP < 195.0) AND (xDrift OR (ST520_PRT_CNT = 0));\nSYS_ALARM := xLarm;\n",
+        "(* oven ok window 175 to 195 C *)\nxTempOk := (ST520_OVN_TMP >= 175.0) AND (ST520_OVN_TMP <= 195.0);\ntrigReset(CLK := SYS_RESET);\ncntDetalj(CU := ST520_PEC_IN, CD := ST520_PEC_OUT, PV := 9999);\nST520_PRT_CNT := cntDetalj.CV;\nxStilla := NOT xDrift;\ntmrKvar(IN := (ST520_PRT_CNT > 0) AND xStilla, PT := T#5s);\nIF trigReset.Q AND EMG_OK AND (ST520_OVN_TMP <= 195.0) AND (NOT tmrKvar.Q) THEN\nxLarm := FALSE;\nxKravOmstart := FALSE;\nELSIF (ST520_OVN_TMP > 195.0) OR tmrKvar.Q OR (NOT EMG_OK) THEN\nxLarm := TRUE;\nxKravOmstart := TRUE;\nEND_IF;\nxDrift := SYS_AUTO AND EMG_OK AND (NOT xLarm) AND (NOT xKravOmstart);\nST520_CNV_RUN := xDrift;\nST520_STP_IN_OPEN := xDrift AND xTempOk;\nST520_OVN_HEAT := EMG_OK AND (NOT xLarm) AND (ST520_OVN_TMP < 180.0) AND (xDrift OR (ST520_PRT_CNT = 0));\nSYS_ALARM := xLarm;\n",
+        "(* oven ok window 175 to 195 C *)\nxTempOk := (ST520_OVN_TMP >= 175.0) AND (ST520_OVN_TMP <= 195.0);\ntrigReset(CLK := SYS_RESET);\ncntDetalj(CU := ST520_PEC_IN, CD := ST520_PEC_OUT, PV := 9999);\nST520_PRT_CNT := cntDetalj.CV;\nxStilla := NOT xDrift;\ntmrKvar(IN := (ST520_PRT_CNT > 0) AND xStilla, PT := T#5s);\nIF trigReset.Q AND EMG_OK AND (ST520_OVN_TMP <= 195.0) AND ((ST520_OVN_TMP >= 175.0) OR (ST520_PRT_CNT = 0)) AND ((NOT tmrKvar.Q) OR SYS_AUTO) THEN\nxLarm := FALSE;\nxKravOmstart := FALSE;\nELSIF (ST520_OVN_TMP > 195.0) OR ((ST520_OVN_TMP < 175.0) AND (ST520_PRT_CNT > 0)) OR tmrKvar.Q OR (NOT EMG_OK) THEN\nxLarm := TRUE;\nxKravOmstart := TRUE;\nEND_IF;\nxDrift := SYS_AUTO AND EMG_OK AND (NOT xLarm) AND (NOT xKravOmstart);\nST520_CNV_RUN := xDrift;\nST520_STP_IN_OPEN := xDrift AND xTempOk;\nST520_OVN_HEAT := EMG_OK AND (NOT xLarm) AND (ST520_OVN_TMP < 180.0) AND (xDrift OR (ST520_PRT_CNT = 0));\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-09",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 29219,
+      "tokens_ut": 1016,
+      "sekunder": 128.0,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 1 brister, 1312 scan\n  [inmatning_med_korgen_uppe@600ms:ST530_LFT_DOWN/F5] ST530_LFT_DOWN skulle vara 1 men var 0. korgen ar pa vag ned till sitt vantelage. En inmatning som startar innan korgen ar nere matar lastbararen rakt in i schaktet"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\nIF NOT EMG_OK THEN\nxKravOmstart := TRUE;\nEND_IF;\nIF trigReset.Q AND EMG_OK THEN\nxKravOmstart := FALSE;\nxLarm := FALSE;\nEND_IF;\nIF (ST530_LFT_POS < -40.0) OR (ST530_LFT_POS > 3800.0) THEN\nxLarm := TRUE;\nEND_IF;\nxRor := ((steg = 1) OR (steg = 3)) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm AND NOT xGrensle;\ntmrRes(IN:=xRor, PT:=T#7s);\nIF tmrRes.Q THEN\nxLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nCASE steg OF\n0:\nIF (ST530_PEC_CAR AND NOT ST530_PEC_IN) AND xDriftsklar AND ST530_LFT_BOT THEN\nsteg := 1;\nEND_IF;\n1:\nIF ST530_LFT_TOP AND xDriftsklar THEN\nsteg := 2;\nEND_IF;\n2:\nIF (ST530_PEC_OUT AND NOT ST530_PEC_CAR) AND xDriftsklar THEN\nsteg := 3;\nEND_IF;\n3:\nIF ST530_LFT_BOT AND xDriftsklar THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nST530_LFT_UP := (steg = 1) AND xDriftsklar AND NOT xGrensle AND NOT ST530_LFT_DOWN;\nST530_LFT_DOWN := (steg = 3) AND xDriftsklar AND NOT xGrensle AND NOT ST530_LFT_UP;\nST530_CNV_IN := (steg = 0) AND xDriftsklar AND ST530_LFT_BOT AND (ST530_PEC_IN OR ST530_PEC_CAR);\nST530_CNV_OUT := (steg = 2) AND xDriftsklar AND (ST530_PEC_CAR OR ST530_PEC_OUT);\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\nIF NOT EMG_OK THEN\nxKravOmstart := TRUE;\nEND_IF;\nIF trigReset.Q AND EMG_OK THEN\nxKravOmstart := FALSE;\nxLarm := FALSE;\nEND_IF;\nIF (ST530_LFT_POS < -40.0) OR (ST530_LFT_POS > 3800.0) THEN\nxLarm := TRUE;\nEND_IF;\nxRor := ((steg = 1) OR (steg = 3) OR ((steg = 0) AND NOT ST530_LFT_BOT)) AND EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm AND NOT xGrensle;\ntmrRes(IN:=xRor, PT:=T#7s);\nIF tmrRes.Q THEN\nxLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nCASE steg OF\n0:\nIF (ST530_PEC_CAR AND NOT ST530_PEC_IN) AND xDriftsklar AND ST530_LFT_BOT THEN\nsteg := 1;\nEND_IF;\n1:\nIF ST530_LFT_TOP AND xDriftsklar THEN\nsteg := 2;\nEND_IF;\n2:\nIF (ST530_PEC_OUT AND NOT ST530_PEC_CAR) AND xDriftsklar THEN\nsteg := 3;\nEND_IF;\n3:\nIF ST530_LFT_BOT AND xDriftsklar THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nST530_LFT_UP := (steg = 1) AND xDriftsklar AND NOT xGrensle AND NOT ST530_LFT_DOWN;\nST530_LFT_DOWN := ((steg = 3) OR ((steg = 0) AND NOT ST530_LFT_BOT)) AND xDriftsklar AND NOT xGrensle AND NOT ST530_LFT_UP;\nST530_CNV_IN := (steg = 0) AND xDriftsklar AND ST530_LFT_BOT AND (ST530_PEC_IN OR ST530_PEC_CAR);\nST530_CNV_OUT := (steg = 2) AND xDriftsklar AND (ST530_PEC_CAR OR ST530_PEC_OUT);\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    }
+  ],
+  "lost": 8,
   "slog_i_taket": 0
 }
