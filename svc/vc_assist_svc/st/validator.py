@@ -431,6 +431,8 @@ class Granskning(object):
             return self._literaltyp(u)
         if isinstance(u, M.Medlem):
             return self._medlemstyp(u)
+        if isinstance(u, M.Avreferering):
+            return self._avrefereringstyp(u)
         if isinstance(u, M.Element):
             return self._elementtyp(u)
         if isinstance(u, M.Anrop):
@@ -513,6 +515,18 @@ class Granskning(object):
             return None
         self.fel("TYP", u.rad, "%s har inga fält" % bas.st())
         return None
+
+    def _avrefereringstyp(self, u: M.Avreferering) -> Optional[T.Typ]:
+        # M-108: bas^ ger pekarens måltyp. Avreferering av något som inte är
+        # REF_TO är ett fel, inte en tolkning (fail-closed).
+        bas = self.typ_av(u.bas)
+        if bas is None:
+            return None
+        if not isinstance(bas, T.Pekare):
+            self.fel("TYP", u.rad, "kan bara avreferera REF_TO, inte %s"
+                     % bas.st())
+            return None
+        return bas.element
 
     def _elementtyp(self, u: M.Element) -> Optional[T.Typ]:
         bas = self.typ_av(u.bas)
@@ -637,6 +651,12 @@ class Granskning(object):
                 return None
             self._argumentkontroll(a, sig, kraven_obligatoriska=False)
             return None
+        if a.namn.upper() == "REF":
+            # M-108: REF(x) är en specialform, ingen biblioteksfunktion.
+            # Den står inte i FUNKTIONER därför att namnsvepet bygger varje
+            # funktion generiskt (v_INT := F(v_INT)) — en form som för REF
+            # alltid är ogiltig (pekaren kan inte bo i en INT).
+            return self._ref_anrop(a)
         sig = self.signaturer.get(a.namn.upper())
         if sig is None:
             self.fel("OKANT_NAMN", a.rad,
@@ -735,6 +755,29 @@ class Granskning(object):
                 self.fel("TYP", arg.rad,
                          "%s.%s kräver %s men fick %s" % (a.namn, namn, krav, t.st()))
         return argtyper
+
+    def _ref_anrop(self, a: M.Anrop) -> Optional[T.Typ]:
+        # M-108: REF(variabel) ger REF_TO av variabelns typ. Argumentet måste
+        # vara adresserbart (Namn/Medlem/Element — aldrig literal, aldrig
+        # pekare-till-pekare, aldrig blockinstans). Backend bygger REF(iA)
+        # till IEC_REF_TO; REF(5) har ingen adress att ta.
+        if len(a.argument) != 1 or a.argument[0].ut:
+            self.fel("ARGUMENT", a.rad, "REF tar exakt ett argument: REF(variabel)")
+            return None
+        arg = a.argument[0]
+        if arg.namn is not None and arg.namn.upper() != "IN":
+            self.fel("ARGUMENT", a.rad, "REF har inget argument %s" % arg.namn)
+            return None
+        if not isinstance(arg.uttryck, (M.Namn, M.Medlem, M.Element)):
+            self.fel("TYP", a.rad, "REF kräver en variabel, inte en literal")
+            return None
+        t = self.typ_av(arg.uttryck)
+        if t is None:
+            return None
+        if isinstance(t, (T.Literaltyp, T.Pekare, T.Blocktyp)):
+            self.fel("TYP", a.rad, "REF kan inte ta adressen av %s" % t.st())
+            return None
+        return T.Pekare(t)
 
     def _resultattyp(self, sig: Signatur, argtyper, rad) -> Optional[T.Typ]:
         r = sig.resultat

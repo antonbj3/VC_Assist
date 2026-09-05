@@ -58,7 +58,20 @@ def skriv_typ(t: T.Typ) -> str:
     return _ascii(t.st(), "en typ")
 
 
+def _skriv_faltinit(f: M.Faltinit) -> str:
+    delar = []
+    for e in f.element:
+        v_str = skriv_uttryck(e.varde)
+        if e.antal is not None:
+            delar.append("%d(%s)" % (e.antal, v_str))
+        else:
+            delar.append(v_str)
+    return "[%s]" % ", ".join(delar)
+
+
 def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
+    if isinstance(u, M.Faltinit):
+        return _skriv_faltinit(u)
     if isinstance(u, M.Namn):
         return _ascii(u.ident, "ett namn")
     if isinstance(u, M.Literal):
@@ -66,6 +79,10 @@ def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
     if isinstance(u, M.Medlem):
         return "%s.%s" % (skriv_uttryck(u.bas, UNAR_PRIORITET + 1),
                           _ascii(u.falt, "ett faltnamn"))
+    if isinstance(u, M.Avreferering):
+        # MÅSTE stå före Element-grenen: Avreferering ärver Element och hade
+        # annars skrivits som pRef[] (M-108: tur-och-retur kräver pRef^).
+        return "%s^" % skriv_uttryck(u.bas, UNAR_PRIORITET + 1)
     if isinstance(u, M.Element):
         return "%s[%s]" % (skriv_uttryck(u.bas, UNAR_PRIORITET + 1),
                            ", ".join(skriv_uttryck(i) for i in u.index))
