@@ -155,8 +155,8 @@ class Skelett:
             kropp += "\n"
         if not self.har_arbetsvariabler:
             if arbetsvariabler.strip():
-                raise Skelettfel("skelettet har inget arbetsvariabelfack; "
-                                 "bygg det med arbetsvariabler=True")
+                raise Skelettfel("the skeleton has no work-variable slot; "
+                                 "build it with arbetsvariabler=True")
             return self.huvud + kropp + self.svans
         _vagra_markorer(arbetsvariabler)
         if arbetsvariabler and not arbetsvariabler.endswith("\n"):
@@ -182,9 +182,9 @@ class Skelett:
            avvisas; att hoppa över den vore ett tyst bortfall.
         """
         if _HAR_ADRESS.search(text):
-            raise Skelettfel("en arbetsvariabel far ingen adress (AT %...); "
-                             "det gor den till en signal, och signaler kommer "
-                             "ur kartan")
+            raise Skelettfel("a work variable may not have an address (AT %...); "
+                             "that makes it a signal, and signals come "
+                             "from the map")
         taggar = set(s.tagg.upper() for s in karta.signaler)
         tillatna = _tillatna_typer()
         sedda = set()
@@ -193,15 +193,15 @@ class Skelett:
                 continue
             m = _ARBETSRAD.match(rad)
             if not m:
-                raise Skelettfel("rad %d i arbetsvariablerna gar inte att lasa "
-                                 "som en deklaration: %r" % (n, rad.strip()), n)
+                raise Skelettfel("line %d of the work variables cannot be read "
+                                 "as a declaration: %r" % (n, rad.strip()), n)
             namn, typ = m.group(1), m.group(2)
             if namn.upper() in taggar:
-                raise Skelettfel("arbetsvariabeln %s har samma namn som en "
-                                 "signal i kartan; ST ar skiftlagesokansligt "
-                                 "och den hade skuggat signalen" % namn, n)
+                raise Skelettfel("work variable %s has the same name as a "
+                                 "signal in the map; ST is case-insensitive "
+                                 "and it would have shadowed the signal" % namn, n)
             if namn.upper() in sedda:
-                raise Skelettfel("arbetsvariabeln %s deklareras tva ganger"
+                raise Skelettfel("work variable %s is declared twice"
                                  % namn, n)
             sedda.add(namn.upper())
             if typ.upper() not in tillatna:
@@ -217,7 +217,7 @@ class Skelett:
         i = kalla.find(ARBETSVAR_BORJAN)
         j = kalla.find(ARBETSVAR_SLUTET, i + len(ARBETSVAR_BORJAN)) if i >= 0 else -1
         if i < 0 or j < 0:
-            raise Skelettfel("svaret saknar arbetsvariabelfackets markorer")
+            raise Skelettfel("the response is missing the work-variable slot's markers")
         return kalla[i + len(ARBETSVAR_BORJAN) + 1:j]
 
     def plocka_ur(self, kalla: str) -> str:
@@ -229,15 +229,15 @@ class Skelett:
         """
         i = kalla.find(BORJAN)
         if i < 0:
-            raise Skelettfel("svaret saknar markoren %s; ramen ar inte den "
-                             "utlamnade" % BORJAN)
+            raise Skelettfel("the response is missing the marker %s; this is "
+                             "not the frame that was handed out" % BORJAN)
         j = kalla.find(SLUTET, i + len(BORJAN))
         if j < 0:
-            raise Skelettfel("svaret saknar markoren %s" % SLUTET)
+            raise Skelettfel("the response is missing the marker %s" % SLUTET)
         if kalla.find(BORJAN, i + len(BORJAN)) >= 0:
-            raise Skelettfel("svaret bar %s mer an en gang" % BORJAN)
+            raise Skelettfel("the response carries %s more than once" % BORJAN)
         if kalla.find(SLUTET, j + len(SLUTET)) >= 0:
-            raise Skelettfel("svaret bar %s mer an en gang" % SLUTET)
+            raise Skelettfel("the response carries %s more than once" % SLUTET)
 
         fatt_svans = kalla[j:]
         _jamfor("svansen", self.svans, fatt_svans)
@@ -250,7 +250,7 @@ class Skelett:
         a = kalla.find(ARBETSVAR_BORJAN)
         b = kalla.find(ARBETSVAR_SLUTET, a + len(ARBETSVAR_BORJAN)) if a >= 0 else -1
         if a < 0 or b < 0:
-            raise Skelettfel("svaret saknar arbetsvariabelfackets markorer")
+            raise Skelettfel("the response is missing the work-variable slot's markers")
         _jamfor("huvudet", self.huvud, kalla[:a + len(ARBETSVAR_BORJAN) + 1])
         _jamfor("mitten", self.mitt, kalla[b:i + len(BORJAN) + 1])
         return kalla[i + len(BORJAN) + 1:j]
@@ -274,8 +274,8 @@ class Skelett:
             # Hela filen, men utan markorerna. Da gar ramen inte att jamfora,
             # och att gissa var kroppen borjar vore att uppfinna en gräns
             # modellen inte respekterade. Fail-closed (I3).
-            raise Skelettfel("svaret ser ut som en hel POU men saknar "
-                             "markorerna; ramen gar inte att kontrollera")
+            raise Skelettfel("the response looks like a whole POU but is "
+                             "missing the markers; the frame cannot be checked")
         return self.satt_in(svar)
 
 
@@ -283,8 +283,8 @@ def _vagra_markorer(kropp: str) -> None:
     for markor in (BORJAN, SLUTET):
         if markor in kropp:
             rad = kropp[:kropp.find(markor)].count("\n") + 1
-            raise Skelettfel("kroppen bar markoren %s; den skulle sluta facket "
-                             "for tidigt" % markor, rad)
+            raise Skelettfel("the body carries the marker %s; it would end "
+                             "the slot too early" % markor, rad)
 
 
 def _jamfor(vad: str, vantat: str, fatt: str) -> None:
@@ -305,4 +305,4 @@ def _jamfor(vad: str, vantat: str, fatt: str) -> None:
             raise Skelettfel(
                 "%s ar andrat pa rad %d: vantade %r, fick %r"
                 % (vad, n + 1, rv, rf), n + 1)
-    raise Skelettfel("%s skiljer sig men ingen rad pekar ut sig" % vad)
+    raise Skelettfel("%s differs but no line stands out" % vad)

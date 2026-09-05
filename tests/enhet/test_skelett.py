@@ -105,7 +105,7 @@ def test_en_kropp_som_skriver_markorerna_avvisas():
     s = sk()
     with pytest.raises(S.Skelettfel) as e:
         s.satt_in("    don := givare;\n" + S.SLUTET + "\n    ondska := 1;\n")
-    assert "for tidigt" in str(e.value)
+    assert "too early" in str(e.value)
     assert e.value.rad == 2
 
 
@@ -116,7 +116,7 @@ def test_hel_pou_utan_markorer_avvisas_i_stallet_for_att_gissa():
         S.SLUTET + "\n", "")
     with pytest.raises(S.Skelettfel) as e:
         s.las_svar(utan)
-    assert "markorerna" in str(e.value)
+    assert "markers" in str(e.value)
 
 
 def test_svar_utan_borjanmarkor_avvisas():
@@ -130,7 +130,7 @@ def test_dubbel_markor_avvisas():
     hel = s.satt_in(KROPP).replace(KROPP, KROPP + S.BORJAN + "\n")
     with pytest.raises(S.Skelettfel) as e:
         s.plocka_ur(hel)
-    assert "mer an en gang" in str(e.value)
+    assert "more than once" in str(e.value)
 
 
 def test_en_svans_som_bytts_ut_avvisas():
@@ -194,7 +194,7 @@ def test_bada_facken_ar_varandras_motsats():
 def test_arbetsvariabler_i_ett_skelett_utan_fack_avvisas():
     with pytest.raises(S.Skelettfel) as e:
         sk().satt_in(KROPP, ARB)
-    assert "inget arbetsvariabelfack" in str(e.value)
+    assert "no work-variable slot" in str(e.value)
 
 
 def test_ramen_kontrolleras_fortfarande_med_facket_pa_plats():
@@ -224,7 +224,7 @@ def test_ett_namn_kartan_ager_avvisas_oavsett_skiftlage(namn):
     """ST ar skiftlagesokansligt; en lokal hade skuggat signalen tyst."""
     with pytest.raises(S.Skelettfel) as e:
         sk_arb().granska_arbetsvariabler("    %s : BOOL;\n" % namn, karta())
-    assert "skugga" in str(e.value)
+    assert "shadow" in str(e.value)
 
 
 def test_en_okand_typ_avvisas():
@@ -238,13 +238,13 @@ def test_en_rad_som_inte_gar_att_lasa_avvisas():
     with pytest.raises(S.Skelettfel) as e:
         sk_arb().granska_arbetsvariabler("    det har ar ingen deklaration\n",
                                          karta())
-    assert "gar inte att lasa" in str(e.value)
+    assert "cannot be read" in str(e.value)
 
 
 def test_samma_variabel_tva_ganger_avvisas():
     with pytest.raises(S.Skelettfel) as e:
         sk_arb().granska_arbetsvariabler("    t : TON;\n    T : TON;\n", karta())
-    assert "tva ganger" in str(e.value)
+    assert "declared twice" in str(e.value)
 
 
 @pytest.mark.parametrize("rad", [
