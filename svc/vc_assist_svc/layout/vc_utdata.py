@@ -92,7 +92,7 @@ def till_verktygsanrop(scen, strikt=True, komponentnamn=None):
     byggnaden, inte komponenter i layouten.
     """
     if not isinstance(scen, Scen):
-        raise Layoutfel("till_verktygsanrop tar en Scen")
+        raise Layoutfel("till_verktygsanrop takes a Scen")
     karta = dict(komponentnamn or {})
     ut = []
     antagna = []
@@ -114,10 +114,10 @@ def till_verktygsanrop(scen, strikt=True, komponentnamn=None):
         ut.append(Anrop(VERKTYG, argument, namn))
     if strikt and antagna:
         raise Ankarfel(
-            "dessa objekt har ett ANTAGET ankare och går därför inte att "
-            "skriva som verktygsanrop: %s. Läs komponentens låda med "
-            "get_bounds och bygg ankaret med Ankare.ur_bounds, eller anropa "
-            "med strikt=False om anropen bara ska läsas och inte köras."
+            "these objects have an ASSUMED ankare and therefore cannot be "
+            "written as a tool call: %s. Read the component's box with "
+            "get_bounds and build the ankare with Ankare.ur_bounds, or call "
+            "with strikt=False if the calls are only to be read, not run."
             % ", ".join(sorted(antagna)))
     return tuple(ut)
 
@@ -138,6 +138,6 @@ def validera_mot_registret(anrop):
     ut = []
     for a in anrop:
         if a.verktyg not in REGISTER:
-            raise Layoutfel("verktyget %r finns inte i registret" % a.verktyg)
+            raise Layoutfel("the tool %r is not in the register" % a.verktyg)
         ut.append(validera_argument(REGISTER[a.verktyg], a.argument))
     return tuple(ut)
