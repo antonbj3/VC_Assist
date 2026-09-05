@@ -47,7 +47,7 @@ VC_GLOBALER = {"getApplication", "json", "vcVector", "vcMatrix"}
 
 # Harkomstmarkena. Ett krav utan ett av dem ar ett antagande som ser ut som
 # ett faktum, och det ar precis det som gor en spec farlig.
-MARKEN = ("MATT", "BELAGT", "HYPOTES")
+MARKEN = (u"MÄTT", "BELAGT", "HYPOTES")
 
 
 @pytest.fixture(scope="module")

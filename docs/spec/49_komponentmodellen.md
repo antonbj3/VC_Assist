@@ -1,8 +1,17 @@
 # 49 — Komponentmodellen: hur en komponent kan koppla ihop sig
 
-Status: **delvis mätt**. Första versionen härleddes ur dokumentationen
-2026-09-04 medan operatören mätte; samma kväll kördes recepten i VC 4.10 och
-utfallen står här. Varje påstående bär en av tre märkningar:
+Status: **mätt, och byggd ur specen**. Första versionen härleddes ur
+dokumentationen 2026-09-04 medan operatören mätte; samma kväll kördes recepten
+i VC 4.10. Sedan dess har M-40, M-41 och M-67 mätt kopplingen och flödet, och
+**fas 20** (M-101) byggde de fyra minsta uppsättningarna ur den här texten och
+prövade dem i en körande VC.
+
+Avsnitt 0–6 är den härledda modellen med sina mätningar. **Avsnitt 7–10 är
+modellen som data** — `svc/vc_assist_svc/komponentmodell.py` — och
+`tests/enhet/test_komponentmodell.py` faller om texten och koden glider isär.
+Läs 7–10 först om du ska bygga något; 0–6 är hur vi kom fram till det.
+
+Varje påstående bär en av tre märkningar:
 
 | Märkning | Betyder |
 |---|---|
@@ -24,18 +33,29 @@ samma innehåll som `vc_python_api.json`), `constants.xml` =
 
 ---
 
-## 0. Det korta svaret, efter kvällens mätning
+## 0. Det korta svaret
 
-**Två transportörer kopplar ihop sig — på kontaktnivå.** `ut.connect(inn)`
-mellan banornas `vcConnector` fungerar över komponentgränsen (**B5, MÄTT**).
-Gränssnittsnivån (`canConnect`/`connect`, `connectComponents`) är fortfarande
-stängd (**E0, G0, MÄTT False**).
+**Gränssnittskopplingen fungerar.** `a.OutInterface.connect(b.InInterface)`
+ger `canConnect True`, `connect True` och `IsConnected True` (**MÄTT M-40**,
+bekräftad i **M-67**). Kontaktnivån (`ut.connect(inn)` mellan två
+`vcConnector`) fungerar också (**B5, MÄTT**) — men den behövs inte längre.
 
-Skälet, så långt det är mätt: ett flödesfält bär **två** referenser —
-`Container` (beteendet) och `Port` (kontakten i det) — och recepten band bara
-`Port` (som visade sig ta ett **heltal**, B3). `Container` stod kvar på
-`None`. Ett fält som pekar på en port i *inget* beteende kan inte matcha.
-Nästa mätning är stegen **B7–B9** för `Container`; recepten kör den nu.
+**Det som stängde vägen var bindningsordningen, inte en saknad förmåga.**
+Ett flödesfält bär **två** referenser: `Container` (beteendet) och `Port`
+(kontakten i det, som ett **heltal** — B3). Recepten satte `Port` först och
+`Container` sedan, och `Container`-tilldelningen **nollställer `Port` till
+-1**. Ett fält med `Port = -1` ger `canConnect False`, tyst. Binds `Container`
+**först** står `Port` kvar och kopplingen går. Det är **E6, belagd** (M-40),
+och därmed är B7 avgjord: `Container` tar beteendet som objekt.
+
+**Kopplingen flyttar ingenting** (**MÄTT M-67**): noll millimeter, noll
+vridning, även i en koppling som lyckas. Layoutlösaren äger geometrin.
+
+**Materialet rör sig** när tre villkor hålls samtidigt, och alla tre är tysta
+när de bryts (**MÄTT M-40/M-41**): beteendena måste finnas när simuleringen
+**startar**, banans ramar måste vara **ombyggda** (`rebuild()`), och
+banbeteendet måste ha **uppdaterats** efter att `Path` satts — annars är
+`PathLength` 0.0 och banan tar inte emot något.
 
 Kedjan som byggs, per komponent:
 
@@ -56,9 +76,11 @@ vcComponent (nod)
  └─ VC_ONETOONEINTERFACE "OutInterface"   … Output-kontakten
 ```
 
-Koppling som **fungerar**: `bana1.Path.Output.connect(bana2.Path.Input)`
-(recept `koppla`, väg B5). Koppling som är **målet**:
-`bana1.OutInterface.connect(bana2.InInterface)` (väg E0).
+Koppling som **fungerar och är målet**:
+`bana1.OutInterface.connect(bana2.InInterface)` (väg E0, MÄTT M-40).
+Reservvägen `bana1.Path.Output.connect(bana2.Path.Input)` (väg B5) fungerar
+också, men kopplar bara kontakterna — gränssnitten förblir `IsConnected False`
+och plug-and-play blir aldrig av.
 
 ---
 
@@ -406,3 +428,238 @@ går att koppla får **inte** flytta något.
 * **Vad som får stå på vad.** Ingen mätning säger om VC har någon uppfattning om
   bärighet, staplingsordning eller golvkontakt. Sannolikt inte — VC saknar massa
   och tröghet helt (M-55) — men det är inte prövat.
+
+---
+
+## 7. Minsta uppsättningen per klass — utskriven
+
+Avsnitt 7–10 är **inte prosa**. De är `svc/vc_assist_svc/komponentmodell.py`
+skrivet som tabell, och `tests/enhet/test_komponentmodell.py` faller om en
+enda rad här skiljer sig från modellen. Specen kan alltså inte längre beskriva
+en modell som inte finns — det var precis det fas 20 fanns till för att
+avskaffa.
+
+Så läses en rad. **Krav** är vad som byggs och vad det heter i VC. **Slag**
+är beteende, ram, gränssnitt eller egenskap — beteenden och gränssnitt skapas
+med `createBehaviour`, ramar med `createFeature`, egenskaper sätts.
+**Härkomst** bär ett av tre märken: **MÄTT** med mätningens nummer, **BELAGT**
+med källan, **HYPOTES** när ingendera finns. Ett krav utan märke är ett
+antagande i mätningskläder, och testet faller på ett sådant.
+
+Sista kolumnen — **vad som händer om det fattas** — är den som gör listan till
+en grind i stället för en beskrivning. Den är också domarens text: `granska()`
+skriver ut exakt den meningen när kravet saknas i en byggd komponent. Ett fel
+som bara säger "gick inte" är ingen grind.
+
+### 7.1 TRANSPORTÖR
+
+*TRANSPORTÖR: tar emot i ena änden, lämnar i den andra*
+
+En transportör är den enda av de fyra som bär **både** en ingång
+och en utgång, och därför den enda som kan stå mitt i en kedja.
+
+| Krav | Slag | Konstant | Härkomst | Vad som händer om det fattas |
+|---|---|---|---|---|
+| `Path` | beteende | `VC_ONEWAYPATH` | BELAGT api.xml vcMotionPath <parents>vcBehaviour vcFlow vcContainer</parents>; MÄTT C0/C3 | beteendet Path (VC_ONEWAYPATH) saknas: utan det finns ingen vcConnector att binda flödesfältets Port till, Container står kvar på None, och canConnect blir False utan att VC säger ett ord (MÄTT M-40, E6) |
+| `PathIn` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen PathIn (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `PathOut` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen PathOut (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `InInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet InInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `OutInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet OutInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `Path` | egenskap | -- | MÄTT: Path = [ram_in, ram_ut] tas emot | egenskapen Path är tom: PathLength blir 0.0 och banan bär ingenting |
+| `update()` | egenskap | -- | MÄTT M-40 villkor 2: p.Path satt ger PathLength 0.0; p.update() ger 3000.0 | update() utelämnad: PathLength är 0.0 fast ramarna står 3000 mm isär, banan tar inte emot något och mataren uppströms producerar noll (MÄTT M-40, linje M41B: 0 produkter på 7 intervall) |
+| `Speed` | egenskap | -- | MÄTT M-41: uppmätt rörelse 250.0000 mm/s mot Speed 250.0, spridning 0.0000 | Speed osatt: förvalet gäller, och vilket det är har ingen mätt |
+
+Parbarhet: **in: matare, transportor, buffert**; **ut: transportor, buffert, sanka**.
+
+Trasig fixtur: `bygg("transportor", namn, utelamna="bana")` bygger allt utom `Path` (`VC_ONEWAYPATH`). Allt annat står kvar — ramarna, gränssnittet, sektionen och fältet — så skillnaden mot den hela uppsättningen är **exakt ett krav**.
+
+### 7.2 MATARE
+
+*MATARE: skapar komponenter och lämnar dem nedströms*
+
+En matare har ingen ingång. `rResourceCreator` bär Output på index **0**
+och Input på index **1** — omvänd ordning mot banan (MÄTT C1). Därför väljs
+kontakten alltid på `Type`, aldrig på index; ett indexval hade varit grönt på
+banan och tyst fel här.
+
+| Krav | Slag | Konstant | Härkomst | Vad som händer om det fattas |
+|---|---|---|---|---|
+| `Creator` | beteende | `VC_COMPONENTCREATOR` | MÄTT D1/D5 (2026-09-04); py2-bindningen rapporterar klassen som rResourceCreator | beteendet Creator (VC_COMPONENTCREATOR) saknas: ingenting produceras, och utan det finns ingen vcConnector att binda flödesfältets Port till, Container står kvar på None, och canConnect blir False utan att VC säger ett ord (MÄTT M-40, E6) |
+| `Out` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen Out (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `OutInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet OutInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `TemplateComponent` | egenskap | -- | MÄTT M-40: tar en komponent som STÅR i scenen, även en utan URI och utan VCID; Part behöver inte peka på en lösbar URI | TemplateComponent osatt: skaparen har ingenting att kopiera |
+| `Interval` | egenskap | -- | MÄTT M-41: åtta mellanrum, alla exakt 4.000 s mot Interval 4.0 | Interval osatt: förvalet gäller och takten är inte mätt |
+| `Limit` | egenskap | -- | MÄTT M-40/D5: Limit osatt gav noll produkter på 6 s; Limit=10 slutade tyst vid t=50 och såg då ut precis som en trasig matare | Limit osatt: mataren stannar tyst när förvalet nås, och en stannad matare ser exakt ut som en trasig |
+| `Enabled` | egenskap | -- | MÄTT M-40: Enabled rapporterades True i alla tre linjerna | Enabled=False: ingenting produceras |
+
+Parbarhet: **in: — (en matare tar inte emot)**; **ut: transportor, buffert, sanka**.
+
+Trasig fixtur: `bygg("matare", namn, utelamna="skapare")` bygger allt utom `Creator` (`VC_COMPONENTCREATOR`). Allt annat står kvar — ramarna, gränssnittet, sektionen och fältet — så skillnaden mot den hela uppsättningen är **exakt ett krav**.
+
+### 7.3 SÄNKA
+
+*SÄNKA: tar emot komponenter och behåller dem*
+
+En sänka **lagrar**; den tar inte bort. Att ta bort kräver ett
+skriptbeteende, och ett skriptbeteende stoppar bryggan (M-13). Kapaciteten är
+därför satt högt i stället.
+
+| Krav | Slag | Konstant | Härkomst | Vad som händer om det fattas |
+|---|---|---|---|---|
+| `Sink` | beteende | `VC_COMPONENTCONTAINER` | MÄTT D0/D2 (2026-09-04): VC_CONTAINER ger None, VC_COMPONENTCONTAINER ger vcSimContainer | beteendet Sink (VC_COMPONENTCONTAINER) saknas: det finns ingenstans att ta emot, och utan det finns ingen vcConnector att binda flödesfältets Port till, Container står kvar på None, och canConnect blir False utan att VC säger ett ord (MÄTT M-40, E6) |
+| `In` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen In (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `InInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet InInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `Capacity` | egenskap | -- | BELAGT api.xml vcContainer.Capacity: "the maximum number of components that can be stored in the container at any given time" | Capacity för låg: sänkan blir full och stoppar linjen uppströms |
+| `ContentVisible` | egenskap | -- | BELAGT api.xml vcContainer.ContentVisible (W) | ContentVisible=False: innehållet göms; kosmetiskt, inte funktionellt |
+
+Parbarhet: **in: matare, transportor, buffert**; **ut: — (en sänka lämnar inte ifrån sig)**.
+
+Trasig fixtur: `bygg("sanka", namn, utelamna="behallare")` bygger allt utom `Sink` (`VC_COMPONENTCONTAINER`). Allt annat står kvar — ramarna, gränssnittet, sektionen och fältet — så skillnaden mot den hela uppsättningen är **exakt ett krav**.
+
+### 7.4 BUFFERT
+
+*BUFFERT: en bana som HÅLLER KVAR N komponenter*
+
+En buffert är en transportör plus två egenskaper. Kravlistan är
+därför transportörens, med `Accumulate` och `Capacity` tillagda — och båda är
+**HYPOTES**: ingen mätning har ställt `Accumulate=True` mot `False` på samma bana.
+
+| Krav | Slag | Konstant | Härkomst | Vad som händer om det fattas |
+|---|---|---|---|---|
+| `Path` | beteende | `VC_ONEWAYPATH` | BELAGT api.xml vcMotionPath <parents>vcBehaviour vcFlow vcContainer</parents>; MÄTT C0/C3 | beteendet Path (VC_ONEWAYPATH) saknas: utan det finns ingen vcConnector att binda flödesfältets Port till, Container står kvar på None, och canConnect blir False utan att VC säger ett ord (MÄTT M-40, E6) |
+| `PathIn` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen PathIn (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `PathOut` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen PathOut (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
+| `InInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet InInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `OutInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet OutInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
+| `Path` | egenskap | -- | MÄTT: Path = [ram_in, ram_ut] tas emot | egenskapen Path är tom: PathLength blir 0.0 och banan bär ingenting |
+| `update()` | egenskap | -- | MÄTT M-40 villkor 2: p.Path satt ger PathLength 0.0; p.update() ger 3000.0 | update() utelämnad: PathLength är 0.0 fast ramarna står 3000 mm isär, banan tar inte emot något och mataren uppströms producerar noll (MÄTT M-40, linje M41B: 0 produkter på 7 intervall) |
+| `Speed` | egenskap | -- | MÄTT M-41: uppmätt rörelse 250.0000 mm/s mot Speed 250.0, spridning 0.0000 | Speed osatt: förvalet gäller, och vilket det är har ingen mätt |
+| `Accumulate` | egenskap | -- | HYPOTES D4: aldrig mätt med Accumulate=False mot True på samma bana | Accumulate=False: komponenterna passerar utan att köa sig, och buffert blir samma sak som transportör |
+| `Capacity` | egenskap | -- | HYPOTES D4: kapacitetens verkan är aldrig mätt | Capacity osatt: förvalet gäller, och hur många platser en bana har som förval är inte mätt |
+
+Parbarhet: **in: matare, transportor, buffert**; **ut: transportor, buffert, sanka**.
+
+Trasig fixtur: `bygg("buffert", namn, utelamna="bana")` bygger allt utom `Path` (`VC_ONEWAYPATH`). Allt annat står kvar — ramarna, gränssnittet, sektionen och fältet — så skillnaden mot den hela uppsättningen är **exakt ett krav**.
+
+---
+
+## 8. Matchningsregeln för `canConnect`, fullständigt
+
+Det här är svaret på fråga E, utskrivet. Nio rader, i den ordning **vi**
+prövar dem.
+
+**Ordningen är vår, inte VC:s.** `canConnect` returnerar ett enda `False`
+och säger aldrig vilket villkor som brast. VC:s inre ordning är därför
+**inte mätt**, och att skriva vår ordning som om den vore VC:s hade varit
+ett antagande i mätningskläder. Vad ordningen däremot är: den ordning som
+gör felet begripligt — grövsta bristen först, så att svaret pekar på roten
+och inte på en följd.
+
+**Alla fel i tabellen är tysta.** Ingen av raderna ger ett undantag, en logg
+eller ett falskt returvärde någon annanstans. Det är hela skälet till att
+`komponentmodell.granska()` finns: domen måste vara vår, för VC lämnar ingen.
+
+**R1** — båda sidor har ett beteende med gränssnittets namn, och det beteendet är ett simuleringsgränssnitt (bär canConnect)
+
+* Härkomst: MÄTT M-40: koppla-receptet föll på findBehaviour som gav None
+* Felet: gränssnittet saknas — frågan går inte att ställa, och "gick inte" vore tvetydigt
+
+**R2** — flödesfältets Container pekar på ett beteende (inte None)
+
+* Härkomst: MÄTT E0/E6 2026-09-04: med Port bundet och Container=None på båda sidor är canConnect False och connectComponents False
+* Felet: canConnect returnerar False. VC säger INGENTING — ingen exception, ingen logg, inget falskt returvärde någon annanstans
+
+**R3** — flödesfältets Port är ett heltal >= 0
+
+* Härkomst: MÄTT M-40: Port = -1 ger canConnect False; MÄTT B3: Port tar ett heltal (kontaktens Index), inte ett vcConnector-objekt
+* Felet: canConnect returnerar False, tyst. Ett fält med Port = -1 ser i övrigt färdigbundet ut
+
+**R4** — bindningsordningen är Container FÖRE Port
+
+* Härkomst: MÄTT M-40: Port satt först, sedan Container satt — Port är nu -1
+* Felet: Port nollställs till -1 av Container-tilldelningen. Kopplingen faller på R3, av ett skäl som inte syns på raden där felet ser ut att vara
+
+**R5** — ut-sidans kontakt är VC_CONNECTOR_OUTPUT och in-sidans VC_CONNECTOR_INPUT
+
+* Härkomst: MÄTT M-67: ut mot ut ger canConnect False, connect False, IsConnected False — och flyttar ingenting
+* Felet: canConnect returnerar False. Riktningen bor i kontakten, inte i gränssnittets namn: ett gränssnitt som HETER OutInterface men bär en Input-kontakt matchar som ingång
+
+**R6** — båda sektionernas fält har samma typ (VC_FLOWFIELD mot VC_FLOWFIELD)
+
+* Härkomst: BELAGT Create3D ISimInterfaceSection.IsCompatibleWith: "True if connection between these sections is possible"
+* Felet: canConnect returnerar False. Aldrig mätt med BLANDADE fälttyper — regeln är belagd, inte mätt
+
+**R7** — fälten står i samma ORDNING i båda sektionerna
+
+* Härkomst: BELAGT api.xml vcSimInterfaceField.Index: "sections may have compatible fields but cannot connect because the order of fields differ in each section"
+* Felet: canConnect returnerar False. Aldrig mätt hos oss: alla våra sektioner har exakt ett fält, så ordningen kan inte skilja
+
+**R8** — ett VC_ONETOONEINTERFACE är inte redan kopplat
+
+* Härkomst: BELAGT Create3D ISimInterface.Connect: "Thrown when interface cannot be connected (it is one to one interface and already connected ...)"
+* Felet: connect kastar i .NET. I Python-bindningen är utfallet INTE mätt — vi vet inte om det blir False eller ett undantag
+
+**R9** — avståndet mellan gränssnitten spelar INGEN roll vid förvald DistanceTolerance
+
+* Härkomst: MÄTT M-67: canConnect True med 1670 mm mellan komponenterna; MÄTT punkt 9: förvalet är 1e9 mm och 360 grader
+* Felet: — ingen regel att brista mot. Raden står här därför att M-40:s formulering "canConnect är en geometrisk fråga" är SKÄRPT av M-67: det som fällde var ett fält med Port = -1, inte avståndet
+
+Två rader förtjänar en anmärkning.
+
+**R4 är inte en stilfråga.** Bindningsordningen `Container` före `Port` är
+mätt (M-40): sätts `Port` först och `Container` sedan står `Port` på `-1`
+efteråt, och kopplingen faller på R3 — av ett skäl som inte syns på raden där
+felet ser ut att sitta. `komponentmodell._bind` binder i rätt ordning, och
+`test_bindningsordningen_star_i_koden` håller den där.
+
+**R9 är ingen regel, utan en skärpning.** M-40 kallade `canConnect` "en
+geometrisk fråga". M-67 mätte `canConnect = True` med 1670 mm mellan
+komponenterna. Båda stämmer: i M-40:s fall var det ett fält med `Port = -1`
+som fällde, inte avståndet. Vid förvald `DistanceTolerance` (1e9 mm) gatear
+geometrin ingenting. Vad ett **satt** `DistanceTolerance` gör är fortfarande
+omätt.
+
+---
+
+## 9. Vilka par som ska gå ihop
+
+Riktningen bor i kontakten, inte i namnet: ut-sidan är den vars fält pekar på
+en `VC_CONNECTOR_OUTPUT`.
+
+| Ut-sida | In-sida | Ska gå ihop | Skäl |
+|---|---|---|---|
+| `matare` | `transportor` | **ja** (`matare -> transportor`) | ut-sidan bär Output, in-sidan Input |
+| `transportor` | `buffert` | **ja** (`transportor -> buffert`) | ut-sidan bär Output, in-sidan Input |
+| `buffert` | `sanka` | **ja** (`buffert -> sanka`) | ut-sidan bär Output, in-sidan Input |
+| `transportor` | `transportor` | **ja** (`transportor -> transportor`) | ut-sidan bär Output, in-sidan Input |
+| `matare` | `sanka` | **ja** (`matare -> sanka`) | ut-sidan bär Output, in-sidan Input |
+| `matare` | `matare` | **nej** (`matare -> matare`) | båda sidor bär VC_CONNECTOR_OUTPUT; MÄTT M-67: ut mot ut ger canConnect False |
+| `sanka` | `sanka` | **nej** (`sanka -> sanka`) | båda sidor bär VC_CONNECTOR_INPUT |
+| `sanka` | `matare` | **nej** (`sanka -> matare`) | sänkan har ingen utgång och mataren ingen ingång |
+
+---
+
+## 10. De trasiga fixturerna — fasens poäng
+
+En kravlista som aldrig prövats **utelämnad** är en åsikt. Därför bygger
+modellen fyra komponenter till, en per klass, där exakt ett krav saknas:
+
+| Klass | Utelämnat krav | Konstant | Vad domaren ska svara |
+|---|---|---|---|
+| `transportor` | `bana` | `VC_ONEWAYPATH` | namnger `Path` och säger varför kopplingen är omöjlig |
+| `matare` | `skapare` | `VC_COMPONENTCREATOR` | namnger `Creator` och säger varför kopplingen är omöjlig |
+| `sanka` | `behallare` | `VC_COMPONENTCONTAINER` | namnger `Sink` och säger varför kopplingen är omöjlig |
+| `buffert` | `bana` | `VC_ONEWAYPATH` | namnger `Path` och säger varför kopplingen är omöjlig |
+
+Grinden har två halvor, och båda måste hålla:
+
+1. **VC säger nej.** `canConnect` mot en riktig, hel motpart måste vara
+   `False`. Är den `True` är kravet inget krav, och kravlistan ljuger.
+2. **Vi säger varför.** `granska()` måste namnge det utelämnade beteendet.
+   Ett fel som bara säger "gick inte" duger inte.
+
+Kontrollen är parvis: samma motpart provas först mot den trasiga komponenten
+(ska ge `False`) och sedan mot en hel tvilling på **samma plats i världen**
+(ska ge `True`). Då är skillnaden mellan de två utfallen exakt det utelämnade
+kravet — inte geometrin, inte motparten, inte ordningen.
+

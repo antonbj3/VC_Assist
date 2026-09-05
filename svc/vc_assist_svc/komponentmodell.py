@@ -105,65 +105,65 @@ class Rapport(object):
 # en grind i stallet for en beskrivning.
 
 _UTAN_FLODESBETEENDE = (
-    "utan det finns ingen vcConnector att binda flodesfaltets %s till, "
-    "%s star kvar pa None, och canConnect blir False utan att VC sager "
-    "nagot (MATT M-40, E6)" % (EGENSKAP_PORT, EGENSKAP_BETEENDE))
+    u"utan det finns ingen vcConnector att binda flödesfältets %s till, %s "
+    u"står kvar på None, och canConnect blir False utan att VC säger ett ord "
+    u"(MÄTT M-40, E6)" % (EGENSKAP_PORT, EGENSKAP_BETEENDE))
 
 _UTAN_GRANSSNITT = (
-    "utan det finns inget att anropa canConnect PA: findBehaviour ger None "
-    "och kopplingen kan inte ens efterfragas (MATT M-40, koppla-receptet "
-    "foll pa exakt det)")
+    u"utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger "
+    u"None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet "
+    u"föll på exakt det)")
 
 _BANA = Krav(
-    nyckel="bana", slag="beteende", namn="Path", konstant="VC_ONEWAYPATH",
-    roll="flodesbarare: bar bade vcFlow och vcContainer, alltsa kontakter OCH lagring",
-    harkomst="BELAGT api.xml vcMotionPath <parents>vcBehaviour vcFlow vcContainer</parents>; MATT C0/C3",
-    utan="beteendet Path (VC_ONEWAYPATH) saknas: " + _UTAN_FLODESBETEENDE)
+    nyckel="bana", slag=u"beteende", namn="Path", konstant="VC_ONEWAYPATH",
+    roll=u"flödesbärare: bär både vcFlow och vcContainer, alltså kontakter OCH lagring",
+    harkomst=u"BELAGT api.xml vcMotionPath <parents>vcBehaviour vcFlow vcContainer</parents>; MÄTT C0/C3",
+    utan=u"beteendet Path (VC_ONEWAYPATH) saknas: " + _UTAN_FLODESBETEENDE)
 
 _SKAPARE = Krav(
-    nyckel="skapare", slag="beteende", namn="Creator",
+    nyckel="skapare", slag=u"beteende", namn="Creator",
     konstant="VC_COMPONENTCREATOR",
-    roll="producerar komponenter ur en mall och lamnar dem genom sin utkontakt",
-    harkomst="MATT D1/D5 (2026-09-04); klassnamnet rapporteras som rResourceCreator",
-    utan="beteendet Creator (VC_COMPONENTCREATOR) saknas: "
-         "ingenting produceras, och " + _UTAN_FLODESBETEENDE)
+    roll=u"producerar komponenter ur en mall och lämnar dem genom sin utkontakt",
+    harkomst=u"MÄTT D1/D5 (2026-09-04); py2-bindningen rapporterar klassen som rResourceCreator",
+    utan=u"beteendet Creator (VC_COMPONENTCREATOR) saknas: ingenting produceras, och "
+         + _UTAN_FLODESBETEENDE)
 
 _BEHALLARE = Krav(
-    nyckel="behallare", slag="beteende", namn="Sink",
+    nyckel="behallare", slag=u"beteende", namn="Sink",
     konstant="VC_COMPONENTCONTAINER",
-    roll="lagrar mottagna komponenter; vcSimContainer med Input och Output",
-    harkomst="MATT D0/D2 (2026-09-04): VC_CONTAINER ger None, VC_COMPONENTCONTAINER ger vcSimContainer",
-    utan="beteendet Sink (VC_COMPONENTCONTAINER) saknas: "
-         "det finns ingenstans att ta emot, och " + _UTAN_FLODESBETEENDE)
+    roll=u"lagrar mottagna komponenter; vcSimContainer med Input och Output",
+    harkomst=u"MÄTT D0/D2 (2026-09-04): VC_CONTAINER ger None, VC_COMPONENTCONTAINER ger vcSimContainer",
+    utan=u"beteendet Sink (VC_COMPONENTCONTAINER) saknas: det finns ingenstans "
+         u"att ta emot, och " + _UTAN_FLODESBETEENDE)
 
 
 def _granssnittskrav(nyckel, namn, riktning, ram, beteende, kontakttyp):
     return Granssnitt(
         nyckel=nyckel, namn=namn, riktning=riktning, ram=ram,
         beteende=beteende, kontakttyp=kontakttyp, falttyp="VC_FLOWFIELD",
-        harkomst="MATT punkt 1-3 (interface, section, field skapas); "
-                 "BELAGT Create3D BehaviorType.OneToOneInterface",
-        utan="granssnittet %s (VC_ONETOONEINTERFACE) saknas: %s"
+        harkomst=u"MÄTT punkt 1-3 (interface, section och field skapas); "
+                 u"BELAGT Create3D BehaviorType.OneToOneInterface",
+        utan=u"gränssnittet %s (VC_ONETOONEINTERFACE) saknas: %s"
              % (namn, _UTAN_GRANSSNITT))
 
 
 def _ramkrav(nyckel, namn, roll):
     return Krav(
-        nyckel=nyckel, slag="ram", namn=namn, konstant="VC_FRAME", roll=roll,
-        harkomst="MATT M-40 villkor 1: utan rebuild() star ramens verkliga "
-                 "lage kvar i nodens ursprung och PathLength blir 0.0",
-        utan="ramen %s (VC_FRAME) saknas: sektionen far ingen Frame, och en "
-             "bana utan tva atskilda ramar far PathLength 0.0 -- den tar inte "
-             "emot nagot och matningen uppstrom tystnar (MATT M-40, linje M41B)"
+        nyckel=nyckel, slag=u"ram", namn=namn, konstant="VC_FRAME", roll=roll,
+        harkomst=u"MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga "
+                 u"läge kvar i nodens ursprung och PathLength blir 0.0",
+        utan=u"ramen %s (VC_FRAME) saknas: sektionen får ingen Frame, och en "
+             u"bana utan två åtskilda ramar får PathLength 0.0 — den tar inte "
+             u"emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B)"
              % namn)
 
 
 _TRANSPORTOR = Klass(
     namn="transportor",
-    rubrik="TRANSPORTOR: tar emot i ena anden, lamnar i den andra",
+    rubrik=u"TRANSPORTÖR: tar emot i ena änden, lämnar i den andra",
     beteenden=(_BANA,),
-    ramar=(_ramkrav("ram_in", "PathIn", "banans borjan och in-sektionens lage"),
-           _ramkrav("ram_ut", "PathOut", "banans slut och ut-sektionens lage")),
+    ramar=(_ramkrav("ram_in", "PathIn", u"banans början och in-sektionens läge"),
+           _ramkrav("ram_ut", "PathOut", u"banans slut och ut-sektionens läge")),
     granssnitt=(
         _granssnittskrav("in_granssnitt", "InInterface", "in", "ram_in",
                          "bana", "VC_CONNECTOR_INPUT"),
@@ -171,92 +171,96 @@ _TRANSPORTOR = Klass(
                          "bana", "VC_CONNECTOR_OUTPUT"),
     ),
     egenskaper=(
-        Krav("path", "egenskap", "Path", "", "banans vag: [PathIn, PathOut]",
-             "MATT: Path = [ram_in, ram_ut] tas emot",
-             "egenskapen Path ar tom: PathLength blir 0.0 och banan bar inget"),
-        Krav("uppdaterad", "egenskap", "update()", "",
-             "raknar om PathLength efter att Path satts",
-             "MATT M-40 villkor 2: p.Path satt -> PathLength 0.0; p.update() -> 3000.0",
-             "bana.update() utelamnad: PathLength ar 0.0 fast ramarna star "
-             "3000 mm isar, banan tar inte emot nagot och mataren uppstrom "
-             "producerar noll (MATT M-40, linje M41B: 0 produkter pa 7 intervall)"),
-        Krav("hastighet", "egenskap", "Speed", "", "mm/s langs banan",
-             "MATT M-41: uppmatt rorelse 250.0000 mm/s mot Speed 250.0, spridning 0.0000",
-             "Speed osatt: forvalet galler; ingen mätning sager vilket det ar"),
+        Krav("path", u"egenskap", "Path", "", u"banans väg: [PathIn, PathOut]",
+             u"MÄTT: Path = [ram_in, ram_ut] tas emot",
+             u"egenskapen Path är tom: PathLength blir 0.0 och banan bär ingenting"),
+        Krav("uppdaterad", u"egenskap", "update()", "",
+             u"räknar om PathLength efter att Path satts",
+             u"MÄTT M-40 villkor 2: p.Path satt ger PathLength 0.0; p.update() ger 3000.0",
+             u"update() utelämnad: PathLength är 0.0 fast ramarna står 3000 mm "
+             u"isär, banan tar inte emot något och mataren uppströms producerar "
+             u"noll (MÄTT M-40, linje M41B: 0 produkter på 7 intervall)"),
+        Krav("hastighet", u"egenskap", "Speed", "", u"mm/s längs banan",
+             u"MÄTT M-41: uppmätt rörelse 250.0000 mm/s mot Speed 250.0, spridning 0.0000",
+             u"Speed osatt: förvalet gäller, och vilket det är har ingen mätt"),
     ),
-    parbarhet=("in: matare, transportor, buffert", "ut: transportor, buffert, sanka"),
+    parbarhet=(u"in: matare, transportor, buffert",
+               u"ut: transportor, buffert, sanka"),
 )
 
 _BUFFERT = Klass(
     namn="buffert",
-    rubrik="BUFFERT: en bana som HALLER KVAR N komponenter",
+    rubrik=u"BUFFERT: en bana som HÅLLER KVAR N komponenter",
     beteenden=(_BANA,),
     ramar=_TRANSPORTOR.ramar,
     granssnitt=_TRANSPORTOR.granssnitt,
     egenskaper=_TRANSPORTOR.egenskaper + (
-        Krav("ackumulera", "egenskap", "Accumulate", "",
-             "later komponenter ko sig i stallet for att bara passera",
-             "HYPOTES D4: aldrig matt med Accumulate=False mot True pa samma bana",
-             "Accumulate=False: komponenterna passerar utan att ko sig; "
-             "buffert och transportor blir samma sak"),
-        Krav("kapacitet", "egenskap", "Capacity", "", "antal platser",
-             "HYPOTES D4: kapacitetens verkan aldrig matt",
-             "Capacity osatt: forvalet galler, och hur manga platser en bana "
-             "har som forval ar inte matt"),
+        Krav("ackumulera", u"egenskap", "Accumulate", "",
+             u"låter komponenter köa sig i stället för att bara passera",
+             u"HYPOTES D4: aldrig mätt med Accumulate=False mot True på samma bana",
+             u"Accumulate=False: komponenterna passerar utan att köa sig, och "
+             u"buffert blir samma sak som transportör"),
+        Krav("kapacitet", u"egenskap", "Capacity", "", u"antal platser",
+             u"HYPOTES D4: kapacitetens verkan är aldrig mätt",
+             u"Capacity osatt: förvalet gäller, och hur många platser en bana "
+             u"har som förval är inte mätt"),
     ),
-    parbarhet=("in: matare, transportor, buffert", "ut: transportor, buffert, sanka"),
+    parbarhet=(u"in: matare, transportor, buffert",
+               u"ut: transportor, buffert, sanka"),
 )
 
 _MATARE = Klass(
     namn="matare",
-    rubrik="MATARE: skapar komponenter och lamnar dem nedstroms",
+    rubrik=u"MATARE: skapar komponenter och lämnar dem nedströms",
     beteenden=(_SKAPARE,),
-    ramar=(_ramkrav("ram_ut", "Out", "utgangens lage"),),
+    ramar=(_ramkrav("ram_ut", "Out", u"utgångens läge"),),
     granssnitt=(
         _granssnittskrav("ut_granssnitt", "OutInterface", "ut", "ram_ut",
                          "skapare", "VC_CONNECTOR_OUTPUT"),
     ),
     egenskaper=(
-        Krav("mall", "egenskap", "TemplateComponent", "",
-             "komponenten som kopieras vid varje intervall",
-             "MATT M-40: tar en komponent som STAR i scenen, aven en utan URI "
-             "och utan VCID; Part maste inte peka pa en losbar URI",
-             "TemplateComponent osatt: skaparen har ingenting att kopiera"),
-        Krav("intervall", "egenskap", "Interval", "", "sekunder mellan produkter",
-             "MATT M-41: atta mellanrum, alla exakt 4.000 s mot Interval 4.0",
-             "Interval osatt: forvalet galler och takten ar inte matt"),
-        Krav("grans", "egenskap", "Limit", "", "hogsta antal produkter",
-             "MATT M-40/D5: Limit osatt -> noll produkter pa 6 s; Limit=10 "
-             "slutade tyst vid t=50 och sag ut som en trasig matare",
-             "Limit osatt: mataren stannar tyst nar forvalet nas, och en "
-             "stannad matare ser exakt ut som en trasig"),
-        Krav("pa", "egenskap", "Enabled", "", "skaparen ar igang",
-             "MATT M-40: Enabled rapporterades True i alla tre linjerna",
-             "Enabled=False: ingenting produceras"),
+        Krav("mall", u"egenskap", "TemplateComponent", "",
+             u"komponenten som kopieras vid varje intervall",
+             u"MÄTT M-40: tar en komponent som STÅR i scenen, även en utan URI "
+             u"och utan VCID; Part behöver inte peka på en lösbar URI",
+             u"TemplateComponent osatt: skaparen har ingenting att kopiera"),
+        Krav("intervall", u"egenskap", "Interval", "", u"sekunder mellan produkter",
+             u"MÄTT M-41: åtta mellanrum, alla exakt 4.000 s mot Interval 4.0",
+             u"Interval osatt: förvalet gäller och takten är inte mätt"),
+        Krav("grans", u"egenskap", "Limit", "", u"högsta antal produkter",
+             u"MÄTT M-40/D5: Limit osatt gav noll produkter på 6 s; Limit=10 "
+             u"slutade tyst vid t=50 och såg då ut precis som en trasig matare",
+             u"Limit osatt: mataren stannar tyst när förvalet nås, och en "
+             u"stannad matare ser exakt ut som en trasig"),
+        Krav("pa", u"egenskap", "Enabled", "", u"skaparen är igång",
+             u"MÄTT M-40: Enabled rapporterades True i alla tre linjerna",
+             u"Enabled=False: ingenting produceras"),
     ),
-    parbarhet=("in: -- (en matare tar inte emot)", "ut: transportor, buffert, sanka"),
+    parbarhet=(u"in: — (en matare tar inte emot)",
+               u"ut: transportor, buffert, sanka"),
 )
 
 _SANKA = Klass(
     namn="sanka",
-    rubrik="SANKA: tar emot komponenter och behaller dem",
+    rubrik=u"SÄNKA: tar emot komponenter och behåller dem",
     beteenden=(_BEHALLARE,),
-    ramar=(_ramkrav("ram_in", "In", "ingangens lage"),),
+    ramar=(_ramkrav("ram_in", "In", u"ingångens läge"),),
     granssnitt=(
         _granssnittskrav("in_granssnitt", "InInterface", "in", "ram_in",
                          "behallare", "VC_CONNECTOR_INPUT"),
     ),
     egenskaper=(
-        Krav("kapacitet", "egenskap", "Capacity", "", "hur manga som far plats",
-             "BELAGT api.xml vcContainer.Capacity: \"the maximum number of "
-             "components that can be stored in the container at any given time\"",
-             "Capacity for lag: sankan blir full och stoppar linjen uppstrom"),
-        Krav("dolt", "egenskap", "ContentVisible", "",
-             "gommer det lagrade i 3D-vyn",
-             "BELAGT api.xml vcContainer.ContentVisible (W)",
-             "ContentVisible=True: innehallet syns; kosmetiskt, inte funktionellt"),
+        Krav("kapacitet", u"egenskap", "Capacity", "", u"hur många som får plats",
+             u'BELAGT api.xml vcContainer.Capacity: "the maximum number of '
+             u'components that can be stored in the container at any given time"',
+             u"Capacity för låg: sänkan blir full och stoppar linjen uppströms"),
+        Krav("dolt", u"egenskap", "ContentVisible", "",
+             u"styr om det lagrade syns i 3D-vyn",
+             u"BELAGT api.xml vcContainer.ContentVisible (W)",
+             u"ContentVisible=False: innehållet göms; kosmetiskt, inte funktionellt"),
     ),
-    parbarhet=("in: matare, transportor, buffert", "ut: -- (en sanka lamnar inte ifran sig)"),
+    parbarhet=(u"in: matare, transportor, buffert",
+               u"ut: — (en sänka lämnar inte ifrån sig)"),
 )
 
 KLASSER = collections.OrderedDict((
@@ -266,9 +270,9 @@ KLASSER = collections.OrderedDict((
     ("buffert", _BUFFERT),
 ))
 
-# Vilket krav den trasiga fixturen utelamnar per klass. Alltid det som barer
-# flodet: da finns granssnittet kvar, canConnect GAR att anropa, och False
-# betyder nagot. Utelamnas granssnittet i stallet gar fragan inte att stalla,
+# Vilket krav den trasiga fixturen utelämnar per klass. Alltid det som BÄR
+# flödet: då finns gränssnittet kvar, canConnect GÅR att anropa, och False
+# betyder något. Utelämnas gränssnittet i stället går frågan inte att ställa,
 # och "gick inte" hade blivit tvetydigt.
 TRASIG_UTELAMNING = collections.OrderedDict((
     ("transportor", "bana"),
@@ -277,7 +281,7 @@ TRASIG_UTELAMNING = collections.OrderedDict((
     ("buffert", "bana"),
 ))
 
-# Vilka par specen sager ska ga ihop: (ut-sida, in-sida).
+# Vilka par specen säger ska gå ihop: (ut-sida, in-sida).
 PAR_SOM_SKA_GA = (
     ("matare", "transportor"),
     ("transportor", "buffert"),
@@ -286,76 +290,76 @@ PAR_SOM_SKA_GA = (
     ("matare", "sanka"),
 )
 
-# Par som INTE ska ga ihop, och skalet.
+# Par som INTE ska gå ihop, och skälet.
 PAR_SOM_INTE_GAR = (
-    ("matare", "matare", "bada sidor bar VC_CONNECTOR_OUTPUT; "
-                         "MATT M-67: ut mot ut ger canConnect False"),
-    ("sanka", "sanka", "bada sidor bar VC_CONNECTOR_INPUT"),
-    ("sanka", "matare", "sankan har ingen utgang och mataren ingen ingang"),
+    ("matare", "matare", u"båda sidor bär VC_CONNECTOR_OUTPUT; MÄTT M-67: "
+                         u"ut mot ut ger canConnect False"),
+    ("sanka", "sanka", u"båda sidor bär VC_CONNECTOR_INPUT"),
+    ("sanka", "matare", u"sänkan har ingen utgång och mataren ingen ingång"),
 )
 
 
-# ---- matchningsregeln for canConnect ---------------------------------------
+# ---- matchningsregeln för canConnect ---------------------------------------
 #
-# Ordningen ar VAR provordning, inte VC:s. VC:s inre ordning ar INTE matt --
-# canConnect ger ett enda False utan att saga vilket villkor som brast. Att
-# skriva ordningen som om den vore VC:s hade varit ett antagande i
-# matningsklader.
+# Ordningen är VÅR provordning, inte VC:s. VC:s inre ordning är INTE mätt —
+# canConnect ger ett enda False utan att säga vilket villkor som brast. Att
+# skriva vår ordning som om den vore VC:s hade varit ett antagande i
+# mätningskläder.
 
 MATCHNINGSREGEL = (
-    Regel("R1", "bada sidor har ett beteende med granssnittets namn, och det "
-                "beteendet ar ett simuleringsgranssnitt (bar canConnect)",
-          "MATT M-40: koppla-receptet foll pa findBehaviour som gav None",
-          "granssnittet saknas -- fragan gar inte att stalla, och 'gick inte' "
-          "vore tvetydigt"),
-    Regel("R2", "flodesfaltets %s pekar pa ett beteende (inte None)" % EGENSKAP_BETEENDE,
-          "MATT E0/E6 2026-09-04: med Port bundet och Container=None pa bada "
-          "sidor ar canConnect False och connectComponents False",
-          "canConnect returnerar False. VC sager INGENTING -- ingen exception, "
-          "ingen logg, inget falskt returvarde nagon annanstans"),
-    Regel("R3", "flodesfaltets %s ar ett heltal >= 0" % EGENSKAP_PORT,
-          "MATT M-40: Port = -1 ger canConnect False; MATT B3: Port tar ett "
-          "heltal (kontaktens Index), inte ett vcConnector-objekt",
-          "canConnect returnerar False, tyst. Ett falt med Port = -1 ser i "
-          "ovrigt fardigbundet ut"),
-    Regel("R4", "bindningsordningen ar %s FORE %s"
+    Regel("R1", u"båda sidor har ett beteende med gränssnittets namn, och det "
+                u"beteendet är ett simuleringsgränssnitt (bär canConnect)",
+          u"MÄTT M-40: koppla-receptet föll på findBehaviour som gav None",
+          u"gränssnittet saknas — frågan går inte att ställa, och \"gick inte\" "
+          u"vore tvetydigt"),
+    Regel("R2", u"flödesfältets %s pekar på ett beteende (inte None)" % EGENSKAP_BETEENDE,
+          u"MÄTT E0/E6 2026-09-04: med Port bundet och Container=None på båda "
+          u"sidor är canConnect False och connectComponents False",
+          u"canConnect returnerar False. VC säger INGENTING — ingen exception, "
+          u"ingen logg, inget falskt returvärde någon annanstans"),
+    Regel("R3", u"flödesfältets %s är ett heltal >= 0" % EGENSKAP_PORT,
+          u"MÄTT M-40: Port = -1 ger canConnect False; MÄTT B3: Port tar ett "
+          u"heltal (kontaktens Index), inte ett vcConnector-objekt",
+          u"canConnect returnerar False, tyst. Ett fält med Port = -1 ser i "
+          u"övrigt färdigbundet ut"),
+    Regel("R4", u"bindningsordningen är %s FÖRE %s"
                 % (EGENSKAP_BETEENDE, EGENSKAP_PORT),
-          "MATT M-40: Port satt forst -> Container satt -> Port ar nu -1",
-          "Port nollstalls till -1 av Container-tilldelningen. Kopplingen "
-          "faller pa R3 av ett skal som inte finns i koden dar felet ser ut "
-          "att vara"),
-    Regel("R5", "ut-sidans kontakt ar VC_CONNECTOR_OUTPUT och in-sidans "
-                "VC_CONNECTOR_INPUT",
-          "MATT M-67: ut mot ut ger canConnect False, connect False, "
-          "IsConnected False -- och flyttar ingenting",
-          "canConnect returnerar False. Riktningen bor i kontakten, inte i "
-          "granssnittets namn: ett granssnitt som HETER OutInterface men bar "
-          "en Input-kontakt matchar som ingang"),
-    Regel("R6", "bada sektionernas falt har samma typ (VC_FLOWFIELD mot "
-                "VC_FLOWFIELD)",
-          "BELAGT Create3D ISimInterfaceSection.IsCompatibleWith: \"True if "
-          "connection between these sections is possible\"",
-          "canConnect returnerar False. Aldrig matt med BLANDADE falttyper -- "
-          "regeln ar belagd, inte matt"),
-    Regel("R7", "falten star i samma ORDNING i bada sektionerna",
-          "BELAGT api.xml vcSimInterfaceField.Index: \"sections may have "
-          "compatible fields but cannot connect because the order of fields "
-          "differ in each section\"",
-          "canConnect returnerar False. Aldrig matt hos oss: alla vara "
-          "sektioner har exakt ett falt, sa ordningen kan inte skilja"),
-    Regel("R8", "ett VC_ONETOONEINTERFACE ar inte redan kopplat",
-          "BELAGT Create3D ISimInterface.Connect: \"Thrown when interface "
-          "cannot be connected (it is one to one interface and already "
-          "connected ...)\"",
-          "connect kastar i .NET. I Python-bindningen ar utfallet inte matt -- "
-          "vi vet inte om det blir False eller ett undantag"),
-    Regel("R9", "avstandet mellan granssnitten spelar INGEN roll vid forvald "
-                "DistanceTolerance",
-          "MATT M-67: canConnect True med 1670 mm mellan komponenterna; "
-          "MATT punkt 9: forvalet ar 1e9 mm och 360 grader",
-          "-- ingen regel att brista mot. Raden star har for att M-40:s "
-          "formulering \"canConnect ar en geometrisk fraga\" ar SKARPT av "
-          "M-67: det var ett falt med Port = -1, inte avstandet"),
+          u"MÄTT M-40: Port satt först, sedan Container satt — Port är nu -1",
+          u"Port nollställs till -1 av Container-tilldelningen. Kopplingen "
+          u"faller på R3, av ett skäl som inte syns på raden där felet ser ut "
+          u"att vara"),
+    Regel("R5", u"ut-sidans kontakt är VC_CONNECTOR_OUTPUT och in-sidans "
+                u"VC_CONNECTOR_INPUT",
+          u"MÄTT M-67: ut mot ut ger canConnect False, connect False, "
+          u"IsConnected False — och flyttar ingenting",
+          u"canConnect returnerar False. Riktningen bor i kontakten, inte i "
+          u"gränssnittets namn: ett gränssnitt som HETER OutInterface men bär "
+          u"en Input-kontakt matchar som ingång"),
+    Regel("R6", u"båda sektionernas fält har samma typ (VC_FLOWFIELD mot "
+                u"VC_FLOWFIELD)",
+          u'BELAGT Create3D ISimInterfaceSection.IsCompatibleWith: "True if '
+          u'connection between these sections is possible"',
+          u"canConnect returnerar False. Aldrig mätt med BLANDADE fälttyper — "
+          u"regeln är belagd, inte mätt"),
+    Regel("R7", u"fälten står i samma ORDNING i båda sektionerna",
+          u'BELAGT api.xml vcSimInterfaceField.Index: "sections may have '
+          u'compatible fields but cannot connect because the order of fields '
+          u'differ in each section"',
+          u"canConnect returnerar False. Aldrig mätt hos oss: alla våra "
+          u"sektioner har exakt ett fält, så ordningen kan inte skilja"),
+    Regel("R8", u"ett VC_ONETOONEINTERFACE är inte redan kopplat",
+          u'BELAGT Create3D ISimInterface.Connect: "Thrown when interface '
+          u'cannot be connected (it is one to one interface and already '
+          u'connected ...)"',
+          u"connect kastar i .NET. I Python-bindningen är utfallet INTE mätt — "
+          u"vi vet inte om det blir False eller ett undantag"),
+    Regel("R9", u"avståndet mellan gränssnitten spelar INGEN roll vid förvald "
+                u"DistanceTolerance",
+          u"MÄTT M-67: canConnect True med 1670 mm mellan komponenterna; "
+          u"MÄTT punkt 9: förvalet är 1e9 mm och 360 grader",
+          u"— ingen regel att brista mot. Raden står här därför att M-40:s "
+          u"formulering \"canConnect är en geometrisk fråga\" är SKÄRPT av "
+          u"M-67: det som fällde var ett fält med Port = -1, inte avståndet"),
 )
 
 
