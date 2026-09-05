@@ -945,3 +945,50 @@ def test_indexet_svarar_pa_returtyp_och_signatur_men_ALDRIG_pa_enhet():
         assert "degree" not in text and "radian" not in text, (
             "%s namner en enhet - da ar M-83:s slutsats inaktuell och ska "
             "matas om" % s.namn)
+
+
+# --- att siffran kan visa sina medlemmar (M-84) -------------------------------
+#
+# "kontrollerade 584 namn" gick inte att revidera: talet hade inga medlemmar.
+# Nu ar det summan av sedda_namn, och de har proven haller fast VAD som raknas.
+
+def test_sedda_namn_namnger_det_som_kontrollerades():
+    v = bygg_validator()
+    g = v.granska("app = getApplication()\nc = app.load('x')\nprint(c.Name)\n")
+    assert dict(g.sedda_namn) == {"getApplication": 1,
+                                  "vcApplication.load": 1,
+                                  "vcComponent.Name": 1}
+
+
+def test_medlem_raknas_med_sin_typ_inte_bara_med_sitt_egennamn():
+    """Name pa vcComponent och Name pa vcSignal ar inte samma uppslag.
+
+    Raknades de som bara "Name" skulle tva olika kontroller se ut som en
+    upprepning, och ordforradsmatningen i M-84 hade blivit for liten.
+    """
+    v = bygg_validator()
+    g = v.granska("app = getApplication()\nc = app.load('x')\n"
+                  "print(c.Name)\nprint(c.Parent.Name)\n")
+    assert "vcComponent.Name" in g.sedda_namn
+    assert "Name" not in g.sedda_namn
+
+
+def test_talet_ar_summan_av_mangden_inte_en_egen_rakning():
+    v = bygg_validator()
+    for kod in ("app = getApplication()\n",
+                "app = getApplication()\nc = app.load('x')\nprint(c.Name)\n",
+                "print(VC_BOOLEANSIGNAL)\n"):
+        g = v.granska(kod)
+        assert g.kontrollerade_namn == sum(g.sedda_namn.values())
+
+
+def test_namn_som_hoppas_over_raknas_inte():
+    """En rakning som tog med overhoppade namn hade matt fel storhet.
+
+    append pa en lista och en lokal variabel ar inga VC-uppslag. Rakas de med
+    ser en scen ut att ha provats hardare an den blivit.
+    """
+    v = bygg_validator()
+    g = v.granska("rader = []\nrader.append(1)\nx = rader\n")
+    assert dict(g.sedda_namn) == {}
+    assert g.kontrollerade_namn == 0

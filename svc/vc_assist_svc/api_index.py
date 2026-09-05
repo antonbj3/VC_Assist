@@ -49,6 +49,7 @@ import json
 import os
 import re
 import xml.etree.ElementTree as ET
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -652,7 +653,23 @@ class Granskning:
     fel: List[Fel] = field(default_factory=list)
     obestambara: List[Obestambar] = field(default_factory=list)
     noteringar: List[str] = field(default_factory=list)
-    kontrollerade_namn: int = 0
+    sedda_namn: "Counter[str]" = field(default_factory=Counter)
+
+    @property
+    def kontrollerade_namn(self) -> int:
+        """Harledd ur sedda_namn - aldrig en egen rakning.
+
+        Stod forst som ett eget falt som atta stallen okade for hand. En sadan
+        siffra gar inte att revidera: "584 kontrollerade" kan inte provas mot
+        nagonting, och om ett stalle okade utan att prova ett namn hade ingen
+        sett det. Nu ar talet summan av mangdens medlemmar, sa det kan inte
+        saga nagot annat an vad som faktiskt slogs upp.
+        """
+        return sum(self.sedda_namn.values())
+
+    def rakna(self, namn: str) -> None:
+        """Rakna ETT kontrollerat namn och behall vilket det var."""
+        self.sedda_namn[namn] += 1
 
     @property
     def godkand(self) -> bool:
@@ -835,7 +852,7 @@ class Validator(object):
                 continue
             if modul == "vcHelpers" or modul in self.index.hjalpmoduler:
                 continue
-            self._g.kontrollerade_namn += 1
+            self._g.rakna(modul)
             self._g.fel.append(Fel(
                 sort="okand_hjalpmodul", namn=modul, rad=sats.lineno,
                 text="hjalpmodulen %s finns inte i helpers.xml" % modul,
@@ -925,7 +942,7 @@ class Validator(object):
             return OKAND
         if namn not in self._bundna:
             if _KONSTANTMONSTER.match(namn):
-                self._g.kontrollerade_namn += 1
+                self._g.rakna(namn)
                 if namn not in self.index.konstanter:
                     self._g.fel.append(Fel(
                         sort="okand_konstant", namn=namn, rad=nod.lineno,
@@ -933,7 +950,7 @@ class Validator(object):
                         forslag=tuple(self._narmaste_konstant(namn))))
                 return ENKEL
             if _TYPMONSTER.match(namn):
-                self._g.kontrollerade_namn += 1
+                self._g.rakna(namn)
                 if namn not in self.index.typer:
                     self._g.fel.append(Fel(
                         sort="okand_typ", namn=namn, rad=nod.lineno,
@@ -1007,7 +1024,7 @@ class Validator(object):
                      " vcScript:s modulfunktioner star inte i nagon matt kalla"
                      " sa det gar inte att avgora om namnet finns" % namn))
             return OKAND_VC
-        self._g.kontrollerade_namn += 1
+        self._g.rakna(namn)
         typer = set(s.vardetyp for s in symboler if s.vardetyp)
         if len(typer) == 1:
             return self._typ_varde(typer.pop())
@@ -1020,7 +1037,7 @@ class Validator(object):
         bas = self._ut(nod.value, env)
         if bas.sort == "hjalprot":
             modul = "vcHelpers.%s" % nod.attr
-            self._g.kontrollerade_namn += 1
+            self._g.rakna(modul)
             if modul in self.index.hjalpmoduler:
                 return Varde("typ", typ=modul)
             self._g.fel.append(Fel(
@@ -1041,7 +1058,7 @@ class Validator(object):
 
     def _slag_pa_typ(self, typ_namn: str, namn: str, rad: int,
                      ar_anrop: bool) -> Varde:
-        self._g.kontrollerade_namn += 1
+        self._g.rakna("%s.%s" % (typ_namn, namn))
         symboler = self.index.medlem(typ_namn, namn)
         if symboler:
             return self._varde_av_medlem(symboler, ar_anrop)
@@ -1081,7 +1098,7 @@ class Validator(object):
     def _slag_pa_lista(self, namn: str, rad: int) -> Varde:
         if namn in _PYTHONMEDLEMMAR:
             return OKAND
-        self._g.kontrollerade_namn += 1
+        self._g.rakna(namn)
         if self.index.finns(namn):
             self._g.obestambara.append(Obestambar(
                 sort="okand_listmedlem", namn=namn, rad=rad,
@@ -1099,7 +1116,7 @@ class Validator(object):
         """Basen ar VC-harledd men otypad. Da racker en global namnkontroll."""
         if namn in _PYTHONMEDLEMMAR:
             return OKAND
-        self._g.kontrollerade_namn += 1
+        self._g.rakna(namn)
         symboler = self.index.symboler_med_namn(namn)
         if symboler:
             typer = set(s.vardetyp for s in symboler if s.vardetyp)

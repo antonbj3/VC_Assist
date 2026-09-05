@@ -51,6 +51,10 @@ def kor_en(tid, katalog, validator):
         "task_id": tid,
         "rader": len([r for r in kod.splitlines() if r.strip()]),
         "kontrollerade_namn": g.kontrollerade_namn,
+        # Ordforradet, inte bara antalet. Tva korningar kan kontrollera lika
+        # manga namn och anda rora vid helt olika delar av API:t - M-84 visade
+        # att den utan uppslag upprepade fa namn manga ganger.
+        "sedda_namn": dict(g.sedda_namn),
         "fel": [str(x) for x in g.fel],
         "obestambara": [str(x) for x in g.obestambara],
         "godkand": bool(g.godkand),
@@ -91,7 +95,11 @@ def main(argv=None):
 
     print("\n  UPPFUNNA NAMN: %d" % fel)
     print("  obestambara:   %d" % obest)
-    print("  kontrollerade namn totalt: %d" % kontrollerade)
+    ordforrad = set()
+    for r in resultat:
+        ordforrad |= set(r.get("sedda_namn") or {})
+    print("  kontrollerade namn totalt: %d  (%d distinkta)"
+          % (kontrollerade, len(ordforrad)))
     if kontrollerade == 0:
         print("\n  VARNING: grinden kontrollerade NOLL namn. Ett svep som inte")
         print("  provar nagot godkanner allt, och talet ovan betyder ingenting.")
