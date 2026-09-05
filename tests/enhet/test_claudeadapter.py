@@ -35,7 +35,7 @@ def test_verktyg_kastar_i_stallet_for_att_se_ut_som_en_modell_utan_initiativ():
     m = A.ClaudeModell(klient=MK.Inspelad(["text"]))
     with pytest.raises(A.Adapterfel) as e:
         m.svara("sp", [Meddelande(roll="uppgift", text="x")], [object()])
-    assert "MODELLEN" in str(e.value)
+    assert "MODEL" in str(e.value)
 
 
 def test_systemprompt_och_historik_nar_hela_vagen_ut():

@@ -56,10 +56,10 @@ class ClaudeModell(Modell):
               verktyg: Sequence[Any]) -> Modellsvar:
         if verktyg:
             raise Adapterfel(
-                "ClaudeModell fick %d verktyg men kan inte anropa nagot: "
-                "klienten kor med tom verktygslista sa modellen inte ska kunna "
-                "lasa facit. Ett textsvar har hade matts som att MODELLEN lat "
-                "bli att anvanda sina verktyg." % len(verktyg))
+                "ClaudeModell got %d tools but cannot call any: "
+                "the client runs with an empty tool list so the model cannot "
+                "read the reference answer. A text reply here would have been measured as "
+                "the MODEL choosing not to use its tools." % len(verktyg))
         fraga = _en_strang(systemprompt, meddelanden)
         svar = self._klient.fraga(fraga)
         text = _utan_kodstaket(svar.text)
