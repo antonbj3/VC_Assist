@@ -76,7 +76,7 @@ class Utforarkanal(Verktygskanal):
         except OSError as e:
             # Bryggan gick inte att na. Det ar inget modellen kan ratta, och
             # far darfor inte se ut som ett verktygsfel.
-            raise Kanalfel("%s: bryggan gick inte att na: %s" % (namn, e))
+            raise Kanalfel("%s: the bridge could not be reached: %s" % (namn, e))
         return Anropsutfall(
             verktyg=namn, argument=dict(argument), ok=True,
             resultat=resultat.resultat, koad=resultat.koad,
