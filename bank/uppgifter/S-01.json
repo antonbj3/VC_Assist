@@ -282,5 +282,1073 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: forhallningstiden kommer ur avstandet mellan hojdgivaren och utskjutaren och bandets hastighet. Givaren sitter 400 mm uppstroms och bandet gar 0,35 m/s, sa burken behover 400/350 = 1,143 s pa sig. Utskjutarens slagtid ar 0,4 s, sa kommandot maste ges 1,143 - 0,4 = 0,743 s efter givarens flank, alltsa nar burken gatt 0,743*350 = 260 mm och har 140 mm kvar. Takten 60 burkar per minut ar 1,0 s per burk och vid 0,35 m/s 350 mm mellan burkarna, sa 400/350 = 1,14 burkar ryms mellan givaren och utskjutaren: skiftregistret maste bara tva besked, inte ett. Rakningen star i M-106.",
+    "standard": "Forhallningen ar kinematik och ingen standardfraga: strackan delad med hastigheten minus donets slagtid. Att beskedet ska foljas med detaljen i ett skiftregister och inte lasas om vid utskjutaren ar sorteringens egen form. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; R_TRIG for flankdetektering och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST190_SORTERING\nVAR\n    steg      : INT := 0;\n    trigPart  : R_TRIG;\n    tmrPush   : TON;\n    tmrHem    : TON;\n    xPushOn   : BOOL := FALSE;\n    xVantarHem: BOOL := FALSE;\n    xUteFel   : BOOL := FALSE;\n    xTrangsel : BOOL := FALSE;\n    xDrift    : BOOL := FALSE;\n    p1Giltig  : BOOL := FALSE;\n    p1Hog     : BOOL := FALSE;\n    p1Pos     : REAL := 0.0;\n    p2Giltig  : BOOL := FALSE;\n    p2Hog     : BOOL := FALSE;\n    p2Pos     : REAL := 0.0;\n    rUtlos    : REAL := 260.0;\nEND_VAR\n\n(* Skiftregistret har TVA platser, och det ar en rakning och ingen smaksak.\n   Takten ar 60 burkar per minut, alltsa 1,0 s per burk, och vid 0,35 m/s\n   ligger burkarna 350 mm isar. Mellan hojdgivaren och utskjutaren ar det\n   400 mm, alltsa 400/350 = 1,14 burkar: tva burkar kan vara pa vag mellan\n   givaren och utskjutaren samtidigt. En enda plats hade tappat den ena, och\n   nasta burk hade arvt foregaende burks besked. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt. Den gar hog forst nar kretsen\n   ar manuellt aterstalld i sakerhetsdelen, sa den har logiken aterstaller\n   aldrig sjalv ett nodstopp: den ar forreglad AV kretsen och laser den bara. *)\n\ntrigPart(CLK := ST190_PEC_PART);\ntmrPush(IN := xPushOn, PT := T#400ms);\nxVantarHem := (steg = 3) AND NOT ST190_PSH_HOME;\ntmrHem(IN := xVantarHem, PT := T#1s);\n\n(* En utskjutare som inte kommer hem far inte matas med fler burkar. Retur-\n   slaget ar samma storlek som utslaget, 0,4 s, sa 1,0 s ar mer an dubbla\n   returtiden och slar inte pa ett normalt slag. *)\nIF tmrHem.Q THEN\n    xUteFel := TRUE;\nEND_IF;\nIF ST190_PSH_HOME THEN\n    xUteFel := FALSE;\nEND_IF;\n\nxDrift := EMG_OK AND AIR_OK AND NOT xUteFel AND NOT xTrangsel;\n\n(* Bedomningen sker EN gang, pa hojdgivarens stigande flank, och lagras\n   tillsammans med bandets strackning i samma ogonblick. Sedan ar givaren\n   ointressant for just den burken. *)\nIF trigPart.Q THEN\n    IF NOT p1Giltig THEN\n        p1Pos := ST190_ENC_POS;\n        p1Hog := ST190_HGT_HIGH;\n        p1Giltig := TRUE;\n    ELSIF NOT p2Giltig THEN\n        p2Pos := ST190_ENC_POS;\n        p2Hog := ST190_HGT_HIGH;\n        p2Giltig := TRUE;\n    ELSE\n        xTrangsel := TRUE;\n    END_IF;\nEND_IF;\n\nIF NOT xDrift THEN\n    (* Registret behalls. Burkarna star kvar pa banan och deras beskeder med\n       dem; ett register som nollstalls vid stopp sorterar fel pa varenda\n       burk som redan ar bedomd. *)\n    xPushOn := FALSE;\n    IF steg = 2 THEN\n        steg := 3;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            (* 400 mm till utskjutaren vid 0,35 m/s ar 1,143 s. Slagtiden ar\n               0,4 s, sa kommandot ska ges 1,143 - 0,4 = 0,743 s efter\n               flanken, alltsa efter 0,743 * 350 = 260 mm bandstrackning.\n               Registret bars framat av ST190_ENC_POS och aldrig av klockan:\n               saktar bandet in flyttar sig burken langsammare, men den\n               strackning som skiljer givaren fran utskjutaren ar densamma. *)\n            IF p1Giltig AND ((ST190_ENC_POS - p1Pos) >= rUtlos) THEN\n                IF p1Hog THEN\n                    steg := 4;\n                ELSE\n                    xPushOn := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF tmrPush.Q THEN\n                xPushOn := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST190_PSH_HOME THEN\n                steg := 4;\n            END_IF;\n        4:\n            p1Giltig := p2Giltig;\n            p1Hog := p2Hog;\n            p1Pos := p2Pos;\n            p2Giltig := FALSE;\n            xTrangsel := FALSE;\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\nST190_CNV_RUN := xDrift;\nST190_PSH_OUT := xPushOn;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_burk",
+        "beskrivning": "Spanning pa med nodstopp och tryckluft friska och tom bana.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 280,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "med sluten nodstoppskrets och tryckluft over lagsta tryck ska bandet ga, och en tom bana far inte kommendera utskjutaren"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "bandet har gatt 140 mm utan att nagon burk passerat hojdgivaren; utan bedomning finns inget besked att skjuta pa"
+          }
+        ]
+      },
+      {
+        "id": "tva_burkar_hog_sedan_lag",
+        "beskrivning": "En hog och sedan en lag burk i 1,0 s takt. Bada ar pa banan samtidigt, och bara den laga ska skjutas ut.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_HGT_HIGH": true,
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false,
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 480,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "burk A ar bedomd men har bara gatt 70 mm sedan givaren; en styrning som skjuter pa givarflanken skjuter 260 mm for tidigt"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST190_ENC_POS": 210.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST190_ENC_POS": 280.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 880,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "burk A har gatt 210 mm av de 260 mm som skiljer givaren fran utlosningslaget"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST190_ENC_POS": 315.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 980,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "245 mm ar annu inte 260 mm; utlosningslaget ar en strackning och inte en ungefarlig tid"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST190_ENC_POS": 350.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1080,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "burk A har passerat utlosningslaget (280 mm sedan givaren) men den ar HOG och ska ga rakt fram; ett besked som lasts om ur hojdgivaren har hade skjutit ut den"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_ENC_POS": 490.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST190_ENC_POS": 560.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1680,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "burk B har gatt 140 mm av 260; utskjutaren far inte kommenderas forran burken ar 140 mm fran den"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST190_ENC_POS": 630.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "630 - 420 = 210 mm, annu inte 260 mm"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST190_ENC_POS": 665.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST190_ENC_POS": 700.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2080,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "burk B har gatt over 260 mm och ar 140 mm fran utskjutaren; med 0,4 s slagtid ska kommandot ligga just har, och beskedet ar burk B:s eget"
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST190_PSH_HOME": false,
+              "ST190_ENC_POS": 735.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST190_ENC_POS": 770.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true
+            },
+            "varfor": "kommandot ska sta kvar hela slaget; slagtiden ar 0,4 s och ett kortare kommando lamnar burken halvvags"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST190_ENC_POS": 840.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST190_ENC_POS": 910.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2680,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "efter 0,4 s ska kommandot slappa sa cylindern kan ga hem innan nasta burk kommer"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 980.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST190_ENC_POS": 1050.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3080,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "utskjutaren ar tillbaka i hemlage och bandet ska ga vidare mot nasta burk"
+          }
+        ]
+      },
+      {
+        "id": "bandet_saktar_in",
+        "beskrivning": "En lag burk bedoms, sedan halveras bandhastigheten. Strackan till utskjutaren ar densamma, tiden ar det inte.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST190_ENC_POS": 175.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST190_ENC_POS": 210.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST190_ENC_POS": 245.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1080,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "0,88 s efter flanken har burken bara gatt 175 mm; en styrning som for registret framat pa tid har redan slagit, men burken ar inte framme"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST190_ENC_POS": 280.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST190_ENC_POS": 315.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST190_ENC_POS": 350.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1680,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true
+            },
+            "varfor": "nu, och forst nu, har burken gatt de 260 mm som skiljer givaren fran utlosningslaget; strackningen bar beskedet, inte klockan"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST190_PSH_HOME": false,
+              "ST190_ENC_POS": 367.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST190_ENC_POS": 385.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true
+            },
+            "varfor": "slaget pagar; 0,4 s ar cylinderns egen tid och andras inte av att bandet gar langsammare"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST190_ENC_POS": 437.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2180,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "slaget ar over och kommandot ska ha slappt"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 455.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST190_ENC_POS": 490.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2480,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "utskjutaren ar hemma igen och bandet gar vidare"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_under_utskjutet",
+        "beskrivning": "AIR_OK faller mitt i ett pagaende utskjut och kommer sedan tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST190_ENC_POS": 210.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST190_ENC_POS": 280.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST190_ENC_POS": 315.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST190_ENC_POS": 350.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1080,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "den laga burken har natt utlosningslaget och tryckluften ar frisk, sa slaget ska vara kommenderat"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "AIR_OK": false,
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1280,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false,
+              "ST190_CNV_RUN": false
+            },
+            "varfor": "utan tryck ror sig inte cylindern; ett kommando som star kvar lurar logiken att slaget gick, och bandet far inte mata fram fler burkar mot en utskjutare som inte far kraft"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1680,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "tryckluft ar ingen skyddsfunktion; nar trycket ar tillbaka och utskjutaren ar bekraftat hemma far driften atertas utan kvittens"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_med_burkar_pa_banan",
+        "beskrivning": "Nodstopp med en bedomd burk kvar mellan givaren och utskjutaren. Bandet star, burken star, beskedet ska sta kvar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": false,
+              "ST190_ENC_POS": 210.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 680,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": false,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; logiken ror inte sjalva sakerhetsfunktionen men ar forreglad av den"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1080,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "EMG_OK ar sakerhetskretsens OK-kontakt och gar hog forst efter kretsens egen manuella aterstallning; bandet far ga igen, men burken har inte flyttat sig en millimeter"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST190_ENC_POS": 245.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST190_ENC_POS": 280.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST190_ENC_POS": 315.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1680,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "burken har gatt 245 mm sedan givaren, annu inte 260"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST190_ENC_POS": 350.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true
+            },
+            "varfor": "beskedet foljde med burken genom stoppet: registret nollstalldes inte, sa den laga burken skjuts ut nar den nar utlosningslaget"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST190_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST190_ENC_POS": 385.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2280,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "slaget ar over efter 0,4 s"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 455.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2480,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "stationen ar tillbaka i normaldrift med tom bana"
+          }
+        ]
+      },
+      {
+        "id": "utskjutaren_star_kvar_ute",
+        "beskrivning": "Slaget gors men ST190_PSH_HOME kommer aldrig tillbaka; cylindern har fastnat ute.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST190_PSH_HOME": true,
+              "ST190_ENC_POS": 0.0,
+              "ST190_PEC_PART": false,
+              "ST190_HGT_HIGH": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST190_PEC_PART": true,
+              "ST190_ENC_POS": 70.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST190_PEC_PART": false,
+              "ST190_ENC_POS": 140.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST190_ENC_POS": 210.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST190_ENC_POS": 280.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST190_ENC_POS": 315.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST190_ENC_POS": 350.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1080,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": true,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "den laga burken har natt utlosningslaget och slaget ska kommenderas"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST190_PSH_HOME": false,
+              "ST190_ENC_POS": 385.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST190_ENC_POS": 420.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST190_ENC_POS": 490.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1480,
+            "satt": {},
+            "krav": {
+              "ST190_PSH_OUT": false,
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "kommandot slapper efter 0,4 s och bandet gar an sa lange: returslaget ar lika langt som utslaget och far ta sin tid"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST190_ENC_POS": 560.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST190_ENC_POS": 630.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST190_ENC_POS": 700.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST190_ENC_POS": 770.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": false,
+              "ST190_PSH_OUT": false
+            },
+            "varfor": "1,0 s efter att kommandot slappte, mer an dubbla returtiden 0,4 s, ar cylindern fortfarande inte hemma; da far inga fler burkar matas fram mot en utskjutare som star ute i banan"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST190_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2880,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "nar hemlagesgivaren bekraftar att banan ar fri igen far bandet ga; forreglingen ar ett villkor pa cylinderns lage och inte en tidsgrans"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_utskjutare_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST190_PSH_OUT": false
+        },
+        "varfor": "att kommendera en pneumatisk utskjutare utan tryck ger ett kommando utan rorelse; logiken tror att burken ar utskjuten och sorterar resten av banan pa den tron"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST190_CNV_RUN": false,
+          "ST190_PSH_OUT": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen, men den maste vara forreglad av den: inget don kommenderat medan kretsen ar bruten"
+      },
+      {
+        "namn": "utskjutaren_bara_nar_bandet_gar",
+        "sekvens": "*",
+        "nar": {
+          "ST190_CNV_RUN": false
+        },
+        "kraver": {
+          "ST190_PSH_OUT": false
+        },
+        "varfor": "utlosningslaget ar raknat ur bandets strackning; star bandet vet styrningen inte langre var burken star, och ett slag da gar mot en burk pa okant stalle"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_puls_per_lag_burk",
+        "sekvens": "tva_burkar_hog_sedan_lag",
+        "signal": "ST190_PSH_OUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3080,
+        "antal": 1,
+        "varfor": "tva burkar passerade, en hog och en lag, och bara den laga ska ge ett slag; tva flanker betyder att beskedet lasts om ur hojdgivaren i stallet for att baras med burken"
+      },
+      {
+        "namn": "ingen_puls_utan_burk",
+        "sekvens": "kallstart_utan_burk",
+        "signal": "ST190_PSH_OUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 600,
+        "antal": 0,
+        "varfor": "en tom bana ger inga beskeder, och en utskjutare som slar tomt sliter cylindern och kan traffa nasta burk snett"
+      },
+      {
+        "namn": "en_puls_nar_bandet_saktar",
+        "sekvens": "bandet_saktar_in",
+        "signal": "ST190_PSH_OUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2480,
+        "antal": 1,
+        "varfor": "en lag burk ska ge exakt ett slag aven nar bandet halverar farten under vagen"
+      },
+      {
+        "namn": "en_puls_efter_stoppet",
+        "sekvens": "nodstopp_med_burkar_pa_banan",
+        "signal": "ST190_PSH_OUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2480,
+        "antal": 1,
+        "varfor": "burken stod kvar pa banan under stoppet och dess besked med den; noll flanker betyder att registret nollstalldes vid stoppet och att burken gick fel vag"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "laser_hojdgivaren_vid_utskjutaren",
+        "st": "PROGRAM ST190_SORTERING\nVAR\n    steg      : INT := 0;\n    trigPart  : R_TRIG;\n    tmrPush   : TON;\n    tmrHem    : TON;\n    xPushOn   : BOOL := FALSE;\n    xVantarHem: BOOL := FALSE;\n    xUteFel   : BOOL := FALSE;\n    xTrangsel : BOOL := FALSE;\n    xDrift    : BOOL := FALSE;\n    p1Giltig  : BOOL := FALSE;\n    p1Pos     : REAL := 0.0;\n    p2Giltig  : BOOL := FALSE;\n    p2Pos     : REAL := 0.0;\n    rUtlos    : REAL := 260.0;\nEND_VAR\n\n(* Skiftregistret har TVA platser, och det ar en rakning och ingen smaksak.\n   Takten ar 60 burkar per minut, alltsa 1,0 s per burk, och vid 0,35 m/s\n   ligger burkarna 350 mm isar. Mellan hojdgivaren och utskjutaren ar det\n   400 mm, alltsa 400/350 = 1,14 burkar: tva burkar kan vara pa vag mellan\n   givaren och utskjutaren samtidigt. En enda plats hade tappat den ena, och\n   nasta burk hade arvt foregaende burks besked. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt. Den gar hog forst nar kretsen\n   ar manuellt aterstalld i sakerhetsdelen, sa den har logiken aterstaller\n   aldrig sjalv ett nodstopp: den ar forreglad AV kretsen och laser den bara. *)\n\ntrigPart(CLK := ST190_PEC_PART);\ntmrPush(IN := xPushOn, PT := T#400ms);\nxVantarHem := (steg = 3) AND NOT ST190_PSH_HOME;\ntmrHem(IN := xVantarHem, PT := T#1s);\n\n(* En utskjutare som inte kommer hem far inte matas med fler burkar. Retur-\n   slaget ar samma storlek som utslaget, 0,4 s, sa 1,0 s ar mer an dubbla\n   returtiden och slar inte pa ett normalt slag. *)\nIF tmrHem.Q THEN\n    xUteFel := TRUE;\nEND_IF;\nIF ST190_PSH_HOME THEN\n    xUteFel := FALSE;\nEND_IF;\n\nxDrift := EMG_OK AND AIR_OK AND NOT xUteFel AND NOT xTrangsel;\n\n(* Bedomningen sker EN gang, pa hojdgivarens stigande flank, och lagras\n   tillsammans med bandets strackning i samma ogonblick. Sedan ar givaren\n   ointressant for just den burken. *)\nIF trigPart.Q THEN\n    IF NOT p1Giltig THEN\n        p1Pos := ST190_ENC_POS;\n        p1Giltig := TRUE;\n    ELSIF NOT p2Giltig THEN\n        p2Pos := ST190_ENC_POS;\n        p2Giltig := TRUE;\n    ELSE\n        xTrangsel := TRUE;\n    END_IF;\nEND_IF;\n\nIF NOT xDrift THEN\n    (* Registret behalls. Burkarna star kvar pa banan och deras beskeder med\n       dem; ett register som nollstalls vid stopp sorterar fel pa varenda\n       burk som redan ar bedomd. *)\n    xPushOn := FALSE;\n    IF steg = 2 THEN\n        steg := 3;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            (* 400 mm till utskjutaren vid 0,35 m/s ar 1,143 s. Slagtiden ar\n               0,4 s, sa kommandot ska ges 1,143 - 0,4 = 0,743 s efter\n               flanken, alltsa efter 0,743 * 350 = 260 mm bandstrackning.\n               Registret bars framat av ST190_ENC_POS och aldrig av klockan:\n               saktar bandet in flyttar sig burken langsammare, men den\n               strackning som skiljer givaren fran utskjutaren ar densamma. *)\n            IF p1Giltig AND ((ST190_ENC_POS - p1Pos) >= rUtlos) THEN\n                IF ST190_HGT_HIGH THEN\n                    steg := 4;\n                ELSE\n                    xPushOn := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF tmrPush.Q THEN\n                xPushOn := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST190_PSH_HOME THEN\n                steg := 4;\n            END_IF;\n        4:\n            p1Giltig := p2Giltig;\n            p1Pos := p2Pos;\n            p2Giltig := FALSE;\n            xTrangsel := FALSE;\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\nST190_CNV_RUN := xDrift;\nST190_PSH_OUT := xPushOn;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Skiftregistret bar burkens lage men inte dess besked. Vid utlosningslaget lases ST190_HGT_HIGH om, alltsa den hojd givaren ser just da, och det ar en helt annan burk eller ingen burk alls. Vid 60 burkar per minut ligger 1,14 burkar mellan givaren och utskjutaren, sa felet vandrar en burk framat genom hela flodet.",
+        "faller_pa": [
+          "tva_burkar_hog_sedan_lag@1080ms:ST190_PSH_OUT",
+          "flank:en_puls_per_lag_burk"
+        ]
+      },
+      {
+        "namn": "for_registret_framat_pa_tid",
+        "st": "PROGRAM ST190_SORTERING\nVAR\n    steg      : INT := 0;\n    trigPart  : R_TRIG;\n    tmrPush   : TON;\n    tmrHem    : TON;\n    xPushOn   : BOOL := FALSE;\n    xVantarHem: BOOL := FALSE;\n    xUteFel   : BOOL := FALSE;\n    xTrangsel : BOOL := FALSE;\n    xDrift    : BOOL := FALSE;\n    p1Giltig  : BOOL := FALSE;\n    p1Hog     : BOOL := FALSE;\n    p1Tid     : REAL := 0.0;\n    p2Giltig  : BOOL := FALSE;\n    p2Hog     : BOOL := FALSE;\n    p2Tid     : REAL := 0.0;\n    rUtlosTid : REAL := 743.0;\nEND_VAR\n\n(* Skiftregistret har TVA platser, och det ar en rakning och ingen smaksak.\n   Takten ar 60 burkar per minut, alltsa 1,0 s per burk, och vid 0,35 m/s\n   ligger burkarna 350 mm isar. Mellan hojdgivaren och utskjutaren ar det\n   400 mm, alltsa 400/350 = 1,14 burkar: tva burkar kan vara pa vag mellan\n   givaren och utskjutaren samtidigt. En enda plats hade tappat den ena, och\n   nasta burk hade arvt foregaende burks besked. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt. Den gar hog forst nar kretsen\n   ar manuellt aterstalld i sakerhetsdelen, sa den har logiken aterstaller\n   aldrig sjalv ett nodstopp: den ar forreglad AV kretsen och laser den bara. *)\n\ntrigPart(CLK := ST190_PEC_PART);\ntmrPush(IN := xPushOn, PT := T#400ms);\nxVantarHem := (steg = 3) AND NOT ST190_PSH_HOME;\ntmrHem(IN := xVantarHem, PT := T#1s);\n\n(* En utskjutare som inte kommer hem far inte matas med fler burkar. Retur-\n   slaget ar samma storlek som utslaget, 0,4 s, sa 1,0 s ar mer an dubbla\n   returtiden och slar inte pa ett normalt slag. *)\nIF tmrHem.Q THEN\n    xUteFel := TRUE;\nEND_IF;\nIF ST190_PSH_HOME THEN\n    xUteFel := FALSE;\nEND_IF;\n\nxDrift := EMG_OK AND AIR_OK AND NOT xUteFel AND NOT xTrangsel;\n\n(* Bedomningen sker EN gang, pa hojdgivarens stigande flank, och lagras\n   tillsammans med bandets strackning i samma ogonblick. Sedan ar givaren\n   ointressant for just den burken. *)\nIF p1Giltig THEN\n    p1Tid := p1Tid + 20.0;\nEND_IF;\nIF p2Giltig THEN\n    p2Tid := p2Tid + 20.0;\nEND_IF;\n\nIF trigPart.Q THEN\n    IF NOT p1Giltig THEN\n        p1Tid := 0.0;\n        p1Hog := ST190_HGT_HIGH;\n        p1Giltig := TRUE;\n    ELSIF NOT p2Giltig THEN\n        p2Tid := 0.0;\n        p2Hog := ST190_HGT_HIGH;\n        p2Giltig := TRUE;\n    ELSE\n        xTrangsel := TRUE;\n    END_IF;\nEND_IF;\n\nIF NOT xDrift THEN\n    (* Registret behalls. Burkarna star kvar pa banan och deras beskeder med\n       dem; ett register som nollstalls vid stopp sorterar fel pa varenda\n       burk som redan ar bedomd. *)\n    xPushOn := FALSE;\n    IF steg = 2 THEN\n        steg := 3;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            (* 400 mm till utskjutaren vid 0,35 m/s ar 1,143 s. Slagtiden ar\n               0,4 s, sa kommandot ska ges 1,143 - 0,4 = 0,743 s efter\n               flanken, alltsa efter 0,743 * 350 = 260 mm bandstrackning.\n               Registret bars framat av ST190_ENC_POS och aldrig av klockan:\n               saktar bandet in flyttar sig burken langsammare, men den\n               strackning som skiljer givaren fran utskjutaren ar densamma. *)\n            IF p1Giltig AND (p1Tid >= rUtlosTid) THEN\n                IF p1Hog THEN\n                    steg := 4;\n                ELSE\n                    xPushOn := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF tmrPush.Q THEN\n                xPushOn := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST190_PSH_HOME THEN\n                steg := 4;\n            END_IF;\n        4:\n            p1Giltig := p2Giltig;\n            p1Hog := p2Hog;\n            p1Tid := p2Tid;\n            p2Giltig := FALSE;\n            xTrangsel := FALSE;\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\nST190_CNV_RUN := xDrift;\nST190_PSH_OUT := xPushOn;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Registret skjuts framat med scanklockan i stallet for med ST190_ENC_POS. Vid mark hastighet ser det riktigt ut, for 0,743 s och 260 mm ar samma sak vid 0,35 m/s. Saktar bandet in ar tiden kvar men strackan inte, och slaget kommer innan burken.",
+        "faller_pa": [
+          "bandet_saktar_in@1080ms:ST190_PSH_OUT",
+          "bandet_saktar_in@1680ms:ST190_PSH_OUT"
+        ]
+      },
+      {
+        "namn": "utskjutaren_utan_tryckluftsforregling",
+        "st": "PROGRAM ST190_SORTERING\nVAR\n    steg      : INT := 0;\n    trigPart  : R_TRIG;\n    tmrPush   : TON;\n    tmrHem    : TON;\n    xPushOn   : BOOL := FALSE;\n    xVantarHem: BOOL := FALSE;\n    xUteFel   : BOOL := FALSE;\n    xTrangsel : BOOL := FALSE;\n    xDrift    : BOOL := FALSE;\n    p1Giltig  : BOOL := FALSE;\n    p1Hog     : BOOL := FALSE;\n    p1Pos     : REAL := 0.0;\n    p2Giltig  : BOOL := FALSE;\n    p2Hog     : BOOL := FALSE;\n    p2Pos     : REAL := 0.0;\n    rUtlos    : REAL := 260.0;\nEND_VAR\n\n(* Skiftregistret har TVA platser, och det ar en rakning och ingen smaksak.\n   Takten ar 60 burkar per minut, alltsa 1,0 s per burk, och vid 0,35 m/s\n   ligger burkarna 350 mm isar. Mellan hojdgivaren och utskjutaren ar det\n   400 mm, alltsa 400/350 = 1,14 burkar: tva burkar kan vara pa vag mellan\n   givaren och utskjutaren samtidigt. En enda plats hade tappat den ena, och\n   nasta burk hade arvt foregaende burks besked. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt. Den gar hog forst nar kretsen\n   ar manuellt aterstalld i sakerhetsdelen, sa den har logiken aterstaller\n   aldrig sjalv ett nodstopp: den ar forreglad AV kretsen och laser den bara. *)\n\ntrigPart(CLK := ST190_PEC_PART);\ntmrPush(IN := xPushOn, PT := T#400ms);\nxVantarHem := (steg = 3) AND NOT ST190_PSH_HOME;\ntmrHem(IN := xVantarHem, PT := T#1s);\n\n(* En utskjutare som inte kommer hem far inte matas med fler burkar. Retur-\n   slaget ar samma storlek som utslaget, 0,4 s, sa 1,0 s ar mer an dubbla\n   returtiden och slar inte pa ett normalt slag. *)\nIF tmrHem.Q THEN\n    xUteFel := TRUE;\nEND_IF;\nIF ST190_PSH_HOME THEN\n    xUteFel := FALSE;\nEND_IF;\n\nxDrift := EMG_OK AND NOT xUteFel AND NOT xTrangsel;\n\n(* Bedomningen sker EN gang, pa hojdgivarens stigande flank, och lagras\n   tillsammans med bandets strackning i samma ogonblick. Sedan ar givaren\n   ointressant for just den burken. *)\nIF trigPart.Q THEN\n    IF NOT p1Giltig THEN\n        p1Pos := ST190_ENC_POS;\n        p1Hog := ST190_HGT_HIGH;\n        p1Giltig := TRUE;\n    ELSIF NOT p2Giltig THEN\n        p2Pos := ST190_ENC_POS;\n        p2Hog := ST190_HGT_HIGH;\n        p2Giltig := TRUE;\n    ELSE\n        xTrangsel := TRUE;\n    END_IF;\nEND_IF;\n\nIF NOT xDrift THEN\n    (* Registret behalls. Burkarna star kvar pa banan och deras beskeder med\n       dem; ett register som nollstalls vid stopp sorterar fel pa varenda\n       burk som redan ar bedomd. *)\n    xPushOn := FALSE;\n    IF steg = 2 THEN\n        steg := 3;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            (* 400 mm till utskjutaren vid 0,35 m/s ar 1,143 s. Slagtiden ar\n               0,4 s, sa kommandot ska ges 1,143 - 0,4 = 0,743 s efter\n               flanken, alltsa efter 0,743 * 350 = 260 mm bandstrackning.\n               Registret bars framat av ST190_ENC_POS och aldrig av klockan:\n               saktar bandet in flyttar sig burken langsammare, men den\n               strackning som skiljer givaren fran utskjutaren ar densamma. *)\n            IF p1Giltig AND ((ST190_ENC_POS - p1Pos) >= rUtlos) THEN\n                IF p1Hog THEN\n                    steg := 4;\n                ELSE\n                    xPushOn := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF tmrPush.Q THEN\n                xPushOn := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST190_PSH_HOME THEN\n                steg := 4;\n            END_IF;\n        4:\n            p1Giltig := p2Giltig;\n            p1Hog := p2Hog;\n            p1Pos := p2Pos;\n            p2Giltig := FALSE;\n            xTrangsel := FALSE;\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\nST190_CNV_RUN := xDrift AND AIR_OK;\nST190_PSH_OUT := xPushOn;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "AIR_OK stoppar bandet men inte utskjutaren. Kommandot star kvar under tryckfallet, cylindern gar ingenstans, och nar trycket kommer tillbaka slar den mot en burk som star pa fel stalle.",
+        "faller_pa": [
+          "invariant:ingen_utskjutare_utan_tryckluft@tryckluften_faller_under_utskjutet",
+          "tryckluften_faller_under_utskjutet@1280ms:ST190_PSH_OUT"
+        ]
+      },
+      {
+        "namn": "registret_nollstalls_vid_stopp",
+        "st": "PROGRAM ST190_SORTERING\nVAR\n    steg      : INT := 0;\n    trigPart  : R_TRIG;\n    tmrPush   : TON;\n    tmrHem    : TON;\n    xPushOn   : BOOL := FALSE;\n    xVantarHem: BOOL := FALSE;\n    xUteFel   : BOOL := FALSE;\n    xTrangsel : BOOL := FALSE;\n    xDrift    : BOOL := FALSE;\n    p1Giltig  : BOOL := FALSE;\n    p1Hog     : BOOL := FALSE;\n    p1Pos     : REAL := 0.0;\n    p2Giltig  : BOOL := FALSE;\n    p2Hog     : BOOL := FALSE;\n    p2Pos     : REAL := 0.0;\n    rUtlos    : REAL := 260.0;\nEND_VAR\n\n(* Skiftregistret har TVA platser, och det ar en rakning och ingen smaksak.\n   Takten ar 60 burkar per minut, alltsa 1,0 s per burk, och vid 0,35 m/s\n   ligger burkarna 350 mm isar. Mellan hojdgivaren och utskjutaren ar det\n   400 mm, alltsa 400/350 = 1,14 burkar: tva burkar kan vara pa vag mellan\n   givaren och utskjutaren samtidigt. En enda plats hade tappat den ena, och\n   nasta burk hade arvt foregaende burks besked. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt. Den gar hog forst nar kretsen\n   ar manuellt aterstalld i sakerhetsdelen, sa den har logiken aterstaller\n   aldrig sjalv ett nodstopp: den ar forreglad AV kretsen och laser den bara. *)\n\ntrigPart(CLK := ST190_PEC_PART);\ntmrPush(IN := xPushOn, PT := T#400ms);\nxVantarHem := (steg = 3) AND NOT ST190_PSH_HOME;\ntmrHem(IN := xVantarHem, PT := T#1s);\n\n(* En utskjutare som inte kommer hem far inte matas med fler burkar. Retur-\n   slaget ar samma storlek som utslaget, 0,4 s, sa 1,0 s ar mer an dubbla\n   returtiden och slar inte pa ett normalt slag. *)\nIF tmrHem.Q THEN\n    xUteFel := TRUE;\nEND_IF;\nIF ST190_PSH_HOME THEN\n    xUteFel := FALSE;\nEND_IF;\n\nxDrift := EMG_OK AND AIR_OK AND NOT xUteFel AND NOT xTrangsel;\n\n(* Bedomningen sker EN gang, pa hojdgivarens stigande flank, och lagras\n   tillsammans med bandets strackning i samma ogonblick. Sedan ar givaren\n   ointressant for just den burken. *)\nIF trigPart.Q THEN\n    IF NOT p1Giltig THEN\n        p1Pos := ST190_ENC_POS;\n        p1Hog := ST190_HGT_HIGH;\n        p1Giltig := TRUE;\n    ELSIF NOT p2Giltig THEN\n        p2Pos := ST190_ENC_POS;\n        p2Hog := ST190_HGT_HIGH;\n        p2Giltig := TRUE;\n    ELSE\n        xTrangsel := TRUE;\n    END_IF;\nEND_IF;\n\nIF NOT xDrift THEN\n    (* Registret behalls. Burkarna star kvar pa banan och deras beskeder med\n       dem; ett register som nollstalls vid stopp sorterar fel pa varenda\n       burk som redan ar bedomd. *)\n    xPushOn := FALSE;\n    p1Giltig := FALSE;\n    p2Giltig := FALSE;\n    IF steg = 2 THEN\n        steg := 3;\n    END_IF;\nELSE\n    CASE steg OF\n        0:\n            (* 400 mm till utskjutaren vid 0,35 m/s ar 1,143 s. Slagtiden ar\n               0,4 s, sa kommandot ska ges 1,143 - 0,4 = 0,743 s efter\n               flanken, alltsa efter 0,743 * 350 = 260 mm bandstrackning.\n               Registret bars framat av ST190_ENC_POS och aldrig av klockan:\n               saktar bandet in flyttar sig burken langsammare, men den\n               strackning som skiljer givaren fran utskjutaren ar densamma. *)\n            IF p1Giltig AND ((ST190_ENC_POS - p1Pos) >= rUtlos) THEN\n                IF p1Hog THEN\n                    steg := 4;\n                ELSE\n                    xPushOn := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF tmrPush.Q THEN\n                xPushOn := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST190_PSH_HOME THEN\n                steg := 4;\n            END_IF;\n        4:\n            p1Giltig := p2Giltig;\n            p1Hog := p2Hog;\n            p1Pos := p2Pos;\n            p2Giltig := FALSE;\n            xTrangsel := FALSE;\n            steg := 0;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\nST190_CNV_RUN := xDrift;\nST190_PSH_OUT := xPushOn;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vid varje stopp nollstalls skiftregistret. Burkarna star kvar pa banan men deras beskeder ar borta, sa efter ett nodstopp gar varje redan bedomd burk rakt fram oavsett hojd, och ingen far veta det.",
+        "faller_pa": [
+          "nodstopp_med_burkar_pa_banan@1880ms:ST190_PSH_OUT",
+          "flank:en_puls_efter_stoppet"
+        ]
+      }
+    ]
+  }
 }
