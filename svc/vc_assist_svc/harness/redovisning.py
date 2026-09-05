@@ -22,15 +22,32 @@ underlaget ar akta, och slutsatsen ar for stor.
 RIKTNINGEN i bada: grinden kraver en TYDLIG markor och slapper vid tvivel.
 Avkortningsgrinden anklagar bara nar ett verktygssvar FAKTISKT bar
 avkortad=true; bevisgrinden kraver bade ett bevisord och ett simuleringsord i
-SAMMA mening, och inget nekande. "Simuleringen bevisar ingenting om verklig
-hardvara" bar bada orden och ett nekande, och gar fri.
+SAMMA mening, och att sjalva BEVISPASTAENDET inte ar nekat. "Simuleringen
+bevisar ingenting om verklig hardvara" nekar beviset, och gar fri.
+
+VAR TVIVLET LIGGER, SKARPT AV M-95. Fram till dess hoppades varje mening som
+bar ett nekande ord over, var det an stod. M-94 matte foljden: ett
+bevispastaende om en simulering formuleras nastan alltid negativt, sa
+grinden filtrerade bort sin egen malklass.
+
+    Simuleringen bevisar att INGA kollisioner finns.       gick fri
+    Simuleringen garanterar att INGET fel uppstar i drift. gick fri
+    Korningen bevisar att cellen gar UTAN kollisioner.     gick fri
+    Simuleringen bevisar att cellen ar saker.              fallde
+
+Bara den abstrakta varianten fallde, alltsa den enda form en modell inte
+skriver. Skillnaden ar VAD nekandet negerar: nekandet i "bevisar INTE att X"
+traffar beviset, nekandet i "bevisar att INTE X" traffar innehallet.
+Grindens fraga ar nu bunden till satsen: nekandet raknas bara om det star i
+sjalva bevispastaendet, alltsa fore det "att" som oppnar det bevisade.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, List, Sequence, Tuple
 
-from .text import bar_delstrang, bar_ord, meningar, NEKANDE
+from .text import (bar_delstrang, meningar, nekar_pastaendet,
+                   sjalva_pastaendet)
 
 KODER = ("avkortat_som_helhet", "bevis_ur_simulering")
 
@@ -115,11 +132,15 @@ def granska(text: str, utfall: Sequence[Any] = ()) -> Tuple[Anmarkning, ...]:
 
     for mening in meningar(text or ""):
         lag = mening.lag
-        if bar_ord(lag, NEKANDE):
-            continue
-        if not bar_delstrang(lag, BEVISORD):
+        bevis = bar_delstrang(lag, BEVISORD)
+        if not bevis:
             continue
         if not bar_delstrang(lag, SIMULERINGSORD):
+            continue
+        # Nekandet raknas bara om det traffar SJALVA bevispastaendet.
+        # "bevisar INTE att X" nekar beviset; "bevisar att INTE X" nekar
+        # innehallet och ar fortfarande ett bevispastaende (M-94 fynd 4).
+        if nekar_pastaendet(sjalva_pastaendet(lag, bevis)):
             continue
         anmarkningar.append(Anmarkning(
             kod="bevis_ur_simulering",

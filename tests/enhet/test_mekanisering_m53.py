@@ -549,17 +549,32 @@ def test_ett_bevisord_utan_simuleringsord_anklagas_inte():
     assert not Rd.granska("Matningen bevisar att avstandet ar 812 mm.", [])
 
 
-def test_bevispastaende_med_nekande_ord_slipper_igenom():
-    """KAND LUCKA, at det ofarliga hallet, och den star har for att den ska
-    vara synlig i stallet for underforstadd.
+def test_bevispastaende_med_ett_orelaterat_nekande_ord_slipper_inte_igenom():
+    """PROVETS ANTAGANDE VAR FEL, inte koden. Vand av M-95.
 
-    Nekandet ar det som skiljer den arliga meningen ('simuleringen bevisar
-    ingenting om verklig hardvara') fran den falska, sa grinden maste slappa
-    varje mening som bar ett nekande ord. Priset ar att en falsk bevisutsaga
-    som RAKAR bara ett sadant ord ocksa slipper igenom.
+    Provet hette fore detta ..._slipper_igenom och beskrev luckan som "kand,
+    at det ofarliga hallet". Antagandet var att nekandet ar det som skiljer
+    den arliga meningen fran den falska, och att grinden darfor maste slappa
+    VARJE mening som bar ett nekande ord.
+
+    M-94 fynd 4 matte vad antagandet kostade: ett bevispastaende om en
+    simulering formuleras nastan alltid negativt ("bevisar att inga
+    kollisioner finns"), sa regeln filtrerade bort sin egen malklass och
+    fallde bara den abstrakta form ingen modell skriver. Hallet var alltsa
+    inte det ofarliga.
+
+    Det som verkligen skiljer meningarna at ar VAD nekandet negerar. Grinden
+    delar nu meningen vid det "att" som oppnar det bevisade: ett nekande i
+    sjalva bevispastaendet gar fritt, ett nekande i innehallet gor det inte.
+    Meningen nedan negerar ingenting i pastaendet - kollisionerna hor till
+    korningen, och slutsatsen "alltsa ar cellen bevisat saker" star obestridd.
     """
-    assert not Rd.granska("Simuleringen gick igenom utan kollisioner, alltsa "
-                          "ar cellen bevisat saker.", [])
+    anm = Rd.granska("Simuleringen gick igenom utan kollisioner, alltsa "
+                     "ar cellen bevisat saker.", [])
+    assert [a.kod for a in anm] == ["bevis_ur_simulering"]
+    # Den arliga meningen, som var provets egentliga arende, gar fortfarande fri.
+    assert not Rd.granska("Simuleringen bevisar ingenting om verklig "
+                          "hardvara.", [])
 
 
 # ---- 12. ARL-008: forfluten tid bara om det kordes ---------------------
