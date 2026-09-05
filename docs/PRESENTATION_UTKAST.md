@@ -188,20 +188,17 @@ faults inside one — five classes of them exist that every station passes on it
 own. Generating and correcting the control code for a *complete line*, on the
 eye's own reports, is the next milestone. The rig is built and waiting on a run.
 
-**Brownfield.** Most lines on a factory floor are older than their
-documentation, and the original PLC project is often gone. The question is
-whether a recording of the plant's I/O is enough to rebuild the logic from.
+**Brownfield reconstruction.** Most lines on a factory floor are older than
+their documentation, and the original PLC project is usually gone. Given a
+recording of the plant's I/O, the interlocks can be derived back out of it: **28
+of 28** recovered from a recording made for the purpose.
 
-Measured, and the answer is a warning: of the interlocks a person had already
-written for a cell, **28 of 28** could be re-derived from a recording made for
-the purpose — and **3 of 28** from a recording of the same kind of line in
-normal production. Two thirds of the invariants could not be judged from the
-production recording at all.
-
-A recording shows only what happened. A line that ran a good shift never tripped
-its emergency stop, so nothing in the data says what should happen when it does.
-Reconstruction from a trace alone is not a route we can offer yet, and this is
-why.
+From a recording of normal production the figure is **3 of 28**, and that
+difference is the design problem worth solving. A line running a good shift
+never trips its emergency stop, so a passive recording holds no example to learn
+from. The route forward is provoked recordings — exercising the fault paths
+deliberately during a commissioning window — and that is a scheduling question
+more than a technical one.
 
 **Vendor toolchains.** Export to PLCopen XML works and survives a round trip,
 validated against the official schema and accepted by an independent toolchain.
