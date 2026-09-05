@@ -83,6 +83,7 @@ import os
 import re
 import sys
 import time
+import zlib
 from collections import Counter, OrderedDict
 
 HAR = os.path.dirname(os.path.abspath(__file__))
@@ -161,7 +162,11 @@ def skalade_fixturer():
         fel = [x for x in tillverkare if x != t.lower()]
         if not fel:
             continue
-        ft = fel[hash(namn) % len(fel)]
+        # zlib.crc32 och INTE hash(): Pythons stranghash saltas per process,
+        # sa fixturen hade dragit olika fel tillverkare vid varje korning och
+        # gett olika tal utan att koden andrats. En grind som inte ar
+        # reproducerbar mater inte sin egen storhet.
+        ft = fel[zlib.crc32(namn.encode("utf-8")) % len(fel)]
         f2["fragor"] += 1
         svar = kat.sok(fraga="%s %s" % (ft.upper(), namn), max_rader=3)
         if svar.totalt:
