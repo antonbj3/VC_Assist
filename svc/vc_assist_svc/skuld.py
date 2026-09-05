@@ -734,15 +734,15 @@ def main(argv=None):
     p.add_argument("--ut", default=None)
     a = p.parse_args(argv)
     reg = bygg(a.rot)
-    print("%d punkter ur %d matningsavsnitt, %d kodmarkorer i %d filer, "
-          "%d matningar utan arlighetsavsnitt"
+    print("%d points from %d measurement sections, %d code markers in %d files, "
+          "%d measurements without an honesty section"
           % (reg["antal_punkter"], len(reg["matningsposter"]),
              reg["antal_kodmarkorer"], len(reg["kodposter"]),
              len(reg["utan_arlighetsavsnitt"])))
     if a.ut:
         with open(a.ut, "w", encoding="utf-8") as f:
             f.write(text(reg))
-        print("skrivet: %s" % a.ut)
+        print("written: %s" % a.ut)
     return 0
 
 
