@@ -106,6 +106,13 @@
       "signal": "EMG_OK",
       "beskrivning": "Nagon slar nodstopp mitt i filmningen och drar upp donet igen utan att trycka pa aterstallningsknappen.",
       "forvantat": "Stationen ska sta kvar stilla. Ett aterstallt nodstopp ar ingen startorder; forst en stigande flank pa SYS_RESET far ta stationen tillbaka i drift."
+    },
+    {
+      "id": "tva_varv_i_rad",
+      "typ": "vandning",
+      "signal": "ST550_TBL_HOME",
+      "beskrivning": "Vagnen kor tva hela varv i rad utan stopp emellan.",
+      "forvantat": "Bada varven raknas och overvakas var for sig; andra varvet startar inte pa forstas pulsgivare."
     }
   ],
   "core_outputs": [
@@ -1100,6 +1107,190 @@
           },
           {
             "t_ms": 2500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "tva_varv_i_rad",
+        "beskrivning": "Vagnen kor tva varv i rad i samma korning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8400,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST550_TBL_REV": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10700,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST550_TBL_HOME": true,
+              "ST550_FLM_BOT": true,
+              "ST550_TBL_REV": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10800,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11300,
+            "satt": {
+              "ST550_PEC_PAL": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18080,
+            "satt": {},
+            "krav": {
+              "ST550_TBL_RUN": true
+            },
+            "varfor": "andra varvet: vagnen gar (M-134 klass 3)"
+          },
+          {
+            "t_ms": 19100,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19700,
+            "satt": {
+              "ST550_TBL_REV": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 19900,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20400,
             "satt": {
               "SYS_RESET": false
             },

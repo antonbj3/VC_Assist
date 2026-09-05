@@ -87,6 +87,13 @@
       "signal": "ST310_ZON_FREE",
       "beskrivning": "Zonvakten bryts mitt i overlamningen darfor att nagon gar in i cellen.",
       "forvantat": "Bada robotarnas startsignaler ska nollstallas i samma scan, men gripdonen ska sta kvar som de ar: ett gripdon som oppnar pa en zonbrytning tappar konsolen."
+    },
+    {
+      "id": "tva_overlamningar_i_rad",
+      "typ": "vandning",
+      "signal": "ST310_PRT_PRS",
+      "beskrivning": "Overlamningen kors tva ganger i rad utan aterstallning emellan.",
+      "forvantat": "Bada overlamningarna fullfoljs med kvittens var for sig; den andra startar inte pa den forstas kvittens."
     }
   ],
   "core_outputs": [
@@ -1028,6 +1035,144 @@
               "ST320_RB_START": false
             },
             "varfor": "ett aterstallt nodstopp ar ingen startorder (IEC 60204-1); cellen star tills nagon kvitterar"
+          }
+        ]
+      },
+      {
+        "id": "tva_overlamningar_i_rad",
+        "beskrivning": "Overlamningen kors tva ganger i rad i samma korning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5300,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST310_ZON_FREE": true,
+              "ST320_GRP_FRC": 120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST310_HSK_REQ": true
+            },
+            "varfor": "andra varvet: handskakningen star kvar (M-134 klass 3)"
+          },
+          {
+            "t_ms": 5500,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5700,
+            "satt": {
+              "ST310_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST310_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9400,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
           }
         ]
       }

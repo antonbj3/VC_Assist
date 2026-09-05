@@ -65,6 +65,13 @@
       "signal": "ST250_STA_DONE",
       "beskrivning": "Enheten star i station 2 och ST260_PRT_PRS ar hog, men ST250_STA_DONE gar aldrig hog.",
       "forvantat": "Station 2 far inte starta pa narvaron ensam. Den ska vanta och larma efter 10,0 s, sa att ingen halvfardig enhet bearbetas vidare."
+    },
+    {
+      "id": "tva_enheter_tatt_i_rad",
+      "typ": "vandning",
+      "signal": "ST250_PRT_PRS",
+      "beskrivning": "En andra enhet kommer tatt efter den forsta, innan station 2 hunnit kvittera.",
+      "forvantat": "Den andra enheten halles kvar tills station 2 kvitterat foregaende enhet; grinden oppnas inte for den."
     }
   ],
   "core_outputs": [
@@ -857,6 +864,204 @@
               "ST250_REL_OPEN": false
             },
             "varfor": "arbetstiden borjade om vid omstarten, sa 4,0 s senare ar inte 26,0 s gangna; en styrning som raknar ihop tiden fore och efter stoppet slapper en enhet som stod stilla mitt i operationen"
+          }
+        ]
+      },
+      {
+        "id": "tva_enheter_tatt_i_rad",
+        "beskrivning": "En andra enhet kommer tatt efter den forsta: bada cyklerna i samma korning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 26800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 28000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 28200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 28600,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 29000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30000,
+            "satt": {
+              "ST260_PRT_PRS": true,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30400,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 31000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 57000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 58000,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 58400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 58600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 72200,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": true
+            },
+            "varfor": "andra varvet: grinden oppnar for andra enheten (M-134 klass 3)"
+          },
+          {
+            "t_ms": 84800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 86000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 86200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 86600,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 87000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 88000,
+            "satt": {
+              "ST260_PRT_PRS": true,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 88400,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 88600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 89000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 115000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
           }
         ]
       }

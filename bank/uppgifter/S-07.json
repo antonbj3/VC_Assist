@@ -120,6 +120,13 @@
       "signal": "AIR_OK",
       "beskrivning": "AIR_OK faller medan en kartong med underkand etikett ar pa vag mot utskjutaren.",
       "forvantat": "Utskjutaren far inte kommenderas. Ett kommando som ligger kvar under luftbortfallet slar ut fel kartong i det ogonblick luften kommer tillbaka."
+    },
+    {
+      "id": "underkanda_i_tva_omgangar",
+      "typ": "vandning",
+      "signal": "ST510_PEC_PART",
+      "beskrivning": "Tre underkanda etiketter kommer i tva omgangar i samma korning.",
+      "forvantat": "Raknaren nollstalls av godkand etikett; tre underkanda i rad stoppar stationen i bada omgangarna."
     }
   ],
   "core_outputs": [
@@ -1351,6 +1358,384 @@
             "satt": {
               "SYS_RESET": false
             },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "underkanda_i_tva_omgangar",
+        "beskrivning": "Tre underkanda etiketter i tva omgangar i samma korning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3500,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4800,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST510_SCN_GRADE": 1.2,
+              "ST510_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4900,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5000,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5200,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5400,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5700,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6200,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6400,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6600,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6780,
+            "satt": {},
+            "krav": {
+              "ST510_CNV_RUN": true
+            },
+            "varfor": "andra omgangen: bandet gar (M-134 klass 3)"
+          },
+          {
+            "t_ms": 6800,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7000,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7200,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7500,
+            "satt": {
+              "ST510_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7700,
+            "satt": {
+              "ST510_PSH_HOME": true,
+              "ST510_PEC_PART": false,
+              "ST510_SCN_DONE": false,
+              "ST510_PRN_READY": false,
+              "ST510_LBL_APPLIED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7900,
+            "satt": {
+              "ST510_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8100,
+            "satt": {
+              "ST510_PRN_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8300,
+            "satt": {
+              "ST510_LBL_APPLIED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8500,
+            "satt": {
+              "ST510_SCN_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8600,
+            "satt": {},
             "krav": {},
             "varfor": ""
           }

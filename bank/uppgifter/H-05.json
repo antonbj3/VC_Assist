@@ -105,6 +105,13 @@
       "signal": "ST490_DOK_OK",
       "beskrivning": "ST490_DOK_OK faller mitt i overforingen, alltsa AMR:n har rullat ur sitt lage.",
       "forvantat": "Banan ska stanna i samma scan. En bana som fortsatter drar lastbararen ned i gapet mellan AMR-dacket och stationen i stallet for over det."
+    },
+    {
+      "id": "tva_overlamningar_i_rad",
+      "typ": "vandning",
+      "signal": "ST490_XFR_REQ",
+      "beskrivning": "Overlamningen kors tva ganger i rad utan aterstallning emellan.",
+      "forvantat": "Bada overlamningarna fullfoljs; kvittens och aterstallning galler aven andra gangen."
     }
   ],
   "core_outputs": [
@@ -964,6 +971,232 @@
             "satt": {
               "SYS_RESET": false
             },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "tva_overlamningar_i_rad",
+        "beskrivning": "Overlamningen kors tva ganger i rad i samma korning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST490_PEC_GAP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST490_PEC_GAP": false,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST490_XFR_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST490_XFR_REQ": false,
+              "ST490_XFR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST490_LOD_WGT": 14.4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST490_DOK_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST490_XFR_REQ": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST490_PEC_GAP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "ST490_PEC_GAP": false,
+              "ST490_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3500,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST490_XFR_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "andra varvet: vakten star kvar (M-134 klass 3)"
+          },
+          {
+            "t_ms": 3900,
+            "satt": {
+              "ST490_XFR_REQ": false,
+              "ST490_XFR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
             "krav": {},
             "varfor": ""
           }

@@ -251,6 +251,83 @@ STIMULI = [
     # verktygsbytet. Ingen M33-ren punkt ser dem (marginalen ar 2 scan) och
     # ingen sann invariant haller for referensen sjalv (matt i M-135) - de
     # star kvar som overlevare med skal istallet for med en billig grind.
+    # --- klass 3: andra varvet (M-134) ---
+    # For nya sekvenser pinar "steg" bara fangstpunkten (resten ar mekanisk
+    # replay av bassekvensen): referensen-gron + mutanter-roda provas mot
+    # filen som den ligger, varje korning.
+    {"uppgift": "A-03", "sekvens": "tva_enheter_tatt_i_rad",
+     "lage": "ny",
+     "scenario": {"id": "tva_enheter_tatt_i_rad", "typ": "vandning",
+                  "signal": "ST250_PRT_PRS",
+                  "beskrivning": "En andra enhet kommer tatt efter den "
+                                 "forsta, innan station 2 hunnit kvittera.",
+                  "forvantat": "Den andra enheten halles kvar tills station "
+                               "2 kvitterat foregaende enhet; grinden oppnas "
+                               "inte for den."},
+     "steg": [{"t_ms": 72200, "satt": {},
+                "krav": {"ST250_REL_OPEN": True},
+                "varfor": "andra varvet: grinden oppnar for andra enheten "
+                          "(M-134 klass 3)"}],
+     "mutanter": [{"sort": "AND_TILL_OR", "rad": 56, "fore": "AND",
+                   "forekomst": 0},
+                  {"sort": "AND_TILL_OR", "rad": 56, "fore": "AND",
+                   "forekomst": 1}]},
+    {"uppgift": "H-04", "sekvens": "tva_overlamningar_i_rad",
+     "lage": "ny",
+     "scenario": {"id": "tva_overlamningar_i_rad", "typ": "vandning",
+                  "signal": "ST310_PRT_PRS",
+                  "beskrivning": "Overlamningen kors tva ganger i rad utan "
+                                 "aterstallning emellan.",
+                  "forvantat": "Bada overlamningarna fullfoljs med kvittens "
+                               "var for sig; den andra startar inte pa den "
+                               "forstas kvittens."},
+     "steg": [{"t_ms": 6000, "satt": {},
+                "krav": {"ST310_HSK_REQ": True},
+                "varfor": "andra varvet: handskakningen star kvar "
+                          "(M-134 klass 3)"}],
+     "mutanter": [{"sort": "OR_TILL_AND", "rad": 46, "fore": "OR",
+                   "forekomst": 0}]},
+    {"uppgift": "H-05", "sekvens": "tva_overlamningar_i_rad",
+     "lage": "ny",
+     "scenario": {"id": "tva_overlamningar_i_rad", "typ": "vandning",
+                  "signal": "ST490_XFR_REQ",
+                  "beskrivning": "Overlamningen kors tva ganger i rad utan "
+                                 "aterstallning emellan.",
+                  "forvantat": "Bada overlamningarna fullfoljs; kvittens och "
+                               "aterstallning galler aven andra gangen."},
+     "steg": [{"t_ms": 3700, "satt": {},
+                "krav": {"SYS_ALARM": True},
+                "varfor": "andra varvet: vakten star kvar (M-134 klass 3)"}],
+     "mutanter": [{"sort": "SANT_TILL_FALSKT", "rad": 36, "fore": "TRUE",
+                   "forekomst": 0}]},
+    {"uppgift": "L-07", "sekvens": "tva_varv_i_rad",
+     "lage": "ny",
+     "scenario": {"id": "tva_varv_i_rad", "typ": "vandning",
+                  "signal": "ST550_TBL_HOME",
+                  "beskrivning": "Vagnen kor tva hela varv i rad utan stopp "
+                                 "emellan.",
+                  "forvantat": "Bada varven raknas och overvakas var for "
+                               "sig; andra varvet startar inte pa forstas "
+                               "pulsgivare."},
+     "steg": [{"t_ms": 18080, "satt": {},
+                "krav": {"ST550_TBL_RUN": True},
+                "varfor": "andra varvet: vagnen gar (M-134 klass 3)"}],
+     "mutanter": [{"sort": "SANT_TILL_FALSKT", "rad": 30, "fore": "TRUE",
+                   "forekomst": 0}]},
+    {"uppgift": "S-07", "sekvens": "underkanda_i_tva_omgangar",
+     "lage": "ny",
+     "scenario": {"id": "underkanda_i_tva_omgangar", "typ": "vandning",
+                  "signal": "ST510_PEC_PART",
+                  "beskrivning": "Tre underkanda etiketter kommer i tva "
+                                 "omgangar i samma korning.",
+                  "forvantat": "Raknaren nollstalls av godkand etikett; tre "
+                               "underkanda i rad stoppar stationen i bada "
+                               "omgangarna."},
+     "steg": [{"t_ms": 6780, "satt": {},
+                "krav": {"ST510_CNV_RUN": True},
+                "varfor": "andra omgangen: bandet gar (M-134 klass 3)"}],
+     "mutanter": [{"sort": "OR_TILL_AND", "rad": 44, "fore": "OR",
+                   "forekomst": 0}]},
 ]
 
 
