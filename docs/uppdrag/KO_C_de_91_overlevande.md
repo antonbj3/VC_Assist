@@ -122,22 +122,37 @@ dolt bakom en slump.
 **Levererar:** `M-1NN` med de 70 uppdelade i "beteendet hade också fångat den"
 och "beteendet är blint här". Den andra listan är arbete för C2.
 
-## C5 — P-03 och de andra svaga uppgifterna
+## C5 — de femton, uppgift för uppgift, med botemedlet redan namngivet
 
-Per uppgift ser överlevarna ut så här i toppen:
+`M-122 §2` gjorde arbetet åt dig. De 27 kodradsöverlevarna delar sig i tre
+högar, och två av dem går att laga:
 
-```
-P-03   10 överlevande   varav 7 syns bara under perturbation
-S-07    7 överlevande   varav 3 skiljer på facitstimulus
-C-04    5 överlevande   alla 5 osynliga
-H-04    5     H-05    5     A-03    5
-```
+**Tre skiljer på facitets egen stimulus men passerar ändå** — facitet har för
+få kontrollpunkter just där:
 
-`P-03` sticker ut: sju av tio skador syns bara om man rubbar stimulusen. Det
-är en uppgift vars scenarier inte utövar sin egen lösning.
+| uppgift | skadan |
+|---|---|
+| `A-03` | `tpAck PT := T#500ms` fördubblad |
+| `S-01` | `xVantarHem := (steg = 3) AND NOT …` → `OR` |
+| `S-07` | `xKravOmstart := TRUE` → `FALSE` |
 
-Ta de fem svagaste uppgifterna och skriv om deras `scenarios` tills
-överlevarna syns. Rapportera före- och eftertal per uppgift.
+Botemedlet är **ett punktkrav till i tre uppgifter**. Inte en ny grind.
+
+**Tolv syns bara under perturbation** — facitets stimulus når inte raden. Sju
+av de tolv ligger i `P-03`. Botemedlet är **en sekvens till i fem uppgifter**:
+`A-03`, `H-04`, `L-07`, `P-03`, `S-07`. Vilken perturbation som ser dem är
+mätt: tidsskala ×2,0 ser 10 av 27, sekvensen två gånger 10, hållen puls 9.
+
+**Tolv är osynliga under allt som provats.** Exempel: `C-04` `IF steg < 0 OR
+steg > 7` → `AND`, en vakt som aldrig nås. Troligen ekvivalenta eller döda.
+`M-122` säger uttryckligen att det **inte är bevisat** — och där ligger din
+uppgift: avgör vilka som är genuint ekvivalenta och vilka som bara ser så ut.
+En ekvivalent mutant ska räknas bort ur nämnaren, inte bokföras som ett hål.
+
+**Varning:** en tidigare version av den här punkten bad dig skriva om
+scenarierna för "de fem svagaste uppgifterna" utifrån en per-uppgift-tabell
+från körningen **före** rättelsen. De talen var till största delen initierare.
+Använd tabellerna ovan, inte den gamla.
 
 ## C6 — mutationsmotorn är för tunn för industriell ST
 
@@ -160,12 +175,32 @@ som fortfarande är grön.
 Kör om hela svepet efteråt. Om fångstgraden faller är det ett riktigt fynd,
 inte ett misslyckande: du har hittat fler hål i domaren.
 
-## C7 — säkra mätningen
+## C7 — den riktiga F15-mutationen, och vad den avslöjade om spåren
 
-`m122`-körningens utdata ligger i en scratchpad under `/tmp`. Den är inte i
-repot, och disken var full i morse. Flytta mätningen in i
-`docs/matningar/` och committa den. En mätning som bara finns i `/tmp` finns
-inte.
+`M-122 §3` fann att motorns `FLANK_TILL_NIVA` **heter fel**: den stryker
+anropet `trig(CLK := x)` så att `trig.Q` står `FALSE` för evigt. Det är inte
+`82_felklasser.md`:s F15, som lyder *"villkoret läses på nivå i stället för på
+flank"*.
+
+Den riktiga mutationen byggdes och kördes på alla 26 referenser: 30 mutanter,
+**13 fångade, 17 överlevde**. Men uppdelningen är hela fyndet:
+
+| flanken läser | fångade | överlevde |
+|---|---:|---:|
+| material och process | **12 av 12** | 0 |
+| återställning | 1 | 15 |
+
+Spåret ser alltså flanken perfekt när den läser något som **rör sig i scenen**,
+och nästan aldrig när den läser en **återställning**. Blindheten är stimulusens,
+inte spårets — och det är motsatsen till vad `M-115` skrevs som.
+
+Ditt arbete: bygg stimulus som utövar återställningsvägarna. En störning
+*under* en hållen signal — ett fel medan återställningen hålls — är inte bland
+de fem perturbationerna som finns, och `M-122` pekar ut just den som den som
+skulle se `SYS_RESET`-mutanterna.
+
+Döp också om operatorn så namnet säger vad den gör, och lägg den riktiga F15
+bredvid. En operator som heter fel gör varje tal om den missvisande.
 
 ---
 
