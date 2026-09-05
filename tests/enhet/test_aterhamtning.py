@@ -235,7 +235,7 @@ def test_ett_forsok_som_inte_kan_lyckas_gar_inte_att_paborja():
     b = _bild()
     with pytest.raises(L.Aterhamtningsfel) as fel:
         b.borja_forsok(L.SJALVSTART, L.SPARAD_LAYOUT)
-    assert "kan inte lyckas" in str(fel.value)
+    assert "cannot succeed" in str(fel.value)
     assert b.forsoken == []
 
 

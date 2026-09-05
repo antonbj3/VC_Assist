@@ -91,16 +91,16 @@ class Avlasning:
     def __post_init__(self):
         if self.delsystem not in DELSYSTEM:
             raise Aterhamtningsfel(
-                "okänt delsystem %r; listan är sluten (%s)"
+                "unknown subsystem %r; the list is closed (%s)"
                 % (self.delsystem, ", ".join(DELSYSTEM)))
         if self.orsak and self.orsak not in ORSAK_UR_NYCKEL:
             raise Aterhamtningsfel(
-                "okänd orsak %r; en orsak som inte står i tabellen når "
-                "användaren utan härkomst" % (self.orsak,))
+                "unknown cause %r; a cause that is not in the table reaches "
+                "the user without provenance" % (self.orsak,))
         if self.svarade is False and not (self.fel or "").strip():
             raise Aterhamtningsfel(
-                "en avläsning som inte fick svar måste bära sondens egna ord; "
-                "en tystnad utan ord går inte att visa för någon")
+                "a reading that got no response must carry the probe's own words; "
+                "a silence with no words cannot be shown to anyone")
 
     @property
     def livstecken(self) -> bool:
@@ -197,8 +197,8 @@ class Systembild(object):
         kan = kan_lyckas(orsak, vag, self.utan_sjalvstart)
         if kan == KAN_NEJ:
             raise Aterhamtningsfel(
-                "vägen \"%s\" kan inte lyckas för orsaken %s (%s); ett försök "
-                "som inte kan lyckas får inte redovisas som pågående"
+                "the path \"%s\" cannot succeed for the cause %s (%s); an attempt "
+                "that cannot succeed must not be reported as in progress"
                 % (vag.text, orsak.nyckel, kan))
         f = Forsok(vag=vag, orsak=orsak, t_start=self.klocka(), kanskap=kan)
         self.forsoken.append(f)
@@ -211,8 +211,8 @@ class Systembild(object):
             raise Aterhamtningsfel("the attempt does not belong to this snapshot")
         if not lyckades and not (ordagrant or "").strip():
             raise Aterhamtningsfel(
-                "ett misslyckat försök utan ord är samma tomma besked som "
-                "\"något gick fel\"")
+                "a failed attempt with no words is the same empty message as "
+                "\"something went wrong\"")
         forsok.t_slut = self.klocka()
         forsok.lyckades = bool(lyckades)
         forsok.ordagrant = ordagrant
@@ -307,13 +307,13 @@ class Systembild(object):
             saknas = sorted(VANTADE - set(data))
             extra = sorted(set(data) - VANTADE)
             raise Aterhamtningsfel(
-                "systembilden har fel nycklar; saknar %s, har extra %s"
-                % (", ".join(saknas) or "inget", ", ".join(extra) or "inget"))
+                "the system snapshot has the wrong keys; missing %s, extra %s"
+                % (", ".join(saknas) or "none", ", ".join(extra) or "none"))
         if data["v"] != BILDVERSION:
             raise Aterhamtningsfel(
-                "systembilden är version %r, läsaren kan %d; en läsare som "
-                "gissar sig genom ett okänt format visar ett halvt läge som "
-                "ett helt" % (data["v"], BILDVERSION))
+                "the system snapshot is version %r, the reader supports %d; a reader "
+                "that guesses its way through an unknown format shows a half "
+                "state as a whole one" % (data["v"], BILDVERSION))
         b = cls(data["uppdrag"], klocka=klocka, t_ping=data["t_ping"],
                 t_nere=data["t_nere"], t_modal=data["t_modal"])
         b.t0 = float(data["t0"])
