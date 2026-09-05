@@ -173,3 +173,54 @@ def test_gransen_star_kvar_dar_regeln_pastar(namn, kropp, ska_falla):
              " UT AT %QX0.0 : BOOL;\nEND_VAR\n" + kropp + "END_PROGRAM\n")
     koder = [x.kod for x in validera(kalla).anmarkningar]
     assert ("DUBBELSKRIVNING" in koder) is ska_falla, namn
+
+
+# --- ogats klasser: det som doms nar cellen KOR ------------------------------
+#
+# Grind 2 och 3 domer TEXTEN. Ogat domer vad som HANDER - sekvens, timing,
+# grepp, kollision, genomflode. Modellen hade aldrig fatt veta nagot om dem.
+#
+# M-80 matte tva klasser som ligger dar: invariantbrott i facit (2 av 4) och
+# punktkrav i facit (6 avlasningar). Det ar inte syntax, det ar cellen.
+
+def test_ogonklasserna_lases_ur_dokumentet_inte_ur_en_kopia():
+    """Tabellen bor i 82_felklasser.md. Tva kopior glider isar - natten har
+    redan visat sex ordlistor som gjorde precis det."""
+    klasser = F.ogats_klasser()
+    assert len(klasser) >= 8, "fann bara %d ogonklasser" % len(klasser)
+    for kod, (namn, definition) in klasser.items():
+        assert kod.startswith("F") and namn and definition
+
+
+def test_varje_ogonklass_har_en_regel():
+    assert F.saknade_ogonregler() == (), (
+        "ogonklasser modellen aldrig fatt veta om: %s"
+        % ", ".join(F.saknade_ogonregler()))
+
+
+def test_ingen_ogonregel_utan_en_klass_bakom_sig():
+    assert F.foraldralosa_ogonregler() == ()
+
+
+@pytest.mark.parametrize("kod", sorted(F.ogats_klasser()))
+def test_varje_ogonklass_star_i_prompten_slingan_anvander(kod):
+    assert kod in R.SYSTEMPROMPT
+
+
+def test_en_ny_ogonklass_i_dokumentet_upptacks(monkeypatch):
+    """TRASIG FIXTUR. Nagon lagger en klass i 82_felklasser.md och glommer
+    regeln. Utan provet vaxer ogat med en falla."""
+    monkeypatch.setattr(F, "ogats_klasser",
+                        lambda: {"F99": ("Nytt", "nagot ogat faller pa")})
+    assert "F99" in F.saknade_ogonregler()
+
+
+def test_forreglingsregeln_bar_M74_s_matta_fynd():
+    """F8:s regel ska sága SAKEN, inte klassnamnet.
+
+    Fas 8 matte att ett linjevillkor som laser den andra stationens UTGANG
+    slapper igenom just den samtidighet det ska hindra - utgangen satts en scan
+    efter beslutet. Det ar den meningen som gor regeln anvandbar.
+    """
+    regel = F.OGATS_REGLER["F8"]
+    assert "utgang" in regel.lower() and "scan" in regel.lower()
