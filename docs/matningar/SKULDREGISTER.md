@@ -30,7 +30,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 * 1 gemensamma — `svc/vc_assist_svc/llm/urval.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 543 punkter
+## Vad mätningarna säger att de inte vet: 549 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -122,7 +122,13 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-100_personatackningen.md — LIMITS
 
-* Ingenting är mätt än. Den här filen är en reservation av numret, inte ett
+* Stegen är oviktade.** Att spara en layout och att bygga ett helt
+* `UI:`-markörer går att bevisa falska, inte sanna.** Grinden fäller en
+* Ingenting kördes mot en levande VC.** Att ett verktyg står i registret
+* Sju profiler är inte alla användare.** Underhållstekniker,
+* Stegen är skrivna av mig, inte av en användare.** Ingen layoutplanerare
+* `component_info`, `frame_owner_node` och `ray_cast` kan vara felaktigt
+* Talet 4 % utanför räckvidd är sannolikt för lågt.** Det räknar bara de
 
 ### M-101_komponentmodellen_byggd_ur_specen.md — LIMITS
 
@@ -860,7 +866,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Spärrens kärnor är `text.py`:s två.** En lista som blandar två *andra*
 * Kopiekriteriet missar en drivande kopia som är kortare än sex ord och har
 * Bänken har fortfarande ingen fälla av "ett nekande någon annanstans"-slaget
-* Tröskellintern är röd av annat.** `test_troskelharkomst.py` räknar 63
+* Tröskellintern är röd av annat, och det är mätt vems.**
 * Sju konsumenter är alla jag hittade, inte alla som finns.** Sökningen gick
 
 ### M-99_differentialsvepet_mot_kompilatorn.md — LIMITS
@@ -875,12 +881,13 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * `svc/vc_assist_svc/llm/ogontrim.py` — 432 rader
 * `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 2 (218 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
 
+* `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 123
+## Markörer i koden: 125
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -909,6 +916,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 * vc_assist_svc/llm/scenvy.py:36  # PRELIMINAR, satts av matning M-29. Motivet ar matt: bankens storsta scen ar
 * vc_assist_svc/llm/scenvy.py:42  # Samma sak per komponent. PRELIMINAR, matning M-29.
+
+### vc_assist_svc/llm/tur.py
+
+* vc_assist_svc/llm/tur.py:282  # Vaggklockan for en hel tur. PRELIMINAR, satts av matning M-28. Vald over
 
 ### vc_assist_svc/verktyg/formagegrind.py
 
@@ -1131,7 +1142,8 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### protocol/kor_fas5.py
 
 * protocol/kor_fas5.py:5  VC. Det ar precis den sortens oprovade yta dar dokumentationen och verkligheten
-* protocol/kor_fas5.py:172  (", oprovade: " + ", ".join(saknas)) if saknas else ""))
+* protocol/kor_fas5.py:35  "verktyg utan forutsattningar redovisas som oprovade, aldrig som "
+* protocol/kor_fas5.py:207  (", oprovade: " + ", ".join(saknas)) if saknas else ""))
 
 ### motbevis/test_grindar_som_aldrig_fallt_motbevis.py
 
