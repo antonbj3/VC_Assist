@@ -407,7 +407,7 @@ class Forlopp(object):
         VANTADE = {"v", "order_id", "uppgift", "t0", "skrivet", "tystnadstak",
                    "max_handelserader", "handelser", "steg", "ovissheter"}
         if not isinstance(data, dict):
-            raise Forloppsfel("en ögonblicksbild är ett objekt, inte %s"
+            raise Forloppsfel("a snapshot is an object, not %s"
                               % type(data).__name__)
         if set(data) != VANTADE:
             saknas = sorted(VANTADE - set(data))
@@ -430,16 +430,16 @@ class Forlopp(object):
 
         for rad in data["handelser"]:
             if set(rad) != {"sort", "text", "t", "steg", "ordagrant"}:
-                raise Forloppsfel("en händelserad har fel fält: %r"
+                raise Forloppsfel("an event line has invalid fields: %r"
                                   % sorted(rad))
             f.handelser.append(Handelse(sort=rad["sort"], text=rad["text"],
                                         t=float(rad["t"]), steg=rad["steg"],
                                         ordagrant=rad["ordagrant"]))
         for rad in data["steg"]:
             if set(rad) != {"namn", "status", "skal", "t_start", "t_slut"}:
-                raise Forloppsfel("ett steg har fel fält: %r" % sorted(rad))
+                raise Forloppsfel("a step has invalid fields: %r" % sorted(rad))
             if rad["status"] not in STEGSTATUSAR:
-                raise Forloppsfel("okänd stegstatus %r i ögonblicksbilden"
+                raise Forloppsfel("unknown step status %r in the snapshot"
                                   % (rad["status"],))
             f.steg.append(Steg(rad["namn"], rad["status"], rad["skal"],
                                rad["t_start"], rad["t_slut"]))
@@ -447,7 +447,7 @@ class Forlopp(object):
         f.ovissheter = []
         for rad in data["ovissheter"]:
             if set(rad) != {"namn", "skal", "klass"}:
-                raise Forloppsfel("en ovisshet har fel fält: %r" % sorted(rad))
+                raise Forloppsfel("an uncertainty has invalid fields: %r" % sorted(rad))
             f.ovissheter.append(Ovisshet(rad["namn"], rad["skal"],
                                          rad["klass"]))
 
