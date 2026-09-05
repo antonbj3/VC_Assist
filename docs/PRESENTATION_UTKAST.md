@@ -57,10 +57,9 @@ relations between machines, and the order the processes must run in. From a
 measured run:
 
 > *"Build a picking station that handles 400 parts per hour, with an infeed
-> conveyor, a robot and an outfeed box. Write the PLC code."*
->
-> `cell is 8x8 metres, walkway at least 800 mm`
-> `the conveyor feeds the robot, the robot feeds the reject box`
+> conveyor, a robot and an outfeed box. The cell is 8 by 8 metres with an
+> 800 mm walkway. The conveyor feeds the robot, the robot feeds the reject
+> box. Write the PLC code."*
 
 An order that contradicts itself is **rejected**, naming which condition
 collides, rather than being built halfway. You never receive a plausible-looking

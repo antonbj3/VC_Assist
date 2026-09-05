@@ -34,8 +34,9 @@ MALL = u"""<!doctype html>
   pre code { background: none; padding: 0; }
   table { border-collapse: collapse; }
   td, th { border: 1px solid #8884; padding: .35em .7em; }
-  blockquote { border-left: 3px solid #8886; margin-left: 0; padding-left: 1rem;
-               color: #8889; }
+  blockquote { border-left: 3px solid #1f6feb; margin-left: 0;
+               padding: .6rem 1rem; background: #1f6feb14; }
+  blockquote p { margin: .4em 0; }
   .mermaid { text-align: center; margin: 2rem 0; }
 </style>
 <div id="ut">Renderar...</div>
