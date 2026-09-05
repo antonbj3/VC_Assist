@@ -473,3 +473,79 @@ def test_budgeten_sager_sjalv_om_den_ar_bevisad():
     assert b.status == Av.HYPOTES
     assert b.bevis is None
     assert "M-162" in b.text()
+
+
+# ---------------------------------------------------------------------------
+# Scenlage ur ett riktigt verktygssvar
+# ---------------------------------------------------------------------------
+
+def _svar(poster, avkortad=False):
+    return {"components": list(poster), "antal": len(poster),
+            "avkortad": avkortad}
+
+
+def test_scenlaget_tar_namn_och_kategori_ur_verktygssvaret():
+    sl = Sp.scenlage_ur_svar(_svar([
+        {"name": "ST210_GRP", "uri": "x", "category": "Grippers"},
+        {"name": "ST210_BAND", "uri": "y", "category": "Conveyors"}]))
+    assert sl.komponenter == (("ST210_GRP", "Grippers"),
+                              ("ST210_BAND", "Conveyors"))
+    assert sl.kalla == "list_components"
+    assert sl.fullstandig() is True
+
+
+def test_en_komponent_utan_kategori_far_tom_typ_aldrig_en_gissad():
+    """M-69: katalognamnet gav 1736 robotar, strukturen 2202. Namn ljuger.
+
+    En gissad typ som ser ratt ut ar varre an ingen typ, for den gar inte att
+    ifragasatta.
+    """
+    sl = Sp.scenlage_ur_svar(_svar([
+        {"name": "Gripper_2F_85", "uri": None, "category": None}]))
+    assert sl.komponenter == (("Gripper_2F_85", ""),)
+
+
+def test_en_avkortad_lasning_ar_inte_en_fullstandig_scen():
+    """TRASIG FIXTUR. Rakningen 'scenen har tre gripdon' kan vara fel om ett
+    fjarde lag i den bortklippta delen. Att tappa flaggan ar en falsk gron."""
+    sl = Sp.scenlage_ur_svar(_svar(
+        [{"name": "A", "category": "Grippers"}], avkortad=True))
+    assert sl.avkortad is True
+    assert sl.fullstandig() is False, (
+        "en avkortad lasning far ALDRIG rapporteras som en hel scen")
+    assert "AVKORTAD" in repr(sl)
+
+
+def test_ett_scenlage_utan_lasning_ar_aldrig_fullstandigt():
+    assert Sp.Scenlage().fullstandig() is False
+
+
+def test_ett_svar_som_inte_ar_en_scenlasning_avvisas():
+    """I9: modellen far bara valja ur det som finns, och 'det som finns' maste
+    nagon ha last."""
+    import pytest
+    with pytest.raises(ValueError):
+        Sp.scenlage_ur_svar({"antal": 0})
+    with pytest.raises(TypeError):
+        Sp.scenlage_ur_svar("[]")
+
+
+def test_en_komponent_utan_namn_stoppar_hela_lasningen():
+    """Att hoppa over den tyst vore att krympa scenen utan att saga det."""
+    import pytest
+    with pytest.raises(ValueError):
+        Sp.scenlage_ur_svar(_svar([{"name": "", "category": "Grippers"}]))
+
+
+def test_svenskt_ord_mot_engelsk_kategori_ger_INGA_kandidater():
+    """MATT HAL, inte ett fel i kopplingen.
+
+    Scenen har ett gripdon. Kategorin heter 'Grippers' och namnet 'ST210_GRP'.
+    Ordet "gripdon" matchar ingetdera, sa delstrangsmatchningen ensam kan inte
+    losa ut deixis over ett sprakbyte. Det ar precis darfor en modell behovs i
+    ledet - och provet star har for att halet ska sluta vara osynligt.
+    """
+    sl = Sp.scenlage_ur_svar(_svar([
+        {"name": "ST210_GRP", "category": "Grippers"}]))
+    assert sl.kandidater("gripdon") == ()
+    assert sl.kandidater("Grippers") == ("ST210_GRP",)

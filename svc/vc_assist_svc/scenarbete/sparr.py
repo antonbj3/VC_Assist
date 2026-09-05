@@ -243,15 +243,29 @@ class Scenlage(object):
     det som finns, och "det som finns" maste da vara nagot nagon last.
     """
 
-    __slots__ = ("komponenter", "kalla")
+    __slots__ = ("komponenter", "kalla", "avkortad")
 
-    def __init__(self, komponenter=(), kalla=""):
+    def __init__(self, komponenter=(), kalla="", avkortad=False):
         self.komponenter = tuple((str(n), str(t)) for n, t in komponenter)
         self.kalla = kalla
+        # Lasningen klipptes vid verktygets tak. Da ar scenbilden OFULLSTANDIG,
+        # och den skillnaden far aldrig forsvinna: "scenen har tre gripdon" kan
+        # vara fel om ett fjarde lag i den bortklippta delen. En avkortad
+        # lasning som tyst blir en fullstandig bild ar en falsk gron.
+        self.avkortad = bool(avkortad)
 
     def __repr__(self):
-        return "Scenlage(%d komponenter ur %s)" % (len(self.komponenter),
-                                                   self.kalla or "ingen lasning")
+        return "Scenlage(%d komponenter ur %s%s)" % (
+            len(self.komponenter), self.kalla or "ingen lasning",
+            ", AVKORTAD" if self.avkortad else "")
+
+    def fullstandig(self):
+        """Sant bara nar lasningen bar HELA scenen.
+
+        Den som drar en slutsats av ANTALET traffar - "det finns bara ett
+        gripdon, alltsa menade du det" - maste fraga den har forst.
+        """
+        return bool(self.kalla) and not self.avkortad
 
     def namn(self):
         return tuple(n for n, _t in self.komponenter)
@@ -272,6 +286,47 @@ class Scenlage(object):
             if n in normalisera(namn) or n == normalisera(typ):
                 ut.append(namn)
         return tuple(ut)
+
+
+def scenlage_ur_svar(svar, kalla="list_components"):
+    """Ett Scenlage ur `list_components` svar. Hittar ingenting pa.
+
+    Verktyget ger `name`, `uri` och `category` per komponent (`verktyg/scen.py`,
+    ur `comp.Name`, `comp.Uri`, `comp.Category`). TYPEN ar kategorin och
+    ingenting annat:
+
+      * En komponent UTAN kategori far tom typ. Den harleds ALDRIG ur namnet -
+        det ar felet M-69 matte i biblioteket, dar katalognamnet gav 1736
+        robotar och strukturen 2202. Namn ljuger, och en gissad typ som ser
+        ratt ut ar varre an ingen typ.
+      * Kategorin ar inte perfekt heller: M-61 matte 2169 av 2202 robotar ur
+        den, 98,5 % med NOLL falska. Den felar alltsa bara at det ofarliga
+        hallet - den missar, den ljuger inte.
+
+    `avkortad` bars vidare. Ett svar som klipptes vid taket ar en ofullstandig
+    scen, och den som raknar traffar maste veta det.
+    """
+    if not isinstance(svar, dict):
+        raise TypeError("scenlage_ur_svar vill ha verktygets svar som dict, "
+                        "fick %s" % type(svar).__name__)
+    poster = svar.get("components")
+    if poster is None:
+        raise ValueError(
+            "svaret bar inget 'components'-falt. Ett Scenlage ur ett svar som "
+            "inte ar en scenlasning vore en scen nagon hittat pa (I9).")
+    komponenter = []
+    for post in poster:
+        namn = (post or {}).get("name")
+        if not namn:
+            # En komponent utan namn gar inte att peka pa, och att hoppa over
+            # den tyst vore att krympa scenen utan att saga det.
+            raise ValueError(
+                "en komponent i %s saknar 'name'; scenen gar da inte att "
+                "granska mot och far inte anvandas" % kalla)
+        kategori = (post or {}).get("category")
+        komponenter.append((namn, kategori if kategori else ""))
+    return Scenlage(komponenter, kalla=kalla,
+                    avkortad=bool(svar.get("avkortad")))
 
 
 # ---- lassparren ----------------------------------------------------------
