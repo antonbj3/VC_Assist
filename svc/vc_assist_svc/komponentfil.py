@@ -413,7 +413,7 @@ class Rackviddsprofil(object):
             # En tom profil skulle ge radien 0,0 - alltsa en robot som pastas
             # na noll millimeter. Det ser ut som en matning och ar ett
             # avkodningsfel. Ingen profil ar ett battre svar an en tom.
-            raise Filfel("en rackviddsprofil utan punkter ar ingen profil")
+            raise Filfel("a reach profile without points is not a profile")
         self.segment = segment
 
     @property
@@ -1181,7 +1181,7 @@ def las_ur_zip(z, sokvag="", djupt=False, geometri=False):
     """
     poster = set(z.namelist())
     if "model.xml" not in poster:
-        raise Filfel("%s saknar model.xml och ar ingen VC-komponent" % sokvag)
+        raise Filfel("%s is missing model.xml and is not a VC component" % sokvag)
     egen = _egenskaper(z.read("model.xml").decode("utf-8-sig", "replace"))
     taggar = tuple(t for t in (egen.get("Tags") or "").split(";") if t)
     fakta = Komponentfakta(
@@ -1207,7 +1207,7 @@ def las_ur_zip(z, sokvag="", djupt=False, geometri=False):
     if not djupt:
         return fakta
     if "component.rsc" not in poster:
-        raise Filfel("%s saknar component.rsc" % sokvag)
+        raise Filfel("%s is missing component.rsc" % sokvag)
     rot = tolka_rsc(z.read("component.rsc").decode("utf-8", "replace"))
     fakta.struktur = _struktur_ur(rot)
     fakta.granssnitt = _granssnitt_ur(rot)
@@ -1231,12 +1231,12 @@ def las_ur_zip(z, sokvag="", djupt=False, geometri=False):
 def las(sokvag, djupt=False, geometri=False):
     """Fakta ur en .vcmx-fil pa disk."""
     if not os.path.isfile(sokvag):
-        raise Filfel("ingen fil pa %s" % sokvag)
+        raise Filfel("no file at %s" % sokvag)
     try:
         with zipfile.ZipFile(sokvag) as z:
             return las_ur_zip(z, sokvag, djupt=djupt, geometri=geometri)
     except zipfile.BadZipFile as e:
-        raise Filfel("%s ar inget zip-arkiv: %s" % (sokvag, e))
+        raise Filfel("%s is not a zip archive: %s" % (sokvag, e))
 
 
 # ---------------------------------------------------------------------------
@@ -1404,22 +1404,22 @@ def main(argv=None):
 
     if a.fil:
         f = las(a.fil, djupt=True, geometri=True)
-        print("namn:        %s" % f.namn)
-        print("tillverkare: %s" % f.tillverkare)
-        print("kategori:    %s" % f.kategori)
+        print("name:        %s" % f.namn)
+        print("manufacturer: %s" % f.tillverkare)
+        print("category:    %s" % f.kategori)
         mm, harkomst, kalla = f.rackvidd()
-        print("rackvidd:    %s (%s: %s)"
+        print("reach:       %s (%s: %s)"
               % ("%.0f mm" % mm if mm else Harkomst.SAKNAS, harkomst, kalla))
-        print("nyttolast:   %s"
+        print("payload:     %s"
               % ("%.10g kg" % f.nyttolast_kg if f.nyttolast_kg
                  else Harkomst.SAKNAS))
-        print("lada:        %s (%s)" % (f.lada_harkomst, f.lada_skal))
-        print("granssnitt:  %s" % (", ".join(f.granssnittsnamn())
+        print("box:         %s (%s)" % (f.lada_harkomst, f.lada_skal))
+        print("interfaces:  %s" % (", ".join(f.granssnittsnamn())
                                    or Harkomst.SAKNAS))
-        print("ramar:       %s" % (", ".join(f.ramnamn()) or Harkomst.SAKNAS))
-        print("leder:       %d" % len(f.leder))
-        print("profil:      %s" % (f.profil or Harkomst.SAKNAS))
-        print("geometri:    %d poster" % len(f.geometri))
+        print("frames:      %s" % (", ".join(f.ramnamn()) or Harkomst.SAKNAS))
+        print("joints:      %d" % len(f.leder))
+        print("profile:     %s" % (f.profil or Harkomst.SAKNAS))
+        print("geometry:    %d entries" % len(f.geometri))
         return 0
 
     if a.svep is None:
@@ -1430,16 +1430,16 @@ def main(argv=None):
         from .katalogindex import hitta
         fynd = hitta()
         if not fynd:
-            print("hittade inget bibliotek")
+            print("found no library")
             return 1
         rot = fynd[0].rot
-        print("bibliotek: %s\n  hittat via: %s" % (fynd[0].rot, fynd[0].hur))
+        print("library: %s\n  found via: %s" % (fynd[0].rot, fynd[0].hur))
     filer = _filer_under(rot)
     r = svep(filer, geometri=not a.utan_geometri, skriv=print)
     n = r["namnare"]
-    print("\nNAMNARE: %d filer, last pa %.1f s%s"
+    print("\nDENOMINATOR: %d files, read in %.1f s%s"
           % (n, r["sekunder"],
-             "" if r["geometri_last"] else " (utan geometri)"))
+             "" if r["geometri_last"] else " (without geometry)"))
     for nyckel in ("lasta", "lada_last", "lada_harledd", "lada_saknas",
                    "kategori_last", "rackvidd_last", "rackvidd_noll",
                    "rackvidd_saknas", "profil_last",
@@ -1463,7 +1463,7 @@ def main(argv=None):
     if a.ut:
         with open(a.ut, "w", encoding="utf-8") as f:
             json.dump(r, f, indent=1, sort_keys=True, ensure_ascii=False)
-        print("skrivet: %s" % a.ut)
+        print("written: %s" % a.ut)
     return 0
 
 
