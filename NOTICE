@@ -1,0 +1,11 @@
+VC Assist
+Copyright 2026 Anton (github.com/antonbj3)
+
+This product includes software developed for use with Visual Components.
+Visual Components is a trademark of Visual Components Oy. This project is not
+affiliated with, endorsed by, or supported by Visual Components Oy.
+
+Documentation extracted from a Visual Components installation is NOT
+distributed with this project. The release check in
+svc/vc_assist_svc/extraktor.py rejects any docs/referens/ file in a release
+list; install/ builds the API index from the user's own installation instead.
