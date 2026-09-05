@@ -104,7 +104,7 @@ class OpencodeCLI(modellklient.Modellklient):
             modellklient._neka_repot(katalog)
             try:
                 k = subprocess.run(
-                    [self.korbar, "run", "--agent", "summary", "-m", self.modell,
+                    [self.korbar, "run", "--agent", "vcassist_forfattare", "-m", self.modell,
                      "--format", "json", prompt + _TRANSPORTSUFFIX],
                     cwd=katalog, stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE, timeout=self.tidsgrans)
