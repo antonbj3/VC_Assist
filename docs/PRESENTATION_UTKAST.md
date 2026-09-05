@@ -189,9 +189,9 @@ eye's own reports, is the next milestone. The rig is built and waiting on a run.
 **Brownfield reconstruction.** Most lines on a factory floor are older than
 their documentation, and the original PLC project is often gone. Point this at a
 recording of the plant's I/O and it reconstructs the control logic: **28 of 28
-interlocks** recovered from a clean recording, **3 of 28** from a production one.
-The gap is the whole problem — a recording of normal operation contains no
-emergency stop to learn from.
+interlocks** recovered from a recording made for the purpose. From a recording
+of a line in normal production, **3 of 28** — normal production never trips the
+emergency stop, so the recording holds no example of it.
 
 **Vendor toolchains.** Export to PLCopen XML works and survives a round trip,
 validated against the official schema and accepted by an independent toolchain.
