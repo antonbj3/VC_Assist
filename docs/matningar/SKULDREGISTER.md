@@ -4,9 +4,19 @@
 
 Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samtidigt som arbetet: mätningarnas ärlighetsavsnitt och markörer i koden.
 
-## Mätningar utan ärlighetsavsnitt: 0
+## Mätningar utan ärlighetsavsnitt: 1
 
-## Vad mätningarna säger att de inte vet: 366 punkter
+En mätning utan ett sådant avsnitt är inte en mätning utan skuld — det är en mätning vars skuld ingen har skrivit ned.
+
+* `M-85_komponentdatabladet.md`
+
+## Mätningsnummer som fler än en fil gör anspråk på: 1
+
+Numret är mätningens enda identitet. Två filer på samma nummer gör varje hänvisning tvetydig, och både tröskellintern och rättelsegrinden slår upp på numret.
+
+* **M-90** — `M-90_ren_maskin_linux.md`, `M-90_speglingen_som_inte_aldras.md`
+
+## Vad mätningarna säger att de inte vet: 455 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -521,6 +531,28 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Bara `getQuaternion()`.** `setQuaternion()` är inte prövad, och att läsa
 * Bara VC 4.10.**
 
+### M-73_linan_arbetar.md — Vad som INTE är visat
+
+* Fler än två stationer.** Allt här är mätt på två. Att en tredje station
+* Att en modell skriver kropparna.** Alla ST-kroppar är handskrivna. Fas 8
+* Nödstoppet.** Den `skyddad`-märkta ingången går inte att driva över OPC UA
+* Genomströmningsgrinden.** Ögats `genomstromning` läser `vcStatistics`, och
+* Långtidsjämvikt.** Serien är 80 s, alltså tio produkter. Att kön på bana 1
+* Fasförhållandet PLC ↔ scen.** Kräver `--plc-inskott`, som är av av samma
+* Ett objekt i scenen läses aldrig av.** Ögat rapporterar i varje körning
+* Windows. Verklig hårdvara. Hur ofta det lyckas.**
+
+### M-74_kompositionsfallen.md — Vad som INTE är visat
+
+* Att listan över kompositionsfelklasser är komplett.** Fem klasser är
+* Fler än två stationer.** Att en tredje station inte bär en klass av fel som
+* Att felen fälls i en scen som inte är den här.** Fixturerna är fällda på
+* en** lina, med **en** geometri och **en** takt. Takten är dessutom vald så
+* Att en modell skriver kropparna.** Alla sex är handskrivna, och
+* Mättnad nedströms som ett eget mått.** `K5` fälls på överlämningens
+* Nödstoppet.** Den `skyddad`-märkta ingången går inte att driva över OPC UA
+* Windows. Verklig hårdvara. Hur ofta det lyckas.**
+
 ### M-75_vad_ett_spar_avslojar.md — Vad som INTE är mätt
 
 * Bara fyra uppgifter**, och alla fyra är våra egna. En riktig anläggnings
@@ -563,14 +595,137 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Om det finns fler falska röda i regeln.** Skärpningen täcker literaler.
 * Om L-05:s referens borde ändras.** Den bryter mot vår egen grind 2, och det
 
-## Produktionsmoduler som ingen provfil nämner: 0 (0 rader)
+### M-80_fas9_tre_tal.md — Vad talen betyder, och inte
 
+* Oavgjort mot en mallkompilator**, och det ska sägas med de orden — `M-62`
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 1 (135 rader)
+### M-80_fas9_tre_tal.md — Vad som INTE är mätt
 
+* Bara fyra uppgifter.** Banken har 51; fyra har spårfacit.
+* n = 1 per uppgift, per varv.** Ingen upprepning, ingen spridning, inget
+* Slingan drivs för hand.** Bryggan mellan grind och modell är ett
+* Grind 4 dömde ingenting.** Modellen ombads inte skriva scenkod.
+* Ingen körning i VC.** Domen kommer ur vår ST-tolk, korsprövad mot STruC++ i
+* En modell, en prompt, en formulering.** Uppgiftspaketets ordval kan ha
+* Ingenting om svårare uppgifter.** De fyra är de enda med spårfacit, och
+
+### M-81_bankens_scen_provas_aldrig.md — Vad som INTE är mätt
+
+* Om en modell klarar det.** Den här mätningen räknar vad som finns, inte vad
+* Om verktygen räcker.** Fyra verktygstyper täcker uppgiften på papperet.
+* Om scenerna går att bygga alls.** `fas5_riktiga_komponenter.md` är ett
+* inte** står i filen — 0 lästa av 3201. En layout utan lådor är svår att
+* Kopplingarnas form.** 196 kopplingar räknade ur `connections`-fältet; om
+
+### M-82_modellen_uppfann_inga_namn.md — Vad grinden INTE dömde, och det är hälften av frågan
+
+* "Jag är säker på att `load` finns på applikationen, men **inte** säker på att
+* "`rotateAbsZ` — jag är säker på att metoden finns; **osäker på enheten**. Jag
+
+### M-82_modellen_uppfann_inga_namn.md — Vad som INTE är mätt
+
+* Om scenerna blir rätt.** Ingenting kördes i VC. Koden är giltig enligt
+* Semantiken.** Se ovan: returvärden, enheter och argumentantal.
+* Tre scener, en modell, en prompt.** Ingen upprepning.
+* Vad som händer utan skrivinstruktionen.** Obestämbara-talet är noll under en
+* Kopplingarna.** Modellen valde gränssnitt på namnmönster (`out` hos
+
+### M-83_indexet_svarar_pa_sex_av_sju.md — Vad som INTE är mätt
+
+* Om modellen hade använt verktygen.** Att svaret finns är inte att någon
+* Om svaren hade ändrat koden.** Sex frågor besvarade betyder inte sex fel
+* Bara sju frågor**, och de är de modellen **valde att nämna**. Vad den var
+* Andra enheter än vinklar.** Att indexet saknar enhet för rotationer är mätt;
+
+### M-84_uppslagen_bytte_ordforrad_inte_radantal.md — LIMITS
+
+* Tre scener, en modell, en körning per uppställning.** 13 mot 32 är en stor
+* Uppslagsgränserna skiljer sig från den levererade** (40/400 mot 12/12), i
+* Domaren dömer att namnet finns, inte att det används rätt.** Returvärden,
+* "Rader" räknar icke-tomma rader**, kommentarer inräknade. Fördelningen är
+* Ordförrådet är inte kvalitet.** Att röra fler delar av API:t är inte samma
+
+### M-86_ogat_mot_en_korande_vc.md — LIMITS
+
+* Mätningen är inte gjord än — filen reserverar bara numret.
+
+### M-87_hopfogningen_mot_vcs_egen_brygga.md — LIMITS
+
+* Mätningen är inte gjord än — filen reserverar bara numret.
+
+### M-88_fem_domare_mot_vc_byggda_celler.md — LIMITS
+
+* Mätningen är inte gjord än — filen reserverar bara numret.
+
+### M-90_ren_maskin_linux.md — LIMITS
+
+* Linux, en distribution, en Pythonversion.** `ubuntu:24.04` med python
+* VC startades aldrig.** Fas 10:s kvarvarande öppna punkt — *att VC startar
+* Verktygskedjan hämtades inte** i den rena maskinen. Nedladdningarna är
+* Provsviten kördes inte** i containern, eftersom `pytest` inte finns där.
+* Idempotensen är mätt över två körningar**, inte över en ändrad källa följd
+
+### M-90_speglingen_som_inte_aldras.md — 7. Vad detta INTE bevisar
+
+* Ingen VC kördes, ingen brygga, ingen språkmodell.** Varje källa provas mot
+* Fem av sju rapportytor har fortfarande ingen förare.** Kopplaren,
+* Ingen operatör har läst ytan.** Att den är läsbar är min bedömning. Att
+* Filen växer utan tak.** 4 000 händelser kostar 403 kB och 6,2 ms per
+* Två skrivare mot samma fil är oprövat.** `os.replace` gör varje enskild
+* Klockan är väggklockan.** Åldern räknas mot `time.time()`, som kan hoppa
+* `TYSTNADSTAK_S = 5,0 s` är fortfarande preliminär** och sätts av M-28.
+* Fält 1 och 7 i `26_appen.md` §3** — samtalet och systemläget — finns
+* Ingen webbsida är byggd.** Ytan är text, och `26_appen.md` §7 fråga 1 —
+* De fem posterna utanför räckvidd är en avskrift**, inte en mätning. De
+* Windows är inte kört.** `os.replace` och `tempfile.mkstemp` beter sig
+
+### M-90_speglingen_som_inte_aldras.md — LIMITS
+
+* fem av sju rapportytor har ingen förare** — halva M-64:s hål står kvar,
+* ingen riktig körning** har passerat den här koden: ingen VC, ingen brygga,
+* ingen människa utanför bygget har läst ytan**, så att den är begriplig är
+
+### M-91_windowsregistret_mot_en_riktig_kupa.md — LIMITS
+
+* Ingen omdirigering fanns att mäta.** Den här maskinen har `Documents` på
+* Ingenting kördes på Windows.** Kupan lästes som en fil från Linux, med
+* `winreg` självt är fortfarande aldrig kört.** Proven matar en attrapp. Att
+* Ingen VC på den partitionen**, så ingenting säger något om fas 13:s
+* En användare, en Windows-build** (19041, en-US). Säger inget om andra
+
+### M-92_windowssommen_matt_i_stallet_for_last.md — LIMITS
+
+* Ingen Windows-maskin.** Divergensen är mätt mellan två `ntpath` på Linux,
+* `%OneDrive%`-rötterna är prövade som logik, inte mot en OneDrive.** Ingen
+* Coverage mättes över `tests/enhet`**, inte över protokollsviten. Rader som
+* `verktygskedjan.py` ligger på 58 %** och är inte åtgärdad. Den gör
+* 2.7-grinden prövar syntax, inte semantik.** En fil som kompilerar i 2.7 kan
+
+### M-94_vad_registret_inte_ser.md — LIMITS
+
+* Fynd 1–5 är mätta på grindarnas egen dom, inte mot en körande VC.** Jag har
+* Inget av fynd 1–5 och 9 är lagat.** De ligger i grindar som ägs av
+* Coverage-talen är en ögonblicksbild kl. 06:05 den 5 september 2026**, tagen
+* Coverage mäter körda rader, inte prövade påståenden.** En modul på 100 %
+* De två nya spärrarna saknar sin exakthetshalva.** `KOLLIDERANDE_NUMMER` och
+* M-90-kollisionen är inte löst av mig.** Båda filerna tillhör andra agenter,
+* Ordgränsen i täckningsproxyn ger ett känt falskt utslag**:
+* Jag har inte mätt fynd 12:s motsats**: hur många av de 61 markörerna i
+* Genomsökningen efter grindar vars fråga tyst ändrats är inte uttömmande.**
+* grind*, *domare*, *kontroll*, *verifiering*. `guldgrind.py`,
+* Misstanke, inte visad:** `install/upptackt.py` ligger på 57 % täckning och
+* Misstanke, inte visad:** `NEKANDE`-listan används av minst fyra grindar
+
+## Produktionsmoduler som ingen provfil nämner: 1 (407 rader)
+
+* `svc/vc_assist_svc/st/lexer.py` — 407 rader
+
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 2 (218 rader)
+
+* `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 104
+## Markörer i koden: 106
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -605,6 +760,10 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * vc_assist_svc/verktyg/utforare.py:40  KO_POLL_S = 0.05            # PRELIMINAR. Satts av matning M-14.
 * vc_assist_svc/verktyg/utforare.py:41  KO_TIMEOUT_S = 60.0         # PRELIMINAR. Satts av matning M-14.
 
+### vc_assist_svc/plan/korning.py
+
+* vc_assist_svc/plan/korning.py:254  # ut att ha provat nagot den inte provat, och det ar samma
+
 ### vc_assist_svc/layout/losare.py
 
 * vc_assist_svc/layout/losare.py:374  oprovade = []
@@ -617,7 +776,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ### vc_assist_svc/forlopp/yta.py
 
-* vc_assist_svc/forlopp/yta.py:55  TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
+* vc_assist_svc/forlopp/yta.py:56  TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
 
 ### vc_addon/vc_assist/bridge_cmd.py
 
@@ -684,12 +843,16 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * vc_addon/vc_assist/pump.py:51  AKTIV_FONSTER_S = 2.0      # PRELIMINAR. Satts av matning M-26.
 * vc_addon/vc_assist/pump.py:56  OMSTART_MINSTA_MELLANRUM_S = 1.0    # PRELIMINAR. Satts av matning M-13.
 * vc_addon/vc_assist/pump.py:57  OMSTART_TAK_PER_MINUT = 20          # PRELIMINAR. Satts av matning M-13.
-* vc_addon/vc_assist/pump.py:241  self.logg("formaga: %d av %d ytor finns, %d saknas, %d oprovade"
-* vc_addon/vc_assist/pump.py:242  % (sm["finns"], sm["provade"], sm["saknas"], sm["oprovade"]))
+* vc_addon/vc_assist/pump.py:247  self.logg("formaga: %d av %d ytor finns, %d saknas, %d oprovade"
+* vc_addon/vc_assist/pump.py:248  % (sm["finns"], sm["provade"], sm["saknas"], sm["oprovade"]))
 
 ### installera.py
 
 * installera.py:56  return ("OPROVAD SOKVAG: %s + %s ar inte kord av oss. Kontrollera att "
+
+### upptackt.py
+
+* upptackt.py:93  # oprovad. ntpath.expandvars gor Windows-expansionen pa bada
 
 ### schema.py
 
@@ -753,7 +916,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 ### enhet/test_verktyg.py
 
 * enhet/test_verktyg.py:17  En grind som aldrig fallit ar oprovad.
-* enhet/test_verktyg.py:556  assert "oprovad" in u.skal("clone_component")
+* enhet/test_verktyg.py:558  assert "oprovad" in u.skal("clone_component")
 
 ### enhet/test_verktyg_robotik.py
 
