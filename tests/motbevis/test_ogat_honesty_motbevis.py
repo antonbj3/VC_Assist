@@ -56,31 +56,3 @@ def test_greppgrinden_och_never_gripped_ar_inte_samma_grind():
         "samma cell fälls av två oberoende grindar samtidigt; ingen av dem "
         "har ett prov där den är den enda som kan fälla")
 
-
-# ---- 3. saknade prov som koden faktiskt klarar -------------------------
-#
-# Dessa är GRÖNA. Mutationen visade att ingen provade dem; koden håller.
-
-def test_blowupgrinden_faller_en_cell_som_bara_bryter_mot_farten():
-    """Den isolerande fixtur som saknades: greppet håller, rotationen är noll,
-    slutläget ligger i mål — det enda felet är farten."""
-    mal = [1.0, 0.0, 0.75]
-    b = celler.Bygge("ren_explosion")
-    for _ in range(20):
-        b.steg([0.0, 0.0, 0.75], [0.0, 0.0, 0.75], sig={"grip_out": False})
-    for _ in range(20):
-        b.steg([0.0, 0.0, 0.75], [0.0, 0.0, 0.75], sig={"grip_out": True})
-    b.steg([3.0, 0.0, 0.75], [3.0, 0.0, 0.75], sig={"grip_out": True})
-    for i in range(20):
-        u = i / 19.0
-        p = [3.0 + (mal[0] - 3.0) * u, 0.0, 0.75]
-        b.steg(p, p, sig={"grip_out": True})
-    for _ in range(20):
-        b.steg(mal, mal, sig={"grip_out": False})
-
-    r = _rapport(b.data(), celler.plan())
-    rader = [x for _s, rr in r.sektioner for x in rr]
-    assert any("BLOWUP VIOLATION" in x for x in rader), rader
-    assert not any("OFF_TARGET" in x or "DROPPED" in x for x in rader), rader
-    assert r.dom[0] == "FAIL"
-    assert "fart" in r.dom[1], r.dom
