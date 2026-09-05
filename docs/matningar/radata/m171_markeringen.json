@@ -1,0 +1,272 @@
+{
+ "fallbank": {
+  "rader": [
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [],
+    "markeringslage": "inget markerat",
+    "ord": "bandet",
+    "scen": "levande",
+    "sort": "transportor",
+    "utfall": "SAKNAS"
+   },
+   {
+    "belagg": "selected ST8_Bana transportor",
+    "dom": "ANDRING",
+    "kandidater_efter": [
+     "ST8_Bana"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST8_Bana"
+    ],
+    "markeringslage": "en av kandidaterna",
+    "ord": "bandet",
+    "scen": "levande",
+    "sort": "transportor",
+    "utfall": "AVGJORD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "markeringslage": "tva av kandidaterna",
+    "ord": "bandet",
+    "scen": "levande",
+    "sort": "transportor",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "markeringslage": "alla kandidaterna",
+    "ord": "bandet",
+    "scen": "levande",
+    "sort": "transportor",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST8_Bana",
+     "ST8_Bana2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST8_Mall"
+    ],
+    "markeringslage": "en av OKAND sort",
+    "ord": "bandet",
+    "scen": "levande",
+    "sort": "transportor",
+    "utfall": "OVIDKOMMANDE"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [],
+    "markeringslage": "inget markerat",
+    "ord": "bandet",
+    "scen": "tre_gripdon",
+    "sort": "transportor",
+    "utfall": "SAKNAS"
+   },
+   {
+    "belagg": "selected ST210_BAND transportor",
+    "dom": "ANDRING",
+    "kandidater_efter": [
+     "ST210_BAND"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST210_BAND"
+    ],
+    "markeringslage": "en av kandidaterna",
+    "ord": "bandet",
+    "scen": "tre_gripdon",
+    "sort": "transportor",
+    "utfall": "AVGJORD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "markeringslage": "tva av kandidaterna",
+    "ord": "bandet",
+    "scen": "tre_gripdon",
+    "sort": "transportor",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "markeringslage": "alla kandidaterna",
+    "ord": "bandet",
+    "scen": "tre_gripdon",
+    "sort": "transportor",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_BAND",
+     "ST210_BAND2"
+    ],
+    "kandidater_ur_meningen": 2,
+    "markerade": [
+     "ST210_gripdon"
+    ],
+    "markeringslage": "en av ANNAN sort",
+    "ord": "bandet",
+    "scen": "tre_gripdon",
+    "sort": "transportor",
+    "utfall": "MOTSAGELSE"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_gripdon",
+     "GRP_A",
+     "Gripper_2F_85"
+    ],
+    "kandidater_ur_meningen": 3,
+    "markerade": [],
+    "markeringslage": "inget markerat",
+    "ord": "gripdon",
+    "scen": "tre_gripdon",
+    "sort": "verktyg",
+    "utfall": "SAKNAS"
+   },
+   {
+    "belagg": "selected ST210_gripdon verktyg",
+    "dom": "ANDRING",
+    "kandidater_efter": [
+     "ST210_gripdon"
+    ],
+    "kandidater_ur_meningen": 3,
+    "markerade": [
+     "ST210_gripdon"
+    ],
+    "markeringslage": "en av kandidaterna",
+    "ord": "gripdon",
+    "scen": "tre_gripdon",
+    "sort": "verktyg",
+    "utfall": "AVGJORD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_gripdon",
+     "GRP_A"
+    ],
+    "kandidater_ur_meningen": 3,
+    "markerade": [
+     "ST210_gripdon",
+     "GRP_A"
+    ],
+    "markeringslage": "tva av kandidaterna",
+    "ord": "gripdon",
+    "scen": "tre_gripdon",
+    "sort": "verktyg",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_gripdon",
+     "GRP_A",
+     "Gripper_2F_85"
+    ],
+    "kandidater_ur_meningen": 3,
+    "markerade": [
+     "ST210_gripdon",
+     "GRP_A",
+     "Gripper_2F_85"
+    ],
+    "markeringslage": "alla kandidaterna",
+    "ord": "gripdon",
+    "scen": "tre_gripdon",
+    "sort": "verktyg",
+    "utfall": "SMALNAD"
+   },
+   {
+    "belagg": null,
+    "dom": "FRAGA",
+    "kandidater_efter": [
+     "ST210_gripdon",
+     "GRP_A",
+     "Gripper_2F_85"
+    ],
+    "kandidater_ur_meningen": 3,
+    "markerade": [
+     "ST210_BAND"
+    ],
+    "markeringslage": "en av ANNAN sort",
+    "ord": "gripdon",
+    "scen": "tre_gripdon",
+    "sort": "verktyg",
+    "utfall": "MOTSAGELSE"
+   }
+  ],
+  "sakerhetsbrott": [],
+  "sammanfattning": {
+   "AVGJORD_markeringen_loste_ut": 3,
+   "MOTSAGELSE_annan_sort_markerad": 2,
+   "OVIDKOMMANDE_bar_ingen_upplysning": 1,
+   "SAKNAS_inget_markerat": 3,
+   "SMALNAD_farre_kandidater": 6,
+   "domar_utan_fraga": 3,
+   "tvetydiga_fall": 15
+  }
+ }
+}

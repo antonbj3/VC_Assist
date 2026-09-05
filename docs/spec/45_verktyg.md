@@ -152,6 +152,41 @@ träfflistan. Uppfunnen URI är ett hårt fel, inte en varning.
 | `plc_deploy` | data | **write** |
 | `signal_map` | data | read |
 
+### selection — vad användaren pekar på
+
+| Verktyg | mode | effect | Bygger på |
+|---|---|---|---|
+| `get_selection` | codegen | read | `app.SelectionManager.getSelection` |
+| `scene_snapshot` | codegen | read | `app.Components`, `comp.Behaviours` |
+
+Gruppen finns för **pekord**: *"byt det där gripdonet"*, *"snabba den här
+linan"*. Registret bar 122 verktyg och noll som rörde markering, så en sådan
+mening gick inte att lösa ut alls.
+
+**Båda är `read`, och det är en grind och inte en konvention.** En fråga om vad
+användaren pekar på får aldrig kunna flytta något; `markering.granska_domanen()`
+kastar `Schemafel` om något verktyg i domänen deklareras `write`, och den körs
+vid import.
+
+`scene_snapshot` är avsedd att läsas **varje tur** i stället för att frågas
+fram. Formen är ärvd ur Isaac Assist `stage_reader.get_stage_summary()`
+(*"Suitable for injecting into every chat turn"*). Mätt i M-171: **102 tokens**
+för en scen med 20 komponenter, mot ett tak på 1 200 (post 6 i
+`25_kontextbudget.md`, 15 % av det minsta mätta fönstret).
+
+**Sorten läses ur strukturen, aldrig ur namnet.** Familjen kommer ur
+komponentens beteenden via `datablad.FAMILJEMARKORER`, och M-171 mätte att ett
+beteendes `Type` i en körande scen *är* filformatets markörsträng
+(`VC_ONEWAYPATH == 'rOneWayPath'`) — samma vokabulär, ingen översättning. En
+komponent utan markör får **tom sort**, aldrig en gissad: M-69 mätte vad
+namnhärledning kostar i katalogen, och M-171 fann samma fälla i en scen, där en
+komponent som heter `Robot` inte bär någon robotstyrning.
+
+Markeringen är ett **indicium, inte en auktoritet**. Vad som får göras med den
+står i `svc/vc_assist_svc/scenarbete/markering.py`: den löser ut ett mål bara
+när den stämmer med sorten meningen namnger, den smalnar av annars, och en
+markering av annan sort är en **motsägelse** som ställer frågan — inte ett val.
+
 ### knowledge
 
 | Verktyg | mode | effect |
