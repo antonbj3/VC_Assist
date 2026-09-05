@@ -47,10 +47,10 @@ def dela_vag(vag):
     delar = []
     for bit in str(vag).split("."):
         if bit == "":
-            raise Specfel("vagen %r" % (vag,), ["tom del i vagen"])
+            raise Specfel("the path %r" % (vag,), ["empty segment in the path"])
         delar.append(int(bit) if bit.isdigit() else bit)
     if not delar:
-        raise Specfel("vagen %r" % (vag,), ["vagen ar tom"])
+        raise Specfel("the path %r" % (vag,), ["the path is empty"])
     return delar
 
 
@@ -163,7 +163,7 @@ class Predikat(object):
         self.status = status
         problem = []
         if sort not in SORTER:
-            raise Specfel("predikatet", ["okand sort %r; kanda ar %s"
+            raise Specfel("the predicate", ["unknown kind %r; known are %s"
                                          % (sort, ", ".join(SORTER))])
         if sort == "resultat":
             if not steg:
@@ -188,7 +188,7 @@ class Predikat(object):
             if steg is not None or vag is not None or status is not None:
                 problem.append("fakta tar bara nyckel, operator och varde")
         if problem:
-            raise Specfel("predikatet %r" % (sort,), problem)
+            raise Specfel("the predicate %r" % (sort,), problem)
 
     def _granska_operator(self):
         problem = []
@@ -264,7 +264,7 @@ class Predikat(object):
     def fran_json(cls, data):
         vantade = ("sort", "steg", "vag", "nyckel", "operator", "varde", "status")
         if not isinstance(data, dict) or set(data) != set(vantade):
-            raise Specfel("predikat", ["forvantade precis nycklarna %s, fick %s"
+            raise Specfel("predicate", ["expected exactly the keys %s, got %s"
                                        % (", ".join(sorted(vantade)),
                                           ", ".join(sorted(data)) if isinstance(data, dict)
                                           else type(data).__name__)])
@@ -304,7 +304,7 @@ class Forvillkor(object):
             if not isinstance(p, Predikat):
                 problem.append("%r ar inget Predikat" % (p,))
         if problem:
-            raise Specfel("forvillkoret", problem)
+            raise Specfel("the precondition", problem)
 
     def __repr__(self):
         return "Forvillkor(%s av %d)" % (self.sammansattning, len(self.predikat))
@@ -331,7 +331,7 @@ class Forvillkor(object):
     @classmethod
     def fran_json(cls, data):
         if not isinstance(data, dict) or set(data) != {"sammansattning", "predikat"}:
-            raise Specfel("forvillkor", ["forvantade nycklarna sammansattning "
-                                         "och predikat"])
+            raise Specfel("precondition", ["expected the keys sammansattning "
+                                         "and predikat"])
         return cls([Predikat.fran_json(p) for p in data["predikat"]],
                    data["sammansattning"])
