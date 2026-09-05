@@ -48,3 +48,26 @@ C7 var *"säkra mätningen ur /tmp"*. Den är gjord; `M-122` ligger i repot. C7 
 utbytt mot `M-122 §3`: den riktiga F15-mutationen fångas **12 av 12** när
 flanken läser material och process, men **1 av 15** när den läser en
 återställning. Blindheten är stimulusens, inte spårets.
+
+## 2026-09-05 16:25 — modellkvoten är slut på Muse Spark 1.3; B2 och B3 parkeras
+
+Bara Gemini 3.8 finns kvar, och den ska gå dit den ändrar mest.
+
+**Kö B: kör inte B2 och B3 förrän operatören säger till.** De behöver ~380
+modellsvar för n≥3 över banken, och deras syfte är att **mäta en modell** — en
+körning på Gemini 3.8 ger ett tal om Gemini 3.8. Att lägga en knapp kvot på att
+mäta den knappa modellen är fel växling. Fortsätt i stället med **B1** (de 23
+facit — författande, nästan inga modellanrop), **B6b** och **B7**. Kön går
+vidare utan att kosta kvot.
+
+**Kö A har företräde till kvoten** tills A2 och A3 är klara. Där är modellen en
+arbetare och resultatet är kod som blir kvar: en domare som dömer genom OpenPLC
+i stället för genom vår egen ST-tolk. Så länge den inte finns är varje
+tillförlitlighetstal projektet har mätt av det som prövas — den tautologi
+`85_bankkontraktet.md` förbjuder. Det är den enda punkten som ändrar vad alla
+andra siffror betyder.
+
+**Gäller alla som kör en bänkarm:** skriv ut vilken modell armen körde på, i
+mätningens rubrik och i dess JSON. `M-110`:s tal är Muse Spark 1.3. En arm på
+en annan modell är en **annan mätning**, inte en fortsättning, och de två får
+aldrig jämföras utan att skillnaden står skriven.
