@@ -169,6 +169,40 @@ plugin-synk 10 ms) + tabell→läsning (≤1 + 5 ms poll). Timerns logik löser
 på samma scan (200=200); kanalen lägger 2 scan fas. Nio mätningar, noll
 undantag.
 
+## Hålen täpps (2026-09-05, LAGAT + MÄTT)
+
+Två grindregler i `svc/vc_assist_svc/st/validator.py`, båda fail-closed
+med husets felstil, båda med trasiga fixturer i nya
+`tests/enhet/test_openplc_halskydd.py` (48 prov):
+
+1. `=`/`<>` på STRUCT/ARRAY-operand → TYP-fel (likhet gäller elementära
+   typer; backend saknar `operator==`). FB-instanser kan inte jämföras.
+2. De 9 strängfunktionerna med literal som första strängargument → TYP-fel
+   (backendens mallhärledning; med variabel bygger allt).
+
+Verkan mätt: 13 NYTT_HAL (concat + R3-strängar + struct-jämförelser) blir
+TVAFALL — båda motorer avvisar. Svepet: exakt ett fall byter dom
+(`concat` → NY_STRANGARE-rad tillagd, taket nu 38/40). Semantik+syntax+
+halskydd: 313 gröna. `funktion`-gruppen mot containern: 31/31 överens.
+
+## R2: satsnästlingsvakt (2026-09-05, MÄTT + LAGAT)
+
+Bisektion vid limit 1000/2000/4000: IF/CASE/WHILE kraschar vid 327
+(3 ramar/nivå: `_om/_fall/_medan → _satser → _sats`), parenteser vid 89/90
+(11 ramar/nivå — stämmer med M-99). Tak satt till **228** (~70%, 98 i
+marginal, samma filosofi som M-99:s 64/89). Vakt i `lasare.py` på
+IF/CASE/FOR/WHILE/REPEAT via `blockstack`-djup: 230 nästlade IF ger
+`SYNTAX satsnästlingen är djupare än 228 nivåer`, aldrig RecursionError.
+`ARRAY[10..1]` återverifierad lagad (Rapport, ingen ValueError).
+
+## R4: hängsondering (2026-09-05, MÄTT — 0 FYND)
+
+Kört av nya `tests/protocol/kor_openplc_hang.py`: 191 fragment → 1517
+muterade källor × 3 lager = **4551 processkörningar** à 10 s timeout.
+**BOOL#7-hänget reproduceras inte** (lagat sedan M-99: EOF-vakt i lexern,
+rad 410). 0 nya häng. Positivkontroll (syntetisk oändlig slinga fångas)
+grön. Slutsats: lagret svarar alltid — deterministiskt Syntaxfel/Rapport.
+
 ## OPC UA-ledet (2026-09-05, KLART)
 
 Kört av `tests/protocol/kor_openplc_opcua.py` (GODKÄND, exit 0) mot
@@ -216,3 +250,6 @@ körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
 * **STRUCT-fynden är skuldförda, inte lagade.** Initieringsstödet kräver läsarändring (`st/`, annan sessions område), likhetsgrinden kräver typregel — båda utanför uppdragets ägda filer.
 * **Enhetssvitens 2 röda 2026-09-05 är inte M-108.** `test_baslinje.py` (2 prov) är rött i arbetsträdet men `kor_svit_mot_head.py` är grönt (7198 passed) — någon annans pågående arbete, ingen regression från detta uppdrag (ägda filer: M-108 + 5 kor/test-filer, inga lib-ändringar).
 * **R3 våg 2 vilar delvis på agentrapporterad IEC-paragraf.** Tabellnummer för REF_TO/NULL/CASE-väljare är inte verifierade mot standardtext — backendloggarna (SUCCESS/FAILED) är den kontrollerade delen.
+* **Håltäppningen ändrar svepets dom för `concat`.** Ett medvetet STRANGARE-radval (38/40 i taket), verifierat mot containern (funktion-gruppen 31/31 överens). Raden står med skäl; tas den bort faller svepet — som avsett.
+* **R2-vakten räknar alla blockstack-ramar.** FUNCTION/TYPE-ramar ingår i djupet — konservativt (fäller tidigt), aldrig sent. 230-nivårstestet verifierar felmeddelande, inte krasch.
+* **R4 bevisar svar, inte snabbhet.** 10 s-gränsen är en hängdefinition, ingen prestandagaranti; patologiskt långsamma (men terminerande) inmatningar fångas inte.

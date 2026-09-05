@@ -70,6 +70,14 @@ def opcua_modul():
 
 
 @pytest.fixture(scope="module")
+def hang_modul():
+    return _ladda_modul(
+        os.path.join("tests", "protocol", "kor_openplc_hang.py"),
+        "kor_openplc_hang"
+    )
+
+
+@pytest.fixture(scope="module")
 def svep_facit(svep_modul):
     FALL, kalla, STRANGARE, LATTARE = svep_modul._las_svep()
     return {
@@ -313,6 +321,7 @@ def _validera_bench4_post(bankpost: dict) -> list[str]:
     ("kor_openplc_scan.py", "scan_modul"),
     ("kor_openplc_r3.py", "r3_modul"),
     ("kor_openplc_opcua.py", "opcua_modul"),
+    ("kor_openplc_hang.py", "hang_modul"),
 ])
 def test_bench4_bankpost_deklaration(skriptnamn, modul_fixtur, request):
     """Alla protokollskriptens BANKPOST måste uppfylla BENCH-4-kraven."""
