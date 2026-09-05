@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 576 punkter
+## Vad mätningarna säger att de inte vet: 580 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -130,8 +130,12 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-101_komponentmodellen_byggd_ur_specen.md — LIMITS
 
-* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
-* Tak: **0** påståenden. Inget här får citeras förrän körningen finns.
+* Ingen upprepning.** Varje komponent byggs och mäts **en gång**, i en
+* Ett fönster.** Flödet mäts över ett provfönster på ~36 s. En matare som
+* Två av fem par är härledda, inte mätta.** `transportor -> transportor` och
+* Matchningsregelns ordning är vår, inte VC:s.** `canConnect` ger ett enda
+* R6, R7 och R8 är belagda, inte mätta.** Alla våra sektioner har exakt ett
+* `DistanceTolerance` mäts bara vid förvalet** (1e9 mm). Vad ett satt värde
 
 ### M-102_modellagret_mot_riktiga_verktygssvar.md — LIMITS
 
@@ -900,17 +904,16 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Grannfallen är prövade per lagning, inte uttömmande.** `T#5X` och `T#5S10M`
 * Talet 394 är konstruktioner, inte täckning.** Axlarna valdes ur M-96:s
 
-## Produktionsmoduler som ingen provfil nämner: 3 (1704 rader)
+## Produktionsmoduler som ingen provfil nämner: 1 (173 rader)
 
-* `svc/vc_assist_svc/llm/ogontrim.py` — 432 rader
 * `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
-* `svc/vc_assist_svc/tillverkardatablad.py` — 1099 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 4 (1414 rader)
 
 * `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
+* `svc/vc_assist_svc/tillverkardatablad.py` — 1102 rader
 
 ## Markörer i koden: 131
 
