@@ -138,7 +138,7 @@ class Handelse:
     def __post_init__(self):
         if self.sort not in SORTER:
             raise Forloppsfel(
-                "okänd händelsesort %r; listan är sluten (%s)"
+                "unknown event kind %r; the list is closed (%s)"
                 % (self.sort, ", ".join(SORTER)))
 
     @property
@@ -207,8 +207,8 @@ class Ovisshet:
             raise Forloppsfel("unknown uncertainty class %r" % (self.klass,))
         if not (self.skal or "").strip():
             raise Forloppsfel(
-                "ovissheten %r saknar skäl; ett 'vet inte' utan skäl går inte "
-                "att göra något åt och är därför ingen upplysning"
+                "the uncertainty %r has no reason; a 'don't know' with no reason "
+                "cannot be acted on and is therefore not information"
                 % (self.namn,))
 
 
