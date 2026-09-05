@@ -234,7 +234,15 @@ def objekt_ur_komponent(fakta, bounds=None, namn=None,
         # om att origo ligger i fotavtryckets mitt.
         ankare=Ankare.ur_bounds(bounds.center_mm, bounds.halv_mm),
         # Kategorin ar komponentens EGEN (model.xml, egenskapen Type), inte
-        # katalogens namn. Skillnaden ar M-58:s hela poang.
+        # katalogens namn. Skillnaden ar M-58:s hela poang och den ar matt:
+        # de tva skiljer sig i 651 av 3201 (M-61).
+        #
+        # Det finns en TREDJE lasning, och den ar en annan storhet: familjen
+        # ur komponentens STRUKTUR (M-69). For robotar traffar Type 2169 av
+        # strukturens 2202 - 98,5 procent, och gratis. For transportorer
+        # traffar den 123 av 227. Ska en komponent VALJAS ar strukturen ratt
+        # lasning; layoutens `kategori` ar bara komponentens egen etikett,
+        # och den anvands har till att skilja hallens pelare fran allt annat.
         kategori=fakta.kategori,
         rackvidd=rackvidd.varde,
         enhet=enhet)

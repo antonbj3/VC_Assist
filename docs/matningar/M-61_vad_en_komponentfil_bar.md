@@ -141,6 +141,66 @@ kategorier. Och kategorin behöver inte längre gissas: den står i `model.xml`,
 omkring byte 400 i en 1,5 kB-post, **3201 av 3201 på 0,63 sekunder**, och där
 är den komponentens egen.
 
+### Och en tredje läsning, som M-69 lade till efteråt
+
+M-69 mätte samma ord en tredje gång, ur komponentens **struktur**: bär den en
+`rSimRobotController` är den en robot, bär den en `rOneWayPath` är den en
+transportör. Det är en fjärde storhet med samma namn, och den är den enda som
+tittar på vad komponenten *gör*.
+
+De tre läsningarna, mätta mot varandra över alla 3201:
+
+| | struktur | `model.xml` `Type` | katalognamn |
+|---|---:|---:|---:|
+| **robot** | 2202 | **2169** (98,5 %, noll falska) | 1736 (78,8 %) |
+| **transportör** | 227 | 123 (54,2 %, plus 40 falska) | 45 (19,8 %) |
+| **verktyg** | 73 | 73 (100 %, plus 23 falska) | 73 (plus 23) |
+
+Slutsatsen är delad, och den är M-69:s med ett tillägg:
+
+* **För att VÄLJA en komponent är strukturen rätt läsning.** M-69 har rätt: ett
+  sökskikt som filtrerar på katalognamn missar var fjärde robot och fyra av fem
+  transportörer.
+* **Men för robotar är `Type` nästan lika bra och nästan gratis.** 2169 av 2202
+  utan ett enda falskt, läst ur en 1,5 kB-post på 0,63 sekunder för hela
+  biblioteket. Strukturmarkören ligger vid median byte 14 215 (M-69) och kräver
+  ett djupt svep.
+* **För transportörer duger `Type` inte.** De 104 som strukturen kallar
+  transportör och `Type` inte, heter `Machines` (34), `Advanced Motion` (26),
+  `Feeders` (24), `Manual Workstations` (7), `Packaging` (4) och
+  `Mobile Robot Utilities` (4). Det är inte fel etiketter — en matare *är* en
+  matare — de svarar bara på en annan fråga.
+
+De 23 komponenter som heter `Robot Tools` men inte bär någon `rToolContainer`
+är samma sak åt andra hållet: katalogen säger vad de är till för, strukturen
+vad de kan.
+
+#### Strukturläsningen är oscopead — och det spelar ingen roll här
+
+`katalogindex._familj` söker markören som **delsträng i hela texten**, precis
+som `_parametrar` gör med parameternamnen — och det var just den oscopade
+sökningen M-59 fällde. En markör som står inne i ett Python-skript
+(`comp.findBehaviour('rSimRobotController')`) räknas då som en robot.
+
+Frågan är inte om risken finns utan hur stor den är, och den går att mäta. Jag
+läste om hela biblioteket och jämförde delsträngssökningen mot en **scopad**
+läsning som bara ser `Functionality`-blockens egna namn:
+
+| | delsträng | scopad |
+|---|---:|---:|
+| robot | 2202 | **2202** |
+| transportör | 227 | **227** |
+| verktyg | 73 | **73** |
+| ingen markör | 699 | **699** |
+
+**Noll skillnader på 3201 filer.** M-69:s tal står alltså orörda. Mekanismen
+finns ändå, och `test_delstrangsokningen_traffar_aven_utanfor_ett_funktionsblock`
+håller den synlig med en fixtur där markören sitter i ett skript.
+
+`layout/komponent.objekt_ur_komponent` sätter `kategori` ur `Type`, och det
+står i koden vilken av de tre det är. Layoutens `kategori` används bara till att
+skilja hallens pelare från allt annat; valet av komponent hör till sökskiktet.
+
 ## Räckvidden: ett fält och en profil
 
 `Reach` i `model.xml`:
