@@ -42,11 +42,36 @@ from vc_assist_svc.claudeadapter import ClaudeModell        # noqa: E402
 from vc_assist_svc.plc import reparation as R                       # noqa: E402
 
 
-def kor_en(post, lage, modellnamn, max_varv, forhandsregler=True):
+def exempel_fran_annan_uppgift(post, alla):
+    """En FARDIG, grindgodkand kropp fran en ANNAN uppgift.
+
+    Ett arbetat exempel ar den starkaste hjalpen mot formfel: modellen ser hur
+    en godkand kropp ser ut i stallet for att harleda formen ur en regellista.
+
+    Att den kommer fran en annan uppgift ar inte en detalj utan hela
+    giltigheten. Uppgiftens EGEN referens ar facit; visas den mater korningen
+    hur bra modellen kopierar. Grannens referens delar form och idiom men
+    ingen logik, och korningen mater anda kodlikheten mot den egna referensen
+    sa att en lackage skulle synas.
+    """
+    for annan in alla:
+        if annan["task_id"] != post["task_id"]:
+            return annan["task_id"], RB.bygg_uppsattning(annan)["referens"]
+    return None, None
+
+
+def kor_en(post, lage, modellnamn, max_varv, forhandsregler=True,
+           exempel=None):
     upps = RB.bygg_uppsattning(post)
     # A/B:t. Utan forhandsregler far modellen bara uppdraget, precis som fore
     # M-97 - grindarnas kunskap nar den forst NAR den skrivit fel.
     prompt = R.SYSTEMPROMPT if forhandsregler else R._GRUNDPROMPT
+    if exempel:
+        tid_exempel, kropp_exempel = exempel
+        prompt = prompt + (
+            "\n\nSa har ser en godkand kropp ut. Den loser en ANNAN uppgift"
+            " (%s) - kopiera inte dess logik, bara dess form.\n\n%s\n"
+            % (tid_exempel, kropp_exempel))
     slinga = R.Reparationsslinga(upps["skelett"], upps["grindar"],
                                  lage=lage, max_varv=max_varv,
                                  systemprompt=prompt)
@@ -63,6 +88,7 @@ def kor_en(post, lage, modellnamn, max_varv, forhandsregler=True):
         "slog_i_taket": len(protokoll.varv) >= max_varv and not protokoll.lost,
         "max_varv": max_varv,
         "forhandsregler": bool(forhandsregler),
+        "exempel_fran": exempel[0] if exempel else None,
         "anrop": modell.anrop,
         "kostnad_usd": round(modell.kostnad_usd, 4),
         "sekunder": round(time.time() - t0, 1),
@@ -87,6 +113,8 @@ def main(argv=None):
     p.add_argument("--max-varv", type=int, default=R.MAX_VARV)
     p.add_argument("--utan-forhandsregler", action="store_true",
                    help="ge modellen bara uppdraget, inte grindarnas regler")
+    p.add_argument("--exempel", action="store_true",
+                   help="lagg en godkand kropp fran en ANNAN uppgift i prompten")
     p.add_argument("--json")
     a = p.parse_args(argv)
 
@@ -110,13 +138,18 @@ def main(argv=None):
     print("  modell: %s   lage: %s   tak: %d varv (M-52)   forhandsregler: %s\n"
           % (a.modell, a.lage, a.max_varv,
              "nej" if a.utan_forhandsregler else "ja"))
+    if a.exempel:
+        print("  exempel: en godkand kropp fran en ANNAN uppgift ligger i"
+              " prompten\n")
 
     resultat = []
     for post in poster:
         print("  %s ..." % post["task_id"], end="", flush=True)
         try:
             r = kor_en(post, a.lage, a.modell, a.max_varv,
-                       forhandsregler=not a.utan_forhandsregler)
+                       forhandsregler=not a.utan_forhandsregler,
+                       exempel=exempel_fran_annan_uppgift(post, poster)
+                       if a.exempel else None)
         except Exception as e:                          # noqa: BLE001
             r = {"uppgift": post["task_id"], "lage": a.lage,
                  "utfall": "KORNINGSFEL", "lost": False, "fel": repr(e),
