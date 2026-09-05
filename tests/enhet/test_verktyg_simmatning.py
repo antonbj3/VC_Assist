@@ -508,7 +508,7 @@ def test_negativ_tolerans_avvisas_av_handlaren():
     args = V.validera_argument(REGISTER["test_collision"], {"tolerance": -0.5})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["test_collision"](args)
-    assert "kan inte vara negativt" in str(e.value)
+    assert "cannot be negative" in str(e.value)
 
 
 def test_for_manga_kroppar_avvisas_med_talets_harkomst():
@@ -518,7 +518,7 @@ def test_for_manga_kroppar_avvisas_med_talets_harkomst():
                                {"components": namn})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["test_collision"](args)
-    assert "taket ar %d" % MT.MAX_KROPPAR in str(e.value)
+    assert "the cap is %d" % MT.MAX_KROPPAR in str(e.value)
     assert "kodmall.MAX_POSTER" in str(e.value)
     # ...och exakt taket gar igenom.
     ok = V.validera_argument(REGISTER["test_collision"],
@@ -538,7 +538,7 @@ def test_en_enda_kropp_kan_inte_krocka():
                                {"components": ["A"]})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["test_collision"](args)
-    assert "minst tva kroppar" in str(e.value)
+    assert "at least two bodies" in str(e.value)
 
 
 def test_tom_motpartslista_avvisas():
@@ -546,7 +546,7 @@ def test_tom_motpartslista_avvisas():
                                {"component": "A", "others": []})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["min_distance"](args)
-    assert "ange minst en motpart" in str(e.value)
+    assert "give at least one counterpart" in str(e.value)
 
 
 def test_noll_langd_pa_en_strale_avvisas():
@@ -554,7 +554,7 @@ def test_noll_langd_pa_en_strale_avvisas():
                                {"component": "A", "length": 0.0})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["ray_cast"](args)
-    assert "storre an noll" in str(e.value)
+    assert "greater than zero" in str(e.value)
 
 
 def test_noll_sokradie_avvisas():
@@ -562,7 +562,7 @@ def test_noll_sokradie_avvisas():
                                {"component": "A", "tolerance": 0.0})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["frame_owner_node"](args)
-    assert "storre an noll" in str(e.value)
+    assert "greater than zero" in str(e.value)
 
 
 def test_argumenten_provas_innan_nagon_kod_genereras(utf, brygga):

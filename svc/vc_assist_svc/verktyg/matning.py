@@ -297,13 +297,13 @@ def _kod_min_distance(argument):
     if andra is not None:
         if not andra:
             raise Argumentfel("min_distance",
-                              ["others ar tom; ange minst en motpart eller "
-                               "utelamna argumentet for att mata mot hela "
-                               "layouten"])
+                              ["others is empty; give at least one counterpart "
+                               "or omit the argument to measure against the "
+                               "whole layout"])
         if len(andra) > MAX_KROPPAR:
             raise Argumentfel("min_distance", [
-                "others bar %d komponenter; taket ar %d (matning.MAX_KROPPAR, "
-                "raknat ur kodmall.MAX_POSTER). Dela upp fragan"
+                "others has %d components; the cap is %d (matning.MAX_KROPPAR, "
+                "derived from kodmall.MAX_POSTER). Split the request"
                 % (len(andra), MAX_KROPPAR)])
     rader = [
         "a = _nod(_komp(%s), %s)" % (lit(argument["component"]),
@@ -400,17 +400,17 @@ def _kod_test_collision(argument):
     if kroppar is not None:
         if len(kroppar) < 2:
             raise Argumentfel("test_collision",
-                              ["components bar %d namn; det kravs minst tva "
-                               "kroppar for att nagot ska kunna krocka"
+                              ["components has %d names; at least two bodies "
+                               "are required for anything to collide"
                                % len(kroppar)])
         if len(kroppar) > MAX_KROPPAR:
             raise Argumentfel("test_collision", [
-                "components bar %d kroppar; taket ar %d (matning.MAX_KROPPAR, "
-                "raknat ur kodmall.MAX_POSTER: %d par ryms i ett svar). Dela "
-                "upp provet" % (len(kroppar), MAX_KROPPAR, MAX_POSTER)])
+                "components has %d bodies; the cap is %d (matning.MAX_KROPPAR, "
+                "derived from kodmall.MAX_POSTER: %d pairs fit in a response). "
+                "Split the test" % (len(kroppar), MAX_KROPPAR, MAX_POSTER)])
     if argument["tolerance"] < 0.0:
         raise Argumentfel("test_collision",
-                          ["tolerance ar %r; ett avstand kan inte vara negativt"
+                          ["tolerance is %r; a distance cannot be negative"
                            % (argument["tolerance"],)])
     rader = ["avkortad = False"]
     if kroppar is None:
@@ -677,8 +677,8 @@ _lagg(
 def _kod_ray_cast(argument):
     if argument["length"] <= 0.0:
         raise Argumentfel("ray_cast",
-                          ["length ar %r; en stralas langd maste vara storre "
-                           "an noll" % (argument["length"],)])
+                          ["length is %r; a ray's length must be greater "
+                           "than zero" % (argument["length"],)])
     rader = [
         "n = _nod(_komp(%s), %s)" % (lit(argument["component"]),
                                      lit(argument.get("node", ""))),
@@ -770,9 +770,9 @@ _lagg(
 def _kod_frame_owner_node(argument):
     if argument["tolerance"] <= 0.0:
         raise Argumentfel("frame_owner_node",
-                          ["tolerance ar %r; sokradien maste vara storre an "
-                           "noll, annars kan ingen ram ligga inom den"
-                           % (argument["tolerance"],)])
+                          ["tolerance is %r; the search radius must be "
+                           "greater than zero, otherwise no frame can lie "
+                           "within it" % (argument["tolerance"],)])
     rader = [
         "n = _nod(_komp(%s), %s)" % (lit(argument["component"]),
                                      lit(argument.get("node", ""))),
