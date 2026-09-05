@@ -129,14 +129,14 @@ class Debugkarta:
         lov = self.slag_upp(sokvag)
         if lov is None:
             kanda = ", ".join(l.sokvag for l in self.lov)
-            raise Byggfel("debugkartan har inget löv för %s; den känner %s"
-                          % (sokvag, kanda or "ingenting"))
+            raise Byggfel("the debug map has no leaf for %s; it knows %s"
+                          % (sokvag, kanda or "nothing"))
         return lov
 
     @staticmethod
     def fran_json(data: object) -> "Debugkarta":
         if not isinstance(data, dict) or "leaves" not in data:
-            raise Byggfel("debug-map.json saknar leaves")
+            raise Byggfel("debug-map.json is missing leaves")
         lov = []
         for l in data["leaves"]:
             lov.append(Lov(sokvag=l["path"], arr=int(l["arrayIdx"]),
@@ -235,7 +235,7 @@ def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
     ställdes.
     """
     if not os.path.exists(strucpp_cli):
-        raise Byggfel("hittar inte STruC++-CLI:t på %s" % strucpp_cli)
+        raise Byggfel("cannot find the STruC++ CLI at %s" % strucpp_cli)
     os.makedirs(utkatalog, exist_ok=True)
     stfil = os.path.join(utkatalog, "program.st")
     with open(stfil, "w", encoding="ascii", newline="\n") as f:
@@ -248,9 +248,9 @@ def granska_kompilering(st_text: str, utkatalog: str, strucpp_cli: str,
             argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             timeout=tidsgrans)
     except OSError as fel:
-        raise Byggfel("kunde inte starta %s: %s" % (strucpp_cli, fel))
+        raise Byggfel("could not start %s: %s" % (strucpp_cli, fel))
     except subprocess.TimeoutExpired:
-        raise Byggfel("STruC++ svarade inte inom %.0f s" % tidsgrans)
+        raise Byggfel("STruC++ did not respond within %.0f s" % tidsgrans)
     return Kompileringsdom(korning.returncode == 0,
                            korning.stdout.decode("utf-8", "replace").strip(),
                            korning.returncode)
@@ -264,10 +264,10 @@ def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
     dist/ och libs/). Sökvägen är ett argument, aldrig en konstant: koden ska
     gå på Windows och under Wine lika väl (I16).
     """
-    for vad, sokvag in (("strucpp-paketet", strucpp_paket),
+    for vad, sokvag in (("the strucpp package", strucpp_paket),
                         ("dist/index.js", os.path.join(strucpp_paket, "dist", "index.js"))):
         if not os.path.exists(sokvag):
-            raise Byggfel("hittar inte %s på %s" % (vad, sokvag))
+            raise Byggfel("cannot find %s at %s" % (vad, sokvag))
     os.makedirs(utkatalog, exist_ok=True)
     kompilatortext = for_kompilator(st_text)
     stfil = os.path.join(utkatalog, "program.st")
@@ -285,13 +285,13 @@ def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  timeout=tidsgrans)
     except OSError as fel:
-        raise Byggfel("kunde inte starta %s: %s" % (node, fel))
+        raise Byggfel("could not start %s: %s" % (node, fel))
     except subprocess.TimeoutExpired:
-        raise Byggfel("STruC++ svarade inte inom %.0f s" % tidsgrans)
+        raise Byggfel("STruC++ did not respond within %.0f s" % tidsgrans)
     if korning.returncode != 0:
         # Kompilatorn svarade. Att den svarade NEJ är en dom om koden, inte om
         # riggen — därför Kompilatorfel och inte Byggfel.
-        raise Kompilatorfel("STruC++ föll (kod %d):\n%s"
+        raise Kompilatorfel("STruC++ failed (code %d):\n%s"
                             % (korning.returncode,
                                korning.stderr.decode("utf-8", "replace").strip()))
     # PROGRAM_MD5 ska vara programmets hash. Den räknas här och inte i omslaget
@@ -318,7 +318,7 @@ def _kopiera_runtimeheaders(utkatalog: str, runtime_include: str) -> int:
             f.write(data)
         antal += 1
     if antal == 0:
-        raise Byggfel("inga headers i %s; runtimen kompilerar inte utan dem"
+        raise Byggfel("no headers in %s; the runtime will not compile without them"
                       % runtime_include)
     return antal
 
@@ -390,12 +390,12 @@ def skriv_arkiv(katalog: str, zipvag: str) -> List[str]:
                 continue
             poster.append(arkivnamn(rel))
     if GENERERAD_HPP not in poster:
-        raise Byggfel("arkivet saknar %s; runtimen avvisar det" % GENERERAD_HPP)
+        raise Byggfel("the archive is missing %s; the runtime rejects it" % GENERERAD_HPP)
     if DEBUGTABELL not in poster:
-        raise Byggfel("arkivet saknar %s; .so:n laddas inte utan den"
+        raise Byggfel("the archive is missing %s; the .so will not load without it"
                       % DEBUGTABELL)
     if DEFINES not in poster:
-        raise Byggfel("arkivet saknar %s; make hittar inget mål" % DEFINES)
+        raise Byggfel("the archive is missing %s; make finds no target" % DEFINES)
     with zipfile.ZipFile(zipvag, "w", zipfile.ZIP_DEFLATED) as z:
         for post in poster:
             z.write(os.path.join(katalog, *post.split("/")), post)
