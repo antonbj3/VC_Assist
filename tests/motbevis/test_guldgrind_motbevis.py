@@ -57,13 +57,6 @@ UTAN_HONESTY = ("EYES v1\n"
                 "EYES VERDICT PASS allt bra\n")
 
 
-def test_en_rapport_utan_en_enda_matning_ar_inte_guld():
-    b = _grind().doma([_cell(TOM)])
-    assert not b.guld, (
-        "en rapport med noll sektioner, SAMPLES 0 och DUR 0,000 s gav %s. "
-        "Tystnad är aldrig ett godkännande (I3)." % b.text())
-
-
 def test_en_rapport_utan_HONESTY_sektionen_ar_inte_guld():
     """Regel 5 i kontraktet binder bara om sektionen finns. En rapport som
     utelämnar den har inga överträdelser att hitta — och grinden som ska

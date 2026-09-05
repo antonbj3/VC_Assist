@@ -334,3 +334,26 @@ def test_LATENCY_faller_inte_pa_ordet_LATE():
 def test_en_fullstandig_rapport_ar_fortfarande_guld():
     """Grinden far inte bli sa bred att den faller det riktiga."""
     assert _grind().doma([_cell()]).guld is True
+
+
+TOM_MB = ("EYES v1\n"
+          "TEMPLATE plocka_och_placera\n"
+          "RUN 2026-09-04T17:00:00 DUR 0.000s SAMPLES 0 RATE 0.00Hz\n"
+          "EYES VERDICT PASS inget uppmatt\n")
+
+
+def _cell_mb(eyes, namn="station1"):
+    return {"namn": namn, "klass": "plocka_och_placera",
+            "forgrindar": dict((g, True) for g in FORGRINDAR), "eyes": eyes}
+
+
+def _grind_mb():
+    return Guldgrind(["plocka_och_placera"])
+
+
+def test_en_rapport_utan_en_enda_matning_ar_inte_guld():
+    b = _grind_mb().doma([_cell_mb(TOM_MB)])
+    assert not b.guld, (
+        "en rapport med noll sektioner, SAMPLES 0 och DUR 0,000 s gav %s. "
+        "Tystnad är aldrig ett godkännande (I3)." % b.text())
+
