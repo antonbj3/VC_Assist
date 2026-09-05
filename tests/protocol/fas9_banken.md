@@ -79,7 +79,10 @@ påståenderäkning får aldrig bli huvudtalet.** Golvet är högt.
   ett.
 * **Fyra uppgifter av 51.** Bara de fyra har spårfacit.
 * **n = 1 per uppgift och varv.** Ingen upprepning, ingen spridning.
-* **Grind 4 dömde ingenting.** Modellen ombads inte skriva scenkod.
+* **Grind 4 dömde ingenting.** Modellen ombads inte skriva scenkod — och
+  bänken bär ändå **282 komponenter och 196 kopplingar** i 51 av 51
+  uppgifter, med alla 55 URI:er uppslagbara (`M-81`). Registrets 121
+  verktyg prövas alltså inte av bänken alls.
 * **Ingen körning i VC.** Domen kommer ur vår ST-tolk, korsprövad mot STruC++ i
   `M-54` men inte mot OpenPLC.
 * **En modell, en prompt.** Formuleringen kan ha bidragit till varje fel i varv
