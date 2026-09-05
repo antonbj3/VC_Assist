@@ -22,6 +22,15 @@ två stdlib-vägar: (a) import av varje `install/`-modul på bildens minimala py
 - Stdlib väg (b): AST över `/src/install/*.py` ger importerna `argparse ast dataclasses datetime hashlib json ntpath os re shutil subprocess sys tarfile urllib winreg zipfile + __future__/install`. Minus `sys.stdlib_module_names` (innehåller `winreg` även på Linux) minus egna (`install paket upptackt installera verktygskedjan`): **inga externa**. (`install` är repots eget paket; min första körning listade det som externt för att egna-mängden var för snäv — korrigerat här.)
 - Slutsats: dagens viktigaste fynd är positivt — den enda bild som kunde bryta löftet på riktigt gör det inte.
 
+### 2. Pythonversionerna 3.9–3.13 + 2.7 (2026-09-06)
+
+- Bilder: `python:3.9/3.10/3.11/3.12/3.13-slim` (debian-baserade), en i taget + `rm` efteråt. Disk höll sig 7,7G ledigt.
+- Alla fem: `sok` exit **2** + `Ingen VC-mapp`-instruktion (1 träff), `installera --mal` exit 0 med `nya:11`, andra körningen `nya:0 uppdaterade:0 oforandrade:11`. Ingen version sticker ut.
+- Stdlib väg (a) alla fem: samtliga 15 provmoduler **OK** (`json hashlib urllib.request tarfile zipfile sqlite3 lzma ctypes ssl zlib bz2 xml ElementTree dataclasses ast argparse`).
+- Stdlib väg (b): 3.10–3.13 `externa: inga` (303/305/301/290 namn i `sys.stdlib_module_names`). **3.9 saknar `sys.stdlib_module_names`** (tillkom i 3.10; `AttributeError`) — M-90:s AST-metod går inte att köra ordagrant där. Produkten använder inte attributet (`grep` i `install/ tests/ 36_versioner.md` ger noll träffar), så installationen går ändå; mätmetoden behöver fallback (hårdkodad lista) på 3.9. Lägsta krav att skriva i README: installationen går på 3.9, verifieringsmetoden kräver 3.10+.
+- `ntpath.expanduser`-sömmen (M-92) bekräftad skarpt: `HOME=/home/x + USERPROFILE=C:\\Users\\x` ger `C:\\Users\\x` på **alla** 3.9–3.13 men `/home/x` på `python:2.7-slim` (2.7.18). Sömmen finns kvar; `plats.py`:s USERPROFILE-först-ordning är fortsatt rätt val.
+- Tilläggssidan 2.7: alla 11 `.py` i `ext/vc_addon/vc_assist` kompilerar med `compileall` + `py_compile(doraise=True)` på 2.7.18 (första försöket såg ut att falla men felet var riggens: skrivskyddad bindmontering, `.pyc` kunde inte skrivas bredvid källan — omkört mot `/tmp`-kopia: OK).
+
 ## LIMITS
 
 - Denna fil är under arbete; siffror ovanför är preliminära tills varje delsektion anger härkomst (bilddigest + `python3 --version`).
