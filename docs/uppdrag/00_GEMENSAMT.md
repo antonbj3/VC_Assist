@@ -1,5 +1,9 @@
 # Gemensamt för uppdrag A–E
 
+
+> **Läs `docs/uppdrag/RATTELSER.md` innan varje ny punkt.** Köerna skrevs
+> innan alla mätningar var klara; ett tal som visat sig fel rättas där.
+
 Fem sessioner arbetar samtidigt i **ett** repo, `~/projects/VC_Assist`, i tio
 timmar. Det här dokumentet är det som gäller alla fem. Din egen brief säger vad
 just du ska göra.

@@ -1,5 +1,9 @@
 # Kö B — bänken i skala: de 37 svaren, spridningen och enskottet
 
+
+> **Läs `docs/uppdrag/RATTELSER.md` innan varje ny punkt.** Köerna skrevs
+> innan alla mätningar var klara; ett tal som visat sig fel rättas där.
+
 Läs `docs/uppdrag/00_GEMENSAMT.md` först.
 
 ## Din yta

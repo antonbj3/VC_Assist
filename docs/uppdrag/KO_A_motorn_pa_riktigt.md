@@ -1,5 +1,9 @@
 # Kö A — motorn på riktigt: OpenPLC, exporten och skanncykeln
 
+
+> **Läs `docs/uppdrag/RATTELSER.md` innan varje ny punkt.** Köerna skrevs
+> innan alla mätningar var klara; ett tal som visat sig fel rättas där.
+
 Läs `docs/uppdrag/00_GEMENSAMT.md` först. Det gäller dig också.
 
 ## Din yta

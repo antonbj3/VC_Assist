@@ -1,5 +1,9 @@
 # Kö D — ögat, scenen och den femte domaren
 
+
+> **Läs `docs/uppdrag/RATTELSER.md` innan varje ny punkt.** Köerna skrevs
+> innan alla mätningar var klara; ett tal som visat sig fel rättas där.
+
 Läs `docs/uppdrag/00_GEMENSAMT.md` först. **Du är den enda kön som startar
 Visual Components** — läs VC-stycket där noga.
 

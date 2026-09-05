@@ -1,4 +1,8 @@
-# Kö C — de 91 skador bänken inte ser
+# Kö C — de 15 skador bänken verkligen missar, och grind 2 som fångar noll
+
+
+> **Läs `docs/uppdrag/RATTELSER.md` innan varje ny punkt.** Köerna skrevs
+> innan alla mätningar var klara; ett tal som visat sig fel rättas där.
 
 Läs `docs/uppdrag/00_GEMENSAMT.md` först.
 
