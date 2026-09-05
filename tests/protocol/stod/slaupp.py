@@ -23,9 +23,15 @@ import sys
 # Repots rot, harledd ur filens egen plats. Den hardkodade sokvagen som stod
 # har forst hade bundit verktyget till en maskin.
 import os
+# TRE niva upp: filen ligger i tests/protocol/stod/. Tva niva gav tests/, och
+# felet syntes forst som "No module named vc_assist_svc" i underprocessen -
+# alltsa langt fran orsaken.
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                     "..", ".."))
+                                     "..", "..", ".."))
 
+# OBS: strangen formateras med %% REPO nedan, sa VARJE procenttecken har inne
+# maste vara dubblat. Ett ensamt %%d ater upp formateringen och ger ett fel som
+# syns langt fran orsaken.
 KOD = '''
 import sys, json
 sys.path.insert(0, %r + "/svc")
@@ -37,7 +43,18 @@ elif sort == "sok":
     r = V.DATA_HANDLERS["search_api"]({"query": arg, "limit": 12})
 else:
     r = V.DATA_HANDLERS["type_surface"]({"type_name": arg})
-print(json.dumps(r, ensure_ascii=False, indent=1)[:6000])
+# Kapa pa ANTAL TRAFFAR, inte pa tecken. Att skiva strangen gav ogiltig JSON
+# mitt i en struktur - lasbart for ett oga, oparsbart for allt annat, och det
+# ar precis den sortens halvhet ett verktyg inte far ha.
+for nyckel in ("symbols", "traffar", "medlemmar", "members"):
+    if isinstance(r.get(nyckel), list) and len(r[nyckel]) > 12:
+        r["kapat"] = "%%d av %%d visas" %% (12, len(r[nyckel]))
+        r[nyckel] = r[nyckel][:12]
+for post in (r.get("symbols") or []) + (r.get("traffar") or []):
+    if isinstance(post, dict) and isinstance(post.get("description"), str):
+        d = " ".join(post["description"].split())
+        post["description"] = d[:400] + (" ..." if len(d) > 400 else "")
+print(json.dumps(r, ensure_ascii=False, indent=1))
 ''' % REPO
 
 
