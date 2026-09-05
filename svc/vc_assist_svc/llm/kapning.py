@@ -246,7 +246,7 @@ def kapa(svar: Verktygssvar, tak_byte: int,
     och "ingen kapning provades".
     """
     if tak_byte < 1:
-        raise Kapfel("taket %r ar inget tak" % (tak_byte,))
+        raise Kapfel("the cap %r is not a cap" % (tak_byte,))
     fore = _byte(svar)
     if fore <= tak_byte:
         return svar, Kapnotis(kapat=False, verktyg=svar.verktyg,
