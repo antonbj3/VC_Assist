@@ -246,5 +246,681 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: uppehallet ar raknat ur fotocellens lage och bandets hastighet. Fotocellen sitter 120 mm uppstroms grinden och bandet gar 0,5 m/s, sa burken behover 120/500 = 0,24 s pa sig att na fram till grinden. Uppehallet 0,40 s ligger 0,16 s over gangtiden, alltsa har burken hunnit fram och statt still innan grinden oppnar. Grindens slagtid ar 0,12 s och takten 45 burkar per minut ar 60/45 = 1,333 s per burk. Rakningen star i M-106.",
+    "standard": "IEC 60204-1:2016 9.2.4 kraver att aterstallning efter nodstopp ar en avsiktlig manuell handling, och stationens signalkarta bar ingen kvitteringsknapp; facit domer darfor det som gar att doma i den har kartan, att inget don kommenderas medan EMG_OK eller AIR_OK ar lag och att grinden - det enda don som slapper fram produkt - aldrig oppnar av att kretsen sluts igen utan bara pa en ny stigande flank fran fotocellen. Tidsovervakningen av andlaget ar en TON och flankdetekteringen pa fotocellen en R_TRIG enligt IEC 61131-3 tabell 36 respektive 34. Singuleringen ar en FLANKRAKNING och inte en nivaavlasning: kravet ar exakt en stigande flank pa ST010_STP_OPEN per burk, inte att grinden star oppen medan stralen ar bruten.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := (ST010_CNV_SPD >= 0.20) AND (ST010_CNV_SPD <= 0.80);\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\nIF tmrAndlage.Q THEN\n    xLagesfel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nIF NOT xDriftsklar THEN\n    ST010_CNV_RUN := FALSE;\n    ST010_STP_OPEN := FALSE;\n    steg := 0;\nELSE\n    ST010_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF trigPec.Q THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrUppehall.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_burk_en_oppning",
+        "beskrivning": "En burk bryter fotocellen, star still mot grinden och slapps fram. Exakt en oppning ska ske.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": true,
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "bandet gar kontinuerligt sa fort nodstoppskretsen ar sluten och trycket finns; grinden star stangd tills en burk kommit"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 780,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "0,38 s efter flanken ar uppehallskravet 0,40 s inte uppfyllt; burken har haft 0,24 s pa sig att rulla de 120 mm fram till grinden och har annu inte statt still"
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": true,
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "0,46 s efter flanken har uppehallet 0,40 s lopt ut och grinden ska ha oppnat; bandet gar hela tiden"
+          },
+          {
+            "t_ms": 940,
+            "satt": {
+              "ST010_STP_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "grinden ska ha stangt igen; kommandot far sta hogst 0,50 s efter oppningen, annars hinner nasta burk fram i takten 1,333 s"
+          },
+          {
+            "t_ms": 1320,
+            "satt": {
+              "ST010_STP_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "ingen andra oppning far ske utan en ny stigande flank pa fotocellen"
+          }
+        ]
+      },
+      {
+        "id": "niva_ar_ingen_flank",
+        "beskrivning": "Fotocellen star kvar hog efter flanken. En styrning som lyssnar pa nivan slapper en andra burk.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 940,
+            "satt": {
+              "ST010_STP_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1320,
+            "satt": {
+              "ST010_STP_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "grinden har slappt fram sin burk och ska ha stangt igen"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "fotocellen star kvar hog men ingen ny stigande flank har kommit; en styrning som kommenderar pa nivan oppnar har en andra gang och slapper ut tva burkar pa en flank"
+          }
+        ]
+      },
+      {
+        "id": "fart_under_arbetsfonstret",
+        "beskrivning": "Frekvensomriktaren tappar varvtal och bandet gar 0,18 m/s, under lagsta arbetsvardet 0,20 m/s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "0,50 m/s ligger i arbetsfonstret och bandet ska ga"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_CNV_SPD": 0.18
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": false,
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "0,18 m/s ligger under lagsta arbetsvardet 0,20 m/s; en burk far inte slappas fram pa ett band som inte har fart nog att fora bort den, sa bandet stannar och grinden star kvar stangd"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "aven en riktig flank far inte oppna grinden medan farten ligger utanfor arbetsfonstret"
+          }
+        ]
+      },
+      {
+        "id": "fart_over_arbetsfonstret",
+        "beskrivning": "Bandet dras over till 0,84 m/s, over hogsta arbetsvardet 0,80 m/s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "0,50 m/s ligger i arbetsfonstret och bandet ska ga"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_CNV_SPD": 0.84
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": false,
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "vid 0,84 m/s racker uppehallet 0,40 s inte mot efterslapningen; bandet ska stoppas i stallet for att fortsatta slappa fram burkar pa ett matt styrningen inte langre kan rakna med"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "flanken far inte oppna grinden sa lange farten ligger over arbetsfonstret"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_bryter_och_aterstalls",
+        "beskrivning": "Nodstoppet bryts medan grinden star oppen och dras upp igen tio scan senare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": true
+            },
+            "varfor": "uppehallet har lopt ut och grinden star oppen nar nodstoppet bryts i nasta steg"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 940,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don; grinden far inte sta kvar oppen och slappa igenom burkar medan kretsen ar bruten"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": true,
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "bandet gar igen nar kretsen ar sluten, men grinden - det enda don som slapper fram produkt - star kvar stangd; ett aterstallt nodstopp ar ingen order att slappa fram en burk"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "grinden vantar pa en ny stigande flank fran fotocellen och oppnar inte av sig sjalv nar kretsen kom tillbaka"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller",
+        "beskrivning": "AIR_OK faller medan grinden star oppen och kommer tillbaka en halv sekund senare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": true
+            },
+            "varfor": "grinden star oppen nar trycket faller i nasta steg"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 940,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "en pneumatisk stoppgrind utan tryckluft gar inte att styra; kommandot ska falla i samma scan som trycket gor det, och anlaggningen far bara ga nar bade EMG_OK och AIR_OK ar hoga"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST010_CNV_RUN": true,
+              "ST010_STP_OPEN": false
+            },
+            "varfor": "trycket ar tillbaka och bandet gar igen, men grinden oppnar inte utan en ny flank"
+          }
+        ]
+      },
+      {
+        "id": "andlaget_uteblir",
+        "beskrivning": "ST010_STP_OPEN gar hog men andlagesgivaren bekraftar aldrig oppet lage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST010_CNV_SPD": 0.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST010_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST010_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 860,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": true
+            },
+            "varfor": "uppehallet har lopt ut och grinden kommenderas oppen"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": true,
+              "ST010_CNV_RUN": true
+            },
+            "varfor": "0,88 s efter oppningskommandot har tidsgransen 1,0 s inte lopt ut; en for kort granstid stannar linjen pa en normal grindrorelse, som tar 0,12 s"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "uteblir andlaget i 1,0 s far styrningen inte anta att grinden ar oppen; kommandot nollstalls och stationen stannar i stallet for att ga vidare i sekvensen"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST010_STP_OPEN": false,
+              "ST010_CNV_RUN": false
+            },
+            "varfor": "lagesfelet slapper inte av sig sjalvt nar tidsvakten nollas; signalkartan bar ingen kvitteringsknapp, sa stationen star kvar tills nagon gar dit"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_oppen_grind_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST010_STP_OPEN": false,
+          "ST010_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen, men den maste vara forreglad av den: ingen grind kommenderad och inget band i gang medan nodstoppskretsen ar bruten"
+      },
+      {
+        "namn": "ingen_oppen_grind_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST010_STP_OPEN": false,
+          "ST010_CNV_RUN": false
+        },
+        "varfor": "en pneumatisk grind som kommenderas utan tryck ger ett kommando utan rorelse, och styrningen tror sedan att grinden ar oppen; anlaggningen far bara ga nar AIR_OK ar hog"
+      },
+      {
+        "namn": "ingen_oppning_under_arbetsfonstret",
+        "sekvens": "*",
+        "nar": {
+          "ST010_CNV_SPD": 0.18
+        },
+        "kraver": {
+          "ST010_STP_OPEN": false,
+          "ST010_CNV_RUN": false
+        },
+        "varfor": "0,18 m/s ligger under lagsta arbetsvardet 0,20 m/s; en burk som slapps fram pa ett band utan fart blir staende i grinden och nasta burk kor upp i den"
+      },
+      {
+        "namn": "ingen_oppning_over_arbetsfonstret",
+        "sekvens": "*",
+        "nar": {
+          "ST010_CNV_SPD": 0.84
+        },
+        "kraver": {
+          "ST010_STP_OPEN": false,
+          "ST010_CNV_RUN": false
+        },
+        "varfor": "over 0,80 m/s ar uppehallet 0,40 s inte langre langt nog mot efterslapningen, sa singuleringen far inte fortsatta pa den farten"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_oppning_per_burk",
+        "sekvens": "en_burk_en_oppning",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1600,
+        "antal": 1,
+        "varfor": "hela uppgiften ar singulering: en burk ska ge exakt en stigande flank pa grindkommandot. Tva flanker betyder att styrningen kommenderar pa fotocellens niva i stallet for pa dess flank (felklass F15)"
+      },
+      {
+        "namn": "ingen_andra_oppning_utan_flank",
+        "sekvens": "niva_ar_ingen_flank",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2600,
+        "antal": 1,
+        "varfor": "fotocellen star hog hela sekvensen men bara en stigande flank har kommit; en andra oppning ar en andra burk ut, och det ar den miss som forst syns vid full linjefart"
+      },
+      {
+        "namn": "ingen_oppning_i_underfart",
+        "sekvens": "fart_under_arbetsfonstret",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1600,
+        "antal": 0,
+        "varfor": "flanken vid 0,8 s ar riktig men farten ligger under arbetsfonstret; grinden far inte oppna en enda gang"
+      },
+      {
+        "namn": "ingen_oppning_i_overfart",
+        "sekvens": "fart_over_arbetsfonstret",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1600,
+        "antal": 0,
+        "varfor": "flanken vid 0,8 s ar riktig men farten ligger over arbetsfonstret; grinden far inte oppna en enda gang"
+      },
+      {
+        "namn": "ingen_oppning_efter_aterstallt_nodstopp",
+        "sekvens": "nodstopp_bryter_och_aterstalls",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 1000,
+        "till_ms": 2000,
+        "antal": 0,
+        "varfor": "efter att nodstoppet aterstallts far grinden inte oppna en enda gang utan en ny flank; en station som slapper fram en burk i samma stund donet dras upp gor det med en operator kvar vid bandet"
+      },
+      {
+        "namn": "en_oppning_aven_utan_andlage",
+        "sekvens": "andlaget_uteblir",
+        "signal": "ST010_STP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2200,
+        "antal": 1,
+        "varfor": "kommandot ska ges en gang och sedan nollstallas av tidsvakten; en styrning som forsoker om och om igen slar grinden mot en burk gang pa gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "oppnar_pa_niva_i_stallet_for_pa_flank",
+        "st": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := (ST010_CNV_SPD >= 0.20) AND (ST010_CNV_SPD <= 0.80);\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\nIF tmrAndlage.Q THEN\n    xLagesfel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nIF NOT xDriftsklar THEN\n    ST010_CNV_RUN := FALSE;\n    ST010_STP_OPEN := FALSE;\n    steg := 0;\nELSE\n    ST010_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF ST010_PEC_PART THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrUppehall.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Losningen ar i ovrigt riktig men startar cykeln pa fotocellens NIVA i stallet for pa dess stigande flank. Sa lange bandet ar glest ser det ratt ut; nar burkarna kommer tatt star stralen bruten hela tiden och grinden oppnar en andra gang utan att nagon ny burk anmalt sig.",
+        "faller_pa": [
+          "flank:ingen_andra_oppning_utan_flank",
+          "niva_ar_ingen_flank@2600ms:ST010_STP_OPEN"
+        ]
+      },
+      {
+        "namn": "oppnar_utan_uppehall",
+        "st": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := (ST010_CNV_SPD >= 0.20) AND (ST010_CNV_SPD <= 0.80);\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\nIF tmrAndlage.Q THEN\n    xLagesfel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nIF NOT xDriftsklar THEN\n    ST010_CNV_RUN := FALSE;\n    ST010_STP_OPEN := FALSE;\n    steg := 0;\nELSE\n    ST010_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF trigPec.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        1:\n            steg := 2;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Grinden oppnas i samma scan som flanken kommer, utan uppehallet 0,40 s. Burken har da bara hunnit 0,24 s in i sin gang mot grinden och star inte still nar grinden gar upp, sa den glider vidare pa bandets efterslapning och singuleringen tappar sin lucka.",
+        "faller_pa": [
+          "en_burk_en_oppning@780ms:ST010_STP_OPEN"
+        ]
+      },
+      {
+        "namn": "utan_tidsovervakning_pa_andlaget",
+        "st": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := (ST010_CNV_SPD >= 0.20) AND (ST010_CNV_SPD <= 0.80);\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nIF NOT xDriftsklar THEN\n    ST010_CNV_RUN := FALSE;\n    ST010_STP_OPEN := FALSE;\n    steg := 0;\nELSE\n    ST010_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF trigPec.Q THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrUppehall.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen vantar pa ST010_STP_OPENED utan tidsgrans. Lossnar andlagesgivaren star grindkommandot kvar hogt for evigt, bandet fortsatter mata burkar mot en grind ingen vet lagen pa, och ingen far veta det forran taktvakten langre fram i linjen slar.",
+        "faller_pa": [
+          "andlaget_uteblir@1900ms:ST010_STP_OPEN",
+          "andlaget_uteblir@1900ms:ST010_CNV_RUN",
+          "andlaget_uteblir@2200ms:ST010_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "slapper_fram_pa_fel_bandfart",
+        "st": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := TRUE;\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\nIF tmrAndlage.Q THEN\n    xLagesfel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nIF NOT xDriftsklar THEN\n    ST010_CNV_RUN := FALSE;\n    ST010_STP_OPEN := FALSE;\n    steg := 0;\nELSE\n    ST010_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF trigPec.Q THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrUppehall.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bandhastigheten fran frekvensomriktaren lases aldrig. Stationen singulerar vidare bade nar bandet tappat varvtal och nar det dragits over, alltsa pa en fart dar varken bortforsel eller uppehallskrav galler langre.",
+        "faller_pa": [
+          "fart_under_arbetsfonstret@600ms:ST010_CNV_RUN",
+          "fart_over_arbetsfonstret@600ms:ST010_CNV_RUN",
+          "flank:ingen_oppning_i_underfart",
+          "flank:ingen_oppning_i_overfart",
+          "invariant:ingen_oppning_under_arbetsfonstret@fart_under_arbetsfonstret",
+          "invariant:ingen_oppning_over_arbetsfonstret@fart_over_arbetsfonstret"
+        ]
+      },
+      {
+        "namn": "grinden_star_kvar_oppen_vid_nodstopp",
+        "st": "PROGRAM ST010_STOPPGRIND\nVAR\n    steg           : INT := 0;\n    trigPec        : R_TRIG;\n    tmrUppehall    : TON;\n    tmrAndlage     : TON;\n    tmrOppen       : TON;\n    xUppehall      : BOOL := FALSE;\n    xVantarAndlage : BOOL := FALSE;\n    xBurkenUt      : BOOL := FALSE;\n    xFartOK        : BOOL := FALSE;\n    xLagesfel      : BOOL := FALSE;\n    xDriftsklar    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Den har logiken bar ingen sakerhetsfunktion;\n   den ar forreglad AV nodstoppskretsen. *)\n\n(* Flanken hamtas i VARJE scan, aven medan grinden ar i rorelse. Singuleringen\n   ar en flankrakning: en burk per stigande flank pa fotocellen. Lases nivan i\n   stallet star grinden kvar oppen sa lange stralen ar bruten, och tva burkar\n   gar ut pa en flank. *)\ntrigPec(CLK := ST010_PEC_PART);\n\n(* Arbetsfonstret for bandhastigheten. Under 0,20 m/s har bandet inte fart nog\n   att fora bort burken nar grinden oppnar; over 0,80 m/s racker inte\n   uppehallet 0,40 s mot bandets efterslapning. *)\nxFartOK := (ST010_CNV_SPD >= 0.20) AND (ST010_CNV_SPD <= 0.80);\n\n(* Grindens slagtid ar 0,12 s. Bekraftar inte andlagesgivaren oppet lage inom\n   1,0 s, alltsa atta slagtider, har givaren eller grinden lossnat och\n   styrningen far inte anta att grinden ar oppen. *)\nxVantarAndlage := (steg = 2);\ntmrAndlage(IN := xVantarAndlage, PT := T#1s);\nIF tmrAndlage.Q THEN\n    xLagesfel := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND xFartOK AND NOT xLagesfel;\n\n(* Uppehallet raknas fran fotocellens flank. Burken behover 120/500 = 0,24 s\n   pa sig att na fram till grinden; vid 0,40 s har den statt still mot grinden\n   och glider inte vidare pa efterslapningen. *)\nxUppehall := (steg = 1);\ntmrUppehall(IN := xUppehall, PT := T#400ms);\n\n(* Grinden halls oppen tills burken hunnit ut. En burk pa 99 mm passerar\n   grinden pa 99/500 = 0,198 s vid 0,5 m/s; 0,30 s racker med marginal och\n   ligger under taket 0,50 s efter oppning. *)\nxBurkenUt := (steg = 3);\ntmrOppen(IN := xBurkenUt, PT := T#300ms);\n\nST010_CNV_RUN := xDriftsklar;\nIF TRUE THEN\n    CASE steg OF\n        0:\n            ST010_STP_OPEN := FALSE;\n            IF trigPec.Q THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrUppehall.Q THEN\n                ST010_STP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST010_STP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrOppen.Q THEN\n                ST010_STP_OPEN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Nodstoppet stoppar bandet men lamnar grindkommandot orort: sekvensen kors vidare aven nar EMG_OK och AIR_OK ar laga. Grinden star kvar oppen med bruten krets, och pa ett band som rullar ut sin efterslapning gar burkarna igenom en grind som ingen langre styr.",
+        "faller_pa": [
+          "nodstopp_bryter_och_aterstalls@940ms:ST010_STP_OPEN",
+          "tryckluften_faller@940ms:ST010_STP_OPEN",
+          "invariant:ingen_oppen_grind_med_brutet_nodstopp@nodstopp_bryter_och_aterstalls",
+          "invariant:ingen_oppen_grind_utan_tryckluft@tryckluften_faller"
+        ]
+      }
+    ]
+  }
 }

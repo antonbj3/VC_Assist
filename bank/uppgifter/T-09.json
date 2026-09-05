@@ -1,0 +1,1203 @@
+{
+  "task_id": "T-09",
+  "title": "Vertikaltransportor mellan tva plan med raknad restid",
+  "goal": "Lyfta lastbarare 3,6 m mellan bottenplanet och ett entresolplan sa att de tva korriktningarna aldrig kommenderas samtidigt, att hissen aldrig ror sig med en lastbarare grensle over overlamningen, och att en resa som inte nar sitt andlage inom den raknade tiden stoppar hissen.",
+  "grupp": "T",
+  "bransch": "lager_orderplock",
+  "orsak": "Speglar fyra missar pa vertikaltransportorer. Den forsta: uppriktningen nollstalls inte i ovre andlaget, sa nar nedatkontaktorn sedan dras blir bada riktningarna hoga och vandarkontaktorerna kortsluter varandra. Den andra: lyftet startas pa korgens fotocell allena, alltsa pa niva, sa en lastbarare som hanger kvar med ena anden pa inmatningen rycks upp och river ned sig sjalv i schaktet. Den tredje: inmatningen villkoras inte av korgens nedre andlage, sa en storning som lamnat korgen uppe far nasta barare inmatad rakt in i schaktet. Den fjarde: andlaget vantas in utan tidsgrans, sa en korg som stannat star kvar med kontaktorn dragen tills motorskyddet loser ut.",
+  "prompt": "Bygg en vertikaltransportor mellan tva plan och skriv styrningen till den.\n\nScen: en vertikaltransportor med en korg som gar 3,6 m mellan bottenplanet och ett\nentresolplan, en ackumulerande rullbana som matar in lastbarare pa bottenplanet, ett\nutmatningsband pa det ovre planet, tre reflexfotoceller och nodstoppskretsen. Korgen\nhar en driven bana i bada riktningarna. Lastbararen ar en VDA KLT 6147, 600 x 400 x\n147 mm, som vager 9,5 kg fylld. Korgens topphastighet ar 0,8 m/s och den accelererar\noch retarderar med 1,0 m/s per sekund.\n\nUppgift, sekvensen:\n1. Nar ST530_PEC_IN ar hog och korgen star i sitt nedre andlage ST530_LFT_BOT: satt\n   ST530_CNV_IN hog och mata in lastbararen pa korgen.\n2. Nar ST530_PEC_CAR ar hog och ST530_PEC_IN slappt: nollstall ST530_CNV_IN och satt\n   ST530_LFT_UP hog.\n3. Vid ST530_LFT_TOP: nollstall ST530_LFT_UP och satt ST530_CNV_OUT hog.\n4. Nar ST530_PEC_OUT ar hog och ST530_PEC_CAR slappt: nollstall ST530_CNV_OUT och satt\n   ST530_LFT_DOWN hog.\n5. Vid ST530_LFT_BOT: nollstall ST530_LFT_DOWN och borja om.\n\nUppgift, de fyra kraven som gor hissen driftsatt:\n* Omsesidig uteslutning. ST530_LFT_UP och ST530_LFT_DOWN far ALDRIG vara hoga\n  samtidigt. Korgen har en kontaktor per riktning och tva hoga signaler ar en\n  kortslutning i stallet for en rorelse.\n* Bararen far inte hanga grensle. Ar ST530_PEC_CAR och ST530_PEC_IN hoga samtidigt\n  ligger lastbararen mellan inmatningen och korgen, och hissen far inte rora sig.\n* Ingen inmatning utan korgen nere. ST530_CNV_IN kraver ST530_LFT_BOT; utan korgen i\n  andlaget finns inget golv bakom overlamningen.\n* Tidsovervakning. Rakna sjalv ut hur lang en resa ar ur korgens egna matt och satt en\n  vakt som ryms over den. Nas inte ett andlage inom 7,0 s ska SYS_ALARM latchas och\n  bada kontaktorerna slappa. Vakten ska falla tidigast 6,7 s och senast 7,3 s efter att\n  rorelsen kommenderats.\n\nLagesgivaren ST530_LFT_POS ger korgens hojd i mm och slaglangden ar 0 till 3600 mm. Ett\nvarde under -40,0 mm eller over 3800,0 mm ar ett lage korgen inte kan sta i: larma.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga.\n\nTakttiden ar 14,0 s per lastbarare. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F6",
+    "F5"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "uppriktningen nollstalls inte i ovre andlaget, sa bada kontaktorerna blir hoga nar nedatriktningen kommenderas",
+    "lyftet startas pa korgens fotocell i stallet for pa att inmatningens fotocell slappt",
+    "inmatningen villkoras inte av korgens nedre andlage",
+    "andlaget vantas in utan tidsgrans, sa en fastnad korg star kvar med kontaktorn dragen",
+    "lagesgivaren lases aldrig, sa en givare som tappat nollpunkten upptacks forst mot andstoppet"
+  ],
+  "antaganden": [
+    {
+      "vad": "lyfthojden mellan planen",
+      "varde": "3600 mm",
+      "motiv": "HAMTAT ur katalogposten bank://transport/vertikaltransportor, som bar lyfthojd_mm 3600. Posten ar sjalv stamplad ANTAGEN i katalogen med motivet att 3,6 m ar en vanlig fri hojd till ett entresolplan, sa talet ar bankens antagande och inte en matt bygghojd"
+    },
+    {
+      "vad": "korgens topphastighet",
+      "varde": "0,8 m/s",
+      "motiv": "HAMTAT ur samma katalogpost, som bar hastighet_mps 0,8. Aven den ar stamplad ANTAGEN; talet ar valt sa att en resa ryms i takttiden och ar inte matt pa en verklig hiss"
+    },
+    {
+      "vad": "korgens acceleration och retardation",
+      "varde": "1,0 m/s per sekund",
+      "motiv": "ANTAGET och satt till 1,0 for att halla lastbararen kvar pa korgen utan mekanisk klamma: vid 1,0 m/s per sekund racker friktionen mot korgens banor med god marginal for en KLT som vager 9,5 kg. Talet ar valt, inte matt, och det ar det enda talet i restidsrakningen som inte kommer ur katalogen"
+    },
+    {
+      "vad": "restiden over hela lyfthojden",
+      "varde": "5,30 s",
+      "motiv": "RAKNAT ur de tre talen ovan med trapetsprofil: accelerationsstrackan v^2/(2a) = 0,32 m i vardera anden, konstantfarten gar 2,96 m, och restiden blir 2*(0,8/1,0) + 2,96/0,8 = 5,30 s. Talet ar inte satt utan foljer av matten"
+    },
+    {
+      "vad": "tidsvakten over en resa",
+      "varde": "7,0 s",
+      "motiv": "SATT ovanpa den raknade restiden 5,30 s sa att 1,70 s marginal ryms for tyngre last och kall styrning, utan att en korg som fastnat far sta kvar mer an ett par sekunder med kontaktorn dragen"
+    },
+    {
+      "vad": "lagesgivarens larmgranser",
+      "varde": "-40,0 till 3800,0 mm",
+      "motiv": "SATTA strax utanfor slaglangden 0 till 3600 mm: 40 mm under och 200 mm over lamnar plats for givarens egen nollpunktsdrift och for andlagesdampningen utan att dolja en givare som tappat skalningen helt"
+    },
+    {
+      "vad": "lastbararens massa",
+      "varde": "9,5 kg",
+      "motiv": "ANTAGEN fylld vikt for en VDA KLT 6147. Backens matt 600 x 400 x 147 mm ar HAMTADE ur katalogposten bank://last/klt_6147 (VDA-standardmatt), men massan ar bankens antagande och inte vagd"
+    },
+    {
+      "vad": "takttiden per lastbarare",
+      "varde": "14,0 s",
+      "motiv": "SATT och inte matt: tva resor om 5,30 s plus in- och utmatning ryms i fjorton sekunder. Talet styr genomflodeskravet och ingen tidsvakt, sa en felskattning har ger inget falskt stopp"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "VDA KLT 6147, fylld",
+      "l_mm": 600,
+      "b_mm": 400,
+      "h_mm": 147,
+      "massa_kg": 9.5
+    },
+    "arbetsradie_mm": 3600.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Lastbarare kommer med 14,0 s takt, matas in pa korgen, lyfts 3,6 m och matas ut pa entresolplanet medan korgen gar ned igen.",
+      "forvantat": "En inmatning, en uppresa, en utmatning och en nedresa per lastbarare, aldrig bada korriktningarna samtidigt, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "pos_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST530_LFT_POS",
+      "beskrivning": "ST530_LFT_POS faller till -120,0 mm, alltsa under den nedre gransen -40,0 mm.",
+      "forvantat": "Korgen kan inte sta under sitt eget nedre andlage. Styrningen ska larma och stanna; en hiss som kors pa ett falskt lage kor in i sitt eget andstopp."
+    },
+    {
+      "id": "pos_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST530_LFT_POS",
+      "beskrivning": "ST530_LFT_POS stiger till 3960,0 mm, alltsa over den ovre gransen 3800,0 mm.",
+      "forvantat": "Slaglangden slutar pa 3600 mm; ett hogre lage finns inte i schaktet. Styrningen ska larma i stallet for att lyfta vidare mot ett tak den tror ligger hogre upp."
+    },
+    {
+      "id": "topplaget_uteblir",
+      "typ": "vandning",
+      "signal": "ST530_LFT_TOP",
+      "beskrivning": "ST530_LFT_TOP kommer aldrig efter att korgen kommenderats uppat.",
+      "forvantat": "Tidsvakten pa 7,0 s ska falla, SYS_ALARM latchas och bada kontaktorerna slappa. Korgen far inte sta kvar med dragen kontaktor tills motorskyddet loser ut."
+    },
+    {
+      "id": "barare_grensle",
+      "typ": "vandning",
+      "signal": "ST530_PEC_CAR",
+      "beskrivning": "ST530_PEC_CAR gar hog medan ST530_PEC_IN fortfarande ar hog: lastbararen ligger grensle over overlamningen.",
+      "forvantat": "Hissen far inte rora sig i nagon riktning sa lange bada fotocellerna ar brutna. Inmatningen ska fortsatta dra tills bararen slappt inmatningens fotocell, och forst da far lyftet ga."
+    }
+  ],
+  "core_outputs": [
+    "ST530_LFT_UP",
+    "ST530_LFT_DOWN",
+    "ST530_CNV_IN",
+    "ST530_CNV_OUT",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "hiss",
+        "uri": "bank://transport/vertikaltransportor",
+        "count": 1
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "utmatning",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "lastbarare",
+        "uri": "bank://last/klt_6147",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/reflex_fotocell",
+        "count": 3
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "hiss"
+      },
+      {
+        "from_role": "hiss",
+        "to_role": "lastbarare"
+      },
+      {
+        "from_role": "hiss",
+        "to_role": "utmatning"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST530_LFT_UP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor korgen uppat"
+      },
+      {
+        "name": "ST530_LFT_DOWN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor korgen nedat"
+      },
+      {
+        "name": "ST530_LFT_TOP",
+        "dir": "in",
+        "type": "bool",
+        "comment": "korgen i ovre andlaget vid entresolplanet"
+      },
+      {
+        "name": "ST530_LFT_BOT",
+        "dir": "in",
+        "type": "bool",
+        "comment": "korgen i nedre andlaget vid bottenplanet"
+      },
+      {
+        "name": "ST530_CNV_IN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "inmatningsbanan drar in lastbararen pa korgen"
+      },
+      {
+        "name": "ST530_CNV_OUT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "korgens bana matar ut lastbararen pa det ovre planet"
+      },
+      {
+        "name": "ST530_PEC_IN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell pa inmatningen fore overlamningen"
+      },
+      {
+        "name": "ST530_PEC_CAR",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell pa korgen, lastbarare pa plats"
+      },
+      {
+        "name": "ST530_PEC_OUT",
+        "dir": "in",
+        "type": "bool",
+        "comment": "fotocell pa utmatningsbandet efter overlamningen"
+      },
+      {
+        "name": "ST530_LFT_POS",
+        "dir": "in",
+        "type": "real",
+        "comment": "korgens hojd over bottenplanet, mm, slaglangd 0 till 3600"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "lat korgen ga ned till sitt nedre andlage nar den star tom mellan tva cykler",
+      "satt ST530_CNV_IN hog nar ST530_PEC_IN ar hog och korgen star i ST530_LFT_BOT",
+      "nollstall ST530_CNV_IN och satt ST530_LFT_UP hog nar ST530_PEC_CAR ar hog och ST530_PEC_IN slappt",
+      "vid ST530_LFT_TOP: nollstall ST530_LFT_UP och satt ST530_CNV_OUT hog",
+      "nollstall ST530_CNV_OUT och satt ST530_LFT_DOWN hog nar ST530_PEC_OUT ar hog och ST530_PEC_CAR slappt",
+      "vid ST530_LFT_BOT: nollstall ST530_LFT_DOWN och borja om",
+      "starta tidsvakten 7,0 s sa fort nagon av korriktningarna ar hog",
+      "larma nar ST530_LFT_POS ligger utanfor -40,0 till 3800,0 mm"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST530": 7.0
+      },
+      "cycle_s": 14.0,
+      "tolerance_s": 0.3
+    },
+    "interlocks": [
+      "ST530_LFT_UP och ST530_LFT_DOWN far aldrig vara hoga samtidigt",
+      "hissen far aldrig ro sig nar ST530_PEC_CAR och ST530_PEC_IN ar hoga samtidigt",
+      "ST530_CNV_IN far aldrig ga nar korgen inte star i ST530_LFT_BOT",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ingen ny inmatning forran korgen ar tom och tillbaka i nedre andlaget"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 257.0,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST530_CNV_IN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST530_LFT_UP RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST530_CNV_OUT RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST530_LFT_DOWN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST530_LFT_UP -> hiss *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST530 *s req=7.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST530 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST lastbarare+schaktkant *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST530 *s req=7.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST530_LFT_UP+ST530_LFT_DOWN dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: restiden ur hissens egna matt med trapetsprofil. Accelerationsstrackan v^2/(2a) = 0,8^2/(2*1,0) = 0,32 m i vardera anden, konstantfarten gar 3,6 - 2*0,32 = 2,96 m, restiden 2*(0,8/1,0) + 2,96/0,8 = 1,60 + 3,70 = 5,30 s. Tidsvakten 7,0 s lamnar 1,70 s marginal. Rakningen star i M-106.",
+    "standard": "Omsesidig uteslutning mellan de tva korriktningarna och manuell aterstallning efter nodstopp enligt IEC 60204-1; TON for tidsvakten enligt IEC 61131-3. Sjalva restiden ar ingen standardfraga utan raknad ur hissens matt.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\nIF ST530_LFT_POS < -40.0 OR ST530_LFT_POS > 3800.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\nxRor := ST530_LFT_UP OR ST530_LFT_DOWN;\ntmrRes(IN := xRor, PT := T#7s);\nIF tmrRes.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND ST530_LFT_BOT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR AND NOT ST530_PEC_IN THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT xGrensle THEN\n                ST530_LFT_UP := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_LFT_UP := FALSE;\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\nIF ST530_LFT_UP AND ST530_LFT_DOWN THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\nIF xGrensle THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nIF NOT ST530_LFT_BOT THEN\n    ST530_CNV_IN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_hel_resa_upp_och_ner",
+        "beskrivning": "En lastbarare matas in pa korgen, korgen gar upp 3,6 m, bararen matas ut pa det ovre planet och korgen gar ned igen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_CNV_OUT": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute och ingen lastbarare har kommit; korgen star nere och ingenting far kommenderas av sig sjalvt"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "korgen star i sitt nedre andlage, sa inmatningen far dra in lastbararen"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST530_PEC_CAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "bararen bryter bada fotocellerna: den hanger grensle over overlamningen. Inmatningen ska fortsatta dra, men hissen far inte lyfta"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST530_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_LFT_UP": true,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "bararen har slappt inmatningens fotocell och star helt pa korgen; inmatningen stoppas och lyftet startar"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST530_LFT_BOT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6200,
+            "satt": {
+              "ST530_LFT_TOP": true,
+              "ST530_LFT_POS": 3600.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6300,
+            "satt": {},
+            "krav": {
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false,
+              "ST530_CNV_OUT": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "resan tog 5,3 s, alltsa under vaktens 7,0 s. Korgen stannar i ovre andlaget och utmatningen startar"
+          },
+          {
+            "t_ms": 6400,
+            "satt": {
+              "ST530_PEC_OUT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6600,
+            "satt": {
+              "ST530_PEC_CAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6700,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_OUT": false,
+              "ST530_LFT_DOWN": true,
+              "ST530_LFT_UP": false
+            },
+            "varfor": "bararen har lamnat korgen och natt utmatningsbandet; utmatningen stoppas och korgen gar ned igen"
+          },
+          {
+            "t_ms": 6800,
+            "satt": {
+              "ST530_LFT_TOP": false,
+              "ST530_PEC_OUT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11900,
+            "satt": {
+              "ST530_LFT_BOT": true,
+              "ST530_LFT_POS": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12000,
+            "satt": {},
+            "krav": {
+              "ST530_LFT_DOWN": false,
+              "ST530_LFT_UP": false,
+              "ST530_CNV_IN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "korgen ar tillbaka i sitt nedre andlage; bada kontaktorerna slappta och ingen resa har last ut tidsvakten"
+          }
+        ]
+      },
+      {
+        "id": "resan_fastnar_tidsvakt",
+        "beskrivning": "Korgen kommenderas upp men ST530_LFT_TOP kommer aldrig. Tidsvakten 7,0 s ska falla.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST530_PEC_CAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST530_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_LFT_UP": true,
+              "ST530_CNV_IN": false
+            },
+            "varfor": "lyftet har startat"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST530_LFT_BOT": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7500,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST530_LFT_UP": true
+            },
+            "varfor": "6,6 s efter kommandot far vakten annu inte ha fallit; en hel resa tar 5,3 s och en for kort vakt stoppar hissen mitt i normal drift"
+          },
+          {
+            "t_ms": 8400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "7,5 s efter kommandot ska vakten ha fallit och bada kontaktorerna vara slappta; en korg som hanger i schaktet med dragen kontaktor branner motorn och ingen far veta det"
+          },
+          {
+            "t_ms": 8600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att rorelsen upphort"
+          }
+        ]
+      },
+      {
+        "id": "lagesgivaren_under_slaglangden",
+        "beskrivning": "ST530_LFT_POS visar -120,0 mm, alltsa under den nedre gransen -40,0 mm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_LFT_POS": -120.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false,
+              "ST530_CNV_IN": false
+            },
+            "varfor": "korgen kan inte sta under sitt eget nedre andlage; -120,0 mm ar ett givarfel eller en tappad skalning, och en hiss som kors pa ett falskt lage kor in i sitt eget andstopp"
+          }
+        ]
+      },
+      {
+        "id": "lagesgivaren_over_slaglangden",
+        "beskrivning": "ST530_LFT_POS visar 3960,0 mm, alltsa over den ovre gransen 3800,0 mm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_LFT_POS": 3960.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false,
+              "ST530_CNV_IN": false
+            },
+            "varfor": "slaglangden slutar pa 3600 mm; 3960,0 mm finns inte i schaktet och betyder att givaren tappat sin nollpunkt. Hissen far inte lyfta vidare mot ett tak den tror ligger hogre upp"
+          }
+        ]
+      },
+      {
+        "id": "barare_grensle_stoppar_hissen",
+        "beskrivning": "Lastbararen fastnar med ena anden pa inmatningen och andra pa korgen, sa bada fotocellerna ar brutna samtidigt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST530_PEC_CAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false,
+              "ST530_CNV_IN": true
+            },
+            "varfor": "bada fotocellerna brutna betyder att bararen hanger mellan inmatningen och korgen. En hiss som lyfter har sliter bararen mot inmatningens gavel och river ned den i schaktet"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST530_PEC_IN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST530_LFT_UP": true,
+              "ST530_CNV_IN": false
+            },
+            "varfor": "nar bararen slappt inmatningens fotocell star den helt pa korgen och lyftet far ga"
+          }
+        ]
+      },
+      {
+        "id": "inmatning_med_korgen_uppe",
+        "beskrivning": "Korgen star kvar pa det ovre planet efter en storning. En lastbarare kommer fram pa inmatningen medan korgen ar pa vag ned.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 3600.0,
+              "ST530_LFT_TOP": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "korgen ar pa vag ned till sitt vantelage. En inmatning som startar innan korgen ar nere matar lastbararen rakt in i schaktet"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST530_LFT_TOP": false,
+              "ST530_LFT_BOT": true,
+              "ST530_LFT_POS": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true,
+              "ST530_LFT_DOWN": false,
+              "ST530_LFT_UP": false
+            },
+            "varfor": "korgen star i nedre andlaget och inmatningen far dra in bararen"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstoppet bryts under inmatningen, aterstalls, och hissen far ga igen forst pa kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST530_LFT_POS": 0.0,
+              "ST530_LFT_BOT": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST530_PEC_IN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "inmatningen drar in bararen"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_CNV_OUT": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": false,
+              "ST530_LFT_UP": false,
+              "ST530_LFT_DOWN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte i sig starta hissen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST530_CNV_IN": true
+            },
+            "varfor": "forst kvittensen tar stationen tillbaka i drift"
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "aldrig_bada_korriktningarna",
+        "sekvens": "*",
+        "nar": {
+          "ST530_LFT_UP": true
+        },
+        "kraver": {
+          "ST530_LFT_DOWN": false
+        },
+        "varfor": "korgen har en kontaktor per riktning; tva hoga signaler ar en kortslutning over motorns vandarkontaktorer i stallet for en rorelse"
+      },
+      {
+        "namn": "hissen_star_still_med_barare_grensle",
+        "sekvens": "*",
+        "nar": {
+          "ST530_PEC_CAR": true,
+          "ST530_PEC_IN": true
+        },
+        "kraver": {
+          "ST530_LFT_UP": false,
+          "ST530_LFT_DOWN": false
+        },
+        "varfor": "bada fotocellerna brutna betyder att lastbararen hanger mellan inmatningen och korgen; en rorelse da sliter bararen mot inmatningens gavel och river ned den i schaktet"
+      },
+      {
+        "namn": "ingen_inmatning_utan_korgen_nere",
+        "sekvens": "*",
+        "nar": {
+          "ST530_LFT_BOT": false
+        },
+        "kraver": {
+          "ST530_CNV_IN": false
+        },
+        "varfor": "utan korgen i nedre andlaget finns inget golv bakom overlamningen, och inmatningen skjuter lastbararen rakt in i schaktet"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST530_LFT_UP": false,
+          "ST530_LFT_DOWN": false,
+          "ST530_CNV_IN": false,
+          "ST530_CNV_OUT": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "larm_stoppar_hissen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST530_LFT_UP": false,
+          "ST530_LFT_DOWN": false,
+          "ST530_CNV_IN": false,
+          "ST530_CNV_OUT": false
+        },
+        "varfor": "ett larm som lamnar korgen i rorelse i schaktet ar inget larm utan en lampa"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_uppresa_per_lastbarare",
+        "sekvens": "en_hel_resa_upp_och_ner",
+        "signal": "ST530_LFT_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 12000,
+        "antal": 1,
+        "varfor": "en lastbarare ska ge exakt en uppresa; tva betyder att lyftet kommenderas pa niva och att kontaktorn nyps av och pa mitt i schaktet"
+      },
+      {
+        "namn": "en_nedresa_per_lastbarare",
+        "sekvens": "en_hel_resa_upp_och_ner",
+        "signal": "ST530_LFT_DOWN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 12000,
+        "antal": 1,
+        "varfor": "korgen gar ned en gang per cykel; en extra nedatflank betyder att hemgangen och sekvensen kommenderar samma kontaktor i tur och ordning"
+      },
+      {
+        "namn": "en_inmatning_per_lastbarare",
+        "sekvens": "en_hel_resa_upp_och_ner",
+        "signal": "ST530_CNV_IN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 12000,
+        "antal": 1,
+        "varfor": "inmatningen startar en gang per barare; flera starter betyder att banan nyps av och pa och att bararen stannar grensle over overlamningen"
+      },
+      {
+        "namn": "en_utmatning_per_lastbarare",
+        "sekvens": "en_hel_resa_upp_och_ner",
+        "signal": "ST530_CNV_OUT",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 12000,
+        "antal": 1,
+        "varfor": "utmatningen startar en gang per barare och forst i ovre andlaget; en tidigare flank matar ut mot en vagg"
+      },
+      {
+        "namn": "ingen_lyftrorelse_med_barare_grensle",
+        "sekvens": "barare_grensle_stoppar_hissen",
+        "signal": "ST530_LFT_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1100,
+        "antal": 0,
+        "varfor": "sa lange bada fotocellerna ar brutna far uppriktningen aldrig ga hog; en enda flank racker for att rycka bararen ur inmatningen"
+      },
+      {
+        "namn": "ingen_inmatning_med_korgen_uppe",
+        "sekvens": "inmatning_med_korgen_uppe",
+        "signal": "ST530_CNV_IN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 700,
+        "antal": 0,
+        "varfor": "inmatningen far inte ha startat en enda gang medan korgen ar pa vag ned; en puls racker for att skjuta lastbararen over kanten"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "uppriktningen_nollstalls_aldrig_i_topplaget",
+        "st": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\nIF ST530_LFT_POS < -40.0 OR ST530_LFT_POS > 3800.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\nxRor := ST530_LFT_UP OR ST530_LFT_DOWN;\ntmrRes(IN := xRor, PT := T#7s);\nIF tmrRes.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND ST530_LFT_BOT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR AND NOT ST530_PEC_IN THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT xGrensle THEN\n                ST530_LFT_UP := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\nIF xGrensle THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nIF NOT ST530_LFT_BOT THEN\n    ST530_CNV_IN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Steget som tar emot ovre andlaget startar utmatningen men glommer nollstalla uppriktningen, och den omsesidiga uteslutningen mellan riktningarna finns inte som eget skydd. Cellen ser felfri ut hela vagen upp; forst nar nedatkontaktorn dras blir bada riktningarna hoga samtidigt.",
+        "faller_pa": [
+          "en_hel_resa_upp_och_ner@6300ms:ST530_LFT_UP",
+          "en_hel_resa_upp_och_ner@6700ms:ST530_LFT_UP",
+          "invariant:aldrig_bada_korriktningarna@en_hel_resa_upp_och_ner"
+        ]
+      },
+      {
+        "namn": "lyftet_startar_pa_korgens_fotocell",
+        "st": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\nIF ST530_LFT_POS < -40.0 OR ST530_LFT_POS > 3800.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\nxRor := ST530_LFT_UP OR ST530_LFT_DOWN;\ntmrRes(IN := xRor, PT := T#7s);\nIF tmrRes.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND ST530_LFT_BOT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            ST530_LFT_UP := TRUE;\n            steg := 3;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_LFT_UP := FALSE;\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\nIF ST530_LFT_UP AND ST530_LFT_DOWN THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nIF NOT ST530_LFT_BOT THEN\n    ST530_CNV_IN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lyftet startas sa fort korgens fotocell bryts, alltsa pa en niva och utan att inmatningens fotocell slappt. Med en kort lastbarare hinner den alltid av inmatningen forst, sa felet syns bara den dagen en 600 mm-back matas in lite for langsamt och da hanger den grensle nar korgen lyfter.",
+        "faller_pa": [
+          "barare_grensle_stoppar_hissen@1000ms:ST530_LFT_UP",
+          "barare_grensle_stoppar_hissen@1000ms:ST530_CNV_IN",
+          "invariant:hissen_star_still_med_barare_grensle@barare_grensle_stoppar_hissen",
+          "flank:ingen_lyftrorelse_med_barare_grensle"
+        ]
+      },
+      {
+        "namn": "inmatningen_villkoras_inte_av_korgen",
+        "st": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\nIF ST530_LFT_POS < -40.0 OR ST530_LFT_POS > 3800.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\nxRor := ST530_LFT_UP OR ST530_LFT_DOWN;\ntmrRes(IN := xRor, PT := T#7s);\nIF tmrRes.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR AND NOT ST530_PEC_IN THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT xGrensle THEN\n                ST530_LFT_UP := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_LFT_UP := FALSE;\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\nIF ST530_LFT_UP AND ST530_LFT_DOWN THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\nIF xGrensle THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Inmatningen startas pa narvaron allena, utan att korgen behover sta i sitt nedre andlage. I normal drift star korgen nastan alltid nere, sa cellen gar felfritt tills en storning lamnar korgen uppe och nasta lastbarare matas rakt in i schaktet.",
+        "faller_pa": [
+          "inmatning_med_korgen_uppe@600ms:ST530_CNV_IN",
+          "invariant:ingen_inmatning_utan_korgen_nere@inmatning_med_korgen_uppe",
+          "flank:ingen_inmatning_med_korgen_uppe"
+        ]
+      },
+      {
+        "namn": "resan_vantas_in_utan_tidsgrans",
+        "st": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\nIF ST530_LFT_POS < -40.0 OR ST530_LFT_POS > 3800.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND ST530_LFT_BOT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR AND NOT ST530_PEC_IN THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT xGrensle THEN\n                ST530_LFT_UP := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_LFT_UP := FALSE;\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\nIF ST530_LFT_UP AND ST530_LFT_DOWN THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\nIF xGrensle THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nIF NOT ST530_LFT_BOT THEN\n    ST530_CNV_IN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Andlaget vantas in utan tidsgrans. En korg som stannat mot en snedstalld lastbarare eller en trog styrning star kvar med kontaktorn dragen tills motorskyddet loser ut, och driftstoppet skrivs upp pa motorn i stallet for pa hissen.",
+        "faller_pa": [
+          "resan_fastnar_tidsvakt@8400ms:SYS_ALARM",
+          "resan_fastnar_tidsvakt@8400ms:ST530_LFT_UP"
+        ]
+      },
+      {
+        "namn": "lagesgivaren_lases_aldrig",
+        "st": "PROGRAM ST530_VERTIKALTRANSPORT\nVAR\n    steg        : INT := 0;\n    tmrRes      : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xRor        : BOOL := FALSE;\n    xGrensle    : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran sakerhets-PLC och lases bara. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen --- *)\n\n(* Slaglangden ar 0 till 3600 mm. Ett lage utanfor -40,0 till 3800,0 mm kan\n   korgen inte sta i; da ar givaren eller dess skalning trasig, och en hiss som\n   kors pa ett falskt lage kor in i sitt eget andstopp. *)\n\n(* Tidsvakt over resan. Trapetsprofilen ger 5,30 s over 3,6 m; vakten 7,0 s\n   lamnar 1,70 s marginal. *)\nxRor := ST530_LFT_UP OR ST530_LFT_DOWN;\ntmrRes(IN := xRor, PT := T#7s);\nIF tmrRes.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Lastbararen bryter bada fotocellerna samtidigt: den hanger grensle over\n   overlamningen mellan inmatningen och korgen. *)\nxGrensle := ST530_PEC_CAR AND ST530_PEC_IN;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT xDriftsklar THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\n    ST530_CNV_IN := FALSE;\n    ST530_CNV_OUT := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST530_LFT_UP := FALSE;\n            ST530_CNV_OUT := FALSE;\n            (* Korgen ska sta nere och vanta pa nasta lastbarare. *)\n            ST530_LFT_DOWN := (NOT ST530_LFT_BOT) AND (NOT ST530_PEC_CAR);\n            (* Ingen inmatning forran korgen star i sitt nedre andlage. *)\n            IF ST530_PEC_IN AND ST530_LFT_BOT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_IN := TRUE;\n                steg := 1;\n            ELSE\n                ST530_CNV_IN := FALSE;\n            END_IF;\n        1:\n            (* Lastbararen ar helt pa korgen forst nar den slappt inmatningens\n               fotocell och bryter korgens. *)\n            IF ST530_PEC_CAR AND NOT ST530_PEC_IN THEN\n                ST530_CNV_IN := FALSE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT xGrensle THEN\n                ST530_LFT_UP := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST530_LFT_TOP THEN\n                ST530_LFT_UP := FALSE;\n                ST530_CNV_OUT := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST530_PEC_OUT AND NOT ST530_PEC_CAR THEN\n                ST530_CNV_OUT := FALSE;\n                ST530_LFT_DOWN := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST530_LFT_BOT THEN\n                ST530_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Omsesidig uteslutning. Korgen har en kontaktor per riktning och tva hoga\n   signaler ar en kortslutning i stallet for en rorelse. *)\nIF ST530_LFT_UP AND ST530_LFT_DOWN THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Hissen ror sig aldrig med en lastbarare grensle over overlamningen. *)\nIF xGrensle THEN\n    ST530_LFT_UP := FALSE;\n    ST530_LFT_DOWN := FALSE;\nEND_IF;\n\n(* Ingen inmatning nar korgen inte star i sitt nedre andlage. *)\nIF NOT ST530_LFT_BOT THEN\n    ST530_CNV_IN := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar helt pa de tva andlagesbrytarna och laser aldrig sjalva lagesgivaren. En givare som tappat sin nollpunkt rapporterar ett lage korgen inte kan sta i, och det syns inte forran korgen kor in i sitt eget andstopp.",
+        "faller_pa": [
+          "lagesgivaren_under_slaglangden@600ms:SYS_ALARM",
+          "lagesgivaren_over_slaglangden@600ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}
