@@ -271,3 +271,4 @@ körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
 * **Håltäppningen ändrar svepets dom för `concat`.** Ett medvetet STRANGARE-radval (38/40 i taket), verifierat mot containern (funktion-gruppen 31/31 överens). Raden står med skäl; tas den bort faller svepet — som avsett.
 * **R2-vakten räknar alla blockstack-ramar.** FUNCTION/TYPE-ramar ingår i djupet — konservativt (fäller tidigt), aldrig sent. 230-nivårstestet verifierar felmeddelande, inte krasch.
 * **R4 bevisar svar, inte snabbhet.** 10 s-gränsen är en hängdefinition, ingen prestandagaranti; patologiskt långsamma (men terminerande) inmatningar fångas inte.
+* **Tolken kör inte REF_TO-program.** `NOLLVARDE` saknar pekartyp — scan-jämförelse för REF_TO-kod är oprövad (verdict-nivå endast).
