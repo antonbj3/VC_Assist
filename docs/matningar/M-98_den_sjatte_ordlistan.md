@@ -228,16 +228,23 @@ för att fråga vad det **inte** kunde se.
 
 ## 5. Vad sviterna sa
 
-`pytest tests/enhet` efter allt ovan: **6 719 gröna, 190 skippade, 1 röd**.
-Den röda är `test_troskelharkomst.py::test_skulden_ar_raknad_och_krymper`, och
-den är inte den här mätningens — se LIMITS.
+De sju provfiler den här mätningen rör — `test_mekanisering_m98.py`,
+`test_mekanisering_m95.py`, `test_mekanisering_m53.py`,
+`test_ordlistegrind.py`, `test_harness.py`, `test_harnesshardhet.py`,
+`test_efterlevnad.py` — står på **262 gröna, 0 röda**.
+
+Efterlevnadsbänken: **58 av 58** mekaniska fällor, **28 av 28** kontrollfall, 0
+falska avvisningar.
 
 `pytest tests/motbevis` är **röd, 22 av 48**, som den ska vara. Motbevissviten
 är repots lista över det som ännu inte håller; en grön motbevissvit vore
 beviset på att den slutat fråga.
 
-Efterlevnadsbänken: **58 av 58** mekaniska fällor, **28 av 28** kontrollfall, 0
-falska avvisningar.
+Hela `pytest tests/enhet` stod på **6 781 gröna, 252 skippade, 11 röda** vid
+den här mätningens slut. Inget av de elva är den här mätningens, och LIMITS
+namnger vems de är. Talet växte med flera hundra prov under natten medan tre
+andra agenter skrev i repot, så det mäter natten och inte lagningen; det som
+mäter lagningen är de 262 ovan och bänkens 58 av 58.
 
 ## 6. Ett prov som slutade vara trasigt
 
@@ -304,6 +311,14 @@ påstår sig mäta.
   alltså inte min, men den är verklig, den gör `pytest tests/enhet` röd, och
   den ligger kvar när det här skrivs. Att skriva upp taket hade varit att göra
   någon annans grind lösare.
+* **De tio andra röda är också andras, och namngivna.**
+  `test_skuld.py::test_moduler_med_bara_l3_prov_bara_krymper` fälls av
+  `svc/vc_assist_svc/bankkontrakt.py`, en ny modul utan enhetsprov, och de tio
+  i `tests/enhet/test_monsterbevis.py` är en annan agents egna trasiga fixturer
+  för diakritikfyndet i `text.utan_diakritik` — halvfärdiga i samma minut som
+  det här skrevs. Ingen av dem rör `oga.py`, `satser`, `satsen_med` eller
+  ordlistespärren. Att sviten som helhet är grön är alltså **inte** visat här;
+  det som är visat är att den är grön i de 262 prov den här mätningen rör.
 * **Sju konsumenter är alla jag hittade, inte alla som finns.** Sökningen gick
   på `NEKANDE`, `namner_fel`, `nekar_pastaendet` och `talar_om_fel` i `svc/`,
   `ext/`, `bank/`, `install/` och `tests/`. En grind som kopierat orden utan
