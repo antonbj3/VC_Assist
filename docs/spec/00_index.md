@@ -182,6 +182,15 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-141_kontextbudgeten_mot_verkligheten.md` | M-141 — Kontextbudgeten mot verkligheten: förhandsreglerna i systemprompten |
 | `M-142_millimeter_och_meter_omvandling_bada_hallen.md` | M-142 — millimeter och meter: fullständig inventering av enhetsbyten och stängning av asymmetriska omvandlingar |
 | `M-143_kvaternionens_felordning_motbevis.md` | M-143 — kvaternionens felordning: trasig fixtur mot ögat och FAL-001 bevisar att (q.Y, q.Z, q.W, q.X) är strikt nödvändig |
+| `M-144_beteende_fangat_av_text.md` | M-144 — de 70 skadorna som fälldes av fel skäl: lyckträff mot dolt beteendefel |
+| `M-145_de_svaga_uppgifterna.md` | M-145 — de svaga uppgifterna efter C2: P-03, S-07, C-04 och beviset för ekvivalenta mutanter |
+| `M-146_domare_ur_runtime.md` | M-146 — En domare som domer ur OpenPLC-runtime, inte ur var egen ST-tolk |
+| `M-147_atta_nya_skadesorter.md` | M-147 — åtta nya skadesorter: industriella felklasser och hur domaren står mot dem |
+| `M-148_mutera_domaren.md` | M-148 — mutera domaren i stället för koden: vilka regler i bank/domare.py kan skadas utan att provsviten märker det |
+| `M-149_skada_specen.md` | M-149 — skada specen: krav i expect som referenslösningen inte provar |
+| `M-150_parvisa_skador.md` | M-150 — två skador samtidigt: hur ofta parvisa fel tar ut varandra och blir osynliga |
+| `M-151_stimuli_redundans.md` | M-151 — hur många stimuli behövs egentligen: sekvensvis ablationsanalys över bankens facit |
+| `M-152_kalibrera_verkliga_buggar.md` | M-152 — kalibrera mot verkliga buggar: hur mutationsmotorns 22 sorter täcker 82_felklasser och repots historiska fel |
 
 <!-- SLUT MATNINGSTABELL -->
 
