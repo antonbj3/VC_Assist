@@ -175,6 +175,7 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-134_de_29_skadorna_facit_kan_se.md` | M-134 — de skador facit kan se: klassning med saknat påstående och orsak |
 | `M-135_stimuli_som_ser_skadorna.md` | M-135 — stimuli som ser skadorna: C2-punktkrav, sekvenser och grind |
 | `M-136_llm_informationsatkomst.md` | M-136 — LLM-informationstäckning i skala över 50 bankuppgifter |
+| `M-137_domarnas_oenighet_over_inspelade_scener.md` | M-137 — domarnas oenighet över inspelade scener: 74 spår visar att ingen domare är en kopia av en annan |
 
 <!-- SLUT MATNINGSTABELL -->
 
