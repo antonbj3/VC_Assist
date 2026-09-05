@@ -544,6 +544,10 @@ def _skriv_sammanstallning(args):
                     exist_ok=True)
         with open(args.json, "w", encoding="utf-8") as f:
             json.dump(d, f, indent=1, ensure_ascii=False)
+    if args.tabell:
+        tabell, _per = markdowntabell(d)
+        print(tabell)
+        print("")
     t = d["tal"]
     print("\n%d korningar, %d enheter (%d matta vid n=%d, %d omatta, "
           "%d odomda -> %d jamforbara)"
@@ -584,6 +588,44 @@ def _skriv_sammanstallning(args):
     return 0
 
 
+def markdowntabell(d):
+    """Per uppgift, i markdown. n redovisas alltid som x av n, aldrig som ett
+    medelvarde: en uppgift som ar gron i 2 av 3 ar inte gron."""
+    per = {}
+    for nyckel, p in d["enheter"].items():
+        t = per.setdefault(p["task"], {"enheter": 0, "a": 0, "b": 0,
+                                       "c_op": 0, "c_tolk": 0, "odomd": 0,
+                                       "omatt": 0, "namn_a": [], "namn_b": [],
+                                       "namn_c": []})
+        t["enheter"] += 1
+        kort = p["etikett"].replace("motbevis:", "")
+        if p["omatt"]:
+            t["omatt"] += 1
+            continue
+        if p["odomd"]:
+            t["odomd"] += 1
+        if p["utfallsoenig"]:
+            t["a"] += 1
+            t["namn_a"].append(kort)
+        if p["kodoenig"]:
+            t["b"] += 1
+            t["namn_b"].append(kort)
+        if p["domare"]["openplc"]["instabil"]:
+            t["c_op"] += 1
+            t["namn_c"].append(kort)
+        if p["domare"]["tolk"]["instabil"]:
+            t["c_tolk"] += 1
+    rader = ["| uppgift | enheter | (a) utfall | (b) koder | (c) openplc "
+             "oense m sig sjalv | (c) tolk | odomda |",
+             "|---|---|---|---|---|---|---|"]
+    for task in sorted(per):
+        t = per[task]
+        rader.append("| %s | %d | %d | %d | %d | %d | %d |"
+                     % (task, t["enheter"], t["a"], t["b"], t["c_op"],
+                        t["c_tolk"], t["odomd"]))
+    return "\n".join(rader), per
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--uppgifter", nargs="+", default=None)
@@ -599,6 +641,8 @@ def main(argv=None):
     ap.add_argument("--sammanstall", nargs="+", default=None)
     ap.add_argument("--json", default=None)
     ap.add_argument("--lista-skivor", type=int, default=None)
+    ap.add_argument("--tabell", action="store_true",
+                    help="skriv per-uppgift-tabellen i markdown")
     a = ap.parse_args(argv)
 
     if a.lista_skivor:
