@@ -433,11 +433,11 @@ går att koppla får **inte** flytta något.
 
 ## 7. Minsta uppsättningen per klass — utskriven
 
-Avsnitt 7–10 är **inte prosa**. De är `svc/vc_assist_svc/komponentmodell.py`
+Avsnitt 7–11 är **inte prosa**. De är `svc/vc_assist_svc/komponentmodell.py`
 skrivet som tabell, och `tests/enhet/test_komponentmodell.py` faller om en
-enda rad här skiljer sig från modellen. Specen kan alltså inte längre beskriva
-en modell som inte finns — det var precis det fas 20 fanns till för att
-avskaffa.
+enda rad här skiljer sig från modellen — i **båda** riktningarna. Specen kan
+alltså varken beskriva en modell som inte finns eller bära kvar ett krav
+modellen har strukit. Det var precis det fas 20 fanns till för att avskaffa.
 
 Så läses en rad. **Krav** är vad som byggs och vad det heter i VC. **Slag**
 är beteende, ram, gränssnitt eller egenskap — beteenden och gränssnitt skapas
@@ -447,9 +447,9 @@ med källan, **HYPOTES** när ingendera finns. Ett krav utan märke är ett
 antagande i mätningskläder, och testet faller på ett sådant.
 
 Sista kolumnen — **vad som händer om det fattas** — är den som gör listan till
-en grind i stället för en beskrivning. Den är också domarens text: `granska()`
-skriver ut exakt den meningen när kravet saknas i en byggd komponent. Ett fel
-som bara säger "gick inte" är ingen grind.
+en grind i stället för en beskrivning. Den är också domarens text:
+`granska()` skriver ut exakt den meningen när kravet saknas i en byggd
+komponent. Ett fel som bara säger "gick inte" är ingen grind.
 
 ### 7.1 TRANSPORTÖR
 
@@ -502,7 +502,8 @@ Trasig fixtur: `bygg("matare", namn, utelamna="skapare")` bygger allt utom `Crea
 
 En sänka **lagrar**; den tar inte bort. Att ta bort kräver ett
 skriptbeteende, och ett skriptbeteende stoppar bryggan (M-13). Kapaciteten är
-därför satt högt i stället.
+därför satt högt i stället. `ContentVisible` stod här tills M-101 mätte att
+egenskapen inte finns — se avsnitt 11.
 
 | Krav | Slag | Konstant | Härkomst | Vad som händer om det fattas |
 |---|---|---|---|---|
@@ -510,7 +511,6 @@ därför satt högt i stället.
 | `In` | ram | `VC_FRAME` | MÄTT M-40 villkor 1: utan rebuild() står ramens verkliga läge kvar i nodens ursprung och PathLength blir 0.0 | ramen In (VC_FRAME) saknas: sektionen får ingen Frame, och en bana utan två åtskilda ramar får PathLength 0.0 — den tar inte emot något och matningen uppströms tystnar (MÄTT M-40, linje M41B) |
 | `InInterface` | granssnitt | `VC_ONETOONEINTERFACE` | MÄTT punkt 1-3 (interface, section och field skapas); BELAGT Create3D BehaviorType.OneToOneInterface | gränssnittet InInterface (VC_ONETOONEINTERFACE) saknas: utan det finns ingenting att anropa canConnect PÅ: findBehaviour ger None och kopplingen kan inte ens efterfrågas (MÄTT M-40: koppla-receptet föll på exakt det) |
 | `Capacity` | egenskap | -- | BELAGT api.xml vcContainer.Capacity: "the maximum number of components that can be stored in the container at any given time" | Capacity för låg: sänkan blir full och stoppar linjen uppströms |
-| `ContentVisible` | egenskap | -- | BELAGT api.xml vcContainer.ContentVisible (W) | ContentVisible=False: innehållet göms; kosmetiskt, inte funktionellt |
 
 Parbarhet: **in: matare, transportor, buffert**; **ut: — (en sänka lämnar inte ifrån sig)**.
 
@@ -663,3 +663,27 @@ Kontrollen är parvis: samma motpart provas först mot den trasiga komponenten
 (ska ge `True`). Då är skillnaden mellan de två utfallen exakt det utelämnade
 kravet — inte geometrin, inte motparten, inte ordningen.
 
+En femte trasig fixtur bor i domaren i stället för i scenen: en bana vars
+`PathLength` är `0.0`. Beteendet **finns**, fältet är bundet, och ändå bär
+banan ingenting — ramarna byggdes aldrig om, eller `update()` kördes aldrig
+efter att `Path` sattes (MÄTT M-40, linje M41B: noll produkter på sju
+intervall). `granska()` fäller den, för en domare som bara räknade beteenden
+hade sagt grönt om en linje som står still.
+
+---
+
+## 11. Vad mätningen har refuterat
+
+En rad i en källa är inte en mätning. De här stod som belagda och VC svarade
+nej.
+
+**`ContentVisible`** — M-101
+
+* Påstods: BELAGT api.xml vcContainer.ContentVisible (W): "Sets the visibility of components stored in the container."
+* Utfall: finns INTE på det beteende VC_COMPONENTCONTAINER faktiskt ger (vcSimContainer). Tilldelningen svarar "NameError: Attribute or method 'ContentVisible' not found." — alltså VC:s NameError, inte Pythons AttributeError (samma fälla som M-40 beskrev för Connectors). api.xml dokumenterar egenskapen på typen vcContainer; py2-bindningens instans bär den inte. En BELAGD rad är inte en mätt rad.
+
+Lärdomen är generell och kostade tretton komponenter: en egenskap som inte
+finns kastar `NameError` i VC:s bindning, och en oskyddad tilldelning tar med
+sig **hela resten av startskriptet**. Därför går varje egenskapstilldelning i
+`komponentmodell` genom `_steg()`: en egenskap som inte finns är ett mätvärde,
+aldrig ett haveri.

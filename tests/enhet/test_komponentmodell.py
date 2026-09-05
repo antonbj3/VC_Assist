@@ -276,6 +276,7 @@ def _aterlast(klass, saknat_beteende=None, obundet=False):
         })
     return {"built": True, "klass": klass, "component": klass.upper(),
             "features": [r.namn for r in k.ramar],
+            "aterlast": {"path_length": 2000.0},
             "behaviours": beteenden, "interfaces": granssnitt}
 
 
@@ -425,3 +426,56 @@ def test_varje_par_bar_ett_harkomstmarke():
     tre."""
     for a, b, harkomst in K.PAR_SOM_SKA_GA:
         assert any(m in harkomst for m in MARKEN), (a, b, harkomst)
+
+
+@pytest.mark.parametrize("klass", ["transportor", "buffert"])
+def test_en_bana_med_pathlength_noll_ar_inte_hel(klass):
+    """Trasig fixtur for M-40 villkor 2. Beteendet FINNS, gransssnittet ar
+    bundet, och anda bar banan ingenting: PathLength 0.0 betyder att ramarna
+    aldrig byggdes om eller att update() aldrig kordes. Ett prov som bara
+    raknade beteenden hade sagt gront om en linje som star still."""
+    a = _aterlast(klass)
+    a["aterlast"] = {"path_length": 0.0}
+    r = K.granska(a)
+    assert not r.hel
+    assert "PathLength" in r.text()
+    assert "M-40" in r.text()
+
+
+def test_refuterat_bar_matning_och_pastaende():
+    """En refuterad rad utan bade kalla OCH matning ar en asikt."""
+    assert K.REFUTERAT
+    for r in K.REFUTERAT:
+        assert r.namn and r.pastod and r.matning.startswith("M-")
+        assert len(r.utfall) > 40
+
+
+def test_content_visible_ar_inget_krav_pa_sankan():
+    """MATT M-101: egenskapen finns inte pa vcSimContainer. Ett krav som inte
+    GAR att uppfylla ar inget krav."""
+    namn = [k.namn for k in K.KLASSER["sanka"].egenskaper]
+    assert "ContentVisible" not in namn
+    assert any(r.namn == "ContentVisible" for r in K.REFUTERAT)
+
+
+@pytest.mark.parametrize("klass", sorted(K.KLASSER))
+def test_specen_bar_INGA_rader_modellen_strukit(klass, spectext):
+    """Regeln at ANDRA hallet. Forsta versionen provade bara att modellens
+    rader fanns i specen, och da kunde specen bara kvar ett krav modellen
+    strukit -- ContentVisible last kvar i sankans tabell efter att M-101
+    refuterat det, utan att ett enda prov mardes."""
+    rubrik = {"transportor": "7.1", "matare": "7.2",
+              "sanka": "7.3", "buffert": "7.4"}[klass]
+    i = spectext.index("### %s" % rubrik)
+    j = spectext.index("Parbarhet:", i)
+    rader = [r for r in spectext[i:j].splitlines()
+             if r.startswith("| `") ]
+    assert len(rader) == len(K.spec_rader(klass)), (
+        "%s: specen har %d kravrader, modellen %d"
+        % (klass, len(rader), len(K.spec_rader(klass))))
+
+
+def test_specen_bar_det_refuterade(spectext):
+    for r in K.REFUTERAT:
+        assert ("**`%s`**" % r.namn) in spectext, r.namn
+        assert r.utfall in spectext, r.namn

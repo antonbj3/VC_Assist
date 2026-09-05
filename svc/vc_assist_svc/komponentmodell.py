@@ -254,14 +254,32 @@ _SANKA = Klass(
              u'BELAGT api.xml vcContainer.Capacity: "the maximum number of '
              u'components that can be stored in the container at any given time"',
              u"Capacity för låg: sänkan blir full och stoppar linjen uppströms"),
-        Krav("dolt", u"egenskap", "ContentVisible", "",
-             u"styr om det lagrade syns i 3D-vyn",
-             u"BELAGT api.xml vcContainer.ContentVisible (W)",
-             u"ContentVisible=False: innehållet göms; kosmetiskt, inte funktionellt"),
     ),
     parbarhet=(u"in: matare, transportor, buffert",
                u"ut: — (en sänka lämnar inte ifrån sig)"),
 )
+
+# Vad mätningen har REFUTERAT. En rad här är ett påstående som stod i en källa
+# och som VC svarade nej på. Den hör hemma i modellen, inte bara i en mätning:
+# nästa gång någon läser api.xml och tror sig ha hittat ett krav ska raden möta
+# hen här.
+Refuterat = collections.namedtuple("Refuterat", "namn pastod matning utfall")
+
+REFUTERAT = (
+    Refuterat(
+        namn="ContentVisible",
+        pastod=u'BELAGT api.xml vcContainer.ContentVisible (W): "Sets the '
+               u'visibility of components stored in the container."',
+        matning="M-101",
+        utfall=u"finns INTE på det beteende VC_COMPONENTCONTAINER faktiskt ger "
+               u"(vcSimContainer). Tilldelningen svarar "
+               u'"NameError: Attribute or method \'ContentVisible\' not found." '
+               u"— alltså VC:s NameError, inte Pythons AttributeError (samma "
+               u"fälla som M-40 beskrev för Connectors). api.xml dokumenterar "
+               u"egenskapen på typen vcContainer; py2-bindningens instans bär "
+               u"den inte. En BELAGD rad är inte en mätt rad."),
+)
+
 
 KLASSER = collections.OrderedDict((
     ("transportor", _TRANSPORTOR),
@@ -407,6 +425,21 @@ def granska(aterlast):
             brister.append(Brist(
                 krav.nyckel, "ram", krav.namn, krav.konstant,
                 "%s: %s" % (komponent, krav.utan)))
+
+    # MÄTT M-40 villkor 2, som en riktig grind: en bana vars PathLength är 0.0
+    # tar inte emot något, och matningen uppströms tystnar utan ett ord. Den
+    # bristen syns inte på beteendelistan — beteendet FINNS, det bär bara
+    # ingenting.
+    if klassnamn in ("transportor", "buffert") and not brister:
+        langd = (aterlast.get("aterlast") or {}).get("path_length")
+        if not isinstance(langd, (int, float)) or isinstance(langd, bool) \
+                or langd <= 0.0:
+            brister.append(Brist(
+                "uppdaterad", "egenskap", "PathLength", "",
+                u"%s: banan har PathLength = %r. Ramarna byggdes inte om, "
+                u"eller bana.update() kördes inte efter att Path sattes. "
+                u"Banan tar inte emot något och mataren uppströms producerar "
+                u"noll — tyst (MÄTT M-40, linje M41B)" % (komponent, langd)))
 
     poster = {}
     for g in aterlast.get("interfaces") or []:
@@ -772,88 +805,127 @@ def bygg(klassnamn, namn, argument=None, utelamna=None):
     return _mall(["_enkelt", "_svara"], rader, ["vcVector"])
 
 
+def _satt(steg_namn, obj, egenskap, varde):
+    """En egenskapstilldelning som ETT MATT STEG, inte en risk.
+
+    MATT M-101: `behallare.ContentVisible = False` svarade
+    "NameError: Attribute or method 'ContentVisible' not found." och tog med
+    sig HELA resten av startskriptet -- tretton komponenter och elva
+    kopplingar som aldrig byggdes, for en egenskap ingen dom hangde pa.
+    En egenskap som inte finns ar ett matvarde. Den far inte vara ett haveri.
+    """
+    fnamn = "satt_" + steg_namn.replace(".", "_").lower()
+    return [
+        "def %s():" % fnamn,
+        "    %s.%s = %s" % (obj, egenskap, varde),
+        "    return %s.%s" % (obj, egenskap),
+        "ok, r = _steg(steg, %s, %s)" % (lit("egenskap." + steg_namn), fnamn),
+    ]
+
+
+def _las(steg_namn, rader_i_dict):
+    """En aterlasning som ett steg. Vardet i svaret ar VC:s, inte vart."""
+    fnamn = "las_" + steg_namn.replace(".", "_").lower()
+    return [
+        "def %s():" % fnamn,
+        "    return {%s}" % ", ".join(rader_i_dict),
+        "ok, aterlast = _steg(steg, %s, %s)" % (lit("aterlas." + steg_namn), fnamn),
+        "if not ok or aterlast is None:",
+        "    aterlast = {}",
+    ]
+
+
 def _egenskapsrader(klass, klassnamn, argument, utelamna, hojd):
-    """Egenskaperna som specen kraver, per klass. Varje varde las TILLBAKA i
-    svaret: det som star dar ar VC:s varde, inte det vi skickade."""
+    """Egenskaperna specen kraver, per klass, var och en som ett eget steg.
+
+    Varje varde las TILLBAKA: det som star i svaret ar VC:s varde, inte det vi
+    skickade. En egenskap som inte gar att satta bokfors i `steg` och stoppar
+    ingenting."""
     rader = []
+    barare = {"transportor": "bana", "buffert": "bana",
+              "matare": "skapare", "sanka": "behallare"}[klassnamn]
+    if barare == utelamna or (klassnamn in ("transportor", "buffert")
+                              and utelamna == "bana"):
+        return ["aterlast = {}", "barens_egenskaper = None"]
+
     if klassnamn in ("transportor", "buffert"):
-        if utelamna == "bana":
-            rader += ["path_length = None", "speed = None",
-                      "accumulate = None", "capacity = None"]
-            return rader
-        ramar = [k.nyckel for k in klass.ramar]
-        levande = [n for n in ramar if n != utelamna]
-        rader += ["bana.Path = [%s]" % ", ".join(levande),
-                  "bana.Speed = %s" % tal(float(argument.get("hastighet", 400.0)))]
+        levande = [k.nyckel for k in klass.ramar if k.nyckel != utelamna]
+        rader += _satt("Path", "bana", "Path", "[%s]" % ", ".join(levande))
+        rader += _satt("Speed", "bana", "Speed",
+                       tal(float(argument.get("hastighet", 400.0))))
         if klassnamn == "buffert":
-            rader += ["bana.Accumulate = True",
-                      "bana.Capacity = %d" % int(argument.get("kapacitet", 10))]
+            rader += _satt("Accumulate", "bana", "Accumulate", "True")
+            rader += _satt("Capacity", "bana", "Capacity",
+                           "%d" % int(argument.get("kapacitet", 10)))
         else:
-            rader.append("bana.Accumulate = %r"
-                         % bool(argument.get("ackumulera", False)))
+            rader += _satt("Accumulate", "bana", "Accumulate",
+                           "%r" % bool(argument.get("ackumulera", False)))
+        # MATT M-40 villkor 2: PathLength ar 0.0 tills BANBETEENDET
+        # uppdaterats. komponent.update() och sim.update() racker inte.
         rader += [
-            # MATT M-40 villkor 2: PathLength ar 0.0 tills BANBETEENDET
-            # uppdaterats. komponent.update() och sim.update() racker inte.
-            "bana.update()",
-            "path_length = bana.PathLength",
-            "speed = bana.Speed",
-            "accumulate = bool(bana.Accumulate)",
-            "capacity = bana.Capacity",
+            "def uppdatera_banan():",
+            "    bana.update()",
+            "    return bana.PathLength",
+            "ok, r = _steg(steg, %s, uppdatera_banan)" % lit("egenskap.update"),
         ]
-        return rader
-    if klassnamn == "matare":
-        if utelamna == "skapare":
-            rader += ["interval = None", "limit = None", "mallnamn = None",
-                      "enabled = None"]
-            return rader
-        rader += [
-            "skapare.Enabled = True",
-            "skapare.Interval = %s" % tal(float(argument.get("intervall", 3.0))),
-            # MATT D5: Limit satts ALLTID. Osatt gav noll produkter pa 6 s.
-            "skapare.Limit = %d" % int(argument.get("grans", 1000000)),
-            "mallnamn = None",
-        ]
+        rader += _las("Path", ['%s: bana.PathLength' % lit("path_length"),
+                               '%s: bana.Speed' % lit("speed"),
+                               '%s: bool(bana.Accumulate)' % lit("accumulate"),
+                               '%s: bana.Capacity' % lit("capacity")])
+    elif klassnamn == "matare":
+        rader += _satt("Enabled", "skapare", "Enabled", "True")
+        rader += _satt("Interval", "skapare", "Interval",
+                       tal(float(argument.get("intervall", 3.0))))
+        # MATT D5/M-40: Limit satts ALLTID. Osatt gav noll produkter pa 6 s.
+        rader += _satt("Limit", "skapare", "Limit",
+                       "%d" % int(argument.get("grans", 1000000)))
+        rader.append("mallnamn = None")
         if "mall" in argument:
             rader += [
                 "mall = app.findComponent(%s)" % lit(argument["mall"]),
                 "if mall is None:",
                 '    raise ValueError("mallkomponenten finns inte i scenen")',
-                "skapare.TemplateComponent = mall",
+            ]
+            rader += _satt("TemplateComponent", "skapare", "TemplateComponent",
+                           "mall")
+            rader += [
                 "if skapare.TemplateComponent is not None:",
                 "    mallnamn = skapare.TemplateComponent.Name",
             ]
-        rader += ["interval = skapare.Interval", "limit = skapare.Limit",
-                  "enabled = bool(skapare.Enabled)"]
-        return rader
-    if klassnamn == "sanka":
-        if utelamna == "behallare":
-            rader += ["capacity = None", "content_visible = None"]
-            return rader
-        rader += [
-            "behallare.Capacity = %d" % int(argument.get("kapacitet", 1000000)),
-            "behallare.ContentVisible = %r" % bool(argument.get("synlig", True)),
-            "capacity = behallare.Capacity",
-            "content_visible = bool(behallare.ContentVisible)",
-        ]
-        return rader
-    raise KeyError(klassnamn)
+        rader += _las("Creator", ['%s: skapare.Interval' % lit("interval"),
+                                  '%s: skapare.Limit' % lit("limit"),
+                                  '%s: bool(skapare.Enabled)' % lit("enabled"),
+                                  '%s: mallnamn' % lit("template")])
+    elif klassnamn == "sanka":
+        rader += _satt("Capacity", "behallare", "Capacity",
+                       "%d" % int(argument.get("kapacitet", 1000000)))
+        # REFUTERAT (M-101): ContentVisible star i api.xml pa vcContainer men
+        # finns inte pa det beteende VC_COMPONENTCONTAINER ger. Steget star
+        # kvar SOM MATNING -- faller det inte langre har bindningen andrats,
+        # och det vill vi se.
+        rader += _satt("ContentVisible", "behallare", "ContentVisible",
+                       "%r" % bool(argument.get("synlig", True)))
+        rader += _las("Sink", ['%s: behallare.Capacity' % lit("capacity")])
+    else:
+        raise KeyError(klassnamn)
+
+    # Vilka egenskaper det barande beteendet FAKTISKT har. Det ar beviset bakom
+    # varje refuterad rad, och det kostar ett anrop.
+    rader += [
+        "def las_barens_egenskaper():",
+        "    return _egenskaper(%s)" % barare,
+        "ok, barens_egenskaper = _steg(steg, %s, las_barens_egenskaper)"
+        % lit("aterlas.Properties"),
+    ]
+    return rader
 
 
 def _svarsrader(klass, klassnamn, namn, utelamna):
-    extra = {
-        "transportor": '"path_length": path_length, "speed": speed, '
-                       '"accumulate": accumulate, "capacity": capacity,',
-        "buffert": '"path_length": path_length, "speed": speed, '
-                   '"accumulate": accumulate, "capacity": capacity,',
-        "matare": '"interval": interval, "limit": limit, '
-                  '"template": mallnamn, "enabled": enabled,',
-        "sanka": '"capacity": capacity, "content_visible": content_visible,',
-    }[klassnamn]
     return [
         '_svara({"built": True, "klass": %s, "component": k.Name,' % lit(klassnamn),
         '        "utelamnat": %s,' % lit(utelamna) if utelamna else
         '        "utelamnat": None,',
-        '        %s' % extra,
+        '        "aterlast": aterlast, "behaviour_properties": barens_egenskaper,',
         '        "position": lage, "features": _ramnamn(k),',
         '        "behaviours": _beteenden(k), "interfaces": granssnitt,',
         '        "steg": steg})',
