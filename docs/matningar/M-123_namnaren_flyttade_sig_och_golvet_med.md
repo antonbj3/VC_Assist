@@ -75,3 +75,27 @@ hör hemma i baslinjearbetet (`docs/uppdrag/KO_B_banken_i_skala.md`). Den är
 värd att svara på: så länge elva av 26 uppgifter har en inverterad skala är
 varje procenttal ur påståenderäkningen ett medelvärde över två olika mätningar
 åt olika håll — precis den rad `M-62` redan skrev.
+
+## LIMITS
+
+* **Räkningen är en avstämning, inte en oberoende mätning.** Att
+  1634 + 55 + 58 = 1747 visar att rörelsen är hel och enbart de två nya
+  uppgifterna. Det visar **inte** att någon av de tre talen mäter rätt sak.
+  `M-62`:s rad står kvar: ett procenttal ur en påståenderäkning får aldrig bli
+  bankens huvudtal.
+* **Golvjämförelsen körs med baslinjen på `NIVA_SPEC`.** De två andra nivåerna
+  (`NIVA_MAGER`, `NIVA_PROSA`) är inte körda här. En uppgift kan mycket väl
+  ligga över sitt golv på en nivå och under på en annan, och det är omätt.
+* **`uppfyllda` är ett antal, inte en kvot.** Två domar med samma antal
+  uppfyllda påståenden kan uppfylla helt olika påståenden. Jämförelsen
+  baslinje-mot-nollprogram säger bara vem som uppfyller *fler*, aldrig *vilka*.
+* **Motbeviset mot docstringens förklaring är korrelationsfritt, inte kausalt.**
+  Att invariantantalet inte skiljer grupperna visar att förklaringen är
+  ofullständig. Det visar inte vad den rätta förklaringen är, och jag har inte
+  letat efter en.
+* **Elva av 26 med inverterad skala är inte mätt mot en orsak.** Listan är en
+  observation som skrivits ned, inte en förstådd egenskap. Så länge den växer
+  uppgift för uppgift är den en spärr, inte en kunskap.
+* **Uppgifternas facit skrevs av en annan agent samma förmiddag**, i samma träd,
+  medan andra körningar pågick. `L-01` och `P-03` är alltså nya och inte
+  oberoende granskade här.
