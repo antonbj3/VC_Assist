@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 589 punkter
+## Vad mätningarna säger att de inte vet: 594 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -136,6 +136,11 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Matchningsregelns ordning är vår, inte VC:s.** `canConnect` ger ett enda
 * R6, R7 och R8 är belagda, inte mätta.** Alla våra sektioner har exakt ett
 * `DistanceTolerance` mäts bara vid förvalet** (1e9 mm). Vad ett satt värde
+* Ramarna sammanföll i hela kedjan.** M-67:s öppna fråga — om material går
+* Bufferten buffrade aldrig.** `Accumulate=True` och `Capacity=10` sattes och
+* Sänkan tar emot — men töms aldrig.** Att ta bort en komponent kräver ett
+* Städningen efter körningen faller på en okänd orsak.** En slinga som tog
+* Fynd 3 är inte ett rättat fel.** `hypoteser.MATTA_KLASSNAMN` står kvar med
 
 ### M-102_modellagret_mot_riktiga_verktygssvar.md — LIMITS
 
@@ -158,7 +163,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Grinden kan inte se ett facit som är fel.** Den ser bara att facit kommer
 * Ett `under_prov` kan vara för smalt.** Ingen kontroll säger att modulerna
 * `kor_fas5.py`:s facit är svagt.** För de flesta verktygen är det rätta
-* Registret rör sig.** Sex körningar landade från andra agenter medan den
+* Registret rör sig, och fort.** Under den här mätningens kväll gick det
 * Tre filer var ospårade** när jag skrev i dem: `kor_tackning.py` och
 * Klassificeringstabellen ovan är en **ögonblicksbild**. Den räknas fram ur
 
