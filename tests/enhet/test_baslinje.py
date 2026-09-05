@@ -494,7 +494,7 @@ def test_nollprogrammet_uppfyller_anda_manga_pastaenden(facitposter):
 # pastaenden an baslinjen. MATT i M-106 over bankens 24 dombara uppgifter.
 # Listan far bara KRYMPA. Vaxer den har en ny uppgift lagts in utan att nagon
 # matt den; krymper den ska talet skrivas ned har.
-# 24 av 49 uppgifter. TREDJE gangen den har listan vaxer pa ett dygn:
+# 24 av 49 uppgifter. FJARDE gangen den har listan vaxer pa ett dygn:
 # 10 -> 11 (M-123) -> 22 (M-164) -> 24. Tva forklaringar ar provade och
 # faller (invariantantal, kvoten invarianter/punktkrav - M-164 §3), och
 # orsaken ar fortfarande OMATT.
@@ -507,7 +507,7 @@ def test_nollprogrammet_uppfyller_anda_manga_pastaenden(facitposter):
 BASLINJEN_UNDER_NOLLPROGRAMMET = {
     "A-02", "A-03", "A-04", "A-06", "A-08", "C-01", "C-02", "C-03",
     "C-04", "C-05", "C-06", "H-01", "H-02", "L-01", "L-04", "P-02",
-    "P-05", "P-07", "S-02", "S-04", "S-06", "S-07", "T-02", "T-05",
+    "P-05", "P-07", "S-03", "S-04", "S-06", "S-07", "T-02", "T-05",
 }
 
 

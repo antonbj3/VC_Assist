@@ -20,7 +20,7 @@ import re
 import pytest
 
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
-_README = os.path.join(_ROT, "README.md")
+_README = os.path.join(_ROT, "docs/ARBETSLAGET.md")
 _FASER = os.path.join(_ROT, "docs", "spec", "70_faser.md")
 
 # Bara de ord specen SJALV anvander for att forklara en fas fardig. Forsta
@@ -124,7 +124,7 @@ def _pyfiler(*kataloger):
 
 
 def test_readme_beskriver_ett_repo_med_kod_i():
-    """README.md: 'Specifikationsfas. Ingen kod byggd ännu.' S7 mätte att
+    """docs/ARBETSLAGET.md: 'Specifikationsfas. Ingen kod byggd ännu.' S7 mätte att
     källprojektets README låg 71 dagar efter koden och påstod funktioner som
     inte fanns. Här påstår den frånvaron av kod som finns."""
     rader = sum(len(open(p, encoding="utf-8").readlines())
@@ -132,7 +132,7 @@ def test_readme_beskriver_ett_repo_med_kod_i():
     with open(_README, encoding="utf-8") as f:
         text = f.read()
     assert "Ingen kod byggd ännu" not in text, (
-        "README.md säger 'Ingen kod byggd ännu' medan repot bär %d rader "
+        "docs/ARBETSLAGET.md säger 'Ingen kod byggd ännu' medan repot bär %d rader "
         "Python i ext/, svc/ och bank/" % rader)
 
 
