@@ -91,3 +91,21 @@ def test_pump_genererar_slumpmassig_sessionstoken(tmp_path):
     b2 = pump.Brygga(tokenfil=str(tmp_path / "t2"))
     b2._skriv_token()
     assert b.token != b2.token
+
+
+def test_varje_felkod_i_protokollet_provas_av_minst_ett_test():
+    """Kontraktstestet i 95_testprotokoll.md kräver alla elva."""
+    import re
+    rot = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    koder = re.findall(r"^(E_[A-Z_]+) = ", 
+                       open(os.path.join(rot, "ext", "vc_addon", "vc_assist",
+                                         "protokoll.py"), encoding="utf-8").read(),
+                       re.M)
+    assert len(koder) == 11, koder
+    kat = os.path.join(rot, "tests", "enhet")
+    text = "".join(open(os.path.join(kat, f), encoding="utf-8").read()
+                   for f in sorted(os.listdir(kat)) if f.endswith(".py"))
+    oprovade = [k for k in koder if not re.search(r"\b%s\b" % k, text)]
+    assert not oprovade, ("felkoder som inget enhetstest nämner: %s"
+                          % ", ".join(oprovade))
+
