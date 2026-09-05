@@ -178,12 +178,14 @@ värdet inom 4 scan, tolken kräver exakt scan). En mildare regel som ändå fä
 sju gånger fler punktkrav betyder att spåren har gått isär före punkten, inte
 att punkten lästes strängare.
 
-## 4. Varför: två mekanismer, båda mätta, båda i DOMAREN och inte i motorerna
+## 4. Varför: tre mekanismer, alla mätta, alla i DOMAREN och inte i motorerna
 
 Att `flank:*` bär oenigheten var svaret på *var*. Proben
 (`docs/matningar/radata/m153_flankprob.py`) svarar på *varför*: den kör en
 signal genom båda domarnas egna slingor och skriver ut vid vilka millisekunder
-var och en ser flanken, bredvid facits fönster.
+var och en ser flanken, bredvid facits fönster. Tre mekanismer föll ut, och
+**ingen av dem är en oenighet mellan motorerna** — alla tre ligger i hur de två
+domarna läser ett spår.
 
 ### 4a. Toleransen töjer flankfönstret åt ett håll
 
@@ -212,9 +214,23 @@ Det är formen `en-parameter-som-bar-tva-storheter`: `TOLERANS_SCAN` bär både
 *"en sen flank ska ändå räknas"* och *"en flank efter fönstret ska inte
 räknas"*, och de två drar åt olika håll.
 
-### 4b. Den första scanens flank finns i PLC:n och inte i tolken
+### 4b. De två domarna ger logiken olika STARTVILLKOR
 
-P-03:s referens fälls på två `flank:… antal=1`-krav. Proben visar varför:
+`domare_openplc._kor_sekvens` gör så här före varje sekvens: nollställer alla
+insignaler, **sover 150 ms** (`SETTLE_S`), läser tillbaka och kontrollerar
+kanalen, och startar sedan klockan. PLC:n har alltså kört minst 150 ms — sju
+scan — med alla ingångar tvingade till noll innan spåret börjar. Och sekvensens
+`t=0`-stimuli skrivs i körslingans **första varv**, varefter provet tas
+omedelbart; logiken har inte hunnit svara (M-20: två scan) förrän vid scan 2.
+
+`domare.py` startar i stället en ny `Tolk`, sätter `t=0`-stimuli och kör ett
+scan. Vid dess scan 0 har logiken **redan** sett stimulit.
+
+Två spår som börjar i olika tillstånd. Allt logiken gör under
+noll-ingångs-förspelet hör till OpenPLC-domarens startvillkor och finns inte
+alls i tolkens. Det syns åt båda hållen:
+
+**En flank för mycket.** P-03:s referens fälls på två `flank:… antal=1`-krav:
 
 ```
 TOLK  ST120_RB_CLEAR RISE vid [18000.0]
@@ -223,15 +239,30 @@ RA    forsta 6 rasamplen: [(2.3,False),(13.3,False),(24.4,False),
 OPLC  ST120_RB_CLEAR RISE vid [20.0, 18040.0]
 ```
 
-Utgången är **verkligen** låg de första två scanen efter omstart och går hög
-efter ~35 ms. Det är en riktig flank i en riktig PLC: vid spänningspåslag är
-bildtabellen noll, och logiken behöver sina två scan (M-20) för att räkna fram
-det första värdet. `domare.py` kan inte se den, för dess "föregående värde"
-sätts **efter** första scanet — uppstartsövergången finns inte i tolkens
-modell. OpenPLC-domaren ser den och räknar den, och `antal=1` blir 2.
+Utgången är verkligen låg de första två scanen och går hög efter ~35 ms — precis
+svarstiden. Det är en riktig flank i en riktig PLC. Tolken kan inte se den:
+dess "föregående värde" sätts efter första scanet, och övergången finns inte i
+modellen. `antal=1` blir 2.
 
-Ingen av de två läsningarna är felaktig. De **ställer olika frågor** om de
-första två scanen, och facit skrevs mot den ena.
+**En flank för lite.** C-04:s referens fälls på det motsatta —
+`ST420_STA_SAFE skulle ha 1 RISE-flank(er) mellan 0 och 600 ms …, hade 0`.
+Signalen var redan hög vid scan 0, för logiken hann bekräfta säkert läge under
+förspelet. Flanken hände; den hände bara före klockan.
+
+**Och samma startvillkor fäller invarianter.** C-04:s två övriga brister lyder
+ordagrant *"vid t=0 ms gällde ST420\_STA\_SAFE=1 men inte ST420\_GRP\_CLOSE=1
+i 5 scan i rad"* och likadant för `ST420_STA_STEP=4`. Villkoret är alltså
+uppfyllt från allra första scanet — ur förspelet — medan kravet ännu inte hunnit
+bli sant. Tolken, vars invariantregel är den **strängare** (den fäller på
+första scanet, OpenPLC-domaren först efter fem i rad), säger GRÖN, för i dess
+spår gäller villkoret aldrig så tidigt.
+
+Det är värt att stanna vid: **den strängare regeln fäller inte, och den mildare
+gör det.** Skillnaden ligger inte i regeln utan i vad som står i spårets första
+scan, och det är därför den inte går att kompensera bort med en tolerans.
+
+Ingen av de två läsningarna är felaktig. De ställer **olika frågor** om
+sekvensens början, och facit skrevs mot den ena.
 
 ### 4c. Den intermittenta enskansglitchen — och att provtagningen inte håller sin egen takt
 
@@ -287,16 +318,33 @@ felkälla där det inte mäts är samma parameter använd till två storheter.
 ## 5. Är instabiliteten maskinens last eller domarens?
 
 Svepet kördes med tolv arbetare på en maskin som delas med tre andra sessioner
-och operatörens skrivbord. En rimlig invändning är att instabiliteten är min
-egen parallellitet. Den prövades med två omprov av **samma 13 enheter**, båda
-med n = 3:
+och operatörens skrivbord. Den rimliga invändningen är att instabiliteten är min
+egen parallellitet. Den prövades med **två omprov av samma 13 enheter**, båda
+med n = 3, och de jämförs med varandra och inte med svepet (urvalet är inte
+oberoende — se LIMITS):
 
-| arm | last | instabila igen |
+| omprov | last | instabila igen |
 |---|---|---|
-| omprov, 12 arbetare | samma som svepet | **4 av 13** |
-| omprov, 1 arbetare | ingen annan A3-last | (fylls i) |
+| 12 arbetare | samma som svepet | **4 av 13** |
+| 1 arbetare | ingen annan A3-last | **4 av 13** |
 
-(fylls i)
+Samma tal. Och det är inte samma fyra enheter: L-01 och S-01:s motbevis
+vacklade bara i det parallella omprovet, P-07:s och T-05:s bara i det seriella.
+Det ser ut som en slumpprocess med ungefär konstant intensitet, inte som något
+lasten driver.
+
+Provtagningstakten pekar åt samma håll. Samma text, samma signal:
+
+| last | median mellan prov | prov per 20 ms scan |
+|---|---|---|
+| 12 arbetare | 11,77 ms | 1,70 |
+| ingen A3-last | 11,75 ms | 1,70 |
+
+De 1,75 ms över `POLL_S` är alltså inte maskinens belastning utan
+OPC UA-batchläsningen själv. **Instabiliteten är domarens och motorns egen, inte
+riggens.** Att `T-04/referens` bytte dom (GRÖN–RÖD–GRÖN) även i det seriella
+omprovet är den skarpaste enskilda observationen: en ensam runtime på en
+obelastad maskin ger fortfarande två olika domar om samma text.
 
 ## 6. Det strukturella undantaget: `tolkfel:*`
 
