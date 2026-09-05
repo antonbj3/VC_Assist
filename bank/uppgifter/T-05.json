@@ -261,5 +261,765 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: tiderna ur stationens egna matt. Kretskortet ar 233 mm langt och bandet gar 0,35 m/s, sa kortet passerar narvarogivaren pa 233/350 = 0,666 s; takten ar 12,0 s per kort och aterstarten efter atervant material ska ske inom 2,0 s, alltsa under en sjattedel av takten. Rakningen star i M-106.",
+    "standard": "IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" kraver att aterstallningen efter nodstopp ar en avsiktlig manuell handling och att aterstallningen inte i sig far starta om (\"the reset shall not initiate a restart\"), och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\" sager samma sak om sjalva donet; den har stationens signalkarta bar inget nodstopp, men samma regel styr larmet: SYS_ALARM latchas och slapper bara pa en manuell handling, att stationen tas ur och tillbaka i automatlage. Tidsovervakningen ar en TON och flankdetekteringen pa automatlaget en R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (R_TRIG i 6.6.3.5.3 tabell 44, TON i 6.6.3.5.5 tabell 46). Svalt ar INGET fel och far darfor aldrig larma: materialbrist uppstroms ar ett vantlage som slapper av sig sjalvt nar materialet kommer tillbaka, och det ar stationens egen regel och ingen standardparagraf.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nIF ST050_MAG_LEVEL > 60 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\nIF tmrNarvaro.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "takten_12_sekunder",
+        "beskrivning": "Tva kort i takt 12,0 s med fyllt magasin. Inget larm och inget vantlage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST050_MAG_LEVEL": 40,
+              "ST050_MAG_EMPTY": false,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": false,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan automatlage star stationen still, och inget larm har gatt: en station som just fatt spanning har inget fel"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "material finns uppstroms, sa bandet hamtar nasta kort"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_CNV_RUN": false,
+              "ST050_STA_STARVED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "nar kortet ar pa plats stannar bandet och stationen borjar arbeta; ett band som fortsatter ga drar undan kortet under stationen"
+          },
+          {
+            "t_ms": 10800,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_STA_DONE": false
+            },
+            "varfor": "arbetstiden 10,0 s ar inte slut; kortet ar inte fardigt an"
+          },
+          {
+            "t_ms": 11200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_DONE": true,
+              "ST050_STA_BUSY": false,
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "kortet ar fardigt och slapps ut, och bandet gar igen for att hamta nasta"
+          },
+          {
+            "t_ms": 11700,
+            "satt": {
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 13000,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 13200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_CNV_RUN": false,
+              "ST050_STA_STARVED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "nasta kort ar framme 12,0 s efter det forra, alltsa i takt, och stationen arbetar igen utan att nagot larm gatt"
+          }
+        ]
+      },
+      {
+        "id": "svalt_ar_inget_fel",
+        "beskrivning": "Magasinet tar slut mitt i ett kort. Stationen gor klart, gar till vantlage och startar om sjalv nar materialet kommer tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST050_MAG_LEVEL": 40,
+              "ST050_MAG_EMPTY": false,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": false,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan automatlage star stationen still, och inget larm har gatt: en station som just fatt spanning har inget fel"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "kortet ar pa plats och stationen arbetar"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST050_MAG_EMPTY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_STA_STARVED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "materialbrist uppstroms far inte avbryta det kort stationen redan har, och svalt ar inget fel: samlingslarmet ska sta kvar lagt"
+          },
+          {
+            "t_ms": 10800,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "stationen gor klart kortet den har innan den gar till vantlage"
+          },
+          {
+            "t_ms": 11200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_DONE": true,
+              "ST050_STA_BUSY": false,
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "kortet blir fardigt och slapps ut aven om magasinet ar tomt"
+          },
+          {
+            "t_ms": 11700,
+            "satt": {
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11900,
+            "satt": {},
+            "krav": {
+              "ST050_STA_STARVED": true,
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "nu ar bade stationslaget och magasinet tomt: stationen gar till vantlage och sager ifran med ST050_STA_STARVED, men SYS_ALARM forblir lag - det ar hela uppgiften"
+          },
+          {
+            "t_ms": 13000,
+            "satt": {},
+            "krav": {
+              "ST050_STA_STARVED": true,
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "vantlaget haller sig; det drar varken ett larm eller slapper av sig sjalvt sa lange materialet ar borta"
+          },
+          {
+            "t_ms": 14000,
+            "satt": {
+              "ST050_MAG_EMPTY": false,
+              "ST050_MAG_LEVEL": 25
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "ST050_STA_STARVED": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "aterstarten sker utan operatorsingrepp och inom 2,0 s, alltsa under en sjattedel av takten 12,0 s; ST050_STA_STARVED star kvar tills kortet ar framme, sa uppstroms vet att stationen fortfarande vantar"
+          },
+          {
+            "t_ms": 14800,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14900,
+            "satt": {},
+            "krav": {
+              "ST050_STA_STARVED": false,
+              "ST050_STA_BUSY": true,
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "nar kortet natt stationslaget nollstalls vantlaget och stationen arbetar igen; slapps vantlaget redan nar magasinet fylls tror uppstroms att stationen har material den annu inte fatt"
+          }
+        ]
+      },
+      {
+        "id": "magasinsnivan_noll_ar_ocksa_svalt",
+        "beskrivning": "ST050_MAG_LEVEL faller till 0 medan ett kort ligger i stationslaget.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST050_MAG_LEVEL": 40,
+              "ST050_MAG_EMPTY": false,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": false,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan automatlage star stationen still, och inget larm har gatt: en station som just fatt spanning har inget fel"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST050_MAG_LEVEL": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_BUSY": true,
+              "ST050_STA_STARVED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "noll kort kvar i magasinet ar samma sak som materialbrist och inget fel; kortet i stationen gors klart"
+          },
+          {
+            "t_ms": 11200,
+            "satt": {},
+            "krav": {
+              "ST050_STA_DONE": true,
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "kortet blir fardigt aven om magasinet ar tomrapporterat"
+          },
+          {
+            "t_ms": 11700,
+            "satt": {
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11900,
+            "satt": {},
+            "krav": {
+              "ST050_STA_STARVED": true,
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "stationen gar till vantlage pa en tom magasinsniva precis som pa ST050_MAG_EMPTY, och samlingslarmet forblir lagt"
+          }
+        ]
+      },
+      {
+        "id": "givarfel_over_magasinets_rymd",
+        "beskrivning": "ST050_MAG_LEVEL visar 250 kort, over magasinets fysiska rymd om 60.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST050_MAG_LEVEL": 40,
+              "ST050_MAG_EMPTY": false,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": false,
+              "ST050_STA_DONE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan automatlage star stationen still, och inget larm har gatt: en station som just fatt spanning har inget fel"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "40 kort i magasinet ar ett rimligt varde och stationen kor"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST050_MAG_LEVEL": 250
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false
+            },
+            "varfor": "magasinet rymmer 60 kort; 250 ar ingen niva utan ett givarfel, och ett givarfel ar ett verkligt fel som ska larma och stanna stationen - till skillnad fran svalt"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST050_MAG_LEVEL": 40
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_CNV_RUN": false
+            },
+            "varfor": "ett larm som slapper av sig sjalvt nar orsaken forsvinner har ingen sett; larmet ar latchat tills nagon kvitterar"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "SYS_AUTO": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "forst en manuell handling - stationen ur och tillbaka i automatlage - tar bort larmet och startar stationen"
+          }
+        ]
+      },
+      {
+        "id": "materialet_kommer_aldrig_fram",
+        "beskrivning": "Bandet startar efter svalt men inget kort nar stationslaget, trots att magasinet sager att material finns.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "SYS_AUTO": false,
+              "ST050_MAG_LEVEL": 40,
+              "ST050_MAG_EMPTY": true,
+              "ST050_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_AUTO": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST050_STA_STARVED": true,
+              "ST050_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "magasinet ar tomt redan fran start: stationen gar till vantlage utan att larma"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST050_MAG_EMPTY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true,
+              "SYS_ALARM": false,
+              "ST050_STA_STARVED": true
+            },
+            "varfor": "materialet ar tillbaka och bandet startar inom 2,0 s utan operatorsingrepp; vantlaget star kvar tills kortet ar framme"
+          },
+          {
+            "t_ms": 5800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST050_CNV_RUN": true,
+              "ST050_STA_BUSY": false
+            },
+            "varfor": "4,8 s efter att bandet startade har tidsgransen 5,0 s inte lopt ut; ett kort som bara ar pa vag tar 233/350 = 0,666 s over givaren och far inte larma"
+          },
+          {
+            "t_ms": 6200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST050_CNV_RUN": false,
+              "ST050_STA_BUSY": false,
+              "ST050_STA_STARVED": true
+            },
+            "varfor": "magasinet sager att material finns men inget kort har natt stationslaget pa 5,0 s; da har nagot fastnat mellan magasin och station och det ar ett verkligt fel. Stationen star kvar i vantlage och borjar inte arbeta pa antagandet att kortet ar pa plats"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "svalt_larmar_inte",
+        "sekvens": "svalt_ar_inget_fel",
+        "nar": {
+          "ST050_STA_STARVED": true
+        },
+        "kraver": {
+          "SYS_ALARM": false
+        },
+        "varfor": "hela uppgiften: sa lange stationen bara vantar pa material far samlingslarmet inte ga. Ett larm har stannar hela linan, tvingar operatoren att kvittera nagot som aldrig var ett fel och gor tillgangligheten fel matt resten av skiftet"
+      },
+      {
+        "namn": "materialbrist_larmar_inte",
+        "sekvens": "magasinsnivan_noll_ar_ocksa_svalt",
+        "nar": {
+          "ST050_MAG_EMPTY": false,
+          "ST050_MAG_LEVEL": 0
+        },
+        "kraver": {
+          "SYS_ALARM": false
+        },
+        "varfor": "en magasinsniva pa noll ar materialbrist och inget givarfel; skillnaden mot 250 kort ar att noll ar ett lage magasinet faktiskt kan sta i"
+      },
+      {
+        "namn": "inget_arbete_utan_kort",
+        "sekvens": "*",
+        "nar": {
+          "ST050_STA_BUSY": true
+        },
+        "kraver": {
+          "ST050_PRT_PRS": true
+        },
+        "varfor": "stationen far inte borja arbeta pa antagandet att kortet ar pa plats; en skruvdragare som gar ner i tomma luften missar bade skruv och kort"
+      },
+      {
+        "namn": "bandet_star_still_medan_stationen_arbetar",
+        "sekvens": "*",
+        "nar": {
+          "ST050_STA_BUSY": true
+        },
+        "kraver": {
+          "ST050_CNV_RUN": false
+        },
+        "varfor": "ett band som gar medan stationen arbetar drar undan kortet mitt i operationen"
+      },
+      {
+        "namn": "larmet_stoppar_stationen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST050_CNV_RUN": false,
+          "ST050_STA_BUSY": false
+        },
+        "varfor": "ett larm som lamnar bandet igang och stationen arbetande ar ett larm ingen behover bry sig om"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "inget_larm_pa_svalt",
+        "sekvens": "svalt_ar_inget_fel",
+        "signal": "SYS_ALARM",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 15000,
+        "antal": 0,
+        "varfor": "hela sekvensen ar en materialbrist fran borjan till slut; SYS_ALARM far inte ga hog en enda gang. Det ar den mekaniska domen over skillnaden mellan svalt och fel"
+      },
+      {
+        "namn": "ett_vantlage_per_svalt",
+        "sekvens": "svalt_ar_inget_fel",
+        "signal": "ST050_STA_STARVED",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 15000,
+        "antal": 1,
+        "varfor": "stationen ska ga till vantlage exakt en gang, nar stationslaget tomts; en signal som fladdrar far uppstroms att starta och stanna i takt med bruset"
+      },
+      {
+        "namn": "ett_klarbesked_per_kort",
+        "sekvens": "svalt_ar_inget_fel",
+        "signal": "ST050_STA_DONE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 15000,
+        "antal": 1,
+        "varfor": "det kort stationen hade nar magasinet tog slut ska bli fardigt, alltsa exakt ett klarbesked; noll betyder att stationen avbrot ett pabörjat kort pa materialbrist"
+      },
+      {
+        "namn": "bandet_startar_om_efter_svalt",
+        "sekvens": "svalt_ar_inget_fel",
+        "signal": "ST050_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 13500,
+        "till_ms": 15000,
+        "antal": 1,
+        "varfor": "nar materialet kommer tillbaka ska bandet starta om sjalvt, utan kvittens och utan operatorsingrepp"
+      },
+      {
+        "namn": "inget_larm_i_normaldrift",
+        "sekvens": "takten_12_sekunder",
+        "signal": "SYS_ALARM",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 13400,
+        "antal": 0,
+        "varfor": "tva kort i takt ska inte ge ett enda larm"
+      },
+      {
+        "namn": "en_arbetsperiod_per_kort",
+        "sekvens": "takten_12_sekunder",
+        "signal": "ST050_STA_BUSY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 13400,
+        "antal": 2,
+        "varfor": "tva kort ska ge tva arbetsperioder; en tredje betyder att stationen borjat om pa samma kort"
+      },
+      {
+        "namn": "ett_larm_per_givarfel",
+        "sekvens": "givarfel_over_magasinets_rymd",
+        "signal": "SYS_ALARM",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2400,
+        "antal": 1,
+        "varfor": "givarfelet ska ge ett latchat larm som star kvar tills nagon kvitterar; ett larm som gar upp och ner flera ganger ar ett larm som speglar orsaken i stallet for att latchas"
+      },
+      {
+        "namn": "ett_larm_nar_kortet_uteblir",
+        "sekvens": "materialet_kommer_aldrig_fram",
+        "signal": "SYS_ALARM",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 6400,
+        "antal": 1,
+        "varfor": "att inget kort kommer fram trots att magasinet sager att material finns ar ett verkligt fel och ska larma exakt en gang - till skillnad fran svalt, som inte larmar alls"
+      },
+      {
+        "namn": "inget_arbete_utan_kort_i_laget",
+        "sekvens": "materialet_kommer_aldrig_fram",
+        "signal": "ST050_STA_BUSY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 6400,
+        "antal": 0,
+        "varfor": "inget kort har natt stationslaget, sa stationen far inte borja arbeta en enda gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "svalt_larmar",
+        "st": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nIF ST050_MAG_LEVEL > 60 THEN\n    xLarm := TRUE;\nEND_IF;\nIF xTomt THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\nIF tmrNarvaro.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stationen skiljer inte pa svalt och fel: materialbrist drar samlingslarmet. Nar magasinet tommer sig gar larmet, hela linan stannar och operatoren far kvittera ett fel som aldrig fanns, trots att stationen bara skulle ha vantat.",
+        "faller_pa": [
+          "flank:inget_larm_pa_svalt",
+          "svalt_ar_inget_fel@2200ms:SYS_ALARM",
+          "svalt_ar_inget_fel@11900ms:ST050_STA_STARVED",
+          "materialet_kommer_aldrig_fram@400ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "avbryter_kortet_vid_materialbrist",
+        "st": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nIF ST050_MAG_LEVEL > 60 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\nIF tmrNarvaro.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF xTomt THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_STARVED := TRUE;\n                steg := 0;\n            ELSIF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Stationen gar till vantlage i samma stund magasinet tommer sig, mitt i det kort den hade under verktyget. Kortet lamnar stationen halvfardigt och ingen signal sager att det inte blev klart.",
+        "faller_pa": [
+          "svalt_ar_inget_fel@2200ms:ST050_STA_BUSY",
+          "svalt_ar_inget_fel@10800ms:ST050_STA_BUSY",
+          "svalt_ar_inget_fel@11200ms:ST050_STA_DONE",
+          "flank:ett_klarbesked_per_kort"
+        ]
+      },
+      {
+        "namn": "vantlaget_slapper_pa_magasinet_i_stallet_for_pa_kortet",
+        "st": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nIF ST050_MAG_LEVEL > 60 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\nIF tmrNarvaro.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n                ST050_STA_STARVED := FALSE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST050_STA_STARVED nollstalls sa fort magasinet sager att material finns igen, alltsa innan kortet natt stationslaget. Uppstroms tror da att stationen ar bemannad med material medan den fortfarande star tom och vantar.",
+        "faller_pa": [
+          "svalt_ar_inget_fel@14100ms:ST050_STA_STARVED",
+          "materialet_kommer_aldrig_fram@1100ms:ST050_STA_STARVED"
+        ]
+      },
+      {
+        "namn": "larmet_slapper_av_sig_sjalvt",
+        "st": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nxLarm := (ST050_MAG_LEVEL > 60);\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\nIF tmrNarvaro.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "SYS_ALARM speglar givarvardet direkt i stallet for att latchas. Nar magasinsgivaren kommer tillbaka i sitt arbetsomrade forsvinner larmet av sig sjalvt och stationen startar utan att nagon sett vad som hant.",
+        "faller_pa": [
+          "givarfel_over_magasinets_rymd@1600ms:SYS_ALARM",
+          "givarfel_over_magasinets_rymd@1600ms:ST050_CNV_RUN"
+        ]
+      },
+      {
+        "namn": "borjar_arbeta_utan_kort",
+        "st": "PROGRAM ST050_SVALTHANTERING\nVAR\n    steg        : INT := 0;\n    trigAuto    : R_TRIG;\n    tmrArbete   : TON;\n    tmrNarvaro  : TON;\n    xArbetar    : BOOL := FALSE;\n    xVantarKort : BOOL := FALSE;\n    xTomt       : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\nEND_VAR\n\ntrigAuto(CLK := SYS_AUTO);\n\n(* Svalt ar INGET fel. Materialbrist uppstroms ar ett vantlage: stationen sager\n   ifran med ST050_STA_STARVED och lamnar samlingslarmet lagt. Ett larm pa\n   materialbrist stannar hela linan, operatoren far kvittera nagot som aldrig\n   var ett fel, och tillgangligheten mats fel resten av skiftet. *)\nxTomt := ST050_MAG_EMPTY OR (ST050_MAG_LEVEL <= 0);\n\n(* Magasinet rymmer 60 kort. Ett varde over rymden ar ett GIVARFEL och alltsa\n   ett verkligt fel: det ar inte gott om material, det ar en givare som ljuger. *)\nIF ST050_MAG_LEVEL > 60 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Bandet gar men inget kort har natt stationslaget trots att magasinet sager\n   att material finns: nagot har fastnat mellan magasin och station. Kortet ar\n   233 mm och bandet gar 0,35 m/s, sa ett kort passerar narvarogivaren pa\n   233/350 = 0,666 s; 5,0 s ar over sju ganger sa lang och kan inte forvaxlas\n   med ett kort som bara ar pa vag. *)\nxVantarKort := ST050_CNV_RUN AND NOT ST050_PRT_PRS AND NOT xTomt;\ntmrNarvaro(IN := xVantarKort, PT := T#5s);\n(* Larmet ar latchat och slapper bara pa en manuell handling: stationen ur och\n   tillbaka i automatlage. Vantlaget slapper daremot av sig sjalvt nar\n   materialet kommer tillbaka och kraver ingen kvittens alls. *)\nIF trigAuto.Q THEN\n    xLarm := FALSE;\nEND_IF;\nSYS_ALARM := xLarm;\n\n(* Arbetstiden 10,0 s plus kortbytet cirka 2,0 s ger takten 12,0 s per kort. *)\nxArbetar := (steg = 1);\ntmrArbete(IN := xArbetar, PT := T#10s);\n\nIF NOT SYS_AUTO OR xLarm THEN\n    ST050_CNV_RUN := FALSE;\n    ST050_STA_BUSY := FALSE;\n    ST050_STA_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST050_STA_BUSY := FALSE;\n            ST050_STA_DONE := FALSE;\n            IF ST050_PRT_PRS OR tmrNarvaro.Q THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := FALSE;\n                steg := 1;\n            ELSIF xTomt THEN\n                ST050_CNV_RUN := FALSE;\n                ST050_STA_STARVED := TRUE;\n            ELSE\n                ST050_CNV_RUN := TRUE;\n            END_IF;\n        1:\n            ST050_STA_BUSY := TRUE;\n            IF tmrArbete.Q THEN\n                ST050_STA_BUSY := FALSE;\n                ST050_STA_DONE := TRUE;\n                ST050_CNV_RUN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST050_PRT_PRS THEN\n                ST050_STA_DONE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Nar kortet drojer antar stationen efter fem sekunder att det ar pa plats och borjar arbeta i stallet for att larma. Verktyget gar ner i tomma luften, och det fel som fanns mellan magasin och station blir aldrig upptackt.",
+        "faller_pa": [
+          "materialet_kommer_aldrig_fram@6200ms:SYS_ALARM",
+          "materialet_kommer_aldrig_fram@6200ms:ST050_STA_BUSY",
+          "flank:inget_arbete_utan_kort_i_laget",
+          "flank:ett_larm_nar_kortet_uteblir",
+          "invariant:inget_arbete_utan_kort@materialet_kommer_aldrig_fram"
+        ]
+      }
+    ]
+  }
 }

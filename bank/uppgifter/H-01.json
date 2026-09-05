@@ -33,6 +33,11 @@
       "vad": "mottagningslagets langd",
       "varde": "400 mm",
       "motiv": "vald som bandbredden, sa att modulen ryms med marginal; matten ar antagna"
+    },
+    {
+      "vad": "uppehallet ST300, modulens passage over reflexfotocellen",
+      "varde": "0,60 s",
+      "motiv": "RAKNAT ur scenens egna matt: modulen ar 180 mm lang och bandet gar 0,30 m/s, sa 180/300 = 0,60 s. Talet stod tidigare som 0,50 s i control.timing utan harkomst och stamde da inte med bandets egen hastighet; ratt till 0,60 s i M-106"
     }
   ],
   "fysik": {
@@ -185,7 +190,7 @@
     "timing": {
       "dwell_s": {
         "ST290": 0.35,
-        "ST300": 0.5
+        "ST300": 0.6
       },
       "cycle_s": 5.0,
       "tolerance_s": 0.05
@@ -291,5 +296,596 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: tiderna kommer ur overlamningens egna matt. Modulen ar 180 mm lang och bandet gar 0,30 m/s, sa modulen passerar reflexfotocellen pa 180/300 = 0,60 s, vilket ar uppehallet ST300 i uppgiftens timing. Griparens oppningstid 0,35 s ar katalogindexets anslag_s for den tvabackade pneumatiska griparen och ar uppehallet ST290. Takten 5,0 s per modul ar 3600/5,0 = 720 moduler i timmen. Handskakningens fyra steg ar stationsgranssnittets egen form och inte hamtade ur en standard. Rakningen star i M-106.",
+    "standard": "Handskakningen i fyra steg (begaran, kvittens, klar, aterstallning) ar stationsgranssnittets egen form; den ar INTE hamtad ur en publicerad standard och facit sager det hellre an gissar en paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4; R_TRIG for flankdetektering och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrAck.Q OR tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                ST300_CNV_RUN := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                ST290_GRP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST290_HS_RST := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "tva_moduler_med_full_handskakning",
+        "beskrivning": "Tva moduler lamnas over i takt, med alla fyra steg i handskakningen och en fullstandig nollstallning mellan dem.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false,
+              "ST290_GRP_OPENED": false,
+              "ST300_PEC_RCV": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST300_CNV_RUN": true,
+              "ST290_HS_REQ": false,
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "sa lange ingen begaran ligger gar bandet och for undan foregaende modul; roboten ar pa vag med nasta"
+          },
+          {
+            "t_ms": 3580,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": true,
+              "ST300_CNV_RUN": false,
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "steg 1, begaran. Bandet ska sta still innan kvittensen ges; en kvittens fran ett band i rorelse ar ett besked om nagot annat an det roboten fragar om. Griparen ror sig inte pa den egna begaran."
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST300_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": true,
+              "ST300_CNV_RUN": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "steg 2, kvittens. Forst nu far griparen oppna, och bandet star kvar stilla medan modulen laggs ned"
+          },
+          {
+            "t_ms": 3960,
+            "satt": {
+              "ST290_GRP_OPENED": true,
+              "ST300_PEC_RCV": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4100,
+            "satt": {
+              "ST300_HS_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4200,
+            "satt": {},
+            "krav": {
+              "ST290_HS_RST": true,
+              "ST290_GRP_OPEN": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "steg 3 och 4. Klarsignalen kommer nar fotocellen sett modulen, och forst da drar roboten undan griparen och nollstaller. Bandet star fortfarande still: modulen far inte dras undan medan griparen ar kvar over den."
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4460,
+            "satt": {
+              "ST290_GRP_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4560,
+            "satt": {},
+            "krav": {
+              "ST300_CNV_RUN": true,
+              "ST290_HS_REQ": false,
+              "ST290_HS_RST": false,
+              "ST290_GRP_OPEN": false
+            },
+            "varfor": "bandet startar forst nar bada bandsignalerna ar nollstallda, och roboten slapper sin begaran i samma steg sa att nasta modul inte kan arva den forras kvittens"
+          },
+          {
+            "t_ms": 5000,
+            "satt": {
+              "ST300_PEC_RCV": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5200,
+            "satt": {},
+            "krav": {
+              "ST300_CNV_RUN": true,
+              "ST290_HS_REQ": false
+            },
+            "varfor": "modulen ar 180 mm och bandet gar 0,30 m/s, sa efter 180/300 = 0,60 s har den passerat reflexfotocellen och mottagningslaget ar ledigt igen"
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": true,
+              "ST300_CNV_RUN": false,
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "nasta modul begar over pa nytt, en hel takt senare; kvittensen fran forra overlamningen ar borta sa griparen star still tills bandet kvitterat igen"
+          },
+          {
+            "t_ms": 8100,
+            "satt": {
+              "ST300_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8200,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": true,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "andra modulen slapps ocksa forst pa kvittensen; en handskakning som inte nollstallts skulle ha slappt den har utan att bandet sagt nagot"
+          },
+          {
+            "t_ms": 8460,
+            "satt": {
+              "ST290_GRP_OPENED": true,
+              "ST300_PEC_RCV": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8600,
+            "satt": {
+              "ST300_HS_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8700,
+            "satt": {},
+            "krav": {
+              "ST290_HS_RST": true,
+              "ST290_GRP_OPEN": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "andra modulen far sin egen aterstallning; utan den arver tredje modulen den andras kvittens"
+          },
+          {
+            "t_ms": 8900,
+            "satt": {
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9060,
+            "satt": {
+              "ST290_GRP_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9160,
+            "satt": {},
+            "krav": {
+              "ST300_CNV_RUN": true,
+              "ST290_HS_REQ": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "bandet gar igen och handskakningen star nollstalld infor nasta modul"
+          }
+        ]
+      },
+      {
+        "id": "kvittensen_uteblir",
+        "beskrivning": "Begaran laggs men bandet kvitterar aldrig, darfor att en modul ligger kvar i mottagningslaget.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false,
+              "ST290_GRP_OPENED": false,
+              "ST300_PEC_RCV": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7500,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_REQ": true,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "4,0 s efter begaran har ingen kvittens kommit. Roboten star kvar med modulen i griparen och far inte slappa mot ett upptaget mottagningslage; bandet star still eftersom en begaran ligger."
+          },
+          {
+            "t_ms": 13600,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": false,
+              "ST290_GRP_OPEN": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "en vantan utan tidsgrans star kvar for evigt. Efter 10,0 s ska overlamningen brytas: begaran dras tillbaka och stationen star still. Signalkartan bar ingen larmutgang, sa den fallna begaran ar det som syns utat."
+          }
+        ]
+      },
+      {
+        "id": "nodstoppet_startar_inte_om_overlamningen",
+        "beskrivning": "Nodstoppskretsen bryts mitt i overlamningen och sluts sedan igen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false,
+              "ST290_GRP_OPENED": false,
+              "ST300_PEC_RCV": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST300_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": true,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "overlamningen har hunnit till steg 2 och griparen star oppen over bandet"
+          },
+          {
+            "t_ms": 3800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3900,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_REQ": false,
+              "ST300_CNV_RUN": false,
+              "ST290_HS_RST": false
+            },
+            "varfor": "en bruten nodstoppskrets far ingen overlamning fortsatta; griparen kommenderas till slutet lage och bandet star still sa modulen varken faller eller dras undan"
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": false,
+              "ST290_GRP_OPEN": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "att nodstoppet aterstalls ar inget startbesked (ISO 13850:2015 4.1.4, IEC 60204-1:2016 9.2.3.4.2); stationens signalkarta bar inget kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och logiken far aldrig ge sig sjalv ett startbesked"
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_mitt_i_overlamningen",
+        "beskrivning": "Lufttrycket faller under lagsta tryck mitt i overlamningen och kommer sedan tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST300_HS_ACK": false,
+              "ST300_HS_DONE": false,
+              "ST290_GRP_OPENED": false,
+              "ST300_PEC_RCV": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST300_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3700,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": true,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "overlamningen har hunnit till steg 2 med griparen oppen"
+          },
+          {
+            "t_ms": 3800,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3900,
+            "satt": {},
+            "krav": {
+              "ST290_GRP_OPEN": false,
+              "ST290_HS_REQ": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "en pneumatisk gripare utan tryckluft kan varken halla eller slappa kontrollerat; overlamningen far inte fortsatta"
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": false,
+              "ST290_GRP_OPEN": false,
+              "ST300_CNV_RUN": false
+            },
+            "varfor": "att trycket kommer tillbaka ar lika lite ett startbesked som ett aterstallt nodstopp (IEC 60204-1:2016 7.5); en overlamning som ateruppstar av sig sjalv slapper mot ett lage ingen langre vet tillstandet pa"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "griparen_oppnas_aldrig_utan_kvittens",
+        "sekvens": "*",
+        "nar": {
+          "ST300_HS_ACK": false
+        },
+        "kraver": {
+          "ST290_GRP_OPEN": false
+        },
+        "varfor": "roboten slapper pa bandets kvittens, aldrig pa sin egen begaran. Ett slapp mot ett mottagningslage som ingen bekraftat ar ledigt lagger modul pa modul, och det ar hela felklassen i en kortsluten handskakning."
+      },
+      {
+        "namn": "bandet_star_still_tills_roboten_aterstallt",
+        "sekvens": "*",
+        "nar": {
+          "ST300_HS_DONE": true
+        },
+        "kraver": {
+          "ST300_CNV_RUN": false
+        },
+        "varfor": "sa lange bandets klarsignal ligger kvar ar handskakningen inte nollstalld, och roboten har inte sagt att den ar borta. Ett band som startar da drar undan modulen medan griparen fortfarande ar nere over den."
+      },
+      {
+        "namn": "bandet_star_still_medan_begaran_ligger",
+        "sekvens": "*",
+        "nar": {
+          "ST290_HS_REQ": true,
+          "ST300_HS_ACK": false
+        },
+        "kraver": {
+          "ST300_CNV_RUN": false
+        },
+        "varfor": "bandet ska stanna innan det kvitterar; en kvittens fran ett band som fortfarande gar sager inte att mottagningslaget star still och redo"
+      },
+      {
+        "namn": "ingen_overlamning_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST290_HS_REQ": false,
+          "ST290_GRP_OPEN": false,
+          "ST300_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den; en overlamning som fortsatter med brutet nodstopp slapper en modul i ett lage ingen langre overvakar"
+      },
+      {
+        "namn": "ingen_overlamning_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST290_GRP_OPEN": false,
+          "ST300_CNV_RUN": false
+        },
+        "varfor": "en tvabackad pneumatisk gripare utan tryck kan varken halla eller slappa kontrollerat, sa varken griparen eller bandet far kommenderas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_begaran_per_modul",
+        "sekvens": "tva_moduler_med_full_handskakning",
+        "signal": "ST290_HS_REQ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 9160,
+        "antal": 2,
+        "varfor": "tva moduler ska ge exakt tva begaran. En begaran som ligger kvar ger bara en flank, och da ar det forra modulens handskakning nasta modul lamnas over pa."
+      },
+      {
+        "namn": "en_aterstallning_per_modul",
+        "sekvens": "tva_moduler_med_full_handskakning",
+        "signal": "ST290_HS_RST",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 9160,
+        "antal": 2,
+        "varfor": "aterstallningen ar handskakningens fjarde steg och ska ske en gang per modul; saknas den arver nasta overlamning foregaende kvittens"
+      },
+      {
+        "namn": "griparen_oppnas_inte_pa_begaran",
+        "sekvens": "tva_moduler_med_full_handskakning",
+        "signal": "ST290_GRP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 3500,
+        "till_ms": 3580,
+        "antal": 0,
+        "varfor": "fonstret ligger mellan begaran och kvittens. Oppnar griparen dar har den slappt pa sin egen begaran, och det ar precis det en kortad handskakning gor."
+      },
+      {
+        "namn": "bandet_startar_inte_fore_aterstallningen",
+        "sekvens": "tva_moduler_med_full_handskakning",
+        "signal": "ST300_CNV_RUN",
+        "typ": "RISE",
+        "fran_ms": 3500,
+        "till_ms": 4380,
+        "antal": 0,
+        "varfor": "fonstret loper fran begaran till strax innan bandet far nollstalla sina signaler. En start dar betyder att bandet gick igang pa fotocellen eller pa sin egen klarsignal i stallet for pa robotens aterstallning."
+      },
+      {
+        "namn": "ingen_oppning_utan_kvittens",
+        "sekvens": "kvittensen_uteblir",
+        "signal": "ST290_GRP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 13600,
+        "antal": 0,
+        "varfor": "utan kvittens far griparen aldrig oppna, hur lange roboten an star och vantar"
+      },
+      {
+        "namn": "ingen_omstart_efter_nodstopp",
+        "sekvens": "nodstoppet_startar_inte_om_overlamningen",
+        "signal": "ST290_HS_REQ",
+        "typ": "RISE",
+        "fran_ms": 3900,
+        "till_ms": 6000,
+        "antal": 0,
+        "varfor": "en ny begaran i fonstret betyder att overlamningen startat om av sig sjalv nar nodstoppskretsen slots igen"
+      },
+      {
+        "namn": "ingen_omstart_nar_trycket_kommer_tillbaka",
+        "sekvens": "tryckluften_faller_mitt_i_overlamningen",
+        "signal": "ST290_HS_REQ",
+        "typ": "RISE",
+        "fran_ms": 3900,
+        "till_ms": 6000,
+        "antal": 0,
+        "varfor": "aterstallt lufttryck ar inget startbesked; en ny begaran i fonstret betyder att stationen startade om sig sjalv"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "griparen_oppnas_pa_begaran",
+        "st": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrAck.Q OR tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                ST290_GRP_OPEN := TRUE;\n                ST300_CNV_RUN := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST290_HS_RST := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Griparen oppnas i samma steg som begaran laggs, alltsa pa robotens egen begaran i stallet for pa bandets kvittens. Sa lange mottagningslaget rakar vara ledigt ser overlamningen felfri ut; forsta gangen en modul ligger kvar slapps nasta rakt ned pa den.",
+        "faller_pa": [
+          "tva_moduler_med_full_handskakning@3580ms:ST290_GRP_OPEN",
+          "invariant:griparen_oppnas_aldrig_utan_kvittens@tva_moduler_med_full_handskakning",
+          "flank:griparen_oppnas_inte_pa_begaran",
+          "kvittensen_uteblir@7500ms:ST290_GRP_OPEN",
+          "flank:ingen_oppning_utan_kvittens"
+        ]
+      },
+      {
+        "namn": "bandet_startar_pa_fotocellen",
+        "st": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrAck.Q OR tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                ST300_CNV_RUN := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                ST290_GRP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_PEC_RCV THEN\n                ST300_CNV_RUN := TRUE;\n            END_IF;\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST290_HS_RST := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bandet startas sa fort reflexfotocellen sett modulen, utan att vanta pa robotens aterstallning. Griparen ar da fortfarande nere over modulen och bandet drar undan den; skadan syns som en modul pa golvet eller en boj gripare, aldrig som ett larm.",
+        "faller_pa": [
+          "tva_moduler_med_full_handskakning@4200ms:ST300_CNV_RUN",
+          "invariant:bandet_star_still_tills_roboten_aterstallt@tva_moduler_med_full_handskakning",
+          "flank:bandet_startar_inte_fore_aterstallningen"
+        ]
+      },
+      {
+        "namn": "handskakningen_saknar_aterstallning",
+        "st": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrAck.Q OR tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                ST300_CNV_RUN := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                ST290_GRP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST300_CNV_RUN := TRUE;\n                steg := 0;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Aterstallningssteget ar borta: roboten satter aldrig ST290_HS_RST utan gar direkt tillbaka till hamtningen och startar bandet pa klarsignalen. Begaran ligger kvar hog, sa nasta overlamning arver foregaende handskakning och andra modulen slapps pa den forsta.",
+        "faller_pa": [
+          "tva_moduler_med_full_handskakning@4200ms:ST290_HS_RST",
+          "flank:en_begaran_per_modul",
+          "flank:en_aterstallning_per_modul",
+          "invariant:bandet_star_still_tills_roboten_aterstallt@tva_moduler_med_full_handskakning"
+        ]
+      },
+      {
+        "namn": "vantan_pa_kvittens_utan_tidsgrans",
+        "st": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                ST300_CNV_RUN := FALSE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                ST290_GRP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST290_HS_RST := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Roboten vantar pa kvittensen utan tidsgrans. Star en modul kvar i mottagningslaget haller roboten sin modul i griparen i timmar utan att nagot syns utat, och takten sjunker utan att nagon vet varfor.",
+        "faller_pa": [
+          "kvittensen_uteblir@13600ms:ST290_HS_REQ"
+        ]
+      },
+      {
+        "namn": "bandet_gar_under_kvittensen",
+        "st": "PROGRAM ST290_OVERLAMNING\nVAR\n    steg        : INT := 0;\n    tmrHamta    : TON;\n    tmrAck      : TON;\n    tmrDone     : TON;\n    xStopp      : BOOL := FALSE;\n    xLarm       : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och AIR_OK kommer utifran och lases bara. Ett brutet nodstopp och\n   ett tappat lufttryck latchas: att kretsen sluts igen eller att trycket\n   kommer tillbaka ar inget startbesked (ISO 13850:2015 4.1.4 och\n   IEC 60204-1:2016 9.2.3.4.2). Stationens signalkarta bar inget\n   kvitteringsdon, sa kvittensen hor hemma utanfor den har logiken och den\n   har logiken far aldrig ge sig sjalv ett startbesked. *)\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStopp := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n\n(* Robotens hamtcykel. Takten ar 5,0 s per modul och handskakningen tar\n   drygt 1,4 s av den, sa hamtningen far 3,5 s. *)\ntmrHamta(IN := xDriftsklar AND steg = 0, PT := T#3500ms);\n\n(* Tidsvakter pa de tva stallen dar handskakningen vantar pa motparten. En\n   vantan utan tidsgrans ar den vanligaste missen i en overlamning: roboten\n   star kvar med modulen och ingen far veta det. *)\ntmrAck(IN := xDriftsklar AND steg = 1, PT := T#10s);\ntmrDone(IN := xDriftsklar AND steg = 3, PT := T#10s);\nIF tmrAck.Q OR tmrDone.Q THEN\n    xLarm := TRUE;\n    xDriftsklar := FALSE;\nEND_IF;\n\nIF NOT xDriftsklar THEN\n    (* Ingen overlamning utan nodstoppskrets och tryckluft. Griparen\n       kommenderas till slutet lage sa modulen inte lamnas halvvags, och\n       bandet star still sa ingenting dras undan under griparen. *)\n    ST290_HS_REQ := FALSE;\n    ST290_HS_RST := FALSE;\n    ST290_GRP_OPEN := FALSE;\n    ST300_CNV_RUN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Bandet gar och for undan foregaende modul medan roboten\n               hamtar nasta. Begaran laggs forst nar mottagningslaget ar\n               ledigt, alltsa nar reflexfotocellen ar fri, och bandet\n               stannar i samma steg: bandet ska sta still nar det\n               kvitterar. *)\n            ST290_HS_RST := FALSE;\n            ST290_GRP_OPEN := FALSE;\n            ST300_CNV_RUN := TRUE;\n            IF tmrHamta.Q AND NOT ST300_PEC_RCV THEN\n                ST290_HS_REQ := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Steg 1 i handskakningen ligger. Griparen ror sig inte forran\n               bandet kvitterat: att slappa pa den egna begaran ar att\n               slappa mot ett lage ingen bekraftat ar ledigt. *)\n            IF ST300_HS_ACK THEN\n                ST290_GRP_OPEN := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Griparen oppnar. Anslaget tar 0,35 s och bekraftas av\n               ST290_GRP_OPENED; en oppning som raknas som klar redan pa\n               kommandot slapper modulen innan backarna gatt isar. *)\n            IF ST290_GRP_OPENED THEN\n                steg := 3;\n            END_IF;\n        3:\n            (* ST300_HS_DONE ar kvittot pa att fotocellen sett modulen i\n               mottagningslaget. Forst da drar roboten undan griparen och\n               nollstaller handskakningen. *)\n            IF ST300_HS_DONE THEN\n                ST290_GRP_OPEN := FALSE;\n                ST300_CNV_RUN := FALSE;\n                ST290_HS_RST := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Bandet far nollstalla sina bada signaler forst nu. Nar bade\n               kvittensen och klarsignalen ar borta ar handskakningen\n               nollstalld, och forst da far bandet ga. Roboten slapper sin\n               begaran i samma steg, sa nasta modul aldrig arver den\n               forras kvittens. *)\n            IF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\n                ST300_CNV_RUN := TRUE;\n                ST290_HS_REQ := FALSE;\n                ST290_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bandet stoppas inte nar begaran laggs utan forst nar klarsignalen kommer. Bandet gar alltsa medan det kvitterar att mottagningslaget ar ledigt, och modulen laggs ned pa ett band i rorelse i stallet for i ett stillastaende mottagningslage.",
+        "faller_pa": [
+          "tva_moduler_med_full_handskakning@3580ms:ST300_CNV_RUN",
+          "tva_moduler_med_full_handskakning@3700ms:ST300_CNV_RUN",
+          "invariant:bandet_star_still_medan_begaran_ligger@tva_moduler_med_full_handskakning"
+        ]
+      }
+    ]
+  }
 }

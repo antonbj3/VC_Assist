@@ -1,0 +1,1617 @@
+{
+  "task_id": "S-06",
+  "title": "Tathetsprovning med tryckfallsmetoden och kvitterad omstart",
+  "goal": "Provtrycka ett gjutet aluminiumhus till 300 mbar overtryck, mata tryckfallet under 10,0 s efter en stabiliseringstid pa 5,0 s, kassera hus over 1,5 mbar tryckfall och misstankliggora ett prov som inte visar nagot tryckfall alls.",
+  "grupp": "S",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar fyra missar som gors om och om igen pa tathetsprovningsriggar. Den forsta: matningen startas sa fort fyllningen ar klar, utan stabiliseringstid, sa den adiabatiska uppvarmningen fran fyllningen raknas som ett lackage och tata hus kasseras. Den andra: fyll- och avluftningsventilen tillats vara oppna samtidigt, sa provet aldrig nar sitt tryck men anda godkanns eftersom tryckfallet da blir noll. Den tredje ar den farligaste for kvaliteten: ett prov som visar noll tryckfall godkanns i stallet for att misstankliggoras, fast noll over tio sekunder i praktiken ar en stangd matventil eller en fastnad givare. Den fjarde ar den farligaste for folk: klamman slapper med huset trycksatt, och ett hus med 300 mbar overtryck skjuts ur fixturen.",
+  "prompt": "Bygg en tathetsprovningsstation for gjutna aluminiumhus och skriv styrningen till den.\n\nScen: en tathetsprovningsrigg med tatningsdon och analog tryckgivare, en pneumatisk\nfixtur som spanner huset mot tatningsdonet, en bandtransportor som matar fram och for\nut, en pneumatisk utskjutare mot en kassationslada och en genomgaende fotocell som ser\natt ett hus star i riggen. Huset ar ett gjutet aluminiumhus 180 x 120 x 95 mm som vager\n1,35 kg. Arbetsradien i stationen ar 900 mm.\n\nProvet ar tryckfallsmetoden och gar i tre steg:\n1. Fyllning 3,0 s till provtrycket 300 mbar overtryck.\n2. Stabilisering 5,0 s med alla ventiler stangda.\n3. Matning 10,0 s med bara matventilen oppen. ST500_TST_DP bar det uppmatta\n   tryckfallet i mbar under matfonstret.\nDen effektiva provvolymen ar 0,45 l. Kasseringsgransen ar ett tryckfall pa 1,5 mbar\nunder matfonstret.\n\nUppgift, sekvensen:\n1. Nar ST500_PEC_PART gar hog: stanna bandet och satt ST500_CLP_CLOSE hog.\n2. Nar ST500_CLP_CLOSED bekraftar: satt ST500_VLV_FILL hog i 3,0 s.\n3. Lat trycket stabilisera sig i 5,0 s med alla ventiler stangda.\n4. Satt ST500_VLV_MEAS hog i 10,0 s och fall domen forst nar fonstret ar slut.\n5. Avlufta med ST500_VLV_VENT i 1,0 s, slapp klamman och for ut huset.\nEtt hus over 1,5 mbar tryckfall skjuts ut i kassationsladan med ST500_PSH_REJ, som far\ngo bara nar ST500_PSH_HOME visar att utskjutaren star i hemlaget.\n\nUppgift, de fem kraven som gor stationen driftsatt:\n* ST500_VLV_FILL och ST500_VLV_VENT far ALDRIG vara hoga samtidigt. Med bada oppna\n  blaser riggen rakt igenom huset och varje hus godkanns.\n* ST500_VLV_MEAS far aldrig oppnas innan stabiliseringstiden 5,0 s ar slut.\n* ST500_CLP_CLOSE far aldrig falla medan huset ar trycksatt. Ett hus med 300 mbar\n  overtryck skjuts ur fixturen av sitt eget tryck.\n* Ett tryckfall pa 0,0 mbar ar INGEN godkand detalj. Noll over tio sekunder ar i\n  praktiken en stangd matventil eller en fastnad givare, och ska larma.\n* Klamman ska bekrafta stangt lage inom 2,0 s. Vakten ska falla tidigast 1,9 s och\n  senast 2,4 s efter kommandot.\n\nST500_TST_PRS ska ligga mellan 270 och 330 mbar under stabiliseringen och matningen.\nUnder det har provtrycket aldrig natts, over det har regulatorn slappt igenom och\ntatningen kan sprangas: larma i bada fallen.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga. Tryckluft som kommer tillbaka far\ndaremot aterta driften utan kvittens. Utskjutaren far aldrig kommenderas utan AIR_OK.\n\nTakttiden ar 22,0 s per hus. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F6",
+    "F8",
+    "F5"
+  ],
+  "stege": "separeringsstation",
+  "difficulty": 3,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "matfonstret startas innan stabiliseringstiden ar slut, sa den adiabatiska uppvarmningen fran fyllningen raknas som ett lackage och tata hus kasseras",
+    "fyll- och avluftningsventilen oppnas samtidigt, sa provet aldrig nar sitt tryck men anda godkanns eftersom tryckfallet blir noll",
+    "ett prov som visar noll tryckfall godkanns i stallet for att misstankliggoras, sa en stangd matventil ser ut som ett perfekt tatt hus",
+    "klamman slapps i samma ogonblick matningen ar klar, medan huset annu bar sina 300 mbar",
+    "provtrycket lases aldrig, sa ett hus som aldrig blev trycksatt anda far en dom",
+    "larmet speglar larmvillkoret i stallet for att latchas, sa larmet slocknar av sig sjalvt nar steget nollstalls och stationen borjar om utan kvittens",
+    "utskjutaren kommenderas utan att ST500_PSH_HOME bekraftat hemlaget, sa cylindern slar mot ett hus som annu star kvar"
+  ],
+  "antaganden": [
+    {
+      "vad": "effektiv provvolym",
+      "varde": "0,45 l",
+      "motiv": "provvolymen ar INTE husets volym. Den ar husets kavitet plus adaptervolymen, slangvolymen fram till riggen och instrumentets egen matkrets. Att rakna gransen pa enbart kaviteten ar den vanligaste orsaken till att en berakning inte stammer nar riggen sedan star pa golvet; talet 0,45 l ar antaget for den har riggen och maste matas upp per adapter"
+    },
+    {
+      "vad": "kasseringsgransen som lackflode",
+      "varde": "0,0675 mbar*l/s vid 1,5 mbar och 10,0 s",
+      "motiv": "q = dP * V / dt ar den isoterma forstaordningsformen och galler bara under stabila forhallanden med linjart tryckfall. ASTM E2930 raknar massforlusten stringare via idealgaslagen med temperaturkorrigering; skillnaden syns sa fort provrummets temperatur driver under matfonstret, och da mater riggen temperaturen och inte lackaget"
+    },
+    {
+      "vad": "omrakningen till volymflode",
+      "varde": "1 mbar*l/s = 59,22 cm3/min vid 1013,25 mbar",
+      "motiv": "faktorn kommer ur normaltrycket 1013,25 mbar. Industripraxis anvander ofta genvagen gange 60, som implicit refererar till 1000 mbar och ger 1,3 procent for hogt varde. Skillnaden ar liten men den ar systematisk, och en granss om anges i cm3/min maste saga vilket referenstryck den lutar sig mot"
+    },
+    {
+      "vad": "provtrycket",
+      "varde": "300 mbar overtryck",
+      "motiv": "ett gjutet hus med tunn gods provas lagt for att inte deformeras; 300 mbar ar hogt nog att ge ett matbart fall genom ett verkligt porlackage och lagt nog att inte spranga tatningen. Talet ar satt for den har uppgiften och inte hamtat ur en kundspec"
+    },
+    {
+      "vad": "provstegens tider",
+      "varde": "3,0 s fylltid, 5,0 s stabilisering, 10,0 s mattid",
+      "motiv": "fylltiden ska racka for 0,45 l vid 300 mbar, stabiliseringen ska vara langre an den adiabatiska avsvalningen efter fyllningen, och mattiden ar vald sa att 1,5 mbar ligger val over instrumentets upplosning. Alla tre talen ar antagna och star i katalogindexet for riggen"
+    },
+    {
+      "vad": "kasseringsgransen",
+      "varde": "1,5 mbar tryckfall",
+      "motiv": "gransen ar den storhet hela uppgiften vilar pa och raknas om till 4,0 cm3/min via provvolymen och mattiden. Talet ar satt for den har detaljen; en verklig grans kommer ur konstruktionens funktionskrav och ska matas mot ett hus med ett kalibrerat lackhal"
+    },
+    {
+      "vad": "provtryckets larmgranser",
+      "varde": "270 till 330 mbar",
+      "motiv": "plus minus tio procent kring provtrycket. Under det har trycket aldrig byggts upp och matfonstret skulle mata ett hus som aldrig blev trycksatt; over det har regulatorn slappt igenom och tatningen kan sprangas. Bada talen ar satta och inte matta mot regulatorns datablad"
+    },
+    {
+      "vad": "klamvakten",
+      "varde": "2,0 s",
+      "motiv": "fixturens spanntid ar 0,6 s enligt katalogindexet, sa 2,0 s lamnar tre ganger marginal utan att dolja en klamma som inte griper. Fonstret 1,9 till 2,4 s i facit gor domen okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "husets matt och massa",
+      "varde": "180 x 120 x 95 mm, 1,35 kg",
+      "motiv": "mantelarean 2 gange (0,18 gange 0,12 plus 0,18 gange 0,095 plus 0,12 gange 0,095) ar 0,1002 m2; med godstjockleken 4 mm blir volymen 4,0e-4 m3 och aluminium med 2700 kg/m3 ger 1,08 kg. Flansar och forstyvningar lagger till resten och massan avrundas till 1,35 kg"
+    },
+    {
+      "vad": "takttiden",
+      "varde": "22,0 s per hus",
+      "motiv": "3,0 plus 5,0 plus 10,0 s prov ar 18,0 s, och spanning, avluftning, slapp och utmatning ryms i de aterstaende fyra sekunderna. Talet ar raknat ur provstegen och inte matt mot en verklig linje"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "gjutet aluminiumhus",
+      "l_mm": 180,
+      "b_mm": 120,
+      "h_mm": 95,
+      "massa_kg": 1.35
+    },
+    "arbetsradie_mm": 900.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Hus kommer med 22,0 s takt, provas med tryckfallsmetoden och gar vidare med ett tryckfall pa 0,8 mbar, alltsa under gransen 1,5 mbar.",
+      "forvantat": "Fyllning 3,0 s, stabilisering 5,0 s och matfonster 10,0 s i den ordningen, aldrig tva ventiler oppna mot varandra, och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "prs_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST500_TST_PRS",
+      "beskrivning": "ST500_TST_PRS stannar pa 240,0 mbar i stallet for 300, alltsa under undre larmgransen 270 mbar.",
+      "forvantat": "Provtrycket nas aldrig: antingen ett grovt lackage eller en tatning som inte sluter mot flansen. Styrningen ska larma och stanga fyllningen; ett hus som inte natt provtrycket far ingen dom alls, for matfonstret skulle mata ett tryckfall i ett hus som aldrig blev trycksatt."
+    },
+    {
+      "id": "prs_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST500_TST_PRS",
+      "beskrivning": "ST500_TST_PRS stiger till 360,0 mbar, alltsa over ovre larmgransen 330 mbar.",
+      "forvantat": "Regulatorn har slappt igenom och huset ar overtrycksatt. Styrningen ska larma, stanga fyllningen och avlufta innan overtrycket spranger tatningen eller deformerar godset."
+    },
+    {
+      "id": "dp_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST500_TST_DP",
+      "beskrivning": "ST500_TST_DP star pa 0,0 mbar genom hela matfonstret pa 10,0 s.",
+      "forvantat": "Ett prov som inte visar nagot tryckfall alls ar i praktiken en stangd matventil eller en fastnad givare, inte ett perfekt tatt hus. Styrningen ska larma och misstankliggora matkedjan i stallet for att godkanna huset."
+    },
+    {
+      "id": "dp_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST500_TST_DP",
+      "beskrivning": "ST500_TST_DP nar 3,0 mbar, alltsa dubbla kasseringsgransen 1,5 mbar.",
+      "forvantat": "Huset lacker over gransen och ska kasseras: skjutas ut i kassationsladan efter avluftning, aldrig rapporteras godkant. Det ar en kassation och inget larm, for riggen ar hel."
+    },
+    {
+      "id": "klamman_bekraftar_inte",
+      "typ": "vandning",
+      "signal": "ST500_CLP_CLOSED",
+      "beskrivning": "ST500_CLP_CLOSED kommer aldrig efter att ST500_CLP_CLOSE gatt hog.",
+      "forvantat": "Klamvakten pa 2,0 s ska falla och stationen stanna. Ett hus som inte sitter fast mot tatningsdonet far aldrig trycksattas, och en vantan utan tidsgrans stannar linjen tyst."
+    },
+    {
+      "id": "tryckluften_faller_bort",
+      "typ": "vandning",
+      "signal": "AIR_OK",
+      "beskrivning": "AIR_OK faller mitt i fyllningen och kommer tillbaka en halv sekund senare.",
+      "forvantat": "Ingen ventil och ingen utskjutare far kommenderas utan tryckluft, men bortfallet ar inget skyddsstopp: nar luften kommer tillbaka ska driften atertas utan manuell kvittens."
+    }
+  ],
+  "core_outputs": [
+    "ST500_VLV_FILL",
+    "ST500_VLV_MEAS",
+    "ST500_VLV_VENT",
+    "ST500_PSH_REJ",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "provrigg",
+        "uri": "bank://station/lacktestrigg",
+        "count": 1
+      },
+      {
+        "role": "tryckgivare",
+        "uri": "bank://givare/tryckgivare_analog",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 1
+      },
+      {
+        "role": "bana",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "utskjutare",
+        "uri": "bank://transport/utskjutare_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "kassation",
+        "uri": "bank://station/kassationslada",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/fotocell_genomgaende",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "bana",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "bana",
+        "to_role": "fixtur"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "provrigg"
+      },
+      {
+        "from_role": "provrigg",
+        "to_role": "tryckgivare"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "utskjutare"
+      },
+      {
+        "from_role": "utskjutare",
+        "to_role": "kassation"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST500_PEC_PART",
+        "dir": "in",
+        "type": "bool",
+        "comment": "genomgaende fotocell, hog nar ett hus star i riggen"
+      },
+      {
+        "name": "ST500_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "bandtransportoren gar"
+      },
+      {
+        "name": "ST500_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann huset mot tatningsdonet"
+      },
+      {
+        "name": "ST500_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar fixturen haller huset"
+      },
+      {
+        "name": "ST500_VLV_FILL",
+        "dir": "out",
+        "type": "bool",
+        "comment": "fyllventil mot provtryckskallan"
+      },
+      {
+        "name": "ST500_VLV_MEAS",
+        "dir": "out",
+        "type": "bool",
+        "comment": "matventil mot instrumentets matkrets"
+      },
+      {
+        "name": "ST500_VLV_VENT",
+        "dir": "out",
+        "type": "bool",
+        "comment": "avluftningsventil mot atmosfar"
+      },
+      {
+        "name": "ST500_TST_PRS",
+        "dir": "in",
+        "type": "real",
+        "comment": "provtryck i huset, mbar overtryck"
+      },
+      {
+        "name": "ST500_TST_DP",
+        "dir": "in",
+        "type": "real",
+        "comment": "uppmatt tryckfall i matfonstret, mbar"
+      },
+      {
+        "name": "ST500_TST_OK",
+        "dir": "out",
+        "type": "bool",
+        "comment": "provet godkant, hog tills huset lamnat stationen"
+      },
+      {
+        "name": "ST500_PSH_REJ",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kor ut utskjutaren mot kassationsladan"
+      },
+      {
+        "name": "ST500_PSH_HOME",
+        "dir": "in",
+        "type": "bool",
+        "comment": "utskjutaren i hemlaget"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "vid ST500_PEC_PART: stanna bandet och satt ST500_CLP_CLOSE hog",
+      "vid ST500_CLP_CLOSED: satt ST500_VLV_FILL hog och lat den sta i 3,0 s",
+      "stang ST500_VLV_FILL och lat trycket stabilisera sig i 5,0 s med alla ventiler stangda",
+      "satt ST500_VLV_MEAS hog i 10,0 s och las ST500_TST_DP forst nar fonstret ar slut",
+      "tryckfall over 1,5 mbar kasseras, 0,0 mbar larmar, allt daremellan ger ST500_TST_OK",
+      "avlufta med ST500_VLV_VENT i 1,0 s innan ST500_CLP_CLOSE slapper",
+      "kasserat hus skjuts ut med ST500_PSH_REJ, men bara nar ST500_PSH_HOME visar hemlaget",
+      "starta klamvakten 2,0 s sa fort ST500_CLP_CLOSE gatt hog"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST500": 10.0
+      },
+      "cycle_s": 22.0,
+      "tolerance_s": 0.2
+    },
+    "interlocks": [
+      "ST500_VLV_FILL och ST500_VLV_VENT far aldrig vara hoga samtidigt",
+      "ST500_VLV_MEAS far aldrig oppnas innan stabiliseringstiden 5,0 s ar slut",
+      "ST500_CLP_CLOSE far aldrig falla medan ST500_VLV_FILL ar hog eller medan huset avluftas",
+      "ST500_PSH_REJ far aldrig kommenderas nar AIR_OK ar lag eller nar ST500_PSH_HOME ar lag",
+      "inget don far kommenderas nar EMG_OK ar lag",
+      "ST500_TST_OK far aldrig sta hog samtidigt som SYS_ALARM"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 163.6,
+    "runs": 3,
+    "warmup_s": 60.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST500_CLP_CLOSE RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST500_VLV_FILL RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST500_VLV_MEAS RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST500_VLV_FILL -> provrigg *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST500 *s req=10.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST500 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST utskjutare+kassation *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "DWELL ST500 *s req=10.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST500_VLV_FILL+ST500_VLV_VENT dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: tryckfallsmetoden ar ASTM E2930-13(2021) \"Standard Practice for Pressure Decay Leak Test Method\". Gransen ar raknad ur den isoterma formen q = dP * V / dt: med den effektiva provvolymen 0,45 l och mattiden 10,0 s svarar ett tryckfall pa 1,5 mbar mot q = 1,5 * 0,45 / 10,0 = 0,0675 mbar*l/s, och 1 mbar*l/s = 59,22 cm3/min vid 1013,25 mbar, alltsa 0,0675 * 59,22 = 4,0 cm3/min. Rakningen star i M-106. Kallklassen ar RAKNAD och inte STANDARD: ASTM E2930 beskriver METODEN, men kasseringsgransen 1,5 mbar star i ingen standard - den ar raknad ur provvolymen och mattiden.",
+    "standard": "ASTM E2930-13(2021) \"Standard Practice for Pressure Decay Leak Test Method\" beskriver metoden for styva karl: fyll, stabilisera, mat tryckfallet. Den isoterma formen q = dP*V/dt galler under stabila forhallanden med linjart tryckfall; ASTM E2930 raknar stringare via idealgaslagen med temperaturkorrigering, och skillnaden star som antagande. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; TON for provstegens tider enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON i 6.6.3.5.5 tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nIF tmrKlamma.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := xTrycksatt;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP <= 0.0 THEN\n                    (* Noll tryckfall over tio sekunder ar ingen tathet utan en\n                       stangd matventil eller en fastnad givare. *)\n                    xLarm := TRUE;\n                ELSIF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanningspaslag med ett hus redan i riggen. Ingenting far rora sig fore kvittensen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true,
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": false,
+              "ST500_CLP_CLOSE": false,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": false,
+              "ST500_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; ett hus som redan ligger i riggen far inte trycksattas av sig sjalvt"
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST500_CLP_CLOSE": false,
+              "ST500_VLV_FILL": false
+            },
+            "varfor": "stationen star kvar stilla, inte bara det forsta scanet"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST500_CLP_CLOSE": true,
+              "ST500_VLV_FILL": false
+            },
+            "varfor": "forst kvittensen far spanna huset, och fyllningen vantar anda pa att klamman bekraftar"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "normalcykel_tatt_hus",
+        "beskrivning": "Ett tatt hus: fyll 3,0 s, stabilisera 5,0 s, mat 10,0 s, tryckfall 0,8 mbar under gransen 1,5 mbar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 60,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan kvittens star bandet stilla; en station som startar pa spanningspaslag ar den dyraste driftsattningsmissen som finns"
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": true,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": false,
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "efter kvittensen matar bandet fram, men ingen ventil ar oppen innan ett hus finns"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST500_CLP_CLOSE": true,
+              "ST500_CNV_RUN": false,
+              "ST500_VLV_FILL": false
+            },
+            "varfor": "huset spanns fast forst; fyllningen far inte borja pa narvaron utan pa bekraftad klamma"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_FILL": true,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": false,
+              "ST500_CLP_CLOSE": true
+            },
+            "varfor": "fyllningen borjar pa bekraftad klamma, och avluftningen ar stangd sa provtrycket kan byggas upp"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 300.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_FILL": true,
+              "ST500_VLV_MEAS": false
+            },
+            "varfor": "mitt i fylltiden 3,0 s ar matventilen fortfarande stangd"
+          },
+          {
+            "t_ms": 4200,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": false
+            },
+            "varfor": "fylltiden 3,0 s ar slut och stabiliseringen har borjat: ingen ventil ar oppen medan trycket far lagga sig"
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "stabiliseringstiden 5,0 s ar annu inte slut; en matning som startas har raknar den adiabatiska uppvarmningen fran fyllningen som ett lackage"
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST500_TST_DP": 0.8
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9200,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": true,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_VENT": false
+            },
+            "varfor": "stabiliseringen ar klar och matfonstret ar oppet; bara matventilen"
+          },
+          {
+            "t_ms": 18000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": true,
+              "SYS_ALARM": false,
+              "ST500_TST_OK": false
+            },
+            "varfor": "mattiden 10,0 s ar inte slut an, sa domen far inte falla; ett kortat matfonster ger ett tryckfall som inte hunnit uppsta"
+          },
+          {
+            "t_ms": 19200,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": true,
+              "ST500_CLP_CLOSE": true,
+              "ST500_TST_OK": true,
+              "ST500_PSH_REJ": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "0,8 mbar ligger under gransen 1,5 mbar: huset ar tatt, det avluftas och klamman haller kvar det medan trycket gar ut"
+          },
+          {
+            "t_ms": 20200,
+            "satt": {
+              "ST500_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20400,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_VENT": false,
+              "ST500_CLP_CLOSE": false,
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "avluftat hus far slappas, och ett godkant hus skjuts aldrig ut i kassationsladan"
+          },
+          {
+            "t_ms": 20600,
+            "satt": {
+              "ST500_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20800,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "bandet for ut det godkanda huset och stationen ar redo for nasta"
+          }
+        ]
+      },
+      {
+        "id": "provtrycket_nas_aldrig",
+        "beskrivning": "ST500_TST_PRS stannar pa 240,0 mbar, alltsa under undre larmgransen 270 mbar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 240.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": true,
+              "ST500_CLP_CLOSE": true
+            },
+            "varfor": "fylltiden ar slut och trycket ligger 60 mbar for lagt: grovt lackage eller en tatning som inte sluter. Provet avbryts, huset avluftas och klamman haller kvar det"
+          },
+          {
+            "t_ms": 5600,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_VENT": false,
+              "ST500_CLP_CLOSE": false,
+              "SYS_ALARM": true
+            },
+            "varfor": "nar avluftningen gatt sin sekund slapper klamman, men larmet star kvar"
+          },
+          {
+            "t_ms": 6400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST500_VLV_MEAS": false,
+              "ST500_TST_OK": false
+            },
+            "varfor": "larmet ar latchat och matventilen oppnades aldrig; ett hus som inte natt provtrycket far ingen dom"
+          }
+        ]
+      },
+      {
+        "id": "provtrycket_for_hogt",
+        "beskrivning": "ST500_TST_PRS stiger till 360,0 mbar, alltsa over ovre larmgransen 330 mbar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 360.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_VENT": true,
+              "ST500_CLP_CLOSE": true
+            },
+            "varfor": "regulatorn har slappt igenom 60 mbar for mycket; fyllningen stangs och huset avluftas innan overtrycket spranger tatningen"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_VENT": false,
+              "ST500_CLP_CLOSE": false,
+              "SYS_ALARM": true
+            },
+            "varfor": "huset ar avluftat och far slappas, men larmet star kvar tills nagon kvitterar"
+          }
+        ]
+      },
+      {
+        "id": "tryckfallet_over_gransen",
+        "beskrivning": "ST500_TST_DP nar 3,0 mbar, alltsa dubbla kasseringsgransen 1,5 mbar. Huset ska kasseras.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 300.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST500_TST_DP": 3.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": true,
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "domen faller forst nar matfonstret pa 10,0 s ar slut; en tidig kassation mater en transient och inte ett lackage"
+          },
+          {
+            "t_ms": 19200,
+            "satt": {},
+            "krav": {
+              "ST500_TST_OK": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": true,
+              "ST500_CLP_CLOSE": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "3,0 mbar ar dubbla gransen: huset ar otatt men riggen ar hel, sa det ar en kassation och inget larm"
+          },
+          {
+            "t_ms": 20200,
+            "satt": {
+              "ST500_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 20400,
+            "satt": {},
+            "krav": {
+              "ST500_PSH_REJ": true,
+              "ST500_VLV_VENT": false
+            },
+            "varfor": "det otata huset skjuts ut i kassationsladan forst nar det ar avluftat och klamman slappt"
+          },
+          {
+            "t_ms": 20600,
+            "satt": {
+              "ST500_PSH_HOME": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 21400,
+            "satt": {
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 21600,
+            "satt": {},
+            "krav": {
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "utskjutaren gar tillbaka efter sin sekund; en utskjutare som star kvar ute blockerar nasta hus"
+          },
+          {
+            "t_ms": 21800,
+            "satt": {
+              "ST500_PEC_PART": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 22000,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": true,
+              "ST500_TST_OK": false
+            },
+            "varfor": "bandet gar igen och det kasserade huset rapporteras aldrig som godkant"
+          }
+        ]
+      },
+      {
+        "id": "tryckfallet_ar_noll",
+        "beskrivning": "ST500_TST_DP star pa 0,0 mbar genom hela matfonstret. Ett prov utan tryckfall alls ar en misstankt matkedja, inte ett perfekt hus.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 300.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9000,
+            "satt": {
+              "ST500_TST_DP": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_MEAS": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "matfonstret loper ut sin tid aven nar instrumentet visar noll"
+          },
+          {
+            "t_ms": 19400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST500_TST_OK": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": true,
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "noll tryckfall over tio sekunder ar i praktiken en stangd matventil eller en fastnad givare; riggen misstankliggors i stallet for att godkanna huset, och huset kasseras inte heller for det ar riggen som ar misstankt"
+          },
+          {
+            "t_ms": 20600,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_VENT": false,
+              "ST500_CLP_CLOSE": false,
+              "SYS_ALARM": true
+            },
+            "varfor": "huset avluftas fardigt och slapps, men larmet star kvar tills nagon sett efter matkedjan"
+          }
+        ]
+      },
+      {
+        "id": "klamman_bekraftar_inte",
+        "beskrivning": "ST500_CLP_CLOSED kommer aldrig. Klamvakten pa 2,0 s ska falla i fonstret 1,9 till 2,4 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST500_CLP_CLOSE": true,
+              "ST500_VLV_FILL": false
+            },
+            "varfor": "1,8 s efter kommandot far vakten annu inte ha fallit; en for kort klamvakt stoppar stationen pa normal drift"
+          },
+          {
+            "t_ms": 2900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST500_CLP_CLOSE": false,
+              "ST500_VLV_FILL": false
+            },
+            "varfor": "2,5 s efter kommandot ska vakten ha fallit; ett hus som inte sitter fast far aldrig trycksattas"
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att klamkommandot upphort"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false
+            },
+            "varfor": "kvittensen tar bort larmet nar nodstoppet och tryckluften ar i ordning"
+          },
+          {
+            "t_ms": 3800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i fyllningen, sedan aterstallt don utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST500_TST_PRS": 300.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST500_CNV_RUN": false,
+              "ST500_CLP_CLOSE": false,
+              "ST500_VLV_FILL": false,
+              "ST500_VLV_MEAS": false,
+              "ST500_VLV_VENT": false,
+              "ST500_PSH_REJ": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; sakerhetskretsen tar spanningen fran ventilerna och styrningen far inte pasta att den haller nagot"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST500_CLP_CLOSE": false,
+              "ST500_VLV_FILL": false,
+              "ST500_CNV_RUN": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta stationen (ISO 13850:2015 4.1.4: urkopplingen far bara mojliggora omstart, inte utfora den)"
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST500_CLP_CLOSE": true
+            },
+            "varfor": "forst kvittensen far ta stationen tillbaka i drift, och da borjar provet om fran noll"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "tryckluften_faller_bort",
+        "beskrivning": "AIR_OK faller mitt i fyllningen och kommer tillbaka. Tryckluft ar inget skyddsstopp.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST500_TST_PRS": 0.0,
+              "ST500_TST_DP": 0.0,
+              "ST500_PSH_HOME": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST500_PEC_PART": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST500_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_FILL": false,
+              "ST500_PSH_REJ": false,
+              "ST500_CNV_RUN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "utan tryckluft kan inget pneumatiskt don rora sig; ingen ventil och ingen utskjutare far kommenderas, men bortfallet ar inget skyddsstopp och darfor inget latchat larm"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST500_VLV_FILL": true
+            },
+            "varfor": "tryckluft som kommer tillbaka far aterta driften utan kvittens; AIR_OK ar inget skyddsstopp och kraver ingen manuell atgard"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "fyllning_och_avluftning_aldrig_samtidigt",
+        "sekvens": "*",
+        "nar": {
+          "ST500_VLV_FILL": true
+        },
+        "kraver": {
+          "ST500_VLV_VENT": false
+        },
+        "varfor": "med bada ventilerna oppna blaser riggen rakt igenom huset: provtrycket nas aldrig, matningen ser ett stillastaende tryck och ett otatt hus far godkant"
+      },
+      {
+        "namn": "matventilen_ar_ensam_oppen",
+        "sekvens": "*",
+        "nar": {
+          "ST500_VLV_MEAS": true
+        },
+        "kraver": {
+          "ST500_VLV_FILL": false,
+          "ST500_VLV_VENT": false
+        },
+        "varfor": "matkretsen ska vara skild fran bade kallan och atmosfaren under matfonstret; en oppen fyllventil haller uppe trycket och doljer lackaget"
+      },
+      {
+        "namn": "klamman_haller_medan_huset_fylls",
+        "sekvens": "*",
+        "nar": {
+          "ST500_VLV_FILL": true
+        },
+        "kraver": {
+          "ST500_CLP_CLOSE": true
+        },
+        "varfor": "ett hus som inte sitter fast mot tatningsdonet kan skjutas ur fixturen av sitt eget provtryck"
+      },
+      {
+        "namn": "huset_slapps_aldrig_medan_det_avluftas",
+        "sekvens": "*",
+        "nar": {
+          "ST500_VLV_VENT": true
+        },
+        "kraver": {
+          "ST500_CLP_CLOSE": true
+        },
+        "varfor": "avluftningen ar den enda tid da huset bevisligen annu bar tryck; slapper klamman dar gar huset ur fixturen med trycket kvar"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST500_CNV_RUN": false,
+          "ST500_CLP_CLOSE": false,
+          "ST500_VLV_FILL": false,
+          "ST500_VLV_MEAS": false,
+          "ST500_VLV_VENT": false,
+          "ST500_PSH_REJ": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "ingen_utskjutning_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST500_PSH_REJ": false,
+          "ST500_VLV_FILL": false
+        },
+        "varfor": "en utskjutare utan luft star still med kontaktorn dragen och slar ut i det ogonblick trycket kommer tillbaka, med nagon som just bojt sig over banan"
+      },
+      {
+        "namn": "larm_stanger_provet",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST500_VLV_FILL": false,
+          "ST500_VLV_MEAS": false,
+          "ST500_PSH_REJ": false,
+          "ST500_TST_OK": false
+        },
+        "varfor": "ett larm som lamnar fyllningen oppen eller ett godkant-besked kvar ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_fyllning_per_hus",
+        "sekvens": "normalcykel_tatt_hus",
+        "signal": "ST500_VLV_FILL",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 20800,
+        "antal": 1,
+        "varfor": "ett hus ska fyllas exakt en gang; tva fyllningar betyder att provet startats om pa niva i stallet for pa flank och att mattiden raknas fran fel ogonblick"
+      },
+      {
+        "namn": "ett_matfonster_per_hus",
+        "sekvens": "normalcykel_tatt_hus",
+        "signal": "ST500_VLV_MEAS",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 20800,
+        "antal": 1,
+        "varfor": "matventilen ska oppna en gang per hus; oppnar den flera ganger mater riggen ett tryckfall styckevis och summan blir mindre an det verkliga"
+      },
+      {
+        "namn": "godkant_hus_skjuts_aldrig_ut",
+        "sekvens": "normalcykel_tatt_hus",
+        "signal": "ST500_PSH_REJ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 20800,
+        "antal": 0,
+        "varfor": "en utskjutare som gar pa ett godkant hus tommer produktionen i kassationsladan"
+      },
+      {
+        "namn": "en_utskjutning_per_kasserat_hus",
+        "sekvens": "tryckfallet_over_gransen",
+        "signal": "ST500_PSH_REJ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 22000,
+        "antal": 1,
+        "varfor": "det otata huset ska skjutas ut exakt en gang; tva pulser betyder att utskjutaren styrs pa niva och slar mot ett hus som redan lamnat"
+      },
+      {
+        "namn": "ingen_fyllning_fore_kvittensen",
+        "sekvens": "kallstart_utan_sjalvstart",
+        "signal": "ST500_VLV_FILL",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1100,
+        "antal": 0,
+        "varfor": "efter spanningspaslag far inget hus trycksattas innan nagon kvitterat, aven om huset redan ligger i riggen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "matning_utan_stabilisering",
+        "st": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nIF tmrKlamma.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := xTrycksatt;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP <= 0.0 THEN\n                    (* Noll tryckfall over tio sekunder ar ingen tathet utan en\n                       stangd matventil eller en fastnad givare. *)\n                    xLarm := TRUE;\n                ELSIF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Matventilen oppnas i samma ogonblick fylltiden gatt ut, utan de 5,0 s stabilisering. Gasen i huset ar da annu varm av kompressionen fran fyllningen och trycket faller av sig sjalvt medan den svalnar. Riggen mater den adiabatiska avsvalningen som ett lackage och kasserar tata hus. Provet ser ut att fungera, det gar till och med snabbare, och kassationsandelen far skulden pa gjuteriet.",
+        "faller_pa": [
+          "normalcykel_tatt_hus@4200ms:ST500_VLV_MEAS",
+          "normalcykel_tatt_hus@8000ms:ST500_VLV_MEAS"
+        ]
+      },
+      {
+        "namn": "fyllning_och_avluftning_samtidigt",
+        "st": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nIF tmrKlamma.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := xTrycksatt;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                ST500_VLV_VENT := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                ST500_VLV_VENT := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP <= 0.0 THEN\n                    (* Noll tryckfall over tio sekunder ar ingen tathet utan en\n                       stangd matventil eller en fastnad givare. *)\n                    xLarm := TRUE;\n                ELSIF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Avluftningsventilen halls oppen under fyllningen for att spola ur riggen. Provtrycket nas da aldrig, matfonstret ser ett tryck som star still nara noll och tryckfallet blir noll: varje hus godkanns, aven de som lacker rakt igenom. Felet syns inte i cykeltiden och inte i kassationsstatistiken, bara som reklamationer tre veckor senare.",
+        "faller_pa": [
+          "invariant:fyllning_och_avluftning_aldrig_samtidigt@normalcykel_tatt_hus",
+          "normalcykel_tatt_hus@700ms:ST500_VLV_VENT"
+        ]
+      },
+      {
+        "namn": "noll_tryckfall_godkanns",
+        "st": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nIF tmrKlamma.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := xTrycksatt;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Domen ar skriven som ett enda villkor: over 1,5 mbar kasseras, allt annat godkanns. Ett prov som visar exakt noll tryckfall over tio sekunder ar da det basta tankbara resultatet, fast det i praktiken betyder att matventilen aldrig oppnade eller att givaren fastnat. Riggen slutar mata och fortsatter godkanna, och ingen upptacker det forran nagon provar ett hus med ett borrat hal.",
+        "faller_pa": [
+          "tryckfallet_ar_noll@19400ms:SYS_ALARM",
+          "tryckfallet_ar_noll@19400ms:ST500_TST_OK",
+          "tryckfallet_ar_noll@20600ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "klamman_slapper_med_trycket_kvar",
+        "st": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nIF tmrKlamma.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP <= 0.0 THEN\n                    (* Noll tryckfall over tio sekunder ar ingen tathet utan en\n                       stangd matventil eller en fastnad givare. *)\n                    xLarm := TRUE;\n                ELSIF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Klamman slapps i samma ogonblick matfonstret stangs, alltsa medan huset annu bar sina 300 mbar och avluftningen just borjat. Ett trycksatt hus som slapps ur en fixtur skjuts ivag av sitt eget overtryck. I provkorning med lagt tryck marks ingenting; felet visar sig forsta gangen nagon star framfor riggen.",
+        "faller_pa": [
+          "invariant:huset_slapps_aldrig_medan_det_avluftas@normalcykel_tatt_hus",
+          "normalcykel_tatt_hus@19200ms:ST500_CLP_CLOSE"
+        ]
+      },
+      {
+        "namn": "larmet_latchas_inte",
+        "st": "PROGRAM ST500_TATHETSPROV\nVAR\n    steg        : INT := 0;\n    tmrKlamma   : TON;\n    tmrFyll     : TON;\n    tmrStab     : TON;\n    tmrMat      : TON;\n    tmrAvluft   : TON;\n    tmrUtskjut  : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xKassera    : BOOL := FALSE;\n    xTrycksatt  : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Den har\n   logiken ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\n(* Provstegens tider. Riggen fyller i 3,0 s, later trycket stabilisera sig i\n   5,0 s och mater tryckfallet under 10,0 s. Klamman ska bekrafta stangt lage\n   inom 2,0 s, annars sitter huset inte fast. *)\ntmrKlamma(IN := steg = 1, PT := T#2s);\ntmrFyll(IN := steg = 2, PT := T#3s);\ntmrStab(IN := steg = 3, PT := T#5s);\ntmrMat(IN := steg = 4, PT := T#10s);\ntmrAvluft(IN := ST500_VLV_VENT, PT := T#1s);\ntmrUtskjut(IN := ST500_PSH_REJ, PT := T#1s);\n\n(* Sa lange huset kan vara trycksatt haller klamman kvar det. Flaggan satts nar\n   fyllningen borjar och slapper forst nar avluftningen gatt sin tid. *)\nIF ST500_VLV_FILL THEN\n    xTrycksatt := TRUE;\nEND_IF;\nIF tmrAvluft.Q THEN\n    xTrycksatt := FALSE;\nEND_IF;\n\n(* --- larmkallorna samlas fore domen, sa SYS_ALARM aldrig slapar ett scan\n       efter det don den ska stanga. --- *)\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\n    (* Sakerhetskretsen tar spanningen fran ventilerna. Styrningen kommenderar\n       ingenting alls och far darfor inte heller pasta att den haller kvar ett\n       trycksatt hus. *)\n    xTrycksatt := FALSE;\nEND_IF;\n\nxLarm := tmrKlamma.Q;\n\n(* Provtrycket ar 300 mbar overtryck. Over 330 mbar har regulatorn slappt\n   igenom och ett overtrycksatt hus kan spranga tatningen. Under 270 mbar nas\n   provtrycket aldrig, och da mater matfonstret ett tryckfall i ett hus som\n   aldrig blev trycksatt. *)\nIF steg >= 2 AND steg <= 5 AND ST500_TST_PRS > 330.0 THEN\n    xLarm := TRUE;\nEND_IF;\nIF (steg = 3 OR steg = 4) AND ST500_TST_PRS < 270.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Larmet slapper aldrig\n   av sig sjalvt och ett aterstallt nodstopp startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF NOT EMG_OK THEN\n    ST500_CNV_RUN := FALSE;\n    ST500_CLP_CLOSE := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_VLV_VENT := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    xKassera := FALSE;\n    steg := 0;\nELSIF NOT xDriftsklar THEN\n    (* Provet avbryts. Fyllningen och matningen stangs, huset avluftas och\n       klamman haller kvar det tills trycket ar ute. Ett trycksatt hus far\n       aldrig slappas ur fixturen. *)\n    ST500_CNV_RUN := FALSE;\n    ST500_VLV_FILL := FALSE;\n    ST500_VLV_MEAS := FALSE;\n    ST500_PSH_REJ := FALSE;\n    ST500_TST_OK := FALSE;\n    ST500_VLV_VENT := xTrycksatt;\n    ST500_CLP_CLOSE := xTrycksatt;\n    xKassera := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST500_CNV_RUN := TRUE;\n            ST500_CLP_CLOSE := FALSE;\n            ST500_VLV_FILL := FALSE;\n            ST500_VLV_MEAS := FALSE;\n            ST500_VLV_VENT := FALSE;\n            ST500_PSH_REJ := FALSE;\n            ST500_TST_OK := FALSE;\n            IF ST500_PEC_PART THEN\n                ST500_CNV_RUN := FALSE;\n                ST500_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Fyllningen far borja forst nar klamman bekraftat att huset\n               sitter fast mot tatningsdonet. *)\n            IF ST500_CLP_CLOSED THEN\n                ST500_VLV_FILL := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF tmrFyll.Q THEN\n                ST500_VLV_FILL := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            (* Stabiliseringen. Matventilen far inte oppnas har: den\n               adiabatiska uppvarmningen fran fyllningen ser ut som ett\n               lackage sa lange trycket annu faller av sig sjalvt. *)\n            IF tmrStab.Q THEN\n                ST500_VLV_MEAS := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF tmrMat.Q THEN\n                ST500_VLV_MEAS := FALSE;\n                IF ST500_TST_DP <= 0.0 THEN\n                    (* Noll tryckfall over tio sekunder ar ingen tathet utan en\n                       stangd matventil eller en fastnad givare. *)\n                    xLarm := TRUE;\n                ELSIF ST500_TST_DP > 1.5 THEN\n                    xKassera := TRUE;\n                ELSE\n                    ST500_TST_OK := TRUE;\n                END_IF;\n                ST500_VLV_VENT := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF tmrAvluft.Q THEN\n                ST500_VLV_VENT := FALSE;\n                ST500_CLP_CLOSE := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF NOT ST500_CLP_CLOSED THEN\n                IF xKassera AND ST500_PSH_HOME THEN\n                    ST500_PSH_REJ := TRUE;\n                    steg := 7;\n                ELSIF NOT xKassera THEN\n                    steg := 8;\n                END_IF;\n            END_IF;\n        7:\n            IF tmrUtskjut.Q THEN\n                ST500_PSH_REJ := FALSE;\n                steg := 8;\n            END_IF;\n        8:\n            ST500_CNV_RUN := TRUE;\n            IF NOT ST500_PEC_PART THEN\n                ST500_TST_OK := FALSE;\n                xKassera := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "SYS_ALARM speglar larmvillkoren scan for scan i stallet for att latchas. Nar provet avbryts nollstalls steget, larmvillkoret upphor med det och larmet slocknar av sig sjalvt. Stationen borjar om utan att nagon kvitterat, och en rigg som inte nar provtrycket kor vidare i timmar med ett larm som blinkar till en gang per cykel.",
+        "faller_pa": [
+          "provtrycket_nas_aldrig@6400ms:SYS_ALARM",
+          "klamman_bekraftar_inte@3200ms:SYS_ALARM"
+        ]
+      }
+    ]
+  }
+}

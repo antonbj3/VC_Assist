@@ -1213,7 +1213,7 @@
               "ST480_ADH_ON": false,
               "ST480_REJ_MARK": true
             },
-            "varfor": "ett aterstallt nodstopp far inte starta stationen (IEC 60204-1 9.2.5.4.2: urkopplingen far bara mojliggora omstart, inte utfora den). Strangen avbrots mitt i, sa detaljen ar redan markad"
+            "varfor": "ett aterstallt nodstopp far inte starta stationen (ISO 13850:2015 4.1.4: urkopplingen far bara mojliggora omstart, inte utfora den). Strangen avbrots mitt i, sa detaljen ar redan markad"
           },
           {
             "t_ms": 4200,
