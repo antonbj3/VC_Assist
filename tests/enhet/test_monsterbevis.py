@@ -540,3 +540,50 @@ def test_klassningen_delar_hela_den_matta_ytan():
     assert len(MB.TOLKANDE) == 16
     assert not (MB.DOMANDE & MB.TOLKANDE)
     assert len(MB.YTAN) == 116
+
+
+# ---- F7: ordlistor i jamforelseform ---------------------------------------
+#
+# Samma felklass som regexarna, i en ordlista: en post som aldrig kan traffa
+# den text listan lases mot.
+
+def test_planlasningens_ordlistor_star_i_jamforelseform():
+    """`plan/lasning.py` jamfor ALLTID mot `harkomst.normalisera(...)`.
+
+    Normaliseringen byter a-ring och prickar mot ASCII. En post som SJALV bar
+    diakritik kan darfor aldrig traffa nagonting. MATT 2026-09-05 (M-105): sex
+    sadana poster - "högst", "arbetsområde", "lång", "längd", "hög", "höjd" -
+    lag i listorna och gav intrycket att bada stavningarna tacktes.
+
+    Utfallet var ofarligt (ASCII-tvillingen fanns i alla sex fallen), men en
+    lista som ser ut att tacka bada och bara tacker den ena ar precis den falska
+    trygghet M-70 kostade atta doda grenar pa. Provet ar en GRIND, inte en
+    stadning: nasta post i riktig svenska faller har direkt.
+    """
+    from vc_assist_svc.plan import lasning as L
+    from vc_assist_svc.plan.harkomst import normalisera
+
+    listor = {"_KRAVORD": L._KRAVORD, "_TAK": L._TAK, "_GOLV": L._GOLV,
+              "_SIDONAMN": tuple(L._SIDONAMN)}
+    doda = ["%s: %r" % (namn, post)
+            for namn, poster in sorted(listor.items())
+            for post in poster if normalisera(post) != post]
+    assert doda == [], (
+        "poster som aldrig kan traffa den normaliserade texten:\n  %s"
+        % "\n  ".join(doda))
+
+
+def test_planlasningen_laser_fortfarande_bada_stavningarna():
+    """Andra halvan: att TA BORT posterna far inte gora texten olaslig.
+
+    Det ar normaliseringen som ska bara bada stavningarna, inte listan. Star
+    "högst 2 x 2 m" i begaran ska taket lasas anda.
+    """
+    from vc_assist_svc.plan import lasning as L
+    matt = L.cellmatt("Cellen far vara högst 2 x 2 m.")
+    assert matt, "läste inget matt ur texten"
+    assert all(m[1] == "le" for m in matt), (
+        "'högst' lastes inte som ett tak: %r" % (matt,))
+    langd = L.cellmatt("Cellen ska vara högst 3 m lång.")
+    assert [(f, o) for f, o, _mm, _b in langd] == [("bredd_mm", "le")], (
+        "'lång' lastes inte som en sida: %r" % (langd,))
