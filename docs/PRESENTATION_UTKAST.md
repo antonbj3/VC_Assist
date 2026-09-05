@@ -12,14 +12,14 @@ tillbaka svaret tills koden är rätt.
 
 ```mermaid
 flowchart LR
-    A["fritext&lt;br/&gt;beställning"] --> B["byggplan"]
-    B --> C["scen i&lt;br/&gt;simulatorn"]
+    A["fritext<br/>beställning"] --> B["byggplan"]
+    B --> C["scen i<br/>simulatorn"]
     C --> D["ST-kod"]
-    D --> E["OpenPLC&lt;br/&gt;runtime"]
-    E -->|OPC UA| F["anläggningen&lt;br/&gt;kör"]
-    F --> G(["ögat läser hela scenen&lt;br/&gt;som tidsserie"])
+    D --> E["OpenPLC<br/>runtime"]
+    E -->|OPC UA| F["anläggningen<br/>kör"]
+    F --> G(["ögat läser hela scenen<br/>som tidsserie"])
     G -->|"allt rätt"| H["GULD"]
-    G -->|"ST260_STA_BUSY steg 7,45 s före&lt;br/&gt;ST250_STA_DONE"| D
+    G -->|"ST260_STA_BUSY steg 7,45 s före<br/>ST250_STA_DONE"| D
 
     style G fill:#1f6feb,color:#fff
     style H fill:#238636,color:#fff
@@ -57,36 +57,30 @@ Faller något får modellen ögats egna ord tillbaka och skriver om.
 
 ---
 
-## Grindkedjan: sju filter, och vad var och en fångar
+## Grindkedjan
+
+Sju filter står mellan modellens första utkast och något du vågar köra. Det
+avgörande är att de fyra första bara läser **texten** — och att en station kan
+passera alla fyra och ändå släppa greppet på en meters höjd.
 
 ```mermaid
-flowchart TD
-    M["modellen skriver ST"] --> G1
-    G1{"1 · kompilerar?"} -->|nej| R1["syntax, semikolon,&lt;br/&gt;ogiltig tid"]
-    G1 -->|ja| G2
-    G2{"2 · statisk analys"} -->|nej| R2["oåtkomlig kod,&lt;br/&gt;dubbelskrivning"]
-    G2 -->|ja| G3
-    G3{"3 · deklarationer"} -->|nej| R3["namn som inte finns,&lt;br/&gt;fel typ"]
-    G3 -->|ja| G4
-    G4{"4 · anrop"} -->|nej| R4["uppfunna&lt;br/&gt;funktionsblock"]
-    G4 -->|ja| G5
-    G5{"5 · ÖGAT&lt;br/&gt;kör den mot scenen"} -->|nej| R5["greppet bildades 642 mm&lt;br/&gt;från kortet"]
-    G5 -->|ja| G6
-    G6{"6 · komposition"} -->|nej| R6["fem fel som varje station&lt;br/&gt;klarade ensam"]
-    G6 -->|ja| G7
-    G7{"7 · människa"} --> OK["GULD"]
+flowchart LR
+    M["modellens<br/>utkast"] --> T["1-4 · läser texten<br/><i>syntax, analys,<br/>namn, anrop</i>"]
+    T --> O["5 · ÖGAT<br/><i>kör koden mot<br/>anläggningen</i>"]
+    O --> K["6 · komposition<br/><i>hela linan,<br/>inte stationen</i>"]
+    K --> H["7 · människa"] --> G["GULD"]
+    O -.->|"felet i klartext"| M
 
-    style G5 fill:#1f6feb,color:#fff
-    style OK fill:#238636,color:#fff
+    style O fill:#1f6feb,color:#fff
+    style G fill:#238636,color:#fff
 ```
 
-Grind 1 till 4 läser **texten**. De fyra fångar mycket, men en station kan
-passera alla fyra och ändå släppa greppet på en meters höjd. Grind 5 är den
-enda som kör koden mot en anläggning — och den fångar en klass fel de andra
-strukturellt inte kan se.
+Grind 5 är den enda som kör koden. Den fångar en klass fel de fyra första
+strukturellt inte kan se: *greppet bildades medan verktyget stod 642 mm från
+kortet.* Texten var felfri.
 
 Grind 6 finns för att fem fel i vår mätning passerade **båda** stationerna var
-för sig och syntes först när de kopplades ihop.
+för sig, och syntes först när de kopplades ihop.
 
 ## Vad som är mätt
 
@@ -128,15 +122,15 @@ gränser. Inget här är uppskattat.
 flowchart LR
     subgraph P1["BEVISAD"]
         direction LR
-        H1["ST skriven&lt;br/&gt;utanför slingan"] --> H2["OpenPLC"] --> H3["riktig scen"] --> H4["ögat dömer"]
+        H1["ST skriven<br/>utanför slingan"] --> H2["OpenPLC"] --> H3["riktig scen"] --> H4["ögat dömer"]
     end
     subgraph P2["BEVISAD"]
         direction LR
-        M1["ST skriven&lt;br/&gt;inuti slingan"] --> M2["vår tolk"] --> M3["dom mot&lt;br/&gt;spårfacit"]
+        M1["ST skriven<br/>inuti slingan"] --> M2["vår tolk"] --> M3["dom mot<br/>spårfacit"]
     end
     subgraph P3["ALDRIG GJORD"]
         direction LR
-        X1["ST skriven&lt;br/&gt;inuti slingan"] --> X2["OpenPLC"] --> X3["riktig scen"] --> X4["ögat dömer"]
+        X1["ST skriven<br/>inuti slingan"] --> X2["OpenPLC"] --> X3["riktig scen"] --> X4["ögat dömer"]
     end
 
     style P1 fill:#0d3320,stroke:#238636,color:#fff
