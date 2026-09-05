@@ -157,7 +157,7 @@ being built.
 
 | | |
 |---|---|
-| **4.3 µs** | per component, per sample — the cost of reading the scene, measured linear up to 800 components |
+| **linear** | cost of reading the scene grows proportionally with component count, measured from 200 to 800 — 4.3 µs per component per sample on the test rig, which is that machine's number, not yours |
 | **225 /s** | samples taken while the simulation runs, without slowing it |
 | **0** | positional drift over a full run |
 | **5 of 5** | classes of line fault caught that each station passed on its own |
