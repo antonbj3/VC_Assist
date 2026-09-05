@@ -153,8 +153,8 @@ def skriv_artefakter(besked, rot=None):
     filer ser ut som en plan och ar det inte.
     """
     if besked.plan is None:
-        raise Planfel("det finns ingen plan att skriva; beskedet ar %s. En "
-                      "halv artefaktkatalog ser korbar ut och ar det inte"
+        raise Planfel("there is no plan to write; the outcome is %s. A "
+                      "half artifact catalog looks runnable and is not"
                       % besked.status)
     rot = rot or ARTEFAKTROT
     katalog = os.path.join(rot, besked.plan.id)
@@ -184,7 +184,7 @@ def las_sekvens(sokvag):
     with open(sokvag, encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict) or "hash" not in data:
-        raise Planfel("%s bar ingen hash och gar inte att lita pa" % sokvag)
+        raise Planfel("%s has no hash and cannot be trusted" % sokvag)
     pastadd = data["hash"]
     kropp = dict(data)
     del kropp["hash"]
