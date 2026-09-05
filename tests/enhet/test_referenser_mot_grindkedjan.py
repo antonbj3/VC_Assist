@@ -124,3 +124,110 @@ def test_referensen_gar_ocksa_igenom_sparfacit():
         kalla = u["skelett"].las_svar(u["referens"])
         dom = u["grindar"][1].doma(kalla)
         assert dom.ok, (tid, getattr(dom, "utdata", ""))
+
+
+# ---------------------------------------------------------------- M-167
+#
+# ORORD_SIGNAL fallde nio referenser pa tretton signaler. Domen per fall star i
+# docs/matningar/M-167_orord_signal_mot_egna_referenser.md: alla tretton var
+# REFERENSENS fel, ingen var kartans och ingen var grindens.
+#
+# task_id -> (vem hade fel, vad referensen nu gor med signalen)
+DOMAR_M167 = {
+    "C-02": ("referensen",
+             "ST400_LNE_CNT: linjeraknaren vags mot station 4:s egen rakning "
+             "(hogst en enhet efter, aldrig fore). Vid raknefel slapper "
+             "station 1 inga fler enheter."),
+    "C-03": ("referensen",
+             "ST410_PRD_CNT: raknaren far bara rora sig nar bandet gar, och "
+             "maste rora sig inom tva halvtaktscykler (24,0 s). Tva NYA "
+             "sparsekvenser ar fixturen; utan dem hade grinden aldrig fyrat."),
+    "C-05": ("referensen",
+             "ST430_PRD_CNT, ST440_RWK_CNT och ST440_RWK_QUE vags mot "
+             "styrningens egen bokforing (godkanda, kvitterade, kolangd) och "
+             "kon mot omarbetningsplatsens tio platser."),
+    "H-03": ("referensen",
+             "ST330_AGV_WGT: vagcellen vags mot ST330_LOD_CNT (22,0 kg per "
+             "kolli) och mot AGV:ns hogsta last 100,0 kg. AGV:n slapps inte."),
+    "L-02": ("referensen",
+             "ST160_PLT_HGT mot lagerraknaren (144 mm pall + 200 mm per "
+             "fardigt lager, tak 750 mm) och ST160_VAC_OK fore robotrorelse. "
+             "BADA satts redan av L-02:s eget spar - stimulansen fanns, "
+             "referensen konsumerade den aldrig."),
+    "L-03": ("referensen",
+             "ST170_VAC_OK: gripdonet ror sig inte forran undertrycket "
+             "bekraftats."),
+    "L-04": ("referensen",
+             "ST180_MAG_RDY: vaxlingen startar inte utan tom pall klar i "
+             "magasinet. Spar satte redan signalen vid 89 100 ms."),
+    "P-01": ("referensen",
+             "ST100_RB_BUSY: ST100_RB_DONE godtas bara efter att roboten "
+             "kvitterat starten - uppgiftens 'slapp aldrig pa robotens "
+             "lagesignal ensam'."),
+    "P-02": ("referensen",
+             "ST110_RB_BUSY och ST110_VAC_OK: plocket raknas som gjort bara "
+             "om robotprogrammet startade OCH sugkoppen fick grepp."),
+}
+
+# (uppgift, sekvens, signal, varde) - signalen tvingas till vardet i hela
+# sekvensen. Referensen SKA falla. Utan den halvan ar en gron referens ingen
+# matning: en lasning som ingen stimulans kan fella ar dekoration.
+STIMULI_M167 = [
+    ("C-02", "normal_handskakning", "ST400_LNE_CNT", 2),
+    ("C-05", "normal_med_godkand_och_omarbetad", "ST430_PRD_CNT", 5),
+    ("C-05", "normal_med_godkand_och_omarbetad", "ST440_RWK_CNT", 5),
+    ("C-05", "normal_med_godkand_och_omarbetad", "ST440_RWK_QUE", 14),
+    ("H-03", "normal_lastning_fyra_kollin", "ST330_AGV_WGT", 0.0),
+    ("H-03", "normal_lastning_fyra_kollin", "ST330_AGV_WGT", 132.0),
+    ("L-02", "normal_lager_med_mellanlagg", "ST160_PLT_HGT", 100.0),
+    ("L-02", "normal_lager_med_mellanlagg", "ST160_PLT_HGT", 1250.0),
+    ("L-02", "normal_lager_med_mellanlagg", "ST160_VAC_OK", False),
+    ("L-03", "normal_avpalletering", "ST170_VAC_OK", False),
+    ("L-04", "normal_pallvaxling", "ST180_MAG_RDY", False),
+    ("P-01", "normal_plock_och_avlagg", "ST100_RB_BUSY", False),
+    ("P-02", "normal_kexplock", "ST110_RB_BUSY", False),
+    ("P-02", "normal_kexplock", "ST110_VAC_OK", False),
+]
+
+# C-03:s stimulans ligger i BANKEN i stallet: raknaren gar inte att fella med
+# ett konstant varde, den maste sta still MEDAN bandet gar. De tva sekvenserna
+# ar darfor sparfacit, och gamla referensen faller pa bada (M-167 §C-03).
+C03_FIXTURSEKVENSER = ("raknaren_star_still_medan_bandet_gar",
+                       "raknaren_stiger_medan_bandet_star")
+
+
+def test_de_nio_domda_i_m167_finns_i_banken_och_ar_grona():
+    assert set(DOMAR_M167) <= set(_POSTER), sorted(set(DOMAR_M167) - set(_POSTER))
+    for tid in DOMAR_M167:
+        u = RB.bygg_uppsattning(_POSTER[tid])
+        assert _grind2_koder(_POSTER[tid], u["referens"]) == [], tid
+
+
+@pytest.mark.parametrize("fall", STIMULI_M167,
+                         ids=["%s-%s=%s" % (t, s, v) for t, _k, s, v in STIMULI_M167])
+def test_stimulansen_som_signalen_lastes_for_faller_referensen(fall):
+    import copy
+
+    import domare                                                # noqa: E402
+
+    tid, sekv, signal, varde = fall
+    post = _POSTER[tid]
+    facit = copy.deepcopy(post["facit_spar"])
+    facit["sekvenser"] = [s for s in facit["sekvenser"] if s["id"] == sekv]
+    assert facit["sekvenser"], (tid, sekv)
+    facit["flanker"] = [f for f in (facit.get("flanker") or [])
+                        if f.get("sekvens") == sekv]
+    for steg in facit["sekvenser"][0]["steg"]:
+        if steg.get("satt") and signal in steg["satt"]:
+            del steg["satt"][signal]
+    facit["sekvenser"][0]["steg"][0].setdefault("satt", {})[signal] = varde
+    dom = domare.dom(post, facit["referens"], spar=facit)
+    assert not dom.godkand, (
+        "%s: %s = %r far igenom - lasningen av signalen ar dekoration"
+        % (tid, signal, varde))
+
+
+def test_c03_bar_de_tva_sparsekvenser_som_provar_raknarovervakningen():
+    ider = set(s["id"] for s in _POSTER["C-03"]["facit_spar"]["sekvenser"])
+    for namn in C03_FIXTURSEKVENSER:
+        assert namn in ider, (namn, sorted(ider))
