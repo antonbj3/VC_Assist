@@ -8,7 +8,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 ## Mätningsnummer som fler än en fil gör anspråk på: 0
 
-## Vad mätningarna säger att de inte vet: 481 punkter
+## Vad mätningarna säger att de inte vet: 496 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -654,9 +654,19 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 * Mätningen är inte gjord än — filen reserverar bara numret.
 
-### M-87_hopfogningen_mot_vcs_egen_brygga.md — LIMITS
+### M-87_hopfogningen_mot_vcs_egen_brygga.md — Vad som INTE är mätt
 
-* Mätningen är inte gjord än — filen reserverar bara numret.
+* Ingen riktig PLC.** Kopplarvarvet på 89 ms är M-39:s uppmätta OpenPLC-varv,
+* efterliknat** med en väntesats. Ingen OPC UA-läsning gjordes. `las_s` mätt
+* PLC:ns egen skanfördröjning (40 ms, M-20)** ligger **före** kopplarens
+* Kartans egen osäkerhet är 15–25 ms** och den går inte att göra smalare med
+* Regressionen antar att avläsningen sker mitt i sin tur och retur.** Sker
+* Taket är inte bevisat täckande.** Ett varv av 900 låg utanför vid 400 ms
+* Spridningens övertäckning (2,2× vid p95) är mätt i en driftpunkt**, med
+* Rättelsen kan komma för sent.** Den skickas efter att värdet stämplats och
+* Bara en maskin, en kväll, en scen.** Turen och returen mättes medan andra
+* Windows** (fas 13).
+* Flera kopplare mot samma öga** — M-42:s regel gäller fortfarande: sista
 
 ### M-88_fem_domare_mot_vc_byggda_celler.md — LIMITS
 
@@ -667,6 +677,10 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Ingen riktig anläggning är inspelad.** Källan är bankens fyra
 * informationsinnehållet i en I/O-inspelning*, inte hur en riktig linjes spår
 * Fyra uppgifter, och alla fyra är våra egna.** Talen 28/28 och 3/28 har
+* Modelledet är n = 1 per uppgift**, precis som fas 9:s. Fyra agenter på
+* "Första försöket" är taget efter att jag rättat mitt eget misstag.** Jag
+* Förbudet mot att öppna repot är en bön; kontamineringsmåttet är mätningen.**
+* Provspårsledets modelltal säger ingenting om en riktig anläggning.** De fyra
 * Härledningen ser bara boolska tvåsignalspar.** En förregling över tre
 * Provspåret är inte sanningen heller.** "11 av 80 motbevisade" är ett
 * undre* tal: de 69 återstående är inte bevisade, bara inte motbevisade av just
@@ -742,13 +756,17 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 * Fynd 13:s tal är en ögonblicksbild.** Fyra platshållarfiler fanns kl.
 * Misstanke, inte visad:** `NEKANDE`-listan används av minst fyra grindar
 
+### M-95_fyra_grindar_som_matte_fel_storhet.md — LIMITS
+
+* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
+
 ### M-96_slingan_kor_sig_sjalv.md — LIMITS
 
 * Mätningen är inte klar än. Talen nedan fylls i när körningarna är gjorda.
 
-## Produktionsmoduler som ingen provfil nämner: 1 (407 rader)
+## Produktionsmoduler som ingen provfil nämner: 1 (419 rader)
 
-* `svc/vc_assist_svc/st/lexer.py` — 407 rader
+* `svc/vc_assist_svc/st/lexer.py` — 419 rader
 
 ## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 2 (218 rader)
 
