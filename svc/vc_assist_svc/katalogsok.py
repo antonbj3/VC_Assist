@@ -51,6 +51,33 @@ BRED_FRAGA = 40                 # Satt av M-60.
 
 SAKNAS = "saknas"
 
+# Sa manga tecken maste sta kvar av BETECKNINGEN sedan ett ledande
+# tillverkarnamn strukits, for att ledet ska fa strykas alls.
+#
+# MATT i M-161 over hela det installerade biblioteket: 3201 fragor pa formen
+# "<FEL TILLVERKARE> <riktigt komponentnamn>" ska alla ge noll traffar. Utan
+# sparren gav tre av dem traffar, och alla tre var komponenter vars NAMN ar en
+# enda siffra - biblioteket bar atta sadana ("0" .. "7"). Med sparren ar det
+# 3201 av 3201. Priset ar ocksa matt och det ar de atta: de gar inte att na med
+# ett tillverkarled framfor sig. De gar att na pa sitt namn.
+MIN_BETECKNING = 2              # Satt av M-161.
+
+
+def normalisera(text: str) -> str:
+    """Namnet utan skiljetecken och skiftlage. 'IRB 1200-5/0.9' -> irb1200509.
+
+    MATT i M-161, bada hallen. NYTTAN: en beteckning skrivs pa manga satt, och
+    3201 biblioteksnamn omstavade med `_`, med `-` och helt utan avskiljare
+    hittas av den RAKA delstrangen i 612, 1403 respektive 508 fall - av den
+    normaliserade i 3201 av 3201, utan att den riktiga komponenten en enda gang
+    saknades bland traffarna (7 080 fragor). RISKEN: samma matning at andra
+    hallet visar att 74 av 3201 sjalvfragor (2,31 %) far FLER traffar av
+    normaliseringen - "C4" hittar da "EC-400". Darfor ar stegen en STEGE och
+    inte en union: den normaliserade nivan kors bara nar den raka gav noll, och
+    da ar breddningen per konstruktion noll.
+    """
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
 
 class Sokfel(Exception):
     pass
@@ -125,6 +152,11 @@ class Svar:
     traffar: List[Traff]
     sammandrag: Optional[Dict[str, int]] = None
     fraga: str = ""
+    # HUR namnet lastes, nar det inte lastes rakt av. None betyder att fragan
+    # traffade som den skrevs. Ingen bortprioritering ar tyst
+    # (25_kontextbudget.md), och det galler ocksa en del av fragan som
+    # verktyget sjalvt valde att slappa.
+    lasning: Optional[str] = None
 
     @property
     def visade(self) -> int:
@@ -147,6 +179,8 @@ class Svar:
                          "namnfragment.")
             return "\n".join(rader)
         rader = ["%d traffar, visar %d." % (self.totalt, self.visade)]
+        if self.lasning:
+            rader.append("last som: %s" % self.lasning)
         rader.extend(t.rad() for t in self.traffar)
         if self.visade < self.totalt:
             rader.append("... %d till, ej visade." % (self.totalt - self.visade))
@@ -169,6 +203,7 @@ class Katalog(object):
         self.poster = list(poster)
         self.rot = rot
         self.djupt = bool(djupt)
+        self._tillverkarnamn: Optional[List[str]] = None
 
     # ---- lasning -------------------------------------------------------
 
@@ -207,27 +242,138 @@ class Katalog(object):
             max_rader: int = MAX_RADER) -> Svar:
         """Filtrera och lamna ett svar som bar sin egen arlighet.
 
-        `fraga` matchas mot namnet, skiftlagesokansligt och som delstrang -
-        en modell skriver "IRB 6700" nar filen heter "IRB 6700-150_3_20".
+        `fraga` matchas mot namnet i en STEGE av lasningar, fran strangast
+        till losast, och en losare niva kors bara nar den strangare gav NOLL
+        traffar. Steg ett ar dagens beteende oforandrat: skiftlagesokanslig
+        delstrang - en modell skriver "IRB 6700" nar filen heter
+        "IRB 6700-150/3.20". Se `_namnstegen` for varfor det finns fler steg
+        och vad var och en kostar.
         """
-        traffar = self._filtrera(fraga, tillverkare, kategori, har_parameter,
-                                 familj, min_rackvidd_mm, min_nyttolast_kg,
-                                 med_utfasade)
         beskrivning = self._beskriv_fraga(fraga, tillverkare, kategori,
                                           har_parameter, familj,
                                           min_rackvidd_mm, min_nyttolast_kg)
+        traffar: List[Traff] = []
+        lasning: Optional[str] = None
+        for namnprov, tv_ur_fragan, hur in self._namnstegen(fraga):
+            traffar = self._filtrera(namnprov, tillverkare or tv_ur_fragan,
+                                     kategori, har_parameter, familj,
+                                     min_rackvidd_mm, min_nyttolast_kg,
+                                     med_utfasade)
+            if traffar:
+                lasning = hur
+                break
         if len(traffar) > BRED_FRAGA:
             fordelning: Dict[str, int] = {}
             for t in traffar:
                 fordelning[t.tillverkare] = fordelning.get(t.tillverkare, 0) + 1
-            return Svar(len(traffar), [], fordelning, beskrivning)
+            return Svar(len(traffar), [], fordelning, beskrivning, lasning)
         return Svar(len(traffar), traffar[:max(int(max_rader), 1)],
-                    None, beskrivning)
+                    None, beskrivning, lasning)
 
-    def _filtrera(self, fraga, tillverkare, kategori, har_parameter,
+    # ---- namnstegen ----------------------------------------------------
+
+    def _tillverkarnamnen(self) -> List[str]:
+        """Tillverkarnamnen ur INDEXET, langst forst.
+
+        Langst forst darfor att "Bosch Rexroth" ska kanna igen sig fore
+        "Bosch" om bada finns. Listan ar indexets egen och aldrig en
+        handskriven - ett handskrivet register over tillverkarnamn hade varit
+        ett pastaende utan facitkalla.
+        """
+        if self._tillverkarnamn is None:
+            self._tillverkarnamn = sorted(
+                {t.tillverkare.lower() for t in self.poster if t.tillverkare},
+                key=len, reverse=True)
+        return self._tillverkarnamn
+
+    def _dela_tillverkarled(self, fraga: str) -> Tuple[str, str]:
+        """(tillverkare, resten) nar fragan INLEDS med ett tillverkarnamn."""
+        f = (fraga or "").strip()
+        for t in self._tillverkarnamnen():
+            if f.lower().startswith(t + " "):
+                # Fragans EGEN stavning tillbaka, inte indexets. Svaret ska
+                # eka det anroparen skrev ("FANUC"), medan filtret jamfor
+                # skiftlagesokansligt mot indexets ("Fanuc").
+                return f[:len(t)], f[len(t) + 1:].strip()
+        return "", f
+
+    def _namnstegen(self, fraga: str):
+        """Lasningarna av `fraga`, fran strangast till losast.
+
+        Varje steg ar (namnprov, tillverkare_ur_fragan, hur_det_lastes).
+
+        VARFOR STEGEN FINNS, matt i M-119 och delad i M-161: banken fragar
+        efter "ABB IRB 1200-5/0.9", biblioteket bar "IRB 1200-5/0.9", och en
+        rak delstrangssokning traffade darfor NOLL av 75 biblioteksfragor.
+        Femton av de 75 ar riktiga modellbeteckningar; de ovriga 60 ar bankens
+        egna svenska funktionsbeskrivningar, och dem loser inget namnsteg -
+        se M-161 §"vokabularglappet".
+
+        VARFOR DET AR EN STEGE OCH INTE EN UNION: samma matning visar att en
+        skiljeteckenslos matchning breddar 2,31 % av alla sjalvfragor ("C4"
+        hittar "EC-400"). Kors den bara nar den raka gav noll ar breddningen
+        per konstruktion noll, och nyttan - 3201 av 3201 omstavade beteckningar
+        - ar kvar.
+
+        VAD STEGEN INTE GOR: de gissar aldrig. Alla fyra proven i
+        tests/enhet/test_katalogsok_normalisering.py som ska ge SAKNAS ger det
+        efterat ocksa. `ABB IRB 660-180/3.15` far inte bli `IRB 660`, och
+        `ABB IRB 360-1/1130 FlexPicker` far inte bli `IRB 360-3/1130`.
+        """
+        f = (fraga or "").strip()
+        if not f:
+            return [(None, "", None)]
+
+        # 1. Rak delstrang. Dagens beteende, oforandrat.
+        steg = [(lambda namn, x=f.lower(): x in namn.lower(), "", None)]
+
+        # 2. Samma sak utan skiljetecken, mellanslag och skiftlage.
+        fn = normalisera(f)
+        if fn:
+            steg.append((lambda namn, x=fn: x in normalisera(namn), "",
+                         "skiljetecken och mellanslag utelamnade"))
+
+        tv, kvar = self._dela_tillverkarled(f)
+        if not tv or len(normalisera(kvar)) < MIN_BETECKNING:
+            return steg
+
+        # 3. Tillverkarledet last som TILLVERKARE och inte som en del av
+        #    namnet. Det ar ett filter och inte ett bortstruket ord - en
+        #    beteckning som bars av en ANNAN tillverkare traffar inte.
+        kn = normalisera(kvar)
+        steg.append((lambda namn, x=kn: x in normalisera(namn), tv,
+                     "\"%s\" last som tillverkare, \"%s\" som namn"
+                     % (tv, kvar)))
+
+        # 4. Efterstallda RENA BOKSTAVSORD slappta, ett i taget, sa lange
+        #    minst ett sifferbarande ord star kvar. Banken skriver
+        #    "ABB IRB 910SC-3/0.55 SCARA"; biblioteket skriver ingen SCARA.
+        #    Kravet pa ett sifferbarande ord kvar ar det som gor att
+        #    "ABB IRB 360-1/1130 FlexPicker" stannar pa "IRB 360-1/1130" och
+        #    darmed pa NOLL traffar i stallet for att glida till en granne.
+        delar = kvar.split()
+        while len(delar) > 1 and delar[-1].isalpha():
+            delar = delar[:-1]
+            if not any(any(c.isdigit() for c in d) for d in delar):
+                break
+            dn = normalisera(" ".join(delar))
+            if len(dn) < MIN_BETECKNING:
+                break
+            slappt = " ".join(kvar.split()[len(delar):])
+            steg.append((lambda namn, x=dn: x in normalisera(namn), tv,
+                         "\"%s\" last som tillverkare; \"%s\" slapptes ur "
+                         "namnet" % (tv, slappt)))
+        return steg
+
+    def _filtrera(self, namnprov, tillverkare, kategori, har_parameter,
                   familj="", min_rackvidd=None, min_nyttolast=None,
                   med_utfasade=False) -> List[Traff]:
-        f = (fraga or "").strip().lower()
+        """`namnprov` ar ett predikat pa NAMNET, eller None nar fragan var tom.
+
+        Att det ar ett predikat och inte en strang ar hela skalet till att
+        stegen i `_namnstegen` kan aterbruka samma filtrering: de ovriga
+        filtren ska galla identiskt pa varje niva.
+        """
         tv = (tillverkare or "").strip().lower()
         kt = (kategori or "").strip().lower()
         hp = (har_parameter or "").strip().lower()
@@ -247,7 +393,7 @@ class Katalog(object):
                     continue
             if t.utfasad and not med_utfasade:
                 continue
-            if f and f not in t.namn.lower():
+            if namnprov is not None and not namnprov(t.namn):
                 continue
             if tv and tv != t.tillverkare.lower():
                 continue

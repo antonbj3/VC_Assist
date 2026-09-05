@@ -657,7 +657,7 @@ def _search_installed_library(argument):
     katalog, skal = _bibliotek()
     if katalog is None:
         return {"traffar": [], "antal": 0, "visade": 0, "sammandrag": None,
-                "kalla": "inget bibliotek", "notering": skal}
+                "kalla": "inget bibliotek", "notering": skal, "lasning": None}
     svar = katalog.sok(fraga=argument.get("query") or "",
                        tillverkare=argument.get("manufacturer") or "",
                        kategori=argument.get("category") or "",
@@ -674,6 +674,13 @@ def _search_installed_library(argument):
         "sammandrag": svar.sammandrag,
         "kalla": getattr(katalog, "hittat_via", "installerat bibliotek"),
         "notering": None,
+        # HUR fragan lastes, nar den inte traffade som den skrevs. Ett
+        # tillverkarled som blev ett filter, eller ett ord som slapptes, ar en
+        # bortprioritering - och ingen bortprioritering far vara tyst
+        # (25_kontextbudget.md). M-161 matte att det ar just den har raden som
+        # skiljer "verktyget hittade det du bad om" fran "verktyget hittade
+        # nagot annat och sa inte att det tolkade om fragan".
+        "lasning": svar.lasning,
     }
     if svar.sammandrag is not None:
         ut["notering"] = ("%d traffar ar for manga for en lista. Smalna av med "
@@ -748,7 +755,18 @@ _lagg(
         "kalla": {"type": "string", "description": "Var biblioteket hittades, eller att inget hittades."},
         "notering": {"type": ["string", "null"],
                      "description": "Varfor svaret inte ar uttommande, eller null."},
-    }, ["traffar", "antal", "visade", "sammandrag", "kalla", "notering"]),
+        "lasning": {"type": ["string", "null"],
+                    "description": ("HUR fragan lastes, nar den inte traffade "
+                                    "ordagrant. Null betyder att namnet traffade "
+                                    "precis som du skrev det. Annars star det har "
+                                    "vad verktyget tolkade om - att ett ledande "
+                                    "tillverkarnamn lastes som TILLVERKARE och "
+                                    "inte som en del av namnet, eller vilket "
+                                    "efterstallt ord som slapptes ur namnet. "
+                                    "Las den innan du litar pa traffen: den "
+                                    "sager vad du INTE fragade efter (M-161).")},
+    }, ["traffar", "antal", "visade", "sammandrag", "kalla", "notering",
+        "lasning"]),
     _search_installed_library,
 )
 
