@@ -40,7 +40,7 @@ def test_en_manipulerad_fil_falls_OCH_tas_bort(tmp_path):
     f.write_bytes(b"nagot helt annat")
     with pytest.raises(V.Kedjefel) as e:
         V.kontrollera(str(f), post)
-    assert "stammer inte" in str(e.value)
+    assert "does not match" in str(e.value)
     assert not f.exists(), "filen ligger kvar och kan anvandas av nasta korning"
 
 
@@ -198,7 +198,7 @@ def test_windows_vagen_avvisar_manipulerad_fil_och_tar_bort(tmp_path):
     post = V.MANIFEST["win32-x64"]
     with pytest.raises(V.Kedjefel) as exc:
         V.kontrollera(str(f), post)
-    assert "stammer inte och ar borttagen" in str(exc.value)
+    assert "does not match and has been removed" in str(exc.value)
     assert not f.exists(), "Manipulerad fil maste tas bort"
 
 

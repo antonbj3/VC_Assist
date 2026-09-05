@@ -187,8 +187,8 @@ def kontrollera(sokvag, post):
         return True
     os.remove(sokvag)
     raise Kedjefel(
-        "%s stammer inte och ar borttagen.\n  vantade %d byte, sha256 %s\n"
-        "  fick    %d byte, sha256 %s"
+        "%s does not match and has been removed.\n  expected %d bytes, sha256 %s\n"
+        "  got      %d bytes, sha256 %s"
         % (post.namn, post.storlek, post.sha256, storlek, summa))
 
 
