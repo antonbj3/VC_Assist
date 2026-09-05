@@ -127,8 +127,8 @@ class Verktygssvar:
                                                     self.argument))
         if not self.ok and not self.felnyckel:
             raise Kapfel(
-                "%s foll utan felnyckel; honesty-rewrite kraver nyckeln och "
-                "ett fall utan nyckel gar inte att namna i svaret"
+                "%s failed without an error key; honesty-rewrite requires the "
+                "key and a failure without a key cannot be named in the response"
                 % self.verktyg)
 
     def innehall_text(self) -> str:
@@ -254,9 +254,9 @@ def kapa(svar: Verktygssvar, tak_byte: int,
                               tak_byte=tak_byte)
     if svar.sammanfattning:
         raise Kapfel(
-            "%s ar redan en kapning av %s och far inte kapas igen; tva led av "
-            "grovhet ser likadana ut som ett och forlusten gar inte langre "
-            "att mata (25_kontextbudget.md)" % (svar.verktyg, svar.ur_kalla))
+            "%s is already a cut of %s and must not be cut again; two layers of "
+            "coarsening look the same as one and the loss can no longer be "
+            "measured (25_kontextbudget.md)" % (svar.verktyg, svar.ur_kalla))
 
     if not isinstance(svar.resultat, dict):
         return _hanvisning(svar, tak_byte, fore)

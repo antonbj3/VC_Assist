@@ -144,7 +144,7 @@ def test_en_kapning_av_en_kapning_ar_ett_fel(sjalvkontrollerbart):
     kapad, _n = K.kapa(svar, svar.byte() // 2, schema)
     with pytest.raises(Kapfel) as info:
         K.kapa(kapad, 100, schema)
-    assert "redan en kapning" in str(info.value)
+    assert "already a cut" in str(info.value)
 
 
 # ---- delen som bar felet ------------------------------------------------
