@@ -300,5 +300,167 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: avpalletering av upp till 24 kollin i 5,0 s takt ger 24 * 5,0 = 120,0 s plus tva mellanlagg a 7,0 s = 134,0 s per full pall. Teoretisk maxkapacitet vid 5,0 s per kolli ar 3600/5,0 = 720 kollin/h. EUR-pallens tomhojd ar 144 mm. Detta ar manniskans facit skrivet ur scenarios normal, hgt_lag, hgt_hog, sht_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Avpalletering och tomningsvillkor pa hojden foljer anlaggningens specifikation och EUR-pallens standardmatt; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_L03_AVPALLETERING\nVAR\n    steg     : INT := 0;\n    trigDone : R_TRIG;\nEND_VAR\n\ntrigDone(CLK := ST170_RB_DONE);\n\nIF NOT EMG_OK THEN\n    ST170_RB_START  := FALSE;\n    ST170_VAC_ON    := FALSE;\n    ST170_SHT_REQ   := FALSE;\n    ST170_PLT_EMPTY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST170_PLT_EMPTY := FALSE;\n            ST170_SHT_REQ   := FALSE;\n            ST170_RB_START  := FALSE;\n            ST170_VAC_ON    := FALSE;\n            ST170_LYR_CNT   := 0;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF ST170_PLT_HGT < 140.0 OR ST170_PLT_HGT > 1800.0 THEN\n                ST170_RB_START := FALSE;\n                steg := 9;\n            ELSIF ST170_PLT_HGT <= 145.0 THEN\n                ST170_PLT_EMPTY := TRUE;\n                steg := 5;\n            ELSIF ST170_SHT_DET THEN\n                ST170_SHT_REQ := TRUE;\n                steg := 3;\n            ELSE\n                IF NOT ST170_RB_DONE THEN\n                    ST170_RB_START := TRUE;\n                    ST170_VAC_ON   := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF trigDone.Q THEN\n                ST170_RB_START := FALSE;\n                ST170_VAC_ON   := FALSE;\n                ST170_LYR_CNT  := ST170_LYR_CNT + 1;\n                steg := 1;\n            END_IF;\n        3:\n            IF NOT ST170_SHT_DET THEN\n                ST170_SHT_REQ := FALSE;\n                ST170_LYR_CNT := 0;\n                steg := 1;\n            END_IF;\n        5:\n            ST170_PLT_EMPTY := TRUE;\n            ST170_RB_START  := FALSE;\n            ST170_VAC_ON    := FALSE;\n            ST170_SHT_REQ   := FALSE;\n        9:\n            ST170_RB_START  := FALSE;\n            ST170_VAC_ON    := FALSE;\n            ST170_SHT_REQ   := FALSE;\n            ST170_PLT_EMPTY := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_avpalletering",
+        "beskrivning": "Normal avpalletering dar kolli tas och mellanlagg detekteras och rensas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST170_PLT_HGT": 550.0,
+              "ST170_SHT_DET": false,
+              "ST170_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST170_RB_START": true,
+              "ST170_VAC_ON": true,
+              "ST170_SHT_REQ": false,
+              "ST170_PLT_EMPTY": false
+            },
+            "varfor": "startar hamtning av kolli"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST170_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST170_RB_START": false,
+              "ST170_LYR_CNT": 1
+            },
+            "varfor": "kolli hamtat"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST170_RB_DONE": false,
+              "ST170_SHT_DET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST170_SHT_REQ": true,
+              "ST170_RB_START": false
+            },
+            "varfor": "nar mellanlagg detekteras begars mellanlagget"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST170_SHT_DET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST170_SHT_REQ": false
+            },
+            "varfor": "mellanlagg borta"
+          }
+        ]
+      },
+      {
+        "id": "tom_pall_detekteras_pa_hojden",
+        "beskrivning": "När lasthojden nar 144 mm deklareras pallen tom utan vidare hamtrorelser.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST170_PLT_HGT": 144.0,
+              "ST170_SHT_DET": false,
+              "ST170_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST170_PLT_EMPTY": true,
+              "ST170_RB_START": false,
+              "ST170_SHT_REQ": false
+            },
+            "varfor": "pallen ar tom vid 144 mm hojd"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST170_RB_START": false,
+          "ST170_VAC_ON": false,
+          "ST170_SHT_REQ": false
+        },
+        "varfor": "vid brutet nodstopp ska robot och gripare nollstallas"
+      },
+      {
+        "namn": "ingen_start_nar_pall_ar_tom",
+        "sekvens": "*",
+        "nar": {
+          "ST170_PLT_EMPTY": true
+        },
+        "kraver": {
+          "ST170_RB_START": false
+        },
+        "varfor": "nar pallen ar tom far inga fler hamtrorelser paborjas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "plt_empty_flank",
+        "sekvens": "tom_pall_detekteras_pa_hojden",
+        "signal": "ST170_PLT_EMPTY",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 200,
+        "antal": 1,
+        "varfor": "PLT_EMPTY ska ga hog nar pallen ar tom"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "pallen_forklaras_tom_pa_raknaren_inte_hojden",
+        "st": "PROGRAM ST_L03_AVPALLETERING\nVAR\n    steg     : INT := 0;\n    trigDone : R_TRIG;\nEND_VAR\n\ntrigDone(CLK := ST170_RB_DONE);\n\nIF NOT EMG_OK THEN\n    ST170_RB_START  := FALSE;\n    ST170_VAC_ON    := FALSE;\n    ST170_SHT_REQ   := FALSE;\n    ST170_PLT_EMPTY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST170_PLT_EMPTY := FALSE;\n            ST170_SHT_REQ   := FALSE;\n            ST170_RB_START  := FALSE;\n            ST170_VAC_ON    := FALSE;\n            ST170_LYR_CNT   := 0;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF ST170_SHT_DET THEN\n                ST170_SHT_REQ := TRUE;\n                steg := 3;\n            ELSE\n                IF NOT ST170_RB_DONE THEN\n                    ST170_RB_START := TRUE;\n                    ST170_VAC_ON   := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF trigDone.Q THEN\n                ST170_RB_START := FALSE;\n                ST170_VAC_ON   := FALSE;\n                ST170_LYR_CNT  := ST170_LYR_CNT + 1;\n                steg := 1;\n            END_IF;\n        3:\n            IF NOT ST170_SHT_DET THEN\n                ST170_SHT_REQ := FALSE;\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Pallen styrs pa forvantat antal i stallet for pa uppmatt hojd, sa pallen deklareras aldrig tom och roboten kor ner i en tom pall.",
+        "faller_pa": [
+          "tom_pall_detekteras_pa_hojden@100ms:ST170_PLT_EMPTY"
+        ]
+      }
+    ]
+  }
 }

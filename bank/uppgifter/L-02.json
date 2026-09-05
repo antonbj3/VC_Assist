@@ -303,5 +303,411 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: tre lager om atta kollin ger 3 * 8 = 24 kollin. Med takten 5,5 s per kolli och 7,0 s per mellanlagg blir cykeltiden 24 * 5,5 + 2 * 7,0 = 132,0 + 14,0 = 146,0 s per pall, vilket ar 146 s per pall. Detta ar manniskans facit skrivet ur scenarios normal, hgt_lag, hgt_hog, sht_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Lagermonster och mellanlaggssekvens foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_L02_PALLETERING\nVAR\n    steg     : INT := 0;\n    trigDone : R_TRIG;\nEND_VAR\n\ntrigDone(CLK := ST160_RB_DONE);\n\nIF NOT EMG_OK THEN\n    ST160_RB_START := FALSE;\n    ST160_VAC_ON   := FALSE;\n    ST160_SHT_REQ  := FALSE;\n    ST160_PLT_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST160_PLT_DONE := FALSE;\n            ST160_SHT_REQ  := FALSE;\n            ST160_RB_START := FALSE;\n            ST160_VAC_ON   := FALSE;\n            ST160_LYR_NO   := 1;\n            ST160_LYR_CNT  := 0;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF NOT ST160_RB_DONE AND ST160_LYR_CNT < 8 THEN\n                ST160_RB_START := TRUE;\n                ST160_VAC_ON   := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigDone.Q THEN\n                ST160_RB_START := FALSE;\n                ST160_VAC_ON   := FALSE;\n                ST160_LYR_CNT  := ST160_LYR_CNT + 1;\n                IF ST160_LYR_CNT >= 8 THEN\n                    IF ST160_LYR_NO < 3 THEN\n                        steg := 3;\n                    ELSE\n                        ST160_PLT_DONE := TRUE;\n                        steg := 5;\n                    END_IF;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n        3:\n            ST160_SHT_REQ := TRUE;\n            IF ST160_SHT_PRS THEN\n                steg := 4;\n            END_IF;\n        4:\n            ST160_SHT_REQ := FALSE;\n            ST160_LYR_NO  := ST160_LYR_NO + 1;\n            ST160_LYR_CNT := 0;\n            steg := 1;\n        5:\n            ST160_PLT_DONE := TRUE;\n            ST160_RB_START := FALSE;\n            ST160_VAC_ON   := FALSE;\n            ST160_SHT_REQ  := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_lager_med_mellanlagg",
+        "beskrivning": "Normal palletering: 8 kollin laggs, sedan begars mellanlagg och lagernummer okas forst nar mellanlagget bekräftats.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST160_RB_DONE": false,
+              "ST160_SHT_PRS": false,
+              "ST160_VAC_OK": true,
+              "ST160_PLT_HGT": 200.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST160_LYR_NO": 1,
+              "ST160_LYR_CNT": 0,
+              "ST160_RB_START": true,
+              "ST160_VAC_ON": true,
+              "ST160_PLT_DONE": false,
+              "ST160_SHT_REQ": false
+            },
+            "varfor": "startar forsta kolli"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST160_RB_START": false,
+              "ST160_LYR_CNT": 1
+            },
+            "varfor": "kolli 1 klart"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST160_SHT_REQ": true,
+              "ST160_LYR_NO": 1,
+              "ST160_RB_START": false
+            },
+            "varfor": "efter 8 kollin begars mellanlagg"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST160_SHT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {},
+            "krav": {
+              "ST160_SHT_REQ": false,
+              "ST160_LYR_NO": 2,
+              "ST160_LYR_CNT": 0
+            },
+            "varfor": "nar mellanlagget ligger pa plats okas lagernummer till 2"
+          }
+        ]
+      },
+      {
+        "id": "sht_uteblir_stoppar_nasta_lager",
+        "beskrivning": "Mellanlagret uteblir; lagerraknaren far inte okas och nasta lager far inte paborjas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST160_RB_DONE": false,
+              "ST160_SHT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST160_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST160_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST160_SHT_REQ": true,
+              "ST160_LYR_NO": 1,
+              "ST160_RB_START": false
+            },
+            "varfor": "utan SHT_PRS far nasta lager aldrig paborjas"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST160_RB_START": false,
+          "ST160_VAC_ON": false,
+          "ST160_SHT_REQ": false
+        },
+        "varfor": "vid nodstopp ska robot och gripare nollstallas"
+      },
+      {
+        "namn": "ingen_plt_done_under_lager_1",
+        "sekvens": "*",
+        "nar": {
+          "ST160_LYR_NO": 1
+        },
+        "kraver": {
+          "ST160_PLT_DONE": false
+        },
+        "varfor": "pallen far inte deklareras klar under forsta lagret"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "sht_req_flank",
+        "sekvens": "normal_lager_med_mellanlagg",
+        "signal": "ST160_SHT_REQ",
+        "typ": "RISE",
+        "fran_ms": 1500,
+        "till_ms": 2000,
+        "antal": 1,
+        "varfor": "mellanlagg begars exakt en gang efter 8 kollin"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "lagerraknaren_okas_fore_mellanlagg",
+        "st": "PROGRAM ST_L02_PALLETERING\nVAR\n    steg     : INT := 0;\n    trigDone : R_TRIG;\nEND_VAR\n\ntrigDone(CLK := ST160_RB_DONE);\n\nIF NOT EMG_OK THEN\n    ST160_RB_START := FALSE;\n    ST160_VAC_ON   := FALSE;\n    ST160_SHT_REQ  := FALSE;\n    ST160_PLT_DONE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST160_PLT_DONE := FALSE;\n            ST160_SHT_REQ  := FALSE;\n            ST160_RB_START := FALSE;\n            ST160_VAC_ON   := FALSE;\n            ST160_LYR_NO   := 1;\n            ST160_LYR_CNT  := 0;\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF NOT ST160_RB_DONE AND ST160_LYR_CNT < 8 THEN\n                ST160_RB_START := TRUE;\n                ST160_VAC_ON   := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigDone.Q THEN\n                ST160_RB_START := FALSE;\n                ST160_VAC_ON   := FALSE;\n                ST160_LYR_CNT  := ST160_LYR_CNT + 1;\n                IF ST160_LYR_CNT >= 8 THEN\n                    ST160_LYR_NO := ST160_LYR_NO + 1;\n                    ST160_LYR_CNT := 0;\n                    ST160_SHT_REQ := FALSE;\n                    steg := 1;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lagerraknaren okas fore mellanlaggssteget och mellanlagg begars aldrig, vilket leder till att pallen byggs utan mellanlagg och rasar.",
+        "faller_pa": [
+          "sht_uteblir_stoppar_nasta_lager@1800ms:ST160_SHT_REQ"
+        ]
+      }
+    ]
+  }
 }

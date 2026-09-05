@@ -313,5 +313,193 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: 24 kollin i 5,5 s takt ger 132,0 s palleteringstid per pall. Forvarning ett lager i forvag vid 16 kollin ger 8 * 5,5 = 44,0 s, vilket overskrider vaxlingstiden 22,0 s med dubbel marginal (44,0 s > 22,0 s). Detta ar manniskans facit skrivet ur scenarios normal, inf_lag, inf_hog, gone_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Transportsekvens och forregling for pallvaxling foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_L04_PALLVAXLING\nVAR\n    steg     : INT := 0;\n    tmrKolli : TON;\nEND_VAR\n\ntmrKolli(IN := (steg = 1) AND NOT tmrKolli.Q AND (ST180_TOT_CNT < 24) AND (ST180_INF_CNT > 0), PT := T#5500ms);\n\nIF NOT EMG_OK THEN\n    ST180_MAG_REQ  := FALSE;\n    ST180_PLT_OUT  := FALSE;\n    ST180_PLT_IN   := FALSE;\n    ST180_SWP_BUSY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST180_MAG_REQ  := FALSE;\n            ST180_PLT_OUT  := FALSE;\n            ST180_PLT_IN   := FALSE;\n            ST180_SWP_BUSY := FALSE;\n            ST180_TOT_CNT  := 0;\n            IF EMG_OK AND ST180_PLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrKolli.Q THEN\n                ST180_TOT_CNT := ST180_TOT_CNT + 1;\n            END_IF;\n\n            IF ST180_TOT_CNT >= 16 AND ST180_TOT_CNT < 24 THEN\n                ST180_MAG_REQ := TRUE;\n            END_IF;\n\n            IF ST180_TOT_CNT >= 24 THEN\n                ST180_SWP_BUSY := TRUE;\n                ST180_PLT_OUT  := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST180_PLT_GONE THEN\n                ST180_PLT_OUT := FALSE;\n                ST180_PLT_IN  := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST180_PLT_PRS THEN\n                ST180_PLT_IN   := FALSE;\n                ST180_SWP_BUSY := FALSE;\n                ST180_MAG_REQ  := FALSE;\n                ST180_TOT_CNT  := 0;\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_pallvaxling",
+        "beskrivning": "Normal drift: palletering till 16 kollin begar tom pall, vid 24 kollin utmatning och inmatning efter GONE.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST180_MAG_RDY": false,
+              "ST180_PLT_GONE": false,
+              "ST180_PLT_PRS": true,
+              "ST180_INF_CNT": 4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST180_MAG_REQ": false,
+              "ST180_PLT_OUT": false,
+              "ST180_PLT_IN": false,
+              "ST180_SWP_BUSY": false,
+              "ST180_TOT_CNT": 0
+            },
+            "varfor": "vid start ar pallen tom"
+          },
+          {
+            "t_ms": 89000,
+            "satt": {},
+            "krav": {
+              "ST180_TOT_CNT": 16,
+              "ST180_MAG_REQ": true,
+              "ST180_SWP_BUSY": false
+            },
+            "varfor": "vid 16 kollin begars ny tom pall ur magasinet for att forbereda vaxlingen"
+          },
+          {
+            "t_ms": 89100,
+            "satt": {
+              "ST180_MAG_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 133500,
+            "satt": {},
+            "krav": {
+              "ST180_TOT_CNT": 24,
+              "ST180_SWP_BUSY": true,
+              "ST180_PLT_OUT": true,
+              "ST180_PLT_IN": false
+            },
+            "varfor": "nar pallen ar full borjar utmatning och SWP_BUSY satts"
+          },
+          {
+            "t_ms": 134000,
+            "satt": {
+              "ST180_PLT_GONE": true,
+              "ST180_PLT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 134100,
+            "satt": {},
+            "krav": {
+              "ST180_PLT_OUT": false,
+              "ST180_PLT_IN": true
+            },
+            "varfor": "nar gamla pallen lamnat matas ny tom pall in"
+          },
+          {
+            "t_ms": 135000,
+            "satt": {
+              "ST180_PLT_PRS": true,
+              "ST180_PLT_GONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 135100,
+            "satt": {},
+            "krav": {
+              "ST180_PLT_IN": false,
+              "ST180_SWP_BUSY": false,
+              "ST180_MAG_REQ": false,
+              "ST180_TOT_CNT": 0
+            },
+            "varfor": "vaxlingen fullbordad"
+          }
+        ]
+      },
+      {
+        "id": "gone_uteblir_blockerar_inmatning",
+        "beskrivning": "Full pall kor inte ut; tom pall far aldrig matas in.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST180_MAG_RDY": true,
+              "ST180_PLT_GONE": false,
+              "ST180_PLT_PRS": true,
+              "ST180_INF_CNT": 4
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 133500,
+            "satt": {},
+            "krav": {
+              "ST180_PLT_OUT": true,
+              "ST180_PLT_IN": false
+            },
+            "varfor": "utmatning pagar"
+          },
+          {
+            "t_ms": 140000,
+            "satt": {},
+            "krav": {
+              "ST180_PLT_IN": false
+            },
+            "varfor": "sa lange full pall inte lamnat far tom pall inte koras in"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_plt_in_innan_gone",
+        "sekvens": "*",
+        "nar": {
+          "ST180_PLT_OUT": true
+        },
+        "kraver": {
+          "ST180_PLT_IN": false
+        },
+        "varfor": "den tomma pallen far aldrig koras in samtidigt som den fulla pallen kors ut"
+      },
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST180_PLT_OUT": false,
+          "ST180_PLT_IN": false,
+          "ST180_SWP_BUSY": false
+        },
+        "varfor": "vid nodstopp ska all transport nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "plt_out_flank",
+        "sekvens": "normal_pallvaxling",
+        "signal": "ST180_PLT_OUT",
+        "typ": "RISE",
+        "fran_ms": 132000,
+        "till_ms": 134000,
+        "antal": 1,
+        "varfor": "PLT_OUT ska ga hog exakt en gang nar pallen blivit full"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "tom_pall_slapps_in_innan_full_lamnat",
+        "st": "PROGRAM ST_L04_PALLVAXLING\nVAR\n    steg     : INT := 0;\n    tmrKolli : TON;\nEND_VAR\n\ntmrKolli(IN := (steg = 1) AND NOT tmrKolli.Q AND (ST180_TOT_CNT < 24) AND (ST180_INF_CNT > 0), PT := T#5500ms);\n\nIF NOT EMG_OK THEN\n    ST180_MAG_REQ  := FALSE;\n    ST180_PLT_OUT  := FALSE;\n    ST180_PLT_IN   := FALSE;\n    ST180_SWP_BUSY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST180_MAG_REQ  := FALSE;\n            ST180_PLT_OUT  := FALSE;\n            ST180_PLT_IN   := FALSE;\n            ST180_SWP_BUSY := FALSE;\n            ST180_TOT_CNT  := 0;\n            IF EMG_OK AND ST180_PLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            IF tmrKolli.Q THEN\n                ST180_TOT_CNT := ST180_TOT_CNT + 1;\n            END_IF;\n\n            IF ST180_TOT_CNT >= 16 AND ST180_TOT_CNT < 24 THEN\n                ST180_MAG_REQ := TRUE;\n            END_IF;\n\n            IF ST180_TOT_CNT >= 24 THEN\n                ST180_SWP_BUSY := TRUE;\n                ST180_PLT_OUT  := TRUE;\n                ST180_PLT_IN   := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST180_PLT_GONE THEN\n                ST180_PLT_OUT := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST180_PLT_PRS THEN\n                ST180_PLT_IN   := FALSE;\n                ST180_SWP_BUSY := FALSE;\n                ST180_MAG_REQ  := FALSE;\n                ST180_TOT_CNT  := 0;\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Den tomma pallen slapps in innan den fulla lamnat, sa pallarna moter varandra och kolliderar pa transportoren.",
+        "faller_pa": [
+          "gone_uteblir_blockerar_inmatning@140000ms:ST180_PLT_IN"
+        ]
+      }
+    ]
+  }
 }
