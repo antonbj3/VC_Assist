@@ -225,6 +225,28 @@ def test_osakerheten_ar_bada_flankernas_tak_inte_bara_stegets():
     assert rapport.dom[0] == "INCONCLUSIVE"
 
 
+def test_ett_fonster_finare_an_osakerheten_ger_inte_OK_ens_mitt_i_fonstret():
+    """DEN TRASIGA FIXTUREN for PASS-halet. station_bra: varje steg ligger
+    mitt i sitt fonster. Med tak 1,0 s pa flankraderna (under braketten) ar
+    osakerheten 2,0 s och fonstren 0,5-1,3 s breda - da kan inget steg sagas
+    ligga i sitt fonster, och domen far inte bli PASS. M-97 matte tak pa
+    5-7 s i en stord VC-korning; fore den har regeln blev de stegen OK."""
+    b, plan = celler.ALLA["station_bra"]()
+    _satt_tak(b.rader, 0.005)
+    _satt_tak(b.rader, 1.0, set(_flankrader(b.rader)))
+    rapport, a = _doma(b, plan)
+    assert a.harledt["timing"]["plc_axel"]["over_braketten"] is False
+    seq = a.harledt["station"]["sekvens"]
+    assert not seq["tidsbrott"] and not seq["brott"]
+    assert seq["osakra"] and "finare" in seq["osakra"][0]
+    assert rapport.dom[0] == "INCONCLUSIVE", rapport.dom
+    # och med ett tak som ryms i fonstren ar samma serie PASS
+    b2, plan2 = celler.ALLA["station_bra"]()
+    _satt_tak(b2.rader, 0.005)
+    _satt_tak(b2.rader, 0.1, set(_flankrader(b2.rader)))
+    assert _doma(b2, plan2)[0].dom[0] == "PASS"
+
+
 # ---- det injicerade kanda svaret ----------------------------------------
 
 def _station_med_ett_steg_0_1_s_for_sent():
