@@ -125,7 +125,7 @@ def extrahera_ur_docker(
         )
     except (subprocess.SubprocessError, OSError) as e:
         raise MatiecFel(
-            f"kunde inte skapa temporär docker-container från {avbild}: {e}"
+            f"could not create a temporary docker container from {avbild}: {e}"
         )
 
     try:
@@ -159,7 +159,7 @@ def extrahera_ur_docker(
         and os.path.isfile(os.path.join(lib, "ieclib.txt"))
     ):
         raise MatiecFel(
-            f"extrahering ur {avbild} gav inte förväntade filer i {mal_katalog}"
+            f"extraction from {avbild} did not produce the expected files in {mal_katalog}"
         )
 
     return binar, lib
