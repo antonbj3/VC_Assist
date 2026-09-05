@@ -4,9 +4,9 @@ VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
 code on a real soft-PLC against a simulated plant, and reads what actually
 happened in the simulation to decide whether the code is correct.
 
-When something goes wrong it does not report a failure. It reports which signal
-rose too early, by how much, and which station therefore began working on a part
-that was not ready — and hands that back to be corrected.
+A failure comes back as a sentence you can act on: which signal rose too early,
+by how many seconds, and what that made the line do. That sentence is what the
+code is rewritten from.
 
 ## What it runs on
 
@@ -194,12 +194,12 @@ apart from the ones that do not.
 
 ```mermaid
 flowchart LR
-    O["your order,<br/>plain language"] --> R{"for each thing<br/>the build needs"}
-    R -->|"derivable from the<br/>catalogue or the scene"| A["assumed —<br/>with the reasoning<br/>written down"]
-    R -->|"only you can answer"| Q["asked"]
+    O["your order,<br/>plain language"] --> R{"each thing the<br/>build needs"}
+    R -->|"derivable from the<br/>catalogue or the scene"| A["decided, and it<br/>shows you why"]
+    R -->|"your call to make"| Q["asked, with<br/>the options"]
     A --> B["buildable spec"]
-    Q -->|"blocking"| S["nothing is built<br/>until you answer"]
-    Q -->|"not blocking"| B
+    Q -->|"changes what gets built"| S["waits for<br/>your answer"]
+    Q -->|"does not"| B
 
     style A fill:#1f6feb,color:#fff
     style S fill:#3a2d0b,color:#fff
@@ -226,12 +226,11 @@ their documentation, and the original PLC project is usually gone. Given a
 recording of the plant's I/O, the interlocks can be derived back out of it: **28
 of 28** recovered from a recording made for the purpose.
 
-From a recording of normal production the figure is **3 of 28**, and that
-difference is the design problem worth solving. A line running a good shift
-never trips its emergency stop, so a passive recording holds no example to learn
-from. The route forward is provoked recordings — exercising the fault paths
-deliberately during a commissioning window — and that is a scheduling question
-more than a technical one.
+From a recording of normal production it is **3 of 28**. A line running a good
+shift never trips its emergency stop, so the recording holds no example of it.
+Getting the rest means recording while the fault paths are deliberately
+exercised — which is a matter of when you record, not of what the tool can
+read.
 
 **Vendor toolchains.** Export to PLCopen XML works and survives a round trip,
 validated against the official schema and accepted by an independent toolchain.
