@@ -165,6 +165,23 @@ uppladdningsformatet eller spåret — aldrig binären.
 * **Fler PLC-fabrikat.** Beckhoff ADS och S7 finns som .NET-dll:er i VC, men vår
   väg går utanför VC:s uppkopplingslager. Ingen efterfrågan är mätt.
 
+## Djupstegen 19–21: kapaciteten, inte kedjan
+
+Steg 0–10 svarade på *finns kedjan?*. Steg 11–18 på *är den bra?*. De här tre
+svarar på en tredje fråga som ingen fas ställt: **räcker den till det användaren
+faktiskt gör?**
+
+Anledningen att de skrivs nu är mätt, inte anad. Åtta specdokument på
+sammanlagt ~3 600 rader har **ingen fas alls** — samma form som fas 16 hade
+innan den fick en (*"384 rader spec utan en fas som bygger den"*). De tre
+tyngsta av dem står nedan.
+
+| # | Fas | Varför den finns, med belägg | Grönt |
+|---|---|---|---|
+| 19 | **Personatäckningen** | `48_personaprofiler.md` (186 rader) och `47_verktygstackning.md` (**1024 rader**) har ingen fas. `48` säger själv att den är *"underlag för täckningsanalysen i 47"* — och den analysen har aldrig körts som en grind. Sex profiler beskriver vad verkliga användare gör; vi har 21 verktyg och vet inte vilken andel av arbetet de täcker | Varje arbetssteg i de sex profilerna är **antingen** täckt av ett namngivet verktyg **eller** märkt `UI`/`.NET` med skäl. Andelen täckta steg rapporteras per profil, och nämnaren är alla steg — inte bara de vi råkar klara. Trasigt fall: ett steg som påstås täckt av ett verktyg som inte gör det måste fällas |
+| 20 | **Komponentmodellen** | `49_komponentmodellen.md` (408 rader) har ingen fas. Den svarar på vad som krävs för att `canConnect` blir sant, och vilken minsta uppsättning en TRANSPORTÖR, MATARE, SÄNKA och BUFFERT behöver. Allt är belagt eller mätt i text — **ingenting är byggt ur specen och prövat i VC** | De fyra minsta uppsättningarna byggda **ur specen**, i riktig VC: `canConnect` sant mellan rätt par, och material som verkligen rör sig igenom. Trasigt fall: en komponent som saknar ett av specens krävda beteenden får **inte** kunna kopplas — och felet ska säga vilket beteende som fattas |
+| 21 | **Bänken i skala** | `M-80` mätte fyra uppgifter. Banken bär **51**, och 47 av dem har inget spårfacit. Fas 8 byggde **en** lina med två stationer. Ett tal ur fyra uppgifter säger lite om kapacitet, och n = 1 per uppgift säger ingenting om spridning | Spårfacit för minst 20 av bankens 51 uppgifter, körda genom hela kedjan mot riktig VC och OpenPLC, med **upprepning** så spridningen går att rapportera. Trasigt fall: ett facit som härletts ur samma tolk som dömer det måste avvisas — facit hör utanför koden som prövas |
+
 ## Regeln som gäller alla faser, också de nya
 
 En fas är klar först när dess acceptansprotokoll i `tests/protocol/` är **körd
