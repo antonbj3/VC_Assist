@@ -313,5 +313,224 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: banhastigheten 24 m/min = 0,40 m/s och avstandet mellan utgangarna 900 mm ger passagetiden 0,900 / 0,40 = 2,25 s mellan tva utgangar. Utskjutarens slagtid ar 0,40 s = 400 ms och takten 30 lastbarare/min ger 2,0 s per lastbarare. Detta ar manniskans facit skrivet ur scenarios normal, dest_lag, dest_hog, home_uteblir, enc_lag, enc_hog samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Inbordes forregling av utskjutare pa gemensam transportbana foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_S02_SORTERING\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    stegPsh3 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    tmr3     : TON;\n    trigDest : R_TRIG;\nEND_VAR\n\ntrigDest(CLK := (ST200_SCN_DEST > 0));\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntmr3(IN := (stegPsh3 = 1), PT := T#400ms);\n\nIF NOT EMG_OK OR NOT ST200_PSH_HOME THEN\n    ST200_CNV_RUN   := FALSE;\n    ST200_PSH1_OUT  := FALSE;\n    ST200_PSH2_OUT  := FALSE;\n    ST200_PSH3_OUT  := FALSE;\n    stegPsh1 := 0;\n    stegPsh2 := 0;\n    stegPsh3 := 0;\nELSE\n    ST200_CNV_RUN := TRUE;\n\n    IF trigDest.Q THEN\n        IF ST200_SCN_DEST = 1 AND stegPsh2 = 0 AND stegPsh3 = 0 AND NOT ST200_PSH2_OUT AND NOT ST200_PSH3_OUT THEN\n            stegPsh1 := 1;\n            ST200_PSH1_OUT := TRUE;\n        ELSIF ST200_SCN_DEST = 2 AND stegPsh1 = 0 AND stegPsh3 = 0 AND NOT ST200_PSH1_OUT AND NOT ST200_PSH3_OUT THEN\n            stegPsh2 := 1;\n            ST200_PSH2_OUT := TRUE;\n        ELSIF ST200_SCN_DEST = 3 AND stegPsh1 = 0 AND stegPsh2 = 0 AND NOT ST200_PSH1_OUT AND NOT ST200_PSH2_OUT THEN\n            stegPsh3 := 1;\n            ST200_PSH3_OUT := TRUE;\n        END_IF;\n    END_IF;\n\n    IF tmr1.Q THEN\n        ST200_PSH1_OUT := FALSE;\n        stegPsh1 := 0;\n    END_IF;\n    IF tmr2.Q THEN\n        ST200_PSH2_OUT := FALSE;\n        stegPsh2 := 0;\n    END_IF;\n    IF tmr3.Q THEN\n        ST200_PSH3_OUT := FALSE;\n        stegPsh3 := 0;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "sortering_dest_1",
+        "beskrivning": "Lastbarare med destination 1 skjuts ut av utskjutare 1 medan utskjutare 2 och 3 forblir laga.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_PSH_HOME": true,
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST200_CNV_RUN": true,
+              "ST200_PSH1_OUT": false,
+              "ST200_PSH2_OUT": false,
+              "ST200_PSH3_OUT": false
+            },
+            "varfor": "bandet gar och ingen utskjutare ar aktiv"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_SCN_DEST": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST200_PSH1_OUT": true,
+              "ST200_PSH2_OUT": false,
+              "ST200_PSH3_OUT": false
+            },
+            "varfor": "utskjutare 1 aktiveras for destination 1"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST200_PSH1_OUT": false
+            },
+            "varfor": "efter slaget dras utskjutare 1 tillbaka"
+          }
+        ]
+      },
+      {
+        "id": "sortering_dest_2",
+        "beskrivning": "Lastbarare med destination 2 skjuts ut av utskjutare 2 ensamt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_PSH_HOME": true,
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_SCN_DEST": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST200_PSH2_OUT": true,
+              "ST200_PSH1_OUT": false,
+              "ST200_PSH3_OUT": false
+            },
+            "varfor": "utskjutare 2 aktiveras"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST200_PSH2_OUT": false
+            },
+            "varfor": "utskjutare 2 klar"
+          }
+        ]
+      },
+      {
+        "id": "sortering_dest_3",
+        "beskrivning": "Lastbarare med destination 3 skjuts ut av utskjutare 3 ensamt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_PSH_HOME": true,
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_SCN_DEST": 3
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST200_PSH3_OUT": true,
+              "ST200_PSH1_OUT": false,
+              "ST200_PSH2_OUT": false
+            },
+            "varfor": "utskjutare 3 aktiveras"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_SCN_DEST": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST200_PSH3_OUT": false
+            },
+            "varfor": "utskjutare 3 klar"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "aldrig_tva_utskjutare_samtidigt",
+        "sekvens": "*",
+        "nar": {
+          "ST200_PSH1_OUT": true
+        },
+        "kraver": {
+          "ST200_PSH2_OUT": false,
+          "ST200_PSH3_OUT": false
+        },
+        "varfor": "tva utskjutare far aldrig vara ute samtidigt pa banan"
+      },
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST200_CNV_RUN": false,
+          "ST200_PSH1_OUT": false,
+          "ST200_PSH2_OUT": false,
+          "ST200_PSH3_OUT": false
+        },
+        "varfor": "vid nodstopp ska all transport och utskjutning nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "psh1_flank",
+        "sekvens": "sortering_dest_1",
+        "signal": "ST200_PSH1_OUT",
+        "typ": "RISE",
+        "fran_ms": 200,
+        "till_ms": 400,
+        "antal": 1,
+        "varfor": "utskjutare 1 ska ga ut exakt en gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "tva_utskjutare_aktiveras_pa_gransen",
+        "st": "PROGRAM ST_S02_SORTERING\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    stegPsh3 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    tmr3     : TON;\n    trigDest : R_TRIG;\nEND_VAR\n\ntrigDest(CLK := (ST200_SCN_DEST > 0));\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntmr3(IN := (stegPsh3 = 1), PT := T#400ms);\n\nIF NOT EMG_OK OR NOT ST200_PSH_HOME THEN\n    ST200_CNV_RUN   := FALSE;\n    ST200_PSH1_OUT  := FALSE;\n    ST200_PSH2_OUT  := FALSE;\n    ST200_PSH3_OUT  := FALSE;\n    stegPsh1 := 0;\n    stegPsh2 := 0;\n    stegPsh3 := 0;\nELSE\n    ST200_CNV_RUN := TRUE;\n\n    IF trigDest.Q THEN\n        IF ST200_SCN_DEST = 1 THEN\n            ST200_PSH1_OUT := TRUE;\n            ST200_PSH2_OUT := TRUE;\n        END_IF;\n    END_IF;\n\n    IF tmr1.Q THEN\n        ST200_PSH1_OUT := FALSE;\n        stegPsh1 := 0;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Tva utskjutare beraknas utan forregling och bada gar ut samtidigt, sa lastbararen klams fast mellan tva utskjutare.",
+        "faller_pa": [
+          "sortering_dest_1@300ms:ST200_PSH2_OUT"
+        ]
+      }
+    ]
+  }
 }

@@ -285,5 +285,182 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: godkant viktfonster ar 0,016 till 0,020 kg (16 till 20 g) runt medelvikten 0,018 kg (18 g). Takten 45 kartor per minut ger 60/45 = 1,333 s per karta och 2700 kartor/h teoretiskt. Detta ar manniskans facit skrivet ur scenarios normal, wgt_lag, wgt_hog, stable_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Vagning och kassationsrakning for lakemedelsforpackning foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och R_TRIG, tabell 44 och 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_S03_KASSATION\nVAR\n    steg     : INT := 0;\n    tmrPsh   : TON;\n    trigPec  : R_TRIG;\n    trigWgt  : R_TRIG;\n    wgtOk    : BOOL := FALSE;\n    wgtError : BOOL := FALSE;\nEND_VAR\n\ntmrPsh(IN := (steg = 2), PT := T#400ms);\ntrigPec(CLK := ST210_REJ_PEC);\ntrigWgt(CLK := ST210_WGT_STABLE);\n\nwgtOk := (ST210_WGT_VAL >= 16.0) AND (ST210_WGT_VAL <= 20.0);\nwgtError := (ST210_WGT_VAL < 5.0) OR (ST210_WGT_VAL > 50.0);\n\nIF NOT EMG_OK OR (ST210_WGT_STABLE AND wgtError) THEN\n    ST210_CNV_RUN := FALSE;\n    ST210_PSH_OUT := FALSE;\n    steg := 0;\nELSE\n    ST210_CNV_RUN := TRUE;\n\n    IF trigWgt.Q THEN\n        ST210_IN_CNT := ST210_IN_CNT + 1;\n        IF wgtOk THEN\n            ST210_OK_CNT := ST210_OK_CNT + 1;\n            steg := 0;\n        ELSE\n            ST210_PSH_OUT := TRUE;\n            steg := 2;\n        END_IF;\n    END_IF;\n\n    IF steg = 2 THEN\n        IF trigPec.Q THEN\n            ST210_REJ_CNT := ST210_REJ_CNT + 1;\n        END_IF;\n        IF tmrPsh.Q THEN\n            ST210_PSH_OUT := FALSE;\n            steg := 0;\n        END_IF;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_godkand_karta",
+        "beskrivning": "Karta med godkand vikt 18,0 g passerar och raknas i OK_CNT och IN_CNT utan utskjutning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST210_WGT_STABLE": false,
+              "ST210_WGT_VAL": 0.0,
+              "ST210_REJ_PEC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST210_CNV_RUN": true,
+              "ST210_PSH_OUT": false,
+              "ST210_OK_CNT": 0,
+              "ST210_REJ_CNT": 0,
+              "ST210_IN_CNT": 0
+            },
+            "varfor": "bandet gar och inga kartor raknade vid start"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST210_WGT_VAL": 18.0,
+              "ST210_WGT_STABLE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST210_OK_CNT": 1,
+              "ST210_IN_CNT": 1,
+              "ST210_PSH_OUT": false
+            },
+            "varfor": "godkand karta raknas i OK_CNT och IN_CNT"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST210_WGT_STABLE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST210_PSH_OUT": false
+            },
+            "varfor": "karta lamnat"
+          }
+        ]
+      },
+      {
+        "id": "underkand_karta_kasseras",
+        "beskrivning": "Underkand karta (12,0 g) skjuts ut och raknas i REJ_CNT forst nar REJ_PEC ser den.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST210_WGT_STABLE": false,
+              "ST210_WGT_VAL": 0.0,
+              "ST210_REJ_PEC": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST210_WGT_VAL": 12.0,
+              "ST210_WGT_STABLE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST210_PSH_OUT": true,
+              "ST210_REJ_CNT": 0,
+              "ST210_IN_CNT": 1
+            },
+            "varfor": "utskjutare aktiveras men REJ_CNT far inte okas forran PEC passerats"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST210_REJ_PEC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST210_REJ_CNT": 1
+            },
+            "varfor": "nar fotocellen sett kartan okas REJ_CNT"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST210_REJ_PEC": false,
+              "ST210_WGT_STABLE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 660,
+            "satt": {},
+            "krav": {
+              "ST210_PSH_OUT": false
+            },
+            "varfor": "utskjutare atdragen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST210_CNV_RUN": false,
+          "ST210_PSH_OUT": false
+        },
+        "varfor": "vid nodstopp ska band och utskjutare stannas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "psh_out_flank",
+        "sekvens": "underkand_karta_kasseras",
+        "signal": "ST210_PSH_OUT",
+        "typ": "RISE",
+        "fran_ms": 100,
+        "till_ms": 300,
+        "antal": 1,
+        "varfor": "utskjutaren ska sla ut exakt en gang vid underkand karta"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "kassationsraknare_okas_utan_pec",
+        "st": "PROGRAM ST_S03_KASSATION\nVAR\n    steg     : INT := 0;\n    tmrPsh   : TON;\n    trigWgt  : R_TRIG;\n    wgtOk    : BOOL := FALSE;\nEND_VAR\n\ntmrPsh(IN := (steg = 2), PT := T#400ms);\ntrigWgt(CLK := ST210_WGT_STABLE);\nwgtOk := (ST210_WGT_VAL >= 16.0) AND (ST210_WGT_VAL <= 20.0);\n\nIF NOT EMG_OK THEN\n    ST210_CNV_RUN := FALSE;\n    ST210_PSH_OUT := FALSE;\n    steg := 0;\nELSE\n    ST210_CNV_RUN := TRUE;\n\n    IF trigWgt.Q THEN\n        ST210_IN_CNT := ST210_IN_CNT + 1;\n        IF wgtOk THEN\n            ST210_OK_CNT := ST210_OK_CNT + 1;\n            steg := 0;\n        ELSE\n            (* FEL: okar REJ_CNT direkt utan att vanta pa REJ_PEC *)\n            ST210_REJ_CNT := ST210_REJ_CNT + 1;\n            ST210_PSH_OUT := TRUE;\n            steg := 2;\n        END_IF;\n    END_IF;\n\n    IF steg = 2 THEN\n        IF tmrPsh.Q THEN\n            ST210_PSH_OUT := FALSE;\n            steg := 0;\n        END_IF;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST210_REJ_CNT okas nar utskjutaren kommenderas i stallet for nar kartan passerat ST210_REJ_PEC, vilket bryter spårbarheten om kartan fastnar.",
+        "faller_pa": [
+          "underkand_karta_kasseras@200ms:ST210_REJ_CNT"
+        ]
+      }
+    ]
+  }
 }

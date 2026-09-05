@@ -322,5 +322,229 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: bandhastigheten 0,30 m/s och kamerans bedomningstid 120 ms = 0,120 s ger forflyttningen 0,30 * 0,120 = 0,036 m = 36,0 mm. Takten 20 detaljer per minut ger 60/20 = 3,0 s cykeltid per detalj och 1200 detaljer/h teoretiskt. Utskjutarnas slagtid ar 0,40 s = 400 ms. Detta ar manniskans facit skrivet ur scenarios normal, verdict_lag, verdict_hog, ready_uteblir, enc_lag, enc_hog samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Kvalitetssortering med 2D-kamera och tva utskjutare foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_S04_KVALITETSKONTROLL\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    trigRdy  : R_TRIG;\n    verdict  : INT := 0;\nEND_VAR\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntrigRdy(CLK := ST220_CAM_READY);\n\nIF NOT EMG_OK OR NOT AIR_OK OR NOT ST220_PSH_HOME THEN\n    ST220_CNV_RUN  := FALSE;\n    ST220_PSH_RWK  := FALSE;\n    ST220_PSH_SCR  := FALSE;\n    ST220_CAM_TRIG := FALSE;\n    stegPsh1 := 0;\n    stegPsh2 := 0;\nELSE\n    ST220_CNV_RUN := TRUE;\n    ST220_CAM_TRIG := NOT ST220_CAM_READY;\n\n    IF trigRdy.Q THEN\n        verdict := ST220_CAM_VERDICT;\n        IF verdict = 2 OR verdict < 1 OR verdict > 3 THEN\n            ST220_PSH_RWK := TRUE;\n            stegPsh1 := 1;\n        ELSIF verdict = 3 THEN\n            ST220_PSH_SCR := TRUE;\n            stegPsh2 := 1;\n        END_IF;\n    END_IF;\n\n    IF tmr1.Q THEN\n        ST220_PSH_RWK := FALSE;\n        stegPsh1 := 0;\n    END_IF;\n    IF tmr2.Q THEN\n        ST220_PSH_SCR := FALSE;\n        stegPsh2 := 0;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_godkand_passerar",
+        "beskrivning": "Detalj med dom 1 (godkand) passerar rakt fram utan aktivering av utskjutare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST220_PSH_HOME": true,
+              "ST220_CAM_READY": false,
+              "ST220_CAM_VERDICT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST220_CNV_RUN": true,
+              "ST220_CAM_TRIG": true,
+              "ST220_PSH_RWK": false,
+              "ST220_PSH_SCR": false
+            },
+            "varfor": "bandet gar och bildtagning triggas"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST220_CAM_READY": true,
+              "ST220_CAM_VERDICT": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST220_PSH_RWK": false,
+              "ST220_PSH_SCR": false,
+              "ST220_CAM_TRIG": false
+            },
+            "varfor": "godkand detalj passerar utan utskjutning"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST220_CAM_READY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST220_CAM_TRIG": true
+            },
+            "varfor": "nasta bildtagning forbereds"
+          }
+        ]
+      },
+      {
+        "id": "ogiltig_dom_skjuts_till_omarbete",
+        "beskrivning": "Detalj med ogiltig dom 0 (eller dom 2) skjuts ut till omarbetning med PSH_RWK.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST220_PSH_HOME": true,
+              "ST220_CAM_READY": false,
+              "ST220_CAM_VERDICT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST220_CAM_READY": true,
+              "ST220_CAM_VERDICT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST220_PSH_RWK": true,
+              "ST220_PSH_SCR": false
+            },
+            "varfor": "ogiltig dom 0 far inte passera rakt fram utan skjuts till omarbetning"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST220_CAM_READY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 660,
+            "satt": {},
+            "krav": {
+              "ST220_PSH_RWK": false
+            },
+            "varfor": "utskjutaren atdragen"
+          }
+        ]
+      },
+      {
+        "id": "kasserad_vid_dom_3",
+        "beskrivning": "Detalj med dom 3 skjuts ut till kassation med PSH_SCR.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST220_PSH_HOME": true,
+              "ST220_CAM_READY": false,
+              "ST220_CAM_VERDICT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST220_CAM_READY": true,
+              "ST220_CAM_VERDICT": 3
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST220_PSH_SCR": true,
+              "ST220_PSH_RWK": false
+            },
+            "varfor": "dom 3 skjuts ut till kassation"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST220_CAM_READY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 660,
+            "satt": {},
+            "krav": {
+              "ST220_PSH_SCR": false
+            },
+            "varfor": "utskjutaren atdragen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "aldrig_bada_utskjutarna_samtidigt",
+        "sekvens": "*",
+        "nar": {
+          "ST220_PSH_RWK": true
+        },
+        "kraver": {
+          "ST220_PSH_SCR": false
+        },
+        "varfor": "bada utskjutarna far aldrig vara ute samtidigt pa samma bana"
+      },
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST220_CNV_RUN": false,
+          "ST220_PSH_RWK": false,
+          "ST220_PSH_SCR": false
+        },
+        "varfor": "vid nodstopp ska all transport och utskjutning nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "psh_rwk_flank",
+        "sekvens": "ogiltig_dom_skjuts_till_omarbete",
+        "signal": "ST220_PSH_RWK",
+        "typ": "RISE",
+        "fran_ms": 100,
+        "till_ms": 300,
+        "antal": 1,
+        "varfor": "utskjutaren for omarbetning ska sla ut exakt en gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "odomd_detalj_slapps_igenom_rakt_fram",
+        "st": "PROGRAM ST_S04_KVALITETSKONTROLL\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    trigRdy  : R_TRIG;\n    verdict  : INT := 0;\nEND_VAR\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntrigRdy(CLK := ST220_CAM_READY);\n\nIF NOT EMG_OK OR NOT AIR_OK OR NOT ST220_PSH_HOME THEN\n    ST220_CNV_RUN  := FALSE;\n    ST220_PSH_RWK  := FALSE;\n    ST220_PSH_SCR  := FALSE;\n    ST220_CAM_TRIG := FALSE;\n    stegPsh1 := 0;\n    stegPsh2 := 0;\nELSE\n    ST220_CNV_RUN := TRUE;\n    ST220_CAM_TRIG := NOT ST220_CAM_READY;\n\n    IF trigRdy.Q THEN\n        verdict := ST220_CAM_VERDICT;\n        IF verdict = 2 THEN\n            ST220_PSH_RWK := TRUE;\n            stegPsh1 := 1;\n        ELSIF verdict = 3 THEN\n            ST220_PSH_SCR := TRUE;\n            stegPsh2 := 1;\n        END_IF;\n    END_IF;\n\n    IF tmr1.Q THEN\n        ST220_PSH_RWK := FALSE;\n        stegPsh1 := 0;\n    END_IF;\n    IF tmr2.Q THEN\n        ST220_PSH_SCR := FALSE;\n        stegPsh2 := 0;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "En odomd detalj med ogiltig dom (t.ex. 0) slapps rakt fram i stallet for att skickas till omarbetning, sa defekt gods nar kunden.",
+        "faller_pa": [
+          "ogiltig_dom_skjuts_till_omarbete@200ms:ST220_PSH_RWK"
+        ]
+      }
+    ]
+  }
 }
