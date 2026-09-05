@@ -154,3 +154,37 @@ def test_den_raka_delstrangen_gar_alltid_forst():
         "en fraga som redan traffar rakt far inte breddas av ett losare steg"
     assert s.lasning is None
     assert "IRB 260" not in namn(kat().sok(fraga="IRB 2600"))
+
+
+# ============================================== vokabularglappet: klass 1
+#
+# De 60 andra fragorna. Inget namnsteg loser dem, och M-161 mater varfor: de
+# tva vokabularen beskriver inte samma sak. Bankens 60 ANTAGNA poster bar 31
+# olika matta falt och de flesta ar TIDER (anslag_s, spanntid_s, svarstid_ms);
+# bibliotekets deklarerade falt ar tva, Reach och MaxPayload. Ett alias-skikt
+# hade brygga ORDEN och anda inte STORHETERNA - och det hade dessutom varit
+# ett handskrivet register utan facitkalla (85_bankkontraktet.md §2).
+#
+# Det enda soket kan gora arligt ar att saga var de andra dorrarna sitter.
+
+def test_noll_traffar_pa_ett_namn_pekar_ut_de_andra_dorrarna(monkeypatch):
+    import vc_assist_svc.verktyg as V
+    import vc_assist_svc.verktyg.katalog as KT
+
+    KT._nollstall_bibliotek()
+    monkeypatch.setattr(KT, "_bibliotek", lambda: (kat(), None))
+    try:
+        r = V.DATA_HANDLERS["search_installed_library"](
+            {"query": u"Induktiv närvarogivare"})
+        assert r["antal"] == 0
+        assert r["notering"] and "family" in r["notering"]
+        assert "sager INTE att komponenten saknas" in r["notering"], \
+            "svaret far inte lasas som att komponenten inte finns"
+        # ... och en traff far ALDRIG bara den raden.
+        t = V.DATA_HANDLERS["search_installed_library"](
+            {"query": "ABB IRB 1200-5/0.9"})
+        assert t["antal"] == 2
+        assert t["notering"] is None, "en traff far aldrig bara nollraden"
+        assert t["lasning"] and "ABB" in t["lasning"]
+    finally:
+        KT._nollstall_bibliotek()

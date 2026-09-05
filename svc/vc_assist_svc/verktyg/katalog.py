@@ -687,6 +687,26 @@ def _search_installed_library(argument):
                           "manufacturer, category eller ett namnfragment; "
                           "sammandrag visar fordelningen per tillverkare."
                           % svar.totalt)
+    elif svar.totalt == 0 and (argument.get("query") or "").strip():
+        # NOLL TRAFFAR PA ETT NAMN ar det vanligaste svaret den har sokningen
+        # ger, och ett naket "0 traffar" ar sant men obrukbart. MATT i M-161:
+        # 60 av bankens 75 komponentfragor ar svenska funktionsbeskrivningar
+        # ("Induktiv narvarogivare"), och INGEN av dem har en motsvarighet i
+        # biblioteket under nagot namn - biblioteket namnger komponenter med
+        # tillverkarnas produktnamn, pa engelska, fran 149 tillverkare.
+        #
+        # Raden lovar darfor ingenting om att komponenten finns. Den sager var
+        # de ANDRA dorrarna sitter, precis som catalog_item svarar found=false
+        # med VERKLIGA alternativ i stallet for en gissad sokvag.
+        ut["notering"] = (
+            "0 traffar pa namnet. Biblioteket namnger komponenter med "
+            "tillverkarnas produktnamn (149 tillverkare, engelska), inte med "
+            "funktionsbeskrivningar - en beskrivande fraga traffar darfor "
+            "noll aven nar nagot liknande finns. Sok i stallet pa family "
+            "(robot, transportor, verktyg), manufacturer, min_reach_mm eller "
+            "min_payload_kg, eller fraga library_overview forst. Det har "
+            "svaret sager INTE att komponenten saknas - det sager att namnet "
+            "inte finns (M-161).")
     elif svar.visade < svar.totalt:
         ut["notering"] = ("%d av %d traffar visas. Hoj max_rows eller smalna av."
                           % (svar.visade, svar.totalt))
