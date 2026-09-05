@@ -98,7 +98,7 @@ class KartFel(Exception):
 
 def _kontrollera_ident(namn: str, vad: str) -> str:
     if not isinstance(namn, str) or not _IDENT.match(namn):
-        raise KartFel("%s %r är inget giltigt ST-namn" % (vad, namn))
+        raise KartFel("%s %r is not a valid ST name" % (vad, namn))
     return namn
 
 
@@ -118,22 +118,22 @@ class Adress:
 
     def __post_init__(self):
         if self.omrade not in ("I", "Q"):
-            raise KartFel("okänt adressområde %r; bara %%I och %%Q hör till en "
-                          "signalkarta" % (self.omrade,))
+            raise KartFel("unknown address area %r; only %%I and %%Q belong to a "
+                          "signal map" % (self.omrade,))
         if self.storlek not in STORLEK_TYPER:
-            raise KartFel("okänd storleksbokstav %r" % (self.storlek,))
+            raise KartFel("unknown size letter %r" % (self.storlek,))
         if not 0 <= self.index <= MAX_INDEX:
-            raise KartFel("adressindex %d ligger utanför bildtabellen (0..%d)"
+            raise KartFel("address index %d is outside the image table (0..%d)"
                           % (self.index, MAX_INDEX))
         if self.storlek == "X":
             if self.bit is None:
-                raise KartFel("en bitadress kräver ett bitindex, %s saknar det"
+                raise KartFel("a bit address requires a bit index, %s is missing it"
                               % self.text())
             if not 0 <= self.bit <= MAX_BIT:
-                raise KartFel("bitindex %d ligger utanför 0..%d"
+                raise KartFel("bit index %d is outside 0..%d"
                               % (self.bit, MAX_BIT))
         elif self.bit is not None:
-            raise KartFel("bara bitadresser (%%X) har ett bitindex; %s har ett"
+            raise KartFel("only bit addresses (%%X) have a bit index; %s has one"
                           % self.text())
 
     def text(self) -> str:
@@ -154,7 +154,7 @@ class Adress:
 def las_adress(text: str) -> Adress:
     m = _ADRESS.match(text or "")
     if not m:
-        raise KartFel("%r är ingen lokaliserad adress på formen %%QX0.0" % (text,))
+        raise KartFel("%r is not a located address of the form %%QX0.0" % (text,))
     bit = m.group("bit")
     # Versaler ar kanonform: tva skrivningar av samma plats maste bli samma
     # Adress, annars slutar plats() se krocken. Se monstrets kommentar.
@@ -171,11 +171,11 @@ def _typ_av_text(text: str) -> T.Typ:
     har det vore att uppfinna en mappning (I3: vet-inte är inte godkänt).
     """
     if not isinstance(text, str):
-        raise KartFel("typen måste vara en sträng, inte %s" % type(text).__name__)
+        raise KartFel("the type must be a string, not %s" % type(text).__name__)
     namn = text.strip().upper()
     if namn not in T.ELEMENTARA:
-        raise KartFel("%r är ingen elementär typ; en scensignal kan bara ligga "
-                      "på en primitiv plats i bildtabellen" % (text,))
+        raise KartFel("%r is not an elementary type; a scene signal can only "
+                      "sit at a primitive location in the image table" % (text,))
     return T.Elementar(namn)
 
 
@@ -203,33 +203,33 @@ class Signal:
     def __post_init__(self):
         _kontrollera_ident(self.tagg, "taggnamnet")
         if not self.komponent or not isinstance(self.komponent, str):
-            raise KartFel("signalen saknar komponentnamn")
+            raise KartFel("the signal is missing a component name")
         if not self.scensignal or not isinstance(self.scensignal, str):
-            raise KartFel("signalen saknar scensignalnamn")
+            raise KartFel("the signal is missing a scene-signal name")
         for falt, varde in (("komponent", self.komponent),
                             ("scensignal", self.scensignal),
                             ("kommentar", self.kommentar or "")):
             try:
                 varde.encode("ascii")
             except UnicodeEncodeError:
-                raise KartFel("%s %r innehåller icke-ASCII; namnet ska hela "
-                              "vägen ut som OPC UA-namn" % (falt, varde))
+                raise KartFel("%s %r contains non-ASCII; the name must go all "
+                              "the way out as an OPC UA name" % (falt, varde))
         if self.riktning not in RIKTNINGAR:
-            raise KartFel("okänd riktning %r; värdena är %s"
-                          % (self.riktning, " och ".join(RIKTNINGAR)))
+            raise KartFel("unknown direction %r; the values are %s"
+                          % (self.riktning, " and ".join(RIKTNINGAR)))
         if not isinstance(self.typ, T.Elementar):
-            raise KartFel("signaltypen måste vara elementär, inte %s"
+            raise KartFel("the signal type must be elementary, not %s"
                           % self.typ.st())
         if not isinstance(self.adress, Adress):
-            raise KartFel("adressen måste vara en Adress, inte %s"
+            raise KartFel("the address must be an Adress, not %s"
                           % type(self.adress).__name__)
         vantat = OMRADE[self.riktning]
         if self.adress.omrade != vantat:
-            raise KartFel("%s hör i %%%s, men %s ligger i %%%s"
+            raise KartFel("%s belongs in %%%s, but %s is in %%%s"
                           % (self.riktning, vantat, self.tagg, self.adress.omrade))
         storlek = TYP_STORLEK[self.typ.namn]
         if self.adress.storlek != storlek:
-            raise KartFel("%s är %s och hör på %%%s%s, men adressen är %s"
+            raise KartFel("%s is %s and belongs on %%%s%s, but the address is %s"
                           % (self.tagg, self.typ.namn, self.adress.omrade,
                              storlek, self.adress.text()))
 
@@ -265,7 +265,7 @@ class Signal:
     @staticmethod
     def fran_json(rad: object) -> "Signal":
         if not isinstance(rad, dict):
-            raise KartFel("en signalrad måste vara ett objekt, inte %s"
+            raise KartFel("a signal row must be an object, not %s"
                           % type(rad).__name__)
         kanda = {"komponent", "scensignal", "tagg", "typ", "riktning",
                  "adress", "skyddad", "kommentar"}
@@ -273,15 +273,15 @@ class Signal:
         if okanda:
             # Fail-closed (I3): ett fält vi inte förstår kan bära en avsikt vi
             # tappar bort. Tyst ignorerat är värre än avvisat.
-            raise KartFel("okända fält i signalraden: %s"
+            raise KartFel("unknown fields in the signal row: %s"
                           % ", ".join(sorted(okanda)))
         saknade = {"komponent", "scensignal", "tagg", "typ", "riktning",
                    "adress"} - set(rad)
         if saknade:
-            raise KartFel("signalraden saknar %s" % ", ".join(sorted(saknade)))
+            raise KartFel("the signal row is missing %s" % ", ".join(sorted(saknade)))
         skyddad = rad.get("skyddad", False)
         if not isinstance(skyddad, bool):
-            raise KartFel("skyddad måste vara true eller false, inte %r"
+            raise KartFel("skyddad must be true or false, not %r"
                           % (skyddad,))
         return Signal(komponent=rad["komponent"], scensignal=rad["scensignal"],
                       tagg=rad["tagg"], typ=_typ_av_text(rad["typ"]),
@@ -303,24 +303,24 @@ class Signalkarta:
         sedda_scensignaler: Dict[Tuple[str, str], Signal] = {}
         for s in self.signaler:
             if not isinstance(s, Signal):
-                raise KartFel("kartan innehåller något som inte är en Signal: %s"
+                raise KartFel("the map contains something that is not a Signal: %s"
                               % type(s).__name__)
             # ST är skiftlägesokänsligt: Ut och ut är samma variabel.
             nyckel = s.tagg.upper()
             if nyckel in sedda_taggar:
-                raise KartFel("taggen %s förekommer två gånger (%s och %s)"
+                raise KartFel("the tag %s occurs twice (%s and %s)"
                               % (s.tagg, sedda_taggar[nyckel].scensignal,
                                  s.scensignal))
             sedda_taggar[nyckel] = s
             plats = s.adress.plats()
             if plats in sedda_platser:
-                raise KartFel("adressen %s delas av %s och %s"
+                raise KartFel("the address %s is shared by %s and %s"
                               % (s.adress.text(), sedda_platser[plats].tagg,
                                  s.tagg))
             sedda_platser[plats] = s
             scen = (s.komponent, s.scensignal)
             if scen in sedda_scensignaler:
-                raise KartFel("scensignalen %s.%s är mappad två gånger (%s och %s)"
+                raise KartFel("the scene signal %s.%s is mapped twice (%s and %s)"
                               % (s.komponent, s.scensignal,
                                  sedda_scensignaler[scen].tagg, s.tagg))
             sedda_scensignaler[scen] = s
@@ -395,18 +395,18 @@ class Signalkarta:
     @staticmethod
     def fran_json(data: object) -> "Signalkarta":
         if not isinstance(data, dict):
-            raise KartFel("en signalkarta måste vara ett objekt, inte %s"
+            raise KartFel("a signal map must be an object, not %s"
                           % type(data).__name__)
         okanda = set(data) - {"format", "station", "signaler"}
         if okanda:
-            raise KartFel("okända fält i kartan: %s" % ", ".join(sorted(okanda)))
+            raise KartFel("unknown fields in the map: %s" % ", ".join(sorted(okanda)))
         if data.get("format") != FORMAT:
-            raise KartFel("kartformat %r; den här koden läser bara %d"
+            raise KartFel("map format %r; this code only reads %d"
                           % (data.get("format"), FORMAT))
         if "station" not in data or "signaler" not in data:
-            raise KartFel("kartan saknar station eller signaler")
+            raise KartFel("the map is missing station or signaler")
         if not isinstance(data["signaler"], list):
-            raise KartFel("signaler måste vara en lista")
+            raise KartFel("signaler must be a list")
         return Signalkarta(data["station"],
                            tuple(Signal.fran_json(r) for r in data["signaler"]))
 
@@ -415,7 +415,7 @@ class Signalkarta:
         try:
             data = json.loads(text)
         except ValueError as fel:
-            raise KartFel("kartan är inte giltig JSON: %s" % fel)
+            raise KartFel("the map is not valid JSON: %s" % fel)
         return Signalkarta.fran_json(data)
 
     @staticmethod
@@ -441,7 +441,7 @@ def karta_av_rader(station: str, rader) -> Signalkarta:
     ut: List[Signal] = []
     for rad in rader:
         if len(rad) < 6 or len(rad) > 8:
-            raise KartFel("en signalrad har 6 till 8 fält, inte %d" % len(rad))
+            raise KartFel("a signal row has 6 to 8 fields, not %d" % len(rad))
         komponent, scensignal, tagg, typnamn, riktning, adress = rad[:6]
         skyddad = rad[6] if len(rad) > 6 else False
         kommentar = rad[7] if len(rad) > 7 else None
