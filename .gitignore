@@ -6,3 +6,7 @@ __pycache__/
 # STruC++:s REPL skriver en historikfil i arbetskatalogen. Ett verktygssparr,
 # inte var kod.
 .strucpp_history
+
+# Coverage-data ur tests/protocol/kor_tackning.py. Genererad, aldrig i repot.
+.coverage
+.coverage-*
