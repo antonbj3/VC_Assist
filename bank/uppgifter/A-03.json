@@ -297,5 +297,668 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: takten kommer ur stationernas egna arbetstider. Station 1 arbetar 26,0 s och station 2 arbetar 31,0 s, sa linans takt satts av den langsammaste, 31,0 s, alltsa 3600/31,0 = 116,1 enheter i timmen. Station 1 star och vantar 31,0 - 26,0 = 5,0 s per enhet, 16 procent av takten. Rullbanan gar 24 m/min = 0,4 m/s och lastbararen ar 600 mm lang, sa en lastbarare lamnar en station pa 600/400 = 1,5 s. Rakningen star i M-106.",
+    "standard": "Handskakningen at bada hall ar stationsgranssnittets egen form och ar INTE hamtad ur en publicerad standard; facit sager det hellre an gissar en paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; TON for arbetstiderna och R_TRIG for flankdetektering enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM A03_LINA\nVAR\n    s1steg  : INT := 0;\n    s2steg  : INT := 0;\n    tmr1    : TON;\n    tmr2    : TON;\n    tpAck   : TP;\n    xSlapp  : BOOL := FALSE;\n    xTaEmot : BOOL := FALSE;\n    xDrift  : BOOL := FALSE;\nEND_VAR\n\n(* Linans takt satts av den langsammaste stationen. Station 1 arbetar 26,0 s\n   och station 2 arbetar 31,0 s, sa takten ar 31,0 s och station 1 star och\n   vantar 5,0 s per enhet. Den vantan ar inte ett fel som ska optimeras bort\n   i styrningen: den ar forreglingen framat, och tas den bort trycks en enhet\n   in i en station som annu arbetar. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt och lases bara. Den gar hog\n   forst nar kretsen ar manuellt aterstalld i sakerhetsdelen, sa den har\n   logiken aterstaller aldrig sjalv ett nodstopp; den ar forreglad AV den. *)\nxDrift := EMG_OK;\n\ntmr1(IN := ST250_STA_BUSY, PT := T#26s);\ntmr2(IN := ST260_STA_BUSY, PT := T#31s);\n\n(* Kvittensen ar en puls och inte en niva. Den ska vara langre an mottagarens\n   avsokning sa att den aldrig kan missas, och kortare an takten sa att tva\n   enheter aldrig kan dela pa samma kvittens. *)\ntpAck(IN := xTaEmot, PT := T#500ms);\n\nIF NOT xDrift THEN\n    (* Ett brutet nodstopp tar bort varje kommenderat don i samma scan.\n       Stegen behalls: enheterna star kvar dar de star, och klarsignalerna\n       med dem. Arbetstiden borjar om, for en halvt utford operation ar inte\n       halvt klar. *)\n    xSlapp := FALSE;\nELSE\n    (* ---------------- station 1 ---------------- *)\n    CASE s1steg OF\n        0:\n            (* En ny enhet far inte borja arbetas pa sa lange foregaende\n               enhets klarsignal star kvar. Annars arver den nya enheten\n               beskedet. *)\n            IF ST250_PRT_PRS AND NOT ST250_STA_DONE THEN\n                s1steg := 1;\n            END_IF;\n        1:\n            IF tmr1.Q THEN\n                ST250_STA_DONE := TRUE;\n                s1steg := 2;\n            END_IF;\n        2:\n            (* Forreglingen framat: grinden far oppna forst nar station 2\n               sagt sig tom och klar, och bara for en enhet som star har. *)\n            IF ST250_STA_DONE AND ST260_STA_RDY AND ST250_PRT_PRS THEN\n                xSlapp := TRUE;\n                s1steg := 3;\n            END_IF;\n        3:\n            IF NOT ST260_STA_RDY THEN\n                (* Station 2 blev upptagen medan grinden stod oppen. Stang\n                   den igen och hall enheten kvar. *)\n                xSlapp := FALSE;\n                s1steg := 2;\n            ELSIF NOT ST250_PRT_PRS THEN\n                xSlapp := FALSE;\n                s1steg := 4;\n            END_IF;\n        4:\n            (* Handskakningen nollstalls at det har hallet: klarsignalen star\n               kvar tills station 2 kvitterat mottagandet. Forst da far\n               stationen borja pa en ny enhet, och samma klarsignal kan\n               aldrig slappa tva enheter. *)\n            IF ST260_ACK_RST THEN\n                ST250_STA_DONE := FALSE;\n                s1steg := 0;\n            END_IF;\n    ELSE\n        s1steg := 0;\n    END_CASE;\n\n    (* ---------------- station 2 ---------------- *)\n    CASE s2steg OF\n        0:\n            (* Forreglingen bakat: narvaron ensam ar inget startvillkor. En\n               enhet kan sta i stationen utan att station 1 blivit klar med\n               den, och da ar den halvfardig. *)\n            IF ST260_PRT_PRS AND ST250_STA_DONE THEN\n                xTaEmot := TRUE;\n                s2steg := 1;\n            END_IF;\n        1:\n            IF NOT ST250_STA_DONE THEN\n                xTaEmot := FALSE;\n            END_IF;\n            IF tmr2.Q THEN\n                ST260_STA_DONE := TRUE;\n                s2steg := 2;\n            END_IF;\n        2:\n            IF NOT ST260_PRT_PRS THEN\n                ST260_STA_DONE := FALSE;\n                s2steg := 0;\n            END_IF;\n    ELSE\n        s2steg := 0;\n    END_CASE;\nEND_IF;\n\nST250_STA_BUSY := (s1steg = 1) AND xDrift;\nST250_REL_OPEN := xSlapp AND ST250_STA_DONE AND ST260_STA_RDY\n                  AND ST250_PRT_PRS AND xDrift;\nST260_STA_BUSY := (s2steg = 1) AND xDrift;\nST260_ACK_RST := tpAck.Q;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_enhet_genom_bada_stationerna",
+        "beskrivning": "En enhet hela vagen: 26,0 s i station 1, handskakning at bada hall, 31,0 s i station 2.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": false,
+              "ST250_STA_DONE": false,
+              "ST250_REL_OPEN": false,
+              "ST260_STA_BUSY": false,
+              "ST260_STA_DONE": false,
+              "ST260_ACK_RST": false
+            },
+            "varfor": "utan enhet i nagon station ska ingenting vara kommenderat och ingen klarsignal sta ute"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_STA_DONE": false
+            },
+            "varfor": "narvaron startar arbetet i station 1, men klarsignalen far inte komma forran arbetstiden gatt"
+          },
+          {
+            "t_ms": 26000,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_STA_DONE": false,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "25,6 s efter start ar station 1 inte klar; arbetstiden ar 26,0 s och en klarsignal fore den ar en oarbetad enhet som slapps vidare"
+          },
+          {
+            "t_ms": 26800,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": true,
+              "ST250_STA_BUSY": false,
+              "ST250_REL_OPEN": true
+            },
+            "varfor": "26,4 s efter start ska arbetstiden 26,0 s ha gatt ut, klarsignalen sta och grinden oppna eftersom station 2 har sagt sig tom och klar"
+          },
+          {
+            "t_ms": 28000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 28200,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "lastbararen ar 600 mm och rullbanan gar 0,4 m/s, sa den lamnar stationen pa 1,5 s; da stangs grinden, men klarsignalen star kvar tills station 2 kvitterat"
+          },
+          {
+            "t_ms": 29000,
+            "satt": {
+              "ST260_PRT_PRS": true,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 29200,
+            "satt": {},
+            "krav": {
+              "ST260_STA_BUSY": true,
+              "ST260_ACK_RST": true,
+              "ST250_STA_DONE": false
+            },
+            "varfor": "station 2 startar pa station 1:s klarsignal, kvitterar mottagandet och kvittensen nollstaller klarsignalen; utan den nollstallningen arver nasta enhet beskedet"
+          },
+          {
+            "t_ms": 59600,
+            "satt": {},
+            "krav": {
+              "ST260_STA_BUSY": true,
+              "ST260_STA_DONE": false
+            },
+            "varfor": "30,6 s efter start ar station 2 inte klar; 31,0 s ar dess arbetstid och det ar den som satter linans takt"
+          },
+          {
+            "t_ms": 60400,
+            "satt": {},
+            "krav": {
+              "ST260_STA_DONE": true,
+              "ST260_STA_BUSY": false
+            },
+            "varfor": "31,4 s efter start ska arbetstiden 31,0 s ha gatt ut och station 2 vara klar"
+          },
+          {
+            "t_ms": 61000,
+            "satt": {
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 61400,
+            "satt": {},
+            "krav": {
+              "ST260_STA_DONE": false,
+              "ST260_STA_BUSY": false,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "enheten har lamnat station 2, klarsignalen slapper och linan star tom; ingen grind far sta oppen utan enhet"
+          }
+        ]
+      },
+      {
+        "id": "ingen_dubbelslapp_pa_samma_klarsignal",
+        "beskrivning": "En ny enhet kommer in i station 1 innan station 2 kvitterat foregaende. Samma klarsignal far inte slappa tva enheter.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_STA_DONE": false
+            },
+            "varfor": "forsta enheten borjar arbetas pa"
+          },
+          {
+            "t_ms": 26800,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": true,
+              "ST250_REL_OPEN": true
+            },
+            "varfor": "26,4 s efter start ar station 1 klar och grinden oppnar mot en tom station 2"
+          },
+          {
+            "t_ms": 28000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 28200,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "enheten har lamnat station 1 och grinden stangs, men handskakningen ar inte fardig forran station 2 kvitterat"
+          },
+          {
+            "t_ms": 28600,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 29000,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_BUSY": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "den nya enheten star i station 1 medan foregaende enhets klarsignal annu star ute; den far varken slappas vidare pa den signalen eller borja arbetas pa forran handskakningen ar nollstalld"
+          },
+          {
+            "t_ms": 30000,
+            "satt": {
+              "ST260_PRT_PRS": true,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30400,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": false,
+              "ST260_ACK_RST": true,
+              "ST260_STA_BUSY": true
+            },
+            "varfor": "station 2 tog emot foregaende enhet och kvitterade; kvittensen nollstaller station 1:s klarsignal"
+          },
+          {
+            "t_ms": 31000,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "forst nu, med nollstalld handskakning, far station 1 borja arbeta pa den nya enheten, och grinden ska sta stangd eftersom station 2 nu ar upptagen"
+          },
+          {
+            "t_ms": 57000,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": true,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "station 1 ar klar med den andra enheten men station 2 arbetar annu; forreglingen framat haller enheten kvar, och de 5,0 s som skiljer 26,0 fran 31,0 s ar precis den vantan takten kostar station 1"
+          }
+        ]
+      },
+      {
+        "id": "station_2_upptagen_nar_station_1_blir_klar",
+        "beskrivning": "Station 2 ar upptagen hela station 1:s arbetstid. Grinden far inte oppna forran ST260_STA_RDY gar hog.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "station 1 arbetar; grinden ar stangd for att station 2 inte ar klar att ta emot"
+          },
+          {
+            "t_ms": 26800,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": true,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "station 1 ar klar men station 2 ar upptagen; en enhet som slapps nu moter den som star dar"
+          },
+          {
+            "t_ms": 30000,
+            "satt": {
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30400,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": true,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "forst nar station 2 sagt sig tom och klar far grinden oppna, och klarsignalen star kvar tills kvittensen kommer"
+          },
+          {
+            "t_ms": 32000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 32400,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "grinden stangs nar lastbararen lamnat station 1"
+          }
+        ]
+      },
+      {
+        "id": "rdy_faller_mitt_i_slappet",
+        "beskrivning": "ST260_STA_RDY gar lag medan grinden redan star oppen. Grinden ska stanga igen och oppna om nar station 2 ar klar igen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 26800,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": true,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "station 1 ar klar och station 2 sa sig tom, sa grinden oppnade"
+          },
+          {
+            "t_ms": 27000,
+            "satt": {
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 27400,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "forreglingen framat ar ett villkor och inte ett startvillkor: faller ST260_STA_RDY medan grinden star oppen ska den stanga igen och halla enheten kvar"
+          },
+          {
+            "t_ms": 29000,
+            "satt": {
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 29400,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": true
+            },
+            "varfor": "station 2 ar klar igen och samma enhet far slappas; klarsignalen har hela tiden statt kvar"
+          },
+          {
+            "t_ms": 30000,
+            "satt": {
+              "ST250_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 30400,
+            "satt": {},
+            "krav": {
+              "ST250_REL_OPEN": false,
+              "ST250_STA_DONE": true
+            },
+            "varfor": "grinden stangs nar lastbararen lamnat stationen"
+          }
+        ]
+      },
+      {
+        "id": "enhet_i_station_2_utan_klarsignal",
+        "beskrivning": "En enhet star i station 2 utan att station 1 kvitterat den klar. Narvaron ensam far inte starta stationen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST260_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST260_STA_BUSY": false,
+              "ST260_ACK_RST": false,
+              "ST260_STA_DONE": false
+            },
+            "varfor": "enheten ar narvarande men station 1 har inte sagt att den ar fardigarbetad; en station som startar pa narvaron bearbetar en halvfardig enhet vidare"
+          },
+          {
+            "t_ms": 10000,
+            "satt": {},
+            "krav": {
+              "ST260_STA_BUSY": false,
+              "ST260_STA_DONE": false,
+              "ST260_ACK_RST": false
+            },
+            "varfor": "10 s senare star stationen fortfarande stilla; forreglingen bakat ar ett villkor och ingen startfordrojning som gar over av sig sjalv"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_station_1",
+        "beskrivning": "Nodstopp medan station 1 arbetar, sedan aterstalld krets. Arbetstiden ska borja om.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST250_PRT_PRS": false,
+              "ST260_PRT_PRS": false,
+              "ST260_STA_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST250_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_STA_DONE": false
+            },
+            "varfor": "station 1 har borjat arbeta pa enheten"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": false,
+              "ST250_REL_OPEN": false,
+              "ST260_STA_BUSY": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don; logiken bar ingen sakerhetsfunktion men ar forreglad av kretsen"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {},
+            "krav": {
+              "ST250_STA_BUSY": true,
+              "ST250_STA_DONE": false
+            },
+            "varfor": "EMG_OK ar sakerhetskretsens OK-kontakt och gar hog forst efter kretsens egen manuella aterstallning; stationen far ta upp arbetet men klarsignalen finns inte an"
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST250_STA_DONE": false,
+              "ST250_STA_BUSY": true,
+              "ST250_REL_OPEN": false
+            },
+            "varfor": "arbetstiden borjade om vid omstarten, sa 4,0 s senare ar inte 26,0 s gangna; en styrning som raknar ihop tiden fore och efter stoppet slapper en enhet som stod stilla mitt i operationen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "grinden_stangd_nar_station_2_inte_ar_klar",
+        "sekvens": "*",
+        "nar": {
+          "ST260_STA_RDY": false
+        },
+        "kraver": {
+          "ST250_REL_OPEN": false
+        },
+        "varfor": "forreglingen framat: en enhet som slapps mot en station som inte sagt sig tom och klar moter den enhet som star dar, och rullbanan ackumulerar bakom med hela linans vikt"
+      },
+      {
+        "namn": "station_2_startar_inte_pa_narvaron",
+        "sekvens": "enhet_i_station_2_utan_klarsignal",
+        "nar": {
+          "ST260_PRT_PRS": true
+        },
+        "kraver": {
+          "ST260_STA_BUSY": false,
+          "ST260_STA_DONE": false
+        },
+        "varfor": "i den har sekvensen kommer station 1:s klarsignal aldrig, sa narvaron ar allt station 2 kan se; forreglingen bakat sager att den inte far racka, och en station som anda startar bearbetar en halvfardig enhet"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST250_STA_BUSY": false,
+          "ST250_REL_OPEN": false,
+          "ST260_STA_BUSY": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den: ingen stationsrorelse och ingen oppen grind medan kretsen ar bruten"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_oppning_per_enhet",
+        "sekvens": "ingen_dubbelslapp_pa_samma_klarsignal",
+        "signal": "ST250_REL_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 57000,
+        "antal": 1,
+        "varfor": "bara den forsta enheten ar fardigarbetad i fonstret; en andra oppning betyder att den nya enheten slapptes pa foregaende enhets klarsignal"
+      },
+      {
+        "namn": "grinden_oppnar_om_nar_station_2_blir_klar",
+        "sekvens": "rdy_faller_mitt_i_slappet",
+        "signal": "ST250_REL_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 30400,
+        "antal": 2,
+        "varfor": "grinden oppnar, stanger nar ST260_STA_RDY faller och oppnar om nar den kommer tillbaka; en enda flank betyder att forreglingen bara var ett startvillkor och att grinden stod oppen hela tiden"
+      },
+      {
+        "namn": "en_kvittens_per_enhet",
+        "sekvens": "en_enhet_genom_bada_stationerna",
+        "signal": "ST260_ACK_RST",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 61400,
+        "antal": 1,
+        "varfor": "en enhet ska kvitteras exakt en gang; tva kvittenser nollstaller en klarsignal som redan hor till nasta enhet"
+      },
+      {
+        "namn": "ingen_kvittens_utan_klarsignal",
+        "sekvens": "enhet_i_station_2_utan_klarsignal",
+        "signal": "ST260_ACK_RST",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 10000,
+        "antal": 0,
+        "varfor": "det finns ingenting att kvittera: station 1 har aldrig sagt att enheten ar klar, sa en kvittens har ar en handskakning med ingen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "slapper_utan_att_kolla_station_2",
+        "st": "PROGRAM A03_LINA\nVAR\n    s1steg  : INT := 0;\n    s2steg  : INT := 0;\n    tmr1    : TON;\n    tmr2    : TON;\n    tpAck   : TP;\n    xSlapp  : BOOL := FALSE;\n    xTaEmot : BOOL := FALSE;\n    xDrift  : BOOL := FALSE;\nEND_VAR\n\n(* Linans takt satts av den langsammaste stationen. Station 1 arbetar 26,0 s\n   och station 2 arbetar 31,0 s, sa takten ar 31,0 s och station 1 star och\n   vantar 5,0 s per enhet. Den vantan ar inte ett fel som ska optimeras bort\n   i styrningen: den ar forreglingen framat, och tas den bort trycks en enhet\n   in i en station som annu arbetar. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt och lases bara. Den gar hog\n   forst nar kretsen ar manuellt aterstalld i sakerhetsdelen, sa den har\n   logiken aterstaller aldrig sjalv ett nodstopp; den ar forreglad AV den. *)\nxDrift := EMG_OK;\n\ntmr1(IN := ST250_STA_BUSY, PT := T#26s);\ntmr2(IN := ST260_STA_BUSY, PT := T#31s);\n\n(* Kvittensen ar en puls och inte en niva. Den ska vara langre an mottagarens\n   avsokning sa att den aldrig kan missas, och kortare an takten sa att tva\n   enheter aldrig kan dela pa samma kvittens. *)\ntpAck(IN := xTaEmot, PT := T#500ms);\n\nIF NOT xDrift THEN\n    (* Ett brutet nodstopp tar bort varje kommenderat don i samma scan.\n       Stegen behalls: enheterna star kvar dar de star, och klarsignalerna\n       med dem. Arbetstiden borjar om, for en halvt utford operation ar inte\n       halvt klar. *)\n    xSlapp := FALSE;\nELSE\n    (* ---------------- station 1 ---------------- *)\n    CASE s1steg OF\n        0:\n            (* En ny enhet far inte borja arbetas pa sa lange foregaende\n               enhets klarsignal star kvar. Annars arver den nya enheten\n               beskedet. *)\n            IF ST250_PRT_PRS AND NOT ST250_STA_DONE THEN\n                s1steg := 1;\n            END_IF;\n        1:\n            IF tmr1.Q THEN\n                ST250_STA_DONE := TRUE;\n                s1steg := 2;\n            END_IF;\n        2:\n            (* Forreglingen framat: grinden far oppna forst nar station 2\n               sagt sig tom och klar, och bara for en enhet som star har. *)\n            IF ST250_STA_DONE AND ST250_PRT_PRS THEN\n                xSlapp := TRUE;\n                s1steg := 3;\n            END_IF;\n        3:\n            IF NOT ST250_PRT_PRS THEN\n                xSlapp := FALSE;\n                s1steg := 4;\n            END_IF;\n        4:\n            (* Handskakningen nollstalls at det har hallet: klarsignalen star\n               kvar tills station 2 kvitterat mottagandet. Forst da far\n               stationen borja pa en ny enhet, och samma klarsignal kan\n               aldrig slappa tva enheter. *)\n            IF ST260_ACK_RST THEN\n                ST250_STA_DONE := FALSE;\n                s1steg := 0;\n            END_IF;\n    ELSE\n        s1steg := 0;\n    END_CASE;\n\n    (* ---------------- station 2 ---------------- *)\n    CASE s2steg OF\n        0:\n            (* Forreglingen bakat: narvaron ensam ar inget startvillkor. En\n               enhet kan sta i stationen utan att station 1 blivit klar med\n               den, och da ar den halvfardig. *)\n            IF ST260_PRT_PRS AND ST250_STA_DONE THEN\n                xTaEmot := TRUE;\n                s2steg := 1;\n            END_IF;\n        1:\n            IF NOT ST250_STA_DONE THEN\n                xTaEmot := FALSE;\n            END_IF;\n            IF tmr2.Q THEN\n                ST260_STA_DONE := TRUE;\n                s2steg := 2;\n            END_IF;\n        2:\n            IF NOT ST260_PRT_PRS THEN\n                ST260_STA_DONE := FALSE;\n                s2steg := 0;\n            END_IF;\n    ELSE\n        s2steg := 0;\n    END_CASE;\nEND_IF;\n\nST250_STA_BUSY := (s1steg = 1) AND xDrift;\nST250_REL_OPEN := xSlapp AND ST250_STA_DONE AND ST250_PRT_PRS AND xDrift;\nST260_STA_BUSY := (s2steg = 1) AND xDrift;\nST260_ACK_RST := tpAck.Q;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Grinden oppnas pa ST250_STA_DONE ensamt. Forreglingen framat finns inte, sa station 1 trycker in en enhet i en station 2 som annu arbetar, och faller ST260_STA_RDY medan grinden star oppen marker styrningen det inte.",
+        "faller_pa": [
+          "station_2_upptagen_nar_station_1_blir_klar@26800ms:ST250_REL_OPEN",
+          "invariant:grinden_stangd_nar_station_2_inte_ar_klar@station_2_upptagen_nar_station_1_blir_klar",
+          "rdy_faller_mitt_i_slappet@27400ms:ST250_REL_OPEN",
+          "flank:grinden_oppnar_om_nar_station_2_blir_klar"
+        ]
+      },
+      {
+        "namn": "station_2_startar_pa_narvaron",
+        "st": "PROGRAM A03_LINA\nVAR\n    s1steg  : INT := 0;\n    s2steg  : INT := 0;\n    tmr1    : TON;\n    tmr2    : TON;\n    tpAck   : TP;\n    xSlapp  : BOOL := FALSE;\n    xTaEmot : BOOL := FALSE;\n    xDrift  : BOOL := FALSE;\nEND_VAR\n\n(* Linans takt satts av den langsammaste stationen. Station 1 arbetar 26,0 s\n   och station 2 arbetar 31,0 s, sa takten ar 31,0 s och station 1 star och\n   vantar 5,0 s per enhet. Den vantan ar inte ett fel som ska optimeras bort\n   i styrningen: den ar forreglingen framat, och tas den bort trycks en enhet\n   in i en station som annu arbetar. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt och lases bara. Den gar hog\n   forst nar kretsen ar manuellt aterstalld i sakerhetsdelen, sa den har\n   logiken aterstaller aldrig sjalv ett nodstopp; den ar forreglad AV den. *)\nxDrift := EMG_OK;\n\ntmr1(IN := ST250_STA_BUSY, PT := T#26s);\ntmr2(IN := ST260_STA_BUSY, PT := T#31s);\n\n(* Kvittensen ar en puls och inte en niva. Den ska vara langre an mottagarens\n   avsokning sa att den aldrig kan missas, och kortare an takten sa att tva\n   enheter aldrig kan dela pa samma kvittens. *)\ntpAck(IN := xTaEmot, PT := T#500ms);\n\nIF NOT xDrift THEN\n    (* Ett brutet nodstopp tar bort varje kommenderat don i samma scan.\n       Stegen behalls: enheterna star kvar dar de star, och klarsignalerna\n       med dem. Arbetstiden borjar om, for en halvt utford operation ar inte\n       halvt klar. *)\n    xSlapp := FALSE;\nELSE\n    (* ---------------- station 1 ---------------- *)\n    CASE s1steg OF\n        0:\n            (* En ny enhet far inte borja arbetas pa sa lange foregaende\n               enhets klarsignal star kvar. Annars arver den nya enheten\n               beskedet. *)\n            IF ST250_PRT_PRS AND NOT ST250_STA_DONE THEN\n                s1steg := 1;\n            END_IF;\n        1:\n            IF tmr1.Q THEN\n                ST250_STA_DONE := TRUE;\n                s1steg := 2;\n            END_IF;\n        2:\n            (* Forreglingen framat: grinden far oppna forst nar station 2\n               sagt sig tom och klar, och bara for en enhet som star har. *)\n            IF ST250_STA_DONE AND ST260_STA_RDY AND ST250_PRT_PRS THEN\n                xSlapp := TRUE;\n                s1steg := 3;\n            END_IF;\n        3:\n            IF NOT ST260_STA_RDY THEN\n                (* Station 2 blev upptagen medan grinden stod oppen. Stang\n                   den igen och hall enheten kvar. *)\n                xSlapp := FALSE;\n                s1steg := 2;\n            ELSIF NOT ST250_PRT_PRS THEN\n                xSlapp := FALSE;\n                s1steg := 4;\n            END_IF;\n        4:\n            (* Handskakningen nollstalls at det har hallet: klarsignalen star\n               kvar tills station 2 kvitterat mottagandet. Forst da far\n               stationen borja pa en ny enhet, och samma klarsignal kan\n               aldrig slappa tva enheter. *)\n            IF ST260_ACK_RST THEN\n                ST250_STA_DONE := FALSE;\n                s1steg := 0;\n            END_IF;\n    ELSE\n        s1steg := 0;\n    END_CASE;\n\n    (* ---------------- station 2 ---------------- *)\n    CASE s2steg OF\n        0:\n            (* Forreglingen bakat: narvaron ensam ar inget startvillkor. En\n               enhet kan sta i stationen utan att station 1 blivit klar med\n               den, och da ar den halvfardig. *)\n            IF ST260_PRT_PRS THEN\n                xTaEmot := TRUE;\n                s2steg := 1;\n            END_IF;\n        1:\n            IF NOT ST250_STA_DONE THEN\n                xTaEmot := FALSE;\n            END_IF;\n            IF tmr2.Q THEN\n                ST260_STA_DONE := TRUE;\n                s2steg := 2;\n            END_IF;\n        2:\n            IF NOT ST260_PRT_PRS THEN\n                ST260_STA_DONE := FALSE;\n                s2steg := 0;\n            END_IF;\n    ELSE\n        s2steg := 0;\n    END_CASE;\nEND_IF;\n\nST250_STA_BUSY := (s1steg = 1) AND xDrift;\nST250_REL_OPEN := xSlapp AND ST250_STA_DONE AND ST260_STA_RDY\n                  AND ST250_PRT_PRS AND xDrift;\nST260_STA_BUSY := (s2steg = 1) AND xDrift;\nST260_ACK_RST := tpAck.Q;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Station 2 startar pa ST260_PRT_PRS i stallet for pa ST250_STA_DONE. Nar station 1 behover ett extra moment star enheten kvar men ar inte fardig, och station 2 borjar arbeta i den. Forreglingen bakat finns inte alls.",
+        "faller_pa": [
+          "enhet_i_station_2_utan_klarsignal@800ms:ST260_STA_BUSY",
+          "enhet_i_station_2_utan_klarsignal@10000ms:ST260_STA_BUSY",
+          "invariant:station_2_startar_inte_pa_narvaron@enhet_i_station_2_utan_klarsignal",
+          "flank:ingen_kvittens_utan_klarsignal"
+        ]
+      },
+      {
+        "namn": "kvittensen_nollstaller_aldrig_klarsignalen",
+        "st": "PROGRAM A03_LINA\nVAR\n    s1steg  : INT := 0;\n    s2steg  : INT := 0;\n    tmr1    : TON;\n    tmr2    : TON;\n    tpAck   : TP;\n    xSlapp  : BOOL := FALSE;\n    xTaEmot : BOOL := FALSE;\n    xDrift  : BOOL := FALSE;\nEND_VAR\n\n(* Linans takt satts av den langsammaste stationen. Station 1 arbetar 26,0 s\n   och station 2 arbetar 31,0 s, sa takten ar 31,0 s och station 1 star och\n   vantar 5,0 s per enhet. Den vantan ar inte ett fel som ska optimeras bort\n   i styrningen: den ar forreglingen framat, och tas den bort trycks en enhet\n   in i en station som annu arbetar. *)\n\n(* EMG_OK ar sakerhetskretsens egen OK-kontakt och lases bara. Den gar hog\n   forst nar kretsen ar manuellt aterstalld i sakerhetsdelen, sa den har\n   logiken aterstaller aldrig sjalv ett nodstopp; den ar forreglad AV den. *)\nxDrift := EMG_OK;\n\ntmr1(IN := ST250_STA_BUSY, PT := T#26s);\ntmr2(IN := ST260_STA_BUSY, PT := T#31s);\n\n(* Kvittensen ar en puls och inte en niva. Den ska vara langre an mottagarens\n   avsokning sa att den aldrig kan missas, och kortare an takten sa att tva\n   enheter aldrig kan dela pa samma kvittens. *)\ntpAck(IN := xTaEmot, PT := T#500ms);\n\nIF NOT xDrift THEN\n    (* Ett brutet nodstopp tar bort varje kommenderat don i samma scan.\n       Stegen behalls: enheterna star kvar dar de star, och klarsignalerna\n       med dem. Arbetstiden borjar om, for en halvt utford operation ar inte\n       halvt klar. *)\n    xSlapp := FALSE;\nELSE\n    (* ---------------- station 1 ---------------- *)\n    CASE s1steg OF\n        0:\n            (* En ny enhet far inte borja arbetas pa sa lange foregaende\n               enhets klarsignal star kvar. Annars arver den nya enheten\n               beskedet. *)\n            IF ST250_PRT_PRS AND NOT ST250_STA_DONE THEN\n                s1steg := 1;\n            END_IF;\n        1:\n            IF tmr1.Q THEN\n                ST250_STA_DONE := TRUE;\n                s1steg := 2;\n            END_IF;\n        2:\n            (* Forreglingen framat: grinden far oppna forst nar station 2\n               sagt sig tom och klar, och bara for en enhet som star har. *)\n            IF ST250_STA_DONE AND ST260_STA_RDY AND ST250_PRT_PRS THEN\n                xSlapp := TRUE;\n                s1steg := 3;\n            END_IF;\n        3:\n            IF NOT ST260_STA_RDY THEN\n                (* Station 2 blev upptagen medan grinden stod oppen. Stang\n                   den igen och hall enheten kvar. *)\n                xSlapp := FALSE;\n                s1steg := 2;\n            ELSIF NOT ST250_PRT_PRS THEN\n                xSlapp := FALSE;\n                s1steg := 2;\n            END_IF;\n    ELSE\n        s1steg := 0;\n    END_CASE;\n\n    (* ---------------- station 2 ---------------- *)\n    CASE s2steg OF\n        0:\n            (* Forreglingen bakat: narvaron ensam ar inget startvillkor. En\n               enhet kan sta i stationen utan att station 1 blivit klar med\n               den, och da ar den halvfardig. *)\n            IF ST260_PRT_PRS AND ST250_STA_DONE THEN\n                xTaEmot := TRUE;\n                s2steg := 1;\n            END_IF;\n        1:\n            IF NOT ST250_STA_DONE THEN\n                xTaEmot := FALSE;\n            END_IF;\n            IF tmr2.Q THEN\n                ST260_STA_DONE := TRUE;\n                s2steg := 2;\n            END_IF;\n        2:\n            IF NOT ST260_PRT_PRS THEN\n                ST260_STA_DONE := FALSE;\n                s2steg := 0;\n            END_IF;\n    ELSE\n        s2steg := 0;\n    END_CASE;\nEND_IF;\n\nST250_STA_BUSY := (s1steg = 1) AND xDrift;\nST250_REL_OPEN := xSlapp AND ST250_STA_DONE AND ST260_STA_RDY\n                  AND ST250_PRT_PRS AND xDrift;\nST260_STA_BUSY := (s2steg = 1) AND xDrift;\nST260_ACK_RST := tpAck.Q;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Station 1 lamnar ST250_STA_DONE hog och laser aldrig ST260_ACK_RST. Handskakningen nollstalls inte, sa nasta enhet som rullar in i station 1 arver foregaende enhets klarsignal och slapps vidare direkt, helt oarbetad.",
+        "faller_pa": [
+          "ingen_dubbelslapp_pa_samma_klarsignal@29000ms:ST250_REL_OPEN",
+          "ingen_dubbelslapp_pa_samma_klarsignal@30400ms:ST250_STA_DONE",
+          "en_enhet_genom_bada_stationerna@29200ms:ST250_STA_DONE",
+          "flank:en_oppning_per_enhet"
+        ]
+      }
+    ]
+  }
 }
