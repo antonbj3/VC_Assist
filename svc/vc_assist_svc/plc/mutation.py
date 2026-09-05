@@ -39,7 +39,7 @@ trasig styrning byte-identiska, och skillnaden lever i ett matt band pa
 220-900 ms som det fasta sparet aldrig nar.
 
 Det forklarar ett resultat i forsta korningen som annars ser bra ut.
-`FLANK_TILL_NIVA` fangades 6 av 7 och `FLANKENS_Q_TILL_SIGNAL` 15 av 15 - men
+`FLANK_STRUKEN` (hette `FLANK_TILL_NIVA` fore C0) fangades 6 av 7 och `FLANKENS_Q_TILL_SIGNAL` 15 av 15 - men
 av TEXTLAGRET: en struken flankdetektor gor variabeln odeklarerad, och `.Q`
 utbytt mot instansen ger ett typfel. Beteendedefekten fangades aldrig.
 
@@ -47,6 +47,20 @@ Det var tur, inte en fungerande beteendegrind. En matning som bara raknar
 "fangad" kan inte skilja de tva, och den skillnaden ar hela poangen. Darfor bar
 varje `Skada` sitt `vantat_lager`: fangas en beteendeskada av textlagret ska det
 rapporteras som en LYCKOTRAFF, inte som tackning.
+
+## Tre rattelser (C0, mot M-122 §6.2)
+
+* Initierare i VAR-block undantas fran `SANT_TILL_FALSKT`/`FALSKT_TILL_SANT`:
+  matt 64 av 91 overlevare stod pa en saadan rad (M-122 §2) - ett startvarde
+  som skrivs over innan det las ar ingen skada vard att rakna. Motorn hoppar
+  over traffar pa VAR-rader och tar nasta traff i stallet, sa taket per sort
+  fortfarande fylls med kodrader.
+* Sorten som stryker flankdetektorns anrop heter `FLANK_STRUKEN` - det ar vad
+  den gor. `FLANK_TILL_NIVA` heter nu vad DEN gor: `inst.Q` byts mot
+  instansens CLK-signal (den riktiga F15, M-122 §3, M-115).
+* `var_rader` ar radskanningen pa ETT stalle: bade motorn och korningen
+  klassar radtyp med den. Den ar grov (radskanning, inte parsning - M-122
+  LIMITS) och det star i korningens utdata sa lange det star kvar.
 """
 from __future__ import annotations
 
@@ -70,68 +84,118 @@ class Skada:
     efter: str
 
 
-def _ersatt_n(text: str, monster, ersattning, n: int):
-    """Byt ut FOREKOMST n (0-indexerad). Returnerar (ny text, rad, fore, efter)."""
-    traffar = list(re.finditer(monster, text))
-    if n >= len(traffar):
-        return None
-    t = traffar[n]
-    ny = text[:t.start()] + ersattning(t) + text[t.end():]
-    rad = text[:t.start()].count("\n") + 1
-    return ny, rad, t.group(0), ersattning(t)
+def var_rader(kropp: str) -> frozenset:
+    """1-baserade radnummer med deklarationer i VAR/VAR_INPUT/VAR_OUTPUT/...
+
+    En RADSKANNING, inte en parsning (M-122 LIMITS): allt mellan en rad som
+    borjar pa VAR och nasta END_VAR raknas som deklaration. Samma skanning
+    kor korningens radtyp - pa ett stalle, inte tva.
+    """
+    rader = set()
+    inne = False
+    for i, rad in enumerate(kropp.split("\n"), 1):
+        s = rad.strip().upper()
+        if s.startswith("END_VAR"):
+            inne = False
+        elif s.startswith("VAR"):
+            inne = True
+        elif inne:
+            rader.add(i)
+    return frozenset(rader)
 
 
-# (namn, monster, ersattning, vantat lager, beskrivning)
-_SKADOR: List[Tuple[str, str, Callable, str, str]] = [
+# (namn, monster, ersattning, vantat lager, beskrivning, undanta VAR-rader)
+#
+# undanta_var ar True bara for de tva booleska literalsorterna (M-122 §6.2):
+# ett startvarde som skrivs over innan det las ar ingen skada. Tidsconstanter
+# i VAR undantas INTE - ett T#500ms i deklarationen las ofta utan att
+# skrivas, sa dar vore undantaget fel.
+_SKADOR: List[Tuple[str, str, Callable, str, str, bool]] = [
     ("NOT_STRUKEN", r"\bNOT\s+", lambda m: "", "beteende",
-     "ett NOT struket - villkoret blir sitt eget motsatta"),
+     "ett NOT struket - villkoret blir sitt eget motsatta", False),
     ("AND_TILL_OR", r"\bAND\b", lambda m: "OR", "beteende",
-     "AND blir OR - villkoret slapper igenom nar bara ett led haller"),
+     "AND blir OR - villkoret slapper igenom nar bara ett led haller", False),
     ("OR_TILL_AND", r"\bOR\b", lambda m: "AND", "beteende",
-     "OR blir AND - villkoret kraver bada leden"),
+     "OR blir AND - villkoret kraver bada leden", False),
     ("SANT_TILL_FALSKT", r"\bTRUE\b", lambda m: "FALSE", "beteende",
-     "TRUE blir FALSE - utgangen satts aldrig"),
+     "TRUE blir FALSE - utgangen satts aldrig", True),
     ("FALSKT_TILL_SANT", r"\bFALSE\b", lambda m: "TRUE", "beteende",
-     "FALSE blir TRUE - utgangen nollstalls aldrig"),
-    ("FLANK_TILL_NIVA", r"(\w+)\s*\(\s*CLK\s*:=\s*(\w+)\s*\)\s*;",
+     "FALSE blir TRUE - utgangen nollstalls aldrig", True),
+    ("FLANK_STRUKEN", r"(\w+)\s*\(\s*CLK\s*:=\s*(\w+)\s*\)\s*;",
      lambda m: "(* flank struken *)", "beteende",
-     "flankdetektorn struken - villkoret lases pa niva i stallet for pa flank (F15)"),
+     "flankdetektorns anrop struket - Q blir aldrig sant (inte F15)", False),
     ("FLANKENS_Q_TILL_SIGNAL", r"(\w+)\.Q\b", lambda m: m.group(1),
-     "beteende", "flankens Q byts mot instansen sjalv"),
+     "beteende", "flankens Q byts mot instansen sjalv", False),
     ("TID_FORDUBBLAD", r"T#(\d+(?:\.\d+)?)(ms|s|m|h)\b",
      lambda m: "T#%s%s" % (float(m.group(1)) * 2, m.group(2)), "beteende",
-     "tiden fordubblad - vakten faller utanfor sin brakett (F6)"),
+     "tiden fordubblad - vakten faller utanfor sin brakett (F6)", False),
     ("TID_OGILTIG", r"T#(\d+(?:\.\d+)?)(ms|s|m|h)\b",
      lambda m: "T#%s" % m.group(1), "text",
-     "tidsliteralen tappar sin enhet - grind 2 ska falla den"),
+     "tidsliteralen tappar sin enhet - grind 2 ska falla den", False),
     ("JAMFORELSE_VAND", r"(?<![:<>])(<=|>=|<|>)(?!=)",
      lambda m: {"<": ">", ">": "<", "<=": ">=", ">=": "<="}[m.group(1)],
-     "beteende", "jamforelsen vand - villkoret galler tvartom"),
+     "beteende", "jamforelsen vand - villkoret galler tvartom", False),
     ("END_IF_STRUKEN", r"\bEND_IF\s*;", lambda m: "", "text",
-     "ett END_IF struket - blocket balanserar inte (grind 2)"),
+     "ett END_IF struket - blocket balanserar inte (grind 2)", False),
     ("SEMIKOLON_STRUKET", r";", lambda m: "", "text",
-     "ett semikolon struket - satsen avslutas inte"),
+     "ett semikolon struket - satsen avslutas inte", False),
     ("ICKE_ASCII", r"\(\*", lambda m: "(* ä", "text",
-     "ett icke-ASCII-tecken i en kommentar - teckenkodningen agar vi inte"),
+     "ett icke-ASCII-tecken i en kommentar - teckenkodningen agar vi inte",
+     False),
 ]
+
+
+def _flank_till_niva(kropp: str, per_sort: int) -> List[Skada]:
+    """Den riktiga F15 (M-122 §3, M-115): `inst.Q` mot instansens CLK-signal.
+
+    Vet motorn inte vilken CLK en instans laser pa finns inget att byta mot,
+    och instansen hoppas over. TON/TOF-anrop utan CLK i kartan ligger
+    utanfor: deras niva kommer ur IN-signalen, och det ar ett annat fel.
+    """
+    clk = dict(re.findall(r"(\w+)\s*\(\s*CLK\s*:=\s*([\w\.]+)\s*\)", kropp))
+    if not clk:
+        return []
+    ut: List[Skada] = []
+    for m in re.finditer(r"(\w+)\.Q\b", kropp):
+        if len(ut) >= per_sort:
+            break
+        signal = clk.get(m.group(1))
+        if signal is None or signal == m.group(0):
+            continue
+        rad = kropp[: m.start()].count("\n") + 1
+        ut.append(Skada(
+            sort="FLANK_TILL_NIVA",
+            beskrivning="flankens Q byts mot CLK-signalen - villkoret las "
+                        "pa niva i stallet for pa flank (F15)",
+            vantat_lager="beteende",
+            kropp=kropp[: m.start()] + signal + kropp[m.end():],
+            rad=rad, fore=m.group(0), efter=signal))
+    return ut
 
 
 def skador(kropp: str, per_sort: int = 3) -> List[Skada]:
     """Alla kanda skador vi kan gora i en kropp, hogst `per_sort` av varje.
 
     Taket per sort finns for att 971 tilldelningar annars dranker de 30
-    flankdetektorerna, och det ar flankarna som ar intressanta.
+    flankdetektorerna, och det ar flankarna som ar intressanta. Traffar pa
+    VAR-rader hoppas over (C0) och taket fylls med nasta traff i stallet.
     """
     ut: List[Skada] = []
-    for sort, monster, ers, lager, besk in _SKADOR:
+    for sort, monster, ers, lager, besk, undanta_var in _SKADOR:
+        var = var_rader(kropp) if undanta_var else frozenset()
         n = 0
-        while n < per_sort:
-            r = _ersatt_n(kropp, monster, ers, n)
-            if r is None:
+        for m in re.finditer(monster, kropp):
+            if n >= per_sort:
                 break
-            ny, rad, fore, efter = r
-            if ny != kropp:
-                ut.append(Skada(sort=sort, beskrivning=besk, vantat_lager=lager,
-                                kropp=ny, rad=rad, fore=fore, efter=efter))
+            rad = kropp[: m.start()].count("\n") + 1
+            if rad in var:
+                continue
+            ny = kropp[: m.start()] + ers(m) + kropp[m.end():]
+            if ny == kropp:
+                continue
+            ut.append(Skada(sort=sort, beskrivning=besk, vantat_lager=lager,
+                            kropp=ny, rad=rad, fore=m.group(0),
+                            efter=ers(m)))
             n += 1
+    ut.extend(_flank_till_niva(kropp, per_sort))
     return ut

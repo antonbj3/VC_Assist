@@ -23,8 +23,9 @@ Körningen gör tre saker, alla utan VC, OpenPLC eller nät:
    `SKILLNAD_PA_FACITSTIMULUS` (facit ser för få punkter),
    `SYNLIG_BARA_UNDER_PERTURBATION` (stimulus når inte raden), `OSYNLIG`.
    Dessutom radtyp: kommentar, initierare i VAR-block, eller kod.
-3. **Den saknade F15-operatorn.** `inst.Q` byts mot instansens CLK-signal:
-   villkoret läses på NIVÅ i stället för på flank - `M-115`:s mutation.
+3. **F15-operatorn i motorn.** Sedan C0/M-131 är den riktiga nivåoperatorn en
+   sort i `mutation.py` (`FLANK_TILL_NIVA`): `inst.Q` byts mot instansens
+   CLK-signal. Rapporten nedan grupperar den per CLK-signal.
 4. **Grind 2:s fällplatser.** Vilka av validatorns fällplatser (räknade med
    AST som i `kor_fallplatstackning.py`) fyrar mutanterna, jämfört med
    M-111:s lista över platser som aldrig fyrat under enhetssviten.
@@ -67,10 +68,10 @@ BANKPOST = {
         "noll skador ger slutkod 2",
     ),
     "kraver": ("inget",),
-    "matningar": ("M-122",),
+    "matningar": ("M-122", "M-131"),
 }
 
-from vc_assist_svc.plc.mutation import skador          # noqa: E402
+from vc_assist_svc.plc.mutation import skador, var_rader  # noqa: E402
 from vc_assist_svc.st import tolk as T                 # noqa: E402
 from vc_assist_svc.st.tolk import Tolk, Tolkfel        # noqa: E402
 from vc_assist_svc.st import validator as V            # noqa: E402
@@ -165,21 +166,15 @@ def skiljer(a, b):
 
 
 def radtyp(ref, rad):
+    # VAR-delen ar motorns egen skanning (mutation.var_rader) - en
+    # RADSKANNING, inte en parsning (M-122 LIMITS). Den star pa ett stalle.
     lines = ref.split("\n")
     l = lines[rad - 1]
-    i_var = None
-    for k in range(rad - 1, -1, -1):
-        s = lines[k].strip().upper()
-        if s.startswith("END_VAR"):
-            break
-        if s.startswith("VAR"):
-            i_var = k
-            break
     txt = "\n".join(lines[:rad])
     if txt.count("(*") > txt.count("*)") or l.strip().startswith("(*") \
             or l.strip().startswith("//"):
         return "KOMMENTAR"
-    if i_var is not None:
+    if rad in var_rader(ref):
         return "INITIERARE"
     return "KOD"
 
@@ -219,24 +214,9 @@ def kor_uppgift(post):
             klass, synlig = klassa(refspar, alla_spar(sk.kropp, post))
             rad.update(klass=klass, synlig=synlig, radtyp=radtyp(ref, sk.rad))
         rader.append(rad)
-    # del 3: nivå i stället för flank
-    niva = []
-    inst = dict(re.findall(r"(\w+)\s*\(\s*CLK\s*:=\s*([\w\.]+)\s*\)", ref))
-    for i, clk in inst.items():
-        m = re.compile(r"\b%s\.Q\b" % re.escape(i))
-        if not m.search(ref):
-            continue
-        ny = m.sub(clk, ref)
-        d = domare.dom(post, ny)
-        rad = dict(uppgift=post["task_id"], inst=i, clk=clk, godkand=d.godkand,
-                   koder=[b.kod for b in d.brister][:4])
-        if d.godkand:
-            klass, synlig = klassa(refspar, alla_spar(ny, post))
-            rad.update(klass=klass, synlig=synlig)
-        niva.append(rad)
     return dict(uppgift=post["task_id"], referens_godkand=refdom.godkand,
                 referens_koder=[b.kod for b in refdom.brister][:5],
-                rader=rader, niva=niva)
+                rader=rader)
 
 
 # -------------------------------------------------------------------- del 4
@@ -351,6 +331,7 @@ def main(argv=None):
     bo = [r for r in ov if r["vantat"] == "beteende"]
     print("\noverlevande BETEENDEmutanter: %d" % len(bo))
     print("  radtyp x klass:", dict(collections.Counter((r["radtyp"], r["klass"]) for r in bo)))
+    print("  radtyp ar en RADSKANNING (VAR..END_VAR via mutation.var_rader), inte en parsning - M-122 LIMITS")
     kod = [r for r in bo if r["radtyp"] == "KOD"]
     print("  kodrads-overlevare: %d  klass: %s" % (
         len(kod), dict(collections.Counter(r["klass"] for r in kod))))
@@ -359,14 +340,14 @@ def main(argv=None):
     print("  kodrads-overlevare per uppgift:",
           dict(collections.Counter(r["uppgift"] for r in kod)))
 
-    niva = [n for u in res for n in u["niva"]]
-    nf = [n for n in niva if not n["godkand"]]
-    no = [n for n in niva if n["godkand"]]
-    print("\n=== NIVA I STALLET FOR FLANK (M-115:s F15) ===")
-    print("nivamutanter %d i %d uppgifter   fangade av facit %d   overlevde %d"
-          % (len(niva), len(set(n["uppgift"] for n in niva)), len(nf), len(no)))
-    print("  fangade:", ", ".join("%s:%s" % (n["uppgift"], n["clk"]) for n in nf))
-    print("  overlevde:", ", ".join("%s:%s[%s]" % (n["uppgift"], n["clk"], n["klass"][:5]) for n in no))
+    niva = [r for r in rader if r["sort"] == "FLANK_TILL_NIVA"]
+    nf = [r for r in niva if r["utfall"] == "FANGAD"]
+    no = [r for r in niva if r["utfall"] == "OVERLEVDE"]
+    print("\n=== NIVA I STALLET FOR FLANK (M-115:s F15, motor-sort sedan C0) ===")
+    print("nivamutanter %d i %d uppgifter   fangade %d   overlevde %d"
+          % (len(niva), len(set(r["uppgift"] for r in niva)), len(nf), len(no)))
+    print("  fangade:", ", ".join("%s:%s" % (r["uppgift"], r["efter"]) for r in nf))
+    print("  overlevde:", ", ".join("%s:%s[%s]" % (r["uppgift"], r["efter"], r.get("klass", "-")[:5]) for r in no))
 
     print("\n=== GRIND 2:S FALLPLATSER ===")
     fp = fallplatser(poster)
