@@ -209,7 +209,7 @@ ligger i `tests/protocol/`.
 | 12 | Verktygskedjan i repot | klar på Linux | M-56: STruC++ v0.6.6, OpenPLC v4 och node v22.22.0 hämtas med fastspikad version och kontrollerad hash. Windows-vägen oprövad |
 | 13 | Windows | **inte påbörjad** | Kräver en Windows-maskin. M-44:s 16 numrerade protokollpunkter väntar |
 | 14 | Harnessens hårdhet | klar, kräver ej VC | M-53: från 17 av 46 mekaniserade regler till **37 av 46**, med ett golv som bara får gå uppåt |
-| 15 | Ögat på djupet | pågår | Tidsserie över varje objekt, PLC-värdena på samma tidsaxel |
+| 15 | Ögat på djupet | mätt mot VC (M-86/87/88/97) | Hela scenen i serien, PLC på samma axel med mätt hopfogning, 4 av 5 domare fäller VC-byggda celler; genomflöde fail-closed men fälls bara syntetiskt |
 | 16 | Planeringslagret | klar, kräver ej VC | M-63: en fritextbeställning blir en körbar byggplan, och en omöjlig beställning **avvisas** med vilket villkor som krockar |
 | 17 | Vad användaren ser | pågår | Systemet rapporterar i dag till loggar och mätfiler, alltså till oss |
 | 18 | Befintlig anläggning in | mätt (M-89) | 28 av 28 förreglingar återfinns ur ett provspår, 3 av 28 ur ett produktionsspår. Ingen riktig anläggning är inspelad |
