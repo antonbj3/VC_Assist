@@ -533,7 +533,7 @@ class Forfinare(object):
         Textens innehall lases; textens TYSTNAD blir antaganden och fragor.
         """
         if not isinstance(begaran, Grundbegaran):
-            raise Specfel("forfiningen", ["ur_fritext kraver en Grundbegaran"])
+            raise Specfel("the refinement", ["ur_fritext requires a Grundbegaran"])
         begaran = self._med_svaren(begaran)
         text = begaran.text
         delar = self._delar_ur_fritext(text)
