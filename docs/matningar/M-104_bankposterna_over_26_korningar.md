@@ -15,14 +15,14 @@ måste fällas, vad körningen kräver för att alls gå att köra, och vilka
 mätningar den bär. Deklarationen läses med AST, aldrig genom import — flera
 körningar sätter `sys.path` eller startar processer redan på modulnivå.
 
-Uppdraget sade 26 körningar. Under arbetets gång landade sex till från andra
-agenter, och en av dem skrev sin egen post. Talen nedan är räknade **2026-09-05
-kväll** och de rör sig: registret är körningarnas egna filer, inte en lista
-någon för.
+Uppdraget sade 26 körningar. Under arbetets gång landade nio till från andra
+agenter; fem av dem skrev sina egna poster, fyra fick sina av den här
+mätningen. Talen nedan är räknade **2026-09-05 kväll** och de rör sig:
+registret är körningarnas egna filer, inte en lista någon för.
 
 | Storhet | Tal |
 |---|---|
-| poster i registret | **33** |
+| poster i registret | **36** |
 | odeklarerade körningar | **0** |
 | poster med ogiltig facitkälla | **1** (se nedan) |
 | körningar utan trasigt fall | **2**, deklarerade med ordet `SAKNAS` |
@@ -42,9 +42,12 @@ perfekt och ändå inte mäta något.
 
 Posten är skriven som den är, grinden faller på den, och den står namngiven i
 `TAUTOLOGISKA` i `tests/enhet/test_bankkontrakt.py` med ett tak som bara får
-krympa. Vägen ut är en oberoende läsare av samma fält — `katalogindex`
-regexsöker redan samma filer med en annan metod, och en jämförelse mellan de
-två skulle ge täckningen en andra mätning.
+krympa. Vägen ut är en oberoende läsare av samma fält. **Den landade samma kväll:**
+`tests/protocol/kor_m85_oberoende_lasare.py` skannar samma `component.rsc`
+med ren radskanning, utan en rad delad kod, och ger täckningen en övre
+gräns utifrån. Fyndet står kvar tills själva folkräkningen dömer mot den
+läsaren: `kor_m85_databladets_tackning.py` läser fortfarande sina egna tal
+genom modulen den dömer.
 
 ## Var facit kommer ifrån, körning för körning
 
@@ -71,6 +74,8 @@ Klasserna är `85_bankkontraktet.md` §2, i fallande styrka.
 | `kor_fas8_linan.py` | vc, openplc, strucpp | 3 geometri ur scenens mått | linjens krav raknade ur scenens egna matt (banornas langd och fart, utmatningstiden), med … |
 | `kor_fas9_modellen.py` | modell | 4 människas facit, före | bankens uppgifter: facit ar skrivet av en manniska i uppgiften, fore forsoket, efter IEC … |
 | `kor_fas9_slingan.py` | modell | 4 människas facit, före | bankens uppgifter, med facit skrivet av en manniska fore forsoket; taket pa fyra varv kommer … |
+| `kor_m107_berikningen.py` | vc | 2 mätning av verkligheten | VC 4.10:s eCatalog-innehall pa den har maskinen plus tillverkarnas egna publicerade datablad |
+| `kor_m107_bygg_korpus.py` | inget | 2 mätning av verkligheten | tillverkarnas egna publicerade datablad (ABB, KUKA, FANUC med flera), hamtade en gang och … |
 | `kor_m41_flode.py` | vc | 2 mätning av verkligheten | riggens egna deklarerade tal - intervall och fart satts av korningen fore bygget - matta mot … |
 | `kor_m54_tolk_mot_strucpp.py` | strucpp | 1 annan implementation | STruC++ 0.6.6, en oberoende implementation av ST-semantiken som bygger samma kalla till en … |
 | `kor_m62_baslinjen_mot_strucpp.py` | strucpp | 1 annan implementation | STruC++ ar den andra motorn: tva oberoende implementationer av ST-semantiken |
@@ -81,18 +86,19 @@ Klasserna är `85_bankkontraktet.md` §2, i fallande styrka.
 | `kor_m82_scenkod.py` | modell | 2 mätning av verkligheten | docs/referens/vc_api/, utdraget ur VC 4.10:s egen 'Python 2/Auto Complete'-mapp - VC:s egen … |
 | `kor_m85_databladets_tackning.py` | vc | **6 FÖRBJUDEN** | FACIT UR KODEN SOM DOMS |
 | `kor_m85_halen_ur_m84.py` | vc | 5 tidigare mätning | M-84:s sista avsnitt, skrivet fore den har korningen, plus bankens egen katalog och … |
+| `kor_m85_oberoende_lasare.py` | vc | 1 annan implementation | en andra lasare i den har filen, skriven utan kannedom om VC:s modell - bara zipfile och … |
 | `kor_m95_ordlistan_pa_fel_storhet.py` | inget | 5 tidigare mätning | M-94, en tidigare matning med M-nummer, skriven fore den har korningen |
 | `kor_m98_ordlistan_som_avgor_en_dom.py` | inget | 4 människas facit, före | docs/spec/90_invarianter.md (I11) och instruktionskorpusens arlighetsregler, bada skrivna … |
 | `kor_svit_mot_head.py` | inget | 2 mätning av verkligheten | pytests egen slutkod i en git worktree av HEAD |
 | `kor_tackning.py` | inget | 1 annan implementation | coverage.py, ett externt verktyg som mater vilka satser som faktiskt kordes |
 
-**Fördelningen:** 4 dömer mot en annan implementation (STruC++, OpenPLC,
-coverage.py), 8 mot en mätning av verkligheten (VC:s egna svar), 3 mot
-geometri räknad ur scenens egna mått, 15 mot en människas facit skrivet före
-körningen, 2 mot en tidigare mätning med M-nummer — och **1 mot koden den
-själv dömer.**
+**Fördelningen:** 5 dömer mot en annan implementation (STruC++, OpenPLC,
+coverage.py, en andra läsare), 10 mot en mätning av verkligheten (VC:s egna
+svar, tillverkarnas datablad), 3 mot geometri räknad ur scenens egna mått, 15
+mot en människas facit skrivet före körningen, 2 mot en tidigare mätning med
+M-nummer — och **1 mot koden den själv dömer.**
 
-**Vad som går att köra var:** 10 poster kräver ingenting, 17 kräver VC, 5
+**Vad som går att köra var:** 11 poster kräver ingenting, 19 kräver VC, 5
 STruC++, 3 OpenPLC och 3 en modellklient. Det är därför den aggregerade
 körningen säger *"n körda här, resten hoppade och varför"* i stället för att
 låtsas att sjutton körningar inte finns.
@@ -142,7 +148,7 @@ Torrkörning 2026-09-05, från en maskin där VC och OpenPLC lyssnade men ingen
 STruC++-CLI var angiven:
 
 ```
-=== BANKEN: 33 poster, 0 odeklarerade korningar ===
+=== BANKEN: 36 poster, 0 odeklarerade korningar ===
   BRISTER I REGISTRET (en ogiltig post ar ingen gron):
     kor_m85_databladets_tackning.py: facitkallan ligger i koden som provas ...
   vad som finns har:
@@ -155,7 +161,7 @@ STruC++-CLI var angiven:
 
 ## LIMITS
 
-* **Ingen av de 33 körningarna kördes av den här mätningen.** Talen ovan är
+* **Ingen av de 36 körningarna kördes av den här mätningen.** Talen ovan är
   registrets, inte körningarnas: posterna är lästa och granskade, och
   `kor_allt.py` är provkörd **torrt**. Vad varje körning svarar när den körs
   skarpt står i dess egen mätning, inte här.
@@ -180,7 +186,10 @@ STruC++-CLI var angiven:
   här mätningen skrevs. Taket `TAK_ODEKLARERADE = 0` betyder att nästa körning
   som landar utan post gör sviten röd — det är avsikten, och felmeddelandet
   säger vad som ska göras.
-* **`kor_tackning.py` var ospårad** när posten skrevs in i den. Landar den
-  aldrig i ett commit försvinner posten med filen.
+* **Tre filer var ospårade** när jag skrev i dem: `kor_tackning.py` och
+  `kor_m107_bygg_korpus.py` fick sina poster, och `kor_m107_berikningen.py`
+  fick sitt `kraver` rättat från `"installerat VC-bibliotek"` till `"vc"`
+  — kontraktets ord för samma sak, och det enda som gick igenom grinden.
+  Landar de aldrig i ett commit försvinner ändringarna med filerna.
 * Klassificeringstabellen ovan är en **ögonblicksbild**. Den räknas fram ur
   posterna och kan räknas om; den underhålls inte för hand.
