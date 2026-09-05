@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 632 punkter
+## Vad mätningarna säger att de inte vet: 647 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -206,6 +206,8 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Tak: se avsnittet "Vad som INTE är mätt".** Talen nedan är räknade och
 * Spårfacit döms av `bank/domare.py` genom vår egen ST-tolk. Tolken är **inte**
 * Paragrafnumren nedan är verifierade mot standardorganens egna
+* Referenslösningarna är inte prövade mot grind 1–4.** MÄTT 2026-09-05:
+* Facit och referens är skrivna av samma sorts modell som ska dömas.** Talen
 * 
 
 ### M-107_tillverkarens_datablad.md — Vad som inte gick att belägga, och varför
@@ -232,6 +234,23 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Inget i denna mätning är ännu mätt.** Filen är en reservation; alla tal ovan är plan, inte resultat.
 * Facit är OpenPLC v4 i Docker, inte fysisk PLC-hårdvara.** Fältbussjitter och hårdvaru-I/O ingår inte.
 * Tidsupplösning 20 ms.** Timers under en scancykel prövas inte.
+
+### M-109_universalitet_utan_windows.md — LIMITS (halv mätning — avslutad här)
+
+* Mätt:** Alpine 3.20 (musl) + Python 3.9–3.13 + tilläggssida 2.7.18. Allt grönt; två fynd (3.9 saknar `sys.stdlib_module_names`; `ntpath.expanduser`-sömmen 2.7 vs 3.x bekräftad).
+* Omätt (kvar från ersatta uppdraget):** `debian:12`, `fedora:41`, `archlinux`, `ubuntu:22.04`; verktygskedjans sju hashposter (inkl. `linux-arm64`-emulering, `darwin-*` hash+storlek, win32-identiteten); node-versionsfästning; offline/halv-fil-fallet; nya `kor_plattformar_*.py`; fas 12/README-uppdatering.
+* Uppdraget som beställde denna mätning ersattes 2026-09-05 09:18 (commit 4c1486b) av tillförlitlighet-i-skala. Filen behålls som fristående delresultat; numret återanvänds inte.
+* Windows (fas 13) prövas inte — ingen Windows-maskin finns.
+* Disk på värden var 99% full vid start (7,6–7,9G ledigt); bilder drogs en i taget och städades med `docker image rm` efteråt.
+
+### M-110_tillforlitligheten_i_skala.md — LIMITS
+
+* Denna fil är under arbete; tal ovanför är preliminära tills varje arm anger bankens storlek vid körning (banken växer under dagen — cellagenten arbetar vidare).
+* Vid körstart: 21 uppgifter med `facit_spar` (A-08 C-04 C-06 H-01 H-04 H-05 L-05 L-06 L-07 P-06 P-07 S-05 S-06 S-07 T-01 T-02 T-04 T-05 T-07 T-08 T-09) — en mer än session B:s lista (P-06 tillkom).
+* n = 1 per uppgift räcker inte för förbättringspåståenden (se §4 i uppdraget); spridning kräver `--upprepa`.
+* En modell, en promptformulering per arm — byts någotdera är det en ny mätning.
+* Domen kommer ur vår ST-tolk, korsprövad mot STruC++ men inte mot OpenPLC.
+* Körningar kostar pengar och kvot — ingen arm körs om av misstag; varje arm har egen --json.
 
 ### M-11_kvaternion_och_varldsmatris.md — Vad som INTE är mätt
 
@@ -919,7 +938,9 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-96_slingan_kor_sig_sjalv.md — LIMITS
 
-* Enskott MED grindreglerna är inte färdigmätt.** Körningen med n = 5 per
+* Fyra uppgifter, en modell, en promptformulering.** 6 av 20 är mätt, inte
+* Effekten sitter i en enda uppgift.** S-05 bär fem av de sex lösta. Ett
+* Armarna kördes efter varandra, inte parat.** Banken växte emellan (H-05
 * T-07 slog i taket och orsaken är inte utredd.** Fyra varv, 0,605 USD, och
 * antaget**.
 * n = 1 per uppgift och läge.** Ingen upprepning, ingen spridning.
@@ -988,13 +1009,13 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### vc_assist_svc/llm/budget.py
 
 * vc_assist_svc/llm/budget.py:16  trimning. En bokforing som bara provas at ena hallet ar oprovad.
-* vc_assist_svc/llm/budget.py:73  "PRELIMINAR, M-29: ingen tokenrakning over verkliga turer finns"),
-* vc_assist_svc/llm/budget.py:75  "PRELIMINAR, M-29"),
-* vc_assist_svc/llm/budget.py:80  "PRELIMINAR, M-29"),
-* vc_assist_svc/llm/budget.py:86  "PRELIMINAR, M-29; EDGE och MINDIST vaxer med forloppet"),
-* vc_assist_svc/llm/budget.py:88  "PRELIMINAR, M-29"),
-* vc_assist_svc/llm/budget.py:90  "PRELIMINAR, M-29"),
-* vc_assist_svc/llm/budget.py:97  K_HELA_RESULTAT = 8         # PRELIMINAR, satts av M-29
+* vc_assist_svc/llm/budget.py:72  "PRELIMINAR, M-29: ingen tokenrakning over verkliga turer finns"),
+* vc_assist_svc/llm/budget.py:74  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:79  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:85  "PRELIMINAR, M-29; EDGE och MINDIST vaxer med forloppet"),
+* vc_assist_svc/llm/budget.py:87  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:89  "PRELIMINAR, M-29"),
+* vc_assist_svc/llm/budget.py:96  K_HELA_RESULTAT = 8         # PRELIMINAR, satts av M-29
 
 ### vc_assist_svc/llm/matt.py
 
@@ -1154,7 +1175,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 * enhet/test_bestallning.py:14  slapper igenom det korrekta. En grind som bara provats at ena hallet ar oprovad
 * enhet/test_bestallning.py:1170  oprovad - och en oprovad grind ar en forhoppning som har fatt ett namn.
-* enhet/test_bestallning.py:1875  # (M-68 raknade den som helt oprovad.)
+* enhet/test_bestallning.py:1880  # (M-68 raknade den som helt oprovad.)
 
 ### enhet/test_dataverktyg.py
 
