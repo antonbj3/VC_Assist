@@ -143,7 +143,7 @@ KATALOGFALT: Dict[str, str] = {
 def faltdef(falt: str) -> Faltdef:
     d = FALT.get(falt)
     if d is None:
-        raise Tillverkarfel("okant falt %r; kanda: %s"
+        raise Tillverkarfel("unknown field %r; known: %s"
                             % (falt, ", ".join(sorted(FALT))))
     return d
 
@@ -191,15 +191,15 @@ class Kalla:
 
     def __post_init__(self):
         if not (self.url or "").startswith(("http://", "https://")):
-            raise Tillverkarfel("kallans url ar ingen url: %r" % (self.url,))
+            raise Tillverkarfel("the source's url is not a url: %r" % (self.url,))
         if not _DATUM.match(self.hamtad or ""):
-            raise Tillverkarfel("kallans hamtdatum maste vara YYYY-MM-DD, inte %r"
+            raise Tillverkarfel("the source's fetch date must be YYYY-MM-DD, not %r"
                                 % (self.hamtad,))
         if not _SHA.match((self.sha256 or "").lower()):
-            raise Tillverkarfel("kallans sha256 ar ingen sha256: %r"
+            raise Tillverkarfel("the source's sha256 is not a sha256: %r"
                                 % (self.sha256,))
         if not normalisera(self.citat):
-            raise Tillverkarfel("en kalla utan citat ar ingen kalla (%s)" % self.url)
+            raise Tillverkarfel("a source without a quote is not a source (%s)" % self.url)
         if self.utdrag and normalisera(self.citat) not in normalisera(self.utdrag):
             raise Tillverkarfel(
                 "citatet star inte i utdraget ur %s: %r" % (self.url, self.citat))
@@ -220,10 +220,10 @@ class Kalla:
     @staticmethod
     def fran_json(d: Dict[str, str]) -> "Kalla":
         if not isinstance(d, dict):
-            raise Tillverkarfel("en kalla ska vara ett objekt, inte %r" % (d,))
+            raise Tillverkarfel("a source must be an object, not %r" % (d,))
         okanda = set(d) - {"url", "hamtad", "sha256", "citat", "utdrag", "dokument"}
         if okanda:
-            raise Tillverkarfel("okanda falt i kallan: %s" % ", ".join(sorted(okanda)))
+            raise Tillverkarfel("unknown fields in the source: %s" % ", ".join(sorted(okanda)))
         return Kalla(url=d.get("url", ""), hamtad=d.get("hamtad", ""),
                      sha256=d.get("sha256", ""), citat=d.get("citat", ""),
                      utdrag=d.get("utdrag", ""), dokument=d.get("dokument", ""))
@@ -316,10 +316,10 @@ class Kolumn:
         for namn, v in (("rubrik", self.rubrik), ("rad", self.rad),
                         ("modell_i_rad", self.modell_i_rad)):
             if not normalisera(v):
-                raise Tillverkarfel("kolumnlasningen saknar %s" % namn)
+                raise Tillverkarfel("the column reading is missing %s" % namn)
         if not isinstance(self.index, int) or self.index < 0:
-            raise Tillverkarfel("kolumnindex ska vara ett icke-negativt heltal, "
-                                "inte %r" % (self.index,))
+            raise Tillverkarfel("column index must be a non-negative integer, "
+                                "not %r" % (self.index,))
         if not normalisera(self.rad).lower().startswith(
                 normalisera(self.modell_i_rad).lower()):
             raise Tillverkarfel(
@@ -364,7 +364,7 @@ class Kolumn:
     def fran_json(d: Dict[str, object]) -> "Kolumn":
         okanda = set(d) - {"rubrik", "rad", "modell_i_rad", "index"}
         if okanda:
-            raise Tillverkarfel("okanda falt i kolumnlasningen: %s"
+            raise Tillverkarfel("unknown fields in the column reading: %s"
                                 % ", ".join(sorted(okanda)))
         return Kolumn(rubrik=str(d.get("rubrik", "")), rad=str(d.get("rad", "")),
                       modell_i_rad=str(d.get("modell_i_rad", "")),
@@ -399,14 +399,14 @@ class Uppgift:
     def __post_init__(self):
         d = faltdef(self.falt)
         if not isinstance(self.varde, (int, float)) or isinstance(self.varde, bool):
-            raise Tillverkarfel("%s: vardet ar inget tal (%r)"
+            raise Tillverkarfel("%s: the value is not a number (%r)"
                                 % (self.falt, self.varde))
         if self.enhet not in d.enheter:
             raise Tillverkarfel(
                 "%s: enheten %r hor inte till storheten %s; tillatna: %s"
                 % (self.falt, self.enhet, d.storhet, ", ".join(sorted(d.enheter))))
         if not isinstance(self.kalla, Kalla):
-            raise Tillverkarfel("%s: en uppgift utan kalla ar ett pastaende"
+            raise Tillverkarfel("%s: a task without a source is a claim"
                                 % self.falt)
         if self.kolumn is None:
             if not par_i_citat(self.kalla.citat, self.varde, self.enhet):
@@ -451,10 +451,10 @@ class Uppgift:
     @staticmethod
     def fran_json(falt: str, d: Dict[str, object]) -> "Uppgift":
         if not isinstance(d, dict):
-            raise Tillverkarfel("%s: uppgiften ska vara ett objekt" % falt)
+            raise Tillverkarfel("%s: the task must be an object" % falt)
         okanda = set(d) - {"varde", "enhet", "kalla", "kolumn"}
         if okanda:
-            raise Tillverkarfel("%s: okanda falt i uppgiften: %s"
+            raise Tillverkarfel("%s: unknown fields in the task: %s"
                                 % (falt, ", ".join(sorted(okanda))))
         if "varde" not in d or "enhet" not in d or "kalla" not in d:
             raise Tillverkarfel(
@@ -508,7 +508,7 @@ class Svar:
     def __post_init__(self):
         faltdef(self.falt)
         if self.lage not in LAGEN:
-            raise Tillverkarfel("okant lage %r; kanda: %s"
+            raise Tillverkarfel("unknown mode %r; known: %s"
                                 % (self.lage, ", ".join(LAGEN)))
         if self.lage == FINNS:
             if self.varde is None or not self.enhet or self.kalla is None:
@@ -631,7 +631,7 @@ def rymmer(behov: Svar, tak: Svar) -> Domslut:
     verktyget, och verktyget star inte i databladet.
     """
     if not isinstance(behov, Svar) or not isinstance(tak, Svar):
-        raise Tillverkarfel("rymmer() jamfor tva Svar, inte %r och %r"
+        raise Tillverkarfel("rymmer() compares two Svar, not %r and %r"
                             % (type(behov).__name__, type(tak).__name__))
     for namn, s in (("behovet", behov), ("taket", tak)):
         if s.lage == SAKNAS:
@@ -722,17 +722,17 @@ _TILLATNA_POSTFALT = {"modell", "tillverkare", "vc_namn", "bank_uri",
 
 def _post(d: Dict[str, object], fil: str) -> Modellblad:
     if not isinstance(d, dict):
-        raise Tillverkarfel("%s: en korpuspost ska vara ett objekt" % fil)
+        raise Tillverkarfel("%s: a corpus entry must be an object" % fil)
     okanda = set(d) - _TILLATNA_POSTFALT
     if okanda:
-        raise Tillverkarfel("%s: okanda falt i korpusposten: %s"
+        raise Tillverkarfel("%s: unknown fields in the corpus entry: %s"
                             % (fil, ", ".join(sorted(okanda))))
     modell = str(d.get("modell") or "").strip()
     if not modell:
-        raise Tillverkarfel("%s: en korpuspost utan modellnamn" % fil)
+        raise Tillverkarfel("%s: a corpus entry without a model name" % fil)
     tillverkare = str(d.get("tillverkare") or "").strip()
     if not tillverkare:
-        raise Tillverkarfel("%s: %s saknar tillverkare" % (fil, modell))
+        raise Tillverkarfel("%s: %s is missing a manufacturer" % (fil, modell))
     uppgifter: Dict[str, Uppgift] = {}
     for falt, rå in sorted((d.get("uppgifter") or {}).items()):
         uppgifter[falt] = Uppgift.fran_json(falt, rå)
@@ -740,7 +740,7 @@ def _post(d: Dict[str, object], fil: str) -> Modellblad:
     for falt, skal in sorted((d.get("ej_belagda") or {}).items()):
         faltdef(falt)
         if not str(skal).strip():
-            raise Tillverkarfel("%s: %s: ej_belagda[%s] utan skal"
+            raise Tillverkarfel("%s: %s: ej_belagda[%s] without a reason"
                                 % (fil, modell, falt))
         if falt in uppgifter:
             raise Tillverkarfel(
@@ -772,14 +772,14 @@ class Korpus:
         for b in self.blad:
             nyckel = b.modell.strip().lower()
             if nyckel in self._per_modell:
-                raise Tillverkarfel("modellen %r star i korpusen tva ganger "
-                                    "(%s och %s)" % (b.modell,
+                raise Tillverkarfel("the model %r appears twice in the corpus "
+                                    "(%s and %s)" % (b.modell,
                                                      self._per_modell[nyckel].fil,
                                                      b.fil))
             self._per_modell[nyckel] = b
             if b.bank_uri:
                 if b.bank_uri in self._per_bank:
-                    raise Tillverkarfel("bank-URI:n %s star tva ganger" % b.bank_uri)
+                    raise Tillverkarfel("the bank URI %s appears twice" % b.bank_uri)
                 self._per_bank[b.bank_uri] = b
             for n in b.vc_namn:
                 k = n.strip().lower()
@@ -817,17 +817,17 @@ class Korpus:
         filer = sorted(f for f in os.listdir(kat)
                        if f.endswith(".json") and not f.startswith("_"))
         if not filer:
-            raise Tillverkarfel("korpuskatalogen %s ar tom" % kat)
+            raise Tillverkarfel("the corpus directory %s is empty" % kat)
         for f in filer:
             hel = os.path.join(kat, f)
             try:
                 with open(hel, encoding="utf-8") as fh:
                     data = json.load(fh)
             except (OSError, ValueError) as fel:
-                raise Tillverkarfel("%s gar inte att lasa: %s" % (hel, fel))
+                raise Tillverkarfel("%s cannot be read: %s" % (hel, fel))
             poster = data.get("poster") if isinstance(data, dict) else data
             if not isinstance(poster, list):
-                raise Tillverkarfel("%s: filen bar ingen lista `poster`" % hel)
+                raise Tillverkarfel("%s: the file has no `poster` list" % hel)
             for p in poster:
                 blad.append(_post(p, hel))
         return Korpus(blad, kat)
@@ -993,7 +993,7 @@ def hamta(url: str, katalog: Optional[str] = None,
          "-w", "\n@@KOD:%{http_code}", url],
         capture_output=True)
     if r.returncode != 0:
-        raise Tillverkarfel("hamtningen av %s misslyckades (curl %d): %s"
+        raise Tillverkarfel("fetching %s failed (curl %d): %s"
                             % (url, r.returncode, r.stderr.decode()[:300]))
     kropp = r.stdout
     m = re.search(rb"\n@@KOD:(\d+)$", kropp)
@@ -1021,7 +1021,7 @@ def dokumenttext(kropp: bytes, fil: str, katalog: Optional[str] = None) -> str:
         p = os.path.join(katalog or CACHEKATALOG, fil)
         r = subprocess.run(["pdftotext", "-layout", p, "-"], capture_output=True)
         if r.returncode != 0:
-            raise Tillverkarfel("pdftotext foll pa %s: %s"
+            raise Tillverkarfel("pdftotext failed on %s: %s"
                                 % (fil, r.stderr.decode()[:200]))
         return r.stdout.decode("utf-8", "replace")
     import html as _html
@@ -1105,7 +1105,7 @@ def main(argv=None):
     if a.kommando == "hamta":
         for url in a.argument:
             post, kropp = hamta(url, a.cache)
-            print("# %s\n#   sha256 %s  %d byte  hamtad %s"
+            print("# %s\n#   sha256 %s  %d bytes  fetched %s"
                   % (post["url"], post["sha256"], post["byte"], post["hamtad"]))
             t = dokumenttext(kropp, post["fil"], a.cache)
             if a.monster:
@@ -1121,21 +1121,21 @@ def main(argv=None):
         for b in korpus.blad:
             print("%-30s %-20s vc_namn=%s bank=%s"
                   % (b.modell, b.tillverkare, list(b.vc_namn), b.bank_uri or "-"))
-        print("%d modeller" % len(korpus))
+        print("%d models" % len(korpus))
         return 0
     if a.kommando == "verifiera":
         fel = verifiera(korpus, a.cache, kraev_cache=("--hard" in a.argument))
         for f in fel:
             print("FEL " + f)
-        print("%d modeller, %d fel" % (len(korpus), len(fel)))
+        print("%d models, %d errors" % (len(korpus), len(fel)))
         return 1 if fel else 0
     # visa
     for namn in a.argument:
         b = korpus.for_modell(namn) or korpus.for_vc_namn(namn)
         if b is None:
-            print("%s: saknas i korpusen" % namn)
+            print("%s: missing from the corpus" % namn)
             continue
-        print("MODELL: %s (%s)" % (b.modell, b.tillverkare))
+        print("MODEL: %s (%s)" % (b.modell, b.tillverkare))
         for f in sorted(FALT):
             print("  " + b.svar(f).text())
         print("  " + TAKREGELN)

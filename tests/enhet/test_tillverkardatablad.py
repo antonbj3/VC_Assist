@@ -165,7 +165,7 @@ def test_en_kalla_utan_alla_fyra_falten_ar_ingen_kalla(falt, varde):
 def test_en_uppgift_utan_kalla_ar_ett_pastaende():
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Uppgift(falt="nyttolast", varde=5, enhet="kg", kalla=None)
-    assert "pastaende" in str(fel.value)
+    assert "claim" in str(fel.value)
 
 
 def test_citatet_maste_sta_i_utdraget():
@@ -340,7 +340,7 @@ def test_en_trasig_korpusfil_kastar(tmp_path):
     (tmp_path / "a.json").write_text("{ inte json", encoding="utf-8")
     with pytest.raises(TD.Tillverkarfel) as fel:
         TD.Korpus.las(str(tmp_path))
-    assert "gar inte att lasa" in str(fel.value)
+    assert "cannot be read" in str(fel.value)
 
 
 def _skriv_korpus(tmp_path, poster):
