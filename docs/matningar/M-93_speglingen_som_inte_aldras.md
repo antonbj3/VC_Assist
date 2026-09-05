@@ -1,7 +1,7 @@
 # M-93 — speglingen som inte åldras, och de två som nu för protokollet
 
 **Datum:** 2026-09-05
-**Körs av:** `python3 -m pytest tests/enhet/test_forlopp.py tests/enhet/test_forlopp_kallor.py tests/enhet/test_forlopp_spegel.py tests/enhet/test_forlopp_forare.py -q` (131 gröna)
+**Körs av:** `python3 -m pytest tests/enhet/test_forlopp.py tests/enhet/test_forlopp_kallor.py tests/enhet/test_forlopp_spegel.py tests/enhet/test_forlopp_forare.py -q` (133 gröna)
 **Bygger:** `svc/vc_assist_svc/forlopp/spegel.py`, `forlopp/__main__.py`, och
 förarna i `plan/korning.py` och `harness/loop.py`
 **Fas:** 17 i `docs/spec/70_faser.md`
@@ -37,7 +37,7 @@ som finns men inte anropas är en bön med en implementation.
 | av M-64:s sju rapportytor som når användaren under körningen | **0** | **2** |
 | går ett förlopp att läsa ur en annan process? | nej | ja |
 | regler över visningen, var och en med en trasig fixtur | 11 | **17** |
-| prov | 82 | **131** |
+| prov | 82 | **133** |
 
 De två förarna är de två som äger en körnings tidslinje:
 `plan/korning.py::Korare.kor` och `harness/loop.py::Harness.kor`. Båda tar nu
@@ -87,6 +87,21 @@ som ljuger"* — och det som var en not är nu en mekaniserad grind.
 `granska_spegling` räknar därför om filens ålder **själv**, ur den råa bilden
 och läsarens klocka, och läser läget ur **texten** i stället för att fråga
 förloppet. Den fäller den frusna läsaren i alla 60 avläsningarna, på regel S2.
+
+### 2.2 Men EN avläsning är ETT ögonblick
+
+Motsatsen till frysningen är inte att klockan ska gå hela tiden. Läsaren
+hämtar `nu` en gång per avläsning och använder det genom hela avläsningen —
+frusen **inom** bilden, aldrig **mellan** två.
+
+Utan det kan tystnaden passera taket mellan `rendera_spegling` och
+`granska_spegling`: ytan skriver ARBETAR, grinden säger TYST, och användaren
+får en grindanmärkning på en yta som var korrekt när den skrevs. En falsk
+anmärkning på ytan är samma sorts tillitsskada som ett falskt grönt.
+
+Provet sveper gränsen över avläsningens tio första klockanrop i stället för
+att välja ett läge. Mätt: med frysningen håller alla tio; utan den faller en
+av tio. Ett enda valt N hade prövat en punkt och missat de nio andra.
 
 ---
 

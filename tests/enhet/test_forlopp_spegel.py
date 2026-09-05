@@ -353,6 +353,62 @@ def test_samma_bild_med_lasarens_klocka_blir_TYST(tmp_path):
     assert granska_spegling(o, text).ok
 
 
+class Vandande(object):
+    """En klocka som vander over tystnadstaket vid det N:te anropet.
+
+    Den finns for att flytta EN sekundgrans genom hela avlasningen, en
+    position i taget. Ett enda valt N hade provat en punkt; svepet provar
+    varje stalle grinden och renderaren kan hamna pa var sin sida om.
+    """
+
+    def __init__(self, fore, efter, vid):
+        self.fore = float(fore)
+        self.efter = float(efter)
+        self.vid = int(vid)
+        self.anrop = 0
+
+    def __call__(self):
+        self.anrop += 1
+        return self.fore if self.anrop < self.vid else self.efter
+
+
+def test_en_avlasning_ar_ett_ogonblick_var_grans_an_hamnar(tmp_path):
+    """Renderaren och grinden maste se samma tillstand.
+
+    Gar klockan MELLAN `rendera_spegling` och `granska_spegling` kan tystnaden
+    passera taket dar emellan: ytan skriver ARBETAR och grinden sager TYST, och
+    anvandaren far en grindanmarkning pa en yta som var korrekt nar den skrevs.
+    En falsk anmarkning pa ytan ar samma sorts tillitsskada som en falsk gron.
+
+    Provet sveper grensen over avlasningens tio forsta klockanrop. Klockan
+    fryses vid LASARENS `nu`, sa alla tio ska halla; `test_bilden_aldras_anda`
+    nedan haller isar det fran filens egen skrivtid, som ar en helt annan sak.
+    """
+    f, k = arbetande()
+    fil = skriv_bild(tmp_path / "f.json", f, k)
+    fore = k.t + f.tystnadstak - 0.5
+    efter = k.t + f.tystnadstak + 0.5
+    for vid in range(1, 11):
+        o = las_spegling(fil, klocka=Vandande(fore, efter, vid))
+        text = rendera_spegling(o)
+        dom = granska_spegling(o, text)
+        assert dom.ok, "grensen vid anrop %d: %s" % (vid, dom.text())
+
+
+def test_bilden_aldras_anda_mellan_tva_avlasningar(tmp_path):
+    """Frysningen galler INOM en avlasning, aldrig mellan tva.
+
+    Vore den mellan avlasningar vore den `lasare_som_fryser_klockan`.
+    """
+    f, k = arbetande()
+    fil = skriv_bild(tmp_path / "f.json", f, k)
+    forst = las_spegling(fil, klocka=Klocka(k.t))
+    sedan = las_spegling(fil, klocka=Klocka(k.t + 3600.0))
+    assert forst.forlopp.lage == ARBETAR
+    assert sedan.forlopp.lage == TYST
+    assert sedan.alder > forst.alder
+
+
 def test_S2_en_text_som_pastar_ARBETAR_over_en_gammal_fil_falls(tmp_path):
     f, k = arbetande()
     fil = skriv_bild(tmp_path / "f.json", f, k)

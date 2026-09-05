@@ -190,7 +190,17 @@ def las_spegling(sokvag: str, klocka=time.time) -> Ogonblick:
             fel="filen är inte en hel ögonblicksbild (%s: %s); den kan vara "
                 "avhuggen mitt i en skrivning" % (type(fel).__name__, fel))
     try:
-        f = Forlopp.fran_json(data, klocka=klocka)
+        # EN avlasning ar ETT ogonblick. Klockan fryses vid LASARENS `nu` -
+        # aldrig vid filens `skrivet`, som ar precis den bugg S2 finns for.
+        #
+        # Skillnaden ar hela poangen: `nu` hamtas pa nytt vid varje avlasning,
+        # sa bilden aldras. Vad frysningen ger ar att renderaren och grinden
+        # ser SAMMA tillstand. Utan den kan tystnaden passera taket mellan
+        # `rendera_spegling` och `granska_spegling`, och da far anvandaren en
+        # grindanmarkning pa en yta som var korrekt nar den skrevs. Det ar
+        # samma regel som `test_visningen_raknar_sitt_lage_exakt_en_gang`
+        # redan haller inne i processen, en vaning upp.
+        f = Forlopp.fran_json(data, klocka=lambda: nu)
     except Forloppsfel as fel:
         return Ogonblick(sokvag=sokvag, nu=nu, fel=str(fel))
 

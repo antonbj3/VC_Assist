@@ -84,12 +84,12 @@ prov, och alla fem provades så.
 ## Utfall 2026-09-05
 
 ```
-131 prov gröna i de fyra forlopp-filerna
+133 prov gröna i de fyra forlopp-filerna
 17 regler (Y1-Y12 + S1-S5), var och en med minst en trasig fixtur
 2 forare i svc/ utanfor forlopp/ (var 0)
 9 av 9 inspelade ogonrapporter i banken saknar SECTION LIMITS, och visningen
   sager det om var och en
-0 av 131 kraver VC
+0 av 133 kraver VC
 ```
 
 Kostnaden i tecken, i `M-60`:s form (spegling inräknad, 13 tecken sökväg):
