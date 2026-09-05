@@ -60,7 +60,7 @@ def kallfiler(mapp):
     ar en modul dar hor inte hemma i installationen.
     """
     if not os.path.isdir(mapp):
-        raise InstallationsFel("kallmappen finns inte: %s" % mapp)
+        raise InstallationsFel("source folder does not exist: %s" % mapp)
     filer = sorted(n for n in os.listdir(mapp)
                    if n.endswith(".py") and os.path.isfile(os.path.join(mapp, n)))
     if "__init__.py" not in filer:
@@ -251,7 +251,7 @@ def las_manifest(malmapp):
         with open(sokvag, "r", encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, ValueError) as e:
-        raise InstallationsFel("manifestet %s gar inte att lasa: %s" % (sokvag, e))
+        raise InstallationsFel("cannot read manifest %s: %s" % (sokvag, e))
     if data.get("format") != MANIFESTFORMAT:
         raise InstallationsFel(
             "manifestet %s har format %r, denna installation kan format %d"
@@ -381,7 +381,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
             "skapade_mappar": list(rapport.skapade_mappar),
         })
     except OSError as e:
-        raise InstallationsFel("kunde inte skriva i %s: %s" % (malmapp, e))
+        raise InstallationsFel("could not write to %s: %s" % (malmapp, e))
 
     problem = granska_malet(malmapp, summor, pythonniva, krav_bada=True)
     if problem:
@@ -391,7 +391,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
             problem.append("kunde inte stada undan alltihop: %s" % "; ".join(stadfel))
         else:
             problem.append("de %d skrivna filerna togs bort igen" % stadat)
-        raise Verifieringsfel("installationen i %s gar inte att lita pa" % malmapp, problem)
+        raise Verifieringsfel("the installation in %s cannot be trusted" % malmapp, problem)
 
     return rapport
 
@@ -522,7 +522,7 @@ def avinstallera(malmapp):
                 else:
                     break
     except OSError as e:
-        raise InstallationsFel("avinstallationen i %s brot pa halva vagen: %s"
+        raise InstallationsFel("the uninstall in %s broke off halfway: %s"
                                % (malmapp, e))
     return rapport
 
