@@ -73,10 +73,10 @@ class Fraga(object):
 
     def __init__(self, text, vem, verktyg=(), kandidater=(), skal=""):
         if vem not in VEM:
-            raise Fragefel("okand svarare %r; de tva ar %s"
+            raise Fragefel("unknown responder %r; the two are %s"
                            % (vem, ", ".join(VEM)))
         if not (text or "").strip():
-            raise Fragefel("en fraga utan text ar ingen fraga")
+            raise Fragefel("a question without text is not a question")
         if not (skal or "").strip():
             raise Fragefel(
                 "fragan %r bar inget skal. En fraga utan skal gar inte att "
@@ -126,7 +126,7 @@ def _krav_lasande(text, verktyg):
                        "lasande verktyg, annars ar 'matningen' en scenandring"
                        % (namn, v.effect))
     if fel:
-        raise Fragefel("fragan %r: %s" % (text, "; ".join(fel)))
+        raise Fragefel("the question %r: %s" % (text, "; ".join(fel)))
 
 
 def till_operatoren(fragor):
@@ -160,7 +160,7 @@ def granska_till_operatoren(fragor):
 def rundor(fragor, tak=MAX_FRAGOR_PER_RUNDA):
     """Fragorna grupperade i rundor om hogst `tak` stycken."""
     if tak < 1:
-        raise Fragefel("ett tak pa %r fragor per runda stanger fragevagen helt"
+        raise Fragefel("a cap of %r questions per round closes the question path completely"
                        % (tak,))
     fragor = tuple(fragor)
     return tuple(fragor[i:i + tak] for i in range(0, len(fragor), tak))
