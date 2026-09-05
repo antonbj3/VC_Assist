@@ -60,30 +60,35 @@ receive "it failed". It receives which signal rose too early, by how many
 seconds, and which station therefore began working on a part the previous
 station had not finished.
 
-## The gate chain
+## Reading the code, and running it
 
-Six filters stand between the model's first draft and code you would run. The
-first four read only the *text* — and a station can pass all four and still
-release its grip a metre above the pallet.
+Four checks read the code as **text**: does it compile, is anything
+unreachable, do the names and types exist, are the function blocks real. They
+are fast, they need no simulator, and they catch a great deal.
+
+They can also all pass on code that is wrong.
 
 ```mermaid
 flowchart LR
-    M["model's<br/>draft"] --> T["1-4 · reads the text<br/><i>syntax, analysis,<br/>names, calls</i>"]
-    T --> O["5 · THE EYE<br/><i>runs the code<br/>against the plant</i>"]
-    O --> K["6 · composition<br/><i>the whole line,<br/>not the station</i>"]
-    K --> G["GOLD"]
+    M["model's draft"] --> T["reads the TEXT<br/>compile · analysis<br/>names · calls"]
+    T -->|"all four pass"| O["runs it and WATCHES<br/><i>the grasp formed while the tool<br/>was 642 mm from the board</i>"]
     O -.->|"the failure, in words"| M
+    O --> G["GOLD"]
 
     style O fill:#1f6feb,color:#fff
     style G fill:#238636,color:#fff
 ```
 
-Gate 5 is the only one that executes. It catches a class of fault the first four
-structurally cannot see: *the grasp formed while the tool was 642 mm from the
-board.* The text was flawless.
+That example is real. The syntax was flawless, every name existed, the sequence
+was in order — and the robot closed its gripper more than half a metre from the
+part. Only running it against a plant reveals that.
 
-Gate 6 exists because five faults in our own measurement passed **both**
-stations individually and appeared only once they were connected.
+A second execution check looks at the **whole line rather than one station**.
+Faults live in the gaps between stations: in our measurement, five of them
+passed each station individually and appeared only once the stations were
+connected — a downstream station that started on *"a part is present"* instead
+of on *"the previous station is finished"*, and so began working on a part that
+was not ready.
 
 ## Where the project stands
 
