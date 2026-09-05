@@ -10,12 +10,24 @@ bygger en andra domare), `tests/protocol/kor_fas9_*`, `tests/protocol/kor_B*`,
 
 ## Läget, mätt
 
-Banken bär **63** uppgifter. **26** har `facit_spar`. De 37 som saknar det är
-**inte** halvbyggda — de bär prompt, scen, signalkarta, fysik, `expect`,
-`scenarios`, `failure_modes`, `antaganden`, `targets_class`, `stege` och
-`orsak`, allihop. De saknar **exakt ett fält**.
+Banken bär **63** uppgifter. **26** har `facit_spar`. Av de 37 som saknar det
+är **14 trasiga fixturer** — de heter `*-90`, `*-91`, `*-92`, bär ett `broken`-
+fält med en skadad artefakt, och finns för att **fällas**, inte lösas. De ska
+aldrig ha ett facit.
 
-Måttet på återstående arbete är alltså **37 svar**, inte 37 uppgifter.
+Kvar står **23 uppgifter**. De är inte halvbyggda: de bär prompt, scen,
+signalkarta, fysik, `expect`, `scenarios`, `failure_modes`, `antaganden`,
+`targets_class`, `stege` och `orsak`, allihop. De saknar **exakt ett fält**.
+
+Måttet på återstående arbete är alltså **23 svar**:
+
+```
+A-01 A-02 A-04 A-05 A-06 · C-01 C-02 C-03 C-05 · H-02 H-03
+L-02 L-03 L-04 · P-01 P-02 P-04 P-05 · S-02 S-03 S-04 · T-03 T-06
+```
+
+(Talet 37 står på flera ställen i äldre texter. Det är 37 **utan facit**, varav
+14 aldrig ska ha ett. Rätta det där du stöter på det.)
 
 `M-110` körde flerskott över de 26: **25 av 26 lösta**, median 2 varv, på
 Muse Spark 1.3. Enskott är inte kört över skalan — `M-96`:s "0 av 20" vilade
@@ -24,9 +36,9 @@ på **fyra** celler, och hela enskottseffekten satt i **en** av dem (S-05, 0 av
 
 ---
 
-## B1 — de 37 svaren
+## B1 — de 23 svaren
 
-Skriv `facit_spar` och en referenslösning för de 37.
+Skriv `facit_spar` och en referenslösning för de 23.
 
 Kontraktet gäller: `docs/spec/85_bankkontraktet.md` §2 räknar upp fem lagliga
 facitkällor, och ett spårfacit **härlett ur uppgiftens egna `scenarios` och

@@ -9,56 +9,76 @@ Läs `docs/uppdrag/00_GEMENSAMT.md` först.
 `tests/enhet/test_mutation_*`, `docs/spec/83_scenarier.md`,
 `docs/spec/82_felklasser.md`, dina egna `docs/matningar/M-1xx`.
 
-## Läget, mätt
+## Läget, mätt — och rättat samma dag
 
-Mutationsmotorn skadar en referenslösning på ett känt sätt och frågar om
-bänken fångar det. Facit är skadan själv. Körningen 2026-09-05:
-
-```
-skador 808   fångade 717   överlevde 91
-```
-
-91 skador går rakt igenom. Bänken säger grönt om kod som är trasig på ett sätt
-vi själva har skrivit in. Fördelningen är det viktiga:
+**Läs `docs/matningar/M-122_mutationsskikten_omkorda.md` innan du gör något
+annat.** En tidigare körning gav ett tal som såg ut som en blind bänk. Det höll
+inte. Så här ser det ut när mätningen är omkörd med slingans egen domare:
 
 ```
-klass: OSYNLIG 67 · SYNLIG_BARA_UNDER_PERTURBATION 12 · SKILLNAD_PÅ_FACITSTIMULUS 12
+skador 809   fångade 718 (89 %)   överlevde 91
+av 466 beteendeskador: 375 fångade av facitet (80 %), 70 av textlagret
 ```
 
-**67 skador är osynliga även under störning.** Ingen stimulus vi har får dem
-att visa sig. Och en sort dominerar:
+Och överlevarna är inte vad de såg ut att vara:
 
 ```
-FALSKT_TILL_SANT   78 skador   21 fångade   57 överlevde   varav 51 OSYNLIGA
+91 överlevare = 64 initierare + 27 kodrader
 ```
 
-Att byta ett `FALSE` mot ett `TRUE` överlever i två fall av tre.
+**64 av 91 är initierare** — `x : BOOL := FALSE;` inne i `VAR`, en rad som
+skrivs över innan någon läser den. Att byta den mot `TRUE` ändrar ingenting, och
+att bänken inte ser det är **motorns fel, inte bänkens**. `FALSKT_TILL_SANT`
+bär 57 av 91 överlevare och 51 av dem är just initierare.
 
-## Vad det betyder, sagt rakt
+Av de 27 kodraderna hade ett bättre facit fångat **15**. Det är **3,2 %** av
+beteendeskadorna. Det är bänkens verkliga hål, och det är litet.
 
-Varje tillförlitlighetstal projektet har — `M-96`:s, `M-110`:s "25 av 26" —
-är mätt med en domare som inte ser den här klassen fel. Talen är alltså
-optimistiska med en okänd marginal, och den marginalen är den här kön.
+**Vad du ska ta med dig:** talet 91 mätte till största delen vår egen
+mutationsmotor. Ett tal som mäter mätaren i stället för det mätta är precis den
+fälla projektet är strängast mot. Bygg inte tio timmar ovanpå det igen — börja
+med C0.
 
-Det här är inte en fråga om att förbättra en siffra. Det är frågan om siffran
-mäter det den påstår.
+## Det verkligt stora fyndet, som inte handlar om överlevarna
 
----
+`M-122 §4`: **809 mutanter fyrar 4 av grind 2:s 76 fällplatser.** Grind 2 —
+den statiska analysen — fäller **noll av 464 beteendeskador**.
 
-## C1 — varför är `FALSKT_TILL_SANT` osynlig
+Det betyder att ett helt grindsteg i kedjan inte bidrar med någonting mot
+beteendefel. Det är en större sak än de 91, och den har ingen punkt i någon
+annan kö. Den är C6 och C7 nedan.
 
-Innan du bygger något: ta reda på varför.
+## C0 — motorns tre rättelser, före allt annat
 
-Arbetshypotesen är att ett `FALSE` som byts till `TRUE` bara syns om något
-**läser** variabeln innan något annat skriver den — och att bankens stimuli
-nästan aldrig gör det. Initialvärden hinner skrivas över innan de observeras.
+`M-122` namnger dem. Gör dem först; varje tal före dem är ovärderligt.
 
-Pröva hypotesen. Om den håller är åtgärden inte fler mutationer utan andra
-stimuli. Om den inte håller har du hittat något bättre.
+1. **Initierare i `VAR` undantas.** En rad mellan `VAR` och `END_VAR` som sätter
+   ett startvärde är inte en skada värd att räkna — den skrivs över innan den
+   läses. 64 av 91 överlevare försvinner med den enda ändringen.
+2. Radtypen avgörs idag av en **radskanning**, inte en parsning: en rad räknas
+   som initierare om den ligger mellan `VAR` och `END_VAR`. Det är grovt och
+   det ska sägas i utdatan så länge det står kvar.
+3. `M-122` LIMITS namnger den tredje. Läs den där, inte här.
 
-**Levererar:** `M-1NN` som för varje av de 51 osynliga säger *varför* just den
-är osynlig, i en av ett litet antal namngivna klasser. En lista på 51 rader
-utan klassindelning är inte ett svar.
+Kör om svepet efteråt. **Det nya talet är utgångsläget för hela kön** — och
+det är sannolikt betydligt bättre än 89 %, vilket är ett bra resultat, inte ett
+antiklimax.
+
+**Trasig fixtur:** en mutation av en initierare ska efter rättelsen inte längre
+räknas som en skada alls, och provet ska fälla om den kommer tillbaka.
+
+## C1 — de 15 som är bänkens verkliga hål
+
+Efter C0 återstår kärnan: 27 kodradsskador överlever, och ett bättre facit hade
+fångat **15** av dem.
+
+Femton är få nog att gå igenom en och en. För var och en: vilket påstående i
+uppgiftens `facit_spar` saknas, och varför skrevs det inte? Om samma orsak
+återkommer har du hittat en systematisk lucka i hur facit skrivs — och den är
+värd mer än de femton fallen.
+
+**Levererar:** `M-1NN` med femton rader, var och en med uppgift, skada, det
+saknade påståendet och orsaken. Inte en lista på femton utan en klassning.
 
 ## C2 — stimuli som gör dem synliga
 
