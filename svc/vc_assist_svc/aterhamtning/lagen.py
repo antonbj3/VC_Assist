@@ -224,12 +224,12 @@ def _orsak(*a, **kw) -> Orsak:
         raise Aterhamtningsfel("unknown subsystem %r" % (o.delsystem,))
     if o.automatisk is not None and o.automatisk not in o.vagar:
         raise Aterhamtningsfel(
-            "orsaken %s försöker automatiskt en väg som inte står bland dess "
-            "vägar tillbaka" % o.nyckel)
+            "the cause %s automatically tries a path that is not among its "
+            "paths back" % o.nyckel)
     if o.automatisk is not None and o.automatisk.av_operatoren:
         raise Aterhamtningsfel(
-            "orsaken %s redovisar en väg operatören måste gå som ett "
-            "automatiskt försök" % o.nyckel)
+            "the cause %s reports a path the operator must take as an "
+            "automatic attempt" % o.nyckel)
     return o
 
 
