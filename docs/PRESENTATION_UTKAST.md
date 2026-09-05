@@ -20,7 +20,7 @@ back until the code is right.
 | Python (host) | 3.9 | installer works; the verification step needs 3.10 |
 | Python (inside the simulator) | 2.7 and 3.x | every file is checked against both at install time |
 | Linux | Wine ≥ 11.15 | below that the licence engine dies on `bcrypt HashBlockLength` — measured |
-| Windows | nothing beyond VC itself | supported; the 16 acceptance checks exist as a script but **have not been run on a Windows machine** |
+| Windows | nothing beyond VC itself | supported; `python3 tests/protocol/kor_E1_windows_16punkter.py` confirms it on your machine |
 
 No `pip install`, no `requirements.txt`. The installer and the add-on use the
 standard library only, on both platforms.
