@@ -663,7 +663,7 @@ def _rackvidd(trad: Block, kin: Optional[Block],
 
     TVA VAGAR, OCH DEN HAR HAR FORETRADE. Sedan M-179 finns en andra harledning
     som gar kedjans NODTRANSFORMER och inte beror pa vad nagon dopt sina
-    variabler till. Den taper bredare - men bredare tackning ar inget skal att
+    variabler till. Den tacker bredare - men bredare tackning ar inget skal att
     byta dar bada kan svara. MATT i M-179: av de 149 robotar dar vagarna skiljer
     sig mer an fem procent ligger den har formeln narmare model.xml:s
     deklarerade Reach i 86 fall och transformvagen i 47. Transformvagen fyller
@@ -979,8 +979,9 @@ def _offsetmatris(uttryck: str, slauppe) -> List[List[float]]:
         elif namn in ("Rx", "Ry", "Rz"):
             steg = _vrid(namn[1], _rakna(inne, slauppe))
         elif namn in ("Sx", "Sy", "Sz"):
+            k = "xyz".index(namn[1])
             steg = _enhetsmatris()
-            steg["xyz".index(namn[1])]["xyz".index(namn[1])] = _rakna(inne, slauppe)
+            steg[k][k] = _rakna(inne, slauppe)
         elif namn == "Set":
             d = [_rakna(x, slauppe) for x in inne.split(",")]
             if len(d) != 16:
@@ -1030,7 +1031,8 @@ def _ar_parallella(a, b) -> bool:
     na, nb = _norm(a), _norm(b)
     if na < 1e-12 or nb < 1e-12:
         return False
-    return abs(sum(a[i] * b[i] for i in range(3))) / (na * nb) > 1 - _PARALLELLGRANS
+    kos = abs(sum(a[i] * b[i] for i in range(3))) / (na * nb)
+    return kos > 1 - _PARALLELLGRANS
 
 
 def _nodvag(trad: Block, flansnamn: str) -> Optional[List[Block]]:
@@ -1712,6 +1714,14 @@ def main(argv=None):
                                    for k, v in sorted(familjer.items())))
     print()
     print(tackningstabell(blad))
+    print()
+    # Rackvidden ar den enda storheten med tva harledningar, och de tva ar inte
+    # samma matning. Raden gar genom `harledningsvag`, som faller pa en kalla
+    # som inte sager vilken vag talet kom ur (M-179).
+    vagar = rackviddens_vagar(blad)
+    print("rackvidd derived: %d %s, %d %s"
+          % (vagar[VAG_VARIABLER], VAG_VARIABLER,
+             vagar[VAG_TRANSFORMER], VAG_TRANSFORMER))
     print()
     print(_teckenstat(blad))
     return 0
