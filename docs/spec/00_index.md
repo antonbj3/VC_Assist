@@ -46,12 +46,13 @@ Alla dokument, i nummerordning. Uppdaterad 2026-09-04.
 
 ## Mätningar
 
-Varje påstående i specen är antingen **MÄTT** med en hänvisning hit,
-eller märkt **ANTAGET**. Inga tal utan härkomst — kontrollerat av
-`tests/enhet/test_troskelharkomst.py`, som också kräver att numret
-verkligen finns eller står i `RESERVERADE.md`.
+Tabellen är **genererad** ur `docs/matningar/`, aldrig förd för hand.
+Bygg om den med `PYTHONPATH=svc python3 -m vc_assist_svc.matningsindex`.
+Ett prov fäller om filen på disk slutat stämma.
 
-| Nr | Vad som mättes |
+<!-- MATNINGSTABELL: genererad, rör inte för hand -->
+
+| Fil | Vad den mätte |
 |---|---|
 | `M-01_tillaggsmekanismen.md` | M-01 — tilläggsmekanismen, mätt |
 | `M-02_prefixisolering.md` | M-02 — testprefixets isolering, mätt |
@@ -74,9 +75,98 @@ verkligen finns eller står i `RESERVERADE.md`.
 | `M-32_mataren_och_komponentidentiteten.md` | M-32 — komponentidentitet, uppstartsordning, och en matare som inte matar |
 | `M-33_varldsenheten_ar_millimeter.md` | M-33 — VC:s basenhet är millimeter |
 | `M-34_produkten_finns_men_flodar_inte.md` | M-34 — produkten finns; jag mätte på fel lista |
+| `M-35_kollisionsdetektorn_fyrar_inte.md` | M-35 — kollisionsdetektorn fyrar inte, och därför är fas 5 inte stängd |
+| `M-36_measuredistance_ar_kollisionsmattet.md` | M-36 — `measureDistance` är kollisionsmåttet, inte detektorn |
+| `M-37_granssnitt_gar_att_koppla.md` | M-37 — gränssnitt går att koppla; `Container` var den saknade bindningen |
+| `M-38_vagen_mellan_plc_och_scen.md` | M-38 — VC:s Python når inte OPC UA, men bryggan når signalerna |
+| `M-39_slingan_sluten.md` | M-39 — handskriven ST styr scenen; slingan sluten och mätt |
+| `M-40_varfor_mataren_aldrig_fyrade.md` | M-40 — varför matningen aldrig fyrade: två tysta villkor, inte ett |
+| `M-41_produkten_flodar.md` | M-41 — produkten matas fram av sig själv och åker: mätt i tal |
+| `M-42_plc_pa_ogats_tidsaxel.md` | M-42 — PLC:ns värden på ögats tidsaxel: klockvalet, fördröjningen, och hålet |
+| `M-44_windows_oprovat.md` | M-44 — Windows: vad som rättades, och vad som fortfarande är oprövat |
+| `M-45_bankens_tackning.md` | M-45 — bankens täckning: hur många uppgifter har ett facit en domare kan läsa |
+| `M-46_harnessens_hardhet.md` | M-46 — Härdar harnessen något, eller är den ställning? |
+| `M-47_verktygstackning_runda_1.md` | M-47 — verktygstäckningen mätt i tre listor, runda 1 |
+| `M-48_grind_1_till_4_skarpt.md` | M-48 — grind 1–4 körda skarpt, och tre ställen där vår grind är strängare än kompilatorn |
+| `M-49_stationen_arbetar.md` | M-49 — stationen arbetar, och mätinstrumentet som låg i mätvägen |
+| `M-50_de_trasiga_fallen.md` | M-50 — de trasiga fallen, och vad som fällde vad |
+| `M-51_svepet_over_st_lagret.md` | M-51 — 185 ST-konstruktioner genom båda grindarna: 55 avvek, 36 var falska rödgrindar |
+| `M-52_reparationsslingan.md` | M-52 — reparationsslingan i två lägen, och taket som slutade löna sig vid fyra |
+| `M-53_fran_bedd_till_grind.md` | M-53 — Från bedd till grind |
+| `M-54_tolken_mot_strucpp.md` | M-54 — tolken mot en andra motor, och en grind som sa GODKÄND om kod som inte går att bygga |
+| `M-55_export_till_usd_och_urdf.md` | M-55 — VC kan inte exportera till USD eller URDF, men bär halva datan |
+| `M-56_verktygskedjan_i_repot.md` | M-56 — verktygskedjan går att hämta ur repot, och två hål på vägen dit |
+| `M-57_biblioteket_fanns_hela_tiden.md` | M-57 — komponentbiblioteket fanns hela tiden; jag mätte på fel ställe |
+| `M-58_var_metadatan_ligger.md` | M-58 — var i metadatan fälten ligger, och vad "kategori" faktiskt är i grunt läge |
+| `M-59_databladets_tackning.md` | M-59 — databladets täckning: vad de 3201 komponenterna faktiskt bär |
+| `M-60_vad_ett_katalogsvar_kostar.md` | M-60 — vad ett katalogsvar kostar, och varför en bred fråga inte får en lista |
+| `M-61_vad_en_komponentfil_bar.md` | M-61 — vad en komponentfil bär, och varför den omslutande volymen inte står i den |
+| `M-62_baslinjen.md` | M-62 — baslinjen: vad en klassisk generator klarar på samma bank, med samma domare |
+| `M-63_planeringslagret_matt_mot_sin_spec.md` | M-63 — planeringslagret mätt mot sin egen spec |
+| `M-64_vad_anvandaren_ser_medan_det_arbetar.md` | M-64 — vad användaren ser medan det arbetar, och de sju rapportytor som inte var till honom |
+| `M-65_ogat_pa_djupet.md` | M-65 — ögat på djupet: glappet, fem domare, och vad ögat inte ser |
+| `M-66_skuldregistret.md` | M-66 — teknisk skuld fångad när den skrivs, inte vid en senare granskning |
+| `M-67_kopplingen_ar_logisk.md` | M-67 — kopplingen är logisk: den flyttar ingenting |
+| `M-68_kod_utan_prov.md` | M-68 — 2656 rader produktionskod som inget enhetsprov rör |
+| `M-69_tre_svar_pa_hur_manga_robotar.md` | M-69 — tre olika svar på "hur många robotar", och bara ett är sant |
+| `M-70_arlighetsskulden_betald.md` | M-70 — ärlighetsskulden betald, och mönstret som räknade fel på sig självt |
+| `M-71_ren_maskin_utan_vc.md` | M-71 — hela kedjan ur en ren klon, utom det som kräver VC |
+| `M-72_kvaternionens_ordning_pa_tre_axlar.md` | M-72 — kvaternionens ordning avgjord på alla tre axlarna |
+| `M-73_linan_arbetar.md` | M-73 — linan arbetar: två stationer, ett delat don, och guld i tre celler |
+| `M-74_kompositionsfallen.md` | M-74 — kompositionsfallen: fel som bara finns när stationerna står tillsammans |
+| `M-75_vad_ett_spar_avslojar.md` | M-75 — vad ett I/O-spår avslöjar om programmet det kom ur |
+| `M-76_katalogposten_fanns_hela_tiden.md` | M-76 — katalogposten fanns hela tiden, i en fil på två kilobyte |
+| `M-77_ett_lofte_utan_namn.md` | M-77 — ett löfte utan namn går inte att kontrollera |
+| `M-78_modellen_mot_baslinjen.md` | M-78 — modellen mot baslinjen: 0 av 4 mot 4 av 4 |
+| `M-79_dubbelskrivningen_hade_ratt.md` | M-79 — dubbelskrivningsregeln skärptes, och visade sig ha haft rätt |
+| `M-80_fas9_tre_tal.md` | M-80 — fas 9:s tre tal: 0 av 4, sedan 4 av 4 efter ett varv |
+| `M-81_bankens_scen_provas_aldrig.md` | M-81 — bänken bär 282 komponenter som ingen körning har bett om |
+| `M-82_modellen_uppfann_inga_namn.md` | M-82 — noll uppfunna VC-namn över 584 kontrollerade |
+| `M-83_indexet_svarar_pa_sex_av_sju.md` | M-83 — indexet kunde ha svarat på sex av modellens sju frågor. Den sjunde kan ingen. |
+| `M-84_uppslagen_bytte_ordforrad_inte_radantal.md` | M-84 — uppslagen halverade koden och gav den 2,5 gånger fler API-namn |
+| `M-85_komponentdatabladet.md` | M-85 — databladet svarar för 3201 komponenter, men banken och biblioteket talar inte samma språk |
+| `M-86_ogat_mot_en_korande_vc.md` | M-86 — ögat mot en körande VC: hela scenen, i en enhet, utan driv, och vad den kostar |
+| `M-87_hopfogningen_mot_vcs_egen_brygga.md` | M-87 — hopfogningen mot VC:s egen brygga: två klockor, tre fel, ett tak som inte höll |
+| `M-88_fem_domare_mot_vc_byggda_celler.md` | M-88 — fem domare mot VC-byggda celler: fyra föll rätt, den femte sa PASS på en svulten station |
+| `M-89_anlaggningen_utan_kod.md` | M-89 — vad ett inspelat I/O-spår från en befintlig anläggning räcker till |
+| `M-90_ren_maskin_linux.md` | M-90 — ren Linux-maskin: klona, installera, kör (och README motsade repot) |
+| `M-91_windowsregistret_mot_en_riktig_kupa.md` | M-91 — installeraren läste fel registernyckel, mätt mot en riktig Windows-kupa |
+| `M-92_windowssommen_matt_i_stallet_for_last.md` | M-92 — sömmen mellan VC:s 2.7 och tjänstens 3.x, mätt i stället för läst |
+| `M-93_speglingen_som_inte_aldras.md` | M-93 — speglingen som inte åldras, och de två som nu för protokollet |
+| `M-94_vad_registret_inte_ser.md` | M-94 — vad skuldregistret inte ser |
+| `M-95_fyra_grindar_som_matte_fel_storhet.md` | M-95 — fyra grindar som mätte fel storhet |
+| `M-96_slingan_kor_sig_sjalv.md` | M-96 — slingan kör sig själv, och den avslöjade en falsk rödgrind |
+| `M-97_plc_axelns_giltighet.md` | M-97 — PLC-axelns giltighet: en körning vars hopfogning inte går att lita på fälls som obestämbar |
+| `M-98_den_sjatte_ordlistan.md` | M-98 — den sjätte ordlistan, och grinden som letar efter dem |
+| `M-99_differentialsvepet_mot_kompilatorn.md` | M-99 — differentialsvepet: fyra falska rödgrindar, fyra hål och en grind som hängde |
+| `M-100_personatackningen.md` | M-100 — Personatäckningen: sju profiler, 228 arbetssteg, mätt mot registret |
+| `M-101_komponentmodellen_byggd_ur_specen.md` | M-101 — komponentmodellen byggd ur specen och prövad i riktig VC |
+| `M-102_modellagret_mot_riktiga_verktygssvar.md` | M-102 — modellagret mätt mot riktiga verktygssvar |
+| `M-103_aterhamtningen_som_anvandaren_ser_den.md` | M-103 — återhämtningen som användaren ser den |
+| `M-104_bankposterna_over_26_korningar.md` | M-104 — bänkposterna över repots körningar |
+| `M-105_ett_monster_som_aldrig_kort_mot_sin_text.md` | M-105 — ett mönster som aldrig körts mot texten det ska läsa |
+| `M-106_bankens_facitkallor.md` | M-106 — bankens facitkällor, mätta post för post |
+| `M-107_tillverkarens_datablad.md` | M-107 — tillverkarens datablad som tredje källa: 21 komponenter av 3201 fick en enhet som inte är gissad |
+| `M-108_openplc_som_tredje_motor.md` | M-108 — OpenPLC som tredje motor |
+| `M-109_universalitet_utan_windows.md` | M-109 — universalitet utan Windows: fem distros, fem Pythons, sju hashar, kapat nät |
+| `M-110_tillforlitligheten_i_skala.md` | M-110 — tillförlitligheten i skala: flerskott, enskott och vart varven tar vägen |
+| `M-111_halva_grinden_har_aldrig_fyrat.md` | M-111 — 31 av grind 2:s 68 fällplatser har aldrig fyrat |
+| `M-112_vc_startar_med_installationens_filer.md` | M-112 — VC startar med det installationen lade dit |
+| `M-113_vagen_ur_visual_components.md` | M-113 — Vägen ut ur Visual Components till öppet format |
+| `M-114_ingen_vag_ger_tillbaka_kallkoden.md` | M-114 — ingen av vägarna in ger tillbaka källkoden |
+| `M-115_flanken_sags_i_kallan_inte_i_sparet.md` | M-115 — flanken syns i källan, inte i spåret: STL, RTAMT och NuSMV mot vårt eget öga |
+| `M-116_namnaren_provad_mot_verkligheten.md` | M-116 — Nämnaren provad mot verkligheten |
+| `M-118_maskinsakerhet_rakningsbart_och_ansvarsgransen.md` | M-118 — Maskinsäkerhet: vad som är räknebart, och var ansvarsgränsen går |
+| `M-119_kunskapstackningen_over_frageslag.md` | M-119 — modellen hittar nästan alla NAMN och nästan ingen BETYDELSE |
+| `M-120_tillforlitlighetstalens_yttervarld.md` | M-120 — betyder våra tillförlitlighetstal något jämfört med omvärlden? |
+| `M-121_dubbelskrivning_mot_egna_referenser.md` | M-121 — DUBBELSKRIVNING och TYP fällde 7 av 26 egna referenslösningar: referensen eller grinden? |
 | `M-122_mutationsskikten_omkorda.md` | M-122 — mutationsmotorn omkörd: facitet fångar 80 % av beteendeskadorna, och det som överlever är initierare |
+| `M-123_namnaren_flyttade_sig_och_golvet_med.md` | M-123 — nämnaren flyttade sig, och golvet med den |
+| `M-124_de_23_svaren.md` | M-124 — de 23 svaren: facit_spar för bankens sista tredjedel |
+| `M-125_openplc_som_tredje_motor.md` | M-125 — OpenPLC som tredje motor (kö A, punkt A1) |
+| `M-126_matningsindexet_genereras.md` | M-126 — mätningsindexet genereras, och två sessioner tog samma nummer inom 91 sekunder |
 
-**Tabellen ovan är ofullständig:** den slutar vid M-34 och saknar 72 mätningar (mätt 2026-09-05, `55_innovationsplanen.md` §1.4). Katalogen `docs/matningar/` är källan; tabellen bör genereras ur den.
+<!-- SLUT MATNINGSTABELL -->
 
 ## Acceptansprotokoll
 

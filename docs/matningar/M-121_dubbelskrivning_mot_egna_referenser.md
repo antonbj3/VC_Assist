@@ -1,4 +1,4 @@
-# M-121: DUBBELSKRIVNING och TYP fällde 7 av 26 egna referenslösningar — referensen eller grinden?
+# M-121 — DUBBELSKRIVNING och TYP fällde 7 av 26 egna referenslösningar: referensen eller grinden?
 
 **Datum:** 2026-09-05
 **Rör:** `svc/vc_assist_svc/st/validator.py`, ny `svc/vc_assist_svc/st/uteslutning.py`,

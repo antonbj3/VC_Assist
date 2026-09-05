@@ -23,7 +23,19 @@ REPO="$(git rev-parse --show-toplevel)" || exit 2
 LAS="$REPO/.git/vcassist-commit.lock"
 exec 9>"$LAS" || exit 2
 if ! flock -w 300 9; then echo "fel: fick inte låset inom 300 s"; exit 3; fi
-git -C "$REPO" add -- "$@" || exit 4
+# Staga bara de sökvägar som faktiskt finns. En `git mv` har redan tagit bort
+# källan ur BÅDE arbetsträdet och indexet, så `git add` på den faller med
+# "did not match any files" och skulle stoppa hela committen mitt i en flytt.
+# Den gamla sökvägen ska ändå med i `git commit`, annars blir raderingen kvar.
+# -A med uttryckliga sökvägar är ofarligt; farligt är bara -A UTAN sökvägar,
+# och skriptet vägrar redan köra utan dem.
+FINNS=()
+for v in "$@"; do
+  if [ -e "$REPO/$v" ] || [ -e "$v" ]; then FINNS+=("$v"); fi
+done
+if [ "${#FINNS[@]}" -gt 0 ]; then
+  git -C "$REPO" add -A -- "${FINNS[@]}" || exit 4
+fi
 echo "--- stagat ---"
 git -C "$REPO" diff --cached --name-status -- "$@"
 if [ -z "$(git -C "$REPO" diff --cached --name-only -- "$@")" ]; then

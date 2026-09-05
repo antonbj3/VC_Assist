@@ -57,8 +57,12 @@ Det här är projektets, och de gäller varje rad du skriver.
 * **Ingen grind utan trasig fixtur.** En grind som aldrig fällt något är en
   grind som inte är prövad. Skriv fixturen **före** mekanismen, se den vara
   röd, bygg sedan mekanismen.
-* **Varje mätning blir `docs/matningar/M-NN_<namn>.md`.** Numret reserveras i
-  ordning; kolla högsta numret först. En siffra utan härkomst är ingen siffra.
+* **Varje mätning blir `docs/matningar/M-NN_<namn>.md`.** Reservera numret med
+  `scripts/nytt_matningsnummer.sh <kort_namn> "<titel>"` — den tar samma lås
+  som committa.sh och skapar filen med rätt rubrikform. Gör det **inte** för
+  hand: två sessioner tog M-124 inom 91 sekunder från start idag, båda enligt
+  den gamla regeln "kolla högsta numret först". Läs-sedan-skriv är en
+  kapplöpning när fem skriver. En siffra utan härkomst är ingen siffra.
 * **Kör aldrig prov genom ett rör.** `pytest ... | tail` ger dig `tail`:s
   slutkod, och ett rött prov ser grönt ut. Skriv till fil och läs filen:
   `cmd > ut.txt 2>&1; echo "rc=$?"; tail -20 ut.txt`. Det här har kostat
