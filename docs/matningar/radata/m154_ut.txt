@@ -1,0 +1,86 @@
+KONSTR timer_ton                        tur=OK schema=OK
+KONSTR timer_tp_tof                     tur=OK schema=OK
+KONSTR flank_r_trig                     tur=OK schema=OK
+KONSTR case_med_omraden                 tur=OK schema=OK
+KONSTR case_i_case                      tur=OK schema=OK
+KONSTR lokaliserad_och_skyddad          tur=OK schema=OK
+KONSTR kvalificerare                    tur=OK schema=OK
+KONSTR egen_struct                      tur=OK schema=OK
+KONSTR eget_funktionsblock              tur=OK schema=OK
+KONSTR funktion_med_returtyp            tur=OK schema=OK
+KONSTR falt_och_faltinit                tur=OK schema=OK
+KONSTR globala_och_ovriga_varsorter     tur=OK schema=OK
+KONSTR slingor_och_kommentarer          tur=OK schema=OK
+KONSTR uttrycksformer                   tur=OK schema=OK
+BANK   A-01                             tur=OK schema=OK
+BANK   A-02                             tur=OK schema=OK
+BANK   A-03                             tur=OK schema=OK
+BANK   A-04                             tur=OK schema=OK
+BANK   A-05                             tur=OK schema=OK
+BANK   A-06                             tur=OK schema=OK
+BANK   A-07                             tur=OK schema=OK
+BANK   A-08                             tur=OK schema=OK
+BANK   A-90                             tur=OK schema=OK
+BANK   A-91                             tur=OK schema=OK
+BANK   C-01                             tur=OK schema=OK
+BANK   C-02                             tur=OK schema=OK
+BANK   C-03                             tur=OK schema=OK
+BANK   C-04                             tur=OK schema=OK
+BANK   C-05                             tur=OK schema=OK
+BANK   C-06                             tur=OK schema=OK
+BANK   C-90                             tur=OK schema=OK
+BANK   C-91                             tur=OK schema=OK
+BANK   H-01                             tur=OK schema=OK
+BANK   H-02                             tur=OK schema=OK
+BANK   H-03                             tur=OK schema=OK
+BANK   H-04                             tur=OK schema=OK
+BANK   H-05                             tur=OK schema=OK
+BANK   H-90                             tur=OK schema=OK
+BANK   L-01                             tur=OK schema=OK
+BANK   L-02                             tur=OK schema=OK
+BANK   L-03                             tur=OK schema=OK
+BANK   L-04                             tur=OK schema=OK
+BANK   L-05                             tur=OK schema=OK
+BANK   L-06                             tur=OK schema=OK
+BANK   L-07                             tur=OK schema=OK
+BANK   L-90                             tur=OK schema=OK
+BANK   P-01                             tur=OK schema=OK
+BANK   P-02                             tur=OK schema=OK
+BANK   P-03                             tur=OK schema=OK
+BANK   P-04                             tur=OK schema=OK
+BANK   P-05                             tur=OK schema=OK
+BANK   P-06                             tur=OK schema=OK
+BANK   P-07                             tur=OK schema=OK
+BANK   P-90                             tur=OK schema=OK
+BANK   P-91                             tur=OK schema=OK
+BANK   P-92                             tur=OK schema=OK
+BANK   S-01                             tur=OK schema=OK
+BANK   S-02                             tur=OK schema=OK
+BANK   S-03                             tur=OK schema=OK
+BANK   S-04                             tur=OK schema=OK
+BANK   S-05                             tur=OK schema=OK
+BANK   S-06                             tur=OK schema=OK
+BANK   S-07                             tur=OK schema=OK
+BANK   S-90                             tur=OK schema=OK
+BANK   S-91                             tur=OK schema=OK
+BANK   T-01                             tur=OK schema=OK
+BANK   T-02                             tur=OK schema=OK
+BANK   T-03                             tur=OK schema=OK
+BANK   T-04                             tur=OK schema=OK
+BANK   T-05                             tur=OK schema=OK
+BANK   T-06                             tur=OK schema=OK
+BANK   T-07                             tur=OK schema=OK
+BANK   T-08                             tur=OK schema=OK
+BANK   T-09                             tur=OK schema=OK
+BANK   T-90                             tur=OK schema=OK
+BANK   T-91                             tur=OK schema=OK
+BANK   T-92                             tur=OK schema=OK
+
+fall totalt:                          77
+ST-lagrets egen tur och retur höll:   77 av 77
+PLCopen tur och retur höll:           77 av 77
+giltiga mot tc6_xml_v201.xsd:         77 av 77
+godtagna av Beremiz egen laddare:     77 av 77
+matiec: samma dom före och efter:     77 av 77
+matiec: accepterade originalet:       51 av 77
+
