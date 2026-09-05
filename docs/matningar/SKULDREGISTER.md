@@ -28,7 +28,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 594 punkter
+## Vad mätningarna säger att de inte vet: 602 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -152,8 +152,16 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-103_aterhamtningen_som_anvandaren_ser_den.md — LIMITS
 
-* Ingenting är mätt än.** Filen finns för att numret ska vara taget i
-* Tak: **0** påståenden. Inget här får citeras förrän körningen finns.
+* Ingen sond går av sig själv.** Ytan läser avläsningar som någon annan har
+* Ingen väg tillbaka är körd mot en VC som verkligen gick ned.** Alla fyra
+* Läget `BLOCKERAD` kan inte fyras.** Raden `modal oppen` finns inte i
+* `connect()`-mätningen gäller den här värdens kärna**, inte Wines winsock och
+* `T_ping` = 3,0 s och `T_nere` = 3,0 s är PRELIMINÄRA**, härledda ur M-03:s
+* `MAX_AVLASNINGSRADER` = 8** är satt efter formen i M-64, inte efter en
+* De 15 av 18 orsakerna som kräver operatören** är räknade ur tabellen, inte
+* Ingen operatör har läst ytan.** Att den är läsbar är en bedömning, inte en
+* Kopplarens tre raka fel** är M-39:s tal, återanvänt. Att OpenPLC verkligen
+* Windows är oprövat.** `netstat`-vägen i `FRIGOR_PORTEN` är skriven och aldrig
 
 ### M-104_bankposterna_over_26_korningar.md — LIMITS
 

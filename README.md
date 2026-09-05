@@ -211,10 +211,11 @@ ligger i `tests/protocol/`.
 | 14 | Harnessens hårdhet | klar, kräver ej VC | M-53: från 17 av 46 mekaniserade regler till **37 av 46**, med ett golv som bara får gå uppåt |
 | 15 | Ögat på djupet | mätt mot VC (M-86/87/88/97) | Hela scenen i serien, PLC på samma axel med mätt hopfogning, 4 av 5 domare fäller VC-byggda celler; genomflöde fail-closed men fälls bara syntetiskt |
 | 16 | Planeringslagret | klar, kräver ej VC | M-63: en fritextbeställning blir en körbar byggplan, och en omöjlig beställning **avvisas** med vilket villkor som krockar |
-| 17 | Vad användaren ser | pågår | Systemet rapporterar i dag till loggar och mätfiler, alltså till oss |
+| 17 | Vad användaren ser medan det arbetar | klar, kräver ej VC | M-64, M-93: förloppet går att läsa **medan** en körning pågår, och ur en annan process. 17 regler med var sin trasig fixtur. En läsare som fryser klockan sa ARBETAR i 60 av 60 avläsningar av en död körning, och fälls nu |
 | 18 | Befintlig anläggning in | mätt (M-89) | 28 av 28 förreglingar återfinns ur ett provspår, 3 av 28 ur ett produktionsspår. Ingen riktig anläggning är inspelad |
 | 20 | Komponentmodellen | klar på Linux | M-101: TRANSPORTÖR, MATARE, SÄNKA och BUFFERT byggda **ur specen** i riktig VC. **7 av 7** kopplingar där specen säger ja, **13 produkter** genom hela kedjan (mellanrum exakt 3,0000 s, rörelse 400,0000 mm/s), **4 av 4** trasiga fixturer fällda med det saknade beteendet namngivet. 199 prov utan VC |
 | 19 | Personatäckningen | klar, kräver ej VC | M-100: sju arbetsprofiler, **228 arbetssteg**, 144 täckta av de 122 verktygen, 8 utanför räckvidd, 76 obyggda. Per profil 27 % till 89 %. Nämnaren är låst av ett golv: ett steg som tystnat bort ger rött trots högre procentsats |
+| 23 | Användarlagret — vad användaren ser när något dött | klar, kräver ej VC | M-103: en härledning som fryser klockan sa LEVANDE i **60 av 60** avläsningar av en sond som dog — med läsarens klocka **3 av 60**. `connect()` mot en socket ingen accepterar lyckades **20 av 20**, `ping` svarade **0 av 20**. Av 18 orsaker har **3** ett automatiskt försök och **2** ett som kan lyckas: i **15 av 18** försöker ingenting igen, och ytan säger det. 14 regler, 88 prov |
 
 ### Fas 10 i detalj — det du just läser instruktionen till
 
