@@ -250,10 +250,10 @@ def granska_domanen(register):
                  and getattr(v, "effect", None) != "read")
     if fel:
         raise Schemafel(
-            "%s ligger i domanen %s men ar inte deklarerade read. Ett "
-            "markeringsverktyg som kan skriva ar en vag runt godkannandekon "
-            "(I12): en fraga om vad anvandaren pekar pa far aldrig kunna "
-            "flytta nagot." % (", ".join(fel), DOMAN))
+            "%s is in the domain %s but is not declared read. A marking tool "
+            "that can write is a way around the approval queue (I12): a "
+            "question about what the user is pointing at must never be able "
+            "to move anything." % (", ".join(fel), DOMAN))
     return True
 
 
