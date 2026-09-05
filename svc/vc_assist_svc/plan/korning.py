@@ -179,24 +179,50 @@ class Korare(object):
 
     # -- korningen --------------------------------------------------------
 
-    def kor(self, plan, fakta=None, tidigare=None):
-        """Kor planen och lamnar protokollet. Kastar aldrig pa ett stegfel."""
+    def kor(self, plan, fakta=None, tidigare=None, forlopp=None):
+        """Kor planen och lamnar protokollet. Kastar aldrig pa ett stegfel.
+
+        `forlopp` ar valfritt och ar fas 17:s enda krok in i planeringslagret.
+        Ges det fors forloppsprotokollet MEDAN planen kor: steget anmals nar
+        det borjar och far sitt utfall i samma ogonblick som posten skrivs.
+        Utan det returnerar `kor` som forr sitt protokoll forst nar allt ar
+        over, och det ar precis en av de fem terminala rapportytorna M-64
+        raknade.
+
+        Koraren KANNER inte forloppsytan; den anropar en oversattning
+        (`forlopp.kallor.fran_planpost`) med ett objekt anroparen agt hela
+        tiden. Importen sker darfor har inne och bara nar nagon faktiskt vill
+        se forloppet - planeringslagret gar att anvanda helt utan
+        presentationslagret.
+        """
+        skriv_forlopp = None
+        if forlopp is not None:
+            from ..forlopp.kallor import fran_planpost as skriv_forlopp
+
         lage = Korlage(fakta=fakta)
         poster = []
-        klara = self._aterupptagna(plan, tidigare, lage, poster)
+        ordning = list(plan.ordning())
+        if forlopp is not None and ordning:
+            forlopp.plan(ordning)
+        klara = self._aterupptagna(plan, tidigare, lage, poster, forlopp)
 
-        for steg_id in plan.ordning():
+        for steg_id in ordning:
             if steg_id in klara:
                 continue
             steg = plan.graf.steg(steg_id)
+            if forlopp is not None:
+                forlopp.steg_borjar(
+                    steg_id, "%s: %s" % (steg_id, steg.verktyg or steg.sort))
             post = self._kor_steg(plan, steg, lage)
             poster.append(post)
+            if skriv_forlopp is not None:
+                skriv_forlopp(forlopp, post)
             lage.statusar[steg.id] = post.status
             if post.resultat is not None:
                 lage.resultat[steg.id] = post.resultat
         return Protokoll(plan.id, poster)
 
-    def _aterupptagna(self, plan, tidigare, lage, poster):
+    def _aterupptagna(self, plan, tidigare, lage, poster, forlopp=None):
         if tidigare is None:
             return set()
         if tidigare.plan_id != plan.id:
@@ -222,6 +248,16 @@ class Korare(object):
             poster.append(Post(steg_id, KORD,
                                "aterupptagen: %s" % gammal.skal,
                                gammal.resultat, gammal.verktyg, gammal.qid))
+            if forlopp is not None:
+                # Ett aterupptaget steg ar KLART men kordes INTE har. Bada
+                # sakerna maste synas: raknas det bara som klart ser korningen
+                # ut att ha provat nagot den inte provat, och det ar samma
+                # falska gron som ett hoppat steg utan skal.
+                forlopp.steg_klart(steg_id)
+                forlopp.vet_inte(
+                    steg_id,
+                    "aterupptagen ur ett tidigare protokoll; steget kordes "
+                    "INTE i den har korningen")
         return klara
 
     def _kor_steg(self, plan, steg, lage):

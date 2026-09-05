@@ -184,7 +184,66 @@ class Harness(object):
     # ---- turen -----------------------------------------------------------
 
     def kor(self, uppgift: str, ogonrapport: Optional[str] = None,
-            guldbeslut: Any = None) -> Turprotokoll:
+            guldbeslut: Any = None, forlopp: Any = None) -> Turprotokoll:
+        """Kor en tur. `forlopp` ar valfritt och for fas 17:s yta MEDAN turen gar.
+
+        Utan det lamnar `Turprotokoll` sin text forst nar turen ar over, och
+        det ar en av de fem terminala rapportytorna M-64 raknade. Med det kan
+        den som vantar lasa vilken runda som pagar, vilken grind som avvisade
+        ett anrop och med vilka ord, och vad turen INTE hann prova - medan det
+        hander.
+
+        Harnessen kanner inte forloppsytan. Den anropar metoder pa ett objekt
+        anroparen agt hela tiden, och `forlopp=None` ar den vag varje
+        befintlig anropare redan gar.
+        """
+        protokoll = self._kor(uppgift, ogonrapport, guldbeslut, forlopp)
+        if forlopp is not None:
+            self._avsluta_forloppet(forlopp, protokoll, ogonrapport,
+                                    guldbeslut)
+        return protokoll
+
+    @staticmethod
+    def _stang_rundan(forlopp) -> None:
+        """Stanger den runda som star som pagaende, om nagon gor det.
+
+        Ett steg som star kvar pa PAGAR i ett stilla lage ar precis den
+        snurrande symbol fasens grind forbjuder, och forloppsytans regel Y2
+        faller pa den.
+        """
+        pagar = forlopp.pagaende_steg()
+        if pagar is not None:
+            forlopp.steg_klart(pagar.namn)
+
+    def _avsluta_forloppet(self, forlopp, protokoll: Turprotokoll,
+                           ogonrapport, guldbeslut) -> None:
+        """Turens slut in i forloppet: ogats dom, guldet, och hur det gick.
+
+        Ordningen ar domen fore guldet fore svaret, sa att ett guld aldrig
+        star ensamt (regel A-6, och forloppsytans Y7).
+
+        En STOPP blir ett FALL med stoppregelns EGNA ord. Ett stopp som inte
+        syns ar samma tystnad som en logg ingen laser: turen holl inne svaret,
+        och den som vantar far inte veta att den gjorde det.
+        """
+        self._stang_rundan(forlopp)
+        if ogonrapport:
+            forlopp.dom(ogonrapport)
+        if guldbeslut is not None:
+            text = getattr(guldbeslut, "text", None)
+            forlopp.guld(text() if callable(text) else str(guldbeslut))
+        stopp = [h for h in protokoll.handelser if h.sort == "STOPP"]
+        if stopp:
+            forlopp.fall("%s: %s" % (stopp[-1].kod, stopp[-1].text))
+        elif protokoll.klar:
+            forlopp.svar(protokoll.slutsvar)
+        else:
+            forlopp.fall(
+                "turen slutade utan slutsvar och utan stoppkod; utfallet ar "
+                "%s" % protokoll.utfall)
+
+    def _kor(self, uppgift: str, ogonrapport: Optional[str],
+             guldbeslut: Any, forlopp: Any) -> Turprotokoll:
         prompt = bygg_systemprompt(self.korpus, self.budget)
         protokoll = Turprotokoll(
             uppgift=uppgift,
@@ -208,6 +267,10 @@ class Harness(object):
 
         for runda in range(1, self.max_rundor + 1):
             protokoll.rundor = runda
+            if forlopp is not None:
+                self._stang_rundan(forlopp)
+                forlopp.steg_borjar("runda %d" % runda,
+                                    "modellen far ordet")
             svar = self.modell.svara(prompt.text, tuple(historik),
                                      verktygslista)
             if not isinstance(svar, Modellsvar):
@@ -227,7 +290,7 @@ class Harness(object):
                     % len(svar.anrop)))
                 stoppkod, raka_fel = self._kor_anrop(
                     svar, runda, protokoll, historik, grund, uppgift,
-                    fallda_nycklar, raka_fel, turlage)
+                    fallda_nycklar, raka_fel, turlage, forlopp)
                 if stoppkod is not None:
                     return protokoll
                 if raka_fel >= self.max_raka_misslyckanden:
@@ -251,6 +314,11 @@ class Harness(object):
                 return protokoll
 
             krav = self._med_regeltext(krav)
+            if forlopp is not None:
+                # 24_samtalsloopen.md, avsnitt 7: en omskrivning doljs inte. Kravet gar
+                # ut ordagrant - det ar en grinds ord om ett svar, och det ar
+                # just den sortens text som inte far mjukas upp pa vagen.
+                forlopp.omskrivning(krav)
             omskrivningar += 1
             if omskrivningar > self.max_omskrivningar:
                 protokoll.lagg(
@@ -274,7 +342,7 @@ class Harness(object):
                    protokoll: Turprotokoll, historik: List[Meddelande],
                    grund: Vf.Grund, uppgift: str,
                    fallda_nycklar: Dict[str, int], raka_fel: int,
-                   turlage: "T.Turlage"):
+                   turlage: "T.Turlage", forlopp: Any = None):
         """Kor rundans anrop. Returnerar (stoppkod, raka_fel).
 
         raka_fel raknas over HELA turen och inte per runda: en modell som
@@ -309,6 +377,12 @@ class Harness(object):
             if avvisning is not None:
                 protokoll.lagg("AVVISAD", avvisning.grind, avvisning.text(),
                                runda)
+                if forlopp is not None:
+                    # Grindens EGNA ord, tecken for tecken. En avvisning som
+                    # sammanfattas pa vagen ut ar samma omskrivning som en
+                    # avvisning som sammanfattas pa vagen till modellen.
+                    forlopp.grind("%s (%s)" % (avvisning.grind, anrop.namn),
+                                  False, avvisning.text())
                 historik.append(Meddelande(
                     "grind", self._avslagstext(avvisning), anrop.id,
                     anrop.namn))
@@ -320,9 +394,14 @@ class Harness(object):
 
             for varning in dom.varningar:
                 protokoll.lagg("VARNING", "fore_korning", varning, runda)
+                if forlopp is not None:
+                    forlopp.degraderad(varning)
                 historik.append(Meddelande("grind", varning, anrop.id,
                                            anrop.namn))
 
+            if forlopp is not None:
+                forlopp.lagg("VERKTYG_START", anrop.beskrivning(),
+                             steg=anrop.namn)
             utfall = self.kanal.utfor(anrop.namn, dom.argument)
             turlage.lagg(anrop.namn, dom.kod, utfall.ok, utfall.resultat)
             utfall = Anropsutfall(
@@ -335,6 +414,9 @@ class Harness(object):
             if utfall.ok:
                 protokoll.lagg("VERKTYG_OK", anrop.namn, utfall.beskrivning(),
                                runda)
+                if forlopp is not None:
+                    forlopp.lagg("VERKTYG_KLART", utfall.beskrivning(),
+                                 steg=anrop.namn)
                 if utfall.andrade:
                     # Scenen andrades. Allt som mattes fore detta beskriver
                     # laget FORE andringen (ARB-004, M-11). Generationen hojs
@@ -347,6 +429,10 @@ class Harness(object):
             else:
                 protokoll.lagg("VERKTYG_FEL", anrop.namn,
                                utfall.beskrivning(), runda)
+                if forlopp is not None:
+                    forlopp.lagg("VERKTYG_FEL", utfall.beskrivning(),
+                                 steg=anrop.namn,
+                                 ordagrant=utfall.beskrivning())
                 fallda_nycklar[nyckel] = fallda_nycklar.get(nyckel, 0) + 1
                 raka_fel += 1
             historik.append(Meddelande("verktyg", utfall.beskrivning(),
