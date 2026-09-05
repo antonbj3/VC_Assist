@@ -115,13 +115,33 @@ inte som fasens: de mättes med tidsliteralbuggen i grinden.
 
 ### Enskott — modellen får ett försök
 
-| | löst | n |
-|---|---|---|
-| **utan grindreglerna** | **0 av 20** | 5 per uppgift, 4 uppgifter |
+Fem försök per uppgift, samma fyra uppgifter i båda armarna, samma transport.
 
-Noll. Inte noll av fyra — noll av tjugo. Det är en fast nolla, inte brus, och
-det är utgångsläget: en modell som aldrig fått veta vad grinden fäller på kan
-inte undvika det.
+| Uppgift | utan grindreglerna | **med** |
+|---|---:|---:|
+| H-04 | 0 av 5 | 0 av 5 |
+| L-05 | 0 av 5 | **1 av 5** |
+| S-05 | 0 av 5 | **5 av 5** |
+| T-07 | 0 av 5 | 0 av 5 |
+| **summa** | **0 av 20** | **6 av 20** |
+| kostnad | 2,140 USD | 2,825 USD |
+
+Utan reglerna: noll. Inte noll av fyra — noll av tjugo. En fast nolla, inte
+brus.
+
+**Med reglerna: 6 av 20, och fördelningen är hela poängen.** Effekten är inte
+att alla uppgifter blir lite bättre. **S-05 går från 0 av 5 till 5 av 5** —
+helt löst, varje gång. L-05 rör sig knappt. De andra två rör sig inte alls.
+
+Det säger något en summa hade dolt: S-05 föll enbart på konventioner som ingen
+sagt. Så fort de sades var uppgiften inte svår. H-04, H-05 och T-07 är svåra av
+andra skäl, och för dem hjälper reglerna inte.
+
+Varv till löst i alla sex fallen: **1**. Det är enskott, per definition.
+
+*(Med-armen körde fem uppgifter — banken växte med H-05 mitt i, och den gav
+0 av 5. Tabellen ovan jämför bara de fyra som kördes i båda armarna, annars
+hade nämnarna skilt sig.)*
 
 Felklasserna i enskott utan regler: `DUBBELSKRIVNING` i 3 av 4 uppgifter,
 `SYNTAX` i 1. Ingen av dem är okunnighet om palleteringsceller. Båda är
@@ -187,10 +207,13 @@ efter att tidsliteralbuggen tvingade fram en omkörning från början.
 
 ## LIMITS
 
-* **Enskott MED grindreglerna är inte färdigmätt.** Körningen med n = 5 per
-  uppgift pågår. Tre tidigare armar med n = 1 gav alla 1 av 4 — men på **olika
-  uppgift varje gång**, vilket är signaturen för brus och inte för en effekt.
-  Det talet publiceras när det har en nämnare som tål att läsas.
+* **Fyra uppgifter, en modell, en promptformulering.** 6 av 20 är mätt, inte
+  antaget, men det är fyra celler av bankens 61. Fas 21 äger skalan.
+* **Effekten sitter i en enda uppgift.** S-05 bär fem av de sex lösta. Ett
+  annat urval av fyra uppgifter kunde gett 1 av 20 eller 10 av 20 med exakt
+  samma regler. Det är den svagaste punkten i talet.
+* **Armarna kördes efter varandra, inte parat.** Banken växte emellan (H-05
+  tillkom), och tabellen jämför därför bara de fyra delade uppgifterna.
 * **T-07 slog i taket och orsaken är inte utredd.** Fyra varv, 0,605 USD, och
   ingen dom lästes efteråt. Att det är uppgiften och inte grinden är
   **antaget**.
