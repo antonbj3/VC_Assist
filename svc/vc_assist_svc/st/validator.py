@@ -32,6 +32,14 @@ JAMFORELSER = ("=", "<>", "<", ">", "<=", ">=")
 LOGISKA = ("AND", "OR", "XOR")
 ARITMETIK = ("+", "-", "*", "/")
 
+# Strängfunktioner där första strängargumentet inte får vara en literal.
+# MÄTT (M-108): STruC++ backend faller med mallhärledningsfel ("mismatched
+# types 'const IECString<MaxLen>' and 'const char [N]'") när första
+# strängargumentet är en literal; med variabel bygger allt.
+STRANGFUNKTIONER_LITERAL = (
+    "CONCAT", "LEFT", "RIGHT", "MID", "FIND", "LEN", "INSERT", "DELETE", "REPLACE"
+)
+
 # Sorter vars innehåll inte får skrivas inifrån POU:n. IEC 61131-3: ingången
 # ägs av anroparen. VAR_EXTERNAL står medvetet INTE här — standarden tillåter
 # att en extern variabel skrivs, och det är just så en utgång ur signalkartan
@@ -551,6 +559,16 @@ class Granskning(object):
                 return None
             return T.gemensam_typ(a, b)
         if u.op in JAMFORELSER:
+            if isinstance(a, (T.Strukturtyp, T.Falt)) or isinstance(b, (T.Strukturtyp, T.Falt)):
+                self.fel("TYP", u.rad,
+                         "likhet (%s) gäller bara elementära typer, inte %s och %s "
+                         "(backend saknar operator==)"
+                         % (u.op, a.st(), b.st()))
+                return None
+            if isinstance(a, T.Blocktyp) or isinstance(b, T.Blocktyp):
+                self.fel("TYP", u.rad,
+                         "en funktionsblocksinstans kan inte jämföras")
+                return None
             if T.gemensam_typ(a, b) is None:
                 self.fel("TYP", u.rad, "%s och %s går inte att jämföra"
                          % (a.st(), b.st()))
@@ -693,6 +711,16 @@ class Granskning(object):
                 if obl and namn not in bundna:
                     self.fel("ARGUMENT", a.rad,
                              "%s saknar argumentet %s" % (a.namn, namn))
+        if a.namn.upper() in STRANGFUNKTIONER_LITERAL:
+            if sig.ingangar:
+                forsta_namn = sig.ingangar[0][0]
+                if forsta_namn in bundna:
+                    _krav, forsta_arg = bundna[forsta_namn]
+                    if isinstance(forsta_arg.uttryck, M.Literal):
+                        self.fel("TYP", forsta_arg.rad,
+                                 "%s: första strängargumentet får inte vara en literal "
+                                 "(backendens mallhärledning faller; med variabel bygger det)"
+                                 % a.namn)
         argtyper = {}
         for namn, (krav, arg) in bundna.items():
             t = self.typ_av(arg.uttryck)
