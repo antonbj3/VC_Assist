@@ -34,6 +34,12 @@ sessions minne förut. Committa varje färdig sak för sig.
 **Innan du raderar en fil**, kontrollera att den inte är spårad:
 `git cat-file -e HEAD:<sökväg>`.
 
+**Låset skyddar indexet, inte innehållet.** Det hände på riktigt medan de här
+köerna skrevs: två skrivare la var sin `BANKPOST` överst i samma fil inom några
+minuter, båda committade utan konflikt, och filen fick två poster där läsaren
+bara läser den första. Låset kan inte hindra det — bara ytindelningen kan.
+Läs filen precis innan du ändrar den, och håll dig till din yta.
+
 ## Sökvägar som är dina
 
 Varje brief har ett stycke **"Din yta"**. Rör inte filer utanför den utan att
