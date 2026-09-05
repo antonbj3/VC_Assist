@@ -313,5 +313,239 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: linjens takt 6,0 s per kartong ger 3600/6,0 = 600 kartonger/h teoretiskt. Vid 480 s = 8 minuter formatbyte aterstar 52 minuter produktion = (52/60)*600 = 520 kartonger/h, vilket med marginal ger malet 500 kartonger/h. Detta ar manniskans facit skrivet ur scenarios normal, fmt_lag, fmt_hog, cnt_lag, cnt_hog, cam_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Styrsekvens och hastighetsreglering for formatbyte foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_C03_FORMATBYTE\nVAR\n    steg       : INT := 1;\n    tmrCam     : TON;\n    formatValt : INT := 1;\nEND_VAR\n\ntmrCam(IN := (steg = 3), PT := T#5000ms);\n\nIF NOT EMG_OK THEN\n    ST410_CNV_RUN  := FALSE;\n    ST410_LNE_SPD  := 0.0;\n    ST410_FMT_CHG  := FALSE;\n    ST410_CAM_TRIG := FALSE;\n    ST410_STA_STOP := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST410_STA_STOP := FALSE;\n            ST410_FMT_CHG  := FALSE;\n            ST410_CAM_TRIG := FALSE;\n            ST410_CNV_RUN  := TRUE;\n            ST410_LNE_SPD  := 10.0;\n            IF NOT ST410_FMT_RDY THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_FMT_CHG  := TRUE;\n            ST410_CAM_TRIG := FALSE;\n            IF ST410_FMT_RDY THEN\n                formatValt := ST410_FMT_SEL;\n                IF formatValt < 1 OR formatValt > 2 THEN\n                    ST410_STA_STOP := TRUE;\n                    ST410_FMT_CHG  := FALSE;\n                    steg := 9;\n                ELSE\n                    ST410_FMT_CHG  := FALSE;\n                    ST410_CNV_RUN  := TRUE;\n                    ST410_LNE_SPD  := 5.0;\n                    ST410_CAM_TRIG := TRUE;\n                    steg := 3;\n                END_IF;\n            END_IF;\n        3:\n            IF ST410_CAM_OK THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_LNE_SPD  := 10.0;\n                steg := 1;\n            ELSIF tmrCam.Q THEN\n                ST410_CAM_TRIG := FALSE;\n                ST410_CNV_RUN  := FALSE;\n                ST410_LNE_SPD  := 0.0;\n                ST410_STA_STOP := TRUE;\n                steg := 9;\n            END_IF;\n        9:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_CAM_TRIG := FALSE;\n            ST410_STA_STOP := TRUE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "formatbyte_med_verifiering",
+        "beskrivning": "Normaldrift, formatbyte till format B, provkartong i halv fart och atergang till full fart.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST410_FMT_SEL": 1,
+              "ST410_FMT_RDY": true,
+              "ST410_CAM_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": true,
+              "ST410_LNE_SPD": 10.0,
+              "ST410_FMT_CHG": false,
+              "ST410_STA_STOP": false
+            },
+            "varfor": "linan startar i full takt med format A"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST410_FMT_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": false,
+              "ST410_LNE_SPD": 0.0,
+              "ST410_FMT_CHG": true
+            },
+            "varfor": "vid formatbyte stannas bandet och FMT_CHG satts hog"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST410_FMT_SEL": 2,
+              "ST410_FMT_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": true,
+              "ST410_LNE_SPD": 5.0,
+              "ST410_CAM_TRIG": true,
+              "ST410_FMT_CHG": false
+            },
+            "varfor": "linan startar i halv fart for att testa forsta kartongen"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST410_CAM_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST410_CNV_RUN": true,
+              "ST410_LNE_SPD": 10.0,
+              "ST410_CAM_TRIG": false
+            },
+            "varfor": "vid bekraftat format atergar linan till full fart"
+          }
+        ]
+      },
+      {
+        "id": "ogiltigt_format_efter_byte",
+        "beskrivning": "Formatbyte dar ST410_FMT_SEL ar 0 leder till stopp och larm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST410_FMT_SEL": 1,
+              "ST410_FMT_RDY": true,
+              "ST410_CAM_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST410_FMT_RDY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST410_FMT_CHG": true
+            },
+            "varfor": "formatbyte pagar"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST410_FMT_SEL": 0,
+              "ST410_FMT_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST410_STA_STOP": true,
+              "ST410_CNV_RUN": false,
+              "ST410_LNE_SPD": 0.0
+            },
+            "varfor": "ogiltigt format 0 stoppar linan och satter STA_STOP"
+          }
+        ]
+      },
+      {
+        "id": "kamera_uteblir_efter_byte",
+        "beskrivning": "Provkartong gar framat men kameran bekraftar inte inom 5,0 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST410_FMT_SEL": 1,
+              "ST410_FMT_RDY": false,
+              "ST410_CAM_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST410_FMT_SEL": 2,
+              "ST410_FMT_RDY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST410_LNE_SPD": 5.0,
+              "ST410_CAM_TRIG": true
+            },
+            "varfor": "start i halv fart for provkartong"
+          },
+          {
+            "t_ms": 5700,
+            "satt": {},
+            "krav": {
+              "ST410_STA_STOP": true,
+              "ST410_CNV_RUN": false
+            },
+            "varfor": "nar kamerabedomning uteblir stoppas linan"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_drift_under_fmt_chg",
+        "sekvens": "*",
+        "nar": {
+          "ST410_FMT_CHG": true
+        },
+        "kraver": {
+          "ST410_CNV_RUN": false
+        },
+        "varfor": "bandet far inte ga nar formatbyte pagar"
+      },
+      {
+        "namn": "ingen_full_fart_medan_cam_trig",
+        "sekvens": "*",
+        "nar": {
+          "ST410_CAM_TRIG": true
+        },
+        "kraver": {
+          "ST410_STA_STOP": false
+        },
+        "varfor": "under provkartongstest ar linan inte stoppad men kor i halv fart"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "fmt_chg_flank",
+        "sekvens": "formatbyte_med_verifiering",
+        "signal": "ST410_FMT_CHG",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2000,
+        "antal": 1,
+        "varfor": "FMT_CHG ska ga hog exakt en gang vid formatbytet"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "full_fart_direkt_efter_byte",
+        "st": "PROGRAM ST_C03_FORMATBYTE\nVAR\n    steg       : INT := 1;\n    tmrCam     : TON;\n    formatValt : INT := 1;\nEND_VAR\n\ntmrCam(IN := (steg = 3), PT := T#5000ms);\n\nIF NOT EMG_OK THEN\n    ST410_CNV_RUN  := FALSE;\n    ST410_LNE_SPD  := 0.0;\n    ST410_FMT_CHG  := FALSE;\n    ST410_CAM_TRIG := FALSE;\n    ST410_STA_STOP := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST410_STA_STOP := FALSE;\n            ST410_FMT_CHG  := FALSE;\n            ST410_CAM_TRIG := FALSE;\n            ST410_CNV_RUN  := TRUE;\n            ST410_LNE_SPD  := 10.0;\n            IF NOT ST410_FMT_RDY THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_FMT_CHG  := TRUE;\n            ST410_CAM_TRIG := FALSE;\n            IF ST410_FMT_RDY THEN\n                formatValt := ST410_FMT_SEL;\n                IF formatValt < 1 OR formatValt > 2 THEN\n                    ST410_STA_STOP := TRUE;\n                    ST410_FMT_CHG  := FALSE;\n                    steg := 9;\n                ELSE\n                    ST410_FMT_CHG  := FALSE;\n                    ST410_CNV_RUN  := TRUE;\n                    ST410_LNE_SPD  := 10.0;\n                    ST410_CAM_TRIG := FALSE;\n                    steg := 1;\n                END_IF;\n            END_IF;\n        9:\n            ST410_CNV_RUN  := FALSE;\n            ST410_LNE_SPD  := 0.0;\n            ST410_CAM_TRIG := FALSE;\n            ST410_STA_STOP := TRUE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Full takt startas direkt efter bytet utan kontroll av forsta kartongen, vilket riskerar att producera en hel minut skrot om installningen var fel.",
+        "faller_pa": [
+          "formatbyte_med_verifiering@2100ms:ST410_LNE_SPD"
+        ]
+      }
+    ]
+  }
 }

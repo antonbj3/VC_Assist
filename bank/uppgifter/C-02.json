@@ -352,5 +352,263 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: linjens kapacitet ur stationstiderna 18,0 s, 24,0 s, 21,0 s och 26,0 s. Flaskhalsen ST400 ger 3600/26,0 = 138,46 enheter i timmen teoretiskt, vilket med forreglingsforluster ger malet 125 enheter/h. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, ack_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Forregling och handskakning mellan stationerna foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_C02_FLERSTATION\nVAR\n    steg1 : INT := 1;\n    steg2 : INT := 0;\n    steg3 : INT := 0;\n    steg4 : INT := 0;\n    tmr1  : TON;\n    tmr2  : TON;\n    tmr3  : TON;\n    tmr4  : TON;\nEND_VAR\n\nIF NOT EMG_OK THEN\n    ST370_STA_DONE := FALSE;\n    ST370_HS_REQ   := FALSE;\n    ST380_STA_DONE := FALSE;\n    ST380_HS_RST   := FALSE;\n    ST390_STA_DONE := FALSE;\n    ST390_HS_REQ   := FALSE;\n    ST400_STA_DONE := FALSE;\n    ST400_HS_RST   := FALSE;\n    steg1 := 0;\n    steg2 := 0;\n    steg3 := 0;\n    steg4 := 0;\nELSE\n    IF steg1 = 0 AND EMG_OK THEN\n        steg1 := 1;\n    END_IF;\n\n    tmr1(IN := (steg1 = 1), PT := T#18s);\n    IF tmr1.Q THEN\n        steg1 := 2;\n    END_IF;\n\n    IF steg1 = 2 THEN\n        ST370_STA_DONE := TRUE;\n        ST370_HS_REQ := TRUE;\n        IF ST380_HS_ACK THEN\n            steg1 := 3;\n            steg2 := 1;\n        END_IF;\n    ELSIF steg1 = 3 THEN\n        IF ST380_HS_RST THEN\n            ST370_HS_REQ := FALSE;\n            ST370_STA_DONE := FALSE;\n            steg1 := 4;\n        END_IF;\n    ELSIF steg1 = 4 THEN\n        ST370_STA_DONE := FALSE;\n        ST370_HS_REQ := FALSE;\n    END_IF;\n\n    tmr2(IN := (steg2 = 1), PT := T#24s);\n    IF tmr2.Q THEN\n        steg2 := 2;\n    END_IF;\n\n    IF steg2 = 1 THEN\n        ST380_HS_RST := TRUE;\n        ST380_STA_DONE := FALSE;\n    ELSIF steg2 = 2 THEN\n        ST380_HS_RST := FALSE;\n        ST380_STA_DONE := TRUE;\n        IF ST390_HS_ACK THEN\n            steg2 := 3;\n            steg3 := 1;\n        END_IF;\n    ELSIF steg2 = 3 THEN\n        ST380_STA_DONE := FALSE;\n        ST380_HS_RST := FALSE;\n        steg2 := 4;\n    END_IF;\n\n    tmr3(IN := (steg3 = 1), PT := T#21s);\n    IF tmr3.Q THEN\n        steg3 := 2;\n    END_IF;\n\n    IF steg3 = 2 THEN\n        ST390_STA_DONE := TRUE;\n        ST390_HS_REQ := TRUE;\n        IF ST400_HS_ACK THEN\n            steg3 := 3;\n            steg4 := 1;\n        END_IF;\n    ELSIF steg3 = 3 THEN\n        IF ST400_HS_RST THEN\n            ST390_HS_REQ := FALSE;\n            ST390_STA_DONE := FALSE;\n            steg3 := 4;\n        END_IF;\n    ELSIF steg3 = 4 THEN\n        ST390_STA_DONE := FALSE;\n        ST390_HS_REQ := FALSE;\n    END_IF;\n\n    tmr4(IN := (steg4 = 1), PT := T#26s);\n    IF tmr4.Q THEN\n        steg4 := 2;\n    END_IF;\n\n    IF steg4 = 1 THEN\n        ST400_HS_RST := TRUE;\n        ST400_STA_DONE := FALSE;\n    ELSIF steg4 = 2 THEN\n        ST400_HS_RST := FALSE;\n        ST400_STA_DONE := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_handskakning",
+        "beskrivning": "Normaldrift: enhet bearbetas genom station 1 till 4 med full handskakning mellan varje par.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST380_HS_ACK": false,
+              "ST390_HS_ACK": false,
+              "ST400_HS_ACK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST370_STA_DONE": false,
+              "ST370_HS_REQ": false,
+              "ST380_HS_RST": false,
+              "ST390_HS_REQ": false,
+              "ST400_HS_RST": false,
+              "ST400_STA_DONE": false
+            },
+            "varfor": "station 1 arbetar och ingen handskakning ar aktiv vid start"
+          },
+          {
+            "t_ms": 18100,
+            "satt": {},
+            "krav": {
+              "ST370_STA_DONE": true,
+              "ST370_HS_REQ": true
+            },
+            "varfor": "station 1 klar efter 18,0 s och begar overlamning"
+          },
+          {
+            "t_ms": 18200,
+            "satt": {
+              "ST380_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18300,
+            "satt": {},
+            "krav": {
+              "ST380_HS_RST": true
+            },
+            "varfor": "station 2 kvitterar och satter aterstallning hog"
+          },
+          {
+            "t_ms": 18400,
+            "satt": {
+              "ST380_HS_ACK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18500,
+            "satt": {},
+            "krav": {
+              "ST370_HS_REQ": false,
+              "ST370_STA_DONE": false
+            },
+            "varfor": "station 1 aterstalls nar station 2 tagit emot"
+          },
+          {
+            "t_ms": 42400,
+            "satt": {},
+            "krav": {
+              "ST380_STA_DONE": true,
+              "ST380_HS_RST": false
+            },
+            "varfor": "station 2 klar efter 24,0 s"
+          },
+          {
+            "t_ms": 42500,
+            "satt": {
+              "ST390_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 42600,
+            "satt": {
+              "ST390_HS_ACK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 63600,
+            "satt": {},
+            "krav": {
+              "ST390_STA_DONE": true,
+              "ST390_HS_REQ": true
+            },
+            "varfor": "station 3 klar efter 21,0 s och begar overlamning till station 4"
+          },
+          {
+            "t_ms": 63700,
+            "satt": {
+              "ST400_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 63800,
+            "satt": {},
+            "krav": {
+              "ST400_HS_RST": true
+            },
+            "varfor": "station 4 kvitterar och satter aterstallning hog"
+          },
+          {
+            "t_ms": 63900,
+            "satt": {
+              "ST400_HS_ACK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 64000,
+            "satt": {},
+            "krav": {
+              "ST390_HS_REQ": false,
+              "ST390_STA_DONE": false
+            },
+            "varfor": "station 3 aterstalls nar station 4 tagit emot"
+          },
+          {
+            "t_ms": 89900,
+            "satt": {},
+            "krav": {
+              "ST400_STA_DONE": true,
+              "ST400_HS_RST": false
+            },
+            "varfor": "station 4 klar efter 26,0 s"
+          }
+        ]
+      },
+      {
+        "id": "ack_uteblir_mellan_tre_och_fyra",
+        "beskrivning": "Station 3 begar overlamning men station 4 svarar inte; handskakningen maste halla kvar enheten.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST380_HS_ACK": true,
+              "ST390_HS_ACK": true,
+              "ST400_HS_ACK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 63600,
+            "satt": {},
+            "krav": {
+              "ST390_HS_REQ": true,
+              "ST400_STA_DONE": false
+            },
+            "varfor": "station 3 begar overlamning"
+          },
+          {
+            "t_ms": 70000,
+            "satt": {},
+            "krav": {
+              "ST400_HS_RST": false,
+              "ST400_STA_DONE": false
+            },
+            "varfor": "utan ack fran station 4 far station 4 aldrig starta eller kvittera klart"
+          },
+          {
+            "t_ms": 95000,
+            "satt": {},
+            "krav": {
+              "ST390_HS_REQ": true,
+              "ST400_STA_DONE": false
+            },
+            "varfor": "station 3 haller kvar begaran och station 4 forbliver overksam nar ack uteblir"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_done_utan_rst_i_station4",
+        "sekvens": "*",
+        "nar": {
+          "ST400_STA_DONE": true
+        },
+        "kraver": {
+          "ST390_HS_REQ": false
+        },
+        "varfor": "station 4 kan inte vara klar med en enhet medan station 3 fortfarande vantar pa att fa lamna den"
+      },
+      {
+        "namn": "nodstopp_stoppar_alla_req",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST370_HS_REQ": false,
+          "ST390_HS_REQ": false,
+          "ST400_STA_DONE": false
+        },
+        "varfor": "vid brutet nodstopp ska alla begaran och klarsignaler nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "station1_req_flank",
+        "sekvens": "normal_handskakning",
+        "signal": "ST370_HS_REQ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 25000,
+        "antal": 1,
+        "varfor": "station 1 ska ge exakt en begaran"
+      },
+      {
+        "namn": "station4_done_flank",
+        "sekvens": "normal_handskakning",
+        "signal": "ST400_STA_DONE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 95000,
+        "antal": 1,
+        "varfor": "station 4 ska bli klar exakt en gang i normalcykeln"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "forregling_glomd_mellan_tre_och_fyra",
+        "st": "PROGRAM ST_C02_FLERSTATION\nVAR\n    steg1 : INT := 1;\n    steg2 : INT := 0;\n    steg3 : INT := 0;\n    steg4 : INT := 0;\n    tmr1  : TON;\n    tmr2  : TON;\n    tmr3  : TON;\n    tmr4  : TON;\nEND_VAR\n\nIF NOT EMG_OK THEN\n    ST370_STA_DONE := FALSE;\n    ST370_HS_REQ   := FALSE;\n    ST380_STA_DONE := FALSE;\n    ST380_HS_RST   := FALSE;\n    ST390_STA_DONE := FALSE;\n    ST390_HS_REQ   := FALSE;\n    ST400_STA_DONE := FALSE;\n    ST400_HS_RST   := FALSE;\n    steg1 := 0;\n    steg2 := 0;\n    steg3 := 0;\n    steg4 := 0;\nELSE\n    IF steg1 = 0 AND EMG_OK THEN\n        steg1 := 1;\n    END_IF;\n\n    tmr1(IN := (steg1 = 1), PT := T#18s);\n    IF tmr1.Q THEN\n        steg1 := 2;\n    END_IF;\n\n    IF steg1 = 2 THEN\n        ST370_STA_DONE := TRUE;\n        ST370_HS_REQ := TRUE;\n        IF ST380_HS_ACK THEN\n            steg1 := 3;\n            steg2 := 1;\n        END_IF;\n    ELSIF steg1 = 3 THEN\n        IF ST380_HS_RST THEN\n            ST370_HS_REQ := FALSE;\n            ST370_STA_DONE := FALSE;\n            steg1 := 4;\n        END_IF;\n    ELSIF steg1 = 4 THEN\n        ST370_STA_DONE := FALSE;\n        ST370_HS_REQ := FALSE;\n    END_IF;\n\n    tmr2(IN := (steg2 = 1), PT := T#24s);\n    IF tmr2.Q THEN\n        steg2 := 2;\n    END_IF;\n\n    IF steg2 = 1 THEN\n        ST380_HS_RST := TRUE;\n        ST380_STA_DONE := FALSE;\n    ELSIF steg2 = 2 THEN\n        ST380_HS_RST := FALSE;\n        ST380_STA_DONE := TRUE;\n        IF ST390_HS_ACK THEN\n            steg2 := 3;\n            steg3 := 1;\n            steg4 := 1;\n        END_IF;\n    ELSIF steg2 = 3 THEN\n        ST380_STA_DONE := FALSE;\n        ST380_HS_RST := FALSE;\n        steg2 := 4;\n    END_IF;\n\n    tmr3(IN := (steg3 = 1), PT := T#21s);\n    IF tmr3.Q THEN\n        steg3 := 2;\n    END_IF;\n\n    IF steg3 = 2 THEN\n        ST390_STA_DONE := TRUE;\n        ST390_HS_REQ := TRUE;\n    END_IF;\n\n    tmr4(IN := (steg4 = 1), PT := T#26s);\n    IF tmr4.Q THEN\n        steg4 := 2;\n    END_IF;\n\n    IF steg4 = 1 THEN\n        ST400_HS_RST := TRUE;\n        ST400_STA_DONE := FALSE;\n    ELSIF steg4 = 2 THEN\n        ST400_HS_RST := FALSE;\n        ST400_STA_DONE := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Forreglingen mellan station 3 och station 4 ar bortglomd sa station 4 startar direkt pa station 2 utan handskakning och innan station 3 ar klar.",
+        "faller_pa": [
+          "ack_uteblir_mellan_tre_och_fyra@70000ms:ST400_STA_DONE"
+        ]
+      }
+    ]
+  }
 }

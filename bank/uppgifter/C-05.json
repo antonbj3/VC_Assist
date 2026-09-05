@@ -364,5 +364,280 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: cykeltiden 13,0 s per karta ger 3600/13,0 = 276,92 kartor/h teoretiskt. Med hogst 8 procent omarbete (276,92 * 0,92 = 254,77) uppnas kapacitetsmalet 240 godkanda kartor i timmen med 14,77 kartor/h i marginal. Detta ar manniskans facit skrivet ur scenarios normal, que_lag, que_hog, cnt_lag, cnt_hog, free_uteblir, rwk_lag, rwk_hog samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Forregling av sammanflode och omarbetningsloop foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_C05_KVALITETSLOOP\nVAR\n    stegPrd     : INT := 1;\n    stegMrg     : INT := 0;\n    tmrCam      : TON;\n    tmrPsh      : TON;\n    tmrMrg      : TON;\n    rwkPending  : BOOL := FALSE;\n    trigRwk     : R_TRIG;\nEND_VAR\n\ntrigRwk(CLK := ST440_RWK_DONE);\nIF trigRwk.Q THEN\n    rwkPending := TRUE;\nEND_IF;\n\ntmrCam(IN := (stegPrd = 2), PT := T#300ms);\ntmrPsh(IN := (stegPrd = 3), PT := T#500ms);\ntmrMrg(IN := (stegMrg = 2), PT := T#1000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST430_PRD_START := FALSE;\n    ST430_PSH_RWK   := FALSE;\n    ST430_MRG_OPEN  := FALSE;\n    ST430_CAM_TRIG  := FALSE;\n    stegPrd := 0;\n    stegMrg := 0;\n    rwkPending := FALSE;\nELSE\n    IF stegPrd = 0 THEN\n        stegPrd := 1;\n    END_IF;\n\n    CASE stegPrd OF\n        1:\n            ST430_PRD_START := TRUE;\n            ST430_CAM_TRIG  := FALSE;\n            ST430_PSH_RWK   := FALSE;\n            IF ST430_PRD_DONE THEN\n                ST430_PRD_START := FALSE;\n                stegPrd := 2;\n            END_IF;\n        2:\n            ST430_CAM_TRIG := TRUE;\n            IF ST430_CAM_OK THEN\n                ST430_CAM_TRIG := FALSE;\n                stegPrd := 4;\n            ELSIF tmrCam.Q THEN\n                ST430_CAM_TRIG := FALSE;\n                ST430_PSH_RWK  := TRUE;\n                stegPrd := 3;\n            END_IF;\n        3:\n            IF tmrPsh.Q THEN\n                ST430_PSH_RWK := FALSE;\n                stegPrd := 4;\n            END_IF;\n        4:\n            ST430_PRD_START := FALSE;\n            ST430_CAM_TRIG  := FALSE;\n            ST430_PSH_RWK   := FALSE;\n    END_CASE;\n\n    CASE stegMrg OF\n        0:\n            ST430_MRG_OPEN := FALSE;\n            IF rwkPending THEN\n                stegMrg := 1;\n            END_IF;\n        1:\n            IF ST430_MRG_FREE AND rwkPending THEN\n                ST430_MRG_OPEN := TRUE;\n                rwkPending := FALSE;\n                stegMrg := 2;\n            ELSE\n                ST430_MRG_OPEN := FALSE;\n            END_IF;\n        2:\n            IF tmrMrg.Q THEN\n                ST430_MRG_OPEN := FALSE;\n                stegMrg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_med_godkand_och_omarbetad",
+        "beskrivning": "Produktion av godkand karta, samt inmatning av en omarbetad karta nar sammanflodet ar fritt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST430_PRD_DONE": false,
+              "ST430_CAM_OK": false,
+              "ST430_MRG_FREE": true,
+              "ST440_RWK_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST430_PRD_START": true,
+              "ST430_CAM_TRIG": false,
+              "ST430_PSH_RWK": false,
+              "ST430_MRG_OPEN": false
+            },
+            "varfor": "produktionsstart for nasta karta"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST430_PRD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST430_PRD_START": false,
+              "ST430_CAM_TRIG": true
+            },
+            "varfor": "kartan fardig, kamera triggas"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST430_CAM_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST430_CAM_TRIG": false,
+              "ST430_PSH_RWK": false
+            },
+            "varfor": "godkand karta skjuts inte ut"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST440_RWK_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST440_RWK_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": true
+            },
+            "varfor": "eftersom MRG_FREE ar hog oppnas sammanflodet for den omarbetade kartan"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": false
+            },
+            "varfor": "sammanflodesgrinden stangs efter passagen"
+          }
+        ]
+      },
+      {
+        "id": "underkand_karta_skjuts_ut",
+        "beskrivning": "Underkand karta detekteras av kameran och skjuts ut till ST440 omarbetning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST430_PRD_DONE": false,
+              "ST430_CAM_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST430_PRD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST430_CAM_TRIG": true
+            },
+            "varfor": "kamera triggas"
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST430_CAM_TRIG": false,
+              "ST430_PSH_RWK": true
+            },
+            "varfor": "underkand karta skjuts ut till ST440 nar kameran inte bekraftat inom fonstret"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST430_PSH_RWK": false
+            },
+            "varfor": "utskjutaren slapper efter slaget"
+          }
+        ]
+      },
+      {
+        "id": "sammanflode_blockerat_nar_inte_fritt",
+        "beskrivning": "Omarbetad karta kvitteras men far inte slappas in medan sammanflodet ar upptaget.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST430_MRG_FREE": false,
+              "ST440_RWK_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST440_RWK_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": false
+            },
+            "varfor": "nar sammanflodet inte ar fritt far grinden aldrig oppnas"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": false
+            },
+            "varfor": "grinden forblir stangd sa lange MRG_FREE ar lag"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST430_MRG_FREE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": true
+            },
+            "varfor": "nar sammanflodet blir fritt slapps den vantande omarbetade kartan in"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST430_MRG_OPEN": false
+            },
+            "varfor": "sammanflodesgrinden stangs efter inmatningen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_inmatning_vid_upptaget_sammanflode",
+        "sekvens": "*",
+        "nar": {
+          "ST430_MRG_FREE": false
+        },
+        "kraver": {
+          "ST430_MRG_OPEN": false
+        },
+        "varfor": "omarbetade kartor far aldrig matas in nar sammanflodet ar upptaget"
+      },
+      {
+        "namn": "ingen_utskjutning_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST430_PSH_RWK": false
+        },
+        "varfor": "pneumatiska utskjutaren far inte aktiveras vid tryckluftsavbrott"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "utskjutare_flank",
+        "sekvens": "underkand_karta_skjuts_ut",
+        "signal": "ST430_PSH_RWK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1000,
+        "antal": 1,
+        "varfor": "exakt ett utskjutningsslag vid underkand karta"
+      },
+      {
+        "namn": "merge_open_flank",
+        "sekvens": "normal_med_godkand_och_omarbetad",
+        "signal": "ST430_MRG_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2000,
+        "antal": 1,
+        "varfor": "sammanflodesgrinden ska oppnas exakt en gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "inmatning_utan_forregling",
+        "st": "PROGRAM ST_C05_KVALITETSLOOP\nVAR\n    stegPrd     : INT := 1;\n    stegMrg     : INT := 0;\n    tmrCam      : TON;\n    tmrPsh      : TON;\n    tmrMrg      : TON;\n    rwkPending  : BOOL := FALSE;\n    trigRwk     : R_TRIG;\nEND_VAR\n\ntrigRwk(CLK := ST440_RWK_DONE);\nIF trigRwk.Q THEN\n    rwkPending := TRUE;\nEND_IF;\n\ntmrCam(IN := (stegPrd = 2), PT := T#300ms);\ntmrPsh(IN := (stegPrd = 3), PT := T#500ms);\ntmrMrg(IN := (stegMrg = 2), PT := T#1000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST430_PRD_START := FALSE;\n    ST430_PSH_RWK   := FALSE;\n    ST430_MRG_OPEN  := FALSE;\n    ST430_CAM_TRIG  := FALSE;\n    stegPrd := 0;\n    stegMrg := 0;\n    rwkPending := FALSE;\nELSE\n    IF stegPrd = 0 THEN\n        stegPrd := 1;\n    END_IF;\n\n    CASE stegPrd OF\n        1:\n            ST430_PRD_START := TRUE;\n            ST430_CAM_TRIG  := FALSE;\n            ST430_PSH_RWK   := FALSE;\n            IF ST430_PRD_DONE THEN\n                ST430_PRD_START := FALSE;\n                stegPrd := 2;\n            END_IF;\n        2:\n            ST430_CAM_TRIG := TRUE;\n            IF ST430_CAM_OK THEN\n                ST430_CAM_TRIG := FALSE;\n                stegPrd := 4;\n            ELSIF tmrCam.Q THEN\n                ST430_CAM_TRIG := FALSE;\n                ST430_PSH_RWK  := TRUE;\n                stegPrd := 3;\n            END_IF;\n        3:\n            IF tmrPsh.Q THEN\n                ST430_PSH_RWK := FALSE;\n                stegPrd := 4;\n            END_IF;\n        4:\n            ST430_PRD_START := FALSE;\n            ST430_CAM_TRIG  := FALSE;\n            ST430_PSH_RWK   := FALSE;\n    END_CASE;\n\n    CASE stegMrg OF\n        0:\n            IF rwkPending THEN\n                ST430_MRG_OPEN := TRUE;\n                rwkPending := FALSE;\n                stegMrg := 2;\n            END_IF;\n        2:\n            IF tmrMrg.Q THEN\n                ST430_MRG_OPEN := FALSE;\n                stegMrg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Omarbetade kartor matas in direkt nar operatoren kvitterat utan att vanta pa ST430_MRG_FREE, vilket leder till kollision i sammanflodet.",
+        "faller_pa": [
+          "sammanflode_blockerat_nar_inte_fritt@200ms:ST430_MRG_OPEN"
+        ]
+      }
+    ]
+  }
 }
