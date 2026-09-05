@@ -1,0 +1,60 @@
+=== M-122 MUTATIONSSKIKTEN ===  28 uppgifter, referens GODKAND 28 av 28, 23 s
+
+skador 899   fangade 834 (93 %)   overlevde 65
+fangade per lager: {'beteende': 467, 'text': 367}
+vantat lager -> fangande lager: {('beteende', 'beteende'): 467, ('beteende', 'text'): 76, ('text', 'text'): 291}
+
+sort                         n  text  bete  over |  SKILL   PERT   OSYN
+AND_TILL_OR                 83     0    71    12 |      4      5      3
+END_IF_STRUKEN              84    84     0     0 |      0      0      0
+FALSKT_TILL_SANT            82     0    75     7 |      2      0      5
+FLANKENS_Q_TILL_SIGNAL      72    72     0     0 |      0      0      0
+FLANK_STRUKEN               31     0    31     0 |      0      0      0
+FLANK_TILL_NIVA             35     0    14    21 |      1      1     19
+ICKE_ASCII                  81    81     0     0 |      0      0      0
+JAMFORELSE_VAND             61     4    56     1 |      0      0      1
+NOT_STRUKEN                 82     0    78     4 |      1      2      1
+OR_TILL_AND                 38     0    34     4 |      0      2      2
+SANT_TILL_FALSKT            82     0    70    12 |      4      4      4
+SEMIKOLON_STRUKET           84    84     0     0 |      0      0      0
+TID_FORDUBBLAD              42     0    38     4 |      2      1      1
+TID_OGILTIG                 42    42     0     0 |      0      0      0
+
+overlevande BETEENDEmutanter: 65
+  radtyp x klass: {('KOD', 'SYNLIG_BARA_UNDER_PERTURBATION'): 15, ('KOD', 'OSYNLIG'): 36, ('KOD', 'SKILLNAD_PA_FACITSTIMULUS'): 14}
+  radtyp ar en RADSKANNING (VAR..END_VAR via mutation.var_rader), inte en parsning - M-122 LIMITS
+  kodrads-overlevare: 65  klass: {'SYNLIG_BARA_UNDER_PERTURBATION': 15, 'OSYNLIG': 36, 'SKILLNAD_PA_FACITSTIMULUS': 14}
+    synliga under facit     14 av 65
+    synliga under x0.25      3 av 65
+    synliga under x0.5       5 av 65
+    synliga under x2.0      21 av 65
+    synliga under upprepa2  22 av 65
+    synliga under hall3     23 av 65
+  kodrads-overlevare per uppgift: {'A-03': 5, 'A-07': 1, 'A-08': 1, 'C-01': 3, 'C-04': 3, 'C-06': 1, 'H-01': 2, 'H-04': 3, 'H-05': 4, 'L-05': 1, 'L-06': 2, 'L-07': 2, 'P-03': 7, 'P-05': 8, 'P-06': 2, 'P-07': 2, 'S-01': 2, 'S-05': 4, 'S-06': 2, 'S-07': 6, 'T-05': 1, 'T-07': 1, 'T-08': 1, 'T-09': 1}
+
+=== NIVA I STALLET FOR FLANK (M-115:s F15, motor-sort sedan C0) ===
+nivamutanter 35 i 25 uppgifter   fangade 14   overlevde 21
+  fangade: C-04:SYS_RESET, L-01:ST150_PLT_PRS, L-01:ST150_PRT_PRS, P-03:ST120_MLD_OPEN, P-05:ST140_RB_DONE, S-01:ST190_PEC_PART, S-05:ST200_PML_SC, T-01:ST010_PEC_PART, T-02:SYS_AUTO, T-02:ST020_IDX_HOME, T-04:ST040_PEC_IN, T-04:ST040_PEC_OUT, T-04:ST040_PEC_OUT, T-05:SYS_AUTO
+  overlevde: A-07:SYS_RESET[OSYNL], A-08:SYS_RESET[OSYNL], C-06:SYS_RESET[OSYNL], H-04:SYS_RESET[OSYNL], H-05:SYS_RESET[OSYNL], H-05:ST490_XFR_DONE[OSYNL], L-05:SYS_RESET[OSYNL], L-06:SYS_RESET[OSYNL], L-06:SYS_RESET[OSYNL], L-07:SYS_RESET[OSYNL], P-06:SYS_RESET[OSYNL], P-07:SYS_RESET[SKILL], S-05:ST200_PML_SC[OSYNL], S-05:ST200_PML_SC[SYNLI], S-06:SYS_RESET[OSYNL], S-07:ST510_SCN_DONE[OSYNL], S-07:SYS_RESET[OSYNL], S-07:SYS_RESET[OSYNL], T-07:SYS_RESET[OSYNL], T-08:SYS_RESET[OSYNL], T-09:SYS_RESET[OSYNL]
+
+=== GRIND 2:S FALLPLATSER ===
+mutanter 899   fangade av grind 2 (ny anmarkning utover referensens) 367
+   AND_TILL_OR                0 av  83
+   END_IF_STRUKEN            84 av  84
+   FALSKT_TILL_SANT           0 av  82
+   FLANKENS_Q_TILL_SIGNAL    72 av  72
+   FLANK_STRUKEN              0 av  31
+   FLANK_TILL_NIVA            0 av  35
+   ICKE_ASCII                81 av  81
+   JAMFORELSE_VAND            4 av  61
+   NOT_STRUKEN                0 av  82
+   OR_TILL_AND                0 av  38
+   SANT_TILL_FALSKT           0 av  82
+   SEMIKOLON_STRUKET         84 av  84
+   TID_FORDUBBLAD             0 av  42
+   TID_OGILTIG               42 av  42
+fallplatser i validator.py: 76   fyrade av referenserna: 0   fyrade av mutanterna: 4 [('TIDLITERAL', 506), ('TYP', 348), ('TYP', 421), ('TYP', 603)]
+referenser med egen grind-2-anmarkning (M-121 ager fragan): {}
+M-111: aldrig fyrade platser 35, varav mutanterna nar 0 []
+
+skrivet: /tmp/opencode/koc/m131_svep.json
