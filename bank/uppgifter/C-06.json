@@ -1,0 +1,1689 @@
+{
+  "task_id": "C-06",
+  "title": "Maskinbetjaningscell med tva CNC-svarvar och kapacitetsmal",
+  "goal": "Betjana tva CNC-svarvar med en robot, halla forreglingskedjan lucka-chuck-spindel pa bada maskinerna, och na 52,0 detaljer i timmen med en cell som ar maskinbegransad och inte robotbegransad.",
+  "grupp": "C",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar fyra missar pa maskinbetjaningsceller. Den forsta: cykeln startas pa luckans lage i stallet for pa chuckens spannkvittens, sa spindeln drar igang mot ett nav som ett spann hindrat backarna fran att gripa. Den andra: luckan kommenderas oppen pa maskinens klarsignal utan att spindeln kontrolleras, och klarsignalen kommer innan spindeln stannat. Den tredje: den omsesidiga uteslutningen om roboten provas bara pa ena hallet, sa tva maskiner som blir klara i samma scan bada kallar pa samma robot. Den fjarde: chuckens spanntryck lases aldrig, sa en lagesgivare som star hog rapporterar spant pa en chuck som tappat trycket.",
+  "prompt": "Bygg en maskinbetjaningscell med tva CNC-svarvar och skriv styrningen till\nden.\n\nScen: en FANUC M-10iD/12 med tvabackad pneumatisk parallellgripare, tva\nCNC-svarvar med chuck och automatisk lucka, en ackumulerande buffert med\nplatsrakning, en ackumulerande rullbana som matar in amnen och tva induktiva\nnarvarogivare. Detaljen ar ett svarvat nav i stal, 90 mm i diameter och\n60 mm hogt, som vager 3,0 kg. Robotens arbetsradie i cellen ar 1400 mm.\nMaskin 1 har stationsprefixet ST560 och maskin 2 prefixet ST570.\n\nKapacitetsmal: cellen ska lamna minst 52,0 detaljer i timmen. Skartiden ar\n95,0 s per detalj och maskin, och robotens betjaning av en maskin tar 42,0 s\n(lossa 18,0 s, lasta 18,0 s, gang 6,0 s).\n\nUppgift, betjaningskedjan, likadan pa bada maskinerna:\n1. Nar maskinen sagt klart med ST5x0_CYC_DONE, spindeln star still och ett\n   amne ligger framme: satt ST5x0_DOR_OPEN hog.\n2. Nar ST5x0_DOR_OPENED bekraftar och spindeln star still: nollstall\n   ST5x0_CHK_CLAMP sa chucken lossar.\n3. Nar ST5x0_CHK_CLAMPED fallit: satt ST560_RB_START hog.\n4. Vid ST560_RB_DONE: nollstall ST560_RB_START och satt ST5x0_CHK_CLAMP hog.\n5. Nar ST5x0_CHK_CLAMPED bekraftar: nollstall ST5x0_DOR_OPEN.\n6. Nar ST5x0_DOR_OPENED fallit: satt ST5x0_CYC_START hog och slapp den nar\n   ST5x0_SPN_RUN kvitterar.\n\nUppgift, de fem kraven som gor cellen driftsatt:\n* Ingen cykelstart utan bekraftad spanning. ST5x0_CYC_START far aldrig ga hog\n  nar ST5x0_CHK_CLAMPED ar lag.\n* Ingenting oppnas mot en roterande spindel. Nar ST5x0_SPN_RUN ar hog far\n  varken ST5x0_DOR_OPEN kommenderas eller ST5x0_CHK_CLAMP slappas.\n* Roboten finns i ett exemplar. Tva maskiner far aldrig ha sin lucka\n  kommenderad oppen samtidigt, och en betjaningscykel far inte startas forran\n  den maskinens lucka star bekraftat oppen och dess spindel star still.\n* Spanntrycket. ST560_CHK_PRS ska ligga mellan 25,0 och 35,0 bar nar chucken\n  rapporterar spant. Under det haller chucken inte navet, over det klams navet\n  sonder: latcha SYS_ALARM och stanna cellen.\n* Kvitterad omstart. Efter spanningspaslag och efter ett nodstopp kravs en\n  stigande flank pa SYS_RESET innan nagot far ga. Att nodstoppsdonet dras upp\n  far ALDRIG i sig starta cellen.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik\nfar inte innehalla nagon sakerhetsfunktion. Anvand de signalnamn som star i\nsignalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar\nvariablerna over OPC UA. Visual Components ar OPC UA-klient och mappar\nvariablerna mot simuleringsvariabler i scenen. VC kor ingen ST internt, sa\nallt som ska handa i scenen maste ga via en mappad OPC UA-variabel.\nSignalnamnen i kartan ar alltsa OPC UA-variabelnamn.",
+  "targets_class": [
+    "F11",
+    "F8",
+    "F5"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "cykeln startas pa luckans lage i stallet for pa chuckens spannkvittens",
+    "luckan kommenderas oppen pa maskinens klarsignal utan att spindeln kontrolleras",
+    "den omsesidiga uteslutningen om roboten provas bara pa ena hallet",
+    "betjaningscykeln startas pa luckans kommando i stallet for pa dess lagesgivare",
+    "chuckens spanntryck lases aldrig, sa en hangande lagesgivare rapporterar spant",
+    "ett aterstallt nodstopp startar cellen utan kvittens"
+  ],
+  "antaganden": [
+    {
+      "vad": "skartiden per detalj och maskin",
+      "varde": "95,0 s",
+      "motiv": "en svarvcykel for ett nav i den har storleken ligger i ett par minuter. Talet ar satt for att bara kapacitetsrakningen och ar inte hamtat ur ett verkligt NC-program"
+    },
+    {
+      "vad": "robotens betjaningstid per maskin",
+      "varde": "42,0 s",
+      "motiv": "18,0 s for att lossa, 18,0 s for att lasta och 6,0 s gang mellan maskinerna. Delarna ar satta och valda sa att de ryms for en FANUC M-10iD/12 med en 1,5 kg gripare, men de kommer inte ur en cykeltidsmatning"
+    },
+    {
+      "vad": "navets massa",
+      "varde": "3,0 kg",
+      "motiv": "raknad ur geometrin: V = pi/4 * 0,090^2 * 0,060 = 3,817e-4 m3, och stal med 7850 kg/m3 ger 2,996 kg, alltsa 3,0 kg. Massan ar raknad och inte vagd"
+    },
+    {
+      "vad": "detaljens l_mm och b_mm i fysikfaltet",
+      "varde": "90 x 90 x 60 mm",
+      "motiv": "bankens detaljfalt bar en ratblocksform, sa en cylinder pa 90 mm diameter skrivs som 90 x 90 mm. Massan ar daremot raknad ur cylindern och inte ur ladan; ladan hade gett 3,8 kg och det vardet star ingenstans i uppgiften"
+    },
+    {
+      "vad": "spanntrycksfonstret for chucken",
+      "varde": "25,0 till 35,0 bar",
+      "motiv": "undre gransen satt sa att chucken haller ett nav pa 3,0 kg vid fullt varvtal, ovre sa att ett tunnvaggigt nav inte klams sonder. Bada talen ar satta och inte hamtade ur ett datablad for en namngiven kraftchuck"
+    },
+    {
+      "vad": "spindelvarvtalet i cellen",
+      "varde": "2500 varv/min",
+      "motiv": "varvtalet anvands bara for att saga varfor ett nav som lossnar ur chucken ar farligt. Talet ar satt och star inte i nagot NC-program har"
+    },
+    {
+      "vad": "kapacitetsmalet",
+      "varde": "52,0 detaljer i timmen",
+      "motiv": "malet ligger strax under det raknade taket 52,6 detaljer i timmen, sa en cell som nar malet har marginal for verkliga stopp. Taket ar raknat ur cellens egna tider; marginalen ar satt"
+    },
+    {
+      "vad": "chuckens spannkommando ar undantaget fran nodstoppets nollstallning",
+      "varde": "1 undantaget don",
+      "motiv": "en chuck som slapper nar nodstoppet bryts kastar navet ur en spindel som annu roterar. Nodstoppet nollstaller darfor bara rorelsedonen cykelstart, luckoppning och robotcykel. Undantaget ar ett stallningstagande i uppgiften och inte hamtat ur en standardparagraf"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "svarvat nav i stal",
+      "l_mm": 90,
+      "b_mm": 90,
+      "h_mm": 60,
+      "massa_kg": 3.0
+    },
+    "arbetsradie_mm": 1400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Bada svarvarna skar 95,0 s per detalj och roboten betjanar dem i tur och ordning med 42,0 s per byte.",
+      "forvantat": "En detalj var 68,5 s, alltsa 52,6 i timmen mot malet 52,0. Robotens belaggning ligger pa 61 procent, sa cellen ar maskinbegransad, och SYS_ALARM ar lag hela matperioden."
+    },
+    {
+      "id": "spanntryck_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST560_CHK_PRS",
+      "beskrivning": "ST560_CHK_PRS faller till 19,0 bar medan chucken rapporterar spant.",
+      "forvantat": "Under 25,0 bar haller chucken inte ett nav pa 3,0 kg vid 2500 varv/min. Styrningen ska latcha larm och stanna cellen innan spindeln drar igang."
+    },
+    {
+      "id": "spanntryck_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST560_CHK_PRS",
+      "beskrivning": "ST560_CHK_PRS stiger till 42,0 bar medan chucken rapporterar spant.",
+      "forvantat": "Over 35,0 bar klammer backarna sonder navet. Styrningen ska larma; skadan syns annars forst i matrummet och da ar hela satsen kasserad."
+    },
+    {
+      "id": "bada_klara_i_samma_scan",
+      "typ": "vandning",
+      "signal": "ST570_CYC_DONE",
+      "beskrivning": "Bada svarvarna ger klarsignal i samma scan och kallar pa samma robot.",
+      "forvantat": "Bara en maskin far sin lucka kommenderad oppen; den andra vantar. Tva oppna luckor betyder att roboten tagits i ansprak av bada."
+    },
+    {
+      "id": "klarsignal_med_gaende_spindel",
+      "typ": "vandning",
+      "signal": "ST560_SPN_RUN",
+      "beskrivning": "ST560_CYC_DONE gar hog medan ST560_SPN_RUN annu ar hog - en spindel som loper ut efter cykelslut.",
+      "forvantat": "Varken luckan eller chucken far roras forran spindeln star still. Klarsignalen ar ingen bekraftelse pa att spindeln stannat."
+    },
+    {
+      "id": "chucken_griper_inte",
+      "typ": "vandning",
+      "signal": "ST560_CHK_CLAMPED",
+      "beskrivning": "ST560_CHK_CLAMPED kommer aldrig tillbaka efter robotbytet, medan luckans lagesgivare faller ifran.",
+      "forvantat": "Cykeln far inte startas pa luckans lage. Utan bekraftad spanning ska cellen sta kvar och vanta, hur stangd luckan an rapporterar sig."
+    },
+    {
+      "id": "nodstoppet_aterstalls",
+      "typ": "vandning",
+      "signal": "EMG_OK",
+      "beskrivning": "Nodstoppsdonet dras upp igen efter ett nodstopp mitt i ett robotbyte.",
+      "forvantat": "Cellen ska sta kvar tills SYS_RESET fatt en stigande flank, och betjaningen ska borja om fran noll i stallet for mitt i kedjan."
+    }
+  ],
+  "core_outputs": [
+    "ST560_CYC_START",
+    "ST560_DOR_OPEN",
+    "ST560_CHK_CLAMP",
+    "ST570_CYC_START",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "maskin",
+        "uri": "bank://station/cnc_svarv",
+        "count": 2
+      },
+      {
+        "role": "buffert",
+        "uri": "bank://station/buffert_ackumulerande",
+        "count": 1
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 2
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "maskin"
+      },
+      {
+        "from_role": "maskin",
+        "to_role": "buffert"
+      },
+      {
+        "from_role": "nodstopp",
+        "to_role": "maskin"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST560_DOR_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera maskin 1:s lucka oppen"
+      },
+      {
+        "name": "ST560_DOR_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 1:s lucka bekraftat oppen"
+      },
+      {
+        "name": "ST560_CHK_CLAMP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann maskin 1:s chuck"
+      },
+      {
+        "name": "ST560_CHK_CLAMPED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 1:s chuck bekraftat spant"
+      },
+      {
+        "name": "ST560_CHK_PRS",
+        "dir": "in",
+        "type": "real",
+        "comment": "spanntryck i maskin 1:s chuck, bar"
+      },
+      {
+        "name": "ST560_CYC_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta maskin 1:s bearbetningscykel"
+      },
+      {
+        "name": "ST560_CYC_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 1 klar med detaljen"
+      },
+      {
+        "name": "ST560_SPN_RUN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 1:s spindel roterar"
+      },
+      {
+        "name": "ST570_DOR_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera maskin 2:s lucka oppen"
+      },
+      {
+        "name": "ST570_DOR_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 2:s lucka bekraftat oppen"
+      },
+      {
+        "name": "ST570_CHK_CLAMP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann maskin 2:s chuck"
+      },
+      {
+        "name": "ST570_CHK_CLAMPED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 2:s chuck bekraftat spant"
+      },
+      {
+        "name": "ST570_CYC_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta maskin 2:s bearbetningscykel"
+      },
+      {
+        "name": "ST570_CYC_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 2 klar med detaljen"
+      },
+      {
+        "name": "ST570_SPN_RUN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskin 2:s spindel roterar"
+      },
+      {
+        "name": "ST560_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens betjaningscykel mot den maskin som star oppen"
+      },
+      {
+        "name": "ST560_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten ute ur maskinen med bytet gjort"
+      },
+      {
+        "name": "ST560_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "amne framme pa inmatningsrullbanan"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesvaljaren i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartskvittensen ute tills SYS_RESET fatt en stigande flank",
+      "ta roboten i ansprak for en maskin nar den sagt ST5x0_CYC_DONE, spindeln star still och ett amne ligger framme",
+      "satt ST5x0_DOR_OPEN hog for den maskin som fatt roboten",
+      "vid ST5x0_DOR_OPENED och stillastaende spindel: nollstall ST5x0_CHK_CLAMP",
+      "nar ST5x0_CHK_CLAMPED fallit: satt ST560_RB_START hog",
+      "vid ST560_RB_DONE: nollstall ST560_RB_START och satt ST5x0_CHK_CLAMP hog",
+      "nar ST5x0_CHK_CLAMPED bekraftar: nollstall ST5x0_DOR_OPEN",
+      "nar ST5x0_DOR_OPENED fallit: satt ST5x0_CYC_START hog, slapp roboten och slapp pulsen vid ST5x0_SPN_RUN",
+      "latcha SYS_ALARM nar ST560_CHK_PRS ligger utanfor 25,0 till 35,0 bar med chucken bekraftat spant"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST560": 95.0,
+        "ST570": 95.0
+      },
+      "cycle_s": 68.5,
+      "tolerance_s": 1.0
+    },
+    "interlocks": [
+      "ST5x0_CYC_START far aldrig ga hog nar ST5x0_CHK_CLAMPED ar lag",
+      "ST5x0_CHK_CLAMP far aldrig slappas nar ST5x0_SPN_RUN ar hog",
+      "ST5x0_DOR_OPEN far aldrig kommenderas nar ST5x0_SPN_RUN ar hog",
+      "ST560_RB_START far inte ga hog forran den betjanade maskinens lucka star bekraftat oppen och dess spindel star still",
+      "ST560_DOR_OPEN och ST570_DOR_OPEN far aldrig sta hoga samtidigt; roboten finns i ett exemplar",
+      "inget rorelsedon far kommenderas nar EMG_OK ar lag; chuckens spannkommando halls daremot kvar"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 52.0,
+    "runs": 3,
+    "warmup_s": 300.0,
+    "must_pass": [
+      "TIMING",
+      "THROUGHPUT",
+      "SEQUENCE",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST560_DOR_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST560_CYC_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST560_DOR_OPEN -> maskin *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST560 *s req=95.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST570 *s req=95.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST560_DOR_OPEN+ST570_DOR_OPEN OK overlap=*s"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "STEP * ST560_CHK_CLAMP RISE OK t=*s win=*s..*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST560 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST570 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST gripdon+chuck *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST560_DOR_OPEN+ST570_DOR_OPEN dt=*ms"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST560_DOR_OPEN+ST570_DOR_OPEN BROKEN overlap=*s"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STARVED ST560 *s req=*s EXCEEDED"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: kapaciteten kommer ur cellens egna tider. Skartiden ar 95,0 s per detalj och maskin och robotens betjaning tar 42,0 s (lossa 18,0 + lasta 18,0 + gang 6,0), sa en maskin levererar en detalj var 95,0 + 42,0 = 137,0 s. Med tva maskiner kommer en detalj var 137,0/2 = 68,5 s, alltsa 3600/68,5 = 52,6 detaljer i timmen. Robotens belaggning blir 42,0/68,5 = 61 procent, sa cellen ar maskinbegransad: en tredje maskin hade hojt takten, en snabbare robot inte. Rakningen star i M-106.",
+    "standard": "Kapaciteten ar en flaskhalsrakning och ingen standardfraga. Forreglingskedjan lucka-chuck-spindel foljer maskindirektivets vanliga form for verktygsmaskiner: spindeln far inte starta utan bekraftad spanning och spanningen far inte slappa medan spindeln roterar. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4; driftlagen enligt IEC 60204-1:2016 9.2.3.5 \"Operating modes\"; TON och CTU enligt IEC 61131-3:2013 6.6.3.5.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanningspaslag med bada maskinerna fardiga och ett amne framme pa rullbanan. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": true,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": false,
+              "ST570_DOR_OPEN": false,
+              "ST560_RB_START": false,
+              "ST560_CYC_START": false,
+              "ST570_CYC_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartskvittensen ute; bada maskinerna ar klara och ett amne ligger framme, men en cell som oppnar luckor och startar roboten sa fort spanningen kommer tillbaka gor det med den som stod inne i den"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": true,
+              "ST560_CHK_CLAMP": true,
+              "ST570_DOR_OPEN": false
+            },
+            "varfor": "forst kvittensen slapper fram cellen, och da tar maskin 1 roboten; maskin 2 far vanta eftersom roboten finns i ett exemplar"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "en_betjaning_av_maskin_ett",
+        "beskrivning": "Hela betjaningskedjan for maskin 1: lucka upp, chuck loss, robotbyte, chuck spant, lucka stangd, cykel startad. Maskin 2 skar under tiden. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false,
+              "ST570_SPN_RUN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": true,
+              "ST560_CHK_CLAMP": true,
+              "ST560_RB_START": false,
+              "ST570_DOR_OPEN": false
+            },
+            "varfor": "luckan kommenderas oppen forst nar maskinen sagt klart och spindeln star still, och chucken haller kvar navet tills luckan bekraftat oppen; maskin 2 skar och dess lucka star kvar"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST560_CHK_CLAMP": false,
+              "ST560_RB_START": false
+            },
+            "varfor": "chucken lossas forst med bekraftat oppen lucka och stillastaende spindel, och roboten far annu inte ga in: backarna kan sitta kvar"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST560_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": true,
+              "ST560_DOR_OPEN": true
+            },
+            "varfor": "forst nar chucken bekraftat lossat far roboten in i maskinen; en robot som griper i en spand chuck river backarna"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST560_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": false,
+              "ST560_CHK_CLAMP": true
+            },
+            "varfor": "nar roboten ar ute spanns chucken om det nya amnet"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST560_CHK_CLAMPED": true,
+              "ST560_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": false,
+              "ST560_CYC_START": false
+            },
+            "varfor": "luckan stangs forst nar chucken bekraftat spant, och cykeln startas inte pa en lucka som annu inte rapporterat stangd"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST560_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": true,
+              "ST560_DOR_OPEN": false
+            },
+            "varfor": "cykelstarten kommer forst nar bade chucken och luckan bekraftat; det ar den ordningen som haller navet kvar i spindeln"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST560_SPN_RUN": true,
+              "ST560_CYC_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": false,
+              "ST560_DOR_OPEN": false
+            },
+            "varfor": "cykelstarten ar en puls som slapps nar maskinen kvitterat genom att spindeln gar; en kvarhallen startsignal startar om cykeln vid nasta klarsignal"
+          }
+        ]
+      },
+      {
+        "id": "bada_maskinerna_klara_samtidigt",
+        "beskrivning": "Bada svarvarna blir klara i samma scan. Roboten finns i ett exemplar och betjanar dem i tur och ordning. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": true,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": true,
+              "ST570_DOR_OPEN": false,
+              "ST570_CYC_START": false
+            },
+            "varfor": "bara den maskin som faktiskt far roboten far oppna sin lucka; tva oppna luckor betyder att roboten tagits i ansprak av bada"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST560_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": true,
+              "ST570_DOR_OPEN": false
+            },
+            "varfor": "medan roboten star inne i maskin 1 far maskin 2:s lucka inte kommenderas oppen"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST560_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST560_RB_DONE": false,
+              "ST560_CHK_CLAMPED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": false,
+              "ST560_DOR_OPEN": false,
+              "ST560_CHK_CLAMP": true,
+              "ST570_DOR_OPEN": false
+            },
+            "varfor": "maskin 1 ar fardigbetjanad men roboten slapps inte forran cykeln ar startad; en robot som slapps for tidigt star kvar i en lucka som haller pa att stangas"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST560_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": true,
+              "ST570_DOR_OPEN": true
+            },
+            "varfor": "i samma scan som maskin 1 far sin cykelstart slapps roboten och maskin 2 far den; det ar sa cellen halls maskinbegransad och inte robotbegransad"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST560_SPN_RUN": true,
+              "ST560_CYC_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": false,
+              "ST560_DOR_OPEN": false,
+              "ST570_DOR_OPEN": true
+            },
+            "varfor": "maskin 1 skar igen med stangd lucka medan maskin 2 betjanas"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST570_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST570_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": true,
+              "ST560_DOR_OPEN": false
+            },
+            "varfor": "samma robotsignal, nu mot maskin 2; maskin 1:s lucka star stangd medan dess spindel gar"
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST560_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST560_RB_DONE": false,
+              "ST570_CHK_CLAMPED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": false,
+              "ST570_DOR_OPEN": false
+            },
+            "varfor": "maskin 2:s lucka stangs nar dess chuck bekraftat spant"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST570_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST570_CYC_START": true
+            },
+            "varfor": "maskin 2:s cykel startas forst nar dess lucka bekraftat stangd och dess chuck bekraftat spant"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST570_SPN_RUN": true,
+              "ST570_CYC_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {},
+            "krav": {
+              "ST570_CYC_START": false
+            },
+            "varfor": "ocksa maskin 2:s cykelstart ar en puls som slapps pa maskinens kvittens"
+          }
+        ]
+      },
+      {
+        "id": "spanntrycket_for_lagt",
+        "beskrivning": "Spanntrycket faller till 19,0 bar medan chucken rapporterar spant. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_CHK_PRS": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST560_DOR_OPEN": false,
+              "ST560_RB_START": false,
+              "ST560_CYC_START": false
+            },
+            "varfor": "under 25,0 bar haller chucken inte ett nav pa 3,0 kg vid 2500 varv/min; ett nav som lossnar ur en gaende spindel ar ett kast, och cellen ska sta i stallet for att lasta pa"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST560_CHK_PRS": 30.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST560_CYC_START": false
+            },
+            "varfor": "ett latchat larm slapper inte for att trycket kom tillbaka; ett tryckfall som ingen sett ar samma tryckfall igen om en timme"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST560_DOR_OPEN": true
+            },
+            "varfor": "forst kvittensen tar cellen tillbaka i drift, och da borjar betjaningen om fran noll"
+          }
+        ]
+      },
+      {
+        "id": "spanntrycket_for_hogt",
+        "beskrivning": "Spanntrycket stiger till 42,0 bar medan chucken rapporterar spant. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_CHK_PRS": 42.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST560_DOR_OPEN": false,
+              "ST560_CYC_START": false
+            },
+            "varfor": "over 35,0 bar klammer backarna sonder navet; skadan syns forst i matrummet en timme senare och da ar hela satsen kasserad"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST560_CHK_PRS": 30.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att trycket kom tillbaka"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST560_DOR_OPEN": true
+            },
+            "varfor": "forst kvittensen tar cellen tillbaka i drift"
+          }
+        ]
+      },
+      {
+        "id": "luckan_och_chucken_mot_en_roterande_spindel",
+        "beskrivning": "Maskinen ger klarsignal medan spindeln annu inte stannat - en utlopande spindel efter cykelslut. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": false,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST560_SPN_RUN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST560_CYC_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": false,
+              "ST560_CHK_CLAMP": true,
+              "ST560_RB_START": false
+            },
+            "varfor": "klarsignalen kommer innan spindeln stannat; en lucka som oppnas mot en roterande spindel slapper ut spanor och en chuck som lossar da kastar navet"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST560_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": true,
+              "ST560_CHK_CLAMP": true
+            },
+            "varfor": "forst nar spindeln star still far luckan kommenderas oppen, och chucken haller kvar navet tills luckan bekraftat oppen"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST560_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST560_CHK_CLAMP": false
+            },
+            "varfor": "chucken lossas forst med oppen lucka och stillastaende spindel"
+          }
+        ]
+      },
+      {
+        "id": "chucken_bekraftar_aldrig_spant",
+        "beskrivning": "Roboten har bytt detalj men chucken bekraftar inte spant - ett spann i backarna. Maskinens luckgivare faller ifran anda, sa luckans lage sager stangd utan att chucken gripit. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST560_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": true
+            },
+            "varfor": "robotbytet startar normalt nar chucken bekraftat lossat"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST560_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST560_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST560_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": false,
+              "ST560_DOR_OPEN": true,
+              "ST560_RB_START": false
+            },
+            "varfor": "luckans lage ar inget klartecken: chucken har inte bekraftat spant, och en spindel som drar igang mot ett olost nav kastar det genom luckan"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST560_CHK_CLAMPED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST560_CYC_START": true,
+              "ST560_DOR_OPEN": false
+            },
+            "varfor": "forst nar chucken bekraftat spant far luckan stangas och cykeln startas"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_kraver_kvittens",
+        "beskrivning": "Nodstopp mitt i robotbytet, sedan aterstallt don utan kvittens. Sekvensen kortar skartiden: ST5x0_CYC_DONE kommer efter nagra hundra millisekunder i stallet for efter 95,0 s, sa det som doms ar forreglingskedjan och inte svarvens egen tid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST560_CHK_PRS": 30.0,
+              "ST560_CHK_CLAMPED": true,
+              "ST570_CHK_CLAMPED": true,
+              "ST560_DOR_OPENED": false,
+              "ST570_DOR_OPENED": false,
+              "ST560_SPN_RUN": false,
+              "ST570_SPN_RUN": false,
+              "ST560_CYC_DONE": true,
+              "ST570_CYC_DONE": false,
+              "ST560_RB_DONE": false,
+              "ST560_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST560_DOR_OPENED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST560_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": true
+            },
+            "varfor": "robotbytet ar igang nar nodstoppet slas"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST560_RB_START": false,
+              "ST560_DOR_OPEN": false,
+              "ST560_CYC_START": false,
+              "ST570_CYC_START": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje rorelsekommando i samma scan"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": false,
+              "ST560_RB_START": false
+            },
+            "varfor": "ett aterstallt nodstopp far inte starta cellen; ISO 13850:2015 4.1.4 sager att urkopplingen bara ska mojliggora omstart, aldrig utfora den"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "SYS_RESET": true,
+              "ST560_DOR_OPENED": false,
+              "ST560_CHK_CLAMPED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST560_DOR_OPEN": true
+            },
+            "varfor": "forst kvittensen far ta cellen tillbaka i drift, och betjaningen borjar om fran noll i stallet for mitt i"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "bara_en_lucka_oppen_at_gangen",
+        "sekvens": "*",
+        "nar": {
+          "ST560_DOR_OPEN": true
+        },
+        "kraver": {
+          "ST570_DOR_OPEN": false
+        },
+        "varfor": "luckan kommenderas bara oppen for den maskin roboten ar pa vag till; tva oppna luckor betyder att roboten tagits i ansprak av bada maskinerna samtidigt"
+      },
+      {
+        "namn": "bara_en_lucka_oppen_at_gangen_omvant",
+        "sekvens": "*",
+        "nar": {
+          "ST570_DOR_OPEN": true
+        },
+        "kraver": {
+          "ST560_DOR_OPEN": false
+        },
+        "varfor": "samma krav sett fran maskin 2; en oppen lucka pa en maskin som ingen betjanar ar ett oppet skydd utan orsak"
+      },
+      {
+        "namn": "maskin_ett_stangd_mot_roterande_spindel",
+        "sekvens": "*",
+        "nar": {
+          "ST560_SPN_RUN": true
+        },
+        "kraver": {
+          "ST560_DOR_OPEN": false,
+          "ST560_CHK_CLAMP": true
+        },
+        "varfor": "en lucka som oppnas mot en roterande spindel slapper ut spanor och skarvatska, och en chuck som lossar med spindeln igang kastar navet"
+      },
+      {
+        "namn": "maskin_tva_stangd_mot_roterande_spindel",
+        "sekvens": "*",
+        "nar": {
+          "ST570_SPN_RUN": true
+        },
+        "kraver": {
+          "ST570_DOR_OPEN": false,
+          "ST570_CHK_CLAMP": true
+        },
+        "varfor": "samma krav pa maskin 2; forreglingen hor till maskinen och inte till den maskin som rakar vara forst i programmet"
+      },
+      {
+        "namn": "cykeln_startar_aldrig_utan_spant_chuck",
+        "sekvens": "*",
+        "nar": {
+          "ST560_CHK_CLAMPED": false
+        },
+        "kraver": {
+          "ST560_CYC_START": false
+        },
+        "varfor": "spindeln far inte dra igang mot ett nav som chucken inte bekraftat spant; det ar den forreglingen som skiljer en verktygsmaskin fran en slunga"
+      },
+      {
+        "namn": "cykeln_startar_aldrig_utan_spant_chuck_maskin_tva",
+        "sekvens": "*",
+        "nar": {
+          "ST570_CHK_CLAMPED": false
+        },
+        "kraver": {
+          "ST570_CYC_START": false
+        },
+        "varfor": "samma krav pa maskin 2"
+      },
+      {
+        "namn": "roboten_gar_aldrig_mot_en_stangd_lucka",
+        "sekvens": "*",
+        "nar": {
+          "ST560_DOR_OPENED": false,
+          "ST570_DOR_OPENED": false
+        },
+        "kraver": {
+          "ST560_RB_START": false
+        },
+        "varfor": "star ingen lucka bekraftat oppen finns det ingen oppning att kora in i; en betjaningscykel startad pa luckans KOMMANDO i stallet for pa dess lage kor gripdonet in i luckplaten"
+      },
+      {
+        "namn": "inget_rorelsedon_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST560_CYC_START": false,
+          "ST570_CYC_START": false,
+          "ST560_DOR_OPEN": false,
+          "ST570_DOR_OPEN": false,
+          "ST560_RB_START": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den; chuckens spannkommando ar med avsikt inte med i listan, en chuck som slapper vid nodstopp kastar navet"
+      },
+      {
+        "namn": "larm_stoppar_cellen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST560_CYC_START": false,
+          "ST560_RB_START": false,
+          "ST560_DOR_OPEN": false
+        },
+        "varfor": "ett larm som lamnar roboten och cykelstarten kvar ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_luckoppning_per_detalj",
+        "sekvens": "en_betjaning_av_maskin_ett",
+        "signal": "ST560_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1800,
+        "antal": 1,
+        "varfor": "ett detaljbyte ska ge en enda luckoppning; fler betyder att luckan kommenderas pa niva och pumpar mot sitt andlage"
+      },
+      {
+        "namn": "en_robotcykel_per_detalj",
+        "sekvens": "en_betjaning_av_maskin_ett",
+        "signal": "ST560_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1800,
+        "antal": 1,
+        "varfor": "en detalj ska ge exakt en betjaningscykel; tva betyder att cykeln startas pa niva och roboten hamtar tomt"
+      },
+      {
+        "namn": "en_cykelstart_per_detalj",
+        "sekvens": "en_betjaning_av_maskin_ett",
+        "signal": "ST560_CYC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1800,
+        "antal": 1,
+        "varfor": "cykelstarten ar en puls per detalj; tva pulser pa samma detalj startar svarven en gang till mot ett fardigt nav"
+      },
+      {
+        "namn": "ingen_luckoppning_mot_roterande_spindel",
+        "sekvens": "luckan_och_chucken_mot_en_roterande_spindel",
+        "signal": "ST560_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 800,
+        "antal": 0,
+        "varfor": "sa lange spindeln gar far luckan inte kommenderas oppen en enda gang, hur klar maskinen an sager sig vara"
+      },
+      {
+        "namn": "en_cykelstart_pa_maskin_tva",
+        "sekvens": "bada_maskinerna_klara_samtidigt",
+        "signal": "ST570_CYC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2700,
+        "antal": 1,
+        "varfor": "maskin 2 ska fa exakt en cykelstart nar den vantat ut roboten; noll betyder att den andra maskinen svalts pa roboten"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "cykeln_startas_utan_bekraftad_spanning",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            ST560_DOR_OPEN := FALSE;\n            steg1 := 5;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Luckan stangs och cykeln startas sa fort roboten ar ute, utan att chucken bekraftat spant. Cellen gar felfritt sa lange chucken griper varje gang, och forsta gangen ett spann ligger i backarna drar spindeln igang mot ett olost nav.",
+        "faller_pa": [
+          "chucken_bekraftar_aldrig_spant@1400ms:ST560_CYC_START",
+          "chucken_bekraftar_aldrig_spant@1400ms:ST560_DOR_OPEN",
+          "invariant:cykeln_startar_aldrig_utan_spant_chuck@chucken_bekraftar_aldrig_spant"
+        ]
+      },
+      {
+        "namn": "luckan_oppnas_pa_klarsignalen",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND ST560_PRT_PRS AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Luckan kommenderas oppen pa maskinens klarsignal utan att spindeln kontrolleras. Klarsignalen kommer innan spindeln stannat, sa luckan gar upp mot en spindel som fortfarande roterar; i en provkorning med langsam nedvarvning syns det aldrig.",
+        "faller_pa": [
+          "luckan_och_chucken_mot_en_roterande_spindel@700ms:ST560_DOR_OPEN",
+          "invariant:maskin_ett_stangd_mot_roterande_spindel@luckan_och_chucken_mot_en_roterande_spindel",
+          "flank:ingen_luckoppning_mot_roterande_spindel"
+        ]
+      },
+      {
+        "namn": "spanntrycket_lases_aldrig",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\n(* Chucken rapporterar spant, och det raknas som bevis nog. *)\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar pa ST560_CHK_CLAMPED och laser aldrig sjalva spanntrycket. En lagesgivare som star hog rapporterar spant pa en chuck som tappat trycket, och ett for hogt tryck klammer sonder navet utan att nagon signal andras.",
+        "faller_pa": [
+          "spanntrycket_for_lagt@500ms:SYS_ALARM",
+          "spanntrycket_for_hogt@500ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "roboten_slapps_till_bada_maskinerna",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Maskin 2 tar roboten utan att prova om maskin 1 redan har den. Sa lange maskinerna blir klara med nagon sekunds mellanrum marks ingenting, och forsta gangen de blir klara i samma scan oppnas bada luckorna och bada maskinerna kallar pa samma robot.",
+        "faller_pa": [
+          "invariant:bara_en_lucka_oppen_at_gangen@bada_maskinerna_klara_samtidigt",
+          "bada_maskinerna_klara_samtidigt@300ms:ST570_DOR_OPEN",
+          "bada_maskinerna_klara_samtidigt@700ms:ST570_DOR_OPEN"
+        ]
+      },
+      {
+        "namn": "aterstallt_nodstopp_startar_cellen",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            IF ST560_DOR_OPENED AND NOT ST560_SPN_RUN THEN\n                ST560_CHK_CLAMP := FALSE;\n                steg1 := 2;\n            END_IF;\n        2:\n            IF NOT ST560_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg1 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret laser bara nodstoppskretsen och larmet, inte omstartskvittensen. Cellen oppnar luckan och startar roboten i samma stund nagon drar upp nodstoppsdonet, och den som drar upp det star vid maskinen.",
+        "faller_pa": [
+          "kallstart_utan_sjalvstart@200ms:ST560_DOR_OPEN",
+          "nodstopp_kraver_kvittens@1300ms:ST560_DOR_OPEN"
+        ]
+      },
+      {
+        "namn": "roboten_startar_pa_luckans_kommando",
+        "st": "PROGRAM ST560_MASKINBETJANING\nVAR\n    steg1        : INT := 0;\n    steg2        : INT := 0;\n    xRobot1      : BOOL := FALSE;\n    xRobot2      : BOOL := FALSE;\n    trigReset    : R_TRIG;\n    xLarm        : BOOL := FALSE;\n    xKravOmstart : BOOL := TRUE;\n    xDrift       : BOOL := FALSE;\nEND_VAR\n\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domer chucken nar den rapporterar spant. Under 25,0 bar haller\n   den inte navet vid fullt varvtal, over 35,0 bar klams navet sonder. *)\nIF ST560_CHK_CLAMPED AND (ST560_CHK_PRS < 25.0 OR ST560_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDrift := EMG_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\nIF xDrift THEN\n    (* Maskin 1. Roboten tas i ansprak forst nar maskinen sagt klart och\n       spindeln star still, och slapps forst nar cykeln ar startad igen. *)\n    CASE steg1 OF\n        0:\n            ST560_CHK_CLAMP := TRUE;\n            IF ST560_CYC_DONE AND NOT ST560_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot2 THEN\n                xRobot1 := TRUE;\n                ST560_DOR_OPEN := TRUE;\n                steg1 := 1;\n            END_IF;\n        1:\n            ST560_CHK_CLAMP := FALSE;\n            ST560_RB_START := TRUE;\n            steg1 := 3;\n        2:\n            steg1 := 3;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST560_CHK_CLAMP := TRUE;\n                steg1 := 4;\n            END_IF;\n        4:\n            IF ST560_CHK_CLAMPED THEN\n                ST560_DOR_OPEN := FALSE;\n                steg1 := 5;\n            END_IF;\n        5:\n            IF NOT ST560_DOR_OPENED THEN\n                ST560_CYC_START := TRUE;\n                xRobot1 := FALSE;\n                steg1 := 6;\n            END_IF;\n        6:\n            IF ST560_SPN_RUN THEN\n                ST560_CYC_START := FALSE;\n                steg1 := 0;\n            END_IF;\n    ELSE\n        steg1 := 0;\n    END_CASE;\n\n    (* Maskin 2, samma kedja mot samma robot. *)\n    CASE steg2 OF\n        0:\n            ST570_CHK_CLAMP := TRUE;\n            IF ST570_CYC_DONE AND NOT ST570_SPN_RUN AND ST560_PRT_PRS\n               AND NOT xRobot1 THEN\n                xRobot2 := TRUE;\n                ST570_DOR_OPEN := TRUE;\n                steg2 := 1;\n            END_IF;\n        1:\n            IF ST570_DOR_OPENED AND NOT ST570_SPN_RUN THEN\n                ST570_CHK_CLAMP := FALSE;\n                steg2 := 2;\n            END_IF;\n        2:\n            IF NOT ST570_CHK_CLAMPED THEN\n                ST560_RB_START := TRUE;\n                steg2 := 3;\n            END_IF;\n        3:\n            IF ST560_RB_DONE THEN\n                ST560_RB_START := FALSE;\n                ST570_CHK_CLAMP := TRUE;\n                steg2 := 4;\n            END_IF;\n        4:\n            IF ST570_CHK_CLAMPED THEN\n                ST570_DOR_OPEN := FALSE;\n                steg2 := 5;\n            END_IF;\n        5:\n            IF NOT ST570_DOR_OPENED THEN\n                ST570_CYC_START := TRUE;\n                xRobot2 := FALSE;\n                steg2 := 6;\n            END_IF;\n        6:\n            IF ST570_SPN_RUN THEN\n                ST570_CYC_START := FALSE;\n                steg2 := 0;\n            END_IF;\n    ELSE\n        steg2 := 0;\n    END_CASE;\nELSE\n    ST560_CYC_START := FALSE;\n    ST570_CYC_START := FALSE;\n    ST560_DOR_OPEN := FALSE;\n    ST570_DOR_OPEN := FALSE;\n    ST560_RB_START := FALSE;\n    xRobot1 := FALSE;\n    xRobot2 := FALSE;\n    steg1 := 0;\n    steg2 := 0;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Betjaningscykeln startas pa luckans KOMMANDO att oppna i stallet for pa luckans lage, och chucken lossas i samma steg. Skillnaden ar tva sekunder i verkligheten och noll i en simulering dar luckan antas oppna direkt; i cellen kor gripdonet in i en lucka som annu inte gatt upp.",
+        "faller_pa": [
+          "invariant:roboten_gar_aldrig_mot_en_stangd_lucka@en_betjaning_av_maskin_ett",
+          "en_betjaning_av_maskin_ett@300ms:ST560_CHK_CLAMP",
+          "en_betjaning_av_maskin_ett@300ms:ST560_RB_START"
+        ]
+      }
+    ]
+  }
+}
