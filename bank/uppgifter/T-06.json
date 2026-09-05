@@ -297,7 +297,7 @@
     "harkomst": "RAKNAD: bandhastigheten 0,50 m/s och kartonglangden 400 mm = 0,400 m ger normal passage over fotocellen pa 0,400 / 0,50 = 0,80 s. Tidsgransen for blockering ar satt till 2,0 s sammanhangande skymning (> 2 * 0,8 s). Mellan stoppen glesas kartongerna ut med 0,8 s * 0,50 m/s = 0,40 m = 400 mm, vilket motsvarar en hel kartonglangd och forhindrar inpressning over 15 mm. Detta ar manniskans facit skrivet ur scenarios normal, rate_lag, rate_hog, blk_flimrar samt expect fore korning. M-124 provar facitformen.",
     "standard": "Backtryckshantering och stegvis kaskadstopp foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_T06_BACKTRYCK\nVAR\n    tmrBlk    : TON;\n    tmrStp70  : TON;\n    tmrStp60  : TON;\n    tmrStrt70 : TON;\n    tmrStrt60 : TON;\n    blockerad : BOOL := FALSE;\n    hadeBlock : BOOL := FALSE;\nEND_VAR\n\ntmrBlk(IN := EMG_OK AND ST080_PEC_END, PT := T#2000ms);\nIF tmrBlk.Q THEN\n    blockerad := TRUE;\n    hadeBlock := TRUE;\nELSIF NOT ST080_PEC_END THEN\n    blockerad := FALSE;\nEND_IF;\n\nST080_BLK_ACT := blockerad;\n\ntmrStp70(IN := blockerad, PT := T#800ms);\ntmrStp60(IN := tmrStp70.Q, PT := T#800ms);\n\ntmrStrt70(IN := NOT blockerad AND hadeBlock, PT := T#800ms);\ntmrStrt60(IN := tmrStrt70.Q, PT := T#800ms);\nIF tmrStrt60.Q THEN\n    hadeBlock := FALSE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    ST060_CNV_RUN := FALSE;\n    ST070_CNV_RUN := FALSE;\n    ST080_CNV_RUN := FALSE;\n    ST080_BLK_ACT := FALSE;\n    blockerad := FALSE;\n    hadeBlock := FALSE;\nELSE\n    IF blockerad THEN\n        ST080_CNV_RUN := FALSE;\n        ST070_CNV_RUN := NOT tmrStp70.Q;\n        ST060_CNV_RUN := NOT tmrStp60.Q;\n    ELSIF hadeBlock THEN\n        ST080_CNV_RUN := TRUE;\n        ST070_CNV_RUN := tmrStrt70.Q;\n        ST060_CNV_RUN := tmrStrt60.Q;\n    ELSE\n        ST080_CNV_RUN := TRUE;\n        ST070_CNV_RUN := TRUE;\n        ST060_CNV_RUN := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_T06_BACKTRYCK\nVAR\n    tmrBlk    : TON;\n    tmrStp70  : TON;\n    tmrStp60  : TON;\n    tmrStrt70 : TON;\n    tmrStrt60 : TON;\n    blockerad : BOOL := FALSE;\n    hadeBlock : BOOL := FALSE;\n    xOvertakt : BOOL := FALSE;\n    xTill80   : BOOL := FALSE;\n    xTill70   : BOOL := FALSE;\n    xTill60   : BOOL := FALSE;\nEND_VAR\n\n(* Linjens hogsta tillatna takt ar 36 kartonger/min (scenariot rate_hog). *)\nxOvertakt := ST060_LNE_RATE > 36.0;\n\ntmrBlk(IN := EMG_OK AND ST080_PEC_END, PT := T#2000ms);\nIF tmrBlk.Q THEN\n    blockerad := TRUE;\n    hadeBlock := TRUE;\nELSIF NOT ST080_PEC_END THEN\n    blockerad := FALSE;\nEND_IF;\n\nST080_BLK_ACT := blockerad;\n\ntmrStp70(IN := blockerad, PT := T#800ms);\ntmrStp60(IN := tmrStp70.Q, PT := T#800ms);\n\ntmrStrt70(IN := NOT blockerad AND hadeBlock, PT := T#800ms);\ntmrStrt60(IN := tmrStrt70.Q, PT := T#800ms);\nIF tmrStrt60.Q THEN\n    hadeBlock := FALSE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    xTill80 := FALSE;\n    xTill70 := FALSE;\n    xTill60 := FALSE;\n    blockerad := FALSE;\n    hadeBlock := FALSE;\nELSE\n    IF blockerad THEN\n        xTill80 := FALSE;\n        xTill70 := NOT tmrStp70.Q;\n        xTill60 := NOT tmrStp60.Q;\n    ELSIF hadeBlock THEN\n        xTill80 := TRUE;\n        xTill70 := tmrStrt70.Q;\n        xTill60 := tmrStrt60.Q;\n    ELSE\n        xTill80 := TRUE;\n        xTill70 := TRUE;\n        xTill60 := TRUE;\n    END_IF;\nEND_IF;\n\nST080_CNV_RUN := xTill80;\n(* En bana far inte mata fram om nedstroms star still och kartong star vid fotocellen. *)\nST070_CNV_RUN := xTill70 AND NOT (ST070_PEC_END AND NOT ST080_CNV_RUN);\n(* Overtakt stryper intaget ST060 forst, liksom backtryck fran stillastaende ST070. *)\nST060_CNV_RUN := xTill60 AND NOT xOvertakt AND NOT (ST060_PEC_END AND NOT ST070_CNV_RUN);\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "normal_drift_och_kaskadstopp",
@@ -307,7 +307,10 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
-              "ST080_PEC_END": false
+              "ST080_PEC_END": false,
+              "ST060_PEC_END": false,
+              "ST070_PEC_END": false,
+              "ST060_LNE_RATE": 30.0
             },
             "krav": {},
             "varfor": ""
@@ -372,7 +375,10 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
-              "ST080_PEC_END": false
+              "ST080_PEC_END": false,
+              "ST060_PEC_END": false,
+              "ST070_PEC_END": false,
+              "ST060_LNE_RATE": 30.0
             },
             "krav": {},
             "varfor": ""
