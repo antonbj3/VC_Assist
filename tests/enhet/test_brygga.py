@@ -445,3 +445,10 @@ def test_en_andra_brygga_skriver_inte_over_den_levandes_token(brygga, tmp_path):
     with open(tokenfil) as f:
         assert f.read().strip() == levande, "tokenfilen skrevs over av en brygga som inte fick porten"
     assert andra.token is None, "en brygga utan port ska inte ha nagon token"
+
+
+def test_E_QUEUE_FULL_gar_att_utlosa():
+    """Kön rymmer MAX_KO väntande poster. Grinden har aldrig fällt i något
+    prov — E_QUEUE_FULL står i noll av de 838 testerna."""
+    assert pump.MAX_KO == 256, "provet är skrivet mot MAX_KO = 256"
+

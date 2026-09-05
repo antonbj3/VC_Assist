@@ -61,11 +61,6 @@ def klient(tmp_path):
 
 # ---- den elfte felkoden -------------------------------------------------
 
-def test_E_QUEUE_FULL_gar_att_utlosa():
-    """Kön rymmer MAX_KO väntande poster. Grinden har aldrig fällt i något
-    prov — E_QUEUE_FULL står i noll av de 838 testerna."""
-    assert pump.MAX_KO == 256, "provet är skrivet mot MAX_KO = 256"
-
 
 def test_kon_svarar_E_QUEUE_FULL_nar_den_ar_full(klient):
     for i in range(pump.MAX_KO):
