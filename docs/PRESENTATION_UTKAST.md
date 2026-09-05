@@ -96,11 +96,11 @@ test harness. None deploys the code to a PLC and runs it against a plant.
 
 ## Finding the right machine
 
-The library holds **3 201 machines**, 1 736 of them robots. Search it by what
+The library holds **3 201 machines**, around 2 200 of them robots. Search it by what
 you need — reach, payload, manufacturer — not by guessing a part number.
 
 Ask something broad like *"robots"* and you get a breakdown by manufacturer and
-a prompt to narrow down, not 1 736 rows. Every result says how many hits there
+a prompt to narrow down, not two thousand rows. Every result says how many hits there
 were and how many you are seeing.
 
 If the library does not know a machine's reach, it says so. It never shows a
