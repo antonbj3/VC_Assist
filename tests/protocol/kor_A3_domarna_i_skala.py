@@ -345,6 +345,28 @@ def sammanstall(rader, n_kravd):
                 post["kodoenighet_bara_tolkfel"] = bool(
                     (tk - ok) and (tk - ok) == _tolkfel(tk - ok)
                     and not (ok - tk))
+        # Motbevisen: foll de pa sin NAMNGIVNA brist, i varje domare?
+        # `faller_pa` ar bankens egen utpekning, skriven av en manniska fore
+        # korningen. Ett motbevis som ar GRONT hos en domare och ROTT hos den
+        # andra ar ett fynd, inte brus.
+        if etikett.startswith("motbevis:"):
+            fp = set(post["faller_pa"])
+            post["faller_pa_bara_tolkfel"] = bool(fp) and fp == _tolkfel(fp)
+            for namn in ("tolk", "openplc"):
+                d = post["domare"][namn]
+                d["rott_i_alla_varv"] = bool(d["utfall_per_varv"]) and all(
+                    u == "UNDERKAND" for u in d["utfall_per_varv"])
+                d["gront_i_alla_varv"] = bool(d["utfall_per_varv"]) and all(
+                    u == "GODKAND" for u in d["utfall_per_varv"])
+                d["pa_namngiven_brist"] = bool(fp) and all(
+                    fp & set(k) for k in d["koder_per_varv"])
+            t_, o_ = post["domare"]["tolk"], post["domare"]["openplc"]
+            post["rott_bara_hos_tolken"] = bool(
+                t_["rott_i_alla_varv"] and o_["gront_i_alla_varv"])
+            post["rott_bara_hos_openplc"] = bool(
+                o_["rott_i_alla_varv"] and t_["gront_i_alla_varv"])
+            post["gront_i_bada"] = bool(
+                t_["gront_i_alla_varv"] and o_["gront_i_alla_varv"])
         ut["enheter"]["%s/%s" % (task, etikett)] = post
 
     poster = list(ut["enheter"].values())
@@ -377,6 +399,41 @@ def sammanstall(rader, n_kravd):
             1 for p in matta
             if any(u not in DOMAR
                    for u in p["domare"]["tolk"]["utfall_rakning"])),
+    }
+    mb = [p for p in matta if p["etikett"].startswith("motbevis:")]
+    ref = [p for p in matta if p["etikett"] == "referens"]
+    ut["tal"]["motbevis"] = {
+        "matta": len(mb),
+        "rott_i_bada_alla_varv": sum(
+            1 for p in mb if p["domare"]["tolk"]["rott_i_alla_varv"]
+            and p["domare"]["openplc"]["rott_i_alla_varv"]),
+        "rott_bara_hos_tolken": sorted(
+            p["task"] + "/" + p["etikett"] for p in mb
+            if p["rott_bara_hos_tolken"]),
+        "rott_bara_hos_openplc": sorted(
+            p["task"] + "/" + p["etikett"] for p in mb
+            if p["rott_bara_hos_openplc"]),
+        "gront_i_bada": sorted(p["task"] + "/" + p["etikett"] for p in mb
+                               if p["gront_i_bada"]),
+        "pa_namngiven_brist_tolk": sum(
+            1 for p in mb if p["domare"]["tolk"]["pa_namngiven_brist"]),
+        "pa_namngiven_brist_openplc": sum(
+            1 for p in mb if p["domare"]["openplc"]["pa_namngiven_brist"]),
+        "faller_pa_bara_tolkfel": sorted(
+            p["task"] + "/" + p["etikett"] for p in mb
+            if p.get("faller_pa_bara_tolkfel")),
+    }
+    ut["tal"]["referenser"] = {
+        "matta": len(ref),
+        "gron_i_tolken_alla_varv": sum(
+            1 for p in ref
+            if p["domare"]["tolk"]["stabilt_utfall"] == "GODKAND"),
+        "gron_i_openplc_alla_varv": sum(
+            1 for p in ref
+            if p["domare"]["openplc"]["stabilt_utfall"] == "GODKAND"),
+        "inte_gron_i_openplc": sorted(
+            p["task"] for p in ref
+            if p["domare"]["openplc"]["stabilt_utfall"] != "GODKAND"),
     }
     return ut
 
@@ -500,6 +557,21 @@ def _skriv_sammanstallning(args):
           "(varav utfall %d)"
           % (t["c_sjalvinstabil_openplc"], t["c_sjalvinstabil_openplc_utfall"],
              t["c_sjalvinstabil_tolk"], t["c_sjalvinstabil_tolk_utfall"]))
+    r, m = t["referenser"], t["motbevis"]
+    print("referenser grona i alla varv: tolk %d/%d, openplc %d/%d %s"
+          % (r["gron_i_tolken_alla_varv"], r["matta"],
+             r["gron_i_openplc_alla_varv"], r["matta"],
+             ("(inte gron i openplc: %s)" % ", ".join(r["inte_gron_i_openplc"]))
+             if r["inte_gron_i_openplc"] else ""))
+    print("motbevis: %d matta, roda i bada alla varv %d; rott BARA hos tolken "
+          "%d, BARA hos openplc %d, gront i bada %d"
+          % (m["matta"], m["rott_i_bada_alla_varv"],
+             len(m["rott_bara_hos_tolken"]), len(m["rott_bara_hos_openplc"]),
+             len(m["gront_i_bada"])))
+    print("motbevis pa sin NAMNGIVNA brist: tolk %d, openplc %d "
+          "(strukturellt omojliga for openplc: %d)"
+          % (m["pa_namngiven_brist_tolk"], m["pa_namngiven_brist_openplc"],
+             len(m["faller_pa_bara_tolkfel"])))
     fel = []
     if not t["enheter_matta"]:
         fel.append("noll matta enheter")
