@@ -33,7 +33,7 @@ from vc_assist_svc import datablad as D                          # noqa: E402
 # ---------------------------------------------------------------------------
 
 def _dof(namn, typ="Rotational", minv="-170", maxv="170",
-         fart="100", acc="400", quantity="Angular velocity"):
+         fart="100", acc="400", quantity="Angular velocity", axistyp=2):
     """Ett Dof-block som VC skriver det.
 
     Notera att SoftMinLimit ar 0.0 medan den VERKLIGA gransen star i
@@ -77,8 +77,8 @@ def _dof(namn, typ="Rotational", minv="-170", maxv="170",
   {
     Expression "%s"
   }
-  AxisType 2
-}''' % (typ, namn, fart, quantity, acc, minv, maxv)
+  AxisType %s
+}''' % (typ, namn, fart, quantity, acc, minv, maxv, axistyp)
 
 
 def _rotvar(poster):
@@ -148,10 +148,50 @@ VariableSpace
 }''' % {"l": langd, "b": bredd, "h": hojd}
 
 
+# Kedjan som NODER, sa som VC skriver den: en rSimLink per led, med ledens Dof
+# och en Offset som bar lanklangden. Talen ar IRB 6700:ans, samma som
+# kinematikblockets ovan, sa att de tva harledningsvagarna gar att stalla mot
+# varandra pa SAMMA robot.
+KEDJA = (
+    # (nodnamn, offsetuttryck, ledtyp eller None, AxisType)
+    ("Axis1", "Rz(0)", "Rotational", 2),
+    ("Axis2", "Tz(830).Tx(350)", "Rotational", 1),
+    ("Axis3", "Tx(0).Tz(1145)", "Rotational", 1),
+    ("Axis4", "Tx(-200).Tz(1212.5)", "Rotational", 2),
+    ("Axis5", "Tx(0).Tz(0)", "Rotational", 2),
+    ("Axis6", "Tz(220)", "Rotational", 2),
+    ("mountplate", "Identity()", None, 2),
+)
+KEDJANS_RACKVIDD = 2723.9      # 350 + 1145 + |(-200, 1212.5)| + 0, som M-59
+
+
+def _kedjenoder(led=KEDJA):
+    """De nastlade rSimLink-noderna, ytterst forst."""
+    ut = ""
+    for i, (namn, offset, ledtyp, axistyp) in enumerate(reversed(led)):
+        dof = _dof(namn, ledtyp, axistyp=axistyp) if ledtyp else ""
+        offsetblock = ('Offset\n{\n  Expression "%s"\n}' % offset
+                       if offset is not None else "")
+        ut = '''Node "rSimLink"
+{
+Name "%s"
+Id %d
+%s
+%s
+%s
+}''' % (namn, 100 + len(led) - i, dof, offsetblock, ut)
+    return ut
+
+
 def robot_rsc(namn="IRB 6700", leder=6, kinematik=True, styrenhet=True,
-              maxload=None, rotvar=(), verktygsmassa=None, dof_typ="Rotational"):
+              maxload=None, rotvar=(), verktygsmassa=None,
+              dof_typ="Rotational", kedja=None):
+    """kedja=KEDJA lagger lederna i en riktig nodkedja med Offset-transformer."""
     ledblock = "\n".join(_dof("Axis%d" % (i + 1), dof_typ)
                          for i in range(leder))
+    if kedja:
+        # Lederna bor i noderna i stallet - platta Dof-block skulle ge dubbla.
+        ledblock = _kedjenoder(kedja)
     jointmap = "\n".join('Joint %d "Axis%d"' % (i, i + 1) for i in range(leder))
     ctl = ('''Functionality "rSimRobotController"
 {
@@ -737,7 +777,7 @@ def test_kommandoraden_bygger_tabellen_ur_den_levererade_koden(tmp_path, capsys)
     skriv_vcmx(str(rot / "Item" / "b.vcmx"), transportor_rsc())
     assert D.main(["--rot", str(rot)]) == 0
     ut = capsys.readouterr().out
-    assert "2 datablad, 0 olasliga" in ut
+    assert "2 datasheets, 0 unreadable" in ut
     assert "robot 1" in ut and "transportor 1" in ut
     assert "kort text" in ut and "full JSON" in ut
 
@@ -791,3 +831,113 @@ def test_rPythonKinematics_UTAN_lanklangder_saknar_fortfarande_rackvidd(tmp_path
     v = b["rackvidd"]
     assert v.harkomst == D.SAKNAS
     assert "lanklangder" in v.kalla
+
+
+# ---------------------------------------------------------------------------
+# TRASIG FIXTUR 4: rackvidden ur NODTRANSFORMERNA (M-179)
+#
+# Den harledningen laser inte namngivna variabler alls - den gar kedjans
+# rSimLink-noder och summerar deras Offset-transformer. De tre proven nedan
+# skrevs FORE mekanismen och sags falla: en halv kedja far inte bli en
+# delsumma, en robot som redan har ett variabelharlett tal far inte tyst byta
+# vag, och ett transformharlett tal maste saga att det ar det.
+# ---------------------------------------------------------------------------
+
+def test_rackvidd_ur_nodtransformerna_ger_samma_tal_som_lanklangderna(tmp_path):
+    """Samma robot, samma kedja, tva vagar - samma tal.
+
+    MATT i M-179 over 1783 robotar dar bada vagarna ger ett tal: median 1,0000
+    och 92 procent inom fem procent.
+    """
+    rsc = robot_rsc(kinematik=False, kedja=KEDJA)
+    b = D.las(skriv_vcmx(str(tmp_path / "k.vcmx"), rsc), "ABB")
+    v = b["rackvidd"]
+    assert v.harkomst == D.HARLEDD, v.kalla
+    assert abs(v.varde - KEDJANS_RACKVIDD) < 0.2, v.varde
+    assert D.harledningsvag(v) == D.VAG_TRANSFORMER, v.kalla
+
+
+def test_TRASIG_kedja_med_saknad_nodtransform_ger_SAKNAS_inte_delsumma(tmp_path):
+    """En led utan Offset ska ge saknas - aldrig summan av halva kedjan.
+
+    Delsumman ar det farliga svaret: 350 + 1145 = 1495 mm SER ut som en matning
+    och ar en tystnad. 10 robotar i biblioteket ar precis sa (M-179).
+    """
+    hel = robot_rsc(kinematik=False, kedja=KEDJA)
+    assert abs(D.las(skriv_vcmx(str(tmp_path / "hel.vcmx"), hel),
+                     "ABB")["rackvidd"].varde - KEDJANS_RACKVIDD) < 0.2
+    trasig = tuple((n, None if n == "Axis4" else o, t, a)
+                   for n, o, t, a in KEDJA)
+    rsc = robot_rsc(kinematik=False, kedja=trasig)
+    assert 'Expression "Tx(-200).Tz(1212.5)"' not in rsc
+    v = D.las(skriv_vcmx(str(tmp_path / "trasig.vcmx"), rsc), "ABB")["rackvidd"]
+    assert v.harkomst == D.SAKNAS
+    assert v.varde is None, "delsumman 1495 far inte levereras som rackvidd"
+    assert "Axis4" in v.kalla, v.kalla
+
+
+def test_TRASIG_variabelharledd_rackvidd_byter_inte_tyst_till_transformvagen(tmp_path):
+    """Den befintliga formeln har foretrade dar bada vagarna kan svara.
+
+    MATT i M-179: av de 149 robotar dar vagarna skiljer sig mer an fem procent
+    ligger variabelvagen narmare model.xml:s deklarerade Reach i 86 fall och
+    transformvagen i 47. Bredare tackning ar inget skal att byta dar bada kan.
+    """
+    langre = tuple((n, "Tx(0).Tz(2145)" if n == "Axis3" else o, t, a)
+                   for n, o, t, a in KEDJA)
+    rsc = robot_rsc(kinematik=True, kedja=langre)
+    v = D.las(skriv_vcmx(str(tmp_path / "bada.vcmx"), rsc), "ABB")["rackvidd"]
+    assert v.harkomst == D.HARLEDD
+    assert abs(v.varde - KEDJANS_RACKVIDD) < 0.2, (
+        "kedjan sager 3723,9 - variabelvagens 2723,9 ska sta kvar")
+    assert D.harledningsvag(v) == D.VAG_VARIABLER, v.kalla
+
+
+def test_TRASIG_transformharledd_rackvidd_utan_vag_i_kallan_falls():
+    """En kalla som inte sager vilken vag talet kom ur ar ingen kalla.
+
+    Bada vagarna ar HARLEDD och bada ger millimeter. Skillnaden mellan dem ar
+    inte prosa - den ska ga att lasa mekaniskt ur `kalla`, precis som
+    skillnaden mellan last och harledd gar att lasa ur `harkomst`.
+    """
+    with pytest.raises(D.Databladsfel):
+        D.harledningsvag(D.harledd("rackvidd", 1500, "summan av lanklangderna"))
+    with pytest.raises(D.Databladsfel):
+        D.harledningsvag(D.last("rackvidd", 1500, "stod i filen"))
+
+
+def test_kedjan_genom_en_foljarled_ger_SAKNAS_inte_en_armlangdssumma(tmp_path):
+    """En parallell mekanism har ingen serie att summera.
+
+    MATT i M-179: 64 av de 367 robotarna utan variabelharledd rackvidd ar
+    deltarobotar. YF002N bar sina lanklangder i nodtransformerna - summan langs
+    en arm blir 886 mm, och tillverkarens Reach i model.xml ar 600. Talet finns
+    i kedjan; det ar bara inte rackvidden.
+    """
+    delta = tuple((n, o, "RotationalFollower" if n == "Axis3" else t, a)
+                  for n, o, t, a in KEDJA)
+    rsc = robot_rsc(kinematik=False, kedja=delta)
+    v = D.las(skriv_vcmx(str(tmp_path / "delta.vcmx"), rsc), "ABB")["rackvidd"]
+    assert v.harkomst == D.SAKNAS
+    assert v.varde is None
+    assert "foljarled" in v.kalla, v.kalla
+
+
+def test_kedja_utan_kinematikblock_och_utan_kedja_saknar_fortfarande_rackvidd(tmp_path):
+    rsc = robot_rsc(kinematik=False)
+    v = D.las(skriv_vcmx(str(tmp_path / "tom.vcmx"), rsc), "ABB")["rackvidd"]
+    assert v.harkomst == D.SAKNAS
+    assert v.varde is None
+
+
+def test_vagarna_raknas_var_for_sig_i_tackningen(tmp_path):
+    """Tackningen ska sага hur manga tal som kom ur VILKEN vag."""
+    rot = tmp_path / "bib"
+    skriv_vcmx(str(rot / "ABB" / "var.vcmx"), robot_rsc())
+    skriv_vcmx(str(rot / "ABB" / "tr.vcmx"),
+               robot_rsc(kinematik=False, kedja=KEDJA))
+    blad, olasliga = D.bygg(str(rot))
+    assert not olasliga
+    vagar = D.rackviddens_vagar(blad)
+    assert vagar[D.VAG_VARIABLER] == 1
+    assert vagar[D.VAG_TRANSFORMER] == 1

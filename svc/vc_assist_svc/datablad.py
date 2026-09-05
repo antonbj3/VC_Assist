@@ -66,6 +66,7 @@ En sprakmodell kan inte lara sig 2665 parameternamn. Den kan lara sig tjugo.
 """
 from __future__ import annotations
 
+import math
 import os
 import re
 import sys
@@ -80,6 +81,13 @@ FORMAT = 1                      # Satt av M-59.
 LAST = "last"
 HARLEDD = "harledd"
 SAKNAS = "saknas"
+
+# Rackvidden ar den enda storheten som kan harledas pa TVA satt, och de tva
+# talen ar inte samma matning. `harkomst` skiljer last fran harledd; de har tva
+# markorerna skiljer de tva harledningarna, och de star ordagrant i `kalla` sa
+# att skillnaden gar att lasa mekaniskt (M-179).
+VAG_VARIABLER = "ur namngivna lanklangdsvariabler"
+VAG_TRANSFORMER = "ur den kinematiska kedjans nodtransformer"
 
 # ---------------------------------------------------------------------------
 # Ordforradet
@@ -200,7 +208,7 @@ class Varde:
 
     def __post_init__(self):
         if self.harkomst not in (LAST, HARLEDD, SAKNAS):
-            raise Databladsfel("okand harkomst %r" % (self.harkomst,))
+            raise Databladsfel("unknown provenance %r" % (self.harkomst,))
         if not self.kalla:
             raise Databladsfel(
                 "%s: ett varde utan kalla ar inte ett varde" % self.storhet)
@@ -633,7 +641,8 @@ def _kin_tal(kin: Block, rotvar: Dict[str, Variabel], namn: str):
     return v
 
 
-def _rackvidd(kin: Optional[Block], rotvar: Dict[str, Variabel]) -> Varde:
+def _rackvidd(trad: Block, kin: Optional[Block],
+              rotvar: Dict[str, Variabel]) -> Varde:
     """Hur langt armen nar, raknad ur lanklangderna. HARLEDD, aldrig last.
 
     FACIT UTANFOR KODEN. 407 robotar bar tillverkarens egen rackvidd i sitt
@@ -651,9 +660,31 @@ def _rackvidd(kin: Optional[Block], rotvar: Dict[str, Variabel]) -> Varde:
     Ledgranserna ar inte inraknade. En arm vars led 3 inte kan strackas helt
     nar kortare an summan, sa talet ar en ovre grans - men en ovre grans som
     ligger 0,1 procent fran tillverkarens tal i median, inte 8.
+
+    TVA VAGAR, OCH DEN HAR HAR FORETRADE. Sedan M-179 finns en andra harledning
+    som gar kedjans NODTRANSFORMER och inte beror pa vad nagon dopt sina
+    variabler till. Den taper bredare - men bredare tackning ar inget skal att
+    byta dar bada kan svara. MATT i M-179: av de 149 robotar dar vagarna skiljer
+    sig mer an fem procent ligger den har formeln narmare model.xml:s
+    deklarerade Reach i 86 fall och transformvagen i 47. Transformvagen fyller
+    darfor bara luckorna, och den sager i sin kalla att den gjort det.
     """
+    variabelsvar = _rackvidd_ur_variabler(kin, rotvar)
+    if variabelsvar.finns:
+        return variabelsvar
+    transformsvar = _rackvidd_ur_transformer(trad)
+    if transformsvar.finns:
+        return transformsvar
+    return saknas("rackvidd", "%s; %s" % (variabelsvar.kalla,
+                                          transformsvar.kalla))
+
+
+def _rackvidd_ur_variabler(kin: Optional[Block],
+                           rotvar: Dict[str, Variabel]) -> Varde:
+    """Den formel M-59 valde mot facit: summan av de NAMNGIVNA lanklangderna."""
     if kin is None:
-        return saknas("rackvidd", "inget kinematikblock i filen")
+        return saknas("rackvidd", "%s: inget kinematikblock i filen"
+                                  % VAG_VARIABLER)
     typ = kin.arg
 
     def t(n):
@@ -672,19 +703,22 @@ def _rackvidd(kin: Optional[Block], rotvar: Dict[str, Variabel]) -> Varde:
     if typ == "rKinArticulated2" or artikulerad_kedja:
         if not artikulerad_kedja:
             return saknas("rackvidd",
-                          "rKinArticulated2 utan lanklangderna L12X/L23Z")
+                          "%s: rKinArticulated2 utan lanklangderna L12X/L23Z"
+                          % VAG_VARIABLER)
         delar = [t("L12X"), _hyp(t("L23X"), t("L23Z")),
                  _hyp(t("L34X"), t("L34Z")), _hyp(t("L45X"), t("L45Z"))]
-        formel = ("L12X+|L23|+|L34|+|L45| ur den artikulerade kedjan "
+        formel = ("L12X+|L23|+|L34|+|L45| %s i den artikulerade kedjan "
                   "(blocktyp %s; flanslanken L56 ar inte med, tillverkaren "
                   "matter till handledscentrum); provad mot 386 modellnamn, "
-                  "median 1,001 (M-59)" % typ)
+                  "median 1,001 (M-59)" % (VAG_VARIABLER, typ))
     elif typ == "rKinScara2":
         a, b = t("L12X"), t("L23X")
         if a is None or b is None:
-            return saknas("rackvidd", "rKinScara2 utan L12X/L23X")
+            return saknas("rackvidd", "%s: rKinScara2 utan L12X/L23X"
+                                      % VAG_VARIABLER)
         delar = [a, b]
-        formel = "OVRE GRANS: L12X+L23X ur rKinScara2, ledgranser ej inraknade"
+        formel = ("OVRE GRANS: L12X+L23X %s i rKinScara2, ledgranser ej "
+                  "inraknade" % VAG_VARIABLER)
     else:
         # rKinParallellogram och de rPythonKinematics som lagger sina matt i
         # komponentens egna variabler bar samma namn: LinkLength1..5 och
@@ -695,12 +729,487 @@ def _rackvidd(kin: Optional[Block], rotvar: Dict[str, Variabel]) -> Varde:
         if j12x is None or j23z is None or j34x is None:
             return saknas(
                 "rackvidd",
-                "%s utan lanklangder i blocket eller i rotens variabler" % typ)
+                "%s: %s utan lanklangder i blocket eller i rotens variabler"
+                % (VAG_VARIABLER, typ))
         delar = [j12x, _hyp(j23x, j23z), _hyp(j34x, j34z), j46x or 0.0]
         formel = ("OVRE GRANS: JointOffset1 + |LinkLength2,JointOffset4| + "
-                  "|LinkLength3,JointOffset3| + LinkLength4 ur %s" % typ)
+                  "|LinkLength3,JointOffset3| + LinkLength4 %s i %s"
+                  % (VAG_VARIABLER, typ))
     return harledd("rackvidd", round(sum(d or 0.0 for d in delar), 1), formel,
                    "mm")
+
+
+# ---------------------------------------------------------------------------
+# Rackvidden ur NODTRANSFORMERNA - den generella vagen (M-179)
+#
+# Formeln ovan laser NAMN: L12X, L23Z, LinkLength2. Den ar bara sa bred som
+# tillverkarnas namngivning, och tva matningar i rad har gatt at att flytta
+# den gransen (M-59 -> M-177). Kedjan sjalv star i filen oberoende av vad
+# nagon dopt sina variabler till: varje led ar en `Node "rSimLink"` med ett
+# `Offset`, och offsetens translationsdel AR lanklangden.
+#
+# Uttrycken ser ut sa har, och alla operatorer i biblioteket ryms i listan:
+#   Tx/Ty/Tz  Rx/Ry/Rz  Sx/Sy/Sz  Identity()  Set(16 tal)
+# med Tz(Kinematics::L01Z), Ty(0.5*Kinematics::ConnectorWidth) och rena tal som
+# argument. Symbolerna bor i rotens variabelrymd eller i funktionsblockets egna
+# rader. En symbol som INTE gar att losa ger saknas - aldrig ett antagande.
+# ---------------------------------------------------------------------------
+
+
+class _Olost(Exception):
+    """En del av kedjan gick inte att lasa. Barer skalet, inte ett tal."""
+
+
+_UTTRYCKSTECKEN = re.compile(r"""
+    (?P<tal>\d+\.?\d*(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?)
+  | (?P<namn>[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*(?:\.[XYZW])?)
+  | (?P<op>[-+*/(),])
+  | (?P<blank>\s+)
+""", re.X)
+
+_OFFSETLED = re.compile(r'([A-Za-z][A-Za-z0-9_]*)\s*\(')
+
+
+def _tecken(text: str) -> List[Tuple[str, str]]:
+    ut = []
+    i = 0
+    while i < len(text):
+        m = _UTTRYCKSTECKEN.match(text, i)
+        if not m:
+            raise _Olost("okant tecken %r" % (text[i],))
+        i = m.end()
+        if m.lastgroup != "blank":
+            ut.append((m.lastgroup, m.group()))
+    return ut
+
+
+def _uttrycksfunktion(namn: str, arg: List[float]) -> float:
+    """VC:s gradbaserade trigonometri. En okand funktion ar OLOST, inte noll."""
+    if namn == "sind" and len(arg) == 1:
+        return math.sin(math.radians(arg[0]))
+    if namn == "cosd" and len(arg) == 1:
+        return math.cos(math.radians(arg[0]))
+    if namn == "tand" and len(arg) == 1:
+        return math.tan(math.radians(arg[0]))
+    if namn == "atand" and len(arg) == 1:
+        return math.degrees(math.atan(arg[0]))
+    if namn == "atan2d" and len(arg) == 2:
+        return math.degrees(math.atan2(arg[0], arg[1]))
+    raise _Olost("okand funktion %s/%d" % (namn, len(arg)))
+
+
+class _Uttryck:
+    """Rekursiv nedstigning over ett VC-uttryck. Okand symbol -> _Olost."""
+
+    def __init__(self, tecken, slauppe):
+        self.t = tecken
+        self.i = 0
+        self.slauppe = slauppe
+
+    def _kika(self):
+        return self.t[self.i] if self.i < len(self.t) else (None, None)
+
+    def _ta(self):
+        v = self._kika()
+        self.i += 1
+        return v
+
+    def uttryck(self) -> float:
+        v = self._term()
+        while self._kika()[1] in ("+", "-"):
+            op = self._ta()[1]
+            h = self._term()
+            v = v + h if op == "+" else v - h
+        return v
+
+    def _term(self) -> float:
+        v = self._faktor()
+        while self._kika()[1] in ("*", "/"):
+            op = self._ta()[1]
+            h = self._faktor()
+            if op == "*":
+                v = v * h
+            else:
+                if h == 0:
+                    raise _Olost("division med noll")
+                v = v / h
+        return v
+
+    def _faktor(self) -> float:
+        sort, txt = self._kika()
+        if txt == "-":
+            self._ta()
+            return -self._faktor()
+        if txt == "+":
+            self._ta()
+            return self._faktor()
+        if txt == "(":
+            self._ta()
+            v = self.uttryck()
+            if self._kika()[1] != ")":
+                raise _Olost("obalanserad parentes")
+            self._ta()
+            return v
+        if sort == "tal":
+            self._ta()
+            return float(txt)
+        if sort == "namn":
+            self._ta()
+            if self._kika()[1] == "(":
+                self._ta()
+                arg = []
+                if self._kika()[1] != ")":
+                    arg.append(self.uttryck())
+                    while self._kika()[1] == ",":
+                        self._ta()
+                        arg.append(self.uttryck())
+                if self._kika()[1] != ")":
+                    raise _Olost("obalanserad parentes i %s()" % txt)
+                self._ta()
+                return _uttrycksfunktion(txt, arg)
+            return self.slauppe(txt)
+        raise _Olost("ovantat %r i uttrycket" % (txt,))
+
+
+def _rakna(text: str, slauppe) -> float:
+    return _Uttryck(_tecken(text), slauppe).uttryck()
+
+
+def _symboluppslag(trad: Block):
+    """namn -> tal. Rotens variabelrymd forst, sedan funktionsblockens.
+
+    `Kinematics::L01Z` ar funktionsblockets NAMN och en av dess rader; samma
+    namn kan ocksa sta prefixat i rotens variabelrymd (sa gor de robotar som
+    definierar kinematiken i ett Python-skript). Bada stallena lases, och den
+    som inte finns i nagotdera ar OLOST - inte noll.
+    """
+    rot = rotvariabler(trad)
+    block: Dict[str, str] = {}
+    for fb in trad.alla("Functionality"):
+        namn = fb.strang("Name") or ""
+        for k, v in fb.rader:
+            block.setdefault("%s::%s" % (namn, k), v)
+            block.setdefault(k, v)
+        for rymd in fb.sok("VariableSpace"):
+            for k, var in _variabler(rymd).items():
+                block.setdefault("%s::%s" % (namn, k), var.varde)
+                block.setdefault(k, var.varde)
+
+    def slauppe(namn: str) -> float:
+        bas, _, del_ = namn.partition(".")
+        for kalla in (rot, block):
+            if bas not in kalla:
+                continue
+            ra = kalla[bas]
+            text = str(ra.varde if isinstance(ra, Variabel) else ra)
+            text = text.strip().strip('"')
+            if del_:
+                # rVector-variabler: "200 0 142 1" med .X/.Y/.Z pa slutet.
+                d = text.split()
+                i = "XYZW".index(del_)
+                if len(d) <= i:
+                    raise _Olost("%s saknar komponent %s" % (bas, del_))
+                text = d[i]
+            try:
+                return float(text)
+            except ValueError:
+                raise _Olost("%s = %r ar inget tal" % (namn, text))
+        raise _Olost("olost symbol %s" % namn)
+    return slauppe
+
+
+# --- 4x4 -------------------------------------------------------------------
+
+def _enhetsmatris() -> List[List[float]]:
+    return [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+
+
+def _matmul(a, b):
+    return [[sum(a[i][k] * b[k][j] for k in range(4)) for j in range(4)]
+            for i in range(4)]
+
+
+def _flytta(x, y, z):
+    m = _enhetsmatris()
+    m[0][3], m[1][3], m[2][3] = x, y, z
+    return m
+
+
+def _vrid(axel: str, grader: float):
+    c, s = math.cos(math.radians(grader)), math.sin(math.radians(grader))
+    m = _enhetsmatris()
+    if axel == "x":
+        m[1][1], m[1][2], m[2][1], m[2][2] = c, -s, s, c
+    elif axel == "y":
+        m[0][0], m[0][2], m[2][0], m[2][2] = c, s, -s, c
+    else:
+        m[0][0], m[0][1], m[1][0], m[1][1] = c, -s, s, c
+    return m
+
+
+def _offsetmatris(uttryck: str, slauppe) -> List[List[float]]:
+    """Ett Offset-uttryck som 4x4. Okand operator -> _Olost."""
+    m = _enhetsmatris()
+    i, n = 0, len(uttryck)
+    while i < n:
+        while i < n and uttryck[i] in " .*":
+            i += 1
+        if i >= n:
+            break
+        huvud = _OFFSETLED.match(uttryck, i)
+        if not huvud:
+            raise _Olost("oparsbart led %r" % (uttryck[i:i + 24],))
+        namn = huvud.group(1)
+        j, djup = huvud.end(), 1
+        while j < n and djup:
+            if uttryck[j] == "(":
+                djup += 1
+            elif uttryck[j] == ")":
+                djup -= 1
+            j += 1
+        if djup:
+            raise _Olost("obalanserad parentes")
+        inne, i = uttryck[huvud.end():j - 1], j
+        if namn == "Identity":
+            steg = _enhetsmatris()
+        elif namn in ("Tx", "Ty", "Tz"):
+            v = _rakna(inne, slauppe)
+            steg = _flytta(*[(v if namn[1] == a else 0.0) for a in "xyz"])
+        elif namn in ("Rx", "Ry", "Rz"):
+            steg = _vrid(namn[1], _rakna(inne, slauppe))
+        elif namn in ("Sx", "Sy", "Sz"):
+            steg = _enhetsmatris()
+            steg["xyz".index(namn[1])]["xyz".index(namn[1])] = _rakna(inne, slauppe)
+        elif namn == "Set":
+            d = [_rakna(x, slauppe) for x in inne.split(",")]
+            if len(d) != 16:
+                raise _Olost("Set() med %d tal i stallet for 16" % len(d))
+            steg = [[d[j * 4 + r] for j in range(4)] for r in range(4)]
+        else:
+            raise _Olost("okand transformoperator %s" % namn)
+        m = _matmul(m, steg)
+    return m
+
+
+# --- kedjan ----------------------------------------------------------------
+
+# Ledens rotationsaxel i sin egen ram. VC skriver 0/1/2 for X/Y/Z; andra varden
+# (5 och 6 forekommer) betyder nagot den har koden inte last, och da ar axeln
+# OKAND i stallet for gissad.
+_AXELINDEX = {0: (1.0, 0.0, 0.0), 1: (0.0, 1.0, 0.0), 2: (0.0, 0.0, 1.0)}
+
+_FOLJARLED = ("RotationalFollower", "TranslationalFollower")
+
+# VC:s varldsuppaxel ar Z (M-33), och komponentens rot star i varldens ram.
+# Anvands bara nar led 1:s Dof-block inte deklarerar nagon AxisType alls -
+# 237 robotar i biblioteket bar `Dof "Custom"` utan axel (M-179).
+_UPPAXEL = (0.0, 0.0, 1.0)
+
+# Tva ledaxlar raknas som parallella over den har granen. MATT i M-179: av
+# 4254 axelpar i biblioteket ligger 4245 antingen over 1-1e-9 eller under 1e-9
+# i |cos| - fordelningen ar tvatoppig med ett tomrum daremellan, sa varje
+# trosket mellan 1e-9 och 1e-3 ger samma svar for 4245 av 4254 paren.
+_PARALLELLGRANS = 1e-6          # Satt av M-179.
+
+
+def _norm(v) -> float:
+    return math.sqrt(sum(x * x for x in v))
+
+
+def _vinkelrat_del(v, axel) -> float:
+    """Den del av v som ligger vinkelratt mot axel."""
+    n = _norm(axel)
+    if n < 1e-12:
+        return _norm(v)
+    langs = sum(v[i] * axel[i] for i in range(3)) / n
+    return math.sqrt(max(0.0, sum(x * x for x in v) - langs * langs))
+
+
+def _ar_parallella(a, b) -> bool:
+    na, nb = _norm(a), _norm(b)
+    if na < 1e-12 or nb < 1e-12:
+        return False
+    return abs(sum(a[i] * b[i] for i in range(3))) / (na * nb) > 1 - _PARALLELLGRANS
+
+
+def _nodvag(trad: Block, flansnamn: str) -> Optional[List[Block]]:
+    """Vagen fran rotnoden ned till flansnoden, som en lista av noder."""
+    rot = _rot_nod(trad)
+    if rot is None:
+        return None
+
+    def gren(nod, sa_langt):
+        for b in nod.sok("Node"):
+            vag = sa_langt + [b]
+            if (b.strang("Name") or "") == flansnamn:
+                return vag
+            djupare = gren(b, vag)
+            if djupare:
+                return djupare
+        return None
+    return gren(rot, [])
+
+
+def _nodens_dof(nod: Block) -> Optional[Block]:
+    for b in nod.barn:
+        if b.namn == "Dof":
+            return b
+    return None
+
+
+def _kedjans_leder(trad: Block, ctl: Optional[Block]):
+    """(punkter, axlar, ledtyper, skal).
+
+    `punkter[i]` ar led i+1:s origo i komponentens ram, `axlar[i]` dess
+    rotationsaxel dar filen deklarerar en och None annars. Gar nagon del av
+    kedjan inte att folja ar `skal` satt och de tre andra None - en delsumma
+    far aldrig lamna den har funktionen.
+    """
+    if ctl is None:
+        return None, None, None, "ingen robotstyrning att lasa kedjan ur"
+    flans = ctl.strang("FlangeNode")
+    if not flans:
+        return None, None, None, "robotstyrningen namnger ingen FlangeNode"
+    vag = _nodvag(trad, flans)
+    if not vag:
+        return None, None, None, ("ingen nodvag fran rotnoden till flansnoden "
+                                  "%r" % flans)
+    lednamn = _ledordning(ctl)
+    slauppe = _symboluppslag(trad)
+    m = _enhetsmatris()
+    punkter, axlar, typer = [], [], []
+    for nod in vag:
+        uttryck = None
+        for off in nod.sok("Offset"):
+            uttryck = off.strang("Expression") or ""
+            break
+        if uttryck is None:
+            rad = nod.rad("Offset")           # matrisform: 16 tal pa raden
+            if rad is not None:
+                uttryck = "Set(%s)" % ",".join(rad.split())
+        if uttryck is None:
+            return None, None, None, ("noden %r i kedjan bar ingen transform"
+                                      % (nod.strang("Name"),))
+        try:
+            m = _matmul(m, _offsetmatris(uttryck, slauppe))
+        except _Olost as fel:
+            return None, None, None, ("nodtransformen for %r gar inte att losa: "
+                                      "%s" % (nod.strang("Name"), fel))
+        dof = _nodens_dof(nod)
+        if dof is None:
+            continue
+        if dof.arg in _FOLJARLED:
+            return None, None, None, (
+                "kedjan gar genom foljarleden %r - en parallell mekanism har "
+                "ingen serie att summera" % (dof.strang("Name")
+                                             or nod.strang("Name"),))
+        if (dof.strang("Name") or "") not in lednamn:
+            continue
+        axel = None
+        rad = dof.rad("AxisType")
+        if rad is not None:
+            try:
+                axel = _AXELINDEX.get(int(float(rad)))
+            except ValueError:
+                axel = None
+        if axel is not None:
+            axel = tuple(sum(m[i][k] * axel[k] for k in range(3))
+                         for i in range(3))
+        punkter.append((m[0][3], m[1][3], m[2][3]))
+        axlar.append(axel)
+        typer.append(dof.arg)
+    return punkter, axlar, typer, None
+
+
+def _rackvidd_ur_transformer(trad: Block) -> Varde:
+    """Rackvidden summerad ur kedjans nodtransformer. HARLEDD eller SAKNAS.
+
+    STORHETEN ar avstandet fran led 1:s axel ut till handledscentrum, och den
+    ar inte samma sak som summan av alla translationer:
+
+      * Den del av forsta lanken som ligger LANGS led 1:s axel (pelarens hojd)
+        vrider sig inte ut fran axeln och hor inte till rackvidden. Samma sak
+        galler vidare sa lange lederna dittills ar parallella med led 1 - det
+        ar precis fallet SCARA, dar bade L01Z och L23:s Z-del ska bort.
+      * SISTA lanken raknas bara till den del som ligger vinkelratt mot sista
+        ledens axel. Handledscentrum ar den punkt sista leden inte flyttar;
+        resten ar flansforskjutning. Star sista ledens axel inte i filen faller
+        hela sista lanken bort, vilket ar M-59:s matta val - att ta med den ger
+        median 1,086 mot tillverkarens tal i stallet for 1,001.
+
+    MATT i M-179 over hela biblioteket: mot de 405 robotar som bar tillverkarens
+    rackvidd i sitt modellnamn ger den har vagen median 1,0006 och 399 av 405
+    inom fem procent. Ledgranserna ar fortfarande inte inraknade, sa talet ar en
+    OVRE GRANS - precis som variabelvagens.
+    """
+    ctl = _styrenhet(trad)
+    punkter, axlar, typer, skal = _kedjans_leder(trad, ctl)
+    if skal:
+        return saknas("rackvidd", "%s: %s" % (VAG_TRANSFORMER, skal))
+    n = len(punkter)
+    if n < 3:
+        return saknas("rackvidd", "%s: bara %d styrd led i kedjan - for kort "
+                                  "for att bara en rackvidd"
+                                  % (VAG_TRANSFORMER, n))
+    if typer[0] == "Translational":
+        return saknas("rackvidd", "%s: kedjans forsta led ar skjutande, sa "
+                                  "rackvidden ar dess slaglangd - en ledgrans, "
+                                  "och ledgranser raknas inte in"
+                                  % VAG_TRANSFORMER)
+    axel1 = axlar[0] if axlar[0] is not None else _UPPAXEL
+    summa = 0.0
+    for i in range(1, n):
+        lank = tuple(punkter[i][k] - punkter[i - 1][k] for k in range(3))
+        if i == n - 1:
+            summa += 0.0 if axlar[-1] is None else _vinkelrat_del(lank, axlar[-1])
+            continue
+        parallella = all(axlar[j] is not None and _ar_parallella(axlar[j], axel1)
+                         for j in range(1, i))
+        summa += _vinkelrat_del(lank, axel1) if parallella else _norm(lank)
+    if summa <= 0.0:
+        return saknas("rackvidd", "%s: kedjans translationer summerar till %g - "
+                                  "det ar ingen rackvidd"
+                                  % (VAG_TRANSFORMER, summa))
+    return harledd(
+        "rackvidd", round(summa, 1),
+        "OVRE GRANS: %s - translationerna langs %d leder fran %r till %r, "
+        "handledscentrum och inte flansen, ledgranser ej inraknade; provad mot "
+        "405 modellnamn, median 1,0006 (M-179)"
+        % (VAG_TRANSFORMER, n, ctl.strang("RootNode") or "?",
+           ctl.strang("FlangeNode") or "?"), "mm")
+
+
+def harledningsvag(varde: Varde) -> str:
+    """Vilken av de tva harledningarna talet kom ur. Faller om kallan tiger.
+
+    Bada vagarna ar HARLEDD och bada ger millimeter, sa `harkomst` skiljer dem
+    inte. Skillnaden ska ga att lasa mekaniskt ur `kalla` av samma skal som
+    `harkomst` ar ett falt och inte prosa: en transformharledd rackvidd som ser
+    ut som en variabelharledd ar en tyst uppgradering.
+    """
+    if varde.harkomst != HARLEDD:
+        raise Databladsfel(
+            "%s: harledningsvagen fragas bara om ett HARLEDD varde, inte om %s"
+            % (varde.storhet, varde.harkomst))
+    tratt = [v for v in (VAG_VARIABLER, VAG_TRANSFORMER) if v in varde.kalla]
+    if len(tratt) != 1:
+        raise Databladsfel(
+            "%s: kallan sager inte vilken harledning talet kom ur (%r)"
+            % (varde.storhet, varde.kalla))
+    return tratt[0]
+
+
+def rackviddens_vagar(blad: Sequence["Datablad"]) -> Dict[str, int]:
+    """Hur manga rackvidder som kom ur vilken vag. Faller pa en omarkt kalla."""
+    ut = {VAG_VARIABLER: 0, VAG_TRANSFORMER: 0}
+    for b in blad:
+        if not b.har("rackvidd"):
+            continue
+        v = b["rackvidd"]
+        if v.harkomst == HARLEDD:
+            ut[harledningsvag(v)] += 1
+    return ut
 
 
 # ---------------------------------------------------------------------------
@@ -1028,7 +1537,7 @@ def fran_text(text: str, sokvag: str = "", tillverkare: str = "") -> Datablad:
         s.update(_ledstorheter(trad, ctl))
     if familj == "robot":
         s["verktygslast"] = _verktygslast(trad)
-        s["rackvidd"] = _rackvidd(kin, rotvar)
+        s["rackvidd"] = _rackvidd(trad, kin, rotvar)
         for storhet, nyckel, vad in (("monteringsram", "FlangeNode",
                                       "ramen ett verktyg skruvas fast i"),
                                      ("basram", "RootNode",
@@ -1073,11 +1582,11 @@ def las(sokvag: str, tillverkare: str = "") -> Datablad:
     try:
         with zipfile.ZipFile(sokvag) as z:
             if katalogindex.METADATA not in z.namelist():
-                raise Databladsfel("%s saknar %s"
+                raise Databladsfel("%s is missing %s"
                                    % (sokvag, katalogindex.METADATA))
             text = z.read(katalogindex.METADATA).decode("utf-8", "replace")
     except (zipfile.BadZipFile, OSError) as fel:
-        raise Databladsfel("%s gar inte att lasa: %s" % (sokvag, fel))
+        raise Databladsfel("%s cannot be read: %s" % (sokvag, fel))
     return fran_text(text, sokvag, tillverkare)
 
 
@@ -1090,7 +1599,7 @@ def _tillverkare_ur_sokvag(sokvag: str, rot: str) -> str:
 def bygg(rot: str, skriv=None):
     """Datablad for hela biblioteket. Ger (blad, olasliga)."""
     if not os.path.isdir(rot):
-        raise Databladsfel("ingen biblioteksrot pa %s" % rot)
+        raise Databladsfel("no library root at %s" % rot)
     blad: List[Datablad] = []
     olasliga: List[str] = []
     for katalog, _k, filer in os.walk(rot):
@@ -1182,14 +1691,14 @@ def main(argv=None):
     if not rot:
         fynd = katalogindex.hitta()
         if not fynd:
-            print("hittade inget bibliotek. Provade:")
+            print("found no library. Tried:")
             for sokvag, hur in katalogindex.kandidatrotter():
                 print("  %-60s %s" % (sokvag, hur))
             return 1
         rot = fynd[0].rot
-        print("bibliotek: %s\n  hittat via: %s" % (fynd[0].rot, fynd[0].hur))
+        print("library: %s\n  found via: %s" % (fynd[0].rot, fynd[0].hur))
     blad, olasliga = bygg(rot)
-    print("%d datablad, %d olasliga" % (len(blad), len(olasliga)))
+    print("%d datasheets, %d unreadable" % (len(blad), len(olasliga)))
     if a.visa:
         for b in blad:
             if a.visa.lower() in b.namn.lower():
@@ -1199,7 +1708,7 @@ def main(argv=None):
     familjer: Dict[str, int] = {}
     for b in blad:
         familjer[b.familj] = familjer.get(b.familj, 0) + 1
-    print("familjer: " + ", ".join("%s %d" % (k, v)
+    print("families: " + ", ".join("%s %d" % (k, v)
                                    for k, v in sorted(familjer.items())))
     print()
     print(tackningstabell(blad))
