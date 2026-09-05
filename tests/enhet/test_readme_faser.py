@@ -100,3 +100,16 @@ def test_regeln_ar_ensidig(rad, spectext, ska_falla):
     """
     faller = bool(_OGJORT.search(rad) and _FARDIG.search(spectext))
     assert faller is ska_falla
+
+
+def test_readme_fas10_text_har_inga_oppna_punkter():
+    """Fas 10 ar stangd (M-112); README-texten far inte pasta att den ar oppen."""
+    with open(_README, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    # Kontrollera att avsnittet Fas 10 inte innehaller gammal text om oppna punkter
+    assert "fasens öppna punkt" not in text.lower(), (
+        "README innehaller fortfarande gammal text om 'fasens öppna punkt' trots att fas 10 ar stangd"
+    )
+    assert "inte prövat, och det är fasens öppna punkt" not in text.lower()
+

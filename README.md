@@ -220,22 +220,20 @@ ligger i `tests/protocol/`.
 
 ### Fas 10 i detalj — det du just läser instruktionen till
 
-Prövat, mätt 2026-09-04:
+Prövat, mätt 2026-09-04 och 2026-09-05:
 
 * sökningen: **0,05 s** över 5 wine-prefix, 2 dokumentmappar, 4 VC-mappar
-* installation: **0,159 s**, 9 filer, 104 711 byte
+* installation: **0,159 s**, 9 filer, 104 711 byte (senare 11 filer)
 * ominstallation av oförändrad källa: **0 filer skrivna**
 * avinstallation: **0,060 s**, 10 filer borttagna, trädet **byte-identiskt** med före
 * **67 enhetsprov** på installationen, **3,5 s**, varken VC eller Wine krävs
 * hela sviten kördes efter tillägget: **inga nya fel**. Vid mätningen 838 prov före och 904 efter
 * `install/` och `ext/` kopierade ensamma till en tom mapp: installationen
   fungerade därifrån — inget beroende på resten av repot
-
-**Inte prövat, och det är fasens öppna punkt:** att **VC startar** med det som
-installationen lade dit. Fas 1:s och 2:s körningar mot VC gjordes mot en
-handinstallerad kopia, inte mot installationens. Att filerna är på plats, har
-rätt sha256 och kompilerar är vad som är visat. Steget som saknas är en
-VC-start ur ett testprefix efter en körning av `installera`.
+* **att VC startar med installationens filer är prövat och stängt** (M-112):
+  installation i testprefixet `~/.wine-vc-test`, start med `~/bin/vc-test.sh` på `:99`,
+  bootloggen verifierade att tillägget laddades, och bryggans `ping` svarade på **19,7 ms**.
+  Inga öppna punkter kvarstår i fas 10.
 
 ### Räckvidd, i sak
 
