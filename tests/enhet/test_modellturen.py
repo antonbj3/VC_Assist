@@ -206,7 +206,7 @@ def test_en_vag_utanfor_tabellen_kastar():
     """TRASIG FIXTUR for maskinen sjalv."""
     with pytest.raises(Turfel) as info:
         tur._nasta(tur.KLAR, "VERKTYG_OK")
-    assert "ingen deklarerad overgang" in str(info.value)
+    assert "no declared transition" in str(info.value)
 
 
 def test_stoppkoderna_i_koden_och_i_specen_ar_samma_lista():

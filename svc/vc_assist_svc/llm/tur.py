@@ -227,8 +227,8 @@ def _nasta(lage: str, handelse: str) -> str:
     par = OVERGANGAR.get((lage, handelse))
     if par is None:
         raise Turfel(
-            "ingen deklarerad overgang fran %s pa handelsen %s. En tur som gar "
-            "en vag tabellen inte kanner ar en tur ingen har provat"
+            "no declared transition from %s on event %s. A turn that takes a "
+            "path the table doesn't know is a turn no one has tried"
             % (lage, handelse))
     return par[0]
 
