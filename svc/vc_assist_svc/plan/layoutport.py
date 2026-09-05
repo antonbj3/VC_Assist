@@ -150,14 +150,14 @@ def begaran_ur_spec(spec, frigang_mm, golv_mm=None, datablad=None):
 
 def _vektor(varde, vad, roll):
     if not isinstance(varde, list) or len(varde) != 3:
-        raise Layoutfel("placeringen av %s: %s ska vara tre tal, fick %r"
+        raise Layoutfel("the placement of %s: %s must be three numbers, got %r"
                         % (roll, vad, varde))
     for v in varde:
         if not isinstance(v, (int, float)) or isinstance(v, bool):
-            raise Layoutfel("placeringen av %s: %s bar %r som inte ar ett tal"
+            raise Layoutfel("the placement of %s: %s has %r, which is not a number"
                             % (roll, vad, v))
         if v != v or v in (float("inf"), float("-inf")):
-            raise Layoutfel("placeringen av %s: %s bar %r" % (roll, vad, v))
+            raise Layoutfel("the placement of %s: %s has %r" % (roll, vad, v))
     return [float(v) for v in varde]
 
 
@@ -166,8 +166,8 @@ class Layoutport(object):
 
     def __init__(self, motor):
         if not hasattr(motor, "placera"):
-            raise Layoutfel("layoutmotorn saknar placera(begaran); porten "
-                            "anropar den och ingenting annat")
+            raise Layoutfel("the layout engine has no placera(begaran); the port "
+                            "calls only that and nothing else")
         self.motor = motor
 
     def __repr__(self):
@@ -181,27 +181,27 @@ class Layoutport(object):
 
     def granska_svar(self, svar, spec):
         if not isinstance(svar, dict):
-            raise Layoutfel("layoutmotorn svarade %s, inte en ordbok"
+            raise Layoutfel("the layout engine answered %s, not a dict"
                             % type(svar).__name__)
         okanda = sorted(set(svar) - {"v", "placeringar", "antaganden",
                                      "fragor", "status", "konflikt"})
         if okanda:
-            raise Layoutfel("layoutsvaret bar okanda nycklar: %s"
+            raise Layoutfel("the layout response has unknown keys: %s"
                             % ", ".join(okanda))
         if svar.get("v") != KONTRAKTSVERSION:
-            raise Layoutfel("layoutsvaret ar version %r, porten talar %d"
+            raise Layoutfel("the layout response is version %r, the port speaks %d"
                             % (svar.get("v"), KONTRAKTSVERSION))
         roller = set(d.roll for d in spec.delar)
         placeringar = []
         sedda = set()
         for post in svar.get("placeringar") or []:
             if not isinstance(post, dict):
-                raise Layoutfel("en placering ar %s, inte en ordbok"
+                raise Layoutfel("a placement is %s, not a dict"
                                 % type(post).__name__)
             okanda = sorted(set(post) - {"roll", "position_mm", "wpr_deg",
                                          "motiv", "instans"})
             if okanda:
-                raise Layoutfel("placeringen bar okanda nycklar: %s"
+                raise Layoutfel("the placement has unknown keys: %s"
                                 % ", ".join(okanda))
             roll = post.get("roll")
             if roll not in roller:
@@ -210,10 +210,10 @@ class Layoutport(object):
                     "kanda roller ar %s" % (roll, ", ".join(sorted(roller))))
             instans = post.get("instans", 1)
             if not isinstance(instans, int) or isinstance(instans, bool) or instans < 1:
-                raise Layoutfel("placeringen av %s bar instansen %r; en instans "
-                                "ar ett heltal fran och med 1" % (roll, instans))
+                raise Layoutfel("the placement of %s has instance %r; an instance "
+                                "is an integer starting from 1" % (roll, instans))
             if (roll, instans) in sedda:
-                raise Layoutfel("rollen %r instans %d placerades tva ganger"
+                raise Layoutfel("role %r instance %d was placed twice"
                                 % (roll, instans))
             sedda.add((roll, instans))
             motiv = post.get("motiv")
@@ -231,31 +231,31 @@ class Layoutport(object):
         for post in svar.get("antaganden") or []:
             if (not isinstance(post, dict)
                     or set(post) != {"vad", "varde", "motiv"}):
-                raise Layoutfel("ett layoutantagande ska ha precis vad, varde "
-                                "och motiv, fick %r" % (post,))
+                raise Layoutfel("a layout assumption must have exactly vad, varde "
+                                "and motiv, got %r" % (post,))
             antaganden.append(dict(post))
 
         fragor = []
         for post in svar.get("fragor") or []:
             if (not isinstance(post, dict)
                     or set(post) != {"id", "vad", "varfor", "blockerar"}):
-                raise Layoutfel("en layoutfraga ska ha precis id, vad, varfor "
-                                "och blockerar, fick %r" % (post,))
+                raise Layoutfel("a layout question must have exactly id, vad, varfor "
+                                "and blockerar, got %r" % (post,))
             if not isinstance(post["blockerar"], bool):
-                raise Layoutfel("layoutfragan %r sager inte om den blockerar"
+                raise Layoutfel("layout question %r does not say whether it blocks"
                                 % (post.get("id"),))
             fragor.append(dict(post))
 
         status = svar.get("status") or ""
         if not isinstance(status, str):
-            raise Layoutfel("layoutsvarets status ar %r, inte en text"
+            raise Layoutfel("the layout response's status is %r, not a string"
                             % (status,))
         konflikt = []
         for post in svar.get("konflikt") or []:
             if (not isinstance(post, dict)
                     or set(post) != {"kod", "text", "roller"}):
-                raise Layoutfel("en konfliktpost ska ha precis kod, text och "
-                                "roller, fick %r" % (post,))
+                raise Layoutfel("a conflict entry must have exactly kod, text "
+                                "and roller, got %r" % (post,))
             konflikt.append(dict(post))
         if konflikt and placeringar:
             raise Layoutfel(
