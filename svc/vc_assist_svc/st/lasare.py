@@ -22,9 +22,22 @@ from .fel import Syntaxfel
 from .lexer import AVSLUTARE, Token, tokenisera
 
 # Skydd mot att en djupt nästlad källa fäller läsaren med RecursionError i
-# stället för en läsbar anmärkning. Python klarar 1000 ramar som standard och
-# ett uttrycksdjup kostar ~8 ramar; 64 ligger med god marginal under.
-MAX_DJUP = 64
+# stället för en läsbar anmärkning.
+#
+# Storheten är NÄSTLINGSNIVÅER i källan — en per `(`, per argumentlista och
+# per index — inte parserramar. Skillnaden var mätt (M-99): räknaren ökade en
+# gång per prioritetsnivå i NIVAER, så en parentes kostade åtta steg och det
+# verkliga taket låg vid ÅTTA parenteser medan meddelandet sa 64. En modell
+# som fick tillbaka "djupare än 64 nivåer" på `iA := ((((((((iB))))))));`
+# hade ingen väg att laga felet: talet i meddelandet fanns inte i koden.
+#
+# Taket mäts mot läsarens verkliga kapacitet, inte mot en gissning:
+# `test_lasarens_djuptak_ligger_under_uppmatt_kapacitet` bisekerar
+# RecursionError med guarden avstängd. MÄTT 2026-09-05 vid
+# sys.getrecursionlimit() == 1000: 89 nästlingsnivåer bar, den 90:e föll.
+# 64 lämnar 25 nivåers marginal och är samtidigt det tal meddelandet redan
+# lovade.
+MAX_DJUP = 64  # Satt av M-99: uppmatt kapacitet 89 nivaer, 25 i marginal.
 
 # Operatorer per prioritetsnivå, lägst bindning först. IEC 61131-3, tabell 71.
 NIVAER = (
@@ -261,7 +274,16 @@ class Lasare(object):
                 granser.append(self._las_grans())
             self._krav("OP", "]")
             self._krav("NYCKELORD", "OF")
-            return T.Falt(self._las_typ(), tuple(granser))
+            element = self._las_typ()
+            # Typlagret vaktar sina egna invarianter med ValueError, och
+            # `validera` fangar bara Syntaxfel. MATT (M-99):
+            # `ARRAY[10..1] OF INT` kom ut ur validera som en OFANGAD
+            # ValueError - grinden KRASCHADE i stallet for att doma, och en
+            # grind som kraschar lamnar ingen anmarkning at nagon att laga.
+            try:
+                return T.Falt(element, tuple(granser))
+            except ValueError as fel:
+                raise Syntaxfel("SYNTAX", t.rad, str(fel))
         if t.sort == "IDENT":
             self._ta()
             stor = t.nyckel
@@ -482,10 +504,14 @@ class Lasare(object):
     # ---- uttryck --------------------------------------------------------
 
     def _uttryck(self, niva=0) -> M.Uttryck:
-        self.djup += 1
-        if self.djup > MAX_DJUP:
-            raise Syntaxfel("SYNTAX", self._kika().rad,
-                            "uttrycket är djupare än %d nivåer" % MAX_DJUP)
+        # Bara niva 0 är en NY nästlingsnivå. Anropen med niva+1 vandrar
+        # nedför prioritetstabellen inom samma nivå och är inte nästling.
+        rakna = niva == 0
+        if rakna:
+            self.djup += 1
+            if self.djup > MAX_DJUP:
+                raise Syntaxfel("SYNTAX", self._kika().rad,
+                                "uttrycket är djupare än %d nivåer" % MAX_DJUP)
         try:
             if niva >= len(NIVAER):
                 return self._unar()
@@ -503,7 +529,8 @@ class Lasare(object):
                 h = self._uttryck(niva + 1)
                 v = M.Binar(op, v, h, t.rad)
         finally:
-            self.djup -= 1
+            if rakna:
+                self.djup -= 1
 
     def _unar(self) -> M.Uttryck:
         t = self._kika()
