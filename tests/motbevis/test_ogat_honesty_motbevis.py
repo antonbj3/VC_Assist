@@ -140,16 +140,6 @@ def test_barstrackans_troskel_ar_bestamd_av_minst_en_cell():
 #
 # Dessa är GRÖNA. Mutationen visade att ingen provade dem; koden håller.
 
-def test_en_rapport_utan_dom_ar_inte_godkand():
-    """oga_kontrakt.godkand(): `if self.dom is None: return False`.
-    Mutation till `return True` överlever hela sviten. Fail-closed-regeln
-    (I3) för en rapport utan dom hade inget prov. Nu har den ett."""
-    r = K.Rapport("t", "2026-09-04T17:00:00", 1.0, 20, 20.0)
-    r.sektion("MOTION").rad("GRIP FORMED t=0.100s dist=1.0mm")
-    assert r.dom is None
-    assert r.godkand() is False
-
-
 def test_blowupgrinden_faller_en_cell_som_bara_bryter_mot_farten():
     """Den isolerande fixtur som saknades: greppet håller, rotationen är noll,
     slutläget ligger i mål — det enda felet är farten."""

@@ -229,3 +229,14 @@ def test_alla_kanda_radtyper_gar_att_bygga_och_lasa_tillbaka():
             r.rad(rad)
             r.satt_dom("FAIL", "provrapport")
             assert rad in K.las(r.text()).sektioner[0][1]
+
+
+def test_en_rapport_utan_dom_ar_inte_godkand():
+    """oga_kontrakt.godkand(): `if self.dom is None: return False`.
+    Mutation till `return True` överlever hela sviten. Fail-closed-regeln
+    (I3) för en rapport utan dom hade inget prov. Nu har den ett."""
+    r = K.Rapport("t", "2026-09-04T17:00:00", 1.0, 20, 20.0)
+    r.sektion("MOTION").rad("GRIP FORMED t=0.100s dist=1.0mm")
+    assert r.dom is None
+    assert r.godkand() is False
+
