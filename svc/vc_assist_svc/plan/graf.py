@@ -61,7 +61,7 @@ class Uppgiftsgraf(object):
             self._steg[s.id] = s
             self._ordnade_id.append(s.id)
         if problem:
-            raise Specfel("uppgiftsgrafen", problem)
+            raise Specfel("the task graph", problem)
 
     def __len__(self):
         return len(self._steg)
@@ -78,7 +78,7 @@ class Uppgiftsgraf(object):
 
     def steg(self, steg_id):
         if steg_id not in self._steg:
-            raise Specfel("uppgiftsgrafen", ["inget steg heter %r" % (steg_id,)])
+            raise Specfel("the task graph", ["no step is named %r" % (steg_id,)])
         return self._steg[steg_id]
 
     # -- kanter -----------------------------------------------------------
@@ -115,8 +115,8 @@ class Uppgiftsgraf(object):
         """
         okanda = self.okanda_beroenden()
         if okanda:
-            raise Graffel("grafen gar inte att ordna: %s"
-                          % "; ".join("%s beror pa %s som inte finns" % (i, b)
+            raise Graffel("the graph cannot be ordered: %s"
+                          % "; ".join("%s depends on %s which does not exist" % (i, b)
                                       for i, b in okanda))
         # Det MINSTA id:t forst. Kanoniskt val -> samma ordning varje gang.
         ut, kvar = kanonisk_ordning(self._kanter())
@@ -226,6 +226,6 @@ class Uppgiftsgraf(object):
     @classmethod
     def fran_json(cls, data):
         if not isinstance(data, list):
-            raise Specfel("uppgiftsgraf", ["forvantade en lista steg, fick %s"
+            raise Specfel("task graph", ["expected a list of steps, got %s"
                                            % type(data).__name__])
         return cls([Steg.fran_json(d) for d in data])
