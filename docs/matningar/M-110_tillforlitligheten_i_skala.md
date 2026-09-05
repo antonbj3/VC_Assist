@@ -13,12 +13,20 @@
 
 ## Resultat
 
-### Arm 1 (flerskott historik) — BLOCKERAD, ingen mätdata 2026-09-06
+### Arm 1 (flerskott historik, Sonnet) — BLOCKERAD, ingen mätdata 2026-09-06
 
 - Kommando: `python3 tests/protocol/kor_fas9_slingan.py --lage historik --json docs/matningar/m110_flerskott_historik.json` (exit 1).
 - Utfall: **21 av 21 KORNINGSFEL**, `lost 0 av 21`, kostnad **0.000 USD**. Orsak: `Modellfel('claude gav slutkod 1: ')` på varje uppgift — repots enda modellklient är `claude -p` (`svc/vc_assist_svc/modellklient.py:71`) och CLI:t svarar `Not logged in · Please run /login` i denna miljö. Inget anrop nådde modellen; inget är mätt, inget är förbrukat.
 - Alternativen är avvisade: `InspeladModell` är en inspelning (vore attrappstal, fail-closed gäller), Ollama finns som env-namn men ingen klient för den i repot — att bygga en ny klient mitt i mätningen vore att byta apparat (§4).
 - Nästa steg kräver inloggat `claude` (operatörens miljö) eller besked om annan väg. Armarna 2–4 körs inte förrän arm 1 kan nå modellen — att bränna armar mot en död klient ger bara fler nollfiler.
+
+### Arm 1b (flerskott historik, Muse Spark) — EGEN ARM, pilot 2/2 2026-09-06
+
+- Apparat: `tests/protocol/kor_fas9_musespark.py` (OpencodeCLI + OpencodeModell, modell `opencode/muse-spark-1.3-contributor-free`). Samma promptbygge/grindar/JSON som sonnet-armen; spärren är treskiktad (tempkatalog utanför repot + inga bilagor/sökvägar + fail-closed på verktygshändelser). Svagare än Claudes flaggspärr — ett medvetet, dokumenterat avsteg.
+- Transporttillägg (konstant i armen): "Svara med enbart kodens rader som vanlig text. Använd inga verktyg, läs inga filer, kör ingen kod."
+- Kostnad: 0 USD (gratisnivå); i stället mäts tokens in/ut per uppgift.
+- Pilot (`m110_pilot_musespark.json`): S-05 LÖST efter 2 varv (30 599/1 798 tok, 90 s), T-07 LÖST efter 2 varv (28 359/749 tok, 144 s). T-07 slog i taket (4 varv) på Sonnet i M-96 — på Muse Spark räckte 2. Inga verktygslarm (larmet hade gett KÖRNINGSFEL, inte tyst godkännande).
+- Dessa tal jämförs ALDRIG med M-96:s Sonnet-tal.
 
 ## LIMITS
 
