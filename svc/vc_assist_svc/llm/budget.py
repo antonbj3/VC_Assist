@@ -33,7 +33,6 @@ den trasiga fixtur som SKA falla.
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 

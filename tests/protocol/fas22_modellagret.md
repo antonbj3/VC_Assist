@@ -11,7 +11,7 @@
 
 ## Status 2026-09-05: **grön i L1**
 
-**96 prov** i de fyra enhetsfilerna, plus acceptanskörningen med **13 trasiga
+**97 prov** i de fyra enhetsfilerna, plus acceptanskörningen med **13 trasiga
 fall**. Alla fälls, och var och en med sin egen kod.
 
 Kör:
@@ -43,6 +43,11 @@ Tre halvor, och den tredje är den svåra. De två första går att se. Den tred
 **båda** hållen: att kontrollen faller på ett verkligt fel, och att den släpper
 igenom det korrekta. En kontroll som bara provats åt ena hållet är oprövad
 (`docs/spec/95_testprotokoll.md`).
+
+**Korpusen växer med banken.** Talen nedan är mätta 2026-09-05 med 51
+bankuppgifter i `bank/uppgifter/`. Läggs en uppgift till växer korpusen, och
+talen ska då läsas om — proven kräver storleksordningar (`> 100` svar,
+`> 50` kapade), aldrig ett exakt antal.
 
 **Korpusen är riktig.** 207 verktygssvar kommer ur repots egna
 `DATA_HANDLERS`, anropade med argument som också kommer ur repot: katalogens 65

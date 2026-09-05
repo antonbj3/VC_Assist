@@ -45,6 +45,11 @@ ställer är den operatören ställde: **vad händer när ett verktygssvar är s
 | `harness/fallor.ALLA` | **95 turer** | efterlevnadsbankens fixturer, med turens egna anrop som facit |
 | egna turer | **13** | de vägar genom tillståndsmaskinen banken aldrig går |
 
+**Korpusen växer med banken.** Talen är mätta med **51** bankuppgifter. Läggs
+en uppgift till växer antalet svar — proven kräver därför storleksordningar
+(`> 100` svar, `> 50` kapade), aldrig ett exakt antal, och talen nedan är ett
+snitt av den 5 september och inte en konstant.
+
 ---
 
 ## 1. Verktygsschemat får inte plats under sitt eget tak

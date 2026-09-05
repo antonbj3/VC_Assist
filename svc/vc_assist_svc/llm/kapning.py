@@ -210,14 +210,6 @@ def _byte(svar: Verktygssvar) -> int:
     return svar.byte()
 
 
-def _med_resultat(svar: Verktygssvar, resultat) -> Verktygssvar:
-    return Verktygssvar(verktyg=svar.verktyg, argument=dict(svar.argument),
-                        ok=svar.ok, resultat=resultat, fel=svar.fel,
-                        felnyckel=svar.felnyckel, id=svar.id,
-                        ur_kalla=svar.ur_kalla,
-                        sammanfattning=svar.sammanfattning)
-
-
 def _hanvisning(svar: Verktygssvar, tak_byte: int, fore: int):
     """Svaret ryms inte ens tomt. Da skickas en hanvisning, aldrig en prefix.
 
@@ -290,7 +282,6 @@ def kapa(svar: Verktygssvar, tak_byte: int,
         for n in listor:
             innehall[n] = kvar[n]
         _bokfor(innehall, listor, utelamnade, svar)
-        kapad = _med_resultat(svar, innehall)
         kapad = Verktygssvar(verktyg=svar.verktyg,
                              argument=dict(svar.argument), ok=svar.ok,
                              resultat=innehall, fel=svar.fel,

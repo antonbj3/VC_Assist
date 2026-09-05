@@ -156,6 +156,23 @@ def test_noteringen_ligger_utanfor_ogats_block():
         assert n.rad() in helheten
 
 
+def test_en_notis_inne_i_blocket_falls():
+    """TRASIG FIXTUR. Noteringen hor UTANFOR ogats block.
+
+    `oga_kontrakt.las()` kastar Kontraktsfel pa ett okant nyckelord i en kand
+    sektion, sa en inskjuten rad inne i blocket gor rapporten olasbar for
+    lasaren. Provet kraver att BADA sakerna sags: att notisen star fel, och att
+    rapporten inte langre gar att lasa.
+    """
+    rapport = FX.lang_rapport()
+    trimmad, notiser = O.trimma(rapport, 1200)
+    rader = trimmad.rstrip("\n").split("\n")
+    rader.insert(len(rader) - 1, notiser[0].rad())
+    koder = O.granska(rapport, "\n".join(rader) + "\n")
+    assert any(O.O5_NOTIS_I_BLOCKET in k for k in koder), koder
+    assert any(O.O6_OLASBAR in k for k in koder), koder
+
+
 def test_honesty_och_limits_trimmas_aldrig():
     """HONESTY: dess franvaro gar inte att skilja fran att den aldrig kordes.
     LIMITS: vad ogat INTE ser, och grinden kraver sektionen (M-65 §6)."""

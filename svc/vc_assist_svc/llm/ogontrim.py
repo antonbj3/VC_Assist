@@ -187,6 +187,13 @@ def ar_fynd(sektion: str, rad: str) -> bool:
     return s is not None and s not in OK_VARDEN
 
 
+# En notis KANNS IGEN pa sin egen form. Det ar sa granskningen kan skilja
+# "en rad tjansten skrev" fran "en rad ogat skrev", och darmed falla pa en
+# notis som hamnat INNE i blocket - dar den skulle gora rapporten olasbar for
+# oga_kontrakt.las().
+NOTISFORM = re.compile(r"^\d+ \S+-rader utelamnade ur SECTION ")
+
+
 @dataclass(frozen=True)
 class Trimnotis:
     sektion: str
@@ -392,6 +399,11 @@ def granska(original: str, skickat: str) -> List[str]:
     blockrader = srader[:slut + 1]
 
     for r in blockrader:
+        if NOTISFORM.match(r.strip()):
+            ut.append("%s: noteringen %r star INNE i ogats block. En inskjuten "
+                      "rad i en kand sektion gor rapporten olasbar for "
+                      "oga_kontrakt.las()" % (O5_NOTIS_I_BLOCKET, r.strip()))
+            continue
         if r.strip() not in obehall:
             ut.append("%s: raden %r star i det som skickades men inte i ogats "
                       "egen text" % (O4_OMSKRIVEN_RAD, r.strip()))
