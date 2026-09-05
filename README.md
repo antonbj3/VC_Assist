@@ -45,7 +45,8 @@ ovanför sömmen är generiskt, allt under är VC-specifikt.
 
 | | Krav | Anmärkning |
 |---|---|---|
-| **Värdmaskin** | Python 3 | Endast standardbiblioteket för installationen. Körd på **3.13.11** och **3.10.12** |
+| **Värdmaskin** | Python 3 | Endast standardbiblioteket för installationen. Körd på **3.13.11**, **3.12.3** och **3.10.12** |
+| **För att köra proven** | `pytest` | Det enda som behöver installeras, och bara för `tests/`. Installationen och tillägget klarar sig utan |
 | **Visual Components** | 4.10 Premium | Det är versionen allt är mätt på. Se tabellen längst ned om andra versioner |
 | **Linux** | Wine ≥ 11.15, DXVK som d3d9 | Se [`docs/drift/linux_wine.md`](docs/drift/linux_wine.md). Under 11.15 dör licensmotorn på `bcrypt HashBlockLength` — mätt |
 | **Windows** | inget utöver VC självt | **Oprövad väg.** Se nedan |
@@ -199,11 +200,19 @@ ligger i `tests/protocol/`.
 | 3 | Grinden | klar på Linux | Kört på ögats verkliga utdata ur VC: bara de gröna gav GOLD, alla fem gav NOT GOLD. Sju vägar in ger NOT GOLD, tystnad inräknad. L2 mot en riktig lina saknas — ingen lina byggd än |
 | 4 | API-index | klar, kräver ej VC | **3444 symboler** ur `api.xml`. Oberoende prov: 7 riktiga kodstycken, **0 falskt positiva**; 10 uppfunna namn, **0 falskt negativa** |
 | 5 | Verktygen mot VC | klar på Linux | Förmågerapport **46 av 46 ytor**. **20 anrop lyckades, 0 föll**, alla 21 verktyg prövade |
-| 6 | PLC-bandet | **inte påbörjad** | Inget protokoll |
-| 7 | ST för en station | **inte påbörjad** | Inget protokoll |
-| 8 | Komposition | **inte påbörjad** | Inget protokoll |
-| 9 | Bänken | **inte påbörjad** | Inget protokoll |
-| 10 | Paketering | **delvis** | `fas10_paketering.md`. Se nedan |
+| 6 | PLC-bandet | klar på Linux | M-39: handskriven ST styr scenen genom OPC UA, slingan sluten. VC 4.10, Wine 11.16, OpenPLC v4, headless |
+| 7 | ST för en station | klar på Linux | M-49, M-50: grind 1–5 gröna, ögat PASS, **L1-guld**. Fem trasiga fall fällda av ögat |
+| 8 | Komposition | klar på Linux | M-73, M-74: två stationer på en lina, **guld i fem celler**. Fem kompositionsfel fällda i linan som båda enstationskörningarna släppte igenom |
+| 9 | Bänken | tre tal mätta | M-80: första försöket **0 av 4**, efter ett reparationsvarv **4 av 4**. Baslinjen (M-62, ingen språkmodell) tog 4 av 4 redan i varv 1. Slingan drevs för hand |
+| 10 | Paketering | klar på ren Linux-maskin, en öppen punkt | M-90. Se nedan |
+| 11 | Klassisk baslinje | klar, kräver ej VC | M-62: en regelbaserad generator över **samma** bank och **samma** domare. Fas 9:s tal rapporteras alltid som par |
+| 12 | Verktygskedjan i repot | klar på Linux | M-56: STruC++ v0.6.6, OpenPLC v4 och node v22.22.0 hämtas med fastspikad version och kontrollerad hash. Windows-vägen oprövad |
+| 13 | Windows | **inte påbörjad** | Kräver en Windows-maskin. M-44:s 16 numrerade protokollpunkter väntar |
+| 14 | Harnessens hårdhet | klar, kräver ej VC | M-53: från 17 av 46 mekaniserade regler till **37 av 46**, med ett golv som bara får gå uppåt |
+| 15 | Ögat på djupet | pågår | Tidsserie över varje objekt, PLC-värdena på samma tidsaxel |
+| 16 | Planeringslagret | klar, kräver ej VC | M-63: en fritextbeställning blir en körbar byggplan, och en omöjlig beställning **avvisas** med vilket villkor som krockar |
+| 17 | Vad användaren ser | pågår | Systemet rapporterar i dag till loggar och mätfiler, alltså till oss |
+| 18 | Befintlig anläggning in | pågår, premissen mätt | M-75: ett inspelat I/O-spår har redan bänkens facitform |
 
 ### Fas 10 i detalj — det du just läser instruktionen till
 
