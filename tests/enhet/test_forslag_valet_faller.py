@@ -518,3 +518,37 @@ def test_C2_samma_besked_utan_sokskikt_sager_att_det_inte_sokte():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+
+def test_nyttolasten_ar_en_EGEN_storhet_och_aldrig_egenvikten():
+    """TRASIG FIXTUR for storhetsblandningen (docs/spec/56_sprakplanen.md).
+
+    Tva tal i kilo som betyder olika saker: vad roboten VAGER och vad den kan
+    BARA. Att dimensionera en cell pa egenvikten i tron att det ar barformagan
+    ar inte ett stavfel - det ar fel robot pa golvet.
+
+    Fore den har storheten gick ett nyttolastkrav inte att uttrycka alls.
+    """
+    spec = _spec()
+    spec.villkor.append(VS.Typvillkor(
+        "last", "geometri", "del.robot.nyttolast_kg", "ge", 20.0,
+        _harkomst("roboten ska klara 20 kg"), "minst 20 kg"))
+    # Roboten VAGER 272 kg och kan BARA 6. Ett system som blandar ihop dem
+    # svarar att kravet ar uppfyllt med god marginal.
+    rum = ST.Faktarum(spec, {"robot": {"massa_kg": 272.0,
+                                       "nyttolast_kg": 6.0}})
+    v = rum.las("del.robot.nyttolast_kg")
+    assert v.kant and v.tal == 6.0 and v.enhet == "kg", v
+    assert "nyttolast" in v.kalla and "egenvikt" in v.kalla, (
+        "kallan ska saga vilken av de tva storheterna talet ar")
+
+
+def test_en_okand_nyttolast_blir_aldrig_egenvikten():
+    """Kontrollriktningen, och den viktigaste: saknas nyttolasten ska svaret
+    vara OKANT med skal - aldrig komponentens egen massa."""
+    spec = _spec()
+    rum = ST.Faktarum(spec, {"robot": {"massa_kg": 272.0}})
+    v = rum.las("del.robot.nyttolast_kg")
+    assert not v.kant, "en okand nyttolast far inte fa ett tal"
+    assert "272" not in str(v.skal or ""), "egenvikten far inte lacka in"
+    assert "far inte anvandas i stallet" in (v.skal or "")

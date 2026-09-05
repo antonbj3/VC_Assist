@@ -57,7 +57,17 @@ STORHETER = (
     (r"del\.%s\.bredd_mm" % _ROLL, "mm", STATISK, "rollens bredd"),
     (r"del\.%s\.hojd_mm" % _ROLL, "mm", STATISK, "rollens hojd"),
     (r"del\.%s\.yta_mm2" % _ROLL, "mm2", STATISK, "rollens fotavtryck"),
-    (r"del\.%s\.massa_kg" % _ROLL, "kg", STATISK, "rollens massa"),
+    # TVA STORHETER I KILO SOM BETYDER OLIKA SAKER. De far aldrig dela namn,
+    # och beskrivningarna star har for att en lasare inte ska kunna ta fel:
+    #   massa_kg      vad rollen SJALV VAGER
+    #   nyttolast_kg  vad rollen KAN BARA
+    # Att dimensionera en cell pa robotens egenvikt i tron att det ar dess
+    # barformaga ar inte ett stavfel - det ar fel robot pa golvet.
+    # Se docs/spec/56_sprakplanen.md.
+    (r"del\.%s\.massa_kg" % _ROLL, "kg", STATISK,
+     "vad rollen SJALV vager (inte vad den kan bara)"),
+    (r"del\.%s\.nyttolast_kg" % _ROLL, "kg", STATISK,
+     "vad rollen KAN BARA (inte vad den sjalv vager)"),
     (r"del\.%s\.rackvidd_mm" % _ROLL, "mm", STATISK, "hur langt rollen nar"),
     (r"delar\.yta_mm2", "mm2", STATISK, "summan av alla fotavtryck"),
     (r"delar\.antal", "st", STATISK, "antal komponenter i cellen"),
@@ -270,6 +280,21 @@ class Faktarum(object):
                 return okant("rollen %s bar ingen massa" % roll)
             return Varde(True, float(d.massa_kg), "kg",
                          "specens del %s ur katalogposten %s" % (roll, d.uri))
+        if falt == "nyttolast_kg":
+            ur_blad = self._ur_datablad(roll, "nyttolast_kg")
+            if ur_blad is not None:
+                return Varde(True, float(ur_blad), "kg",
+                             "databladet for %s (nyttolast, inte egenvikt)"
+                             % roll)
+            # Katalogposten deklarerar MaxPayload i 2358 av 3201 poster
+            # (M-163). Saknas den ar svaret OKANT med skalet - ALDRIG
+            # komponentens egen massa, som ar en helt annan storhet.
+            return okant(
+                "nyttolasten for %s ar okand. Katalogposten deklarerar "
+                "MaxPayload i 2358 av 3201 poster (M-163); den har rollens "
+                "post gor det inte, och inget datablad ar matt for den. "
+                "Rollens EGENVIKT (massa_kg) far inte anvandas i stallet - "
+                "det ar vad den vager, inte vad den kan bara" % roll)
         if falt == "rackvidd_mm":
             ur_blad = self._ur_datablad(roll, "rackvidd_mm")
             if ur_blad is not None:
