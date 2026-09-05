@@ -202,14 +202,25 @@ ORDBOK = (
     ("nodstopp", "sakerhet", "nodstopp"),
 )
 
+# De tre monstren nedan laser OPERATORENS EGEN TEXT, samma text som
+# plan/lasning.py laser. MATT 2026-09-05 (M-105): lasning.py bar `re.I` pa
+# varenda monster, de har tre bar ingen alls. Att tva moduler laser samma text
+# med olika skiftlagespolicy ar felet - inte att den ena ar strangare. "600 MM"
+# och "12 SEK PER CYKEL" lastes inte, och ett omatt matt blir en fraga till
+# operatoren om nagot han redan har svarat pa.
+#
+# `_CYKEL` fyrade dessutom NOLL ganger i hela enhetssviten (6452 prov, M-105).
+# Den var alltsa aldrig provad mot nagon text over huvud taget, och den vanligaste
+# svenska formen - "12 sek per cykel" - gick rakt igenom som otolkad.
+
 # Matt i millimeter ur texten, till exempel "bandbredd 600 mm".
-_MM = re.compile(r"(\d+(?:[.,]\d+)?)\s*mm")
+_MM = re.compile(r"(\d+(?:[.,]\d+)?)\s*mm", re.I)
 # Takt: "45 burkar per minut", "100 enheter i timmen", "120/h".
 _TAKT = re.compile(r"(\d+(?:[.,]\d+)?)\s*[a-zA-Z]*\s*(?:per|/|i)\s*"
-                   r"(minut|min|timme|timmen|h)\b")
-# Cykeltid: "1,33 s per burk", "32,0 sekunder per enhet".
-_CYKEL = re.compile(r"(\d+(?:[.,]\d+)?)\s*s(?:ekunder)?\s*(?:per|/)\s*"
-                    r"(?:cykel|enhet|detalj|burk|styck|del)")
+                   r"(minut|min|timme|timmen|h)\b", re.I)
+# Cykeltid: "1,33 s per burk", "32,0 sekunder per enhet", "12 sek per cykel".
+_CYKEL = re.compile(r"(\d+(?:[.,]\d+)?)\s*s(?:ek(?:under)?)?\s*(?:per|/)\s*"
+                    r"(?:cykel|enhet|detalj|burk|styck|del)", re.I)
 
 
 def _tal(text):
@@ -225,7 +236,10 @@ def takt_per_h(text):
     if not m:
         return None
     varde = _tal(m.group(1))
-    return varde * 60.0 if m.group(2) in ("minut", "min") else varde
+    # `.lower()` hor IHOP med `re.I` pa _TAKT: utan den hade "PER MINUT" fallit
+    # ur jamforelsen och 120 burkar i MINUTEN blivit 120 i timmen. Ett tyst fel
+    # ar varre an det ursprungliga, dar talet aldrig lastes alls.
+    return varde * 60.0 if m.group(2).lower() in ("minut", "min") else varde
 
 
 def cykeltid_s(text):
