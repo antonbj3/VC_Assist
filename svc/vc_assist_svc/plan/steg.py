@@ -117,7 +117,7 @@ class Bindning(object):
             problem.append("okand typ %r; kanda ar %s"
                            % (typ, ", ".join(BINDNINGSTYPER)))
         if problem:
-            raise Specfel("bindningen", problem)
+            raise Specfel("the binding", problem)
 
     def __repr__(self):
         if self.sort == "steg":
@@ -150,7 +150,7 @@ class Bindning(object):
         inre = data["$bindning"]
         vantade = ("sort", "fran_steg", "vag", "namn", "typ")
         if not isinstance(inre, dict) or set(inre) != set(vantade):
-            raise Specfel("bindning", ["forvantade precis nycklarna %s"
+            raise Specfel("binding", ["expected exactly the keys %s"
                                        % ", ".join(sorted(vantade))])
         return cls(inre["sort"], inre["fran_steg"], inre["vag"], inre["namn"],
                    inre["typ"])
@@ -261,7 +261,7 @@ class Efterkontroll(object):
             problem.append("efterkontrollen bar %s; exekveringslaget ags av "
                            "utforaren (I12)" % ", ".join(smitare))
         if problem:
-            raise Specfel("efterkontrollen %r" % (verktyg,), problem)
+            raise Specfel("the postcondition %r" % (verktyg,), problem)
 
     def __repr__(self):
         return "Efterkontroll(%s.%s %s %r)" % (self.verktyg, self.vag,
@@ -314,8 +314,8 @@ class Efterkontroll(object):
         vantade = ("verktyg", "argument", "vag", "operator", "forvantat",
                    "motiv")
         if not isinstance(data, dict) or set(data) != set(vantade):
-            raise Specfel("efterkontroll",
-                          ["forvantade precis nycklarna %s"
+            raise Specfel("postcondition",
+                          ["expected exactly the keys %s"
                            % ", ".join(sorted(vantade))])
         argument = {}
         for namn, varde in (data["argument"] or {}).items():
@@ -345,7 +345,7 @@ class Kontroll(object):
         self.fakta_nyckel = fakta_nyckel
         problem = []
         if sort not in KONTROLLSORTER:
-            raise Specfel("kontrollen", ["okand sort %r; kanda ar %s"
+            raise Specfel("the check", ["unknown kind %r; known are %s"
                                          % (sort, ", ".join(KONTROLLSORTER))])
         if sort == "villkor":
             if not isinstance(villkor, Forvillkor):
@@ -375,7 +375,7 @@ class Kontroll(object):
             if villkor is not None or regel or self.kallor or self.ger:
                 problem.append("en ogonkontroll bar bara sin faktanyckel")
         if problem:
-            raise Specfel("kontrollen %r" % (sort,), problem)
+            raise Specfel("the check %r" % (sort,), problem)
 
     def __repr__(self):
         return "Kontroll(%s)" % self.sort
@@ -399,7 +399,7 @@ class Kontroll(object):
     def fran_json(cls, data):
         vantade = ("sort", "villkor", "regel", "kallor", "ger", "fakta_nyckel")
         if not isinstance(data, dict) or set(data) != set(vantade):
-            raise Specfel("kontroll", ["forvantade precis nycklarna %s"
+            raise Specfel("check", ["expected exactly the keys %s"
                                        % ", ".join(sorted(vantade))])
         return cls(data["sort"],
                    Forvillkor.fran_json(data["villkor"]) if data["villkor"] else None,
@@ -465,7 +465,7 @@ class Steg(object):
             problem.append("ett kontrollsteg anropar inget verktyg och har "
                            "darfor ingenting att efterkontrollera")
         if problem:
-            raise Specfel("steget %r" % (id,), problem)
+            raise Specfel("the step %r" % (id,), problem)
 
     def __repr__(self):
         vad = self.verktyg if self.sort == "verktyg" else self.kontroll.sort
@@ -548,9 +548,9 @@ class Steg(object):
         saknade = sorted(set(vantade) - set(data))
         okanda = sorted(set(data) - set(vantade))
         if saknade or okanda:
-            raise Specfel("steget %r" % (data.get("id"),),
-                          ["nyckeln %r saknas" % n for n in saknade]
-                          + ["okand nyckel %r" % n for n in okanda])
+            raise Specfel("the step %r" % (data.get("id"),),
+                          ["key %r is missing" % n for n in saknade]
+                          + ["unknown key %r" % n for n in okanda])
         argument = {}
         for namn, varde in (data["argument"] or {}).items():
             argument[namn] = (Bindning.fran_json(varde)
