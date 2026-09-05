@@ -392,7 +392,7 @@ alltså litet i praktiken — men det är räknat, inte bortglömt.
 
 En av 555 OpenPLC-körningar (**0,18 %**) gav Domsfel:
 `C-01/motbevis:oppnar_inlopp_aven_nar_bufferten_ar_full`, varv 3, med
-kompilatorns och kanalens egna ord:
+kanalens egna ord:
 
 ```
 sekvensen enhet_genom_cellen: batchläsningen av 11 signaler föll:
