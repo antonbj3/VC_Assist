@@ -32,6 +32,7 @@ ett annat arbete, och det ska inte smyga in har.
 """
 from __future__ import annotations
 
+import ast
 import os
 import re
 import unicodedata
@@ -395,6 +396,211 @@ def rattelser_utan_framatpekare(katalog: str) -> List[Tuple[str, List[str]]]:
     return ut
 
 
+# ---- ordlistor som avgor en dom ------------------------------------------
+
+# Katalogerna som soks efter ordlistor. Samma som kodmarkorsvepet, minus
+# tests/: en ordlista i ett prov ar provets egen fixtur och ingen dom.
+_ORDLISTEKATALOGER = ("svc", "ext", "bank", "install")
+
+# En lista under tre ord ar ingen ordlista utan tre namn. MATT M-98: av 163
+# moduldeklarerade stranglistor i svc/ext/bank/install ligger 23 av de 35
+# helt-inneslutna paren pa exakt 3 gemensamma ord, alltsa pa golvet - det ar
+# sammantraffanden, inte kopior.
+_MINSTA_ORDLISTA = 3
+
+# Nar tva listor i olika filer raknas som KOPIOR. Talet ar matt och inte valt:
+# fordelningen av parvis overlapp over de 163 listorna gar 19 par vid >=4, 7
+# vid >=5, 6 vid >=6 och 4 vid >=7. Knacken ligger mellan 4 och 5, och
+# gransen star pa 6 sa att ett femordigt sammantraffande inte blir ett fynd.
+# Listor med SAMMA namn raknas som kopior oavsett storlek - ett delat namn ar
+# ingen slump.
+KOPIEGRANS = 6
+
+# `__all__` ar Pythons exportlista och ingen ordlista som domer nagot. Den
+# star for sig darfor att den annars ensam star for 43 av de identiska paren.
+_ICKE_ORDLISTOR = ("__all__",)
+
+
+@dataclass(frozen=True)
+class Ordlista:
+    """En moduldeklarerad lista av strangar, dar den star."""
+
+    fil: str
+    namn: str
+    rad: int
+    ord: frozenset
+    sammansatt: bool
+
+
+def _strangarna(nod) -> Optional[List[str]]:
+    """Strangarna i en tupel/lista/mangd av BARA strangliteraler, annars None."""
+    if not isinstance(nod, (ast.Tuple, ast.List, ast.Set)):
+        return None
+    ut: List[str] = []
+    for e in nod.elts:
+        if isinstance(e, ast.Constant) and isinstance(e.value, str):
+            ut.append(e.value)
+        else:
+            return None
+    return ut
+
+
+def ordlistor(rot: str) -> List[Ordlista]:
+    """Alla moduldeklarerade stranglistor under _ORDLISTEKATALOGER.
+
+    En lista byggd ur ANDRA listor (`NEKANDE = FELORD + BARA_NEGATION`) far
+    sammansatt=True och tomma ord. Skillnaden ar hela poangen med
+    ordlistor_med_tva_storheter nedan: en sammansatt lista BAR sina delar
+    oppet, och da gar var storhet att fraga om for sig.
+    """
+    ut: List[Ordlista] = []
+    for under in _ORDLISTEKATALOGER:
+        katalog = os.path.join(rot, under)
+        if not os.path.isdir(katalog):
+            continue
+        for dp, dn, fn in os.walk(katalog):
+            dn[:] = [d for d in dn if d != "__pycache__"]
+            for namn_ in sorted(fn):
+                if not namn_.endswith(".py"):
+                    continue
+                stig = os.path.join(dp, namn_)
+                try:
+                    with open(stig, "r", encoding="utf-8") as f:
+                        trad = ast.parse(f.read())
+                except (OSError, SyntaxError, UnicodeDecodeError):
+                    continue
+                rel = os.path.relpath(stig, rot)
+                for nod in trad.body:
+                    if not isinstance(nod, ast.Assign) or len(nod.targets) != 1:
+                        continue
+                    mal = nod.targets[0]
+                    if not isinstance(mal, ast.Name):
+                        continue
+                    if mal.id in _ICKE_ORDLISTOR:
+                        continue
+                    ord_ = _strangarna(nod.value)
+                    if ord_ is not None:
+                        if len(ord_) < _MINSTA_ORDLISTA:
+                            continue
+                        ut.append(Ordlista(rel, mal.id, nod.lineno,
+                                           frozenset(o.strip().lower()
+                                                     for o in ord_),
+                                           False))
+                    elif isinstance(nod.value, ast.BinOp):
+                        ut.append(Ordlista(rel, mal.id, nod.lineno,
+                                           frozenset(), True))
+    return ut
+
+
+def _karnorna(listor: Sequence[Ordlista]) -> Tuple[frozenset, frozenset]:
+    """De tva storheterna, hamtade ur den modul som AGER delningen.
+
+    Karnorna star INTE som literaler har. Grinden mot kopierade ordlistor far
+    inte sjalv bara en kopia av den lista den domer om - da hade den matt sin
+    egen avskrift i stallet for repots. De lases ur
+    `svc/vc_assist_svc/harness/text.py`, dar M-95 gjorde delningen:
+
+      FELORD         ord som sager att nagot GICK FEL
+      BARA_NEGATION  ord som bara negerar det de star bredvid
+
+    Saknas nagon av dem KASTAR grinden. En grind vars indata forsvunnit ska
+    saga det, aldrig svara "inga fynd" (S10).
+    """
+    hittade: Dict[str, frozenset] = {}
+    for lista in listor:
+        if lista.fil.replace("\\", "/").endswith("harness/text.py"):
+            if lista.namn in ("FELORD", "BARA_NEGATION"):
+                hittade[lista.namn] = lista.ord
+    saknade = sorted({"FELORD", "BARA_NEGATION"} - set(hittade))
+    if saknade:
+        raise ValueError(
+            "ordlistegrinden hittar inte %s i harness/text.py; karnorna maste "
+            "lasas ur den modul som ager delningen (M-95, M-98)"
+            % ", ".join(saknade))
+    return hittade["FELORD"], hittade["BARA_NEGATION"]
+
+
+def ordlistor_med_tva_storheter(
+        rot: str,
+        karnor: Optional[Tuple[Sequence[str], Sequence[str]]] = None
+) -> List[Tuple[str, int, str, List[str], List[str]]]:
+    """Litterala ordlistor som bar BADE felord och bara negationer.
+
+    FELKLASSEN, matt tre ganger: M-94 fynd 1 och 4 (`text.NEKANDE`) och M-98
+    (`oga.NEKANDE_OGONORD`). En lista som bar tva storheter svarar pa fragan
+    "bar texten nagot av de har orden?" - och den fragan ar inte den grinden
+    stallde sig. Foljden var bada gangerna en falsk gron: ett orelaterat
+    "inte" nagon annanstans i svaret tystade grinden.
+
+    Kriteriet ar STRUKTURELLT och har ingen undantagslista: en lista som bar
+    bada storheterna maste vara SAMMANSATT ur de listor som bar var sin
+    (`NEKANDE = FELORD + BARA_NEGATION + FORBEHALL`). Da gar var storhet att
+    fraga om for sig, och unionen finns kvar for den som verkligen vill ha
+    bredden.
+
+    MATT 2026-09-05, samma grind mot tre trad:
+      fore M-95   2 traffar (text.NEKANDE, oga.NEKANDE_OGONORD)
+      fore M-98   1 traff  (oga.NEKANDE_OGONORD)
+      efter M-98  0
+
+    karnor ar (felord, negationer) och finns bara for att kunna stalla samma
+    fraga till ett ANNAT trad an det som bar delningen. Utelamnas den lases
+    karnorna ur harness/text.py, och det ar den enda vag registret gar.
+
+    Returnerar [(fil, rad, namn, felorden, negationerna)].
+    """
+    listor = ordlistor(rot)
+    if karnor is None:
+        felord, negationer = _karnorna(listor)
+    else:
+        # Bara for att kunna stalla SAMMA fraga till ett annat trad, t.ex. en
+        # utcheckning fran fore delningen (M-98:s tabell). Registret gar
+        # aldrig den vagen: bygg() lamnar karnor=None.
+        felord = frozenset(o.strip().lower() for o in karnor[0])
+        negationer = frozenset(o.strip().lower() for o in karnor[1])
+    ut = []
+    for lista in listor:
+        if lista.sammansatt:
+            continue
+        f = sorted(lista.ord & felord)
+        n = sorted(lista.ord & negationer)
+        if f and n:
+            ut.append((lista.fil, lista.rad, lista.namn, f, n))
+    return sorted(ut)
+
+
+def kopierade_ordlistor(rot: str) -> List[Tuple[str, str, str, str, int]]:
+    """Ordlistor som star i tva filer, och alltsa kan glida isar.
+
+    `harness/text.py`:s egen docstring sager varfor: "de ligger PA ETT STALLE
+    just for att en kopierad ordlista blir tva ordlistor sa fort nagon ratter
+    den ena". Registret sag inte att den regeln brots - `oga.py` bar en egen
+    kopia, och M-98 lagade den ena utan att den andra rorde sig.
+
+    ATT DET INTE AR TEORETISKT, matt 2026-09-05: `guldgrind.DALIGA_ORD` och
+    `oga_kontrakt._FYNDORD` delar 12 ord, och den forsta bar dessutom
+    "CEILING" - som den andra med FLIT lagt i `_OSAKERORD`. Kopian HAR redan
+    glidit isar, och de tva grindarna laser samma ogonrapport.
+
+    Kriteriet: samma normaliserade namn och minst ett gemensamt ord, eller
+    minst KOPIEGRANS gemensamma ord. Returnerar
+    [(fil_a, namn_a, fil_b, namn_b, antal_gemensamma)].
+    """
+    listor = [l for l in ordlistor(rot) if not l.sammansatt]
+    ut = []
+    for i, a in enumerate(listor):
+        for b in listor[i + 1:]:
+            if a.fil == b.fil:
+                continue
+            gem = a.ord & b.ord
+            if not gem:
+                continue
+            samma_namn = a.namn.strip("_").lower() == b.namn.strip("_").lower()
+            if len(gem) >= KOPIEGRANS or samma_namn:
+                ut.append((a.fil, a.namn, b.fil, b.namn, len(gem)))
+    return sorted(ut, key=lambda r: (-r[4], r[0], r[1]))
+
+
 def bygg(rot: str) -> Dict[str, object]:
     matningar = os.path.join(rot, "docs", "matningar")
     poster: List[Post] = []
@@ -413,6 +619,8 @@ def bygg(rot: str) -> Dict[str, object]:
         "nummerkollisioner": nummerkollisioner(matningar),
         "moduler_utan_prov": moduler_utan_prov(rot),
         "rattelser_utan_framatpekare": rattelser_utan_framatpekare(matningar),
+        "ordlistor_med_tva_storheter": ordlistor_med_tva_storheter(rot),
+        "kopierade_ordlistor": kopierade_ordlistor(rot),
         "antal_punkter": sum(p.antal for p in poster),
         "antal_kodmarkorer": sum(p.antal for p in kodposter),
     }
@@ -452,6 +660,37 @@ def text(register: Dict[str, object]) -> str:
         for nummer, filer in kollisioner:
             rader.append("* **%s** — %s" % (nummer, ", ".join("`%s`" % f
                                                               for f in filer)))
+        rader.append("")
+    blandade = register.get("ordlistor_med_tva_storheter") or []
+    rader.append("## Ordlistor som bär två storheter: %d" % len(blandade))
+    rader.append("")
+    rader.append("En lista som bär både felord och bara negationer svarar på "
+                 "frågan *bär texten något av de här orden?* — och det är "
+                 "inte den fråga någon grind ställer sig. Mätt tre gånger: "
+                 "M-94 fynd 1 och 4, M-98. Taket är noll, och kriteriet har "
+                 "ingen undantagslista: en lista som bär båda storheterna "
+                 "ska vara **sammansatt** ur de listor som bär var sin.")
+    rader.append("")
+    for fil, rad, namn, felord, negationer in blandade:
+        rader.append("* `%s:%d` **%s** — felord %s, negationer %s"
+                     % (fil, rad, namn, ", ".join(felord),
+                        ", ".join(negationer)))
+    if blandade:
+        rader.append("")
+    kopior = register.get("kopierade_ordlistor") or []
+    rader.append("## Ordlistor som står i två filer: %d" % len(kopior))
+    rader.append("")
+    rader.append("`harness/text.py` säger det själv: *\"de ligger PA ETT "
+                 "STALLE just for att en kopierad ordlista blir tva ordlistor "
+                 "sa fort nagon ratter den ena\"*. Registret såg inte att "
+                 "regeln bröts. Listan nedan är ett **register**, inte en "
+                 "anklagelse: en delad ordlista kan vara rätt, men den måste "
+                 "vara sedd.")
+    rader.append("")
+    for fil_a, namn_a, fil_b, namn_b, antal in kopior:
+        rader.append("* %d gemensamma — `%s`.**%s** ↔ `%s`.**%s**"
+                     % (antal, fil_a, namn_a, fil_b, namn_b))
+    if kopior:
         rader.append("")
     rader.append("## Vad mätningarna säger att de inte vet: %d punkter"
                  % register["antal_punkter"])
