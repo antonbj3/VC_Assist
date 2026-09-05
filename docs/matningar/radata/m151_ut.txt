@@ -1,0 +1,91 @@
+=== C11: ABLATIONSANALYS ÖVER SEKVENSER (HUR MÅNGA STIMULI BEHÖVS) ===
+
+P-03: 6 sekvenser, 19 beteendefångade mutanter i baslinjen
+  lang_kylning_och_ett_uttag                : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  verktyget_ar_for_kallt                    : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  verktyget_ar_for_varmt                    : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  verktyget_oppnar_aldrig                   : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_och_handlage                     : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  roboten_fastnar_i_verktyget               : NÖDVÄNDIG (6 unika fångster)
+
+S-07: 11 sekvenser, 30 beteendefångade mutanter i baslinjen
+  en_godkand_kartong                        : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  betyget_under_kravet                      : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  betyget_over_skalans_tak                  : NÖDVÄNDIG (2 unika fångster)
+  lasningen_uteblir_tidsvakt                : NÖDVÄNDIG (1 unika fångster)
+  tre_underkanda_i_rad_larmar               : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  skrivaren_ar_inte_klar                    : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  utskjutning_utan_tryckluft                : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_kraver_kvittens                  : NÖDVÄNDIG (1 unika fångster)
+  underkanda_i_tva_omgangar                 : NÖDVÄNDIG (1 unika fångster)
+  nystart_utan_kvittens_star_still          : NÖDVÄNDIG (2 unika fångster)
+  done_hallen_hog                           : NÖDVÄNDIG (1 unika fångster)
+
+C-04: 6 sekvenser, 25 beteendefångade mutanter i baslinjen
+  kallstart_kraver_kvittering               : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_mitt_i_greppet                   : NÖDVÄNDIG (1 unika fångster)
+  nodstoppet_aterstalls_utan_kvittering     : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  kvitteringsknappen_star_kvar_hog          : NÖDVÄNDIG (1 unika fångster)
+  ljusridan_bruten_vid_kvittering           : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  greppkraften_sjunker_under_stoppet        : NÖDVÄNDIG (2 unika fångster)
+
+A-03: 7 sekvenser, 18 beteendefångade mutanter i baslinjen
+  en_enhet_genom_bada_stationerna           : NÖDVÄNDIG (3 unika fångster)
+  ingen_dubbelslapp_pa_samma_klarsignal     : NÖDVÄNDIG (1 unika fångster)
+  station_2_upptagen_nar_station_1_blir_klar: REDUNDANT (0 unika fångster mot 22 skadesorter)
+  rdy_faller_mitt_i_slappet                 : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  enhet_i_station_2_utan_klarsignal         : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_mitt_i_station_1                 : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tva_enheter_tatt_i_rad                    : NÖDVÄNDIG (2 unika fångster)
+
+H-04: 8 sekvenser, 25 beteendefångade mutanter i baslinjen
+  hel_overlamning                           : NÖDVÄNDIG (4 unika fångster)
+  kvittensen_uteblir                        : NÖDVÄNDIG (3 unika fångster)
+  zonvakten_bryts_mitt_i                    : NÖDVÄNDIG (1 unika fångster)
+  gripkraft_over_granesn                    : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  gripkraft_under_gransen                   : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_kraver_kvittens                  : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tva_overlamningar_i_rad                   : NÖDVÄNDIG (2 unika fångster)
+  nystart_utan_kvittens_star_still          : NÖDVÄNDIG (2 unika fångster)
+
+H-05: 10 sekvenser, 25 beteendefångade mutanter i baslinjen
+  normal_overlamning                        : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  mottagningslaget_upptaget                 : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  banan_startar_inte_utan_dockning          : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  overforingen_fastnar_tidsvakt             : NÖDVÄNDIG (1 unika fångster)
+  lastbararen_ar_for_latt                   : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tva_staplade_barare                       : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_kraver_kvittens                  : NÖDVÄNDIG (1 unika fångster)
+  tva_overlamningar_i_rad                   : NÖDVÄNDIG (1 unika fångster)
+  nystart_utan_kvittens_star_still          : NÖDVÄNDIG (1 unika fångster)
+  done_hallen_hog                           : NÖDVÄNDIG (1 unika fångster)
+
+L-07: 8 sekvenser, 23 beteendefångade mutanter i baslinjen
+  kallstart_ingen_sjalvstart                : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  en_pall_filmad_och_markt                  : NÖDVÄNDIG (2 unika fångster)
+  pulsgivaren_tappas_tidsovervakning        : NÖDVÄNDIG (4 unika fångster)
+  lagesvaljaren_slas_om_mitt_i_filmningen   : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tryckluften_faller_och_kommer_tillbaka    : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_utan_automatisk_omstart          : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tva_varv_i_rad                            : NÖDVÄNDIG (1 unika fångster)
+  nystart_utan_kvittens_star_still          : NÖDVÄNDIG (1 unika fångster)
+
+S-01: 6 sekvenser, 20 beteendefångade mutanter i baslinjen
+  kallstart_utan_burk                       : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tva_burkar_hog_sedan_lag                  : NÖDVÄNDIG (1 unika fångster)
+  bandet_saktar_in                          : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  tryckluften_faller_under_utskjutet        : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  nodstopp_med_burkar_pa_banan              : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  utskjutaren_star_kvar_ute                 : NÖDVÄNDIG (5 unika fångster)
+
+T-05: 5 sekvenser, 24 beteendefångade mutanter i baslinjen
+  takten_12_sekunder                        : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  svalt_ar_inget_fel                        : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  magasinsnivan_noll_ar_ocksa_svalt         : REDUNDANT (0 unika fångster mot 22 skadesorter)
+  givarfel_over_magasinets_rymd             : NÖDVÄNDIG (2 unika fångster)
+  materialet_kommer_aldrig_fram             : NÖDVÄNDIG (5 unika fångster)
+
+=== SAMMANFATTNING ÖVER 9 UPPGIFTER ===
+Sekvenser provade: 67
+Sekvenser med unika fångster (nödvändiga): 31 (46.3 %)
+Sekvenser med 0 unika fångster (subsumerade / dekoration): 36 (53.7 %)
