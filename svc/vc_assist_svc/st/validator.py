@@ -528,6 +528,16 @@ class Granskning(object):
             return None
         return bas.element
 
+    @staticmethod
+    def _ar_pekar_null_jamforelse(a, b) -> bool:
+        # M-108: pRef = NULL genererar PREF == IEC_NULL i backend och bygger.
+        # Endast NULL-literalen är undantagen; pekare-mot-pekare förblir
+        # avvisad (fail-closed — backendbeteendet där är omätt).
+        def ar_null(t):
+            return isinstance(t, T.Literaltyp) and t.klass == "NULL"
+        return ((isinstance(a, T.Pekare) and ar_null(b))
+                or (isinstance(b, T.Pekare) and ar_null(a)))
+
     def _elementtyp(self, u: M.Element) -> Optional[T.Typ]:
         bas = self.typ_av(u.bas)
         for i in u.index:
@@ -573,6 +583,8 @@ class Granskning(object):
                 return None
             return T.gemensam_typ(a, b)
         if u.op in JAMFORELSER:
+            if self._ar_pekar_null_jamforelse(a, b):
+                return T.BOOL
             if isinstance(a, (T.Strukturtyp, T.Falt)) or isinstance(b, (T.Strukturtyp, T.Falt)):
                 self.fel("TYP", u.rad,
                          "likhet (%s) gäller bara elementära typer, inte %s och %s "
@@ -737,10 +749,21 @@ class Granskning(object):
                 if forsta_namn in bundna:
                     _krav, forsta_arg = bundna[forsta_namn]
                     if isinstance(forsta_arg.uttryck, M.Literal):
-                        self.fel("TYP", forsta_arg.rad,
-                                 "%s: första strängargumentet får inte vara en literal "
-                                 "(backendens mallhärledning faller; med variabel bygger det)"
-                                 % a.namn)
+                        # M-108: backend härleder IECString-mallen från ett
+                        # variabelargument (static_cast på literalen — mätt
+                        # för FIND('abcdef', sB) som bygger). Bara när INGET
+                        # strängargument är en variabel faller bygget.
+                        har_variabel = any(
+                            krav == "STRING"
+                            and isinstance(arg.uttryck,
+                                           (M.Namn, M.Medlem, M.Element))
+                            for _n, (krav, arg) in bundna.items())
+                        if not har_variabel:
+                            self.fel("TYP", forsta_arg.rad,
+                                     "%s: strängliteral utan variabel bland "
+                                     "strängargumenten "
+                                     "(backendens mallhärledning faller; med "
+                                     "variabel bygger det)" % a.namn)
         argtyper = {}
         for namn, (krav, arg) in bundna.items():
             t = self.typ_av(arg.uttryck)
