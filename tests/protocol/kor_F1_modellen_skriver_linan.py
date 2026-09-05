@@ -191,6 +191,18 @@ KOMPOSITIONSFALL = ("K1", "K2", "K3", "K4", "K5")
 
 TRANSPORTER = ("claude", "opencode", "inspelad")
 
+# TRANSPORTFEL som far ett omforsok, och det enda som far det. Matt i den
+# forsta riktiga F1-korningen: tre av fem anrop pa gemini-3.8-flash foll pa
+# transporten medan samma prompt gav fullt svar de andra tva gangerna. Ett
+# sadant avbrott ar inte ett modellsvar, och det kostade en VC-omstart, en
+# uppladdning och 80 s scenmatning per gang.
+TRANSPORT_FORSOK = 3
+TRANSPORTFELEN = ("gav slutkod",                # opencode dog utan stderr
+                  "gav ingen text tillbaka",    # tom strom
+                  "svarade inte inom")          # tidsgransen
+# Aldrig omforsok: det ar en DOM om att svaret kan ha last facit.
+VERKTYGSDOMEN = "anvande verktyg"
+
 # OGATS UPPLOSNING: M-73:S EGNA VARDEN, inte fas8:s argparse-standard.
 #
 # Fas 8:s standard ar 70 s matning, 25 s uppvarmning och 20 Hz - men M-73 och
@@ -246,6 +258,53 @@ class Forfattare(ClaudeModell):
         ClaudeModell.__init__(self, klient=klient, namn=namn)
         self.transport = klient
         self.leverantor = "f1/%s" % getattr(klient, "namn", "okand")
+        self.transportfel = []
+
+    def svara(self, systemprompt, meddelanden, verktyg):
+        """Ett transportfel ar inte ett modellsvar, och far inte branna ett varv.
+
+        MATT i den forsta riktiga F1-korningen: av fem anrop pa
+        google-vertex/gemini-3.8-flash foll tre pa transporten - `opencode gav
+        slutkod 1` med tom stderr, och `opencode gav ingen text tillbaka` -
+        medan samma prompt gav ett fullt svar de andra tva gangerna. Varje
+        sadant fel kostade en VC-omstart, en uppladdning och 80 sekunders
+        scenmatning, och gav ingenting att doma.
+
+        Omforsoket galler BARA de tre namngivna transportklasserna, aldrig
+        `anvande verktyg`: det ar en fail-closed DOM om att svaret kan ha last
+        facit, och ett omforsok dar hade varit att fraga tills modellen svarar
+        som vi vill. Listan ar en vitlista, sa en ny felklass provas aldrig om
+        utan att nagon skriver hit den.
+
+        Varje forsok skrivs i `transportfel` och foljer med i JSON:en. Ett
+        omforsok som inte gar att rakna ar ett omforsok som doljer sin egen
+        frekvens.
+        """
+        sista = None
+        for forsok in range(1, TRANSPORT_FORSOK + 1):
+            try:
+                return ClaudeModell.svara(self, systemprompt, meddelanden,
+                                          verktyg)
+            except modellklient.Modellfel as fel:
+                if not ar_transportfel(fel):
+                    raise
+                sista = fel
+                self.transportfel.append(
+                    {"forsok": forsok, "fel": repr(fel)})
+                print("      transportfel %d/%d: %r"
+                      % (forsok, TRANSPORT_FORSOK, fel), flush=True)
+        raise sista
+
+
+def ar_transportfel(fel) -> bool:
+    """Vitlista: bara de fel som bevisligen inte ar ett modellsvar.
+
+    `anvande verktyg` ar med FLIT utanfor. Den ar en dom, inte ett avbrott.
+    """
+    text = str(fel)
+    if VERKTYGSDOMEN in text:
+        return False
+    return any(m in text for m in TRANSPORTFELEN)
 
 
 def kontrollera_sparrarna(klient) -> None:
@@ -907,6 +966,8 @@ def kor_en_slinga(forfattare, slinga, uppgiftstext, uppgift="F1",
                     "gold": False, "varv_korda": 0, "varv_till_gold": None,
                     "slog_i_taket": False,
                     "ogonkorningar": steg.korningar - fore,
+                    "transportfel": list(getattr(forfattare, "transportfel",
+                                                 ())),
                     "sekunder": round(time.time() - t0, 1)})
         return rad
 
@@ -928,6 +989,10 @@ def kor_en_slinga(forfattare, slinga, uppgiftstext, uppgift="F1",
                         if forfattare.kostnad_usd is not None else None),
         "sekunder": round(time.time() - t0, 1),
         "ej_korda": dict(protokoll.ej_korda),
+        # Omforsoken syns i utfilen. Ett omforsok som inte gar att
+        # rakna doljer sin egen frekvens, och frekvensen ar sjalv ett
+        # matt pa vad transporten kostar matningen.
+        "transportfel": list(getattr(forfattare, "transportfel", ())),
         # Domen OCH koden som domdes. M-96: nar TIDLITERAL-domarna visade sig
         # vara var egen falska rodgrind fanns modellens kod inte kvar att
         # lasa, sa fyndet fick goras om fran borjan.

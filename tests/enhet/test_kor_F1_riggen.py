@@ -596,3 +596,75 @@ def test_ogats_upplosning_ar_m73s_egen_inte_fas8s_argparse_standard():
                              ("--ogonrate", "OGONRATE_HZ")):
         assert 'p.add_argument("%s", type=float, default=%s)' % (
             flagga, konstant) in kalla, flagga
+
+
+# --- transportfelet: ett avbrott är inte ett modellsvar -----------------
+
+class _Flakig(modellklient.Modellklient):
+    """En transport som faller n gånger och sedan svarar. Bär båda spärrarna."""
+
+    namn = "flakig"
+
+    def __init__(self, fel, svar="a_stopp := TRUE;"):
+        self._fel = list(fel)
+        self._svar = svar
+        self.anrop = 0
+        self.verktygslarm = 0          # SPARR_VERKTYG
+
+    def fraga(self, prompt):
+        modellklient._neka_repot                    # SPARR_KATALOG
+        self.anrop += 1
+        if self._fel:
+            raise modellklient.Modellfel(self._fel.pop(0))
+        return modellklient.Svar(text=self._svar, modell="flakig",
+                                 kostnad_usd=0.0)
+
+
+def test_transportfel_far_ett_omforsok_och_raknas():
+    """Mätt i den första riktiga F1-körningen: tre av fem anrop föll på
+    transporten - `opencode gav slutkod 1` med tom stderr och `opencode gav
+    ingen text tillbaka` - medan samma prompt gav fullt svar de andra två
+    gångerna. Varje sådant fel kostade en VC-omstart, en uppladdning och 80 s
+    scenmätning och gav ingenting att döma."""
+    t = _Flakig(["opencode gav slutkod 1: ",
+                 "opencode gav ingen text tillbaka"])
+    f = F1.Forfattare(t, namn="flakig")
+    svar = f.svara("system", [{"roll": "anvandare", "text": "skriv"}], ())
+    assert svar.text.strip() == "a_stopp := TRUE;"
+    assert t.anrop == 3
+    assert [x["forsok"] for x in f.transportfel] == [1, 2]
+
+
+def test_transportfel_som_inte_slutar_blir_korningsfel_inte_ett_tyst_varv():
+    """Taket på omförsöken är också en gräns: den fjärde gången är ett fel."""
+    t = _Flakig(["opencode gav slutkod 1: "] * 5)
+    f = F1.Forfattare(t, namn="flakig")
+    with pytest.raises(modellklient.Modellfel):
+        f.svara("system", [{"roll": "anvandare", "text": "skriv"}], ())
+    assert t.anrop == F1.TRANSPORT_FORSOK
+
+
+def test_fixtur_verktygsdomen_far_ALDRIG_ett_omforsok():
+    """Den viktigaste av de tre.
+
+    `opencode anvande verktyg` är en fail-closed DOM om att svaret kan ha läst
+    facit - inte ett avbrott. Ett omförsök där hade varit att fråga om tills
+    modellen råkar svara som vi vill, och mätningens giltighet står på att
+    modellen inte sett `kor_fas8_linan.py`.
+    """
+    t = _Flakig(["opencode anvande verktyg (tool_use) — svaret kan ha last "
+                 "facit och raknas inte"])
+    f = F1.Forfattare(t, namn="flakig")
+    with pytest.raises(modellklient.Modellfel):
+        f.svara("system", [{"roll": "anvandare", "text": "skriv"}], ())
+    assert t.anrop == 1                     # ETT anrop, inget omförsök
+    assert f.transportfel == []
+
+
+def test_en_okand_felklass_provas_aldrig_om():
+    """Listan är en vitlista: en ny felklass måste skrivas dit av en människa."""
+    t = _Flakig(["opencode sa nagot ingen har sett forut"])
+    f = F1.Forfattare(t, namn="flakig")
+    with pytest.raises(modellklient.Modellfel):
+        f.svara("system", [{"roll": "anvandare", "text": "skriv"}], ())
+    assert t.anrop == 1
