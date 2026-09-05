@@ -49,13 +49,13 @@ def _ascii(text: str, vad: str) -> str:
     try:
         text.encode("ascii")
     except UnicodeEncodeError:
-        raise SkrivFel("%s innehåller icke-ASCII: %r. Genererad ST måste vara "
-                       "ren ASCII hela vägen till PLC:n." % (vad, text))
+        raise SkrivFel("%s contains non-ASCII: %r. Generated ST must be "
+                       "pure ASCII all the way to the PLC." % (vad, text))
     return text
 
 
 def skriv_typ(t: T.Typ) -> str:
-    return _ascii(t.st(), "en typ")
+    return _ascii(t.st(), "a type")
 
 
 def _skriv_faltinit(f: M.Faltinit) -> str:
@@ -73,12 +73,12 @@ def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
     if isinstance(u, M.Faltinit):
         return _skriv_faltinit(u)
     if isinstance(u, M.Namn):
-        return _ascii(u.ident, "ett namn")
+        return _ascii(u.ident, "a name")
     if isinstance(u, M.Literal):
-        return _ascii(u.text, "en literal")
+        return _ascii(u.text, "a literal")
     if isinstance(u, M.Medlem):
         return "%s.%s" % (skriv_uttryck(u.bas, UNAR_PRIORITET + 1),
-                          _ascii(u.falt, "ett faltnamn"))
+                          _ascii(u.falt, "a field name"))
     if isinstance(u, M.Avreferering):
         # MÅSTE stå före Element-grenen: Avreferering ärver Element och hade
         # annars skrivits som pRef[] (M-108: tur-och-retur kräver pRef^).
@@ -87,7 +87,7 @@ def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
         return "%s[%s]" % (skriv_uttryck(u.bas, UNAR_PRIORITET + 1),
                            ", ".join(skriv_uttryck(i) for i in u.index))
     if isinstance(u, M.Anrop):
-        return "%s(%s)" % (_ascii(u.namn, "ett anropsnamn"),
+        return "%s(%s)" % (_ascii(u.namn, "a call name"),
                            ", ".join(_skriv_argument(a) for a in u.argument))
     if isinstance(u, M.Unar):
         inre = skriv_uttryck(u.operand, UNAR_PRIORITET)
@@ -115,7 +115,7 @@ def skriv_uttryck(u: M.Uttryck, yttre: int = 0) -> str:
         text = "%s %s %s" % (skriv_uttryck(u.vanster, p),
                              u.op, skriv_uttryck(u.hoger, p + 1))
         return "(%s)" % text if yttre > p else text
-    raise SkrivFel("vet inte hur %s skrivs" % type(u).__name__)
+    raise SkrivFel("does not know how to write %s" % type(u).__name__)
 
 
 JAMFORELSER = ("=", "<>", "<", ">", "<=", ">=")
@@ -130,7 +130,7 @@ def _logikled(u: M.Uttryck, p: int) -> str:
 def _skriv_argument(a: M.Argument) -> str:
     if a.namn is None:
         return skriv_uttryck(a.uttryck)
-    return "%s %s %s" % (_ascii(a.namn, "ett argumentnamn"),
+    return "%s %s %s" % (_ascii(a.namn, "an argument name"),
                          "=>" if a.ut else ":=", skriv_uttryck(a.uttryck))
 
 
@@ -153,7 +153,7 @@ def _rad(niva: int, text: str) -> str:
 
 def _skriv_sats(s: M.Sats, niva: int):
     if isinstance(s, M.Kommentar):
-        return [_rad(niva, "(* %s *)" % _ascii(s.text, "en kommentar"))]
+        return [_rad(niva, "(* %s *)" % _ascii(s.text, "a comment"))]
     if isinstance(s, M.Tilldelning):
         return [_rad(niva, "%s := %s;" % (skriv_uttryck(s.mal),
                                           skriv_uttryck(s.uttryck)))]
@@ -186,7 +186,7 @@ def _skriv_sats(s: M.Sats, niva: int):
         ut.append(_rad(niva, "END_CASE;"))
         return ut
     if isinstance(s, M.ForSats):
-        huvud = "FOR %s := %s TO %s" % (_ascii(s.styrvar, "en styrvariabel"),
+        huvud = "FOR %s := %s TO %s" % (_ascii(s.styrvar, "a control variable"),
                                         skriv_uttryck(s.fran), skriv_uttryck(s.till))
         if s.steg is not None:
             huvud += " BY %s" % skriv_uttryck(s.steg)
@@ -205,13 +205,13 @@ def _skriv_sats(s: M.Sats, niva: int):
         ut.append(_rad(niva, "UNTIL %s" % skriv_uttryck(s.villkor)))
         ut.append(_rad(niva, "END_REPEAT;"))
         return ut
-    raise SkrivFel("vet inte hur satsen %s skrivs" % type(s).__name__)
+    raise SkrivFel("does not know how to write the statement %s" % type(s).__name__)
 
 
 def skriv_deklaration(d: M.Deklaration, niva: int = 1) -> str:
-    text = _ascii(d.namn, "ett variabelnamn")
+    text = _ascii(d.namn, "a variable name")
     if d.adress:
-        text += " AT %s" % _ascii(d.adress, "en adress")
+        text += " AT %s" % _ascii(d.adress, "an address")
     text += " : %s" % skriv_typ(d.typ)
     if d.init is not None:
         text += " := %s" % skriv_uttryck(d.init)
@@ -219,7 +219,7 @@ def skriv_deklaration(d: M.Deklaration, niva: int = 1) -> str:
     if d.skyddad:
         text += " {SAKERHET}"
     if d.kommentar:
-        text += " (* %s *)" % _ascii(d.kommentar, "en kommentar")
+        text += " (* %s *)" % _ascii(d.kommentar, "a comment")
     return _rad(niva, text)
 
 
@@ -232,7 +232,7 @@ def skriv_varblock(b: M.Varblock, niva: int = 0):
 
 
 def skriv_pou(p: M.Pou) -> str:
-    huvud = "%s %s" % (p.sort, _ascii(p.namn, "ett POU-namn"))
+    huvud = "%s %s" % (p.sort, _ascii(p.namn, "a POU name"))
     if p.returtyp is not None:
         huvud += " : %s" % skriv_typ(p.returtyp)
     ut = [huvud]
@@ -244,7 +244,7 @@ def skriv_pou(p: M.Pou) -> str:
 
 
 def skriv_strukturdef(sd: M.Strukturdef):
-    ut = [_rad(1, "%s : STRUCT" % _ascii(sd.namn, "ett typnamn"))]
+    ut = [_rad(1, "%s : STRUCT" % _ascii(sd.namn, "a type name"))]
     ut.extend(skriv_deklaration(d, 2) for d in sd.falt)
     ut.append(_rad(1, "END_STRUCT;"))
     return ut
