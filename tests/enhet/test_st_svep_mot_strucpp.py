@@ -632,6 +632,14 @@ STRANGARE = {
         "domanen ar POU:er: konfigurationen kring dem genereras av kedjan "
         "sjalv (plc/skelett.py), aldrig av modellen. Att lasa den skulle "
         "vara en ny grammatik utan en enda kallare.",
+    # -- M-108: avsiktlig stranghet, backend kan inte bygga formen -------
+    "concat":
+        "CONCAT('a', 'b') och samma form i LEFT, RIGHT, MID, FIND, LEN, "
+        "INSERT, DELETE och REPLACE: strangliteral som forsta strangargument. "
+        "MATT i M-108: frontenden accepterar men OpenPLC:s backend faller "
+        "(mallharledning const char[N] mot IECString), sa koden kan aldrig "
+        "kora och grindens avvisande ar avsiktlig stranghet, inte falsk "
+        "rodgrind. Med variabel som forsta argument bygger allt.",
 }
 
 LATTARE = {
