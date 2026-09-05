@@ -43,6 +43,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from .fel import Instruktionsfel
 from .mekanismer import MEKANISMER
+from .text import utan_diakritik
 
 _HAR = os.path.dirname(os.path.abspath(__file__))
 ROT = os.path.normpath(os.path.join(_HAR, "..", "..", ".."))
@@ -55,7 +56,13 @@ ALLVAR = ("block", "regel")
 # ensam i ett omskrivningskrav.
 _REGEL_ID = re.compile(r"^[A-Z]{3}-\d{3}$")
 _FILNAMN = re.compile(r"^(\d{2})_([a-z_]+)\.json$")
-_MATNING = re.compile(r"^M-(\d{2})$")
+# Matningskoden. MATT 2026-09-05 (M-105): monstret var `^M-(\d{2})$`, skrivet
+# nar hogsta numret var tvasiffrigt, och repot skrev M-100 den 2026-09-04.
+# En regel med harkomsten "M-100" foll darfor igenom till filkontrollen och
+# anmarktes som "varken en fil eller en matningskod" - en falsk anmarkning i
+# den grind som granskar modellens egna beteenderegler. Talet ar oppet uppat
+# nu, sa monstret aldras inte om med numret igen.
+_MATNING = re.compile(r"^M-(\d{2,})$")
 _INVARIANT = re.compile(r"^I\d{1,2}$")
 _SKULD = re.compile(r"^S\d{1,2}$")
 
@@ -78,6 +85,11 @@ MIN_PRIORITET_SKAL = 60    # 96_ingen_skuld.md S6, matt over korpusen
 # Formuleringar som gor en regel beroende av sitt sammanhang. Systemprompten
 # kapas, sa "se ovan" kan peka pa nagot som inte langre finns med. Regeln ska
 # bara sin egen mening.
+# Provas mot texten UTAN diakritik (se text.utan_diakritik). MATT 2026-09-05
+# (M-105): posten "som namnts" ar skriven i ASCII som all kod i repot, men 46
+# av 46 regeltexter i instruktioner/ innehaller a, a eller o, och jamforelsen
+# gjordes mot ett rent `text.lower()`. Grenen kunde alltsa aldrig fyra pa den
+# enda stavning en riktig regel anvander. Samma felklass som M-70.
 _KORSREFERENSER = ("se ovan", "enligt ovan", "som namnts", "se regel",
                    "se nedan", "enligt nedan", "punkten ovan")
 
@@ -294,7 +306,7 @@ def _las_regel(rad, blockid, stig, uppslag, problem) -> Optional[Regel]:
                        % (namn, len(text), MAX_REGELTEXT))
     if text.strip() and not text.strip().endswith((".", "!", "?")):
         problem.append("%s: text slutar inte som en mening" % namn)
-    lag = text.lower()
+    lag = utan_diakritik(text).lower()
     for kors in _KORSREFERENSER:
         if kors in lag:
             problem.append("%s: text bar korsreferensen %r; en kapad prompt "
