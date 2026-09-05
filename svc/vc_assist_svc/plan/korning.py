@@ -81,7 +81,7 @@ class Post(object):
     def fran_json(cls, data):
         vantade = ("steg", "status", "skal", "resultat", "verktyg", "qid")
         if not isinstance(data, dict) or set(data) != set(vantade):
-            raise Korningsfel("en protokollpost ska ha precis nycklarna %s"
+            raise Korningsfel("a protocol entry must have exactly the keys %s"
                               % ", ".join(sorted(vantade)))
         return cls(data["steg"], data["status"], data["skal"],
                    data["resultat"], data["verktyg"], data["qid"])
@@ -160,9 +160,9 @@ class Protokoll(object):
     @classmethod
     def fran_json(cls, data):
         if not isinstance(data, dict) or set(data) != {"v", "plan_id", "poster"}:
-            raise Korningsfel("ett protokoll ska ha precis v, plan_id och poster")
+            raise Korningsfel("a protocol must have exactly v, plan_id and poster")
         if data["v"] != PROTOKOLLVERSION:
-            raise Korningsfel("protokollet ar version %r, lasaren kan %d"
+            raise Korningsfel("the protocol is version %r, the reader can handle %d"
                               % (data["v"], PROTOKOLLVERSION))
         return cls(data["plan_id"], [Post.fran_json(p) for p in data["poster"]])
 
