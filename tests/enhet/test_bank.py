@@ -487,12 +487,29 @@ def test_m33_faller_ett_sparfacit_som_inte_gar_att_doma(bank, vad, bryt):
 
 
 def test_en_gammal_uppgift_utan_sparfacit_ar_fortfarande_giltig(bank):
-    """Bakatkompatibiliteten ar inte en avsikt utan ett prov: de 47 uppgifter
-    som fanns fore M-45 saknar faltet och ska ga igenom oforandrade."""
+    """Bakatkompatibiliteten ar inte en avsikt utan ett prov: en uppgift utan
+    faltet ska ga igenom oforandrad.
+
+    Raden `assert len(utan) >= 47` stod har tidigare. Den matte hur manga
+    uppgifter som ANNU saknade sparfacit, och det ar en sparr som gar at fel
+    hall: den faller nar tackningen VAXER. M-106 gav sparfacit till tio av de
+    47 och tog dartill in tolv nya uppgifter, sa talet var passerat samma dag
+    det borjade betyda nagot. Egenskapen som faktiskt provas ar att FALTET ar
+    frivilligt, och den provas nu at bada hallen: varje uppgift som saknar det
+    ska ga igenom, och varje uppgift som HAR det ska ga igenom aven utan det.
+    """
     utan = [u for u in bank if not u.data.get("facit_spar")]
-    assert len(utan) >= 47
     for u in utan:
         assert _koder(copy.deepcopy(u.data), bank) == set(), u.id
+
+    med = [u for u in bank if u.data.get("facit_spar")]
+    assert med, "banken bar inget sparfacit alls att prova bakatkompatibilitet pa"
+    for u in med:
+        post = copy.deepcopy(u.data)
+        post.pop("facit_spar")
+        assert _koder(post, bank) == set(), (
+            "%s gar inte igenom nar sparfacit tas bort; faltet ar da inte "
+            "frivilligt" % u.id)
 
 
 def test_m2_faller_nar_filnamnet_inte_matchar(bank):
