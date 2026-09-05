@@ -159,6 +159,32 @@ Det säger var arbetet mot enskott ska ligga: allt som grinden vet ska sägas
 3 och ögats nio klasser, genererat ur grindarnas egna tabeller. Effekten mäts
 i en pågående körning.
 
+## Efterkontroll: teckenfelet i DUBBELSKRIVNING förorenade INTE talen
+
+En adversariell granskning av promptdesignen fann att `validator._sekvens` bar
+**motsatsen till sitt eget fältnamn** — fältet heter *villkorad*, raden räknade
+*ovillkorad*. Grinden hade därför fel åt båda hållen, och den falska **gröna**
+var den allvarliga: en verklig F7-kapplöpning släpptes igenom.
+
+Misstanken följde direkt: bar några av den här mätningens fem
+`DUBBELSKRIVNING`-domar den falska röda? Då vore talen ovan förorenade, precis
+som de första körningarna var av tidsliteralbuggen.
+
+**De gör de inte.** Körningen sparar `kroppar_per_varv` — modellens egen kod,
+inte bara domen — så frågan gick att avgöra utan ett enda nytt modellanrop.
+Varje sparad kropp från alla fem körningarna kördes genom den **lagade**
+grindkedjan:
+
+| | |
+|---|---:|
+| varv där `DUBBELSKRIVNING` föll | **9** |
+| faller fortfarande efter rättelsen | **9** |
+| falska röda som försvann | **0** |
+
+Talen står alltså kvar. Att `kroppar_per_varv` sparas är skälet att det gick
+att avgöra på minuter i stället för att köras om — och den raden lades till just
+efter att tidsliteralbuggen tvingade fram en omkörning från början.
+
 ## LIMITS
 
 * **Enskott MED grindreglerna är inte färdigmätt.** Körningen med n = 5 per
