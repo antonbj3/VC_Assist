@@ -374,7 +374,7 @@ def bygg(rot: str, djupt: bool = False, skriv=None) -> Dict[str, object]:
     jamfor apple med paron.
     """
     if not os.path.isdir(rot):
-        raise Katalogfel("ingen biblioteksrot pa %s" % rot)
+        raise Katalogfel("no library root at %s" % rot)
     t0 = time.time()
     poster: List[Post] = []
     olasliga: List[str] = []
@@ -430,19 +430,19 @@ def main(argv=None):
     else:
         rotter = hitta()
         if not rotter:
-            print("hittade inget bibliotek. Provade:")
+            print("found no library. Tried:")
             for rot, hur in kandidatrotter():
                 print("  %-60s %s" % (rot, hur))
             return 1
     for f in rotter:
-        print("bibliotek: %s\n  hittat via: %s" % (f.rot, f.hur))
+        print("library: %s\n  found via: %s" % (f.rot, f.hur))
     index = bygg(rotter[0].rot, djupt=a.djupt, skriv=print)
-    print("%d komponenter, %d tillverkare, %d olasliga, %.1f s"
+    print("%d components, %d manufacturers, %d unreadable, %.1f s"
           % (index["antal"], len(index["tillverkare"]),
              len(index["olasliga"]), index["sekunder"]))
     if a.ut:
         skriv_fil(index, a.ut)
-        print("skrivet: %s (%.1f MB)"
+        print("written: %s (%.1f MB)"
               % (a.ut, os.path.getsize(a.ut) / 1e6))
     return 0
 
