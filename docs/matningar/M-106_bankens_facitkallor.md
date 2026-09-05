@@ -136,6 +136,21 @@ En första version av regeln fällde tre värden av formen `"grind 2"` — den
 räknade bara ord *efter* talet. Det är en grind som fyrar på rätt sak av fel
 skäl, och den räknar nu ord på båda sidor om talet.
 
+### Och ett hål i den grind som redan fanns
+
+`bank/domare.py` skrev föregående scans värde **inne i** loopen över
+flankkraven. Ett andra flankkrav på samma utsignal i samma sekvens fick därför
+det redan uppdaterade värdet som sitt "föregående scan", såg aldrig en flank,
+rapporterade alltid `0` — och kunde aldrig fällas. En grind som inte kan fälla
+mäter ingenting.
+
+Felet hittades när en uppgift ville lägga två flankräkningar på `ST470_ARC_ON` i
+samma sekvens och båda gick tyst igenom. Rättat, och provat med en fixtur som
+är **röd utan rättelsen och grön med den**: tre flankkrav på samma signal, där
+det andra är uppfyllt och det tredje måste fällas. Ingen uppgift i banken hade
+två krav på samma signal i samma sekvens, så ingen dom ändrades av rättelsen —
+men grinden kan nu döma ett fall den förut släppte igenom.
+
 ---
 
 ## 3. Facitkällan per uppgift
