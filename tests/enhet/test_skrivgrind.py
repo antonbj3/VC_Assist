@@ -311,3 +311,18 @@ def test_samma_operation_far_inte_bero_pa_hur_den_stavas():
         % (punkt, dunder))
 
 
+SKRIPTBETEENDEN_MB = [
+    ("t = VC_SCRIPT\nc.createBehaviour(t, 'x')", "typen via en variabel"),
+]
+
+
+@pytest.mark.parametrize("kod,skal", SKRIPTBETEENDEN_MB,
+                         ids=[s for _, s in SKRIPTBETEENDEN_MB])
+def test_skriptbeteende_maste_upptackas_oavsett_hur_typen_skrivs(kod, skal):
+    skal_lista = S.skapar_skriptbeteende(kod)
+    assert skal_lista, (
+        "%r (%s) gav tom lista: pump._op_exec_queue köar den utan invändning, "
+        "och vid godkännande dör bryggan utan väg tillbaka (M-13)" % (kod, skal))
+
+
+
