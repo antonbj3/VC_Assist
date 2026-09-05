@@ -293,5 +293,173 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: takten 3,7 s per kretskort ger 3600/3,7 = 972,97 kort/h teoretiskt. Vakuumets anslagstid ar 0,15 s och vakten mot utebliven fixturkontakt ar 2,0 s ur scenariotexten. Placeringstoleransen 0,5 mm styrs av styrstiften i fixturen. Detta ar manniskans facit skrivet ur scenarios normal, vac_lag, vac_hog, fix_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Vakuumforregling och lageskontroll i fixtur foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_P01_KRETSKORT\nVAR\n    steg    : INT := 0;\n    tmrFix  : TON;\nEND_VAR\n\ntmrFix(IN := (steg = 3), PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST100_RB_START := FALSE;\n    ST100_VAC_ON   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST100_RB_START := FALSE;\n            ST100_VAC_ON   := FALSE;\n            IF EMG_OK AND AIR_OK AND ST100_KLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST100_VAC_ON := TRUE;\n            IF ST100_VAC_OK AND ST100_VAC_PRESS >= 45.0 AND ST100_VAC_PRESS <= 80.0 THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST100_RB_START := TRUE;\n            IF ST100_RB_DONE THEN\n                ST100_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST100_FIX_PRS THEN\n                ST100_VAC_ON := FALSE;\n                steg := 4;\n            ELSIF tmrFix.Q THEN\n                steg := 9;\n            END_IF;\n        4:\n            IF NOT ST100_VAC_OK THEN\n                steg := 0;\n            END_IF;\n        9:\n            ST100_RB_START := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_plock_och_avlagg",
+        "beskrivning": "Normalt plock ur KLT och avlagg i fixtur med bekräftat fixturelage fore vakuumslapp.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST100_KLT_PRS": true,
+              "ST100_VAC_OK": false,
+              "ST100_VAC_PRESS": 0.0,
+              "ST100_RB_DONE": false,
+              "ST100_FIX_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST100_VAC_ON": true,
+              "ST100_RB_START": false
+            },
+            "varfor": "vakuum slas pa fore robotrorelse"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST100_VAC_OK": true,
+              "ST100_VAC_PRESS": 62.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST100_RB_START": true,
+              "ST100_VAC_ON": true
+            },
+            "varfor": "nar undertryck uppnatts startar roboten"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST100_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST100_RB_START": false,
+              "ST100_VAC_ON": true
+            },
+            "varfor": "robot over fixtur men vakuum far inte slappas utan FIX_PRS"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST100_FIX_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST100_VAC_ON": false
+            },
+            "varfor": "nar FIX_PRS bekraftar slapps vakuumet"
+          }
+        ]
+      },
+      {
+        "id": "fix_uteblir_slapper_inte_vakuum",
+        "beskrivning": "Kortet star over fixturen men ST100_FIX_PRS gar aldrig hog; vakuumet far inte slappas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST100_KLT_PRS": true,
+              "ST100_VAC_OK": true,
+              "ST100_VAC_PRESS": 62.0,
+              "ST100_RB_DONE": false,
+              "ST100_FIX_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST100_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST100_VAC_ON": true
+            },
+            "varfor": "vakuum behalls sa lange FIX_PRS inte bekräftats"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST100_VAC_ON": true
+            },
+            "varfor": "aven efter 2,0 s timeout behalls vakuumet for att inte tappa kortet"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST100_RB_START": false,
+          "ST100_VAC_ON": false
+        },
+        "varfor": "vid nodstopp ska robot och vakuum nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "vac_on_flank",
+        "sekvens": "normal_plock_och_avlagg",
+        "signal": "ST100_VAC_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 200,
+        "antal": 1,
+        "varfor": "vakuum slas pa exakt en gang infor plock"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "vakuum_slapps_pa_rb_done_utan_fix_prs",
+        "st": "PROGRAM ST_P01_KRETSKORT\nVAR\n    steg    : INT := 0;\nEND_VAR\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST100_RB_START := FALSE;\n    ST100_VAC_ON   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST100_RB_START := FALSE;\n            ST100_VAC_ON   := FALSE;\n            IF EMG_OK AND AIR_OK AND ST100_KLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST100_VAC_ON := TRUE;\n            IF ST100_VAC_OK THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST100_RB_START := TRUE;\n            IF ST100_RB_DONE THEN\n                ST100_RB_START := FALSE;\n                ST100_VAC_ON := FALSE;\n                steg := 9;\n            END_IF;\n        9:\n            ST100_RB_START := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vakuumet slapps pa robotens lagesignal ST100_RB_DONE i stallet for pa ST100_FIX_PRS, sa kortet slapps nagra millimeter i luften och hamnar snett.",
+        "faller_pa": [
+          "fix_uteblir_slapper_inte_vakuum@300ms:ST100_VAC_ON"
+        ]
+      }
+    ]
+  }
 }

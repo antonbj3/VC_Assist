@@ -302,5 +302,214 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: takten 6,5 s per ask ger 3600/6,5 = 553,85 askar/h teoretiskt. En full gitterbox rymmer 48 askar. 3D-kamerans bildtagning tar 900 ms och tre tomma bilder i rad (3 * 0,9 s = 2,7 s bildtid) kraves for tom box. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, held_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "3D-bin picking och tomningsvillkor foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_P04_GITTERBOX\nVAR\n    steg     : INT := 0;\n    emptyCnt : INT := 0;\n    failCnt  : INT := 0;\n    trigRdy  : R_TRIG;\nEND_VAR\n\ntrigRdy(CLK := ST130_CAM_READY);\n\nIF NOT EMG_OK THEN\n    ST130_RB_START  := FALSE;\n    ST130_GRP_CLOSE := FALSE;\n    ST130_CAM_TRIG  := FALSE;\n    ST130_BOX_EMPTY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST130_BOX_EMPTY := FALSE;\n            ST130_RB_START  := FALSE;\n            ST130_GRP_CLOSE := FALSE;\n            IF EMG_OK THEN\n                ST130_CAM_TRIG := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF trigRdy.Q THEN\n                ST130_CAM_TRIG := FALSE;\n                IF ST130_CAM_CNT = 0 THEN\n                    emptyCnt := emptyCnt + 1;\n                    IF emptyCnt >= 3 THEN\n                        ST130_BOX_EMPTY := TRUE;\n                        steg := 9;\n                    ELSE\n                        ST130_CAM_TRIG := TRUE;\n                    END_IF;\n                ELSE\n                    emptyCnt := 0;\n                    ST130_RB_START := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        2:\n            IF ST130_GRP_CLOSED THEN\n                IF ST130_GRP_HELD THEN\n                    failCnt := 0;\n                    ST130_GRP_CLOSE := TRUE;\n                    steg := 3;\n                ELSE\n                    failCnt := failCnt + 1;\n                    ST130_GRP_CLOSE := FALSE;\n                    ST130_RB_START := FALSE;\n                    IF failCnt >= 3 THEN\n                        steg := 9;\n                    ELSE\n                        ST130_CAM_TRIG := TRUE;\n                        steg := 1;\n                    END_IF;\n                END_IF;\n            ELSE\n                ST130_GRP_CLOSE := TRUE;\n            END_IF;\n        3:\n            IF ST130_RB_DONE THEN\n                ST130_GRP_CLOSE := FALSE;\n                ST130_RB_START := FALSE;\n                ST130_CAM_TRIG := TRUE;\n                steg := 1;\n            END_IF;\n        9:\n            ST130_RB_START := FALSE;\n            ST130_GRP_CLOSE := FALSE;\n            ST130_CAM_TRIG := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_plock_ask",
+        "beskrivning": "Kamera ger greppunkt, robot plockar och bekraftar med GRP_HELD fore avlagg.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST130_CAM_READY": false,
+              "ST130_CAM_CNT": 5,
+              "ST130_GRP_CLOSED": false,
+              "ST130_GRP_HELD": false,
+              "ST130_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST130_CAM_TRIG": true,
+              "ST130_RB_START": false,
+              "ST130_BOX_EMPTY": false
+            },
+            "varfor": "bildtagning triggas"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST130_CAM_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST130_RB_START": true,
+              "ST130_CAM_TRIG": false
+            },
+            "varfor": "bild klar med 5 punkter, robot startar plock"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST130_GRP_CLOSED": true,
+              "ST130_GRP_HELD": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST130_GRP_CLOSE": true
+            },
+            "varfor": "ask halls sluten"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST130_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST130_GRP_CLOSE": false,
+              "ST130_RB_START": false
+            },
+            "varfor": "ask avlagd pa utbana"
+          }
+        ]
+      },
+      {
+        "id": "tre_tomma_bilder_ger_tom_box",
+        "beskrivning": "Tre bildtagningar i rad med 0 punkter deklarerar boxen tom.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST130_CAM_READY": false,
+              "ST130_CAM_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST130_CAM_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST130_BOX_EMPTY": false
+            },
+            "varfor": "en enda tom bild far inte deklarera boxen tom"
+          },
+          {
+            "t_ms": 240,
+            "satt": {
+              "ST130_CAM_READY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST130_CAM_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST130_CAM_READY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST130_CAM_READY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST130_BOX_EMPTY": true,
+              "ST130_RB_START": false
+            },
+            "varfor": "efter tre tomma bilder i rad satts BOX_EMPTY"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST130_RB_START": false,
+          "ST130_GRP_CLOSE": false,
+          "ST130_CAM_TRIG": false
+        },
+        "varfor": "vid nodstopp ska all plockning och kamera nollstallas"
+      },
+      {
+        "namn": "ingen_start_nar_box_ar_tom",
+        "sekvens": "*",
+        "nar": {
+          "ST130_BOX_EMPTY": true
+        },
+        "kraver": {
+          "ST130_RB_START": false
+        },
+        "varfor": "roboten far inte starta plock nar boxen ar tom"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "box_empty_flank",
+        "sekvens": "tre_tomma_bilder_ger_tom_box",
+        "signal": "ST130_BOX_EMPTY",
+        "typ": "RISE",
+        "fran_ms": 500,
+        "till_ms": 700,
+        "antal": 1,
+        "varfor": "BOX_EMPTY ska ga hog exakt en gang nar tre tomma bilder raknats"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "en_enda_tom_bild_forklarar_boxen_tom",
+        "st": "PROGRAM ST_P04_GITTERBOX\nVAR\n    steg     : INT := 0;\n    trigRdy  : R_TRIG;\nEND_VAR\n\ntrigRdy(CLK := ST130_CAM_READY);\n\nIF NOT EMG_OK THEN\n    ST130_RB_START  := FALSE;\n    ST130_GRP_CLOSE := FALSE;\n    ST130_CAM_TRIG  := FALSE;\n    ST130_BOX_EMPTY := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST130_BOX_EMPTY := FALSE;\n            ST130_RB_START  := FALSE;\n            ST130_GRP_CLOSE := FALSE;\n            IF EMG_OK THEN\n                ST130_CAM_TRIG := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF trigRdy.Q THEN\n                ST130_CAM_TRIG := FALSE;\n                IF ST130_CAM_CNT = 0 THEN\n                    ST130_BOX_EMPTY := TRUE;\n                    steg := 9;\n                ELSE\n                    ST130_RB_START := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        9:\n            ST130_RB_START := FALSE;\n            ST130_GRP_CLOSE := FALSE;\n            ST130_CAM_TRIG := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "En enda tom bild raknas som tom box i stallet for tre i rad, vilket gor att en skuggning i ett horn skickar ivag en halvfull box.",
+        "faller_pa": [
+          "tre_tomma_bilder_ger_tom_box@200ms:ST130_BOX_EMPTY"
+        ]
+      }
+    ]
+  }
 }
