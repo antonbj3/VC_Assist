@@ -68,7 +68,7 @@ def variabel(signal: Signal, station: str, debugkarta: Debugkarta,
     if lov.typ.upper() != signal.typ.namn:
         # Fail-closed: kompilatorn och kartan är oense om typen. Att skriva
         # noden ändå vore att lita på den ena utan att veta vilken.
-        raise Byggfel("%s är %s i signalkartan men %s i kompilatorns debugkarta"
+        raise Byggfel("%s is %s in the signal map but %s in the compiler's debug map"
                       % (signal.tagg, signal.typ.namn, lov.typ))
     skrivbar = (signal.riktning != FRAN_PLC) and not signal.skyddad
     return {
@@ -98,7 +98,7 @@ def konfiguration(karta: Signalkarta, debugkarta: Debugkarta, endpoint: str,
     klienten faktiskt kan nå, till exempel containerns IP.
     """
     if not karta.signaler:
-        raise Byggfel("en tom signalkarta ger en OPC UA-server utan noder")
+        raise Byggfel("an empty signal map gives an OPC UA server with no nodes")
     variabler = [variabel(s, karta.station, debugkarta, instans)
                  for s in karta.signaler]
     return [{
