@@ -84,6 +84,8 @@ BANKPOST = {
         "en uppgift vars facit harletts ur svc/vc_assist_svc/st/ eller plc/",
         "ett antagande utan motiv",
         "ett tal med enhet i namnet men utan enhet i vardet",
+        "ett facit som kallar sig STANDARD men bara namner standardnumret",
+        "en paragraf utan utgivare, som inte gar att sla upp",
         "en karnutgang som sparfacit aldrig ror",
     ],
     "kraver": ["inget"],
@@ -109,7 +111,13 @@ KALLKLASSER = {
 # En paragrafhanvisning har minst tva led: 9.2.5, 6.2.2.1, 4.1.4. Ett bart
 # standardnummer (IEC 60204-1) sager inte VAD i standarden facit lutar sig mot,
 # och det ar precis det slarv operatoren forbjod.
+#
+# Bada leden kravs: utgivaren OCH paragrafen. Ett dottal ensamt racker inte -
+# "1.5/10/660" ar en betygsnotation och ingen paragraf - och ett utgivarnamn
+# ensamt ar just det bara standardnummer regeln finns emot.
 PARAGRAF = re.compile(r"\b\d+\.\d+(?:\.\d+)*\b")
+UTGIVARE = re.compile(
+    r"\b(?:IEC|ISO|EN|SS|ASTM|ANSI|ISA|VDI|VDE|DIN|GS1|EUROMAP|VDA|OMAC|UL|NFPA)\b")
 
 # En rakning som inte visas gar inte att folja. Likhetstecknet ar det
 # billigaste beviset pa att talet HARLETTS och inte valts.
@@ -309,11 +317,18 @@ def granska_harkomst(post, kanda_matningar):
             "harkomsten %r namnger ingen kallklass; lagliga ar %s"
             % (harkomst[:60], ", ".join(sorted(KALLKLASSER)))))
     else:
-        if "STANDARD" in klasser and not PARAGRAF.search(harkomst + " " + standard):
-            brister.append(Brist(
-                tid, "STANDARD_UTAN_PARAGRAF",
-                "harkomsten kallar sig STANDARD men citerar ingen paragraf; "
-                "ett bart standardnummer sager inte vad facit lutar sig mot"))
+        if "STANDARD" in klasser:
+            text = harkomst + " " + standard
+            if not PARAGRAF.search(text):
+                brister.append(Brist(
+                    tid, "STANDARD_UTAN_PARAGRAF",
+                    "harkomsten kallar sig STANDARD men citerar ingen paragraf; "
+                    "ett bart standardnummer sager inte vad facit lutar sig mot"))
+            elif not UTGIVARE.search(text):
+                brister.append(Brist(
+                    tid, "STANDARD_UTAN_UTGIVARE",
+                    "harkomsten citerar en paragraf men namner ingen utgivare; "
+                    "ett paragrafnummer utan standard gar inte att sla upp"))
         if "RAKNAD" in klasser and not RAKNING.search(harkomst):
             brister.append(Brist(
                 tid, "RAKNING_UTAN_RAKNING",
@@ -421,6 +436,22 @@ def trasiga_fall(bank, kanda_matningar):
                             "motiv": "spanntrycket ar antaget och valt sa att "
                                      "spannaren haller detaljen med marginal"})
     ut.append(("tal med enhet i namnet men inte i vardet", p, "TAL_UTAN_ENHET"))
+
+    p = _fixtur(bank)
+    p["task_id"] = "FIX-5"
+    p["facit_spar"]["harkomst"] = (
+        "STANDARD: hall-for-att-kora enligt IEC 60204-1. M-45")
+    p["facit_spar"]["standard"] = "IEC 60204-1 och IEC 61131-3"
+    ut.append(("standard utan paragraf, bara numret", p,
+               "STANDARD_UTAN_PARAGRAF"))
+
+    p = _fixtur(bank)
+    p["task_id"] = "FIX-6"
+    p["facit_spar"]["harkomst"] = (
+        "STANDARD: hall-for-att-kora star i 9.2.3.7 och aterstallningen i "
+        "4.1.4. M-45")
+    p["facit_spar"]["standard"] = "paragraf 9.2.3.7 och paragraf 4.1.4"
+    ut.append(("paragraf utan utgivare", p, "STANDARD_UTAN_UTGIVARE"))
 
     p = _fixtur(bank)
     p["task_id"] = "FIX-4"
