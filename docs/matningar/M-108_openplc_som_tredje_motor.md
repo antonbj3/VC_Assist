@@ -138,6 +138,27 @@ frontenden, men backend faller: `no match for operator==`. IEC definierar
 kontrollerar bara gemensam typ — ett hål som når scenen via samma väg som
 concat (grind 1 ser bara frontenden).
 
+## R3 våg 2: strängliteral-hålet är generellt + REF_TO (2026-09-05)
+
+31 nya fall (totalt 55: 35 överens, 12 NYTT_HAL, 7 NY_STRANGARE, 1 TVAFALL).
+
+**Literal-först-stränghålet gäller 9 funktioner**, alla med samma
+backend-signatur (`mismatched types ... IECString ... const char [N]`):
+CONCAT, LEFT, RIGHT, MID, FIND, LEN, INSERT, DELETE, REPLACE — alltid när
+första strängargumentet är en literal, aldrig med variabel. Regelformen:
+*en strängliteral som första argument till en strängfunktion passerar alla
+grindar och faller i backend.* Med variabel som första argument bygger allt.
+
+**4 nya falska rödgrindar — REF_TO:** deklaration+dereferensiering (`^`),
+NULL-initiering, NULL-tilldelning och pekarkopiering bygger i OpenPLC
+(`IEC_REF_TO<INT_t>`, `nullptr`) men stoppas av vår lexer (`oväntat
+tecken '^'`). OpenPLC har rätt; formen är standard. Därtill:
+REF_TO som STRUCT-fält genereras felaktigt som `IEC_INT` (backendbugg i
+STruC++ 0.6.6 — vårt lager avvisar `^` så riktningen är säker),
+överlappande CASE-intervall (`1..5` + `3..7`) fångas av vår grind men ger
+`duplicate case value` i backend, och CASE på STRING avvisas redan av
+frontenden (TVAFALL, IEC-enligt).
+
 **Kanalnot (mätningen som bär "samma scan"):** Δ +2 scan är konstant över
 1/50/200 scans horisont (3 rep vardera). En logikförskjutning hade skalat
 eller varit noll; ett konstant +2 oberoende av PT är skriv→tabell (≤1,
@@ -190,3 +211,5 @@ körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
 * **Klassificeringslogiken är låst i `tests/enhet/test_openplc_klassificering.py`** (43 prov, ingen docker): alla `klassificera`-grenar + BENCH-4-vakt (`facitkalla_filer ∩ under_prov = ∅`) för alla fyra kor-skripten.
 * **R3 är en sondering, inte ett svep.** 24 STRUCT-fall mäter verdict, inte körning; STRUCT-jämförelsens backend-fel är verifierat i kompileringslogg, inte i drift.
 * **STRUCT-fynden är skuldförda, inte lagade.** Initieringsstödet kräver läsarändring (`st/`, annan sessions område), likhetsgrinden kräver typregel — båda utanför uppdragets ägda filer.
+* **Enhetssvitens 2 röda 2026-09-05 är inte M-108.** `test_baslinje.py` (2 prov) är rött i arbetsträdet men `kor_svit_mot_head.py` är grönt (7198 passed) — någon annans pågående arbete, ingen regression från detta uppdrag (ägda filer: M-108 + 5 kor/test-filer, inga lib-ändringar).
+* **R3 våg 2 vilar delvis på agentrapporterad IEC-paragraf.** Tabellnummer för REF_TO/NULL/CASE-väljare är inte verifierade mot standardtext — backendloggarna (SUCCESS/FAILED) är den kontrollerade delen.
