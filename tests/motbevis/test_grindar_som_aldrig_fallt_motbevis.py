@@ -62,15 +62,6 @@ def klient(tmp_path):
 # ---- den elfte felkoden -------------------------------------------------
 
 
-def test_kon_svarar_E_QUEUE_FULL_nar_den_ar_full(klient):
-    for i in range(pump.MAX_KO):
-        klient.koa('c.setProperty("P", %d)' % i, desc="post %d" % i)
-    with pytest.raises(BryggFel) as ei:
-        klient.koa('c.setProperty("P", "en for mycket")', desc="overskott")
-    assert ei.value.kod == P.E_QUEUE_FULL, (
-        "kön var full men bryggan svarade %r" % (ei.value.kod,))
-
-
 def test_varje_felkod_i_protokollet_provas_av_minst_ett_test():
     """Kontraktstestet i 95_testprotokoll.md kräver alla elva."""
     koder = re.findall(r"^(E_[A-Z_]+) = ", 

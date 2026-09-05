@@ -452,3 +452,13 @@ def test_E_QUEUE_FULL_gar_att_utlosa():
     prov — E_QUEUE_FULL står i noll av de 838 testerna."""
     assert pump.MAX_KO == 256, "provet är skrivet mot MAX_KO = 256"
 
+
+def test_kon_svarar_E_QUEUE_FULL_nar_den_ar_full(klient):
+    for i in range(pump.MAX_KO):
+        klient.koa('c.setProperty("P", %d)' % i, desc="post %d" % i)
+    with pytest.raises(BryggFel) as ei:
+        klient.koa('c.setProperty("P", "en for mycket")', desc="overskott")
+    assert ei.value.kod == P.E_QUEUE_FULL, (
+        "kön var full men bryggan svarade %r" % (ei.value.kod,))
+
+
