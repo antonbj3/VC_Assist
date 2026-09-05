@@ -66,33 +66,41 @@ BANKPOST = {
         "en referens som inte godkanns av sitt eget facit avbryter korningen "
         "med slutkod 2 - en mutationsanalys pa en rod referens mater inget",
         "noll skador ger slutkod 2",
-        "fangstgrad under golvet (M-135) ger slutkod 2 - sparr som bara far ga uppat",
+        "fangstgrad under golvet (M-147) ger slutkod 2 - sparr som bara far ga uppat",
     ),
     "kraver": ("inget",),
-    "matningar": ("M-122", "M-131", "M-135"),
+    "matningar": ("M-122", "M-131", "M-135", "M-147"),
 }
 
-# MATT 2026-09-05 av M-135. Golven far bara ga UPPAT (M-53-monster).
-# Golvet satts till det faktiskt uppmatta vardet, aldrig till ett runt tal.
-GOLV_SKADOR = 1054              # M-135
-GOLV_FANGADE = 1010             # M-135
-GOLV_FANGSTGRAD = GOLV_FANGADE / GOLV_SKADOR  # M-135: 0.9582542694497154
+# MATT 2026-09-05 av M-147 (omkalibrerat nar 8 nya industriella skadesorter
+# lades till i C6; M-123-principen). Golven far bara ga UPPAT.
+GOLV_SKADOR = 1307              # M-147
+GOLV_FANGADE = 1174             # M-147
+GOLV_FANGSTGRAD = GOLV_FANGADE / GOLV_SKADOR  # M-147: 0.8982402448355011
 
 GOLV_PER_SORT = {
     "AND_TILL_OR": (91, 98),
+    "ARRAY_INDEX_UTANFOR": (0, 0),
+    "DIVISION_MED_NOLL": (0, 0),
     "END_IF_STRUKEN": (99, 99),
     "FALSKT_TILL_SANT": (78, 97),
     "FLANKENS_Q_TILL_SIGNAL": (82, 82),
     "FLANK_STRUKEN": (32, 32),
+    "FLANK_TAVLAR": (1, 32),
     "FLANK_TILL_NIVA": (35, 36),
     "ICKE_ASCII": (96, 96),
     "JAMFORELSE_VAND": (74, 75),
+    "KVARHALLEN_UTGANG_STOPP": (45, 71),
+    "LARM_KVITTERAT_UTAN_ORSAK": (0, 16),
     "NOT_STRUKEN": (95, 97),
     "OR_TILL_AND": (40, 46),
+    "RETENTIV_FORLORAD": (0, 0),
     "SANT_TILL_FALSKT": (92, 97),
     "SEMIKOLON_STRUKET": (99, 99),
     "TID_FORDUBBLAD": (47, 50),
     "TID_OGILTIG": (50, 50),
+    "TILLSTAND_FASTNAR": (69, 84),
+    "TIMER_FORVAL_ANDRAS": (49, 50),
 }
 
 
@@ -368,7 +376,7 @@ def main(argv=None):
         rs = [r for r in rader if r["sort"] == sort]
         per_sort_res[sort] = (sum(1 for r in rs if r["utfall"] == "FANGAD"), len(rs))
     ok_golv, fel_golv = validera_mutationsgolv(len(fang), len(rader), per_sort=per_sort_res)
-    print("grind (M-53-golv, M-135): %s" % ("GODKAND" if ok_golv else "UNDERKAND: " + fel_golv))
+    print("grind (M-53-golv, M-147): %s" % ("GODKAND" if ok_golv else "UNDERKAND: " + fel_golv))
     print("\n%-24s %5s %5s %5s %5s | %6s %6s %6s" % (
         "sort", "n", "text", "bete", "over", "SKILL", "PERT", "OSYN"))
     for sort in sorted(set(r["sort"] for r in rader)):
@@ -426,7 +434,7 @@ def main(argv=None):
             json.dump(dict(uppgifter=res, fallplatser=fp), h, ensure_ascii=False, indent=1)
         print("\nskrivet:", a.json)
     if not ok_golv:
-        print("KORNINGEN FALLS MOT GOLVET (M-135): %s" % fel_golv, file=sys.stderr)
+        print("KORNINGEN FALLS MOT GOLVET (M-147): %s" % fel_golv, file=sys.stderr)
         return 2
     return 0
 

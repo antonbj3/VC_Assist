@@ -190,6 +190,180 @@ def _flank_till_niva(kropp: str, per_sort: int) -> List[Skada]:
     return ut
 
 
+def _kommentar_rader(kropp: str) -> frozenset:
+    """1-baserade radnummer som star i (* *)- eller //-kommentarer."""
+    rader = set()
+    kommentar = 0
+    for i, rad in enumerate(kropp.split("\n"), 1):
+        s = rad.strip()
+        if kommentar > 0 or s.startswith("//"):
+            rader.add(i)
+        for m in re.finditer(r"\(\*|\*\)", s):
+            if m.group(0) == "(*":
+                kommentar += 1
+                rader.add(i)
+            elif kommentar > 0:
+                kommentar -= 1
+    return frozenset(rader)
+
+
+def _flank_tavlar(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: R_TRIG som lases i fel ordning inom samma skann.
+
+    trig(CLK := ...)-anropet flyttas till slutet av programmet, sa kroppen
+    laser .Q fran foregaende skann i stallet for att evaluera forst.
+    """
+    ut = []
+    vr = var_rader(kropp)
+    for m in re.finditer(r"^[ \t]*(\w+\s*\(\s*CLK\s*:=\s*[\w\.]+\s*\)\s*;)[ \t]*\n?", kropp, re.M):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr:
+            continue
+        call_str = m.group(1).strip()
+        utan = kropp[:m.start()] + kropp[m.end():]
+        end_m = re.search(r"^[ \t]*END_PROGRAM\b", utan, re.M)
+        if not end_m:
+            continue
+        ny = utan[:end_m.start()] + "    " + call_str + "\n" + utan[end_m.start():]
+        ut.append(Skada("FLANK_TAVLAR", "R_TRIG flyttad sist i skannet; .Q lases fran forra skannet",
+                        "beteende", ny, rad, m.group(0).strip(), call_str + " (flyttad sist)"))
+    return ut
+
+
+def _tillstand_fastnar(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: tillstandsmaskin som fastnar - tillstandsovergang struken."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"\bsteg\s*:=\s*(\d+)\s*;", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(0)
+        efter = "(* " + fore + " fastnar *)"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("TILLSTAND_FASTNAR", "tillstandsmaskin fastnar - overgang struken",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _kvarhallen_utgang_stopp(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: kvarhallen utgang vid stopp - nollstallning vid fel/stopp struken."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"\b([A-Za-z0-9_]{3,}_[A-Za-z0-9_]+\s*:=\s*FALSE\s*;)", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(1)
+        efter = "(* " + fore + " kvarhalls *)"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("KVARHALLEN_UTGANG_STOPP", "utgang nollstalls inte vid stopp/fel",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _larm_kvitterat_utan_orsak(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: larm kvitteras utan att orsaken forsvunnit - sakerhetsvillkor i kvittering strukna."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"(IF\s+(?:trigReset|trigPart|trigDone)\.Q)\s+(AND\s+[A-Za-z0-9_]+(?:\s+AND\s+[A-Za-z0-9_]+)*)(\s+THEN)", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(0)
+        efter = m.group(1) + m.group(3)
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("LARM_KVITTERAT_UTAN_ORSAK", "larm kvitteras utan att orsak forsvunnit",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _timer_forval_andras(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: timerns forval andras under drift - forvalet forkortat till 10 ms."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"(\bPT\s*:=\s*T#)(\d+(?:\.\d+)?)(ms|s|m|h)\b", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(0)
+        efter = m.group(1) + "10ms"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("TIMER_FORVAL_ANDRAS", "timerns forval andras under drift till 10 ms",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _division_med_noll(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: division med noll i aritmetiskt uttryck."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"(?<!/)/(?!/)\s*([A-Za-z0-9_]+(?:\.[0-9]+)?)", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(0)
+        efter = "/ 0.0"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("DIVISION_MED_NOLL", "division med noll i aritmetiskt uttryck",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _array_index_utanfor(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: arrayindex utanfor dimensionen."""
+    ut = []
+    vr = var_rader(kropp)
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"([A-Za-z0-9_]+)\[\s*([^\]]+?)\s*\]", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in vr or rad in kr:
+            continue
+        fore = m.group(0)
+        efter = m.group(1) + "[" + m.group(2) + " + 100]"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("ARRAY_INDEX_UTANFOR", "arrayindex utanfor dimensionen",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
+def _retentiv_forlorad(kropp: str, per_sort: int) -> List[Skada]:
+    """C6: retentivitet forlorad: VAR RETAIN -> VAR."""
+    ut = []
+    kr = _kommentar_rader(kropp)
+    for m in re.finditer(r"\bVAR\s+RETAIN\b", kropp):
+        if len(ut) >= per_sort:
+            break
+        rad = kropp[:m.start()].count("\n") + 1
+        if rad in kr:
+            continue
+        fore = m.group(0)
+        efter = "VAR"
+        ny = kropp[:m.start()] + efter + kropp[m.end():]
+        ut.append(Skada("RETENTIV_FORLORAD", "retentivitet forlorad: VAR RETAIN struket",
+                        "beteende", ny, rad, fore, efter))
+    return ut
+
+
 def skador(kropp: str, per_sort: int = 3) -> List[Skada]:
     """Alla kanda skador vi kan gora i en kropp, hogst `per_sort` av varje.
 
@@ -215,4 +389,13 @@ def skador(kropp: str, per_sort: int = 3) -> List[Skada]:
                             efter=ers(m)))
             n += 1
     ut.extend(_flank_till_niva(kropp, per_sort))
+    # C6: atta nya industriella skadesorter
+    ut.extend(_flank_tavlar(kropp, per_sort))
+    ut.extend(_tillstand_fastnar(kropp, per_sort))
+    ut.extend(_kvarhallen_utgang_stopp(kropp, per_sort))
+    ut.extend(_larm_kvitterat_utan_orsak(kropp, per_sort))
+    ut.extend(_timer_forval_andras(kropp, per_sort))
+    ut.extend(_division_med_noll(kropp, per_sort))
+    ut.extend(_array_index_utanfor(kropp, per_sort))
+    ut.extend(_retentiv_forlorad(kropp, per_sort))
     return ut

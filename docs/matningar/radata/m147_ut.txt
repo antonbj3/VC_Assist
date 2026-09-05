@@ -1,0 +1,72 @@
+KORNINGEN FALLS MOT GOLVET (M-135): fangstgrad 0.8982 under golvet 0.9583 (1174 av 1307 mot golv 1010 av 1054, M-135)
+=== M-122 MUTATIONSSKIKTEN ===  33 uppgifter, referens GODKAND 33 av 33, 43 s
+
+skador 1307   fangade 1174 (90 %)   overlevde 133
+fangade per lager: {'beteende': 744, 'text': 430}
+vantat lager -> fangande lager: {('beteende', 'beteende'): 744, ('beteende', 'text'): 86, ('text', 'text'): 344}
+grind (M-53-golv, M-135): UNDERKAND: fangstgrad 0.8982 under golvet 0.9583 (1174 av 1307 mot golv 1010 av 1054, M-135)
+
+sort                         n  text  bete  over |  SKILL   PERT   OSYN
+AND_TILL_OR                 98     0    91     7 |      2      0      5
+END_IF_STRUKEN              99    99     0     0 |      0      0      0
+FALSKT_TILL_SANT            97     0    78    19 |      1      8     10
+FLANKENS_Q_TILL_SIGNAL      82    82     0     0 |      0      0      0
+FLANK_STRUKEN               32     0    32     0 |      0      0      0
+FLANK_TAVLAR                32     0     1    31 |     28      0      3
+FLANK_TILL_NIVA             36     0    35     1 |      0      0      1
+ICKE_ASCII                  96    96     0     0 |      0      0      0
+JAMFORELSE_VAND             75     4    70     1 |      0      0      1
+KVARHALLEN_UTGANG_STOPP     71     0    45    26 |      0      4     22
+LARM_KVITTERAT_UTAN_ORSAK    16     0     0    16 |      0      1     15
+NOT_STRUKEN                 97     0    95     2 |      0      1      1
+OR_TILL_AND                 46     0    40     6 |      2      2      2
+SANT_TILL_FALSKT            97     0    92     5 |      2      0      3
+SEMIKOLON_STRUKET           99    99     0     0 |      0      0      0
+TID_FORDUBBLAD              50     0    47     3 |      2      0      1
+TID_OGILTIG                 50    50     0     0 |      0      0      0
+TILLSTAND_FASTNAR           84     0    69    15 |      1      7      7
+TIMER_FORVAL_ANDRAS         50     0    49     1 |      1      0      0
+
+overlevande BETEENDEmutanter: 133
+  radtyp x klass: {('KOD', 'OSYNLIG'): 71, ('KOD', 'SKILLNAD_PA_FACITSTIMULUS'): 39, ('KOD', 'SYNLIG_BARA_UNDER_PERTURBATION'): 23}
+  radtyp ar en RADSKANNING (VAR..END_VAR via mutation.var_rader), inte en parsning - M-122 LIMITS
+  kodrads-overlevare: 133  klass: {'OSYNLIG': 71, 'SKILLNAD_PA_FACITSTIMULUS': 39, 'SYNLIG_BARA_UNDER_PERTURBATION': 23}
+    synliga under facit     39 av 133
+    synliga under x0.25     35 av 133
+    synliga under x0.5      37 av 133
+    synliga under x2.0      41 av 133
+    synliga under upprepa2  59 av 133
+    synliga under hall3     39 av 133
+  kodrads-overlevare per uppgift: {'A-01': 6, 'A-02': 7, 'A-03': 2, 'A-04': 6, 'A-05': 6, 'A-06': 6, 'A-07': 2, 'A-08': 3, 'C-01': 3, 'C-04': 7, 'C-06': 2, 'H-01': 3, 'H-04': 3, 'H-05': 6, 'L-01': 3, 'L-05': 3, 'L-06': 2, 'L-07': 3, 'P-03': 6, 'P-05': 6, 'P-06': 3, 'P-07': 4, 'S-01': 3, 'S-05': 4, 'S-06': 4, 'S-07': 5, 'T-01': 4, 'T-02': 3, 'T-04': 6, 'T-05': 4, 'T-07': 2, 'T-08': 2, 'T-09': 4}
+
+=== NIVA I STALLET FOR FLANK (M-115:s F15, motor-sort sedan C0) ===
+nivamutanter 36 i 26 uppgifter   fangade 35   overlevde 1
+  fangade: A-04:ST270_SAF_OK, A-07:SYS_RESET, A-08:SYS_RESET, C-04:SYS_RESET, C-06:SYS_RESET, H-04:SYS_RESET, H-05:SYS_RESET, H-05:ST490_XFR_DONE, L-01:ST150_PLT_PRS, L-01:ST150_PRT_PRS, L-05:SYS_RESET, L-06:SYS_RESET, L-06:SYS_RESET, L-07:SYS_RESET, P-03:ST120_MLD_OPEN, P-05:ST140_RB_DONE, P-06:SYS_RESET, P-07:SYS_RESET, S-01:ST190_PEC_PART, S-05:ST200_PML_SC, S-05:ST200_PML_SC, S-06:SYS_RESET, S-07:ST510_SCN_DONE, S-07:SYS_RESET, S-07:SYS_RESET, T-01:ST010_PEC_PART, T-02:SYS_AUTO, T-02:ST020_IDX_HOME, T-04:ST040_PEC_IN, T-04:ST040_PEC_OUT, T-04:ST040_PEC_OUT, T-05:SYS_AUTO, T-07:SYS_RESET, T-08:SYS_RESET, T-09:SYS_RESET
+  overlevde: S-05:ST200_PML_SC[OSYNL]
+
+=== GRIND 2:S FALLPLATSER ===
+mutanter 1307   fangade av grind 2 (ny anmarkning utover referensens) 430
+   AND_TILL_OR                0 av  98
+   END_IF_STRUKEN            99 av  99
+   FALSKT_TILL_SANT           0 av  97
+   FLANKENS_Q_TILL_SIGNAL    82 av  82
+   FLANK_STRUKEN              0 av  32
+   FLANK_TAVLAR               0 av  32
+   FLANK_TILL_NIVA            0 av  36
+   ICKE_ASCII                96 av  96
+   JAMFORELSE_VAND            4 av  75
+   KVARHALLEN_UTGANG_STOPP    0 av  71
+   LARM_KVITTERAT_UTAN_ORSAK   0 av  16
+   NOT_STRUKEN                0 av  97
+   OR_TILL_AND                0 av  46
+   SANT_TILL_FALSKT           0 av  97
+   SEMIKOLON_STRUKET         99 av  99
+   TID_FORDUBBLAD             0 av  50
+   TID_OGILTIG               50 av  50
+   TILLSTAND_FASTNAR          0 av  84
+   TIMER_FORVAL_ANDRAS        0 av  50
+fallplatser i validator.py: 76   fyrade av referenserna: 0   fyrade av mutanterna: 5 [('TIDLITERAL', 506), ('TYP', 348), ('TYP', 421), ('TYP', 478), ('TYP', 603)]
+referenser med egen grind-2-anmarkning (M-121 ager fragan): {}
+M-111: aldrig fyrade platser 35, varav mutanterna nar 0 []
+
+skrivet: /tmp/opencode/koc/m147_svep.json

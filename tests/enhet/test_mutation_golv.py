@@ -2,7 +2,7 @@
 """C3: mutationspoängen som grind med golv (M-53-mönster).
 
 Kvot fångade / skador blir en grind med ett golv som bara får gå UPPÅT.
-Golvet sätts till det uppmätta värdet (M-135: 1010 / 1054 = 95,825 %),
+Golvet sätts till det uppmätta värdet (M-147: 1174 / 1307 = 89,824 %),
 aldrig till ett runt tal.
 
 PROVEN SKREVS FÖRE MEKANISMEN och var röda då:
@@ -30,7 +30,7 @@ from kor_m122_mutationsskikt import (  # noqa: E402
     validera_mutationsgolv,
 )
 
-RADATA_JSON = os.path.join(_ROT, "docs", "matningar", "radata", "m135_svep.json")
+RADATA_JSON = os.path.join(_ROT, "docs", "matningar", "radata", "m147_svep.json")
 
 
 # ---- trasiga fixturer: grinden måste fälla det som inte håller ----------------
@@ -46,8 +46,8 @@ def test_c3_slappare_golv_falls():
     """Ett golv under verkligheten slutar fånga nästa glidning (samma regel
     som M-53 och M-70)."""
     assert GOLV_FANGADE / GOLV_SKADOR == GOLV_FANGSTGRAD
-    assert GOLV_FANGADE == 1010
-    assert GOLV_SKADOR == 1054
+    assert GOLV_FANGADE == 1174
+    assert GOLV_SKADOR == 1307
 
 
 def test_c3_golvet_ar_aldrig_ett_runt_tal():
@@ -105,4 +105,4 @@ def test_c3_troskeln_har_matningsreferens():
     måste ange mätningen som golvet härrör från."""
     kalla = open(os.path.join(_ROT, "tests", "protocol", "kor_m122_mutationsskikt.py"),
                  encoding="utf-8").read()
-    assert "M-135" in kalla, "kor_m122_mutationsskikt.py saknar mätreferens till M-135"
+    assert "M-147" in kalla, "kor_m122_mutationsskikt.py saknar mätreferens till M-147"
