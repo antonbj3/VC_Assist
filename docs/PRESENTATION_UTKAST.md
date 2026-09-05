@@ -188,16 +188,6 @@ injected into working code to see how many the system would catch: 718.
 The task set is 63 cells across transport, picking, assembly, sorting,
 palletising, whole lines, and robot handover.
 
-## How we keep ourselves honest
-
-Every threshold in the code points at the measurement it came from. Every check
-has a test that failed before the check existed. An answer key never comes from
-the code being tested.
-
-This is not decoration. Nine of sixteen verdicts in an early run turned out to
-be our own bug, and three more were false alarms that made the model rewrite
-working code. Both were found by these rules and are now permanent test cases.
-
 ## Getting started
 
 ```bash
