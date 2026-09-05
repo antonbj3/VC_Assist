@@ -698,15 +698,26 @@ def _search_installed_library(argument):
         # Raden lovar darfor ingenting om att komponenten finns. Den sager var
         # de ANDRA dorrarna sitter, precis som catalog_item svarar found=false
         # med VERKLIGA alternativ i stallet for en gissad sokvag.
+        # family namns BARA nar indexet ar djupt. MATT i M-163:
+        # `sok(familj="robot")` ger 0 av 3201 i ett grunt index, darfor att
+        # familjemarkoren ligger vid median 14 215 byte och huvudlasningen
+        # stannar vid 4 096 (M-69). Ett rad som skickar den som fragade till
+        # ett filter som svarar "ingenting i biblioteket" ar samre an inget
+        # rad alls.
+        dorrar = ("manufacturer, min_reach_mm eller min_payload_kg"
+                  if not katalog.djupt else
+                  "family (robot, transportor, verktyg), manufacturer, "
+                  "min_reach_mm eller min_payload_kg")
         ut["notering"] = (
             "0 traffar pa namnet. Biblioteket namnger komponenter med "
             "tillverkarnas produktnamn (149 tillverkare, engelska), inte med "
             "funktionsbeskrivningar - en beskrivande fraga traffar darfor "
-            "noll aven nar nagot liknande finns. Sok i stallet pa family "
-            "(robot, transportor, verktyg), manufacturer, min_reach_mm eller "
-            "min_payload_kg, eller fraga library_overview forst. Det har "
-            "svaret sager INTE att komponenten saknas - det sager att namnet "
-            "inte finns (M-161).")
+            "noll aven nar nagot liknande finns. Sok i stallet pa %s, eller "
+            "fraga library_overview forst. En fraga som ger over 40 traffar "
+            "svarar med ett sammandrag per tillverkare i stallet for rader "
+            "(M-60), sa smalna av innan du ber om listan. Det har svaret "
+            "sager INTE att komponenten saknas - det sager att namnet inte "
+            "finns (M-161)." % dorrar)
     elif svar.visade < svar.totalt:
         ut["notering"] = ("%d av %d traffar visas. Hoj max_rows eller smalna av."
                           % (svar.visade, svar.totalt))

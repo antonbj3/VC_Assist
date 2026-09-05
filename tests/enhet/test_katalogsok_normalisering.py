@@ -188,3 +188,30 @@ def test_noll_traffar_pa_ett_namn_pekar_ut_de_andra_dorrarna(monkeypatch):
         assert t["lasning"] and "ABB" in t["lasning"]
     finally:
         KT._nollstall_bibliotek()
+
+
+def test_nollraden_namner_inte_family_i_ett_GRUNT_index(monkeypatch):
+    """M-163: `sok(familj="robot")` ger 0 av 3201 i ett grunt index.
+
+    Familjemarkoren ligger vid median 14 215 byte och den grunda lasningen
+    stannar vid 4 096 (M-69). Ett rad som skickar den som fragade till ett
+    filter som svarar "ingenting i biblioteket" ar samre an inget rad alls.
+    """
+    import vc_assist_svc.verktyg as V
+    import vc_assist_svc.verktyg.katalog as KT
+
+    grunt = Katalog.fran_index({
+        "format": 1, "rot": "/x", "djupt": False,
+        "poster": [{"namn": n, "tillverkare": t, "kategori": "Robots",
+                    "sokvag": "/x/%s.vcmx" % n}
+                   for n, t in _BIBLIOTEK]})
+    KT._nollstall_bibliotek()
+    monkeypatch.setattr(KT, "_bibliotek", lambda: (grunt, None))
+    try:
+        r = V.DATA_HANDLERS["search_installed_library"](
+            {"query": u"Induktiv närvarogivare"})
+        assert r["antal"] == 0
+        assert "family" not in r["notering"]
+        assert "manufacturer" in r["notering"]
+    finally:
+        KT._nollstall_bibliotek()
