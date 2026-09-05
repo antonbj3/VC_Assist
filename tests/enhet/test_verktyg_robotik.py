@@ -637,7 +637,7 @@ def test_en_tom_mallista_med_run_avvisas():
                                {"component": "R", "targets": [], "run": True})
     with pytest.raises(V.Argumentfel) as e:
         kod_for("move_targets", args)
-    assert "tom mallista gar inte att kora" in str(e.value)
+    assert "empty target list cannot run" in str(e.value)
 
 
 def test_en_tom_mallista_utan_run_ar_spec_tabellens_clear_targets():
@@ -680,7 +680,7 @@ def test_en_rorelsesats_utan_mal_avvisas():
     # schemat med ett direkt anrop.
     with pytest.raises(V.Argumentfel) as e:
         kod_for("add_motion_statement", {"component": "R", "motion": "joint"})
-    assert "VART den ska" in str(e.value)
+    assert "WHERE it's going" in str(e.value)
 
 
 # ---- 3. routingen --------------------------------------------------------

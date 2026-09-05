@@ -1732,8 +1732,8 @@ def _kod_move_targets(argument):
     mal = argument["targets"]
     if not mal and argument["run"]:
         raise Argumentfel("move_targets",
-                          ["en tom mallista gar inte att kora; run=false "
-                           "tommer listan och gor inget mer"])
+                          ["an empty target list cannot run; run=false "
+                           "empties the list and does nothing else"])
     for nr, spec in enumerate(mal):
         _granska_mal(spec, "move_targets[%d]" % nr)
     rader = _rader_styrenhet(argument)
@@ -2197,8 +2197,8 @@ def _kod_add_motion_statement(argument):
         _granska_egenskapsvarden(argument["properties"], "add_motion_statement")
     if "joint_values" not in argument and "position" not in argument:
         raise Argumentfel("add_motion_statement",
-                          ["en rorelsesats maste veta VART den ska: ange "
-                           "position eller joint_values"])
+                          ["a motion statement must know WHERE it's going: "
+                           "give position or joint_values"])
     behover_r = "base" in argument or "tool" in argument
     rader = (_rader_styrenhet(argument) if behover_r
              else _rader_komponent(argument["component"]))
