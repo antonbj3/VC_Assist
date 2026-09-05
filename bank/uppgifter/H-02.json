@@ -304,5 +304,212 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: takten 9,0 s per detalj ger 3600/9,0 = 400 detaljer/h teoretiskt. Overlamningsfonstret 0,20 s ar raknat med marginal mot griparens slagtid 0,35 s och ryms val i cykeltiden. Griparnas kraftfonster 80 till 300 N foljer detaljens hallfasthetsgranser i scenariotexten. Detta ar manniskans facit skrivet ur scenarios normal, force_lag, force_hog, closed_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Handskakning och tidsintervall for overlamning robot till robot foljer ISO 10218-2:2011 5.6.3.4.2 \"Manual reset, start/restart and unexpected start-up\"; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och tidskretsar enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_H02_OVERLAMNING\nVAR\n    steg      : INT := 0;\n    tmrHold   : TON;\n    tmrClosed : TON;\n    forceOk   : BOOL := FALSE;\nEND_VAR\n\ntmrClosed(IN := (steg = 2), PT := T#1500ms);\ntmrHold(IN := (steg = 3), PT := T#200ms);\n\nforceOk := (ST320_GRP_FORCE >= 80.0) AND (ST320_GRP_FORCE <= 300.0);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST310_HS_REQ    := FALSE;\n    ST310_GRP_OPEN  := FALSE;\n    ST310_HS_RST    := FALSE;\n    ST320_GRP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST310_HS_RST := FALSE;\n            ST310_GRP_OPEN := FALSE;\n            ST310_HS_REQ := TRUE;\n            IF ST320_HS_ACK THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST320_GRP_CLOSE := TRUE;\n            IF ST320_GRP_CLOSED AND forceOk THEN\n                steg := 3;\n            ELSIF tmrClosed.Q OR (ST320_GRP_CLOSED AND NOT forceOk) THEN\n                steg := 9;\n            END_IF;\n        3:\n            IF tmrHold.Q THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST310_GRP_OPENED AND ST320_HS_DONE THEN\n                ST310_HS_REQ := FALSE;\n                ST310_HS_RST := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST320_HS_DONE THEN\n                ST310_HS_RST := FALSE;\n                ST310_GRP_OPEN := FALSE;\n                ST320_GRP_CLOSE := FALSE;\n                steg := 1;\n            END_IF;\n        9:\n            ST310_GRP_OPEN := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_overlamning",
+        "beskrivning": "Normal overlamning mellan robot A och B med bada griparna slutna i minst 0,20 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST320_HS_ACK": false,
+              "ST320_GRP_CLOSED": false,
+              "ST320_GRP_FORCE": 150.0,
+              "ST310_GRP_OPENED": false,
+              "ST320_HS_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST310_HS_REQ": true,
+              "ST310_GRP_OPEN": false,
+              "ST320_GRP_CLOSE": false,
+              "ST310_HS_RST": false
+            },
+            "varfor": "ST310 begar overlamning"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST320_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST320_GRP_CLOSE": true,
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "ST320 borjar stanga sin gripare"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST320_GRP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "under 200 ms halltiden far ST310 inte oppna an"
+          },
+          {
+            "t_ms": 660,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": true
+            },
+            "varfor": "efter 200 ms halltid oppnar ST310 sin gripare"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST310_GRP_OPENED": true,
+              "ST320_HS_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST310_HS_RST": true,
+              "ST310_HS_REQ": false
+            },
+            "varfor": "nar ST310 oppnat och ST320 bekraftat aterstalls handskakningen"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST320_HS_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST310_HS_RST": false
+            },
+            "varfor": "nar ST320 slappt DONE ar aterstallningen fullbordad"
+          }
+        ]
+      },
+      {
+        "id": "closed_uteblir_stoppar_oppning",
+        "beskrivning": "ST320_GRP_CLOSED uteblir; ST310 far aldrig oppna sin gripare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST320_HS_ACK": true,
+              "ST320_GRP_CLOSED": false,
+              "ST320_GRP_FORCE": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST320_GRP_CLOSE": true,
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "ST320 stanger"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST310_GRP_OPEN": false
+            },
+            "varfor": "efter timeout far ST310 fortfarande aldrig oppna"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "oppnar_aldrig_utan_closed",
+        "sekvens": "*",
+        "nar": {
+          "ST310_GRP_OPEN": true
+        },
+        "kraver": {
+          "ST320_GRP_CLOSED": true
+        },
+        "varfor": "ST310 far aldrig oppna om inte ST320 bekraftat slutet grepp"
+      },
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST310_HS_REQ": false,
+          "ST310_GRP_OPEN": false,
+          "ST320_GRP_CLOSE": false
+        },
+        "varfor": "vid nodstopp ska alla rorelser och handskakningar nollstallas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "req_flank",
+        "sekvens": "normal_overlamning",
+        "signal": "ST310_HS_REQ",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 500,
+        "antal": 1,
+        "varfor": "ST310 ska begara overlamning exakt en gang"
+      },
+      {
+        "namn": "open_flank",
+        "sekvens": "normal_overlamning",
+        "signal": "ST310_GRP_OPEN",
+        "typ": "RISE",
+        "fran_ms": 500,
+        "till_ms": 800,
+        "antal": 1,
+        "varfor": "ST310 ska oppna exakt en gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "oppnar_pa_close_kommando",
+        "st": "PROGRAM ST_H02_OVERLAMNING\nVAR\n    steg      : INT := 0;\n    tmrHold   : TON;\n    tmrClosed : TON;\n    forceOk   : BOOL := FALSE;\nEND_VAR\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST310_HS_REQ    := FALSE;\n    ST310_GRP_OPEN  := FALSE;\n    ST310_HS_RST    := FALSE;\n    ST320_GRP_CLOSE := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST310_HS_RST := FALSE;\n            ST310_GRP_OPEN := FALSE;\n            ST310_HS_REQ := TRUE;\n            IF ST320_HS_ACK THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST320_GRP_CLOSE := TRUE;\n            ST310_GRP_OPEN := TRUE;\n            IF ST320_GRP_CLOSED THEN\n                steg := 4;\n            END_IF;\n        4:\n            IF ST310_GRP_OPENED AND ST320_HS_DONE THEN\n                ST310_HS_REQ := FALSE;\n                ST310_HS_RST := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            ST310_HS_RST := FALSE;\n            ST310_GRP_OPEN := FALSE;\n            ST320_GRP_CLOSE := FALSE;\n            steg := 1;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST310 oppnar pa ST320:s stangkommando i stallet for pa ST320_GRP_CLOSED, sa detaljen ar utan hallare i griparens 0,35 s slagtid.",
+        "faller_pa": [
+          "normal_overlamning@300ms:ST310_GRP_OPEN"
+        ]
+      }
+    ]
+  }
 }

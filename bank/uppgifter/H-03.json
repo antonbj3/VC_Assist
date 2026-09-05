@@ -304,5 +304,291 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: fyra kollin i 12,0 s takt ger cykeltiden 4 * 12,0 = 48,0 s per AGV. Teoretiskt 3600/48,0 = 75 AGV-vagnar per timme eller 300 kollin/h. AGV:ns tillatna lastvikt ar 100 kg, vilket rymmer 4 * 22 kg = 88 kg med 12 kg marginal. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, dck_uteblir samt expect fore korning. M-124 provar facitformen.",
+    "standard": "AGV-dockning och forregling foljer anlaggningens specifikation och ISO 3691-4:2023 4.5 \"Load handling\"; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_H03_AGV_LASTNING\nVAR\n    steg      : INT := 0;\n    trigDone  : R_TRIG;\n    tmrRst    : TON;\nEND_VAR\n\ntrigDone(CLK := ST330_RB_DONE);\ntmrRst(IN := (steg = 4), PT := T#500ms);\n\nIF NOT EMG_OK THEN\n    ST330_RB_START := FALSE;\n    ST330_HS_REQ   := FALSE;\n    ST330_HS_DONE  := FALSE;\n    ST330_HS_RST   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST330_HS_DONE := FALSE;\n            ST330_HS_RST  := FALSE;\n            ST330_RB_START := FALSE;\n            ST330_LOD_CNT := 0;\n            IF ST330_DCK_OK THEN\n                ST330_HS_REQ := TRUE;\n                IF ST330_HS_ACK THEN\n                    steg := 1;\n                END_IF;\n            ELSE\n                ST330_HS_REQ := FALSE;\n            END_IF;\n        1:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF NOT ST330_RB_DONE AND ST330_PRT_PRS AND ST330_LOD_CNT < 4 THEN\n                ST330_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF trigDone.Q THEN\n                ST330_RB_START := FALSE;\n                ST330_LOD_CNT := ST330_LOD_CNT + 1;\n                IF ST330_LOD_CNT >= 4 THEN\n                    ST330_HS_DONE := TRUE;\n                    steg := 3;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n        3:\n            IF NOT ST330_DCK_OK THEN\n                ST330_HS_DONE := FALSE;\n                ST330_HS_REQ  := FALSE;\n                ST330_HS_RST  := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            ST330_HS_RST := TRUE;\n            IF tmrRst.Q THEN\n                ST330_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            ST330_RB_START := FALSE;\n            ST330_HS_DONE := FALSE;\n            IF ST330_DCK_OK THEN\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_lastning_fyra_kollin",
+        "beskrivning": "Normal lastning av fyra kollin pa AGV med bevarad dockning.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST330_DCK_OK": true,
+              "ST330_HS_ACK": false,
+              "ST330_PRT_PRS": true,
+              "ST330_RB_DONE": false,
+              "ST330_AGV_WGT": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST330_HS_REQ": true,
+              "ST330_RB_START": false,
+              "ST330_HS_DONE": false,
+              "ST330_HS_RST": false
+            },
+            "varfor": "roboten begar lastning nar AGV dockat"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST330_HS_ACK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": true,
+              "ST330_LOD_CNT": 0
+            },
+            "varfor": "startar kolli 1"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST330_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": false,
+              "ST330_LOD_CNT": 1,
+              "ST330_HS_DONE": false
+            },
+            "varfor": "kolli 1 klart"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST330_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": true
+            },
+            "varfor": "startar kolli 2"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST330_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST330_LOD_CNT": 2
+            },
+            "varfor": "kolli 2 klart"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST330_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": true
+            },
+            "varfor": "startar kolli 3"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST330_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST330_LOD_CNT": 3
+            },
+            "varfor": "kolli 3 klart"
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST330_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": true
+            },
+            "varfor": "startar kolli 4"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST330_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {},
+            "krav": {
+              "ST330_LOD_CNT": 4,
+              "ST330_HS_DONE": true,
+              "ST330_RB_START": false
+            },
+            "varfor": "alla fyra kollin klara, HS_DONE satts"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST330_DCK_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST330_HS_RST": true,
+              "ST330_HS_DONE": false,
+              "ST330_HS_REQ": false
+            },
+            "varfor": "AGV kor ivag och handskakningen aterstalls"
+          },
+          {
+            "t_ms": 2900,
+            "satt": {},
+            "krav": {
+              "ST330_HS_RST": false
+            },
+            "varfor": "aterstallningspulsen avslutas infor nasta vagn"
+          }
+        ]
+      },
+      {
+        "id": "dockning_tappad_under_lastning",
+        "beskrivning": "Dockningen bryts mitt i lastningsrorelsen; rorelsen maste avbrytas omedelbart.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST330_DCK_OK": true,
+              "ST330_HS_ACK": true,
+              "ST330_PRT_PRS": true,
+              "ST330_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": true
+            },
+            "varfor": "roboten startar rorelse"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST330_DCK_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST330_RB_START": false,
+              "ST330_HS_DONE": false
+            },
+            "varfor": "vid tappad dockning avbryts rorelsen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_start_utan_dockning",
+        "sekvens": "*",
+        "nar": {
+          "ST330_DCK_OK": false
+        },
+        "kraver": {
+          "ST330_RB_START": false
+        },
+        "varfor": "robotrorelse over lastplatsen ar forreglad nar dockningsgivaren ar lag"
+      },
+      {
+        "namn": "ingen_done_fore_fyra_kollin",
+        "sekvens": "*",
+        "nar": {
+          "ST330_HS_DONE": true
+        },
+        "kraver": {
+          "ST330_LOD_CNT": 4
+        },
+        "varfor": "klarsignal till AGV far aldrig ges innan alla fyra kollin ar lastade"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "hs_done_flank",
+        "sekvens": "normal_lastning_fyra_kollin",
+        "signal": "ST330_HS_DONE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2500,
+        "antal": 1,
+        "varfor": "klarsignal till AGV ska ges exakt en gang efter fyra kollin"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "dockning_kollas_bara_vid_start",
+        "st": "PROGRAM ST_H03_AGV_LASTNING\nVAR\n    steg      : INT := 0;\n    trigDone  : R_TRIG;\n    tmrRst    : TON;\nEND_VAR\n\ntrigDone(CLK := ST330_RB_DONE);\ntmrRst(IN := (steg = 4), PT := T#500ms);\n\nIF NOT EMG_OK THEN\n    ST330_RB_START := FALSE;\n    ST330_HS_REQ   := FALSE;\n    ST330_HS_DONE  := FALSE;\n    ST330_HS_RST   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST330_HS_DONE := FALSE;\n            ST330_HS_RST  := FALSE;\n            ST330_RB_START := FALSE;\n            ST330_LOD_CNT := 0;\n            IF ST330_DCK_OK THEN\n                ST330_HS_REQ := TRUE;\n                IF ST330_HS_ACK THEN\n                    steg := 1;\n                END_IF;\n            ELSE\n                ST330_HS_REQ := FALSE;\n            END_IF;\n        1:\n            IF NOT ST330_RB_DONE AND ST330_PRT_PRS AND ST330_LOD_CNT < 4 THEN\n                ST330_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF trigDone.Q THEN\n                ST330_RB_START := FALSE;\n                ST330_LOD_CNT := ST330_LOD_CNT + 1;\n                IF ST330_LOD_CNT >= 4 THEN\n                    ST330_HS_DONE := TRUE;\n                    steg := 3;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n        3:\n            IF NOT ST330_DCK_OK THEN\n                ST330_HS_DONE := FALSE;\n                ST330_HS_REQ  := FALSE;\n                ST330_HS_RST  := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            ST330_HS_RST := TRUE;\n            IF tmrRst.Q THEN\n                ST330_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST330_DCK_OK lases bara vid start och kontrolleras inte under rorelsen, sa roboten fortsatter att lasta aven om AGV:n rullat ivag.",
+        "faller_pa": [
+          "dockning_tappad_under_lastning@400ms:ST330_RB_START"
+        ]
+      }
+    ]
+  }
 }
