@@ -430,7 +430,7 @@ class Uppgift:
         ok, skal = self.kolumn.stammer(self.varde, self.enhet)
         if not ok:
             raise Tillverkarfel(
-                "%s: kolumnlasningen ur %s stammer inte: %s"
+                "%s: the column reading from %s does not match: %s"
                 % (self.falt, self.kalla.url, skal))
 
     @property
@@ -458,8 +458,8 @@ class Uppgift:
                                 % (falt, ", ".join(sorted(okanda))))
         if "varde" not in d or "enhet" not in d or "kalla" not in d:
             raise Tillverkarfel(
-                "%s: en uppgift kraver varde, enhet OCH kalla; fick %s"
-                % (falt, ", ".join(sorted(d)) or "inget"))
+                "%s: a task requires varde, enhet AND kalla; got %s"
+                % (falt, ", ".join(sorted(d)) or "nothing"))
         kol = d.get("kolumn")
         return Uppgift(falt=falt, varde=float(d["varde"]), enhet=str(d["enhet"]),
                        kalla=Kalla.fran_json(d["kalla"]),
@@ -528,7 +528,7 @@ class Svar:
                     "number must be incomparable, not merely unlabeled" % self.falt)
             if self.enhet:
                 raise Tillverkarfel(
-                    "%s: lage enhet_saknas med en enhet ar en motsagelse"
+                    "%s: mode enhet_saknas with a unit is a contradiction"
                     % self.falt)
             if not self.ordagrant:
                 raise Tillverkarfel(

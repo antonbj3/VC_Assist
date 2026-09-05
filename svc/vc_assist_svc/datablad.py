@@ -214,11 +214,11 @@ class Varde:
                 "%s: a value without a source is not a value" % self.storhet)
         if self.harkomst == SAKNAS and self.varde is not None:
             raise Databladsfel(
-                "%s: harkomst SAKNAS men vardet ar %r" % (self.storhet,
-                                                          self.varde))
+                "%s: provenance SAKNAS but the value is %r" % (self.storhet,
+                                                               self.varde))
         if self.harkomst != SAKNAS and self.varde is None:
             raise Databladsfel(
-                "%s: harkomst %s utan varde" % (self.storhet, self.harkomst))
+                "%s: provenance %s without a value" % (self.storhet, self.harkomst))
 
     @property
     def finns(self) -> bool:
@@ -1239,7 +1239,7 @@ class Datablad:
             return self.storheter[storhet]
         if storhet not in STORHETER:
             raise Databladsfel(
-                "%r ar ingen storhet i ordforradet. Ordforradet ar: %s"
+                "%r is not a quantity in the vocabulary. The vocabulary is: %s"
                 % (storhet, ", ".join(sorted(STORHETER))))
         raise Databladsfel(
             "the quantity %r does not belong to the family %r. The family's "

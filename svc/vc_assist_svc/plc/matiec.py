@@ -145,7 +145,7 @@ def extrahera_ur_docker(
         )
         os.chmod(binar, 0o755)
     except (subprocess.SubprocessError, OSError) as e:
-        raise MatiecFel(f"kunde inte extrahera filer ur container {namn}: {e}")
+        raise MatiecFel(f"could not extract files from container {namn}: {e}")
     finally:
         subprocess.run(
             ["docker", "rm", "-f", namn],

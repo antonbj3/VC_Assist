@@ -536,15 +536,15 @@ class Steg(object):
                    "beroenden", "forvillkor", "alternativ_grupp",
                    "parallell_grupp", "efterkontroller")
         if not isinstance(data, dict):
-            raise Specfel("steg", ["forvantade ett objekt, fick %s"
+            raise Specfel("steg", ["expected an object, got %s"
                                    % type(data).__name__])
         smitare = sorted(set(data) & set(FORBJUDNA_STEGNYCKLAR))
         if smitare:
             raise Specfel(
-                "steget %r" % (data.get("id"),),
-                ["nyckeln %r valjer exekveringslage; routingen read->exec och "
-                 "write->exec_queue ags av utforaren och far inte sta i planen "
-                 "(I12)" % n for n in smitare])
+                "step %r" % (data.get("id"),),
+                ["the key %r chooses execution mode; the routing read->exec and "
+                 "write->exec_queue is owned by the executor and must not "
+                 "appear in the plan (I12)" % n for n in smitare])
         saknade = sorted(set(vantade) - set(data))
         okanda = sorted(set(data) - set(vantade))
         if saknade or okanda:

@@ -626,7 +626,7 @@ def test_TRASIG_storhet_utanfor_ORDFORRADET_faller_med_listan(tmp_path):
     b = D.las(skriv_vcmx(str(tmp_path / "r.vcmx"), robot_rsc()), "ABB")
     with pytest.raises(D.Databladsfel) as fel:
         b["payload"]
-    assert "ordforradet" in str(fel.value)
+    assert "vocabulary" in str(fel.value)
     assert "nyttolast" in str(fel.value)
 
 
