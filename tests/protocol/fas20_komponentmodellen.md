@@ -13,12 +13,22 @@ vilket beteende som fattas"*
 **föregångare:** `M-40` (två tysta villkor), `M-41` (produkten flödar),
 `M-67` (kopplingen flyttar ingenting)
 
-## Status: ARBETET PÅGÅR — talen står i M-101 när körningen är gjord
+## Status: STÄNGD — körd grön mot VC 4.10 2026-09-05. Talen i M-101
 
-Ingen siffra i den här filen får skrivas förrän
-`kor_fas20_modellen.py --starta-om` har gått igenom mot en riktig VC. Tills
-dess är fasen **öppen**, och det som står nedan är uppställningen, inte
-utfallet.
+| Fråga | Utfall |
+|---|---:|
+| fyra minsta uppsättningar byggda ur specen, HELA enligt `granska()` | **4 av 4** |
+| `canConnect` sant där specen säger ja | **7 av 7** |
+| produkter genom hela kedjan på 34,8 simulerade sekunder | **13** |
+| mellanrum mot `Interval` 3,0 s | **exakt 3,0000 s**, alla tolv |
+| rörelse mot `Speed` 400 mm/s, 17 mätta par | **400,0000 – 400,0000 mm/s** |
+| räkningen vid sista avläsningen (bana + buffert + sänka) | **2 + 1 + 10 = 13** |
+| trasiga fixturer som fälls, med det saknade beteendet namngivet | **4 av 4** |
+| hela tvillingar på samma plats som gick att koppla | **4 av 4** |
+
+Tre påståenden refuterades av körningen och står i M-101: `ContentVisible`
+(ur `api.xml`), spec 49 §1.1:s **MÄTT** om klassnamnen (fem av sex namn fel),
+och läsningen att ett obundet flödesfält bär `Port = -1` (förvalet är `0`).
 
 ## Vad fasen mäter, och varför just det
 

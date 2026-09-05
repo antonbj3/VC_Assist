@@ -213,7 +213,7 @@ ligger i `tests/protocol/`.
 | 16 | Planeringslagret | klar, kräver ej VC | M-63: en fritextbeställning blir en körbar byggplan, och en omöjlig beställning **avvisas** med vilket villkor som krockar |
 | 17 | Vad användaren ser | pågår | Systemet rapporterar i dag till loggar och mätfiler, alltså till oss |
 | 18 | Befintlig anläggning in | mätt (M-89) | 28 av 28 förreglingar återfinns ur ett provspår, 3 av 28 ur ett produktionsspår. Ingen riktig anläggning är inspelad |
-| 20 | Komponentmodellen | modellen byggd, körningen kvar | Specens minsta uppsättningar ligger som data i `komponentmodell.py`: TRANSPORTÖR, MATARE, SÄNKA, BUFFERT. **199 prov utan VC**, fyra trasiga fixturer där ett krävt beteende utelämnats. Körningen mot riktig VC skrivs in i M-101 |
+| 20 | Komponentmodellen | klar på Linux | M-101: TRANSPORTÖR, MATARE, SÄNKA och BUFFERT byggda **ur specen** i riktig VC. **7 av 7** kopplingar där specen säger ja, **13 produkter** genom hela kedjan (mellanrum exakt 3,0000 s, rörelse 400,0000 mm/s), **4 av 4** trasiga fixturer fällda med det saknade beteendet namngivet. 199 prov utan VC |
 | 19 | Personatäckningen | klar, kräver ej VC | M-100: sju arbetsprofiler, **228 arbetssteg**, 144 täckta av de 122 verktygen, 8 utanför räckvidd, 76 obyggda. Per profil 27 % till 89 %. Nämnaren är låst av ett golv: ett steg som tystnat bort ger rött trots högre procentsats |
 
 ### Fas 10 i detalj — det du just läser instruktionen till
