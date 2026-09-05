@@ -816,6 +816,18 @@ def stationslage(rader):
         if len(serie) < 2:
             ut[station] = {"obestambar": "for fa stationsprov (%d)" % len(serie)}
             continue
+        if not any(_mater(s) for _t, s in serie):
+            # MATT I VC (M-88 §5): ett vcStatistics-beteende pa en komponent
+            # utan process svarar state '' och 0,0 i varje procent, hela
+            # korningen igenom. Det ar ingen ledig station - det ar en
+            # statistik som aldrig borjat mata. Fore M-88 blev det svalt 0 s
+            # och PASS mot ett krav pa 1,0 s: ett falskt gront. En station
+            # som inte matts ar obestambar, och kravet mot den ar obesvarat.
+            ut[station] = {"obestambar": "statistiken mater inte: inget "
+                                         "tillstand, ingen produkt och 0 %% i "
+                                         "varje procent over %d prov" % len(serie),
+                           "prov": len(serie)}
+            continue
         span = serie[-1][0] - serie[0][0]
         h = {"svalt": _intervall(serie, _ar_svulten, SVALT_MIN_S),
              "blockerad": _intervall(serie, _ar_blockerad, BLOCKERAD_MIN_S),
@@ -834,20 +846,47 @@ def stationslage(rader):
     return ut
 
 
+def _tillstand(s):
+    """Tillstandsnamnet, eller None nar det saknas ELLER ar tomt.
+
+    VC ger '' pa ett vcStatistics-beteende som ingen process satt (M-88 §5).
+    En tom strang ar inget tillstandsnamn - den ar franvaron av ett - och
+    far inte lasas som "ett namn som inte ar IDLE".
+    """
+    tillstand = s.get("state")
+    if tillstand is None:
+        return None
+    namn = str(tillstand).strip()
+    return namn.upper() if namn else None
+
+
+def _mater(s):
+    """Har statistiken visat NAGOT: ett tillstand, en produkt, en procent?"""
+    if _tillstand(s) is not None:
+        return True
+    if int(s.get("in", 0) or 0) > 0 or int(s.get("out", 0) or 0) > 0 or _inne(s) > 0:
+        return True
+    for nyckel in ("idle_pct", "busy_pct", "blocked_pct", "broken_pct"):
+        v = s.get(nyckel)
+        if v is not None and float(v) > 0.0:
+            return True
+    return False
+
+
 def _ar_svulten(s):
     """Ledig och tom. Ett tillstandsnamn ur VC vager tyngre an rakningen."""
-    tillstand = s.get("state")
+    tillstand = _tillstand(s)
     if tillstand is not None:
-        return str(tillstand).upper() in ("IDLE", "LEDIG") and _inne(s) <= 0
+        return tillstand in ("IDLE", "LEDIG") and _inne(s) <= 0
     if s.get("idle_pct") is not None:
         return float(s["idle_pct"]) > 0 and _inne(s) <= 0
     return _inne(s) <= 0
 
 
 def _ar_blockerad(s):
-    tillstand = s.get("state")
+    tillstand = _tillstand(s)
     if tillstand is not None:
-        return str(tillstand).upper() in ("BLOCKED", "BLOCKERAD")
+        return tillstand in ("BLOCKED", "BLOCKERAD")
     return False
 
 
@@ -1360,7 +1399,18 @@ def sekvensdom(flanker, spec, t_slut):
                          "starten" % (i, s["signal"], s["flank"], min_s, max_s))
                 rad["steg"].append(post)
                 break
-            if t > t0 + max_s + 1e-9:
+            if osakerhet > (max_s - min_s) + 1e-9:
+                # Fonstret ar FINARE an hopfogningens osakerhet: da kan inte
+                # ens ett steg mitt i fonstret sagas ligga i det. Samma regel
+                # som PHASE (M-65: "kravet ar finare an ogats upplosning").
+                # M-97 matte tak pa 5-7 s efter en stord runda; utan den har
+                # raden hade ett sadant steg blivit OK och cykeln PASS.
+                post["status"] = "INCONCLUSIVE"
+                osakra.append("cykel %d: %s %s: fonstret %.2f-%.2f s ar finare "
+                              "an hopfogningens osakerhet %.3f s"
+                              % (i, s["signal"], s["flank"], min_s, max_s,
+                                 osakerhet))
+            elif t > t0 + max_s + 1e-9:
                 if t - (t0 + max_s) <= osakerhet + 1e-9:
                     post["status"] = "INCONCLUSIVE"
                     osakra.append("cykel %d: %s %s kom %.2f s efter starten, "
