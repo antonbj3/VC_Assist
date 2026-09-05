@@ -58,6 +58,33 @@ def forgranskare():
     return Fg.Forgranskare()
 
 
+def _matningsnummer_som_inte_finns():
+    """Ett M-nummer som INTE ligger under docs/matningar/, hämtat ur disken.
+
+    Numret stod som en litteral (`M-99`) fram till M-98, och det gjorde
+    provets antagande beroende av vad andra agenter skrev i repot: när
+    `M-99_differentialsvepet_mot_kompilatorn.md` skapades 2026-09-05 kl.
+    08:06 blev båda proven nedan gröna av fel skäl — härkomsten gick
+    plötsligt att slå upp, och den trasiga fixturen var inte längre trasig.
+
+    Det är samma felklass som M-98 mäter i grindarna: ett värde som avgör en
+    dom hämtas ur en litteral i stället för ur den storhet det påstår sig
+    mäta. Numret räknas därför fram, och provet fäller så länge det finns
+    NÅGOT ledigt nummer under 100.
+    """
+    katalog = os.path.join(_ROT, "docs", "matningar")
+    tagna = set()
+    for namn in os.listdir(katalog):
+        if namn.endswith(".md"):
+            tagna.add(namn.split("_")[0])
+    for n in range(99, 9, -1):
+        kod = "M-%02d" % n
+        if kod not in tagna:
+            return kod
+    raise AssertionError(
+        "alla M-nummer 10-99 ar tagna; provet behover ett ledigt nummer")
+
+
 def _kopiera_korpus(tmp_path):
     mal = tmp_path / "instruktioner"
     shutil.copytree(I.KORPUSKATALOG, str(mal))
@@ -140,10 +167,11 @@ def test_trasig_korpus_saknad_harkomst_falls(tmp_path):
 
 def test_trasig_korpus_okand_matning_falls(tmp_path):
     katalog = _kopiera_korpus(tmp_path)
+    saknat = _matningsnummer_som_inte_finns()
     data = _las(katalog, "60_matta_fallor.json")
-    data["regler"][0]["harkomst"] = ["M-99"]
+    data["regler"][0]["harkomst"] = [saknat]
     _skriv(katalog, "60_matta_fallor.json", data)
-    assert any("M-99" in p for p in _problem(katalog))
+    assert any(saknat in p for p in _problem(katalog))
 
 
 def test_trasig_korpus_okand_mekanism_falls(tmp_path):
@@ -207,7 +235,7 @@ def test_las_korpus_kastar_med_hela_problemlistan(tmp_path):
     katalog = _kopiera_korpus(tmp_path)
     data = _las(katalog, "10_arbetsordning.json")
     data["regler"][0]["skal"] = "x"
-    data["regler"][1]["harkomst"] = ["M-99"]
+    data["regler"][1]["harkomst"] = [_matningsnummer_som_inte_finns()]
     _skriv(katalog, "10_arbetsordning.json", data)
     with pytest.raises(Fel.Instruktionsfel) as info:
         I.las_korpus(str(katalog), _ROT)
