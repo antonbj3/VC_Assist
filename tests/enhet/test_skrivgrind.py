@@ -287,6 +287,7 @@ def test_ett_kedjat_anrop_pa_ett_ANROPS_resultat_ar_fortfarande_konservativt():
 DUNDERSKRIVNINGAR_MB = [
     ('c.__setattr__("Name", "x")', 'samma sak som c.Name = "x", som fastnar'),
     ('object.__setattr__(c, "Name", "x")', "omvägen via basklassen"),
+    ("d.__setitem__(0, 1)", "samma sak som d[0] = 1, som fastnar"),
 ]
 
 
