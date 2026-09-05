@@ -33,7 +33,10 @@ from typing import List, Optional, Sequence, Tuple
 
 # Standardtidsgräns för kompilering (sekunder).
 # Fail-closed: svarar kompilatorn inte inom tidsgränsen avvisas koden.
-STANDARD_TIDSGRANS = 30.0
+# MÄTT i M-165: 44 av bankens referenser, median 0,066 s, max 0,087 s (P-06).
+# 30 s är alltså 340x det långsammaste observerade. Talet är ingen
+# prestandagräns utan en spärr mot en hängd process, och står som det.
+STANDARD_TIDSGRANS = 30.0  # M-165: max uppmatt 0,087 s over 44 referenser
 
 # Standardflaggor: strikt IEC 61131-3-läge med fullständig felposition.
 DEFAULT_FLAGGOR = ("-f",)
