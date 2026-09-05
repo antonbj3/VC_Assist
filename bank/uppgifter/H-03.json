@@ -309,7 +309,7 @@
     "harkomst": "RAKNAD: fyra kollin i 12,0 s takt ger cykeltiden 4 * 12,0 = 48,0 s per AGV. Teoretiskt 3600/48,0 = 75 AGV-vagnar per timme eller 300 kollin/h. AGV:ns tillatna lastvikt ar 100 kg, vilket rymmer 4 * 22 kg = 88 kg med 12 kg marginal. Detta ar manniskans facit skrivet ur scenarios normal, cnt_lag, cnt_hog, dck_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "AGV-dockning och forregling foljer anlaggningens specifikation och ISO 3691-4:2023 4.5 \"Load handling\"; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_H03_AGV_LASTNING\nVAR\n    steg      : INT := 0;\n    trigDone  : R_TRIG;\n    tmrRst    : TON;\nEND_VAR\n\ntrigDone(CLK := ST330_RB_DONE);\ntmrRst(IN := (steg = 4), PT := T#500ms);\n\nIF NOT EMG_OK THEN\n    ST330_RB_START := FALSE;\n    ST330_HS_REQ   := FALSE;\n    ST330_HS_DONE  := FALSE;\n    ST330_HS_RST   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST330_HS_DONE := FALSE;\n            ST330_HS_RST  := FALSE;\n            ST330_RB_START := FALSE;\n            ST330_LOD_CNT := 0;\n            IF ST330_DCK_OK THEN\n                ST330_HS_REQ := TRUE;\n                IF ST330_HS_ACK THEN\n                    steg := 1;\n                END_IF;\n            ELSE\n                ST330_HS_REQ := FALSE;\n            END_IF;\n        1:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF NOT ST330_RB_DONE AND ST330_PRT_PRS AND ST330_LOD_CNT < 4 THEN\n                ST330_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF trigDone.Q THEN\n                ST330_RB_START := FALSE;\n                ST330_LOD_CNT := ST330_LOD_CNT + 1;\n                IF ST330_LOD_CNT >= 4 THEN\n                    ST330_HS_DONE := TRUE;\n                    steg := 3;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n        3:\n            IF NOT ST330_DCK_OK THEN\n                ST330_HS_DONE := FALSE;\n                ST330_HS_REQ  := FALSE;\n                ST330_HS_RST  := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            ST330_HS_RST := TRUE;\n            IF tmrRst.Q THEN\n                ST330_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            ST330_RB_START := FALSE;\n            ST330_HS_DONE := FALSE;\n            IF ST330_DCK_OK THEN\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_H03_AGV_LASTNING\nVAR\n    steg      : INT := 0;\n    trigDone  : R_TRIG;\n    tmrRst    : TON;\n    xViktfel  : BOOL := FALSE;\nEND_VAR\n\ntrigDone(CLK := ST330_RB_DONE);\ntmrRst(IN := (steg = 4), PT := T#500ms);\n\n(* AGV:ns egen vagcell mot kolliraknaren. Ovre gransen 100,0 kg ar AGV:ns\n   hogsta lastvikt (scenariot cnt_hog: 132 kg efter fyra kollin). Undre\n   gransen ar 22,0 kg per lastat kolli ur uppgiftens antagande om kollits\n   vikt, minus 11,0 kg = halva kollivikten: ett kolli som hamnat bredvid\n   flaket syns, en vagcellsdrift pa nagra kilo gor det inte. *)\nxViktfel := (ST330_AGV_WGT > 100.0)\n            OR (ST330_AGV_WGT < INT_TO_REAL(ST330_LOD_CNT) * 22.0 - 11.0);\n\nIF NOT EMG_OK THEN\n    ST330_RB_START := FALSE;\n    ST330_HS_REQ   := FALSE;\n    ST330_HS_DONE  := FALSE;\n    ST330_HS_RST   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST330_HS_DONE := FALSE;\n            ST330_HS_RST  := FALSE;\n            ST330_RB_START := FALSE;\n            ST330_LOD_CNT := 0;\n            IF ST330_DCK_OK THEN\n                ST330_HS_REQ := TRUE;\n                IF ST330_HS_ACK THEN\n                    steg := 1;\n                END_IF;\n            ELSE\n                ST330_HS_REQ := FALSE;\n            END_IF;\n        1:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF xViktfel THEN\n                ST330_RB_START := FALSE;\n                steg := 8;\n            ELSIF NOT ST330_RB_DONE AND ST330_PRT_PRS AND ST330_LOD_CNT < 4 THEN\n                ST330_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST330_DCK_OK THEN\n                ST330_RB_START := FALSE;\n                steg := 9;\n            ELSIF trigDone.Q THEN\n                ST330_RB_START := FALSE;\n                ST330_LOD_CNT := ST330_LOD_CNT + 1;\n                IF ST330_LOD_CNT >= 4 AND NOT xViktfel THEN\n                    ST330_HS_DONE := TRUE;\n                    steg := 3;\n                ELSIF xViktfel THEN\n                    steg := 8;\n                ELSE\n                    steg := 1;\n                END_IF;\n            END_IF;\n        3:\n            IF NOT ST330_DCK_OK THEN\n                ST330_HS_DONE := FALSE;\n                ST330_HS_REQ  := FALSE;\n                ST330_HS_RST  := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            ST330_HS_RST := TRUE;\n            IF tmrRst.Q THEN\n                ST330_HS_RST := FALSE;\n                steg := 0;\n            END_IF;\n        8:\n            (* Vikten och kolliraknaren sager olika saker, eller lasten ar over\n               AGV:ns hogsta. Ingen mer lastning, och AGV:n far inte kora:\n               ST330_HS_DONE halls lag tills lasten kontrollerats for hand. *)\n            ST330_RB_START := FALSE;\n            ST330_HS_DONE  := FALSE;\n        9:\n            ST330_RB_START := FALSE;\n            ST330_HS_DONE := FALSE;\n            IF ST330_DCK_OK THEN\n                steg := 1;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "normal_lastning_fyra_kollin",
@@ -359,7 +359,8 @@
           {
             "t_ms": 500,
             "satt": {
-              "ST330_RB_DONE": true
+              "ST330_RB_DONE": true,
+              "ST330_AGV_WGT": 22.0
             },
             "krav": {},
             "varfor": ""
@@ -393,7 +394,8 @@
           {
             "t_ms": 1000,
             "satt": {
-              "ST330_RB_DONE": true
+              "ST330_RB_DONE": true,
+              "ST330_AGV_WGT": 44.0
             },
             "krav": {},
             "varfor": ""
@@ -425,7 +427,8 @@
           {
             "t_ms": 1500,
             "satt": {
-              "ST330_RB_DONE": true
+              "ST330_RB_DONE": true,
+              "ST330_AGV_WGT": 66.0
             },
             "krav": {},
             "varfor": ""
@@ -457,7 +460,8 @@
           {
             "t_ms": 2000,
             "satt": {
-              "ST330_RB_DONE": true
+              "ST330_RB_DONE": true,
+              "ST330_AGV_WGT": 88.0
             },
             "krav": {},
             "varfor": ""
