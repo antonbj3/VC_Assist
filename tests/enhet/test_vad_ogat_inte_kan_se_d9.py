@@ -50,14 +50,10 @@ def test_alla_felklasser_ar_kategoriserade():
         )
 
 
-def test_readme_innehaller_arliga_gransen_och_felklasserna():
-    """README ska lista vad ögat inte kan se av konstruktion (M-138)."""
-    with open(_README, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    assert "Vad ögat inte kan se, av konstruktion" in text
-    assert "M-138" in text
-
-    # Kontrollera att de strukturellt osynliga klasserna nämns
-    for f in ["F1", "F2", "F3", "F4", "F8", "F13", "F15"]:
-        assert f in text, f"README saknar omnämnande av osynliga felklassen {f}"
+# BORTTAGET 2026-09-05. Provet kravde att README bar ett visst avsnitt.
+# Det kravet kom ur M-138:s egen slutrad, skriven av en subagent - INTE fran
+# operatoren. Han ager vad som star i README, och ett prov far inte gora en
+# agents formulering till ett krav pa hans framsida.
+#
+# Matningen M-138 star kvar oforandrad. Gransen ar fortfarande mätt; det som
+# togs bort ar tvanget att publicera den pa ett bestamt satt.
