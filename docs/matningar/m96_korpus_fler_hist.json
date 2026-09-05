@@ -1,0 +1,138 @@
+{
+  "modell": "sonnet",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 4,
+  "resultat": [
+    {
+      "uppgift": "H-04",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 3,
+      "varv_till_lost": 3,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "exempel_fran": null,
+      "anrop": 3,
+      "kostnad_usd": 0.2965,
+      "sekunder": 109.5,
+      "domar_per_varv": [
+        [
+          "EJ GODKAND\n  rad 84: [DUBBELSKRIVNING/F7] utgången ST320_RB_START skrivs på rad 81 och rad 84, och båda kan köras i samma scan; lägg ihop villkoren till en enda skrivning"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 3 brister, 706 scan\n  [kvittensen_uteblir@4100ms:ST310_HSK_REQ/F5] ST310_HSK_REQ skulle vara 0 men var 1. 3,5 s efter begaran ska vakten ha fallit, larmet sta latchat och bada robotarna sta stilla\n  [invariant:ingen_rorelse_med_brutet_nodstopp@nodstopp_kraver_kvittens/F8] vid t"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\ntmrAck(IN := (steg = 2), PT := T#3S);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\n\nSYS_ALARM := xLarm;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\nELSE\n    CASE steg OF\n        0: (* vantar pa konsol i gripdon och ledig zon *)\n            IF ST310_PRT_PRS AND ST310_ZON_FREE THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n\n        1: (* avlamnaren pa vag mot overlamningslaget *)\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n\n        2: (* vantar pa mottagarens kvittens, kvittensvakten loper i bakgrunden *)\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n\n        3: (* mottagaren far ga in i zonen, aldrig samtidigt med ST310 *)\n            IF ST310_ZON_FREE THEN\n                ST320_RB_START := TRUE;\n            END_IF;\n            IF ST320_RB_DONE THEN\n                ST320_RB_START := FALSE;\n                ST320_GRP_CLOSE := TRUE;\n                steg := 4;\n            END_IF;\n\n        4: (* vantar pa att mottagarens grip haller *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 5;\n            END_IF;\n\n        5: (* vantar pa att avlamnaren slappt och anmalt klart *)\n            IF ST310_GRP_OPENED AND ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 6;\n            END_IF;\n\n        6: (* vantar pa att mottagaren slappt sin kvittens *)\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                ST310_GRP_OPEN := FALSE;\n                ST320_GRP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;\n",
+        "trigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\ntmrAck(IN := (steg = 2), PT := T#3S);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\n\nSYS_ALARM := xLarm;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\nELSE\n    CASE steg OF\n        0: (* vantar pa konsol i gripdon och ledig zon *)\n            IF ST310_PRT_PRS AND ST310_ZON_FREE THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n\n        1: (* avlamnaren pa vag mot overlamningslaget *)\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n\n        2: (* vantar pa mottagarens kvittens, kvittensvakten loper i bakgrunden *)\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n\n        3: (* mottagaren far ga in i zonen, aldrig samtidigt med ST310 *)\n            ST320_RB_START := ST310_ZON_FREE AND NOT ST320_RB_DONE;\n            IF ST320_RB_DONE THEN\n                ST320_GRP_CLOSE := TRUE;\n                steg := 4;\n            END_IF;\n\n        4: (* vantar pa att mottagarens grip haller *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 5;\n            END_IF;\n\n        5: (* vantar pa att avlamnaren slappt och anmalt klart *)\n            IF ST310_GRP_OPENED AND ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 6;\n            END_IF;\n\n        6: (* vantar pa att mottagaren slappt sin kvittens *)\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                ST310_GRP_OPEN := FALSE;\n                ST320_GRP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;",
+        "trigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\ntmrAck(IN := (steg = 2), PT := T#3S);\nIF tmrAck.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF ST320_GRP_CLOSED AND (ST320_GRP_FRC < 40.0 OR ST320_GRP_FRC > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\n\nSYS_ALARM := xLarm;\n\nIF NOT xDriftsklar THEN\n    ST310_RB_START := FALSE;\n    ST320_RB_START := FALSE;\n    ST310_HSK_REQ := FALSE;\n    ST310_HSK_RST := FALSE;\n    ST320_GRP_CLOSE := FALSE;\n    ST310_GRP_OPEN := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0: (* vantar pa konsol i gripdon och ledig zon *)\n            IF ST310_PRT_PRS AND ST310_ZON_FREE THEN\n                ST310_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n\n        1: (* avlamnaren pa vag mot overlamningslaget *)\n            IF ST310_RB_DONE THEN\n                ST310_RB_START := FALSE;\n                ST310_HSK_REQ := TRUE;\n                steg := 2;\n            END_IF;\n\n        2: (* vantar pa mottagarens kvittens, kvittensvakten loper i bakgrunden *)\n            IF ST310_HSK_ACK THEN\n                steg := 3;\n            END_IF;\n\n        3: (* mottagaren far ga in i zonen, aldrig samtidigt med ST310 *)\n            ST320_RB_START := ST310_ZON_FREE AND NOT ST320_RB_DONE;\n            IF ST320_RB_DONE THEN\n                ST320_GRP_CLOSE := TRUE;\n                steg := 4;\n            END_IF;\n\n        4: (* vantar pa att mottagarens grip haller *)\n            IF ST320_GRP_CLOSED THEN\n                ST310_GRP_OPEN := TRUE;\n                steg := 5;\n            END_IF;\n\n        5: (* vantar pa att avlamnaren slappt och anmalt klart *)\n            IF ST310_GRP_OPENED AND ST310_HSK_DONE THEN\n                ST310_HSK_REQ := FALSE;\n                ST310_HSK_RST := TRUE;\n                steg := 6;\n            END_IF;\n\n        6: (* vantar pa att mottagaren slappt sin kvittens *)\n            IF NOT ST310_HSK_ACK THEN\n                ST310_HSK_RST := FALSE;\n                ST310_GRP_OPEN := FALSE;\n                ST320_GRP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "L-05",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 1,
+      "varv_till_lost": 1,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "exempel_fran": null,
+      "anrop": 1,
+      "kostnad_usd": 0.1335,
+      "sekunder": 63.5,
+      "domar_per_varv": [
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK := SYS_RESET);\nxAuto := SYS_AUTO;\nxHand := NOT SYS_AUTO;\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\nIF trigReset.Q AND EMG_OK THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\n    steg := 0;\nEND_IF;\n\nxLyftRor := ST260_LFT_UP OR ST260_LFT_DOWN;\ntmrLyft(IN := xLyftRor, PT := T#4s);\nIF tmrLyft.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF ST260_VAC_ON AND (ST260_VAC_PRS < 40.0 OR ST260_VAC_PRS > 85.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\nIF NOT AIR_OK THEN\n    xLarm := TRUE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nIF xHand AND NOT xLarm AND EMG_OK THEN\n    ST260_LFT_UP := ST260_MAN_JOG AND NOT ST260_LFT_TOP;\nELSE\n    ST260_LFT_UP := FALSE;\nEND_IF;\n\nIF xAuto AND NOT xKravOmstart AND NOT xLarm AND EMG_OK AND AIR_OK THEN\n    CASE steg OF\n        0:\n            ST260_LFT_DOWN := FALSE;\n            IF ST260_PRT_PRS AND ST260_LAY_CNT < 5 THEN\n                ST260_RB_START := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST260_RB_DONE THEN\n                ST260_RB_START := FALSE;\n                ST260_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST260_VAC_OK THEN\n                ST260_VAC_ON := FALSE;\n                ST260_LFT_DOWN := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST260_LFT_BOT THEN\n                ST260_LFT_DOWN := FALSE;\n                steg := 0;\n            END_IF;\n    END_CASE;\nELSE\n    ST260_RB_START := FALSE;\n    ST260_VAC_ON := FALSE;\n    ST260_LFT_DOWN := FALSE;\n    steg := 0;\nEND_IF;"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "S-05",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "exempel_fran": null,
+      "anrop": 2,
+      "kostnad_usd": 0.2866,
+      "sekunder": 140.2,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 1 brister, 736 scan\n  [maskinfel_hojd_over_matomradet@1500ms:ST200_PML_STATE/F5] ST200_PML_STATE skulle vara 8 men var 9. CLEAR med felet kvar tar maskinen till CLEARING, men maskinfelet star kvar och tar den direkt tillbaka till ABORTING"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "kmd := ST200_PML_CMD;\n\nxOmradeOk := (ST200_HGT_MM >= 0.0) AND (ST200_HGT_MM <= 250.0);\n\nIF (NOT EMG_OK) OR (NOT xOmradeOk) THEN\n    xMaskinfel := TRUE;\nEND_IF;\n\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nCASE kmd OF\n    1:\n        IF tillstand = 2 OR tillstand = 17 THEN\n            tillstand := 15;\n        END_IF;\n    2:\n        IF tillstand = 4 THEN\n            tillstand := 3;\n        END_IF;\n    3:\n        IF tillstand <> 7 AND tillstand <> 2 AND tillstand <> 8 AND tillstand <> 9 AND tillstand <> 1 THEN\n            tillstand := 7;\n        END_IF;\n    4:\n        IF tillstand = 6 THEN\n            tillstand := 10;\n        END_IF;\n    5:\n        IF tillstand = 11 THEN\n            tillstand := 12;\n        END_IF;\n    6:\n        IF tillstand = 6 THEN\n            tillstand := 13;\n        END_IF;\n    7:\n        IF tillstand = 5 THEN\n            tillstand := 14;\n        END_IF;\n    8:\n        IF tillstand <> 8 AND tillstand <> 9 THEN\n            tillstand := 8;\n        END_IF;\n    9:\n        IF tillstand = 9 AND EMG_OK AND xOmradeOk THEN\n            xMaskinfel := FALSE;\n            tillstand := 1;\n        END_IF;\nEND_CASE;\n\ntrigSc(CLK := ST200_PML_SC);\n\nIF trigSc.Q THEN\n    CASE tillstand OF\n        15:\n            tillstand := 4;\n        3:\n            tillstand := 6;\n        6:\n            tillstand := 16;\n        16:\n            tillstand := 17;\n        10:\n            tillstand := 11;\n        12:\n            tillstand := 6;\n        13:\n            tillstand := 5;\n        14:\n            tillstand := 6;\n        7:\n            tillstand := 2;\n        8:\n            tillstand := 9;\n        1:\n            tillstand := 2;\n    END_CASE;\nEND_IF;\n\nST200_PML_STATE := tillstand;\nST200_CNV_RUN := (tillstand = 6);\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);",
+        "kmd := ST200_PML_CMD;\n\nxOmradeOk := (ST200_HGT_MM >= 0.0) AND (ST200_HGT_MM <= 250.0);\n\nIF (NOT EMG_OK) OR (NOT xOmradeOk) THEN\n    xMaskinfel := TRUE;\nEND_IF;\n\nCASE kmd OF\n    1:\n        IF tillstand = 2 OR tillstand = 17 THEN\n            tillstand := 15;\n        END_IF;\n    2:\n        IF tillstand = 4 THEN\n            tillstand := 3;\n        END_IF;\n    3:\n        IF tillstand <> 7 AND tillstand <> 2 AND tillstand <> 8 AND tillstand <> 9 AND tillstand <> 1 THEN\n            tillstand := 7;\n        END_IF;\n    4:\n        IF tillstand = 6 THEN\n            tillstand := 10;\n        END_IF;\n    5:\n        IF tillstand = 11 THEN\n            tillstand := 12;\n        END_IF;\n    6:\n        IF tillstand = 6 THEN\n            tillstand := 13;\n        END_IF;\n    7:\n        IF tillstand = 5 THEN\n            tillstand := 14;\n        END_IF;\n    8:\n        IF tillstand <> 8 AND tillstand <> 9 THEN\n            tillstand := 8;\n        END_IF;\n    9:\n        IF tillstand = 9 THEN\n            tillstand := 1;\n            IF EMG_OK AND xOmradeOk THEN\n                xMaskinfel := FALSE;\n            END_IF;\n        END_IF;\nEND_CASE;\n\ntrigSc(CLK := ST200_PML_SC);\n\nIF trigSc.Q THEN\n    CASE tillstand OF\n        1:\n            tillstand := 2;\n        3:\n            tillstand := 6;\n        6:\n            tillstand := 16;\n        16:\n            tillstand := 17;\n        10:\n            tillstand := 11;\n        12:\n            tillstand := 6;\n        13:\n            tillstand := 5;\n        14:\n            tillstand := 6;\n        7:\n            tillstand := 2;\n        8:\n            tillstand := 9;\n        15:\n            tillstand := 4;\n    END_CASE;\nEND_IF;\n\nIF xMaskinfel AND tillstand <> 8 AND tillstand <> 9 THEN\n    tillstand := 8;\nEND_IF;\n\nST200_PML_STATE := tillstand;\nST200_CNV_RUN := (tillstand = 6);\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-07",
+      "lage": "historik",
+      "utfall": "TAK",
+      "lost": false,
+      "varv_korda": 4,
+      "varv_till_lost": null,
+      "slog_i_taket": true,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "exempel_fran": null,
+      "anrop": 4,
+      "kostnad_usd": 0.6051,
+      "sekunder": 323.2,
+      "domar_per_varv": [
+        [
+          "EJ GODKAND\n  rad 53: [SYNTAX/F1] icke-ASCII-tecken 'ä' i ST-kallan"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 4 brister, 633 scan\n  [en_detalj_hela_vagen@1100ms:ST050_CLP_CLOSE/F5] ST050_CLP_CLOSE skulle vara 0 men var 1. kvittensen fran andlaget ska nollstalla bade index och klamma, och ingen tidsvakt far ha last ut\n  [invariant:inget_don_med_brutet_nodstopp@nodstopp_utan_automatisk_o"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 1 brister, 633 scan\n  [en_detalj_hela_vagen@1100ms:ST050_CLP_CLOSE/F5] ST050_CLP_CLOSE skulle vara 0 men var 1. kvittensen fran andlaget ska nollstalla bade index och klamma, och ingen tidsvakt far ha last ut"
+        ],
+        [
+          "EJ GODKAND\n  rad 58: [SYNTAX/F1] icke-ASCII-tecken 'ä' i ST-kallan"
+        ]
+      ],
+      "kroppar_per_varv": [
+        "(* Flankdetektering pa aterstallningsknappen *)\ntrigReset(CLK := SYS_RESET);\n\n(* Startvillkor / drift *)\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart;\n\n(* Kvittering: bara pa stigande flank, bara om EMG_OK och AIR_OK *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Givarfel pa encodern *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Forregling: index far aldrig sta hogt utan stangd klamma *)\nIF ST050_IDX_START AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning av indexrorelsen *)\ntmrIndex(IN := ST050_IDX_START AND NOT ST050_IDX_DONE, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vid larm: fall tillbaka till viloläge *)\nIF xLarm THEN\n    steg := 0;\nEND_IF;\n\n(* Sekvens *)\nCASE steg OF\n    0:\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        IF xDriftsklar AND NOT xLarm AND ST050_PRT_PRS THEN\n            steg := 1;\n        END_IF;\n\n    1:\n        ST050_CLP_CLOSE := TRUE;\n        IF NOT xDriftsklar OR xLarm THEN\n            steg := 0;\n        ELSIF ST050_CLP_CLOSED THEN\n            steg := 2;\n        END_IF;\n\n    2:\n        ST050_CLP_CLOSE := TRUE;\n        IF NOT xDriftsklar OR xLarm OR NOT ST050_CLP_CLOSED THEN\n            ST050_IDX_START := FALSE;\n            steg := 0;\n        ELSE\n            ST050_IDX_START := TRUE;\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n        END_IF;\n\n    ELSE\n        steg := 0;\nEND_CASE;\n\nSYS_ALARM := xLarm;\nST050_CNV_RUN := xDriftsklar AND NOT xLarm;\n",
+        "(* Flankdetektering pa aterstallningsknappen *)\ntrigReset(CLK := SYS_RESET);\n\n(* Startvillkor / drift *)\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart;\n\n(* Kvittering: bara pa stigande flank, bara om EMG_OK och AIR_OK *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Givarfel pa encodern *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Forregling: index far aldrig sta hogt utan stangd klamma *)\nIF ST050_IDX_START AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning av indexrorelsen *)\ntmrIndex(IN := ST050_IDX_START AND NOT ST050_IDX_DONE, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vid larm: fall tillbaka till vilolage *)\nIF xLarm THEN\n    steg := 0;\nEND_IF;\n\n(* Sekvens *)\nCASE steg OF\n    0:\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        IF xDriftsklar AND NOT xLarm AND ST050_PRT_PRS THEN\n            steg := 1;\n        END_IF;\n\n    1:\n        ST050_CLP_CLOSE := TRUE;\n        IF NOT xDriftsklar OR xLarm THEN\n            steg := 0;\n        ELSIF ST050_CLP_CLOSED THEN\n            steg := 2;\n        END_IF;\n\n    2:\n        ST050_CLP_CLOSE := TRUE;\n        IF NOT xDriftsklar OR xLarm OR NOT ST050_CLP_CLOSED THEN\n            ST050_IDX_START := FALSE;\n            steg := 0;\n        ELSE\n            ST050_IDX_START := TRUE;\n            IF ST050_IDX_DONE THEN\n                ST050_IDX_START := FALSE;\n                ST050_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n        END_IF;\n\n    ELSE\n        steg := 0;\nEND_CASE;\n\nSYS_ALARM := xLarm;\nST050_CNV_RUN := xDriftsklar AND NOT xLarm;",
+        "(* Flankdetektering pa aterstallningsknappen *)\ntrigReset(CLK := SYS_RESET);\n\n(* Ett nodstopp kraver alltid ny kvittens, aven om trycket kommer tillbaka utan hjalp *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Startvillkor / drift *)\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart;\n\n(* Kvittering: bara pa stigande flank, bara om EMG_OK och AIR_OK *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Givarfel pa encodern *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Forregling: index far aldrig sta hogt utan stangd klamma *)\nIF ST050_IDX_START AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning av indexrorelsen *)\ntmrIndex(IN := ST050_IDX_START AND NOT ST050_IDX_DONE, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vid larm: fall tillbaka till viloliage *)\nIF xLarm THEN\n    steg := 0;\nEND_IF;\n\n(* Sekvens *)\nCASE steg OF\n    0:\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        IF xDriftsklar AND NOT xLarm AND ST050_PRT_PRS THEN\n            steg := 1;\n        END_IF;\n\n    1:\n        ST050_IDX_START := FALSE;\n        IF NOT xDriftsklar OR xLarm THEN\n            ST050_CLP_CLOSE := FALSE;\n            steg := 0;\n        ELSE\n            ST050_CLP_CLOSE := TRUE;\n            IF ST050_CLP_CLOSED THEN\n                steg := 2;\n            END_IF;\n        END_IF;\n\n    2:\n        IF ST050_IDX_DONE THEN\n            ST050_IDX_START := FALSE;\n            ST050_CLP_CLOSE := FALSE;\n            steg := 0;\n        ELSIF NOT xDriftsklar OR xLarm OR NOT ST050_CLP_CLOSED THEN\n            ST050_IDX_START := FALSE;\n            ST050_CLP_CLOSE := FALSE;\n            steg := 0;\n        ELSE\n            ST050_CLP_CLOSE := TRUE;\n            ST050_IDX_START := TRUE;\n        END_IF;\n\n    ELSE\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        steg := 0;\nEND_CASE;\n\nSYS_ALARM := xLarm;\nST050_CNV_RUN := xDriftsklar AND NOT xLarm;",
+        "(* Flankdetektering pa aterstallningsknappen *)\ntrigReset(CLK := SYS_RESET);\n\n(* Ett nodstopp kraver alltid ny kvittens, aven om trycket kommer tillbaka utan hjalp *)\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Startvillkor / drift *)\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart;\n\n(* Kvittering: bara pa stigande flank, bara om EMG_OK och AIR_OK *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\n    xLarm := FALSE;\nEND_IF;\n\n(* Givarfel pa encodern *)\nIF ST050_IDX_POS < 0.0 OR ST050_IDX_POS > 300.0 THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Forregling: index far aldrig sta hogt utan stangd klamma *)\nIF ST050_IDX_START AND NOT ST050_CLP_CLOSED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Tidsovervakning av indexrorelsen *)\ntmrIndex(IN := ST050_IDX_START AND NOT ST050_IDX_DONE, PT := T#2s);\nIF tmrIndex.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Vid larm: fall tillbaka till viloläge *)\nIF xLarm THEN\n    steg := 0;\nEND_IF;\n\n(* Sekvens *)\nCASE steg OF\n    0:\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        IF xDriftsklar AND NOT xLarm AND ST050_PRT_PRS THEN\n            steg := 1;\n        END_IF;\n\n    1:\n        ST050_IDX_START := FALSE;\n        IF NOT xDriftsklar OR xLarm THEN\n            ST050_CLP_CLOSE := FALSE;\n            steg := 0;\n        ELSE\n            ST050_CLP_CLOSE := TRUE;\n            IF ST050_CLP_CLOSED THEN\n                steg := 2;\n            END_IF;\n        END_IF;\n\n    2:\n        IF ST050_IDX_DONE THEN\n            ST050_IDX_START := FALSE;\n            ST050_CLP_CLOSE := FALSE;\n            steg := 3;\n        ELSIF NOT xDriftsklar OR xLarm OR NOT ST050_CLP_CLOSED THEN\n            ST050_IDX_START := FALSE;\n            ST050_CLP_CLOSE := FALSE;\n            steg := 0;\n        ELSE\n            ST050_CLP_CLOSE := TRUE;\n            ST050_IDX_START := TRUE;\n        END_IF;\n\n    3:\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        IF NOT ST050_CLP_CLOSED THEN\n            steg := 0;\n        END_IF;\n\n    ELSE\n        ST050_CLP_CLOSE := FALSE;\n        ST050_IDX_START := FALSE;\n        steg := 0;\nEND_CASE;\n\nSYS_ALARM := xLarm;\nST050_CNV_RUN := xDriftsklar AND NOT xLarm;"
+      ],
+      "upprepning": 1
+    }
+  ],
+  "lost": 3,
+  "slog_i_taket": 1,
+  "kostnad_usd": 1.3217
+}
