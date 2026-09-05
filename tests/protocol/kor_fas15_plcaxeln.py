@@ -36,6 +36,43 @@ Storningen riktas mot den VC som star i TESTPREFIXET pa :99, funnen genom en
 /proc-scan pa kommandoraden OCH miljon - aldrig `pgrep -f`, som matchar sin
 egen sokning. Operatorens VC (~/.wine-vc) rors inte.
 """
+
+BANKPOST = {
+    "pastar":
+        "Ogat domer INCONCLUSIVE pa PLC-axeln nar hopfogningens matta tak "
+        "tacker farskhetsfonstret i for manga prov, och en styrd storning av "
+        "VC-processen driver fram just den domen.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_analys.py",
+        "ext/vc_addon/vc_assist/oga_harledning.py",
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "svc/vc_assist_svc/plc/ogonkoppling.py",
+    ),
+    "facit":
+        "frisk korning: cellen station_bra ska ge PASS. Stord korning: "
+        "andelen otackta rader ska stiga och domen bli INCONCLUSIVE med "
+        "PLC-axeln som orsak - varken PASS eller FAIL.",
+    "facitkalla":
+        "storningen ar KAND och palagd av korningen sjalv (SIGSTOP mot "
+        "VC-processen i matta millisekunder), cellens facit PASS ar "
+        "handskrivet i tests/celler.py, och taket klams mot VC:s egen "
+        "simuleringsklocka enligt M-87",
+    "facitkalla_filer": (
+        "tests/celler.py",
+        "docs/matningar/M-87_hopfogningen_mot_vcs_egen_brygga.md",
+        "docs/matningar/M-65_ogat_pa_djupet.md",
+    ),
+    "trasiga_fall": (
+        "en stord korning som anda ger PASS betyder att grinden inte fallt "
+        "och att braketten inte ar matt",
+        "station_bra frisk maste ge PASS - annars mater storningsprovet nagot "
+        "annat",
+        "storningen far bara traffa VC i testprefixet pa :99, funnen genom en "
+        "/proc-scan; pgrep -f matchar sin egen sokning",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-97",),
+}
 import argparse
 import json
 import os
@@ -242,7 +279,12 @@ def kand_cell(k, storning=None):
 
 
 def taket_under_storning(k, objekt, storning, varv, alder_s=0.1, klocksekunder=10.0):
-    """M-87:s klamma, med storningen pa: haller taket?"""
+    """M-87:s klamma, med storningen pa: haller taket?
+
+    Storningen ska vara TATARE har an i steg 1-3: klamman gor ett varv pa
+    ~15 ms, sa 100 varv ar 1,5 s - den forsta korningen (M-97) hann bli klar
+    innan det forsta stoppet kom och matte taket ostort. Anroparen ger en
+    Storning med kortare intervall."""
     karta = HOP.Karta()
     kl = HOP.steg1_klockorna(k, klocksekunder, karta)
     k.oga_start(HOP._plan(objekt), simtid=k.simtid())
@@ -294,7 +336,9 @@ def main():
     ap.add_argument("--lasvarv-ms", type=float, default=89.0)
     ap.add_argument("--stor-ms", type=float, default=300.0)
     ap.add_argument("--stor-var-s", type=float, default=3.0)
-    ap.add_argument("--varv", type=int, default=100)
+    ap.add_argument("--varv", type=int, default=300)
+    ap.add_argument("--stor-var-s-klamma", type=float, default=0.7,
+                    help="storningens intervall i steg 4; klamman gor ~60 varv/s")
     ap.add_argument("--hoppa", default="")
     ap.add_argument("--json", default=None)
     ap.add_argument("--anda", action="store_true")
@@ -316,7 +360,8 @@ def main():
     ut = {"tid": time.strftime("%Y-%m-%d %H:%M:%S"), "pid": pid, "objekt": objekt,
           "installationen_ar_repots": ok_installation,
           "PLC_FARSK_S": PLC_FARSK_S, "PLC_AXEL_MAX_ANDEL": A.PLC_AXEL_MAX_ANDEL,
-          "storning": {"stopp_ms": a.stor_ms, "var_s": a.stor_var_s}}
+          "storning": {"stopp_ms": a.stor_ms, "var_s": a.stor_var_s,
+                       "var_s_klamma": a.stor_var_s_klamma}}
 
     def storning():
         return Storning(pid, a.stor_ms / 1000.0, a.stor_var_s)
@@ -344,7 +389,8 @@ def main():
         if "4" not in hoppa:
             print("\nSTEG 4 - haller taket under storningen? (klamma, %d varv, alder 100 ms)"
                   % a.varv)
-            ut["tak_stord"] = taket_under_storning(k, objekt, storning(), a.varv)
+            ut["tak_stord"] = taket_under_storning(
+                k, objekt, Storning(pid, a.stor_ms / 1000.0, a.stor_var_s_klamma), a.varv)
             d = ut["tak_stord"]
             if "fel" in d:
                 print("  MISSLYCKADES: %r" % d["fel"])
