@@ -1,0 +1,72 @@
+{
+  "modell": "opencode/muse-spark-1.3-contributor-free",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 4,
+  "resultat": [
+    {
+      "uppgift": "S-05",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 30599,
+      "tokens_ut": 1798,
+      "sekunder": 90.5,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 1 brister, 736 scan\n  [maskinfel_hojd_over_matomradet@1500ms:ST200_PML_STATE/F5] ST200_PML_STATE skulle vara 8 men var 9. CLEAR med felet kvar tar maskinen till CLEARING, men maskinfelet star kvar och tar den direkt tillbaka till ABORTING"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigSc(CLK:=ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := (ST200_HGT_MM >= 0.0) AND (ST200_HGT_MM <= 250.0);\nxMaskinfel := (NOT EMG_OK) OR (NOT xOmradeOk);\nIF xMaskinfel AND (tillstand <> 8) AND (tillstand <> 9) THEN\ntillstand := 8;\nELSIF trigSc.Q THEN\nCASE tillstand OF\n1: tillstand := 2;\n3: tillstand := 6;\n6: tillstand := 16;\n7: tillstand := 2;\n8: tillstand := 9;\n10: tillstand := 11;\n12: tillstand := 6;\n13: tillstand := 5;\n14: tillstand := 6;\n15: tillstand := 4;\n16: tillstand := 17;\nELSE tillstand := tillstand;\nEND_CASE;\nELSIF (kmd >= 1) AND (kmd <= 9) THEN\nCASE tillstand OF\n1: IF kmd = 8 THEN tillstand := 8; END_IF;\n2: IF kmd = 1 THEN tillstand := 15; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n3: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n4: IF kmd = 2 THEN tillstand := 3; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n5: IF kmd = 7 THEN tillstand := 14; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n6: IF kmd = 4 THEN tillstand := 10; ELSIF kmd = 6 THEN tillstand := 13; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n7: IF kmd = 8 THEN tillstand := 8; END_IF;\n8: tillstand := tillstand;\n9: IF kmd = 9 THEN IF NOT xMaskinfel THEN tillstand := 1; END_IF; END_IF;\n10: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n11: IF kmd = 5 THEN tillstand := 12; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n12: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n13: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n14: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n15: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n16: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n17: IF kmd = 1 THEN tillstand := 15; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\nEND_CASE;\nEND_IF;\nST200_PML_STATE := tillstand;\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\n",
+        "trigSc(CLK:=ST200_PML_SC);\nkmd := ST200_PML_CMD;\nxOmradeOk := (ST200_HGT_MM >= 0.0) AND (ST200_HGT_MM <= 250.0);\nxMaskinfel := (NOT EMG_OK) OR (NOT xOmradeOk);\nIF xMaskinfel AND (tillstand <> 8) AND (tillstand <> 9) THEN\ntillstand := 8;\nELSIF trigSc.Q THEN\nCASE tillstand OF\n1: tillstand := 2;\n3: tillstand := 6;\n6: tillstand := 16;\n7: tillstand := 2;\n8: tillstand := 9;\n10: tillstand := 11;\n12: tillstand := 6;\n13: tillstand := 5;\n14: tillstand := 6;\n15: tillstand := 4;\n16: tillstand := 17;\nELSE tillstand := tillstand;\nEND_CASE;\nELSIF (kmd >= 1) AND (kmd <= 9) THEN\nCASE tillstand OF\n1: IF kmd = 8 THEN tillstand := 8; END_IF;\n2: IF kmd = 1 THEN tillstand := 15; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n3: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n4: IF kmd = 2 THEN tillstand := 3; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n5: IF kmd = 7 THEN tillstand := 14; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n6: IF kmd = 4 THEN tillstand := 10; ELSIF kmd = 6 THEN tillstand := 13; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n7: IF kmd = 8 THEN tillstand := 8; END_IF;\n8: tillstand := tillstand;\n9: IF kmd = 9 THEN tillstand := 1; END_IF;\n10: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n11: IF kmd = 5 THEN tillstand := 12; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n12: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n13: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n14: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n15: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n16: IF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\n17: IF kmd = 1 THEN tillstand := 15; ELSIF kmd = 3 THEN tillstand := 7; ELSIF kmd = 8 THEN tillstand := 8; END_IF;\nEND_CASE;\nEND_IF;\nST200_PML_STATE := tillstand;\nST200_CNV_RUN := tillstand = 6;\nST200_DIV_OPEN := (tillstand = 6) AND (ST200_HGT_MM > 120.0);\nSYS_ALARM := (tillstand = 8) OR (tillstand = 9);\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "T-07",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 2,
+      "varv_till_lost": 2,
+      "slog_i_taket": false,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 2,
+      "kostnad_usd": 0.0,
+      "tokens_in": 28359,
+      "tokens_ut": 749,
+      "sekunder": 144.5,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 3 brister, 633 scan\n  [en_detalj_hela_vagen@1100ms:ST050_IDX_START/F5] ST050_IDX_START skulle vara 0 men var 1. kvittensen fran andlaget ska nollstalla bade index och klamma, och ingen tidsvakt far ha last ut\n  [en_detalj_hela_vagen@1100ms:ST050_CLP_CLOSE/F5] ST050_CLP_CLOSE sk"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\n  xKravOmstart := TRUE;\nEND_IF;\ntmrIndex(IN:=ST050_IDX_START, PT:=T#2s);\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n  xLarm := FALSE;\n  xKravOmstart := FALSE;\n  steg := 0;\nELSIF (tmrIndex.Q AND NOT ST050_IDX_DONE) OR (ST050_IDX_START AND NOT ST050_CLP_CLOSED) OR (ST050_IDX_POS < 0.0) OR (ST050_IDX_POS > 300.0) THEN\n  xLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nIF NOT xDriftsklar THEN\n  steg := 0;\nELSE\n  CASE steg OF\n    0:\n      IF ST050_PRT_PRS THEN\n        steg := 1;\n      END_IF;\n    1:\n      IF ST050_CLP_CLOSED THEN\n        steg := 2;\n      END_IF;\n    2:\n      IF ST050_IDX_DONE THEN\n        steg := 0;\n      END_IF;\n    ELSE\n      steg := 0;\n  END_CASE;\nEND_IF;\nST050_CNV_RUN := xDriftsklar;\nST050_CLP_CLOSE := ((steg = 1) OR (steg = 2)) AND xDriftsklar;\nST050_IDX_START := (steg = 2) AND xDriftsklar AND ST050_CLP_CLOSED;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\n  xKravOmstart := TRUE;\nEND_IF;\ntmrIndex(IN:=ST050_IDX_START, PT:=T#2s);\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n  xLarm := FALSE;\n  xKravOmstart := FALSE;\n  steg := 0;\nELSIF (tmrIndex.Q AND NOT ST050_IDX_DONE) OR (ST050_IDX_START AND NOT ST050_CLP_CLOSED) OR (ST050_IDX_POS < 0.0) OR (ST050_IDX_POS > 300.0) THEN\n  xLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xKravOmstart AND NOT xLarm;\nIF NOT xDriftsklar THEN\n  steg := 0;\nELSE\n  CASE steg OF\n    0:\n      IF ST050_PRT_PRS THEN\n        steg := 1;\n      END_IF;\n    1:\n      IF ST050_CLP_CLOSED THEN\n        steg := 2;\n      END_IF;\n    2:\n      IF ST050_IDX_DONE THEN\n        steg := 3;\n      END_IF;\n    3:\n      IF NOT ST050_PRT_PRS AND NOT ST050_IDX_DONE THEN\n        steg := 0;\n      END_IF;\n    ELSE\n      steg := 0;\n  END_CASE;\nEND_IF;\nST050_CNV_RUN := xDriftsklar;\nST050_CLP_CLOSE := ((steg = 1) OR (steg = 2)) AND xDriftsklar;\nST050_IDX_START := (steg = 2) AND xDriftsklar AND ST050_CLP_CLOSED;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    }
+  ],
+  "lost": 2,
+  "slog_i_taket": 0
+}
