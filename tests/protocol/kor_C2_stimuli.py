@@ -364,6 +364,41 @@ STIMULI = [
                    "forekomst": 0},
                   {"sort": "AND_TILL_OR", "rad": 38, "fore": "AND",
                    "forekomst": 1}]},
+    # --- klass 5: hallen signal (M-134) ---
+    {"uppgift": "S-05", "sekvens": "fotocellen_hallen_hog",
+     "lage": "ny",
+     "scenario": {"id": "fotocellen_hallen_hog", "typ": "vandning",
+                  "signal": "ST200_PML_SC",
+                  "beskrivning": "Fotocellen star hog under hela cykeln i "
+                                 "stallet for att pulsa per detalj.",
+                  "forvantat": "Tillstanden vaxlar bara pa flanker: en "
+                               "hallen signal ger ingen extra vaxling och "
+                               "bandet gar bara i EXECUTE."},
+     "steg": [{"t_ms": 980, "satt": {},
+                "krav": {"ST200_CNV_RUN": False},
+                "varfor": "hallen fotocell ger ingen extra vaxling: bandet "
+                          "star (M-134 klass 5)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 46,
+                   "fore": "trigSc.Q", "forekomst": 0}]},
+    {"uppgift": "P-06", "sekvens": "chucken_slapper_medan_spindeln_gar",
+     "lage": "ny",
+     "scenario": {"id": "chucken_slapper_medan_spindeln_gar",
+                  "typ": "vandning", "signal": "ST450_CHK_CLAMPED",
+                  "beskrivning": "Chucken slapper medan spindeln roterar och "
+                                 "halles oppen.",
+                  "forvantat": "Larmet star och bandet stoppar tills "
+                               "chucken ar spanned och aterstallning "
+                               "kvitterats."},
+     "steg": [{"t_ms": 1000, "satt": {},
+                "krav": {"SYS_ALARM": True, "ST450_CNV_RUN": False},
+                "varfor": "chucken slapp under rotation: larmet star och "
+                          "bandet star (M-134 klass 5)"},
+               {"t_ms": 1800, "satt": {},
+                "krav": {"SYS_ALARM": False, "ST450_CNV_RUN": True},
+                "varfor": "aterstallt: larmet nere och bandet gar "
+                          "(M-134 klass 5)"}],
+     "mutanter": [{"sort": "SANT_TILL_FALSKT", "rad": 30, "fore": "TRUE",
+                   "forekomst": 0}]},
 ]
 
 

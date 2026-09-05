@@ -101,6 +101,13 @@
       "signal": "ST200_HGT_MM",
       "beskrivning": "CLEAR ges i ABORTED medan hojdgivaren fortfarande star utanfor matomradet.",
       "forvantat": "Maskinen far ga till CLEARING, men maskinfelet star kvar och ska omedelbart ta den till ABORTING igen. Ett kvitterat men oatgardat fel far inte se ut som ett atgardat fel."
+    },
+    {
+      "id": "fotocellen_hallen_hog",
+      "typ": "vandning",
+      "signal": "ST200_PML_SC",
+      "beskrivning": "Fotocellen star hog under hela cykeln i stallet for att pulsa per detalj.",
+      "forvantat": "Tillstanden vaxlar bara pa flanker: en hallen signal ger ingen extra vaxling och bandet gar bara i EXECUTE."
     }
   ],
   "core_outputs": [
@@ -1786,6 +1793,85 @@
               "ST200_PML_STATE": 11
             },
             "varfor": "i HELD far vandaren inte rora sig, hur hog enheten an ar"
+          }
+        ]
+      },
+      {
+        "id": "fotocellen_hallen_hog",
+        "beskrivning": "Fotocellen star hog under hela cykeln i stallet for att pulsa per detalj.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST200_HGT_MM": 80.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST200_PML_SC": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST200_PML_CMD": 2
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 980,
+            "satt": {},
+            "krav": {
+              "ST200_CNV_RUN": false
+            },
+            "varfor": "hallen fotocell ger ingen extra vaxling: bandet star (M-134 klass 5)"
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST200_PML_CMD": 1
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST200_PML_CMD": 0
+            },
+            "krav": {},
+            "varfor": ""
           }
         ]
       }

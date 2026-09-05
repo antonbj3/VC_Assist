@@ -112,6 +112,13 @@
       "signal": "ST450_CHK_CLAMPED",
       "beskrivning": "Chucken kommenderas spanna men lagesgivaren bekraftar aldrig, medan luckan rapporterar stangt lage.",
       "forvantat": "Spindeln far inte kommenderas i gang. En stangd lucka ar inget bevis pa att navet sitter fast, och cykelstarten ska sta ute tills spanningen bekraftats."
+    },
+    {
+      "id": "chucken_slapper_medan_spindeln_gar",
+      "typ": "vandning",
+      "signal": "ST450_CHK_CLAMPED",
+      "beskrivning": "Chucken slapper medan spindeln roterar och halles oppen.",
+      "forvantat": "Larmet star och bandet stoppar tills chucken ar spanned och aterstallning kvitterats."
     }
   ],
   "core_outputs": [
@@ -1462,6 +1469,94 @@
             },
             "krav": {},
             "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "chucken_slapper_medan_spindeln_gar",
+        "beskrivning": "Chucken slapper medan spindeln roterar och halles oppen; darifran aterstalls.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST450_SPN_RUN": true,
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST450_CNV_RUN": false
+            },
+            "varfor": "chucken slapp under rotation: larmet star och bandet star (M-134 klass 5)"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST450_CNV_RUN": true
+            },
+            "varfor": "aterstallt: larmet nere och bandet gar (M-134 klass 5)"
           }
         ]
       }
