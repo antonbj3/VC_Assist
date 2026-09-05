@@ -22,6 +22,33 @@ beskriver: svc/vc_assist_svc/plc/baslinje/, svc/vc_assist_svc/st/strucpp_orakel.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Baslinjens fyra program ger samma utsignaler i var tolk som i "
+        "STruC++, scan for scan over hela bankens spar, eller sa pekas det ut "
+        "var de skiljer sig.",
+    "under_prov": (
+        "svc/vc_assist_svc/st/tolk.py",
+        "svc/vc_assist_svc/plc/baslinje/generator.py",
+    ),
+    "facit":
+        "STruC++ 0.6.6 bygger samma kalla till en korbar REPL och drivs med "
+        "samma spar, samma 20 ms cykel, ett steg per scan",
+    "facitkalla":
+        "STruC++ ar den andra motorn: tva oberoende implementationer av "
+        "ST-semantiken. Domen kommer inte ur tolken som prova, och det ar "
+        "hela skalet till att korningen finns (M-45).",
+    "facitkalla_filer": ("svc/vc_assist_svc/st/strucpp_orakel.py",),
+    "trasiga_fall": (
+        "en skillnad i nagon scan maste pekas ut med signal och scannummer",
+        "jamforelsen far inte bara titta dar facit tittar - ett steg per "
+        "scan, inte ett steg per facitpunkt, annars hittas bara de skillnader "
+        "facit redan letar efter",
+    ),
+    "kraver": ("strucpp",),
+    "matningar": ("M-62",),
+}
+
 import argparse
 import os
 import shutil

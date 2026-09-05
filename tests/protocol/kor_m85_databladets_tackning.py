@@ -14,6 +14,37 @@ och fyra processer, sa att operatorens skrivbord inte kanner av det.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "component.rsc bar egenskapsnamn, storhet och standardvarde i en matt "
+        "andel av bibliotekets 3201 komponenter, raknat falt for falt over "
+        "hela biblioteket.",
+    "under_prov": (
+        "svc/vc_assist_svc/komponentdatablad.py",
+        "svc/vc_assist_svc/katalogindex.py",
+    ),
+    "facit":
+        "hur manga av de 3201 databladen som bar egenskapsnamn, kvantitet, "
+        "standardvarde och redigerbarhet, hur manga beteenden som har en kand "
+        "VC_-konstant, och hur manga som har exakt en boolsk signal",
+    "facitkalla":
+        "FACIT UR KODEN SOM DOMS. Biblioteket ar externt, men varje tal lases "
+        "ut ur det av komponentdatablad.py sjalv - samma modul som doms. Ett "
+        "falt parsern missar rapporteras som ett falt filen inte bar, och "
+        "ingen oberoende lasare av samma component.rsc finns i korningen.",
+    "facitkalla_filer": ("svc/vc_assist_svc/komponentdatablad.py",),
+    "trasiga_fall": (
+        "ett datablad som inte gar att lasa maste hamna i OLASBARA med sitt "
+        "fel, aldrig raknas som tackt",
+        "en komponent med noll boolska signaler maste redovisas for sig - [0] "
+        "kastar IndexError",
+        "en komponent med fler an en boolsk signal far inte raknas som "
+        "entydig",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-85",),
+}
+
 import json
 import multiprocessing
 import os

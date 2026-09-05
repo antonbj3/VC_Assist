@@ -21,6 +21,33 @@ Kors mot en levande brygga:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "En koppling i VC flyttar inte komponenterna, sa layoutlosaren ager "
+        "geometrin och maste rakna ut varje lage sjalv.",
+    "under_prov": (
+        "svc/vc_assist_svc/layout/losare.py",
+        "svc/vc_assist_svc/layout/relationer.py",
+    ),
+    "facit":
+        "varldslaget fore och efter connect() ska vara identiskt: noll "
+        "millimeters flytt och noll vridning, bade for den lyckade och den "
+        "misslyckade kopplingen",
+    "facitkalla":
+        "VC:s egen scengraf: WorldPositionMatrix last fore och efter "
+        "connect() i en korande VC, efter sim.update(). Facit ar alltsa VC:s "
+        "eget svar och inte var modell av det.",
+    "facitkalla_filer": (),
+    "trasiga_fall": (
+        "tva utgangar gar inte att koppla, och en misslyckad koppling far "
+        "INTE flytta nagot - da ser scenen byggd ut utan att vara det",
+        "utan sim.update() fore avlasningen mater provet fel storhet och "
+        "skulle svara 'ingenting rorde sig' aven nar allt gjorde det",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-67",),
+}
+
 import argparse
 import json
 import os

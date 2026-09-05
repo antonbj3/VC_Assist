@@ -19,6 +19,35 @@ Kors:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Ett I/O-spar fran ett kant program visar inte programmets inre: "
+        "stegvariabelns lagen och villkorsgrenarna syns aldrig, och det "
+        "satter taket for vad fas 18:s harledning kan pasta.",
+    "under_prov": ("bank/anlaggning.py",),
+    "facit":
+        "programmets egna lagen och villkorsgrenar, raknade ur "
+        "referenskallan, mot vad sparet visar per signal: antal varden och "
+        "antal byten",
+    "facitkalla":
+        "bankens uppgifter: referenslosningen ar kand och handskriven fore "
+        "korningen, sa det gar att rakna vad som INTE syns i sparet. En "
+        "anlaggning ger samma spar utan att facit ar kant.",
+    "facitkalla_filer": (
+        "bank/uppgifter/T-07.json",
+        "bank/uppgifter/H-04.json",
+        "bank/uppgifter/S-05.json",
+        "bank/uppgifter/L-05.json",
+    ),
+    "trasiga_fall": (
+        "SAKNAS - korningen skriver tal och faller aldrig; den namner tysta "
+        "signaler och utgangar med hogst tva byten men har ingen fixtur som "
+        "maste fallas",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-75",),
+}
+
 import argparse
 import collections
 import json

@@ -19,6 +19,34 @@ matare som skapar produkter av fel skal.
 Utan --starta-om skrivs startskriptet och korningen sager till att VC maste
 startas om for hand innan mätningen betyder nagot.
 """
+
+BANKPOST = {
+    "pastar":
+        "En matare skapar produkter av sig sjalv i takt och banan flyttar dem "
+        "i Speed mm/s, medan en linje utan bana.update() och en okopplad "
+        "linje matar ingenting.",
+    "under_prov": ("svc/vc_assist_svc/byggrecept/recept.py",),
+    "facit":
+        "linje A: mellanrum 4,000 s och hastighet 250 mm/s inom 0,001; "
+        "linjerna B och C: noll produkter over minst fem intervall",
+    "facitkalla":
+        "riggens egna deklarerade tal - intervall och fart satts av korningen "
+        "fore bygget - matta mot VC:s egna avlasningar av CreationTime och "
+        "getPathDistance. Toleranserna ar M-41:s uppmatta spridning och "
+        "M-40:s sju tysta intervall.",
+    "facitkalla_filer": (
+        "docs/matningar/M-41_produkten_flodar.md",
+        "docs/matningar/M-40_varfor_mataren_aldrig_fyrade.md",
+    ),
+    "trasiga_fall": (
+        "linje B utan bana.update() maste mata noll produkter",
+        "linje C utan kopplingssteget maste mata noll produkter",
+        "har kopplingsraden i receptet bytt form kastas RuntimeError - annars "
+        "hade den trasiga fixturen tyst blivit hel",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-41",),
+}
 import argparse
 import json
 import os

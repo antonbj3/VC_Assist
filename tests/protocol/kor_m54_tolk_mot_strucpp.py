@@ -10,6 +10,31 @@ Kors:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Var ST-tolk och STruC++ ger samma varden scan for scan pa de "
+        "konstruktioner bankens facit lutar sig mot: TON, TOF, R_TRIG, F_TRIG "
+        "och CTU.",
+    "under_prov": ("svc/vc_assist_svc/st/tolk.py",),
+    "facit":
+        "STruC++:s byggda REPL, kord med samma spar och samma 20 ms cykel; "
+        "varje skillnad redovisas per steg och signal",
+    "facitkalla":
+        "STruC++ 0.6.6, en oberoende implementation av ST-semantiken som "
+        "bygger samma kalla till en korbar binar. Jamforelsen gar genom "
+        "strucpp_orakel.py, som bara driver kompilatorn och REPL:en och inte "
+        "domer nagot sjalv.",
+    "facitkalla_filer": ("svc/vc_assist_svc/st/strucpp_orakel.py",),
+    "trasiga_fall": (
+        "en avvikelse mellan motorerna maste redovisas per steg och signal, "
+        "aldrig medelvardas bort",
+        "kor motorerna olika cykel avbryts jamforelsen: tva spar pa olika "
+        "tidsrutnat mater rutnatet och inte semantiken",
+    ),
+    "kraver": ("strucpp",),
+    "matningar": ("M-54",),
+}
+
 import argparse
 import json
 import os

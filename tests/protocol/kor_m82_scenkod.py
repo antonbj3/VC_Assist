@@ -28,6 +28,34 @@ Kors:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "En modell som skriver VC-scenkod uppfinner noll namn som grind 4 kan "
+        "doma, och antalet kontrollerade namn skrivs ut sa att ett tomt svep "
+        "inte kan se ut som ett godkannande.",
+    "under_prov": ("svc/vc_assist_svc/api_index.py",),
+    "facit":
+        "API-indexets symboler ur VC 4.10:s egen Auto Complete-mapp: ett namn "
+        "som inte finns dar ar ett fel, ett namn som inte gar att avgora "
+        "statiskt ar obestambart och INTE ett godkannande",
+    "facitkalla":
+        "docs/referens/vc_api/, utdraget ur VC 4.10:s egen 'Python 2/Auto "
+        "Complete'-mapp - VC:s egen deklaration av sitt API, inte var kod",
+    "facitkalla_filer": (
+        "docs/referens/vc_api/vc_python_api.json",
+        "docs/referens/vc_api/api.xml",
+        "docs/referens/vc_api/constants.xml",
+    ),
+    "trasiga_fall": (
+        "ett pahittat namn maste bli ett fel, aldrig en gissning",
+        "ett svep som kontrollerar noll namn maste sagas ut hogt - det "
+        "godkanner annars allt",
+        "obestambara namn far inte raknas som godkanda (I3, fail-closed)",
+    ),
+    "kraver": ("modell",),
+    "matningar": ("M-82",),
+}
+
 import argparse
 import json
 import os

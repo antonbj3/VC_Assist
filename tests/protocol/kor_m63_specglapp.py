@@ -20,6 +20,31 @@ Kraver varken VC, OpenPLC eller kompilator.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Planeringslagrets kod och prov namner bara en del av specens egna "
+        "kravkoder, grindar och felklasser, och byggplanens lintkoder heter "
+        "samma sak som specens grindar.",
+    "under_prov": (
+        "svc/vc_assist_svc/plan/byggplan.py",
+        "svc/vc_assist_svc/plan/planering.py",
+        "svc/vc_assist_svc/plan/bestallning.py",
+    ),
+    "facit":
+        "specens egna koder: kravkoderna K, grindarna P och felklasserna PL, "
+        "raknade ur specen sjalv och namngivna nar de saknas",
+    "facitkalla":
+        "docs/spec/22_planeringslagret.md, skriven fore koden; koderna lases "
+        "ur specen med regexuttryck och aldrig ur lagret som mats",
+    "facitkalla_filer": ("docs/spec/22_planeringslagret.md",),
+    "trasiga_fall": (
+        "SAKNAS - korningen raknar och domer inte; ingen fixtur maste fallas, "
+        "och den finare bedomningen per krav gors for hand i M-63",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-63",),
+}
+
 import os
 import re
 import sys

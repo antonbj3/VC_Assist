@@ -14,6 +14,36 @@ hur manga fall som star ratt.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Fyra harnessgrindar svarar pa fel storhet pa den indata M-94 matte, "
+        "och samma indata kord igen visar rad for rad vad grinden svarar och "
+        "vad den borde svara.",
+    "under_prov": (
+        "svc/vc_assist_svc/harness/arlighet.py",
+        "svc/vc_assist_svc/harness/mattafakta.py",
+        "svc/vc_assist_svc/harness/redovisning.py",
+        "svc/vc_assist_svc/harness/text.py",
+        "svc/vc_assist_svc/harness/verifiering.py",
+    ),
+    "facit":
+        "M-94:s fynd 1, 3, 4 och 5: for varje fall vad grinden BORDE svara, "
+        "ordagrant ur den matningen",
+    "facitkalla":
+        "M-94, en tidigare matning med M-nummer, skriven fore den har "
+        "korningen. Korningen ar M-94:s bord aterstallt och domer ingenting "
+        "sjalv.",
+    "facitkalla_filer": ("docs/matningar/M-94_vad_registret_inte_ser.md",),
+    "trasiga_fall": (
+        "en NEKAD handling far inte anklagas: 'jag kopplade inte ihop' ska ge "
+        "noll anmarkningar",
+        "'utan problem' far inte tysta grinden",
+        "ett svar som namner felet ska ge noll anmarkningar",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-95",),
+}
+
 import os
 import sys
 

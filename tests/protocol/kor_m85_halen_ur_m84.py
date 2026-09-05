@@ -14,6 +14,41 @@ Kors med
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Av de fyra hal M-84 namngav stanger det levererade uppslagsverktyget "
+        "en del, och de som inte stangdes syns lika tydligt som de som gjorde "
+        "det.",
+    "under_prov": (
+        "tests/protocol/stod/slaupp.py",
+        "svc/vc_assist_svc/verktyg/katalog.py",
+        "svc/vc_assist_svc/komponentdatablad.py",
+    ),
+    "facit":
+        "M-84:s fyra namngivna hal: komponenternas egenskapsnamn, "
+        "bank://-URI:erna, VILKEN boolsk signal [0] ar, och ordforradet mot "
+        "radantalet",
+    "facitkalla":
+        "M-84:s sista avsnitt, skrivet fore den har korningen, plus bankens "
+        "egen katalog och uppgifternas URI:er - alla utanfor de moduler som "
+        "svarar",
+    "facitkalla_filer": (
+        "docs/matningar/M-84_uppslagen_bytte_ordforrad_inte_radantal.md",
+        "bank/katalog_index.json",
+        "bank/uppgifter/T-90.json",
+        "bank/uppgifter/S-03.json",
+        "bank/uppgifter/L-05.json",
+    ),
+    "trasiga_fall": (
+        "en pahittad bank://-URI maste ge found=False med verkliga "
+        "alternativ, aldrig en gissning",
+        "en bankpost som INTE gar att sla upp i biblioteket maste skrivas ut "
+        "vid namn - ett hal som inte stangdes far inte forsvinna i en summa",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-85",),
+}
+
 import json
 import os
 import subprocess

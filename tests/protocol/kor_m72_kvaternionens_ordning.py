@@ -36,6 +36,31 @@ Kors mot en levande brygga (LASANDE, ingen scenandring):
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "VC:s kvaternion ar skalar-forst pa alla tre axlarna, sa avbildningen "
+        "(x, y, z, w) = (q.Y, q.Z, q.W, q.X) haller ocksa nar rotationen inte "
+        "ligger kring Z.",
+    "under_prov": ("ext/vc_addon/vc_assist/oga_provtagning.py",),
+    "facit":
+        "for en rotation theta kring enhetsaxeln (ax, ay, az) galler q = "
+        "(cos(theta/2), ax*sin(theta/2), ay*sin(theta/2), az*sin(theta/2)), "
+        "jamfort komponent for komponent",
+    "facitkalla":
+        "kvaternionalgebran, raknad i korningen ur den palagda vinkeln - inte "
+        "ur VC och inte ur provtagningens egen tabell. Annars hade provet "
+        "fragat VC vad VC tycker och fatt ja.",
+    "facitkalla_filer": (),
+    "trasiga_fall": (
+        "tre RENA rotationer med TRE OLIKA vinklar kravs; med samma vinkel "
+        "gar en forvaxling mellan tva axlar inte att se",
+        "en komponent som hamnar pa fel plats i tabellen maste ge FEL, inte "
+        "en liten avvikelse",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-72",),
+}
+
 import argparse
 import json
 import math
