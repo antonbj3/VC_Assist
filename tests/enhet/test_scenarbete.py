@@ -549,3 +549,56 @@ def test_svenskt_ord_mot_engelsk_kategori_ger_INGA_kandidater():
         {"name": "ST210_GRP", "category": "Grippers"}]))
     assert sl.kandidater("gripdon") == ()
     assert sl.kandidater("Grippers") == ("ST210_GRP",)
+
+
+def test_svenskt_ord_mot_engelsk_scen_ar_en_fraga_inte_ett_finns_inte():
+    """TRASIG FIXTUR for den matta felmoden.
+
+    Scenen har ett gripdon, men det heter ST210_GRP och kategorin heter
+    Grippers. Ordet "gripdon" matchar ingetdera. Den forsta versionen svarade
+    da OKANT - "gripdon finns inte i scenen" - om en scen som HADE ett. Ett
+    tyst fel, alltsa den dyraste sorten.
+
+    Delstrangen ar ett forfilter och far aldrig vara domaren.
+    """
+    scen = Sp.scenlage_ur_svar(
+        {"components": [{"name": "ST210_GRP", "category": "Grippers"},
+                        {"name": "ST220_CNV", "category": "Conveyors"}],
+         "antal": 2, "avkortad": False})
+    pastaende = Av.Avsiktspastaende(
+        avsikt=Av.ANDRING, belagg="byt gripdonet",
+        mal="gripdonet", malbelagg="gripdonet")
+    dom = Av.granska(pastaende, "byt gripdonet", scen)
+    t = dom.text()
+    assert dom.dom == Av.FRAGA, t
+    assert "finns inte" not in t, "en oversattningsmiss far inte bli ett finns-inte"
+    assert "ST210_GRP" in t and "Grippers" in t, "scenen ska raknas upp med sina sorter"
+    assert set(dom.kandidater) == {"ST210_GRP", "ST220_CNV"}
+
+
+def test_en_avkortad_scen_sager_det_i_fragan():
+    """Ett fjarde gripdon kan ligga i den bortklippta delen."""
+    scen = Sp.scenlage_ur_svar(
+        {"components": [{"name": "ST210_GRP", "category": "Grippers"}],
+         "antal": 1, "avkortad": True})
+    dom = Av.granska(
+        Av.Avsiktspastaende(avsikt=Av.ANDRING, belagg="byt gripdonet",
+                            mal="gripdonet", malbelagg="gripdonet"),
+        "byt gripdonet", scen)
+    assert "AVKORTAD" in dom.text()
+
+
+def test_ett_hopsatt_namn_ar_fortfarande_hart_fel():
+    """I9 ligger FORE uppslagningen och overlever lagningen ovan.
+
+    Operatoren sa "ST999". Modellen svarade "ST999_gripdon" - varken i scenen
+    eller i meningen, alltsa hopsatt av modellen sjalv.
+    """
+    scen = Sp.scenlage_ur_svar(
+        {"components": [{"name": "ST210_GRP", "category": "Grippers"}],
+         "antal": 1, "avkortad": False})
+    dom = Av.granska(
+        Av.Avsiktspastaende(avsikt=Av.ANDRING, belagg="byt gripdonet pa ST999",
+                            mal="ST999_gripdon", malbelagg="ST999"),
+        "byt gripdonet pa ST999", scen)
+    assert dom.dom == Av.OKANT and "hopsatt" in dom.text()

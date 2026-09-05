@@ -270,22 +270,46 @@ class Scenlage(object):
     def namn(self):
         return tuple(n for n, _t in self.komponenter)
 
-    def kandidater(self, ord_):
-        """Komponenterna ett ord kan syfta pa, i scenens egen ordning.
+    # De tre utfallen av en uppslagning. De MASTE ga att skilja at: en tom
+    # traffista betyder helt olika saker beroende pa vilket det ar, och att
+    # slaa ihop dem ar den felmod som gor sprakbytet farligt.
+    LAST = "TRAFF"          # delstrangen traffade minst en komponent
+    OLAST = "OLAST"         # scenen ar inte last - vi vet ingenting
+    TOLKAS = "TOLKAS"       # scenen ar last, delstrangen traffade inget
 
-        Matchningen ar en delstrang pa normaliserad text at BADA hallen:
-        "gripdon" traffar ST210_gripdon (ordet i namnet) och "ST210_gripdon"
-        traffar sig sjalv. Den ar avsiktligt grov - grovheten ar ofarlig
-        darfor att flera traffar blir en FRAGA och inte ett val.
+    def slaupp(self, ord_):
+        """(lage, traffar). Delstrangen ar ett FORFILTER, aldrig domaren.
+
+        VARFOR DEN HAR YTAN FINNS, och inte bara en lista:
+
+        Matchningen ar en delstrang pa normaliserad text at bada hallen, och
+        den ar sprakbunden av konstruktion. Scenen kan bara innehalla
+        komponenten `ST210_GRP` med kategorin `Grippers`; ordet "gripdon"
+        traffar da ingetdera. En tom lista ar DA inte ett besked om att
+        scenen saknar gripdon - den ar ett besked om att den billiga
+        matchningen inte racker, och att ordet maste tolkas mot listan.
+
+        De tva lagena gav samma tomma tupel i den forsta versionen, och den
+        som lade ihop dem laste "inget gripdon finns" ur en scen som hade ett.
+        Det ar ett tyst fel, alltsa den dyraste sorten, och det ar hela skalet
+        att `kandidater()` inte langre far vara sista ordet.
         """
         n = normalisera(ord_)
+        if not self.kalla or not self.komponenter:
+            return (self.OLAST, ())
         if not n:
-            return ()
+            return (self.TOLKAS, ())
         ut = []
         for namn, typ in self.komponenter:
             if n in normalisera(namn) or n == normalisera(typ):
                 ut.append(namn)
-        return tuple(ut)
+        if ut:
+            return (self.LAST, tuple(ut))
+        return (self.TOLKAS, ())
+
+    def kandidater(self, ord_):
+        """Bara traffarna. Anvand `slaupp()` nar tomt maste kunna tolkas."""
+        return self.slaupp(ord_)[1]
 
 
 def scenlage_ur_svar(svar, kalla="list_components"):

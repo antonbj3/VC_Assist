@@ -50,6 +50,7 @@ Endast standardbiblioteket plus tjanstens egna lager.
 """
 from __future__ import annotations
 
+from ..plan.harkomst import normalisera
 from . import sparr
 
 DIAGNOS = "DIAGNOS"
@@ -180,17 +181,55 @@ def granska(pastaende, begaran_text, scenlage):
     #   0 traffar   OKANT. Ett uppfunnet komponentnamn (I9, hart fel).
     #   >1 traffar  FRAGA, med kandidaterna. Det finns inget ratt val.
     #   1 traff     malet ar avgjort.
+    # TVA TOMMA TRAFFISTOR SOM BETYDER OLIKA SAKER, och att blanda ihop dem
+    # var en matt felmod: scenen kan bara innehalla `ST210_GRP` med kategorin
+    # `Grippers`, och ordet "gripdon" traffar da ingetdera. Den forsta
+    # versionen svarade "gripdon finns inte i scenen" om en scen som HADE ett.
+    # Delstrangen ar sprakbunden; den ar ett forfilter, aldrig domaren.
     ord_ = (pastaende.malbelagg or pastaende.mal)
-    kandidater = scenlage.kandidater(ord_)
+    lage, kandidater = scenlage.slaupp(ord_)
     if not kandidater and pastaende.mal:
-        kandidater = scenlage.kandidater(pastaende.mal)
+        lage2, kandidater2 = scenlage.slaupp(pastaende.mal)
+        if kandidater2:
+            lage, kandidater = lage2, kandidater2
     if not kandidater:
-        return Avsiktsdom(OKANT, pastaende, [
-            "%r finns inte i scenen. Lasningen (%s) gav %s. Modellen far bara "
-            "valja ur det som finns (I9), och ett namn som inte star i listan "
-            "finns inte"
-            % (pastaende.mal, scenlage.kalla or "ingen",
-               ", ".join(scenlage.namn()) or "ingenting")])
+        # I9 FORST, och skild fran uppslagningen. Modellen far namnge det som
+        # FINNS i scenen eller det OPERATOREN sa - aldrig nagot den satt ihop
+        # sjalv. `ST999_gripdon` ar varken: operatoren sa "ST999", scenen bar
+        # det inte, och modellen la till "_gripdon". Ett hopsatt namn ar ett
+        # tyst val, och det ar hart fel oavsett vad delstrangen tyckte.
+        if pastaende.mal:
+            m = normalisera(pastaende.mal)
+            i_scenen = any(m == normalisera(n) for n in scenlage.namn())
+            i_meningen = m in normalisera(begaran_text or "")
+            if not i_scenen and not i_meningen:
+                return Avsiktsdom(OKANT, pastaende, [
+                    "modellen namngav %r. Det namnet star varken i scenen "
+                    "(%s) eller i din mening - det ar hopsatt. Modellen far "
+                    "bara valja ur det som finns (I9). Scenen innehaller: %s"
+                    % (pastaende.mal, scenlage.kalla or "ingen lasning",
+                       ", ".join(scenlage.namn()) or "ingenting")])
+        if lage == scenlage.OLAST:
+            return Avsiktsdom(OKANT, pastaende, [
+                "scenen ar inte last, sa vad %r syftar pa gar inte att "
+                "avgora. Modellen far bara valja ur det som finns (I9), och "
+                "har finns ingen lasning att valja ur" % (pastaende.mal,)])
+        # TOLKAS: scenen ar last och ordet traffade ingen komponent. Det ar
+        # INTE ett besked om att komponenten saknas - matchningen ar en
+        # delstrang och klarar inte ett sprakbyte. Hela listan gar tillbaka
+        # som kandidater, sa att ordet kan tolkas mot den i stallet.
+        alla = scenlage.namn()
+        return Avsiktsdom(FRAGA, pastaende, [
+            "ordet %r matchar inget komponentnamn och ingen kategori i "
+            "scenen. Det betyder INTE att komponenten saknas - jamforelsen ar "
+            "en delstrang, och den klarar inte att du sager %r om nagot som "
+            "heter nagot annat. Scenen (%s) innehaller: %s"
+            % (ord_, ord_, scenlage.kalla,
+               ", ".join("%s [%s]" % (n, t or "okand sort")
+                         for n, t in scenlage.komponenter))
+            + ("" if scenlage.fullstandig()
+               else ". LASNINGEN AR AVKORTAD - det kan finnas fler")],
+            kandidater=alla)
     if len(kandidater) > 1:
         return Avsiktsdom(FRAGA, pastaende, [
             "%r kan syfta pa %d komponenter i scenen. Vilken menar du?"
