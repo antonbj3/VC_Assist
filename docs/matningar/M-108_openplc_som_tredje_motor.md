@@ -52,23 +52,37 @@ FAILED som väntat (`--trasig-fixtur` grön).
 
 | klass | antal | innebörd |
 |---|---:|---|
-| OVERENS | 195 | vi och OpenPLC säger samma sak (varav 8 där backend avvisar det frontenden släpper — se steg 3) |
-| STRANGARE_BEKRAFTAD | 19 | vi fäller, OpenPLC accepterar, raden finns i STRANGARE |
-| NYTT_HAL | 1 | `concat` — vi släpper, OpenPLC vägrar |
+| OVERENS | 198 | vi och OpenPLC säger samma sak (varav 8 där backend avvisar det frontenden släpper — se steg 3) |
+| STRANGARE_BEKRAFTAD | 17 | vi fäller, OpenPLC accepterar, raden finns i STRANGARE |
+| NYTT_HAL | 0 | alla kända backend-fel fångas före scenen |
 | TVAFALL | 23 | båda motor 1+2 avvisar, inget att ladda upp (ingen utebliven körning) |
 | LATTARE_OPROVAD | 9 | frontenden avvisar före backend; runtimens dom entailed, inte mätt |
 | EJ_KORD | 0 | — |
 
-STRANGARE_BEKRAFTAD (19): bool_far_int, case_utan_grenar, datum_literal,
-dekl_faltinitiering, dekl_faltinitiering_upprepning, dint_far_lint,
-index_utanfor_granser, int_far_real, jamfor_bool_med_int, literal_over_int,
-pou_tom_kropp_i_funktion, sats_tom_gren_i_case, tal_int_over_omradet_negativt,
-tid_decimal_i_fel_del, tid_dubbel_enhet, tid_fel_ordning,
-tid_pa_dagen_literal, tom_sats_semikolon, uttryck_kedjetilldelning.
-Bland dem båda R1-formerna för fältinitiering (`[1,2,3]`, `[3(0)]`):
-koden bygger och kör i OpenPLC — bekräftat att det är vår begränsning,
-inte kedjans. Modellvägskostnaden förblir noll (skelettet släpper inga
-fält), så R1-frågan står kvar oförändrad.
+Ommätt 2026-09-05 efter håltäppningen (tre delmängder, alla exit 0):
+`concat` + båda fältinitieringar är överens nu. En kontaminerad delmängd
+(19 falska NYTT_HAL) kastades: två skript skrev till samma behållare
+samtidigt och runtimen serialiserar kompileringar (`please wait`).
+Lärdom i harnesset, inte i motorn — ommätningen gick strikt sekventiellt.
+
+STRANGARE_BEKRAFTAD (17): bool_far_int, case_utan_grenar, datum_literal,
+dint_far_lint, index_utanfor_granser, int_far_real, jamfor_bool_med_int,
+literal_over_int, pou_tom_kropp_i_funktion, sats_tom_gren_i_case,
+tal_int_over_omradet_negativt, tid_decimal_i_fel_del, tid_dubbel_enhet,
+tid_fel_ordning, tid_pa_dagen_literal, tom_sats_semikolon,
+uttryck_kedjetilldelning. (Sedan ommätningen: båda fältinitieringsraderna
+lagade och strukna — fallen är överens.)
+
+## R3-omslutning: 51/3/1/0 (2026-09-05)
+
+Ommätt efter lagningarna: 51 överens, 3 NY_STRANGARE (STRUCT `(x:=...)`-
+initiering — läsarskuld, står kvar), 1 TVAFALL, **0 NYTT_HAL**.
+Vägen dit fångade två egna övertramp: `FIND('abcdef', sB)` bygger
+(static_cast vid variabel — regeln skärpt till "utan variabel bland
+strängargumenten") och `pRef = NULL` bygger (`IEC_NULL` — pekarundantag i
+likhetsgrinden). Båda korrigerade med fixturer; båda verifierade mot
+containern. En grind som aldrig möter ett motbevis är en förhoppning —
+ommätningen var motbeviset.
 
 ## Steg 3 — skiljedom (2026-09-05)
 
@@ -271,4 +285,4 @@ körande `vcassist-openplc-m108`. **Exact match**, alla tre led.
 * **Håltäppningen ändrar svepets dom för `concat`.** Ett medvetet STRANGARE-radval (38/40 i taket), verifierat mot containern (funktion-gruppen 31/31 överens). Raden står med skäl; tas den bort faller svepet — som avsett.
 * **R2-vakten räknar alla blockstack-ramar.** FUNCTION/TYPE-ramar ingår i djupet — konservativt (fäller tidigt), aldrig sent. 230-nivårstestet verifierar felmeddelande, inte krasch.
 * **R4 bevisar svar, inte snabbhet.** 10 s-gränsen är en hängdefinition, ingen prestandagaranti; patologiskt långsamma (men terminerande) inmatningar fångas inte.
-* **Tolken kör inte REF_TO-program.** `NOLLVARDE` saknar pekartyp — scan-jämförelse för REF_TO-kod är oprövad (verdict-nivå endast).
+* **Tolken kör REF_TO till enkla namn.** `REF(var)`, `^`-läsning/skrivning, NULL och ompekning är sonderade i `tolk.kor`-spår (fail-closed NULL-deref). `REF(arr[i])`/`REF(s.f)` avvisas med Tolkfel; scan-jämförelse mot OpenPLC för pekarprogram är ännu okörd.
