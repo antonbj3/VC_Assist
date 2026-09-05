@@ -407,10 +407,10 @@ _lagg(
 
 def _kod_sim_speed(argument):
     if "speed" not in argument and "loop" not in argument:
-        raise Argumentfel("sim_speed", ["ange speed, loop eller bada"])
+        raise Argumentfel("sim_speed", ["give speed, loop, or both"])
     if "speed" in argument and argument["speed"] <= 0.0:
         raise Argumentfel("sim_speed",
-                          ["speed ar %r; SimSpeed maste vara storre an noll"
+                          ["speed is %r; SimSpeed must be greater than zero"
                            % (argument["speed"],)])
     rader = ["sim = _sim()"]
     if "speed" in argument:
@@ -459,7 +459,7 @@ def _kod_sim_warmup(argument):
     for namn in ("warmup_seconds", "run_time_seconds"):
         if namn in argument and argument[namn] < 0.0:
             raise Argumentfel("sim_warmup",
-                              ["%s ar %r; en tid kan inte vara negativ"
+                              ["%s is %r; a time cannot be negative"
                                % (namn, argument[namn])])
     rader = [
         "sim = _sim()",

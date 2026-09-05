@@ -494,14 +494,14 @@ def test_negativ_simhastighet_avvisas_av_handlaren():
     args = V.validera_argument(REGISTER["sim_speed"], {"speed": -1.0})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["sim_speed"](args)
-    assert "storre an noll" in str(e.value)
+    assert "greater than zero" in str(e.value)
 
 
 def test_negativ_uppvarmningstid_avvisas_av_handlaren():
     args = V.validera_argument(REGISTER["sim_warmup"], {"warmup_seconds": -1.0})
     with pytest.raises(V.Argumentfel) as e:
         KODGEN["sim_warmup"](args)
-    assert "kan inte vara negativ" in str(e.value)
+    assert "cannot be negative" in str(e.value)
 
 
 def test_negativ_tolerans_avvisas_av_handlaren():
