@@ -187,3 +187,28 @@ def test_utan_lasfil_installeras_inga_beroenden(tmp_path, monkeypatch):
     with pytest.raises(V.Kedjefel) as e:
         V.installera_beroenden(str(tmp_path), skriv=lambda *_a: None)
     assert "lasfilen saknas" in str(e.value)
+
+
+# ---- E6: Windows-vagen -----------------------------------------------------
+
+def test_windows_vagen_avvisar_manipulerad_fil_och_tar_bort(tmp_path):
+    """E6: Hashkontrollen pa Windows-vagen: en manipulerad fil maste avvisas."""
+    f = tmp_path / "strucpp-win32-x64.zip"
+    f.write_bytes(b"manipulerat innehall for win32-x64")
+    post = V.MANIFEST["win32-x64"]
+    with pytest.raises(V.Kedjefel) as exc:
+        V.kontrollera(str(f), post)
+    assert "stammer inte och ar borttagen" in str(exc.value)
+    assert not f.exists(), "Manipulerad fil maste tas bort"
+
+
+def test_windows_zip_packas_upp_med_sakra_sokvagar(tmp_path):
+    """E6: Windows zip-arkiv packas upp korrekt och avvisar sokvagar utanfor."""
+    arkiv = tmp_path / "strucpp-win32-x64.zip"
+    with zipfile.ZipFile(str(arkiv), "w") as z:
+        z.writestr("strucpp/strucpp.exe", b"fake-exe")
+        z.writestr("strucpp/runtime/include/foo.h", b"// header")
+    post = _post(str(arkiv), sort="zip")
+    mal = V.packa_upp(str(arkiv), post, str(tmp_path / "mal"))
+    assert os.path.isfile(os.path.join(mal, "strucpp", "strucpp.exe"))
+    assert os.path.isfile(os.path.join(mal, "strucpp", "runtime", "include", "foo.h"))

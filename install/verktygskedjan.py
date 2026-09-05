@@ -268,9 +268,10 @@ def installera_beroenden(paketkatalog, npm="npm", skriv=print):
         raise Kedjefel("lasfilen saknas pa %s" % LASFIL)
     shutil.copyfile(LASFIL, os.path.join(paketkatalog, "package-lock.json"))
     skriv("installerar beroenden med npm ci (last, utan skript)")
+    kommando_npm = shutil.which(npm) or npm
     try:
         k = subprocess.run(
-            [npm, "ci", "--omit=dev", "--ignore-scripts", "--no-audit",
+            [kommando_npm, "ci", "--omit=dev", "--ignore-scripts", "--no-audit",
              "--no-fund"],
             cwd=paketkatalog, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=900)
