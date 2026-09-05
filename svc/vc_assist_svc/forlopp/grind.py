@@ -132,7 +132,7 @@ def granska(f: Forlopp, text: Optional[str] = None) -> Forloppsdom:
     if text is None:
         text = rendera(f)
     if not isinstance(text, str):
-        raise Forloppsfel("en förloppsyta är text; renderaren lämnade %s"
+        raise Forloppsfel("a progress surface is text; the renderer returned %s"
                           % type(text).__name__)
     lage = f.lage
     brott: List[Brott] = []
