@@ -350,7 +350,7 @@ def granska_spegling(o: Ogonblick, text: Optional[str] = None) -> Speglingsdom:
     if text is None:
         text = rendera_spegling(o)
     if not isinstance(text, str):
-        raise Forloppsfel("en spegling är text; renderaren lämnade %s"
+        raise Forloppsfel("a mirrored snapshot is text; the renderer returned %s"
                           % type(text).__name__)
     brott: List[Brott] = []
     forsta = _forsta_raden(text)
