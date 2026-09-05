@@ -300,3 +300,14 @@ def test_en_skrivning_skriven_som_dunderanrop_maste_ocksa_fastna(kod, skal):
         "%r dömdes som LÄSANDE och skulle köras direkt i exec, utan kö (%s)"
         % (kod, skal))
 
+
+def test_samma_operation_far_inte_bero_pa_hur_den_stavas():
+    """Det egentliga felet i klartext: två skrivningar av samma attribut,
+    en fastnar och en går fri."""
+    punkt = S.granska('c.Name = "x"').skriver
+    dunder = S.granska('c.__setattr__("Name", "x")').skriver
+    assert punkt == dunder, (
+        "c.Name = 'x' -> skriver=%r men c.__setattr__('Name','x') -> skriver=%r"
+        % (punkt, dunder))
+
+
