@@ -200,8 +200,10 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-159_larmet_tidsvakten_och_forreglingen.md` | M-159 — grind 3b: tidsvakt, larmutgang och forregling mot bankens 38 referenser |
 | `M-160_f1_modellen_skriver_linan.md` | M-160 — F1: modellen skriver linan, ögat talar tillbaka |
 | `M-161_komponentsoket_tva_hal.md` | M-161 — komponentsökets nolla var två hål: 60 vokabulärfrågor och 15 formatfrågor |
-| `M-162_fritext_om_befintlig_scen.md` | M-162 — fri text om en befintlig scen: diagnos, andring, optimering |
+| `M-162_fritext_om_befintlig_scen.md` | M-162 — fri text om en befintlig scen: diagnos, ändring, optimering |
 | `M-163_forslag_nar_valet_faller.md` | M-163 — förslag när valet faller: vad grinden kan namnge, och var sökskiktet tar slut |
+| `M-164_baslinjens_golv_i_skala.md` | M-164 — baslinjen mot nollprogrammet i skala: 22 av 44 under, och två förklaringar som inte håller |
+| `M-165_matiecs_kompileringstid.md` | M-165 — matiecs kompileringstid över banken: max 0,087 s, och binären ligger i /tmp |
 
 <!-- SLUT MATNINGSTABELL -->
 
