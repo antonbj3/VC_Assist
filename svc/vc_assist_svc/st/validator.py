@@ -701,15 +701,24 @@ class Granskning(object):
 
     # ---- dubbelskrivning ------------------------------------------------
 
-    def _sekvens(self, satser) -> Dict[str, Tuple[bool, int]]:
-        poster: Dict[str, List[Tuple[bool, int]]] = {}
+    def _sekvens(self, satser) -> Dict[str, Tuple[bool, int, object]]:
+        """namn -> (villkorad, forsta raden, literalvarde eller None).
+
+        Tredje faltet bar VARDET nar skrivningen ar en literal. Det behovs for
+        att skilja tva skrivningar som kan sta i konflikt fran tva som
+        bevisligen inte kan; se `_doma_dubbelskrivning`.
+        """
+        poster: Dict[str, List[Tuple[bool, int, object]]] = {}
         for s in satser:
-            for namn, (villkorad, rad) in self._bidrag(s).items():
-                poster.setdefault(namn, []).append((villkorad, rad))
+            for namn, post in self._bidrag(s).items():
+                poster.setdefault(namn, []).append(post)
         ut = {}
         for namn, lista in poster.items():
             self._doma_dubbelskrivning(namn, lista)
-            ut[namn] = (any(not v for v, _ in lista), min(r for _, r in lista))
+            varden = set(p[2] for p in lista)
+            ut[namn] = (any(not p[0] for p in lista),
+                        min(p[1] for p in lista),
+                        lista[0][2] if len(varden) == 1 else None)
         return ut
 
     def _visningsnamn(self, nyckel):
@@ -718,8 +727,8 @@ class Granskning(object):
 
     def _doma_dubbelskrivning(self, nyckel, lista):
         namn = self._visningsnamn(nyckel)
-        ovillkorade = [i for i, (v, _r) in enumerate(lista) if not v]
-        villkorade = [i for i, (v, _r) in enumerate(lista) if v]
+        ovillkorade = [i for i, p in enumerate(lista) if not p[0]]
+        villkorade = [i for i, p in enumerate(lista) if p[0]]
         if len(ovillkorade) >= 2:
             self.fel("DUBBELSKRIVNING", lista[ovillkorade[1]][1],
                      "utgången %s skrivs ovillkorat både på rad %d och rad %d; "
@@ -731,22 +740,53 @@ class Granskning(object):
                      "skrivning på rad %d, som därmed är verkningslös"
                      % (namn, lista[ovillkorade[0]][1], lista[0][1]))
         if len(villkorade) >= 2:
-            self.fel("DUBBELSKRIVNING", lista[villkorade[1]][1],
-                     "utgången %s skrivs på rad %d och rad %d, och båda kan köras "
-                     "i samma scan; lägg ihop villkoren till en enda skrivning"
-                     % (namn, lista[villkorade[0]][1], lista[villkorade[1]][1]))
+            # Tva VILLKORADE skrivningar av samma LITERAL ar bevisbart ofarliga.
+            #
+            # Regelns eget skal ar att ordningen avgor vilken som vinner. Skriver
+            # bada samma varde finns ingen ordning att fa fel: "berakna, sedan
+            # tvinga" ar dessutom standardmonstret for en forregling, och den som
+            # skriver `IF NOT AIR_OK THEN don := FALSE; END_IF;` efter en sekvens
+            # gor precis ratt.
+            #
+            # MATT: tre av bankens fyra referenser undviker monstret helt, sa
+            # regeln ar foljbar. Den fjarde (L-05) skriver ST260_LFT_DOWN pa rad
+            # 63 och 105 - BADA gangerna FALSE. Den fallningen var en falsk rod,
+            # och en falsk rod ar dyr: modellen brinner ett reparationsvarv pa
+            # att laga nagot som redan var ratt.
+            varden = set(lista[i][2] for i in villkorade)
+            if not (len(varden) == 1 and None not in varden):
+                self.fel("DUBBELSKRIVNING", lista[villkorade[1]][1],
+                         "utgången %s skrivs på rad %d och rad %d, och båda kan "
+                         "köras i samma scan; lägg ihop villkoren till en enda "
+                         "skrivning"
+                         % (namn, lista[villkorade[0]][1],
+                            lista[villkorade[1]][1]))
 
-    def _bidrag(self, s: M.Sats) -> Dict[str, Tuple[bool, int]]:
+    @staticmethod
+    def _literalvarde(uttryck):
+        """Vardet nar skrivningen ar en literal, annars None.
+
+        Behovs for att skilja tva skrivningar som KAN sta i konflikt fran tva
+        som bevisligen inte kan. Ett uttryck ar alltid None: dess varde beror
+        pa tillstandet och gar inte att avgora har.
+        """
+        if isinstance(uttryck, M.Literal):
+            return (uttryck.typnamn or "", uttryck.varde)
+        return None
+
+    def _bidrag(self, s: M.Sats) -> Dict[str, Tuple[bool, int, object]]:
         if isinstance(s, M.Tilldelning):
             namn = self._utgangsnamn(s.mal)
-            return {namn: (False, s.rad)} if namn else {}
+            if not namn:
+                return {}
+            return {namn: (False, s.rad, self._literalvarde(s.uttryck))}
         if isinstance(s, M.Anropssats):
             ut = {}
             for arg in s.anrop.argument:
                 if arg.ut:
                     namn = self._utgangsnamn(arg.uttryck)
                     if namn:
-                        ut[namn] = (False, arg.rad)
+                        ut[namn] = (False, arg.rad, None)
             return ut
         if isinstance(s, M.Om):
             grenar = [self._sekvens(g.satser) for g in s.grenar]
@@ -762,7 +802,7 @@ class Granskning(object):
             return self._sla_ihop_grenar(grenar, har_annars)
         if isinstance(s, (M.ForSats, M.Medan, M.Upprepa)):
             inre = self._sekvens(s.satser)
-            return dict((n, (True, rad)) for n, (_v, rad) in inre.items())
+            return dict((n, (True, rad, v)) for n, (_c, rad, v) in inre.items())
         return {}
 
     @staticmethod
@@ -775,9 +815,15 @@ class Granskning(object):
         for g in grenar:
             alla |= set(g)
         for namn in alla:
-            rader = [g[namn][1] for g in grenar if namn in g]
+            poster = [g[namn] for g in grenar if namn in g]
+            rader = [p[1] for p in poster]
             i_alla = har_annars and all(namn in g and not g[namn][0] for g in grenar)
-            ut[namn] = (not i_alla, min(rader))
+            # Vardet foljer med bara nar ALLA grenar skriver samma literal.
+            # Skiljer de sig kan grenvalet avgora vardet, och da ar det inte
+            # langre ett bevisbart ofarligt varde.
+            varden = set(p[2] for p in poster)
+            varde = poster[0][2] if len(varden) == 1 else None
+            ut[namn] = (not i_alla, min(rader), varde)
         return ut
 
     def _utgangsnamn(self, mal: M.Uttryck) -> Optional[str]:

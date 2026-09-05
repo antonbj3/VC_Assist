@@ -509,3 +509,60 @@ def test_tolken_kan_rakna_exponentoperatorn_validatorn_slapper_igenom():
     t.scan()
     assert t.las("a") == 32
     assert abs(t.las("r") - 1.4142135623730951) < 1e-12
+
+
+# ---- dubbelskrivning: bevisbart ofarliga fall ------------------------------
+
+def _prog(kropp):
+    return ("PROGRAM P\nVAR\n    ut AT %QX0.0 : BOOL;\n"
+            "    a AT %IX0.0 : BOOL;\n    b AT %IX0.1 : BOOL;\n"
+            "    n AT %QW0 : INT;\nEND_VAR\n" + kropp + "END_PROGRAM\n")
+
+
+def _koder(kropp):
+    from vc_assist_svc.st.validator import validera
+    return [x.kod for x in validera(_prog(kropp)).anmarkningar]
+
+
+def test_tva_villkorade_skrivningar_av_SAMMA_literal_ar_inte_dubbelskrivning():
+    """Regelns eget skal ar att ordningen avgor. Samma varde: ingen ordning.
+
+    Det ar dessutom standardmonstret for en forregling - berakna, sedan tvinga -
+    och bankens egen referens for L-05 skriver ST260_LFT_DOWN pa tva rader, bada
+    gangerna FALSE. Den fallningen var en falsk rod.
+    """
+    kod = ("    IF a THEN ut := FALSE; END_IF;\n"
+           "    IF b THEN ut := FALSE; END_IF;\n")
+    assert "DUBBELSKRIVNING" not in _koder(kod)
+
+
+def test_tva_villkorade_skrivningar_av_OLIKA_literaler_falls():
+    """Den trasiga fixturen: har avgor radordningen, och det ar felet."""
+    kod = ("    IF a THEN ut := TRUE; END_IF;\n"
+           "    IF b THEN ut := FALSE; END_IF;\n")
+    assert "DUBBELSKRIVNING" in _koder(kod)
+
+
+def test_en_villkorad_skrivning_av_ett_UTTRYCK_falls_aven_mot_samma_uttryck():
+    """Ett uttrycks varde beror pa tillstandet och gar inte att avgora har.
+
+    Att slappa igenom tva likadana UTTRYCK hade varit att gissa att de ger
+    samma svar - och det ar precis den sortens tysta antagande resten av
+    bygget star emot.
+    """
+    kod = ("    IF a THEN ut := a AND b; END_IF;\n"
+           "    IF b THEN ut := a AND b; END_IF;\n")
+    assert "DUBBELSKRIVNING" in _koder(kod)
+
+
+def test_tva_OVILLKORADE_skrivningar_falls_aven_med_samma_varde():
+    """Har syns den forsta skrivningen aldrig, oavsett varde. Ett annat fel."""
+    kod = "    ut := FALSE;\n    ut := FALSE;\n"
+    assert "DUBBELSKRIVNING" in _koder(kod)
+
+
+def test_samma_literal_i_olika_typer_ar_inte_samma_varde():
+    """0 och FALSE ar inte samma literal; typen hor till vardet."""
+    kod = ("    IF a THEN n := 0; END_IF;\n"
+           "    IF b THEN n := 1; END_IF;\n")
+    assert "DUBBELSKRIVNING" in _koder(kod)
