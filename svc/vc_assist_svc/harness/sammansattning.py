@@ -194,8 +194,9 @@ def bygg_systemprompt(korpus: Korpus, budget: int = STANDARDBUDGET,
 
     if len(text) > budget:
         raise Budgetfel(
-            "de okapbara blocken (%s) ar %d tecken och budgeten ar %d. "
-            "Hellre inget svar an ett svar dar sakerhetsgransen tystnat (I3)"
+            "the uncuttable blocks (%s) are %d characters and the budget is "
+            "%d. Better no response than a response where the safety limit "
+            "fell silent (I3)"
             % (", ".join(sorted(OKAPBARA)), len(text), budget))
 
     kapade_block = tuple(b.id for b in korpus.block if behall[b.id] <= 0)

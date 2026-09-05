@@ -341,7 +341,7 @@ def test_de_okapbara_blocken_star_kvar_aven_nar_budgeten_ar_minimal(korpus):
 def test_for_liten_budget_kastar_i_stallet_for_att_tysta_sakerheten(korpus):
     with pytest.raises(Fel.Budgetfel) as info:
         Sam.bygg_systemprompt(korpus, 500)
-    assert "sakerhetsgransen" in str(info.value)
+    assert "safety limit" in str(info.value)
 
 
 def test_kapgolvet_och_korpusens_flaggor_stammer(korpus):
