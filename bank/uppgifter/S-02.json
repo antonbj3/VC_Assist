@@ -319,7 +319,7 @@
     "harkomst": "RAKNAD: banhastigheten 24 m/min = 0,40 m/s och avstandet mellan utgangarna 900 mm ger passagetiden 0,900 / 0,40 = 2,25 s mellan tva utgangar. Utskjutarens slagtid ar 0,40 s = 400 ms och takten 30 lastbarare/min ger 2,0 s per lastbarare. Detta ar manniskans facit skrivet ur scenarios normal, dest_lag, dest_hog, home_uteblir, enc_lag, enc_hog samt expect fore korning. M-124 provar facitformen.",
     "standard": "Inbordes forregling av utskjutare pa gemensam transportbana foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_S02_SORTERING\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    stegPsh3 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    tmr3     : TON;\n    trigDest : R_TRIG;\nEND_VAR\n\ntrigDest(CLK := (ST200_SCN_DEST > 0));\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntmr3(IN := (stegPsh3 = 1), PT := T#400ms);\n\nIF NOT EMG_OK OR NOT ST200_PSH_HOME THEN\n    ST200_CNV_RUN   := FALSE;\n    ST200_PSH1_OUT  := FALSE;\n    ST200_PSH2_OUT  := FALSE;\n    ST200_PSH3_OUT  := FALSE;\n    stegPsh1 := 0;\n    stegPsh2 := 0;\n    stegPsh3 := 0;\nELSE\n    ST200_CNV_RUN := TRUE;\n\n    IF trigDest.Q THEN\n        IF ST200_SCN_DEST = 1 AND stegPsh2 = 0 AND stegPsh3 = 0 AND NOT ST200_PSH2_OUT AND NOT ST200_PSH3_OUT THEN\n            stegPsh1 := 1;\n            ST200_PSH1_OUT := TRUE;\n        ELSIF ST200_SCN_DEST = 2 AND stegPsh1 = 0 AND stegPsh3 = 0 AND NOT ST200_PSH1_OUT AND NOT ST200_PSH3_OUT THEN\n            stegPsh2 := 1;\n            ST200_PSH2_OUT := TRUE;\n        ELSIF ST200_SCN_DEST = 3 AND stegPsh1 = 0 AND stegPsh2 = 0 AND NOT ST200_PSH1_OUT AND NOT ST200_PSH2_OUT THEN\n            stegPsh3 := 1;\n            ST200_PSH3_OUT := TRUE;\n        END_IF;\n    END_IF;\n\n    IF tmr1.Q THEN\n        ST200_PSH1_OUT := FALSE;\n        stegPsh1 := 0;\n    END_IF;\n    IF tmr2.Q THEN\n        ST200_PSH2_OUT := FALSE;\n        stegPsh2 := 0;\n    END_IF;\n    IF tmr3.Q THEN\n        ST200_PSH3_OUT := FALSE;\n        stegPsh3 := 0;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_S02_SORTERING\nVAR\n    stegPsh1 : INT := 0;\n    stegPsh2 : INT := 0;\n    stegPsh3 : INT := 0;\n    tmr1     : TON;\n    tmr2     : TON;\n    tmr3     : TON;\n    trigDest : R_TRIG;\n    encOk    : BOOL := FALSE;\n    xDrift   : BOOL := FALSE;\nEND_VAR\n\n(* Pulsgivaren overvakas mot banans langd om 3600 mm (scenarierna enc_lag och enc_hog). *)\nencOk := (ST200_ENC_POS >= 0.0) AND (ST200_ENC_POS <= 3600.0);\n\ntrigDest(CLK := (ST200_SCN_DEST > 0));\n\ntmr1(IN := (stegPsh1 = 1), PT := T#400ms);\ntmr2(IN := (stegPsh2 = 1), PT := T#400ms);\ntmr3(IN := (stegPsh3 = 1), PT := T#400ms);\n\nIF tmr1.Q THEN\n    stegPsh1 := 0;\nELSIF trigDest.Q AND (ST200_SCN_DEST = 1) AND (stegPsh2 = 0) AND (stegPsh3 = 0) THEN\n    stegPsh1 := 1;\nEND_IF;\n\nIF tmr2.Q THEN\n    stegPsh2 := 0;\nELSIF trigDest.Q AND (ST200_SCN_DEST = 2) AND (stegPsh1 = 0) AND (stegPsh3 = 0) THEN\n    stegPsh2 := 1;\nEND_IF;\n\nIF tmr3.Q THEN\n    stegPsh3 := 0;\nELSIF trigDest.Q AND (ST200_SCN_DEST = 3) AND (stegPsh1 = 0) AND (stegPsh2 = 0) THEN\n    stegPsh3 := 1;\nEND_IF;\n\nxDrift := EMG_OK AND ST200_PSH_HOME AND encOk;\nIF NOT xDrift THEN\n    stegPsh1 := 0;\n    stegPsh2 := 0;\n    stegPsh3 := 0;\nEND_IF;\n\nST200_CNV_RUN  := xDrift;\n(* Scanner triggas nar bandet gar och ingen destination ar last an. *)\nST200_SCN_TRIG := xDrift AND (ST200_SCN_DEST = 0);\n\n(* Forregling: ingen utskjutning nar AIR_OK ar lag, och hogst en utskjutare aktiv. *)\nST200_PSH1_OUT := xDrift AND AIR_OK AND (stegPsh1 = 1) AND (stegPsh2 = 0) AND (stegPsh3 = 0);\nST200_PSH2_OUT := xDrift AND AIR_OK AND (stegPsh2 = 1) AND (stegPsh1 = 0) AND (stegPsh3 = 0);\nST200_PSH3_OUT := xDrift AND AIR_OK AND (stegPsh3 = 1) AND (stegPsh1 = 0) AND (stegPsh2 = 0);\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "sortering_dest_1",
@@ -329,8 +329,10 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
+              "AIR_OK": true,
               "ST200_PSH_HOME": true,
-              "ST200_SCN_DEST": 0
+              "ST200_SCN_DEST": 0,
+              "ST200_ENC_POS": 0.0
             },
             "krav": {},
             "varfor": ""
@@ -390,8 +392,10 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
+              "AIR_OK": true,
               "ST200_PSH_HOME": true,
-              "ST200_SCN_DEST": 0
+              "ST200_SCN_DEST": 0,
+              "ST200_ENC_POS": 0.0
             },
             "krav": {},
             "varfor": ""
@@ -440,8 +444,10 @@
             "t_ms": 0,
             "satt": {
               "EMG_OK": true,
+              "AIR_OK": true,
               "ST200_PSH_HOME": true,
-              "ST200_SCN_DEST": 0
+              "ST200_SCN_DEST": 0,
+              "ST200_ENC_POS": 0.0
             },
             "krav": {},
             "varfor": ""
