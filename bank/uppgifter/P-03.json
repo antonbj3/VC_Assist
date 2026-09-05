@@ -73,6 +73,13 @@
       "signal": "ST120_MLD_OPEN",
       "beskrivning": "Formsprutcykeln rapporterar klart men ST120_MLD_OPEN gar aldrig hog.",
       "forvantat": "Uttaget far inte startas anda. Styrningen ska sta kvar utanfor verktyget och larma efter 5,0 s, aven om cykeltiden sager att verktyget borde vara oppet."
+    },
+    {
+      "id": "roboten_fastnar_i_verktyget",
+      "typ": "vandning",
+      "signal": "ST120_RB_BUSY",
+      "beskrivning": "Roboten kommer inte tillbaka utan star kvar inne i verktyget i mer an 6 s.",
+      "forvantat": "Tidsovervakningen satter uttagsfelet; start och stangningsklart halles tillbaka tills upptagen faller."
     }
   ],
   "core_outputs": [
@@ -786,6 +793,77 @@
               "ST120_MLD_CLOSE_OK": false
             },
             "varfor": "i handlage far varken uttaget kommenderas eller verktyget fa stangningsklart"
+          }
+        ]
+      },
+      {
+        "id": "roboten_fastnar_i_verktyget",
+        "beskrivning": "Roboten kommer inte tillbaka utan star kvar inne i det oppna verktyget i mer an 6 s; darifran slapps den utan att verktyget stangs.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 62.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14000,
+            "satt": {
+              "ST120_MLD_OPEN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14200,
+            "satt": {
+              "ST120_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14400,
+            "satt": {
+              "ST120_RB_BUSY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 21000,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_RB_CLEAR": false,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "roboten star kvar efter 6 s: uttagsfelet star och verktyget far aldrig stangningsklart (M-134 klass 4)"
+          },
+          {
+            "t_ms": 23000,
+            "satt": {
+              "ST120_RB_BUSY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 23500,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_RB_CLEAR": false,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "felet star kvar utan aterstallning: uttaget star stilla (M-134 klass 4)"
           }
         ]
       }

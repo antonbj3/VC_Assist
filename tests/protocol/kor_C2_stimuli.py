@@ -328,6 +328,42 @@ STIMULI = [
                 "varfor": "andra omgangen: bandet gar (M-134 klass 3)"}],
      "mutanter": [{"sort": "OR_TILL_AND", "rad": 44, "fore": "OR",
                    "forekomst": 0}]},
+    # --- klass 4: vakten far aldrig lopa ut (P-03, M-134) ---
+    # NOT forekomst 0 star kvar: den kraver upptagen-hog-med-stangt-verktyg,
+    # vilket faller referensen pa invarianten griparen_rustas_bara_mot_ett_
+    # oppet_verktyg. P-03:s aterstallningsvag ar oexekverbar under egna
+    # invarianter (matt i M-135) - mutantskal, inte grindskal.
+    {"uppgift": "P-03", "sekvens": "roboten_fastnar_i_verktyget",
+     "lage": "ny",
+     "scenario": {"id": "roboten_fastnar_i_verktyget", "typ": "vandning",
+                  "signal": "ST120_RB_BUSY",
+                  "beskrivning": "Roboten kommer inte tillbaka utan star "
+                                 "kvar inne i verktyget i mer an 6 s.",
+                  "forvantat": "Tidsovervakningen satter uttagsfelet; start "
+                               "och stangningsklart halles tillbaka tills "
+                               "upptagen faller."},
+     "steg": [{"t_ms": 21000, "satt": {},
+                "krav": {"ST120_RB_START": False, "ST120_RB_CLEAR": False,
+                         "ST120_MLD_CLOSE_OK": False},
+                "varfor": "roboten star kvar efter 6 s: uttagsfelet star och "
+                          "verktyget far aldrig stangningsklart (M-134 klass 4)"},
+               {"t_ms": 23500, "satt": {},
+                "krav": {"ST120_RB_START": False, "ST120_RB_CLEAR": False,
+                         "ST120_MLD_CLOSE_OK": False},
+                "varfor": "felet star kvar utan aterstallning: uttaget star "
+                          "stilla (M-134 klass 4)"}],
+     "mutanter": [{"sort": "TID_FORDUBBLAD", "rad": 30, "fore": "T#6s",
+                   "forekomst": 0},
+                  {"sort": "SANT_TILL_FALSKT", "rad": 32, "fore": "TRUE",
+                   "forekomst": 0},
+                  {"sort": "NOT_STRUKEN", "rad": 34, "fore": "NOT ",
+                   "forekomst": 1},
+                  {"sort": "AND_TILL_OR", "rad": 34, "fore": "AND",
+                   "forekomst": 0},
+                  {"sort": "AND_TILL_OR", "rad": 38, "fore": "AND",
+                   "forekomst": 0},
+                  {"sort": "AND_TILL_OR", "rad": 38, "fore": "AND",
+                   "forekomst": 1}]},
 ]
 
 
