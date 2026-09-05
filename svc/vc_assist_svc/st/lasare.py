@@ -38,6 +38,7 @@ from .lexer import AVSLUTARE, Token, tokenisera
 # 64 lämnar 25 nivåers marginal och är samtidigt det tal meddelandet redan
 # lovade.
 MAX_DJUP = 64  # Satt av M-99: uppmatt kapacitet 89 nivaer, 25 i marginal.
+MAX_SATSDJUP = 228  # Satt av M-108: uppmatt kapacitet 326 nivaer, 98 i marginal.
 
 # Operatorer per prioritetsnivå, lägst bindning först. IEC 61131-3, tabell 71.
 NIVAER = (
@@ -412,6 +413,9 @@ class Lasare(object):
     def _om(self) -> M.Om:
         start = self._ta()
         self.blockstack.append(("IF", start.rad))
+        if len(self.blockstack) > MAX_SATSDJUP:
+            raise Syntaxfel("SYNTAX", start.rad,
+                            "satsnästlingen är djupare än %d nivåer" % MAX_SATSDJUP)
         grenar = []
         villkor = self._uttryck()
         self._krav("NYCKELORD", "THEN")
@@ -435,6 +439,9 @@ class Lasare(object):
     def _fall(self) -> M.Fall:
         start = self._ta()
         self.blockstack.append(("CASE", start.rad))
+        if len(self.blockstack) > MAX_SATSDJUP:
+            raise Syntaxfel("SYNTAX", start.rad,
+                            "satsnästlingen är djupare än %d nivåer" % MAX_SATSDJUP)
         uttryck = self._uttryck()
         self._krav("NYCKELORD", "OF")
         grenar = []
@@ -467,6 +474,9 @@ class Lasare(object):
     def _for(self) -> M.ForSats:
         start = self._ta()
         self.blockstack.append(("FOR", start.rad))
+        if len(self.blockstack) > MAX_SATSDJUP:
+            raise Syntaxfel("SYNTAX", start.rad,
+                            "satsnästlingen är djupare än %d nivåer" % MAX_SATSDJUP)
         var = self._krav("IDENT", vad="styrvariabel")
         self._krav("OP", ":=")
         fran = self._uttryck()
@@ -482,6 +492,9 @@ class Lasare(object):
     def _medan(self) -> M.Medan:
         start = self._ta()
         self.blockstack.append(("WHILE", start.rad))
+        if len(self.blockstack) > MAX_SATSDJUP:
+            raise Syntaxfel("SYNTAX", start.rad,
+                            "satsnästlingen är djupare än %d nivåer" % MAX_SATSDJUP)
         villkor = self._uttryck()
         self._krav("NYCKELORD", "DO")
         kropp = self._satser({"END_WHILE"})
@@ -492,6 +505,9 @@ class Lasare(object):
     def _upprepa(self) -> M.Upprepa:
         start = self._ta()
         self.blockstack.append(("REPEAT", start.rad))
+        if len(self.blockstack) > MAX_SATSDJUP:
+            raise Syntaxfel("SYNTAX", start.rad,
+                            "satsnästlingen är djupare än %d nivåer" % MAX_SATSDJUP)
         kropp = self._satser({"UNTIL", "END_REPEAT"})
         if not self._ar("NYCKELORD", "UNTIL"):
             raise self._obalans("REPEAT", start.rad, "UNTIL")
