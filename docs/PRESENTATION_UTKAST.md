@@ -61,9 +61,11 @@ measured run:
 > 800 mm walkway. The conveyor feeds the robot, the robot feeds the reject
 > box. Write the PLC code."*
 
-An order that contradicts itself is **rejected**, naming which condition
-collides, rather than being built halfway. You never receive a plausible-looking
-cell that cannot work.
+An order that contradicts itself is **rejected** rather than built halfway. Ask
+for a robot that reaches both the conveyor and the pallet, in a cell no larger
+than 2 by 2 metres, and whether that is possible depends on the reach of the
+robot you picked — so it is looked up, not guessed. You get back the two
+conditions that collide, in your own words.
 
 **The scene** is assembled from component types the system builds itself —
 conveyor, feeder, buffer, sink — plus machines drawn from the simulator's
