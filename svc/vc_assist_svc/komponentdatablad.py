@@ -112,13 +112,13 @@ def _strangslut(text: str, pos: int) -> int:
 def _kroppsslut(text: str, i: int) -> int:
     """i pekar pa ett '{'. Ger index EFTER den matchande '}'."""
     if i >= len(text) or text[i] != "{":
-        raise Databladfel("_kroppsslut anropad pa nagot som inte ar en klammer")
+        raise Databladfel("_kroppsslut called on something that is not a brace")
     djup = 0
     pos = i
     while True:
         m = _KLAMMER.search(text, pos)
         if m is None:
-            raise Databladfel("obalanserade klamrar i component.rsc")
+            raise Databladfel("unbalanced braces in component.rsc")
         c = m.group()
         p = m.start()
         if c == '"':
@@ -782,7 +782,7 @@ def las_text(text: str, sokvag: str = "", tillverkare: str = "") -> Datablad:
     """Databladet ur en component.rsc som redan ar last till en strang."""
     rot = _rotnod(text)
     if rot is None:
-        raise Databladfel("ingen rotnod (Node) i component.rsc")
+        raise Databladfel("no root node (Node) in component.rsc")
     blad = Datablad(namn="", sokvag=sokvag, tillverkare=tillverkare)
     for d in delar(text, rot.kropp[0], rot.kropp[1]):
         n = d.nyckel
@@ -865,15 +865,15 @@ def las(vcmx: str, tillverkare: str = "") -> Datablad:
     gissa, inte att modulen gissar.
     """
     if not os.path.exists(vcmx):
-        raise Databladfel("ingen fil pa %s" % vcmx)
+        raise Databladfel("no file at %s" % vcmx)
     try:
         with zipfile.ZipFile(vcmx) as z:
             kat = _katalogpost(z)
             if METADATA not in z.namelist():
-                raise Databladfel("%s saknar %s" % (vcmx, METADATA))
+                raise Databladfel("%s is missing %s" % (vcmx, METADATA))
             text = z.read(METADATA).decode("utf-8", "replace")
     except zipfile.BadZipFile as fel:
-        raise Databladfel("%s gar inte att oppna som arkiv: %s" % (vcmx, fel))
+        raise Databladfel("%s cannot be opened as an archive: %s" % (vcmx, fel))
     blad = las_text(text, sokvag=vcmx)
     blad.katalogfalt = dict(kat)
     blad.tillverkare = kat.get("manufacturer") or tillverkare
