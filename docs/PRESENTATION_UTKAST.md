@@ -1,10 +1,12 @@
 # VC Assist
 
-VC Assist writes the Structured Text for a cell, runs it on a real soft-PLC
-against the scene, and reads what the plant actually did — every object's
-position, every signal, every edge — to find the sequence and timing faults.
-When it finds one it says which signal rose too early and by how much, and hands
-that back to be fixed.
+VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
+code on a real soft-PLC against a simulated plant, and reads what actually
+happened in the simulation to decide whether the code is correct.
+
+When something goes wrong it does not report a failure. It reports which signal
+rose too early, by how much, and which station therefore began working on a part
+that was not ready — and hands that back to be corrected.
 
 ## What it runs on
 
@@ -111,10 +113,10 @@ flowchart LR
     style G fill:#238636,color:#fff
 ```
 
-The eye caught this, and the four text checks could not: *the grasp formed while
-the tool was 642 mm from the board.* The syntax was flawless, every name
-existed, the sequence was in order — and the robot closed its gripper more than
-half a metre from the part.
+The first four are fast and need no simulator. But a station can pass every one
+of them — syntax clean, names real, sequence in order — and still release its
+grip while the part is nowhere near where it should be. Only running it against
+a plant shows that.
 
 It watches the whole line, not one station, because faults live in the gaps
 between stations. Five in our measurement passed each station individually and
@@ -157,7 +159,7 @@ being built.
 
 | | |
 |---|---|
-| **linear** | cost of reading the scene grows proportionally with component count, measured from 200 to 800 — 4.3 µs per component per sample on the test rig, which is that machine's number, not yours |
+| **linear** | cost of reading the scene grows proportionally with component count, measured from 200 to 800 — 4.3 µs per component per sample on an i5-13600K running VC under Wine |
 | **225 /s** | samples taken while the simulation runs, without slowing it |
 | **0** | positional drift over a full run |
 | **5 of 5** | classes of line fault caught that each station passed on its own |
