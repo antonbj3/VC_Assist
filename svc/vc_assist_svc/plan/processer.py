@@ -212,7 +212,7 @@ class Processordning(object):
                              "PO3_DUBBEL_PROCESS", "PO4_SJALVORDNING")]
         if hinder:
             raise Graffel(
-                "processordningen gar inte att ordna: %s" % "; ".join(hinder),
+                "the process order cannot be ordered: %s" % "; ".join(hinder),
                 self.cykler())
         ordnade, kvar = kanonisk_ordning(self.kanter())
         if kvar:
