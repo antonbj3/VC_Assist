@@ -61,9 +61,17 @@ något.** Talen, ur `m154_ut.txt` och ur bankens 63 program:
 |---|---|---|
 | `CASE` (inkl. områden `1..4, 7` och nästlade) | 42 program | ja |
 | `R_TRIG` | 20 program | ja |
-| `TP` | 11 program | ja |
 | `TON` | 9 program | ja |
 | `F_TRIG` | 2 program | ja |
+| `TP`, `TOF` | **0 program** | ja, men bara i handbyggd fixtur (`timer_tp_tof`) |
+
+**Rättelse i mätningen, gjord innan den publicerades.** Första räkningen sökte
+efter delsträngar i ST-texten och gav `TP: 11 program`. Den var fel: `TP`
+matchade taggnamn (`..._STP_...`), inte en timerinstans. Talen ovan är räknade
+på det **lästa trädet** — `Fall`-noder för `CASE`, `Blocktyp`-deklarationer för
+blocken — och `TP` och `TOF` finns inte i banken alls. Att skillnaden är fyra
+rader kod och elva program är precis varför en delsträngsräkning inte duger
+som nämnare.
 
 Skälet till att timerinstansen klarar sig är värt att skriva ut, för det var
 den plats felet var mest troligt: **PLCopen skiljer inte på en blockinstans och
@@ -139,7 +147,7 @@ mätningen kullkastade är ett resultat, inte ett misstag att sopa undan.
 
 ## §3 — Är grinden överhuvudtaget känslig?
 
-Att 76 av 77 fall gick igenom på **första** försöket är ett misstänkt resultat.
+Att alla 77 fall gick igenom på **första** försöket är ett misstänkt resultat.
 En tur och retur som alltid säger LIKA mäter ingenting.
 
 Därför muteras den **färdiga filen** — samma grepp som `M-148` (mutera domaren
