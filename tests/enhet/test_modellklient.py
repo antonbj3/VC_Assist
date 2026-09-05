@@ -118,7 +118,7 @@ def test_tidsgransen_kastar(monkeypatch, tmp_path):
     with pytest.raises(M.Modellfel) as e:
         M.ClaudeCLI(korbar="/bin/true", tidsgrans=1,
                     arbetskatalog=str(tmp_path)).fraga("x")
-    assert "inte inom" in str(e.value)
+    assert "did not respond within" in str(e.value)
 
 
 def test_saknad_korbar_kastar_i_stallet_for_att_svara_tomt(monkeypatch):

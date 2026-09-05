@@ -59,7 +59,7 @@ class Svar:
         # Fail-closed: ett tomt svar ar inget svar. Fangas har och inte hos
         # anroparen, sa ingen transport kan slippa undan regeln.
         if not (self.text or "").strip():
-            raise Modellfel("modellen gav ett tomt svar (modell %s)" % self.modell)
+            raise Modellfel("the model returned an empty response (model %s)" % self.modell)
 
 
 class Modellklient(object):
@@ -136,7 +136,7 @@ class ClaudeCLI(Modellklient):
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    timeout=self.tidsgrans)
             except subprocess.TimeoutExpired:
-                raise Modellfel("modellen svarade inte inom %d s" % self.tidsgrans)
+                raise Modellfel("the model did not respond within %d s" % self.tidsgrans)
             if k.returncode != 0:
                 # CLI:t skriver sina egna besked pa stdout lika ofta som pa
                 # stderr ("Not logged in - Please run /login" kommer pa
@@ -145,14 +145,14 @@ class ClaudeCLI(Modellklient):
                 ute = k.stderr.decode("utf-8", "replace").strip()
                 utu = k.stdout.decode("utf-8", "replace").strip()
                 besked = " | ".join(d for d in (ute, utu) if d)[:400]
-                raise Modellfel("claude gav slutkod %d: %s" % (
-                    k.returncode, besked or "(varken stdout eller stderr sa nagot)"))
+                raise Modellfel("claude exited with code %d: %s" % (
+                    k.returncode, besked or "(neither stdout nor stderr said anything)"))
             try:
                 d = json.loads(k.stdout.decode("utf-8", "replace"))
             except ValueError as e:
-                raise Modellfel("kunde inte lasa svaret som JSON: %s" % e)
+                raise Modellfel("could not read the response as JSON: %s" % e)
             if d.get("is_error") or d.get("subtype") != "success":
-                raise Modellfel("claude rapporterade fel: %r"
+                raise Modellfel("claude reported an error: %r"
                                 % (d.get("subtype") or d.get("result"))[:300])
             return Svar(text=d.get("result") or "", modell=self.modell,
                         kostnad_usd=(float(d["total_cost_usd"])
@@ -201,7 +201,7 @@ class Inspelad(Modellklient):
         if not self._svar:
             # Fail-closed. En inspelning som tar slut ar ett provfel, inte ett
             # tyst tomt varv - annars matte provet nagot annat an det trodde.
-            raise Modellfel("inspelningen tog slut efter %d fragor"
+            raise Modellfel("the recording ran out after %d questions"
                             % len(self.stalda))
         return Svar(text=self._svar.pop(0), modell=self.modell)
 
