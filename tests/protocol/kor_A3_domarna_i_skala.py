@@ -203,10 +203,16 @@ def svep(args):
         ut.flush()
         os.fsync(ut.fileno())
 
+    # --enheter valjer enskilda enheter ("T-04/referens",
+    # "L-01/motbevis:vakuumet_slapps_pa_hojd"). Behovs for omprovet: en
+    # kontrollarm ska kora exakt de enheter som vacklade, inte hela uppgiften.
+    valda = set(args.enheter or [])
     antal = 0
     for task_id in args.uppgifter:
         post, enheter = enheter_for(task_id)
         for etikett, st_text, faller_pa in enheter:
+            if valda and "%s/%s" % (task_id, etikett) not in valda:
+                continue
             for varv in range(1, args.n + 1):
                 for domarnamn in ("tolk", "openplc"):
                     nyckel = (task_id, etikett, domarnamn, varv)
@@ -648,6 +654,9 @@ def markdowntabell(d):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--uppgifter", nargs="+", default=None)
+    ap.add_argument("--enheter", nargs="+", default=None,
+                    help="enskilda enheter, 'TASK/etikett'. Uppgifterna "
+                         "harleds ur listan om --uppgifter saknas.")
     ap.add_argument("--skiva", default=None,
                     help="i/N: packa banken i N skivor efter matt kostnad "
                          "(M-146) och kor skiva i")
@@ -680,6 +689,13 @@ def main(argv=None):
     if a.skiva:
         i, N = (int(x) for x in a.skiva.split("/"))
         a.uppgifter = packa(alla_uppgifter(), N)[i - 1]
+    elif a.enheter and not a.uppgifter:
+        sedda = []
+        for e in a.enheter:
+            t = e.split("/", 1)[0]
+            if t not in sedda:
+                sedda.append(t)
+        a.uppgifter = sedda
     elif not a.uppgifter:
         a.uppgifter = alla_uppgifter()
     print("skiva: %s" % " ".join(a.uppgifter))
