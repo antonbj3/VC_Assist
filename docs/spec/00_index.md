@@ -181,6 +181,7 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-140_provtagningsfrekvensen_mot_vad_som_ska_ses.md` | M-140 — provtagningsfrekvensen mot vad som ska ses: 11 bankuppgifter ogiltiga vid 17,2 Hz tyst provtagning, full täckning vid 224,7 Hz trafik |
 | `M-141_kontextbudgeten_mot_verkligheten.md` | M-141 — Kontextbudgeten mot verkligheten: förhandsreglerna i systemprompten |
 | `M-142_millimeter_och_meter_omvandling_bada_hallen.md` | M-142 — millimeter och meter: fullständig inventering av enhetsbyten och stängning av asymmetriska omvandlingar |
+| `M-143_kvaternionens_felordning_motbevis.md` | M-143 — kvaternionens felordning: trasig fixtur mot ögat och FAL-001 bevisar att (q.Y, q.Z, q.W, q.X) är strikt nödvändig |
 
 <!-- SLUT MATNINGSTABELL -->
 
