@@ -71,7 +71,7 @@ BANKPOST = {
         "/proc-scan; pgrep -f matchar sin egen sokning",
     ),
     "kraver": ("vc",),
-    "matningar": ("M-97",),
+    "matningar": ("M-97", "M-129"),
 }
 import argparse
 import json
