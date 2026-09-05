@@ -74,6 +74,20 @@ class Byggfel(Exception):
     """Bygget vägrar leverera ett halvt paket."""
 
 
+class Kompilatorfel(Byggfel):
+    """Kompilatorn kördes och sa NEJ om koden.
+
+    Skild från `Byggfel`, som är riggens fel: kompilatorn saknas, `node` går
+    inte att starta, den svarar inte inom tidsgränsen. Skillnaden är inte
+    kosmetisk. En domare som kör lösningen i en riktig motor måste kunna
+    skilja *"lösningen kompilerar inte"* — ett påstående om lösningen, alltså
+    en dom — från *"kompilatorn gick inte att köra"* — ett påstående om
+    maskinen, alltså ett domsfel. Slås de ihop blir en trasig rigg en tyst
+    underkänd lösning, och det är precis det maskerade körningsfel
+    `bank/domare_openplc.py` finns för att inte göra.
+    """
+
+
 @dataclass(frozen=True)
 class Lov:
     """Ett löv i kompilatorns debugkarta: en variabel med sin plats.
@@ -275,9 +289,11 @@ def kompilera(st_text: str, utkatalog: str, strucpp_paket: str,
     except subprocess.TimeoutExpired:
         raise Byggfel("STruC++ svarade inte inom %.0f s" % tidsgrans)
     if korning.returncode != 0:
-        raise Byggfel("STruC++ föll (kod %d):\n%s"
-                      % (korning.returncode,
-                         korning.stderr.decode("utf-8", "replace").strip()))
+        # Kompilatorn svarade. Att den svarade NEJ är en dom om koden, inte om
+        # riggen — därför Kompilatorfel och inte Byggfel.
+        raise Kompilatorfel("STruC++ föll (kod %d):\n%s"
+                            % (korning.returncode,
+                               korning.stderr.decode("utf-8", "replace").strip()))
     # PROGRAM_MD5 ska vara programmets hash. Den räknas här och inte i omslaget
     # så att samma tal går in i defines.h och i debugkartan; två hashar med
     # samma namn hade varit en tyst avvikelse att felsöka senare.
