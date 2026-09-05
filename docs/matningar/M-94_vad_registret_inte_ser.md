@@ -43,14 +43,14 @@ fel i ett register.
 | 2 | Skrivgrinden släpper skrivningar via en lokal behållare | `ext/vc_addon/vc_assist/skrivgrind.py:205` | säkerhetsgräns |
 | 3 | `stodjer_tal` har en enhetsblind reservjämförelse | `svc/vc_assist_svc/harness/verifiering.py:196` | strukturellt död gren |
 | 4 | `bevis_ur_simulering` filtrerar bort sin egen målklass | `svc/vc_assist_svc/harness/redovisning.py:118` | falsk grön |
-| 5 | `test_collision` räknar omätbara par som fria | `svc/vc_assist_svc/verktyg/matning.py:437` | domen motsäger sitt eget schema |
+| 5 | `test_collision` räknar omätbara par som fria | `svc/vc_assist_svc/verktyg/matning.py:438` | domen motsäger sitt eget schema |
 | 6 | 16 % av koden i "provade" moduler körs aldrig | mätt med coverage | proxyn är binär |
 | 7 | M-numret hade ingen tilldelningsgrind | `docs/matningar/` | **mekaniserat** |
-| 8 | Täckningsproxyn godkände en delsträng | `svc/vc_assist_svc/skuld.py:274` | **mekaniserat** |
+| 8 | Täckningsproxyn godkände en delsträng | `svc/vc_assist_svc/skuld.py:292` (före lagningen `:274`) | **mekaniserat** |
 | 9 | `MARGINAL_SCAN` i tre kopior; körparets signatur läser fel | `bank/domare.py:61`, `bank/par.py:141` | signaturen mäter inte det den namnger |
 | 10 | `TOLERANS_STANDARD` pekade på en mätning utan tolerans | `svc/vc_assist_svc/verktyg/matning.py:113` | **rättad** |
 | 11 | 190 av enhetssvitens prov körs aldrig här | `tests/enhet/test_st_svep_mot_strucpp.py:70` | grönt utan körning |
-| 12 | 61 markörer i `.md` ligger utanför registrets svep | `svc/vc_assist_svc/skuld.py:112` | blind fläck |
+| 12 | 61 markörer i `.md` ligger utanför registrets svep | `svc/vc_assist_svc/skuld.py:111` | blind fläck |
 | 13 | Numret reserveras med en tom fil i stället för i tabellen | `docs/matningar/RESERVERADE.md` | grinden blir billig |
 
 ---
@@ -165,7 +165,7 @@ går fria.
 
 ### 5. `test_collision` räknar omätbara par som fria
 
-`svc/vc_assist_svc/verktyg/matning.py:437-446`, returschemat på `:489-493`.
+`svc/vc_assist_svc/verktyg/matning.py:438-446`, returschemat på `:490-493`.
 
 Schemat säger ordagrant om `unmeasurable`: *"Par VC inte kunde ge något avstånd
 för. De räknas **ALDRIG** som fria — de är omätta."* Den genererade koden gör:
@@ -259,8 +259,8 @@ sådana par samtidigt. Kollisionerna står nu också i `SKULDREGISTER.md`.
 
 ### 8. Täckningsproxyn godkände en delsträng — **mekaniserat**
 
-`svc/vc_assist_svc/skuld.py:274` frågade `stam in enhet`, alltså en ren
-delsträng.
+`svc/vc_assist_svc/skuld.py` frågade `stam in enhet` (raden var `:274` före
+lagningen, är `:292` efter), alltså en ren delsträng.
 
 **Mätt 2026-09-05:** `bank/anlaggning.py` räknades som provad därför att
 bokstäverna `anlaggning` fanns inne i `_anlaggningssignaler` i
@@ -443,7 +443,7 @@ letar om.
 
 | Prövning | Utfall |
 |---|---|
-| Repot kopierat till en annan sökväg, hela enhetssviten körd därifrån | **håller** — 6 159 gröna, identiskt utfall (`slaupp.py`-felklassen finns inte kvar i sviten) |
+| Repot kopierat till en annan sökväg (`tar` utan `.git`), hela enhetssviten körd därifrån | **håller** — 6 159 gröna, samma tre röda som i originalet. `test_slaupp.py`:s 16 prov kör verktyget som underprocess ur **kopian** och passerade, alltså hittade det kopians rot |
 | Sviten körd med `cwd=/` | **håller** — inga nya fel |
 | Sviten körd med `LANG=C LC_ALL=C` och ett tomt `HOME` | **håller** — samma 190 skip, inga nya |
 | Härnessens hårdhetsgolv: har varje `allvar="block"`-regel en fälla som namnger den? | **håller** — 0 av 37 regler saknar fälla; M-46:s hål (fälla per *mekanism*, inte per *regel*) är verkligen stängt |
