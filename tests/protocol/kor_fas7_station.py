@@ -45,6 +45,49 @@ per varv kostar tva pumpvarv, och da spricker den gransen.
     python3 tests/protocol/kor_fas7_station.py --strucpp <npm-katalog> \\
         --runtime-include <include> [--fall HEL,T3,...] [--starta-om]
 """
+
+BANKPOST = {
+    "pastar":
+        "En station styrd av ST i en scen dar material flodar passerar grind "
+        "1-5 och blir L1-guld, och ogat faller de fem trasiga losningar som "
+        "grind 1-4 slapper igenom.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/stationsgrind.py",
+        "svc/vc_assist_svc/plc/kopplare.py",
+        "svc/vc_assist_svc/plc/ogonkoppling.py",
+        "svc/vc_assist_svc/plc/openplc.py",
+        "ext/vc_addon/vc_assist/oga_analys.py",
+        "svc/vc_assist_svc/guldgrind.py",
+    ),
+    "facit":
+        "ogats plan for stationen - sekvens, tidsfonster, forregling och "
+        "minsta antal cykler - deklarerad i korningen FORE losningarna, sa "
+        "alla sex fallen doms av exakt samma facit",
+    "facitkalla":
+        "stationens krav raknade ur scenens egna matt: transporttiden ur "
+        "banlangd och fart, processtiden ur programmets egen timer. "
+        "Klockbraketten mellan vaggklocka och simuleringstid kommer ur M-49 "
+        "och M-08, alltsa ur matningskorningar och inte ur de korningar den "
+        "ska doma.",
+    "facitkalla_filer": (
+        "tests/protocol/fas7_stationen.md",
+        "docs/matningar/M-49_stationen_arbetar.md",
+        "docs/matningar/M-08_vaggklockspumpen.md",
+    ),
+    "trasiga_fall": (
+        "T3 nivalasning dar en flank kravs ska fallas av ogat",
+        "T4 timer som nollstalls av sitt eget villkor ska fallas av ogat",
+        "T5 forregling skriven som kommentar ska fallas av ogat",
+        "T6 ratt forsta varvet, fel efter ett stopp mitt i sekvensen, ska "
+        "fallas av ogat",
+        "NOLL: ett program som ror alla signaler utan att gora nagot ska "
+        "fallas av ogat",
+        "raknar en TIDIGARE grind ut T3-T6 ar fallet fel skrivet, inte "
+        "grinden bevisad",
+    ),
+    "kraver": ("vc", "openplc", "strucpp"),
+    "matningar": ("M-49", "M-50"),
+}
 import argparse
 import json
 import os

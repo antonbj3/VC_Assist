@@ -41,6 +41,49 @@ losningarna:
     python3 tests/protocol/kor_fas8_linan.py --strucpp <npm-katalog> \\
         --runtime-include <include> [--fall HEL,K1] [--konfig LINJE,A,B]
 """
+
+BANKPOST = {
+    "pastar":
+        "Tva stationer pa en lina ger guld per station och guld for linan, "
+        "och ett kompositionsfel faller i LINJE samtidigt som det slipper "
+        "igenom i bade A och B var for sig.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/stationsgrind.py",
+        "svc/vc_assist_svc/plc/kopplare.py",
+        "svc/vc_assist_svc/plc/openplc.py",
+        "svc/vc_assist_svc/plc/paket.py",
+        "ext/vc_addon/vc_assist/oga_analys.py",
+        "svc/vc_assist_svc/guldgrind.py",
+    ),
+    "facit":
+        "ogats plan for linan, deklarerad fore losningarna; ett "
+        "kompositionsfel ar ett fall som falls i LINJE och slapper igenom i "
+        "bade A och B",
+    "facitkalla":
+        "linjens krav raknade ur scenens egna matt (banornas langd och fart, "
+        "utmatningstiden), med klockbraketten satt av M-73 och "
+        "transportvarven av M-49. Korningen mater om kvoten i sin egen rigg "
+        "och faller om den ligger utanfor braketten.",
+    "facitkalla_filer": (
+        "tests/protocol/fas8_linan.md",
+        "docs/matningar/M-73_linan_arbetar.md",
+        "docs/matningar/M-49_stationen_arbetar.md",
+    ),
+    "trasiga_fall": (
+        "K1 delad tillstandsvariabel mellan stationerna maste fallas i LINJE",
+        "K2 delad flankdetektor mellan stationerna maste fallas i LINJE",
+        "K3 den delade utmataren utan turordning maste fallas",
+        "K4 forregling som haller inom en station men korsar maste fallas",
+        "K5 station A som vantar pa station B:s zon och mattar linan maste "
+        "fallas",
+        "ett fall som ogat faller ocksa i A eller B ar inget kompositionsfel "
+        "utan ett fas 7-fel",
+        "en klockkvot utanfor braketten far inte tyst gora fonstren "
+        "meningslosa - korningen faller",
+    ),
+    "kraver": ("vc", "openplc", "strucpp"),
+    "matningar": ("M-73", "M-74"),
+}
 import argparse
 import json
 import os

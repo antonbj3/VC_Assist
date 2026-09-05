@@ -32,6 +32,39 @@ VAD SOM MATS
 
     python3 tests/protocol/kor_fas15_hopfogning.py --json ut.json
 """
+
+BANKPOST = {
+    "pastar":
+        "Hopfogningsfelet mellan ogats stampel och den sanna simuleringstiden "
+        "ryms i kopplarens egna tak ocksa nar aldern vaxer, matt mot VC:s "
+        "egen brygga i stallet for mot en attrapprigg.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/ogonkoppling.py",
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "ext/vc_addon/vc_assist/oga_harledning.py",
+        "ext/vc_addon/vc_assist/pump.py",
+    ),
+    "facit":
+        "d = stampeln minus den sanna simuleringstiden i lasogonblicket, och "
+        "taket hopfogning_s ska tacka beloppet av d for varje alder i svepet",
+    "facitkalla":
+        "VC:s egen simuleringsklocka, last genom bryggan fore och efter varje "
+        "prov: den sanna tiden klams mellan tva avlasningar, klamman ar en "
+        "HARD grans och dess bredd redovisas som kartans egen osakerhet. "
+        "Kvoten mats dessutom av en regression over hela fonstret, oberoende "
+        "av pumpens egen takt.",
+    "facitkalla_filer": (),
+    "trasiga_fall": (
+        "ett prov dar taket INTE tacker beloppet av d maste synas som ett par "
+        "dar taket ljuger",
+        "en redovisad taktspridning som inte tacker taktens avstand till den "
+        "langa kvoten faller kontrollen spridningen_tacker_taktfelet",
+        "gar de tva klockorna inte lika ar skillnaden direkt ett fel i varje "
+        "omraknad alder, och den far inte medelvardas bort",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-87",),
+}
 import argparse
 import json
 import os

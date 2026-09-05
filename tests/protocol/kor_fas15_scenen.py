@@ -22,6 +22,39 @@ PUNKTERNA (ur tests/protocol/fas15_ogat_pa_djupet.md)
 
     python3 tests/protocol/kor_fas15_scenen.py --json ut.json
 """
+
+BANKPOST = {
+    "pastar":
+        "Ogat provtar hela scenen i EN enhet: en komponent pa x = 1000 mm ger "
+        "1,0 i serien bade som roll och som bakgrund, och en orord komponents "
+        "driv mats i millimeter.",
+    "under_prov": (
+        "ext/vc_addon/vc_assist/oga_provtagning.py",
+        "ext/vc_addon/vc_assist/oga_harledning.py",
+    ),
+    "facit":
+        "seriens p[0] ska vara VC:s egen varldsposition delad med 1000, med "
+        "mindre an 1e-6 skillnad; ett fel med faktorn tusen at nagot hall ar "
+        "rott",
+    "facitkalla":
+        "VC:s egen WorldPositionMatrix, last genom bryggan i VC:s varldsenhet "
+        "millimeter (M-33) efter sim.update() - alltsa scenens egna matt och "
+        "inte ogats egen rakning",
+    "facitkalla_filer": (
+        "docs/spec/42_ogat_utbyggt.md",
+        "tests/protocol/fas15_ogat_pa_djupet.md",
+    ),
+    "trasiga_fall": (
+        "ett fel med faktorn tusen at nagot hall maste ge rott, bade for "
+        "rollen och for bakgrunden",
+        "ett bakgrundsobjekt som inte far stilla=True och vaglangd 0 nar "
+        "ingenting ror sig faller P15-2",
+        "en varldsmatris som slapar ett uppdateringssteg maste synas i "
+        "matningen (M-11)",
+    ),
+    "kraver": ("vc",),
+    "matningar": ("M-86",),
+}
 import argparse
 import json
 import os

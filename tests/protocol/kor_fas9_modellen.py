@@ -30,6 +30,41 @@ Kors:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "En spraakmodells ST loser bankens sparfacituppgifter och doms av "
+        "samma domare och samma signatur som baslinjen, med likheten mot "
+        "referensen modellen aldrig fick se matt.",
+    "under_prov": (
+        "bank/domare.py",
+        "bank/par.py",
+        "svc/vc_assist_svc/plc/stationsgrind.py",
+        "svc/vc_assist_svc/plc/skelett.py",
+    ),
+    "facit":
+        "uppgiftens sparfacit: punktkrav, invarianter och flankrakningar, "
+        "plus minst ett motbevis som MASTE fallas pa namngivna brister",
+    "facitkalla":
+        "bankens uppgifter: facit ar skrivet av en manniska i uppgiften, fore "
+        "forsoket, efter IEC 61131-3 och IEC 60204-1 (harkomst M-45). Domaren "
+        "tar aldrig emot en assertion som modellen sjalv har skrivit.",
+    "facitkalla_filer": (
+        "bank/uppgifter/H-04.json",
+        "bank/uppgifter/L-05.json",
+        "bank/uppgifter/S-05.json",
+        "bank/uppgifter/T-07.json",
+    ),
+    "trasiga_fall": (
+        "uppgiftens motbevis - en losning som ser riktig ut men bryter ett "
+        "krav - maste fallas",
+        "ett svar som liknar referensen for mycket flaggas som kontaminering "
+        "och talen far da inte laggas bredvid baslinjens",
+        "ett par vars sidor domts med olika signatur avvisas av bank/par.py",
+    ),
+    "kraver": ("modell",),
+    "matningar": ("M-78", "M-80"),
+}
+
 import argparse
 import collections
 import difflib

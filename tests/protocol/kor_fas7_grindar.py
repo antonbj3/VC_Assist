@@ -21,6 +21,39 @@ stallet for att upprepa det.
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Grind 1-4 faller en tagg utanfor kartan och en skrivning till en "
+        "skyddad signal, men slapper igenom en tom kropp - den maste fallas "
+        "av facit och inte av en tidigare grind.",
+    "under_prov": (
+        "svc/vc_assist_svc/plc/stationsgrind.py",
+        "svc/vc_assist_svc/plc/skelett.py",
+        "svc/vc_assist_svc/plc/signalkarta.py",
+        "svc/vc_assist_svc/plc/deklarationsgrind.py",
+        "svc/vc_assist_svc/api_index.py",
+    ),
+    "facit":
+        "HEL passerar; T1 (tagg utanfor kartan) och T2 (skrivning till "
+        "skyddad signal) faller; T7 (tom kropp) passerar grind 1-4",
+    "facitkalla":
+        "protokollets egen falltabell, skriven fore korningen, och grind 3:s "
+        "dom tas av STruC++-kompilatorn - ett annat program an var egen "
+        "ST-lasare",
+    "facitkalla_filer": (
+        "tests/protocol/fas7_stationen.md",
+        "docs/spec/50_grindar.md",
+    ),
+    "trasiga_fall": (
+        "T1 tagg utanfor kartan maste fallas",
+        "T2 skrivning till skyddad signal maste fallas",
+        "T7 tom kropp far INTE fallas av grind 1-4; falls den har ar fallet "
+        "fel skrivet, inte grinden bevisad",
+    ),
+    "kraver": ("strucpp",),
+    "matningar": ("M-48",),
+}
+
 import argparse
 import json
 import os

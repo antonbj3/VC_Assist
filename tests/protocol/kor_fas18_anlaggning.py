@@ -33,6 +33,40 @@ Kors:
 """
 from __future__ import annotations
 
+BANKPOST = {
+    "pastar":
+        "Ett facit harlett ur ett inspelat I/O-spar aterfinner bara en del av "
+        "manniskans handskrivna forreglingar, och tackningen vaxer inte av "
+        "att samma produktionsfonster upprepas tio ganger.",
+    "under_prov": ("bank/anlaggning.py",),
+    "facit":
+        "manniskans egna invarianter och motbevis i uppgiften: hur manga av "
+        "forbuden harledningen aterfann, och hur manga av motbevisen det "
+        "harledda facit faller",
+    "facitkalla":
+        "bankens fyra sparfacituppgifter: referenslosning, handskrivet facit "
+        "och motbevis, alla skrivna av en manniska fore korningen (harkomst "
+        "M-45)",
+    "facitkalla_filer": (
+        "bank/uppgifter/H-04.json",
+        "bank/uppgifter/L-05.json",
+        "bank/uppgifter/S-05.json",
+        "bank/uppgifter/T-07.json",
+    ),
+    "trasiga_fall": (
+        "uppgiftens motbevis maste fallas ocksa av det harledda facit; faller "
+        "de inte har harledningen inte aterfunnit kravet",
+        "ett tomt program maste fallas av bade det handskrivna och det "
+        "harledda facit",
+        "ett harlett pastaende som inspelningens tackning inte bar ska hamna "
+        "i ej_pastatt med sitt skal, aldrig i facit",
+        "ett harlett forbud som provsparet motbevisar maste raknas och "
+        "redovisas",
+    ),
+    "kraver": ("inget",),
+    "matningar": ("M-89",),
+}
+
 import argparse
 import collections
 import importlib.util
