@@ -19,6 +19,11 @@ FYRA DOMAR, OCH INGEN AV DEM HETER "MOJLIG"
                    brutet NODVANDIGT villkor.
     VALET_FALLER   villkoren gar att uppfylla, men inte med den komponent som
                    valts. Skillnaden ar botemedlet: byt komponent, inte krav.
+                   Och eftersom domen PER DEFINITION vet att kraven gar att
+                   uppfylla vet den ocksa att ett alternativ finns - darfor
+                   namnger den det, med talet som avgjorde och varifran talet
+                   kom (forslag.py). Ett "byt komponent" utan namn lamnar hela
+                   sokningen kvar hos operatoren.
     OKANT          en STATISK storhet saknar varde - ett matt som inte star i
                    katalogen, en cellyta ingen angett. Da vet grinden inte, och
                    OKANT ar aldrig ett godkannande (I3). Kallprojektets stubbar
@@ -63,6 +68,7 @@ Endast standardbiblioteket.
 """
 from __future__ import annotations
 
+from . import forslag
 from .storheter import Faktarum, STATISK, egenskaper, lage
 from .villkorssprak import BRUTET, OKANT as VILLKOR_OKANT, Typvillkor
 
@@ -94,14 +100,27 @@ _EGNA_ORD = ("begaran", "specens takt", "specens omrade")
 class Krock(object):
     """Tva eller flera krav som inte kan galla samtidigt, med sina ord."""
 
-    __slots__ = ("kod", "storhet", "skal", "villkor", "atgard")
+    __slots__ = ("kod", "storhet", "skal", "villkor", "atgard", "dom",
+                 "forslag")
 
-    def __init__(self, kod, storhet, skal, villkor=(), atgard=""):
+    def __init__(self, kod, storhet, skal, villkor=(), atgard="",
+                 dom=OMOJLIG):
         self.kod = kod
         self.storhet = storhet
         self.skal = skal
         self.villkor = list(villkor)      # Typvillkor eller (id, rad)-par
         self.atgard = atgard
+        # Vilken dom just DEN HAR krocken bar. Den satts dar krocken skapas,
+        # av den kod som vet varifran vardet kom - inte genom att lasa
+        # `atgard`:s prosa i efterhand. En dom som harleds ur en textstrang gar
+        # sonder nasta gang nagon formulerar om texten, och det ar just den
+        # sortens tysta koppling som gor ett svar falskt utan att nagot prov
+        # marker det.
+        self.dom = dom
+        # Vad man kan byta TILL, nar domen ar VALET_FALLER. None betyder att
+        # ingen sokning gjorts (se Motsagelsedom.hoppade), och det ar aldrig
+        # samma sak som "det finns ingenting".
+        self.forslag = None
 
     def __repr__(self):
         return "Krock(%s, %s)" % (self.kod, self.storhet)
@@ -122,6 +141,9 @@ class Krock(object):
             rader.append("    " + r)
         if self.atgard:
             rader.append("    atgard: %s" % self.atgard)
+        if self.forslag is not None:
+            for r in self.forslag.rader():
+                rader.append("    " + r)
         return "\n".join(rader)
 
 
@@ -316,13 +338,15 @@ def _vardekrockar(villkor, faktarum):
         if egna:
             atgard = ("bestallningen sager bade det ena och det andra; ett av "
                       "de tva maste andras")
+            dom = OMOJLIG
         else:
             atgard = ("kravet gar att uppfylla, men inte med den har "
                       "komponenten. Byt komponent - eller mjuka upp kravet")
+            dom = VALET_FALLER
         krockar.append(Krock(
             "MK2_VARDE_MOT_VILLKOR", v.storhet, skal, [v,
                 ("varde:%s" % v.storhet, "%s = %s" % (v.storhet, varde.text()))],
-            atgard))
+            atgard, dom))
     return krockar, okanda, att_mata, provade
 
 
@@ -403,12 +427,19 @@ def _ytbevis(faktarum, spec, cellvillkor):
 
 # ------------------------------------------------------------------ domen
 
-def granska(villkor, faktarum, spec=None, geometri=True):
+def granska(villkor, faktarum, spec=None, geometri=True, sokport=None):
     """Motsagelsedom over en mangd Typvillkor. Kastar aldrig.
 
     `geometri=False` stanger av de harledda ytkontrollerna. Det finns for att
     kunna prova den symboliska delen for sig; det ar aldrig ett satt att fa ett
     gronare svar, eftersom en avstangd kontroll rapporteras som EJ PROVAD.
+
+    `sokport` ar sokskiktet (katalogsok.Katalog eller vad som helst med samma
+    publika `sok()`). Med den namnger domen VAD man kan byta till nar valet
+    faller; utan den rapporteras det som EJ PROVAD, aldrig som "det finns
+    ingenting". Att den injiceras och inte importeras ar sakligt: grinden ska
+    ga att prova utan ett levande bibliotek, och den ska inte falla for att
+    katalogen inte gar att lasa.
     """
     villkor = [v for v in villkor if isinstance(v, Typvillkor)]
     if not isinstance(faktarum, Faktarum):
@@ -437,13 +468,26 @@ def granska(villkor, faktarum, spec=None, geometri=True):
         hoppade.append(("MK3_YTA och MK4_PASSAR_EJ",
                         "de harledda ytkontrollerna var avstangda i anropet"))
 
-    domar = []
-    for k in krockar:
-        if k.kod == "MK2_VARDE_MOT_VILLKOR" and "Byt komponent" in k.atgard:
-            domar.append(VALET_FALLER)
-        else:
-            domar.append(OMOJLIG)
+    domar = [k.dom for k in krockar]
     if not domar and (okanda or hoppade):
         domar.append(OKANT)
-    return Motsagelsedom(_hardast(domar), krockar, okanda, provade, hoppade,
-                         att_mata)
+    dom = _hardast(domar)
+
+    # Forslagen SIST, och bara nar hela domen ar VALET_FALLER. Sparren ar
+    # strukturell och inte en artighet: en OMOJLIG bestallning hjalps inte av
+    # nagon maskin, och ett komponentforslag dar hade sagt at operatoren att
+    # felet ligger i valet nar det ligger i kraven. OKANT ar inte heller ett
+    # lage att foresla i - grinden vet da inte ens om kravet ar brutet.
+    if dom == VALET_FALLER:
+        if sokport is None:
+            hoppade.append((
+                "FORSLAG",
+                "inget sokskikt var kopplat till grinden, sa den vet vilket "
+                "krav som foll men inte vad som gar i stallet. Kor granska() "
+                "med sokport=<katalogsok.Katalog> for att fa namn"))
+        else:
+            for k in krockar:
+                if k.dom == VALET_FALLER:
+                    k.forslag = forslag.for_krock(k, villkor, sokport)
+
+    return Motsagelsedom(dom, krockar, okanda, provade, hoppade, att_mata)

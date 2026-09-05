@@ -122,7 +122,8 @@ class Besked(object):
 
 
 def bestall(begaran, katalogindex=None, urikarta=None, motor=None,
-            datablad=None, geometri=True, svar=None, fragerunda=None):
+            datablad=None, geometri=True, svar=None, fragerunda=None,
+            sokport=None):
     """Grundbegaran (eller ren text) -> Besked. Kastar aldrig ett Planfel.
 
     `motor` ar en layoutmotor som uppfyller layoutport-kontraktet. Utan motor
@@ -133,6 +134,11 @@ def bestall(begaran, katalogindex=None, urikarta=None, motor=None,
     blir en del av BEGARAN - de ar hans ord - sa att samma monster som laser
     den forsta meningen ocksa laser dem, och sa att harkomsten pekar pa text
     som faktiskt star dar. `fragerunda` raknar turerna och gar mot K4:s tak.
+
+    `sokport` ar sokskiktet (katalogsok.Katalog). Med den namnger grind 3 VILKA
+    komponenter som uppfyller det krav den valda inte klarar; utan den star det
+    som EJ PROVAD i beskedet. Ett "byt komponent" utan namn ar en dom som
+    lamnar hela sokningen kvar hos operatoren.
     """
     if isinstance(begaran, str):
         begaran = Grundbegaran("bestallning", begaran, "operator")
@@ -147,10 +153,10 @@ def bestall(begaran, katalogindex=None, urikarta=None, motor=None,
     blad = dict(forfinare.datablad)
     for roll, falt in (datablad or {}).items():
         blad.setdefault(roll, {}).update(falt)
-    return doma(spec, blad, motor, geometri)
+    return doma(spec, blad, motor, geometri, sokport)
 
 
-def doma(spec, datablad=None, motor=None, geometri=True):
+def doma(spec, datablad=None, motor=None, geometri=True, sokport=None):
     """Grindkedjan over en FARDIG spec. Samma dom oavsett hur specen kom till.
 
     Bankvagen (forfining.ur_bankuppgift) och fritextvagen ska domas av samma
@@ -199,7 +205,7 @@ def doma(spec, datablad=None, motor=None, geometri=True):
     for vad, varde, motiv in harledda:
         spec.antaganden.append(Antagande(vad, varde, motiv, "katalog"))
     faktarum = Faktarum(spec, datablad)
-    dom = MO.granska(spec.villkor, faktarum, spec, geometri)
+    dom = MO.granska(spec.villkor, faktarum, spec, geometri, sokport)
     if dom.dom in (MO.OMOJLIG, MO.VALET_FALLER):
         return Besked(AVVISAD, spec, grind="B3_MOTSAGELSE",
                       problem=[(k.kod, k.text()) for k in dom.krockar],
