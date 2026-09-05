@@ -298,7 +298,7 @@
     "harkomst": "RAKNAD: takten 3,7 s per kretskort ger 3600/3,7 = 972,97 kort/h teoretiskt. Vakuumets anslagstid ar 0,15 s och vakten mot utebliven fixturkontakt ar 2,0 s ur scenariotexten. Placeringstoleransen 0,5 mm styrs av styrstiften i fixturen. Detta ar manniskans facit skrivet ur scenarios normal, vac_lag, vac_hog, fix_uteblir samt expect fore korning. M-124 provar facitformen.",
     "standard": "Vakuumforregling och lageskontroll i fixtur foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
     "scan_ms": 20,
-    "referens": "PROGRAM ST_P01_KRETSKORT\nVAR\n    steg    : INT := 0;\n    tmrFix  : TON;\nEND_VAR\n\ntmrFix(IN := (steg = 3), PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST100_RB_START := FALSE;\n    ST100_VAC_ON   := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST100_RB_START := FALSE;\n            ST100_VAC_ON   := FALSE;\n            IF EMG_OK AND AIR_OK AND ST100_KLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST100_VAC_ON := TRUE;\n            IF ST100_VAC_OK AND ST100_VAC_PRESS >= 45.0 AND ST100_VAC_PRESS <= 80.0 THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST100_RB_START := TRUE;\n            IF ST100_RB_DONE THEN\n                ST100_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST100_FIX_PRS THEN\n                ST100_VAC_ON := FALSE;\n                steg := 4;\n            ELSIF tmrFix.Q THEN\n                steg := 9;\n            END_IF;\n        4:\n            IF NOT ST100_VAC_OK THEN\n                steg := 0;\n            END_IF;\n        9:\n            ST100_RB_START := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "referens": "PROGRAM ST_P01_KRETSKORT\nVAR\n    steg    : INT := 0;\n    tmrFix  : TON;\n    xStartKvitterad : BOOL := FALSE;\nEND_VAR\n\ntmrFix(IN := (steg = 3), PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    ST100_RB_START := FALSE;\n    ST100_VAC_ON   := FALSE;\n    xStartKvitterad := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST100_RB_START := FALSE;\n            ST100_VAC_ON   := FALSE;\n            xStartKvitterad := FALSE;\n            IF EMG_OK AND AIR_OK AND ST100_KLT_PRS THEN\n                steg := 1;\n            END_IF;\n        1:\n            ST100_VAC_ON := TRUE;\n            IF ST100_VAC_OK AND ST100_VAC_PRESS >= 45.0 AND ST100_VAC_PRESS <= 80.0 THEN\n                steg := 2;\n            END_IF;\n        2:\n            ST100_RB_START := TRUE;\n            IF ST100_RB_BUSY THEN\n                xStartKvitterad := TRUE;\n            END_IF;\n            (* ST100_RB_DONE ensam AR robotens lagesignal, och uppgiften sager\n               \"slapp aldrig pa robotens lagesignal ensam\". Har roboten aldrig\n               rapporterat ST100_RB_BUSY har programmet inte startat, och DONE\n               star kvar fran forra cykeln. *)\n            IF ST100_RB_DONE AND xStartKvitterad THEN\n                ST100_RB_START := FALSE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST100_FIX_PRS THEN\n                ST100_VAC_ON := FALSE;\n                steg := 4;\n            ELSIF tmrFix.Q THEN\n                steg := 9;\n            END_IF;\n        4:\n            IF NOT ST100_VAC_OK THEN\n                steg := 0;\n            END_IF;\n        9:\n            ST100_RB_START := FALSE;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
     "sekvenser": [
       {
         "id": "normal_plock_och_avlagg",
@@ -346,9 +346,18 @@
             "varfor": "nar undertryck uppnatts startar roboten"
           },
           {
+            "t_ms": 400,
+            "satt": {
+              "ST100_RB_BUSY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
             "t_ms": 500,
             "satt": {
-              "ST100_RB_DONE": true
+              "ST100_RB_DONE": true,
+              "ST100_RB_BUSY": false
             },
             "krav": {},
             "varfor": ""
@@ -393,7 +402,8 @@
               "ST100_VAC_OK": true,
               "ST100_VAC_PRESS": 62.0,
               "ST100_RB_DONE": false,
-              "ST100_FIX_PRS": false
+              "ST100_FIX_PRS": false,
+              "ST100_RB_BUSY": true
             },
             "krav": {},
             "varfor": ""
