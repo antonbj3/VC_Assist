@@ -1,0 +1,527 @@
+{
+ "rigg": {
+  "bas": "https://127.0.0.1:18443",
+  "endpoint": "opc.tcp://172.17.0.2:4840/openplc/opcua",
+  "strucpp_paket": "/tmp/claude-1000/-home-anton/96f8ecd2-bf69-4040-be9e-53e0290900a0/scratchpad/strucpp_npm/package",
+  "runtime_include": "/tmp/opencode/m108/strucpp-bin/strucpp/runtime/include",
+  "tolerans_scan": 4,
+  "scan_ms": 20.0
+ },
+ "uppgifter": {
+  "P-05": [
+   {
+    "etikett": "referens",
+    "tolk": "GODKAND",
+    "tolk_koder": [],
+    "openplc": "GODKAND",
+    "openplc_koder": [],
+    "openplc_text": "P-05: GODKAND, 373 scan",
+    "matpunkter": {
+     "n": 21,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 21
+     }
+    },
+    "sekunder": 29.1,
+    "oense": false
+   },
+   {
+    "etikett": "motbevis:startar_pa_ogiltigt_tool_id",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "flank:antal_starter",
+     "locked_uteblir_ger_stopp@3500ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1100ms:ST140_RB_START",
+     "normal_drift_med_byte@1100ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1300ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1300ms:ST140_TCH_LOCK",
+     "normal_drift_med_byte@1500ms:ST140_TCH_LOCK",
+     "ogiltigt_eller_felaktigt_tool_id@300ms:ST140_RB_START"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "locked_uteblir_ger_stopp@3500ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1100ms:ST140_RB_START",
+     "normal_drift_med_byte@1100ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1300ms:ST140_TCH_BUSY",
+     "normal_drift_med_byte@1300ms:ST140_TCH_LOCK",
+     "normal_drift_med_byte@1500ms:ST140_TCH_LOCK",
+     "ogiltigt_eller_felaktigt_tool_id@300ms:ST140_RB_START"
+    ],
+    "openplc_text": "P-05: UNDERKAND, 7 brister\n  normal_drift_med_byte@1100ms:ST140_RB_START\n      ST140_RB_START skulle vara 0 men var 1 inom 4 scan efter 1100 ms. vid RB_DONE avslutas arbetet och verktygsbyte paborjas\n  normal_drift_med_byte@1100ms:ST140_TCH_BUSY\n      ST140_TCH_BUSY skulle vara 1 men var 0 inom 4 scan efter 1100 ms. vid RB_DONE avslutas arbetet och verktygsbyte paborjas\n  normal_drift_med_byte@1300ms:ST140_TCH_LOCK\n      ST140_TCH_LOCK skulle vara 0 men var 1 inom 4 scan efter 1300 ms. nar verktyget star i sitt fack lases vaxlaren upp\n  normal_drift_med_byte@1300ms:ST140_TCH_BUSY\n      ST140_TCH_BUSY skulle vara 1 men var 0 inom 4 scan efter 1300 ms. nar verktyget star i sitt fack lases vaxlaren upp\n  normal_drift_med_byte@1500ms:ST140_TCH_LOCK\n      ST140_TCH_LOCK skulle vara 0 men var 1 inom 4 scan efter 1500 ms. vaxlaren ar oppen och roboten forflyttar sig till fack 2\n  ogiltigt_eller_felaktigt_tool_id@300ms:ST140_RB_START\n      ST140_RB_START skulle vara 0 men var 1 inom 4 scan efter 300 ms. okant verktygs-id 7 far inte starta arbetsprogrammet\n  locked_uteblir_ger_stopp@3500ms:ST140_TCH_BUSY\n      ST140_TCH_BUSY skulle vara 0 men var 1 inom 4 scan efter 3500 ms. lasfelet star kvar: verktyget ar inte upptaget (M-134 klass 2)",
+    "matpunkter": {
+     "n": 14,
+     "min": 0,
+     "max": 0,
+     "median": 0.0,
+     "fordelning": {
+      "0": 14
+     }
+    },
+    "sekunder": 29.0,
+    "oense": true,
+    "faller_pa": [
+     "ogiltigt_eller_felaktigt_tool_id@300ms:ST140_RB_START"
+    ]
+   }
+  ],
+  "L-01": [
+   {
+    "etikett": "referens",
+    "tolk": "GODKAND",
+    "tolk_koder": [],
+    "openplc": "GODKAND",
+    "openplc_koder": [],
+    "openplc_text": "L-01: GODKAND, 550 scan",
+    "matpunkter": {
+     "n": 55,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 55
+     }
+    },
+    "sekunder": 45.1,
+    "oense": false
+   },
+   {
+    "etikett": "motbevis:rakningen_pa_niva",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "atta_kollin_ett_lager@2980ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@2980ms:ST150_PLT_FULL",
+     "atta_kollin_ett_lager@3380ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@3560ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@520ms:ST150_LYR_CNT",
+     "flank:atta_avlagg_i_lagret",
+     "flank:atta_vakuumslapp_i_lagret",
+     "flank:fyra_avlagg_over_pallbytet",
+     "ny_pall_nollstaller_rakningen@1380ms:ST150_LYR_CNT",
+     "ny_pall_nollstaller_rakningen@1380ms:ST150_PLT_FULL",
+     "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "atta_kollin_ett_lager@2980ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@2980ms:ST150_PLT_FULL",
+     "atta_kollin_ett_lager@3380ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@3560ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@520ms:ST150_LYR_CNT",
+     "flank:atta_avlagg_i_lagret",
+     "flank:atta_vakuumslapp_i_lagret",
+     "flank:fyra_avlagg_over_pallbytet",
+     "ny_pall_nollstaller_rakningen@1380ms:ST150_LYR_CNT",
+     "ny_pall_nollstaller_rakningen@1380ms:ST150_PLT_FULL",
+     "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+    ],
+    "openplc_text": "L-01: UNDERKAND, 11 brister\n  atta_kollin_ett_lager@520ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 1 men var 4 inom 4 scan efter 520 ms. kvittensen fran avlagget sager att kollit star an: forst da slapps vakuumet, och rakningen gar upp exakt ett steg\n  atta_kollin_ett_lager@2980ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 7 men var 34 inom 4 scan efter 2980 ms. vid sju kolli ar lagret inte fullt; en full-signal vid sju lamnar en tom ruta pa 400 x 300 mm i monstret\n  atta_kollin_ett_lager@2980ms:ST150_PLT_FULL\n      ST150_PLT_FULL skulle vara 0 men var 1 inom 4 scan efter 2980 ms. vid sju kolli ar lagret inte fullt; en full-signal vid sju lamnar en tom ruta pa 400 x 300 mm i monstret\n  atta_kollin_ett_lager@3380ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 8 men var 39 inom 4 scan efter 3380 ms. atta kolli tacker pallens 0,96 m2 exakt; da och forst da ar lagret fardigt\n  atta_kollin_ett_lager@3560ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 8 men var 39 inom 4 scan efter 3560 ms. ett nionde kolli far inte plockas; det finns ingen nionde ruta i monstret och kollit skulle hanga over karmen\n  flank:atta_avlagg_i_lagret\n      ST150_RB_START skulle ha 8 RISE-flank(er) mellan 0 och 3600 ms (+ 4 scan kanalfas), hade 2. atta kolli ska ge exakt atta avlagg; fler betyder att cykeln startas pa niva i stallet for pa flank och att roboten hamtar tomt, farre att en ruta i monstret star tom\n  flank:atta_vakuumslapp_i_lagret\n      ST150_VAC_ON skulle ha 8 FALL-flank(er) mellan 0 och 3600 ms (+ 4 scan kanalfas), hade 2. vakuumet ska slappas exakt en gang per lagt kolli; ett extra slapp ar ett tappat kolli och ett uteblivet ar ett kolli som dras med tillbaka\n  ny_pall_nollstaller_rakningen@1380ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 3 men var 15 inom 4 scan efter 1380 ms. tre kolli ligger i lagret pa den forsta pallen\n  ny_pall_nollstaller_rakningen@1380ms:ST150_PLT_FULL\n      ST150_PLT_FULL skulle vara 0 men var 1 inom 4 scan efter 1380 ms. tre kolli ligger i lagret pa den forsta pallen\n  ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 1 men var 5 inom 4 scan efter 2180 ms. forsta kollit pa den nya pallen ar kolli nummer ett, inte nummer fyra\n  flank:fyra_avlagg_over_pallbytet\n      ST150_RB_START skulle ha 4 RISE-flank(er) mellan 0 och 2180 ms (+ 4 scan kanalfas), hade 3. tre kolli pa den forsta pallen och ett pa den andra ar fyra avlagg; pallbytet far varken tappa eller upprepa ett avlagg",
+    "matpunkter": {
+     "n": 47,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 47
+     }
+    },
+    "sekunder": 45.1,
+    "oense": false,
+    "faller_pa": [
+     "atta_kollin_ett_lager@520ms:ST150_LYR_CNT",
+     "atta_kollin_ett_lager@2980ms:ST150_PLT_FULL",
+     "flank:atta_avlagg_i_lagret"
+    ]
+   },
+   {
+    "etikett": "motbevis:vakuumet_slapps_pa_hojd",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "atta_kollin_ett_lager@440ms:ST150_VAC_ON",
+     "invariant:vakuumet_halls_tills_kollit_star_an@atta_kollin_ett_lager",
+     "invariant:vakuumet_halls_tills_kollit_star_an@ny_pall_nollstaller_rakningen"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "atta_kollin_ett_lager@440ms:ST150_VAC_ON",
+     "invariant:vakuumet_halls_tills_kollit_star_an@atta_kollin_ett_lager",
+     "invariant:vakuumet_halls_tills_kollit_star_an@ny_pall_nollstaller_rakningen"
+    ],
+    "openplc_text": "L-01: UNDERKAND, 3 brister\n  atta_kollin_ett_lager@440ms:ST150_VAC_ON\n      ST150_VAC_ON skulle vara 1 men var 0 inom 4 scan efter 440 ms. lasthojdsgivaren ser kollits overkant pa 144 + 200 = 344 mm redan medan kollit hanger i sugkopparna; hojden ar ingen anliggning och far inte slappa vakuumet\n  invariant:vakuumet_halls_tills_kollit_star_an@atta_kollin_ett_lager\n      vid t=2340 ms gällde ST150_RB_START=1, ST150_RB_DONE=0 men inte ST150_VAC_ON=1 i 5 scan i rad (bortom 4 scan kanal+svarstid). sa lange avlagget pagar och ST150_RB_DONE inte kvitterat star kollit inte an; ett vakuum som slapps dar tappar kollit fran hojd och det studsar snett in i grannkollit\n  invariant:vakuumet_halls_tills_kollit_star_an@ny_pall_nollstaller_rakningen\n      vid t=740 ms gällde ST150_RB_START=1, ST150_RB_DONE=0 men inte ST150_VAC_ON=1 i 5 scan i rad (bortom 4 scan kanal+svarstid). sa lange avlagget pagar och ST150_RB_DONE inte kvitterat star kollit inte an; ett vakuum som slapps dar tappar kollit fran hojd och det studsar snett in i grannkollit",
+    "matpunkter": {
+     "n": 54,
+     "min": 0,
+     "max": 0,
+     "median": 0.0,
+     "fordelning": {
+      "0": 54
+     }
+    },
+    "sekunder": 45.3,
+    "oense": false,
+    "faller_pa": [
+     "invariant:vakuumet_halls_tills_kollit_star_an@atta_kollin_ett_lager",
+     "atta_kollin_ett_lager@440ms:ST150_VAC_ON"
+    ]
+   },
+   {
+    "etikett": "motbevis:rakningen_nollstalls_aldrig",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "ny_pall_nollstaller_rakningen@1680ms:ST150_LYR_CNT",
+     "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "ny_pall_nollstaller_rakningen@1680ms:ST150_LYR_CNT",
+     "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+    ],
+    "openplc_text": "L-01: UNDERKAND, 2 brister\n  ny_pall_nollstaller_rakningen@1680ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 0 men var 3 inom 4 scan efter 1680 ms. en ny pall ar ett nytt lager; en rakning som inte nollstalls gor lager tva till ett halvt lager\n  ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT\n      ST150_LYR_CNT skulle vara 1 men var 4 inom 4 scan efter 2180 ms. forsta kollit pa den nya pallen ar kolli nummer ett, inte nummer fyra",
+    "matpunkter": {
+     "n": 53,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 53
+     }
+    },
+    "sekunder": 45.3,
+    "oense": false,
+    "faller_pa": [
+     "ny_pall_nollstaller_rakningen@1680ms:ST150_LYR_CNT",
+     "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+    ]
+   },
+   {
+    "etikett": "motbevis:avlagg_utan_pall",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "invariant:inget_avlagg_utan_pall@pallen_forsvinner_med_kolli_i_greppet",
+     "pallen_forsvinner_med_kolli_i_greppet@480ms:ST150_RB_START",
+     "pallen_forsvinner_med_kolli_i_greppet@600ms:ST150_RB_START"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "invariant:inget_avlagg_utan_pall@pallen_forsvinner_med_kolli_i_greppet",
+     "pallen_forsvinner_med_kolli_i_greppet@480ms:ST150_RB_START",
+     "pallen_forsvinner_med_kolli_i_greppet@600ms:ST150_RB_START"
+    ],
+    "openplc_text": "L-01: UNDERKAND, 3 brister\n  pallen_forsvinner_med_kolli_i_greppet@480ms:ST150_RB_START\n      ST150_RB_START skulle vara 0 men var 1 inom 4 scan efter 480 ms. pallen ar borta: avlaggsordern tas bort i samma scan, men greppet halls - att slappa vakuumet har ar att tappa 4,8 kg over en tom station\n  pallen_forsvinner_med_kolli_i_greppet@600ms:ST150_RB_START\n      ST150_RB_START skulle vara 0 men var 1 inom 4 scan efter 600 ms. inget kolli ar lagt, sa rakningen star kvar pa noll medan greppet halls\n  invariant:inget_avlagg_utan_pall@pallen_forsvinner_med_kolli_i_greppet\n      vid t=420 ms gällde ST150_RB_START=1 men inte ST150_PLT_PRS=1 i 5 scan i rad (bortom 4 scan kanal+svarstid). ett avlagg over en tom station lagger kollit pa kedjetransportoren i stallet for pa pallen",
+    "matpunkter": {
+     "n": 53,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 53
+     }
+    },
+    "sekunder": 45.2,
+    "oense": false,
+    "faller_pa": [
+     "invariant:inget_avlagg_utan_pall@pallen_forsvinner_med_kolli_i_greppet",
+     "pallen_forsvinner_med_kolli_i_greppet@480ms:ST150_RB_START"
+    ]
+   },
+   {
+    "etikett": "motbevis:utan_greppvakt",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "vakuumet_kommer_aldrig@1400ms:ST150_VAC_ON"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "vakuumet_kommer_aldrig@1400ms:ST150_VAC_ON"
+    ],
+    "openplc_text": "L-01: UNDERKAND, 1 brister\n  vakuumet_kommer_aldrig@1400ms:ST150_VAC_ON\n      ST150_VAC_ON skulle vara 0 men var 1 inom 4 scan efter 1400 ms. 1,0 s utan bekraftat undertryck ar ett greppfel: vakuumet slas av och avlagget kommenderas aldrig, i stallet for att cellen star och drar pa ett kolli den inte haller",
+    "matpunkter": {
+     "n": 54,
+     "min": 0,
+     "max": 0,
+     "median": 0.0,
+     "fordelning": {
+      "0": 54
+     }
+    },
+    "sekunder": 45.1,
+    "oense": false,
+    "faller_pa": [
+     "vakuumet_kommer_aldrig@1400ms:ST150_VAC_ON"
+    ]
+   }
+  ],
+  "P-07": [
+   {
+    "etikett": "referens",
+    "tolk": "GODKAND",
+    "tolk_koder": [],
+    "openplc": "GODKAND",
+    "openplc_koder": [],
+    "openplc_text": "P-07: GODKAND, 650 scan",
+    "matpunkter": {
+     "n": 66,
+     "min": 0,
+     "max": 0,
+     "median": 0.0,
+     "fordelning": {
+      "0": 66
+     }
+    },
+    "sekunder": 59.7,
+    "oense": false
+   },
+   {
+    "etikett": "motbevis:mutingen_pa_en_ensam_givare",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_RB_START",
+     "en_ensam_mutinggivare_mutar_inte@1600ms:ST460_CNV_RUN",
+     "en_ensam_mutinggivare_mutar_inte@700ms:ST460_MUT_ON",
+     "en_ensam_mutinggivare_mutar_inte@900ms:ST460_MUT_ON",
+     "en_ensam_mutinggivare_mutar_inte@900ms:ST460_RB_START",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "invariant:muting_kraver_givare_b@en_ensam_mutinggivare_mutar_inte",
+     "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_RB_START",
+     "en_ensam_mutinggivare_mutar_inte@1600ms:ST460_CNV_RUN",
+     "en_ensam_mutinggivare_mutar_inte@700ms:ST460_MUT_ON",
+     "en_ensam_mutinggivare_mutar_inte@900ms:ST460_MUT_ON",
+     "en_ensam_mutinggivare_mutar_inte@900ms:ST460_RB_START",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "invariant:muting_kraver_givare_b@en_ensam_mutinggivare_mutar_inte",
+     "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START"
+    ],
+    "openplc_text": "P-07: UNDERKAND, 10 brister\n  en_ensam_mutinggivare_mutar_inte@700ms:ST460_MUT_ON\n      ST460_MUT_ON skulle vara 0 men var 1 inom 4 scan efter 700 ms. en ensam givare mutar ingenting; tva oberoende signaler ar hela poangen med muting och en enda gar att lura med en kvarglomd platbit\n  en_ensam_mutinggivare_mutar_inte@900ms:ST460_MUT_ON\n      ST460_MUT_ON skulle vara 0 men var 1 inom 4 scan efter 900 ms. ridan bryts utan giltig muting, alltsa ett skyddsstopp: varje don faller\n  en_ensam_mutinggivare_mutar_inte@900ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 900 ms. ridan bryts utan giltig muting, alltsa ett skyddsstopp: varje don faller\n  en_ensam_mutinggivare_mutar_inte@1200ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 1200 ms. en aterstalld rida far inte starta cellen av sig sjalv; den som gick in ar kanske kvar\n  en_ensam_mutinggivare_mutar_inte@1600ms:ST460_CNV_RUN\n      ST460_CNV_RUN skulle vara 1 men var 0 inom 4 scan efter 1600 ms. forst kvittensen tar cellen tillbaka i drift\n  invariant:muting_kraver_givare_b@en_ensam_mutinggivare_mutar_inte\n      vid t=620 ms gällde ST460_MUT_B=0 men inte ST460_MUT_ON=0 i 5 scan i rad (bortom 4 scan kanal+svarstid). samma krav at andra hallet; en ensam givare gar att lura med en kvarglomd platbit och da star ridan overbryggad hur lange som helst\n  mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON\n      ST460_MUT_ON skulle vara 0 men var 1 inom 4 scan efter 1100 ms. mutingen upphor i samma scan som en givare faller, och da ar ridan bruten utan overbryggning: cellen stoppar. En muting som halls kvar tills nagot annat hander lamnar ridan overbryggad medan nagon gar in\n  mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 1100 ms. mutingen upphor i samma scan som en givare faller, och da ar ridan bruten utan overbryggning: cellen stoppar. En muting som halls kvar tills nagot annat hander lamnar ridan overbryggad medan nagon gar in\n  invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller\n      vid t=1020 ms gällde ST460_MUT_B=0 men inte ST460_MUT_ON=0 i 5 scan i rad (bortom 4 scan kanal+svarstid). samma krav at andra hallet; en ensam givare gar att lura med en kvarglomd platbit och da star ridan overbryggad hur lange som helst\n  flank:mutingen_slapper_nar_givaren_faller\n      ST460_MUT_ON skulle ha 1 FALL-flank(er) mellan 0 och 1200 ms (+ 4 scan kanalfas), hade 0. mutingen ska falla en gang, i samma scan som givaren; noll fallande flanker betyder att den ar latchad",
+    "matpunkter": {
+     "n": 59,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 59
+     }
+    },
+    "sekunder": 59.7,
+    "oense": false,
+    "faller_pa": [
+     "invariant:muting_kraver_givare_b@en_ensam_mutinggivare_mutar_inte",
+     "en_ensam_mutinggivare_mutar_inte@700ms:ST460_MUT_ON"
+    ]
+   },
+   {
+    "etikett": "motbevis:mutingen_latchas",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "ett_amne_i_automatlage@1000ms:ST460_MUT_ON",
+     "ett_amne_i_automatlage@1000ms:ST460_PRS_STROKE",
+     "ett_amne_i_automatlage@2200ms:ST460_PRS_STROKE",
+     "ett_amne_i_automatlage@2500ms:ST460_CNV_RUN",
+     "flank:ett_slag_per_amne",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "invariant:muting_kraver_givare_a@ett_amne_i_automatlage",
+     "invariant:muting_kraver_givare_b@ett_amne_i_automatlage",
+     "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "ett_amne_i_automatlage@1000ms:ST460_MUT_ON",
+     "ett_amne_i_automatlage@1000ms:ST460_PRS_STROKE",
+     "ett_amne_i_automatlage@2200ms:ST460_PRS_STROKE",
+     "ett_amne_i_automatlage@2500ms:ST460_CNV_RUN",
+     "flank:ett_slag_per_amne",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "invariant:muting_kraver_givare_a@ett_amne_i_automatlage",
+     "invariant:muting_kraver_givare_b@ett_amne_i_automatlage",
+     "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START"
+    ],
+    "openplc_text": "P-07: UNDERKAND, 11 brister\n  ett_amne_i_automatlage@1000ms:ST460_MUT_ON\n      ST460_MUT_ON skulle vara 0 men var 1 inom 4 scan efter 1000 ms. mutingen upphor i samma scan som givarna slapper, och forst med fri rida och tom zon far pressen sitt slag\n  ett_amne_i_automatlage@1000ms:ST460_PRS_STROKE\n      ST460_PRS_STROKE skulle vara 1 men var 0 inom 4 scan efter 1000 ms. mutingen upphor i samma scan som givarna slapper, och forst med fri rida och tom zon far pressen sitt slag\n  ett_amne_i_automatlage@2200ms:ST460_PRS_STROKE\n      ST460_PRS_STROKE skulle vara 1 men var 0 inom 4 scan efter 2200 ms. slaget halls hela presstiden 1,4 s; en puls som slapper tidigare lamnar koppen halvvags\n  ett_amne_i_automatlage@2500ms:ST460_CNV_RUN\n      ST460_CNV_RUN skulle vara 1 men var 0 inom 4 scan efter 2500 ms. efter 1,4 s slapper slaget och bandet matar fram nasta amne\n  invariant:muting_kraver_givare_a@ett_amne_i_automatlage\n      vid t=940 ms gällde ST460_MUT_A=0 men inte ST460_MUT_ON=0 i 5 scan i rad (bortom 4 scan kanal+svarstid). mutingen vilar pa tva oberoende signaler; faller den ena ar overbryggningen inte langre motiverad av nagot som passerar\n  invariant:muting_kraver_givare_b@ett_amne_i_automatlage\n      vid t=940 ms gällde ST460_MUT_B=0 men inte ST460_MUT_ON=0 i 5 scan i rad (bortom 4 scan kanal+svarstid). samma krav at andra hallet; en ensam givare gar att lura med en kvarglomd platbit och da star ridan overbryggad hur lange som helst\n  flank:ett_slag_per_amne\n      ST460_PRS_STROKE skulle ha 1 RISE-flank(er) mellan 0 och 2600 ms (+ 4 scan kanalfas), hade 0. ett amne ska ge exakt ett slag; tva betyder att slaget kommenderas pa niva och pressen slar mot en tom kopp\n  mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON\n      ST460_MUT_ON skulle vara 0 men var 1 inom 4 scan efter 1100 ms. mutingen upphor i samma scan som en givare faller, och da ar ridan bruten utan overbryggning: cellen stoppar. En muting som halls kvar tills nagot annat hander lamnar ridan overbryggad medan nagon gar in\n  mutingen_upphor_nar_en_givare_faller@1100ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 1100 ms. mutingen upphor i samma scan som en givare faller, och da ar ridan bruten utan overbryggning: cellen stoppar. En muting som halls kvar tills nagot annat hander lamnar ridan overbryggad medan nagon gar in\n  invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller\n      vid t=1040 ms gällde ST460_MUT_B=0 men inte ST460_MUT_ON=0 i 5 scan i rad (bortom 4 scan kanal+svarstid). samma krav at andra hallet; en ensam givare gar att lura med en kvarglomd platbit och da star ridan overbryggad hur lange som helst\n  flank:mutingen_slapper_nar_givaren_faller\n      ST460_MUT_ON skulle ha 1 FALL-flank(er) mellan 0 och 1200 ms (+ 4 scan kanalfas), hade 0. mutingen ska falla en gang, i samma scan som givaren; noll fallande flanker betyder att den ar latchad",
+    "matpunkter": {
+     "n": 60,
+     "min": 0,
+     "max": 0,
+     "median": 0.0,
+     "fordelning": {
+      "0": 60
+     }
+    },
+    "sekunder": 59.7,
+    "oense": false,
+    "faller_pa": [
+     "mutingen_upphor_nar_en_givare_faller@1100ms:ST460_MUT_ON",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "invariant:muting_kraver_givare_b@mutingen_upphor_nar_en_givare_faller"
+    ]
+   },
+   {
+    "etikett": "motbevis:stopptiden_lases_aldrig",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "flank:inget_slag_med_for_lang_stopptid",
+     "invariant:pressen_slar_aldrig_med_for_lang_stopptid@stopptiden_for_lang",
+     "stopptiden_for_kort@160ms:ST460_CNV_RUN",
+     "stopptiden_for_kort@600ms:ST460_RB_START",
+     "stopptiden_for_kort@600ms:SYS_ALARM",
+     "stopptiden_for_lang@1100ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@1100ms:SYS_ALARM",
+     "stopptiden_for_lang@1500ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@1500ms:SYS_ALARM",
+     "stopptiden_for_lang@1900ms:ST460_CNV_RUN",
+     "stopptiden_for_lang@1900ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@700ms:ST460_RB_START",
+     "stopptiden_for_lang@700ms:SYS_ALARM"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "flank:inget_slag_med_for_lang_stopptid",
+     "invariant:pressen_slar_aldrig_med_for_lang_stopptid@stopptiden_for_lang",
+     "stopptiden_for_kort@160ms:ST460_CNV_RUN",
+     "stopptiden_for_kort@600ms:ST460_RB_START",
+     "stopptiden_for_kort@600ms:SYS_ALARM",
+     "stopptiden_for_lang@1100ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@1100ms:SYS_ALARM",
+     "stopptiden_for_lang@1500ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@1500ms:SYS_ALARM",
+     "stopptiden_for_lang@1900ms:ST460_CNV_RUN",
+     "stopptiden_for_lang@1900ms:ST460_PRS_STROKE",
+     "stopptiden_for_lang@700ms:ST460_RB_START",
+     "stopptiden_for_lang@700ms:SYS_ALARM"
+    ],
+    "openplc_text": "P-07: UNDERKAND, 13 brister\n  stopptiden_for_lang@700ms:SYS_ALARM\n      SYS_ALARM skulle vara 1 men var 0 inom 4 scan efter 700 ms. med 320 ms uppmatt stopptid blir det raknade avstandet 1600*0,395 + 128 = 760 mm, alltsa mer an de 688 mm ridan sitter pa; avstandet racker inte langre och cellen ska sta\n  stopptiden_for_lang@700ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 700 ms. med 320 ms uppmatt stopptid blir det raknade avstandet 1600*0,395 + 128 = 760 mm, alltsa mer an de 688 mm ridan sitter pa; avstandet racker inte langre och cellen ska sta\n  stopptiden_for_lang@1100ms:ST460_PRS_STROKE\n      ST460_PRS_STROKE skulle vara 0 men var 1 inom 4 scan efter 1100 ms. pressen far inte sla aven om roboten ar klar; det ar avstandet som inte racker, inte cykeln som ar ofardig\n  stopptiden_for_lang@1100ms:SYS_ALARM\n      SYS_ALARM skulle vara 1 men var 0 inom 4 scan efter 1100 ms. pressen far inte sla aven om roboten ar klar; det ar avstandet som inte racker, inte cykeln som ar ofardig\n  stopptiden_for_lang@1500ms:SYS_ALARM\n      SYS_ALARM skulle vara 1 men var 0 inom 4 scan efter 1500 ms. ett latchat larm slapper inte for att matvardet kom tillbaka; bromsen ska ses over och stopptiden matas om\n  stopptiden_for_lang@1500ms:ST460_PRS_STROKE\n      ST460_PRS_STROKE skulle vara 0 men var 1 inom 4 scan efter 1500 ms. ett latchat larm slapper inte for att matvardet kom tillbaka; bromsen ska ses over och stopptiden matas om\n  stopptiden_for_lang@1900ms:ST460_CNV_RUN\n      ST460_CNV_RUN skulle vara 1 men var 0 inom 4 scan efter 1900 ms. forst kvittensen tar bort larmet, och da matar bandet fram nasta amne\n  stopptiden_for_lang@1900ms:ST460_PRS_STROKE\n      ST460_PRS_STROKE skulle vara 0 men var 1 inom 4 scan efter 1900 ms. forst kvittensen tar bort larmet, och da matar bandet fram nasta amne\n  invariant:pressen_slar_aldrig_med_for_lang_stopptid@stopptiden_for_lang\n      vid t=640 ms gällde ST460_STP_TIME=320.0 men inte ST460_PRS_STROKE=0, SYS_ALARM=1 i 5 scan i rad (bortom 4 scan kanal+svarstid). vid 320 ms uppmatt stopptid kraver ISO 13855 760 mm och ridan sitter pa 688 mm; avstandet ar da inte langre ett sakerhetsavstand\n  flank:inget_slag_med_for_lang_stopptid\n      ST460_PRS_STROKE skulle ha 0 RISE-flank(er) mellan 0 och 1900 ms (+ 4 scan kanalfas), hade 1. med 320 ms uppmatt stopptid far pressen inte sla en enda gang; avstandet ridan sitter pa ar raknat for hogst 275 ms\n  stopptiden_for_kort@160ms:ST460_CNV_RUN\n      ST460_CNV_RUN skulle vara 0 men var 1 inom 4 scan efter 160 ms. bandet star under stopptid (M-134 klass 1)\n  stopptiden_for_kort@600ms:SYS_ALARM\n      SYS_ALARM skulle vara 1 men var 0 inom 4 scan efter 600 ms. pressens egen broms ar angiven till 275 ms; 180 ms betyder att mataren inte fangat hela stoppet, inte att pressen blivit snabbare, och ett avstand raknat ur det vardet blir for kort\n  stopptiden_for_kort@600ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 600 ms. pressens egen broms ar angiven till 275 ms; 180 ms betyder att mataren inte fangat hela stoppet, inte att pressen blivit snabbare, och ett avstand raknat ur det vardet blir for kort",
+    "matpunkter": {
+     "n": 55,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 55
+     }
+    },
+    "sekunder": 59.7,
+    "oense": false,
+    "faller_pa": [
+     "stopptiden_for_lang@700ms:SYS_ALARM",
+     "stopptiden_for_kort@600ms:SYS_ALARM",
+     "flank:inget_slag_med_for_lang_stopptid",
+     "invariant:pressen_slar_aldrig_med_for_lang_stopptid@stopptiden_for_lang"
+    ]
+   },
+   {
+    "etikett": "motbevis:ridans_signal_tvingas_hog_i_koden",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "flank:en_mutingperiod_per_inmatning",
+     "flank:ett_slag_per_amne",
+     "flank:mutingen_slapper_nar_givaren_faller",
+     "tolkfel:en_ensam_mutinggivare_mutar_inte",
+     "tolkfel:ett_amne_i_automatlage",
+     "tolkfel:kallstart_utan_sjalvstart",
+     "tolkfel:mutingen_upphor_nar_en_givare_faller",
+     "tolkfel:nodstopp_kraver_kvittens",
+     "tolkfel:stopptiden_for_kort",
+     "tolkfel:stopptiden_for_lang"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "openplc:skriver_egen_ingang"
+    ],
+    "openplc_text": "P-07: UNDERKAND, 1 brister\n  openplc:skriver_egen_ingang\n      ST460_LGT_CLEAR tilldelas i lösningen och skrevs över: vi satte False, PLC:n läste tillbaka True. En ingång ägs av bildtabellen, inte av programmet (I15/grind 2, dubbelskrivning).",
+    "matpunkter": {
+     "n": 0
+    },
+    "sekunder": 8.9,
+    "oense": true,
+    "faller_pa": [
+     "tolkfel:kallstart_utan_sjalvstart"
+    ]
+   },
+   {
+    "etikett": "motbevis:aterstallt_nodstopp_startar_cellen",
+    "tolk": "UNDERKAND",
+    "tolk_koder": [
+     "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_CNV_RUN",
+     "kallstart_utan_sjalvstart@200ms:ST460_RB_START",
+     "nodstopp_kraver_kvittens@1200ms:ST460_RB_START"
+    ],
+    "openplc": "UNDERKAND",
+    "openplc_koder": [
+     "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_CNV_RUN",
+     "kallstart_utan_sjalvstart@200ms:ST460_RB_START",
+     "nodstopp_kraver_kvittens@1200ms:ST460_RB_START"
+    ],
+    "openplc_text": "P-07: UNDERKAND, 3 brister\n  kallstart_utan_sjalvstart@200ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 200 ms. efter spanningspaslag star omstartskvittensen ute; en cell som borjar mata och slar sa fort spanningen kommer tillbaka gor det med den som star kvar vid matzonen\n  en_ensam_mutinggivare_mutar_inte@1200ms:ST460_CNV_RUN\n      ST460_CNV_RUN skulle vara 0 men var 1 inom 4 scan efter 1200 ms. en aterstalld rida far inte starta cellen av sig sjalv; den som gick in ar kanske kvar\n  nodstopp_kraver_kvittens@1200ms:ST460_RB_START\n      ST460_RB_START skulle vara 0 men var 1 inom 4 scan efter 1200 ms. ett aterstallt nodstopp far inte starta cellen; ISO 13850:2015 4.1.4 sager att urkopplingen bara ska mojliggora omstart, aldrig utfora den",
+    "matpunkter": {
+     "n": 63,
+     "min": 0,
+     "max": 0,
+     "median": 0,
+     "fordelning": {
+      "0": 63
+     }
+    },
+    "sekunder": 59.7,
+    "oense": false,
+    "faller_pa": [
+     "kallstart_utan_sjalvstart@200ms:ST460_RB_START",
+     "nodstopp_kraver_kvittens@1200ms:ST460_RB_START",
+     "en_ensam_mutinggivare_mutar_inte@1200ms:ST460_CNV_RUN"
+    ]
+   }
+  ]
+ },
+ "fixturer": {
+  "dubblerad_case": {
+   "etikett": "fixtur:dubblerad_case",
+   "tolk": "GODKAND",
+   "tolk_koder": [],
+   "openplc": "UNDERKAND",
+   "openplc_koder": [
+    "openplc:kompilerar_inte"
+   ],
+   "openplc_text": "P-05: UNDERKAND, 1 brister\n  openplc:kompilerar_inte\n      OpenPLC vägrade kompilera lösningen (FAILED, exit 1). Kompilatorns egna ord:\n[ERROR] core/generated/generated.cpp:190:13: error: duplicate case value\n[ERROR] make: *** [scripts/Makefile.strucpp:178: build/generated.o] Error 1",
+   "matpunkter": {
+    "n": 0
+   },
+   "sekunder": 3.2,
+   "oense": true,
+   "kravs": "tolk GODKAND, openplc UNDERKAND med openplc:kompilerar_inte",
+   "haller": true
+  },
+  "riggen_nere": {
+   "kravs": "Domsfel, aldrig en Dom",
+   "utfall": "DOMSFEL",
+   "skal": "nådde inte OpenPLC på https://127.0.0.1:18299: nådde inte https://127.0.0.1:18299: [Errno 111] Connection refused",
+   "haller": true
+  }
+ },
+ "sammanfattning": {
+  "domda_texter": 14,
+  "referenser_gron_i_tolken": 3,
+  "referenser_gron_i_openplc": 3,
+  "oense": [
+   "motbevis:ridans_signal_tvingas_hog_i_koden@P-07",
+   "motbevis:startar_pa_ogiltigt_tool_id@P-05"
+  ],
+  "matpunkter": {
+   "n": 654,
+   "fordelning": {
+    "0": 654
+   },
+   "max": 0
+  }
+ }
+}
