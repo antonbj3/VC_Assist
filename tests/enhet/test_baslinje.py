@@ -494,7 +494,12 @@ def test_nollprogrammet_uppfyller_anda_manga_pastaenden(facitposter):
 # pastaenden an baslinjen. MATT i M-106 over bankens 24 dombara uppgifter.
 # Listan far bara KRYMPA. Vaxer den har en ny uppgift lagts in utan att nagon
 # matt den; krymper den ska talet skrivas ned har.
-BASLINJEN_UNDER_NOLLPROGRAMMET = {"H-01", "C-04", "T-02", "A-03", "S-07", "C-06", "P-07", "A-08", "T-05", "S-06"}
+# 11 av 26 uppgifter, uppmatt i M-123. L-01 kom till nar den fick facit_spar:
+# nollprogrammet uppfyller 57 pastaenden dar, baslinjen 49. P-03 blev dombar
+# samtidigt och ligger 8 OVER sitt golv (66 mot 58), sa den star inte har.
+BASLINJEN_UNDER_NOLLPROGRAMMET = {"H-01", "C-04", "T-02", "A-03", "S-07",
+                                  "C-06", "P-07", "A-08", "T-05", "S-06",
+                                  "L-01"}
 
 
 def test_baslinjen_ligger_over_golvet(facitposter):
@@ -704,7 +709,10 @@ def test_pastaenderakningen_stammer_med_M45(facitposter):
     punkt = sum(B.pastaenden(p).punktkrav for p in facitposter)
     namn = sum(B.pastaenden(p).invariantnamn for p in facitposter)
     flank = sum(B.pastaenden(p).flanker for p in facitposter)
-    assert (punkt, namn, flank) == (1634, 130, 132)
+    # 26 dombara uppgifter. Rorelsen fran (1634, 130, 132) ar hela och enbart
+    # L-01 (+55, +5, +5) och P-03 (+58, +5, +5) - ingen befintlig uppgifts tal
+    # andrades. Harledningen per uppgift star i M-123.
+    assert (punkt, namn, flank) == (1747, 140, 142)
 
 
 def test_ett_tolkfel_raknas_som_noll_uppfyllda(facitposter):

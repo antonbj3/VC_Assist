@@ -301,5 +301,654 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: signalspelet mot formsprutmaskinen foljer EUROMAP 67 version 1.11 (maj 2015), det elektriska granssnittet mellan formsprutmaskin och robot. ST120_MLD_OPEN motsvarar \"Mould open position\" pa stift ZA7 fran maskinen till roboten, ST120_RB_CLEAR motsvarar \"Mould area free\" pa stift A3/C3 fran roboten till maskinen, och ST120_MLD_CLOSE_OK motsvarar \"Enable mould closure\" pa stift A6. EUROMAP 67 sager om A3/C3 att kontakten ar sluten nar roboten ar utanfor verktygsomradet, och att verktyget varken far oppnas eller stangas nar kontakten ar oppen. Uttagets tidsbudget ar raknad ur cykeln: 4,5 s / 28,0 s = 16,1 procent av takten, och kylningstiden 11 till 14 s ar 11,0 / 28,0 = 39,3 procent till 14,0 / 28,0 = 50,0 procent av cykeln. Roboten maste alltsa vara ute ur verktyget innan kylningen ar klar aven i det snabbaste fallet: 4,5 s ryms i 11,0 s med 6,5 s marginal. Kallan och rakningen star i M-106.",
+    "standard": "EUROMAP 67 version 1.11 (maj 2015), \"Electrical Interface between Injection Moulding Machine and Handling Device / Robot\", avsnitt 2.3.1 tabell 1 (maskin till robot) och 2.3.2 tabell 2 (robot till maskin). Granssnittet ar 50 kontakter, 25 per kon i rader om 9/7/9 - inte den 32-poliga kontakten, som hor till EUROMAP 12. Nodstoppen ar tvakanaliga med hogst 0,5 s fordrojning mellan kanal 1 och kanal 2. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; R_TRIG for flankdetektering och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\nxVerktygOppnat := trigOppet.Q;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen ligger an mot avlaggsbandet forst nar roboten stannat.\n               Ett vakuum som slapps under rorelsen tappar detaljen fran hojd. *)\n            IF NOT ST120_RB_BUSY THEN\n                ST120_VAC_ON := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := xUte AND NOT ST120_VAC_ON AND NOT ST120_VAC_OK\n                          AND NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "lang_kylning_och_ett_uttag",
+        "beskrivning": "Kylningen tar 14,0 s, alltsa den langa anden av spannet 11 till 14 s, och uttaget startar pa lagesgivarens stigande flank nar det verkligen ar oppet.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 62.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_VAC_ON": false,
+              "ST120_RB_CLEAR": true,
+              "ST120_MLD_CLOSE_OK": true
+            },
+            "varfor": "med verktyget stangt star roboten utanfor verktygsomradet: A3/C3 ar sluten och stangning ar tillaten"
+          },
+          {
+            "t_ms": 11500,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_VAC_ON": false
+            },
+            "varfor": "kylningen varierar mellan 11 och 14 s; en styrning som raknar uttaget fran cykelstart rustar gripdonet vid 11,0 s och gar in i ett verktyg som fortfarande ar stangt"
+          },
+          {
+            "t_ms": 14000,
+            "satt": {
+              "ST120_MLD_OPEN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14100,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": true,
+              "ST120_RB_START": false,
+              "ST120_RB_CLEAR": false,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "forst pa lagesgivarens stigande flank far uttaget forberedas, och A3/C3 oppnas redan da - innan roboten kommenderas in"
+          },
+          {
+            "t_ms": 14200,
+            "satt": {
+              "ST120_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14300,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": true
+            },
+            "varfor": "med bekraftat undertryck far uttagsprogrammet startas"
+          },
+          {
+            "t_ms": 14400,
+            "satt": {
+              "ST120_RB_BUSY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14500,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_RB_CLEAR": false,
+              "ST120_MLD_CLOSE_OK": false,
+              "ST120_VAC_ON": true
+            },
+            "varfor": "startordern tas tillbaka pa handskakningen; medan roboten ar i verktyget ar A3/C3 oppen och verktyget far varken oppnas eller stangas"
+          },
+          {
+            "t_ms": 17800,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": true
+            },
+            "varfor": "vakuumet halls hela vagen medan roboten ror sig; ett vakuum som slapps i rorelsen tappar detaljen fran hojd"
+          },
+          {
+            "t_ms": 18000,
+            "satt": {
+              "ST120_RB_BUSY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18100,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": false,
+              "ST120_RB_CLEAR": true,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "detaljen ligger an mot avlaggsbandet forst nar roboten stannat, och da slapps vakuumet; men verktyget far inte stangas forran gripdonet bevisligen ar tomt"
+          },
+          {
+            "t_ms": 18400,
+            "satt": {
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18500,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": true,
+              "ST120_RB_CLEAR": true
+            },
+            "varfor": "med roboten ute och vakuumvakten slappt ar bade A3/C3 sluten och stangning tillaten"
+          },
+          {
+            "t_ms": 18700,
+            "satt": {
+              "ST120_MLD_OPEN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 18800,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": true,
+              "ST120_RB_START": false,
+              "ST120_VAC_ON": false
+            },
+            "varfor": "verktyget stanger och nasta skott borjar; inget nytt uttag far kommenderas forran lagesgivaren ger en ny flank"
+          }
+        ]
+      },
+      {
+        "id": "verktyget_ar_for_kallt",
+        "beskrivning": "ST120_MLD_TEMP faller till 28 C, under arbetsfonstret 40 till 80 C, och kommer tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 62.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": true,
+              "ST120_RB_CLEAR": true
+            },
+            "varfor": "i arbetsfonstret 40 till 80 C ar stangning tillaten"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST120_MLD_TEMP": 28.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": false,
+              "ST120_RB_CLEAR": true
+            },
+            "varfor": "under 40 C fastnar detaljen i formen; maskinen far inte stanga och spruta in i ett kallt verktyg, men roboten star likval ute sa A3/C3 forblir sluten"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST120_MLD_TEMP": 62.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": true
+            },
+            "varfor": "verktygstemperaturen ar ingen skyddsfunktion utan ett processvillkor: nar den ar tillbaka i fonstret far verktyget stangas igen, utan kvittens"
+          }
+        ]
+      },
+      {
+        "id": "verktyget_ar_for_varmt",
+        "beskrivning": "ST120_MLD_TEMP star pa 96 C nar verktyget oppnar och faller sedan under 80 C.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 96.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST120_MLD_OPEN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": false,
+              "ST120_RB_START": false,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "over 80 C ar detaljen for mjuk for sugkopparna och uttaget far inte startas; verktyget far inte heller stangas, for detaljen ligger kvar i den oppna formen"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST120_MLD_TEMP": 74.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": true,
+              "ST120_RB_START": false
+            },
+            "varfor": "under 80 C ar detaljen styv nog for sugkopparna och uttaget far forberedas; kylningen har forlangts, inte hoppats over"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST120_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": true,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "uttaget startar och verktyget star fortsatt sparrat"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST120_RB_BUSY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST120_RB_BUSY": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": false,
+              "ST120_RB_CLEAR": true,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "roboten har stannat och detaljen ligger pa bandet; A3/C3 sluts, men stangning kraver ocksa att gripdonet ar tomt"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {},
+            "krav": {
+              "ST120_MLD_CLOSE_OK": true
+            },
+            "varfor": "med tomt gripdon och roboten ute far verktyget stangas"
+          }
+        ]
+      },
+      {
+        "id": "verktyget_oppnar_aldrig",
+        "beskrivning": "Formsprutcykeln rapporterar klart men ST120_MLD_OPEN gar aldrig hog.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 62.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5000,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_VAC_ON": false,
+              "ST120_RB_CLEAR": true,
+              "ST120_MLD_CLOSE_OK": true
+            },
+            "varfor": "5,0 s efter att formsprutcykeln rapporterat klart star lagesgivaren fortfarande lag; roboten star kvar utanfor verktyget i stallet for att ga in pa en tidsgissning"
+          },
+          {
+            "t_ms": 20000,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_VAC_ON": false
+            },
+            "varfor": "aven 20 s in i vantan, langt over cykelns 28,0 s minus kylningen, finns ingen tid som ersatter lagesgivaren"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_och_handlage",
+        "beskrivning": "Nodstoppet bryts medan roboten ar i verktyget, aterstalls, och sedan slas lagesvaljaren om till hand.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "SYS_AUTO": true,
+              "ST120_MLD_TEMP": 62.0,
+              "ST120_MLD_OPEN": false,
+              "ST120_RB_BUSY": false,
+              "ST120_VAC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST120_MLD_OPEN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST120_VAC_ON": true,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "uttaget forbereds och stangningen sparras i samma stund som uttaget begars"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST120_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": true
+            },
+            "varfor": "uttagsprogrammet startas med bekraftat undertryck"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST120_RB_BUSY": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_MLD_CLOSE_OK": false,
+              "ST120_RB_CLEAR": false,
+              "ST120_VAC_ON": true
+            },
+            "varfor": "ett brutet nodstopp tar bort startordern i samma scan och oppnar A3/C3, for roboten kan sta kvar i verktyget; greppet halls sa detaljen inte tappas ner i formen"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_MLD_CLOSE_OK": false,
+              "ST120_RB_CLEAR": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder, och sa lange roboten inte kvitterat sig ut ur verktyget forblir A3/C3 oppen"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "SYS_AUTO": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST120_RB_START": false,
+              "ST120_MLD_CLOSE_OK": false
+            },
+            "varfor": "i handlage far varken uttaget kommenderas eller verktyget fa stangningsklart"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "stangning_forutsatter_att_omradet_ar_fritt",
+        "sekvens": "*",
+        "nar": {
+          "ST120_RB_CLEAR": false
+        },
+        "kraver": {
+          "ST120_MLD_CLOSE_OK": false
+        },
+        "varfor": "EUROMAP 67 om A3/C3: ar kontakten oppen far verktyget varken oppnas eller stangas. En frigivning medan omradet inte ar fritt stanger verktyget om roboten, och verktyget ar dyrare an roboten"
+      },
+      {
+        "namn": "inget_uttag_mot_ett_stangt_verktyg",
+        "sekvens": "*",
+        "nar": {
+          "ST120_RB_START": true
+        },
+        "kraver": {
+          "ST120_MLD_OPEN": true
+        },
+        "varfor": "griparmen tar i formhalvan om uttaget startas innan lagesgivaren sett verktyget helt oppet"
+      },
+      {
+        "namn": "griparen_rustas_bara_mot_ett_oppet_verktyg",
+        "sekvens": "*",
+        "nar": {
+          "ST120_VAC_ON": true
+        },
+        "kraver": {
+          "ST120_MLD_OPEN": true
+        },
+        "varfor": "vakuumet slas pa som forsta steget i uttaget; star det pa medan verktyget ar stangt ar uttaget redan igang mot ett verktyg som annu kyler"
+      },
+      {
+        "namn": "vakuumet_slapps_aldrig_i_rorelse",
+        "sekvens": "*",
+        "nar": {
+          "ST120_RB_BUSY": true
+        },
+        "kraver": {
+          "ST120_VAC_ON": true
+        },
+        "varfor": "detaljen ligger an mot avlaggsbandet forst nar roboten stannat; slapps vakuumet medan roboten ror sig faller plastholjet de sista centimetrarna"
+      },
+      {
+        "namn": "inget_uttag_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST120_RB_START": false,
+          "ST120_MLD_CLOSE_OK": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den; med bruten krets kan roboten sta kvar i verktyget och stangning far aldrig friges"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ett_uttag_per_verktygsoppning",
+        "sekvens": "lang_kylning_och_ett_uttag",
+        "signal": "ST120_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 18800,
+        "antal": 1,
+        "varfor": "en verktygsoppning ska ge exakt ett uttag; tva betyder att uttaget startas pa lagesgivarens NIVA och att roboten gar in i ett tomt verktyg en gang till"
+      },
+      {
+        "namn": "en_frigivning_per_verktygsoppning",
+        "sekvens": "lang_kylning_och_ett_uttag",
+        "signal": "ST120_MLD_CLOSE_OK",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 18800,
+        "antal": 1,
+        "varfor": "stangningsklart ska ges en gang per cykel, efter uttaget; en frigivning som aldrig faller ar en frigivning som star kvar medan roboten ar inne"
+      },
+      {
+        "namn": "en_omradesfri_kvittens_per_verktygsoppning",
+        "sekvens": "lang_kylning_och_ett_uttag",
+        "signal": "ST120_RB_CLEAR",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 18800,
+        "antal": 1,
+        "varfor": "A3/C3 ska sluta sig en gang per cykel, nar roboten kommit ut; noll flanker betyder att kontakten aldrig oppnades och att maskinen aldrig var forreglad av roboten alls"
+      },
+      {
+        "namn": "inget_uttag_utan_lagesgivare",
+        "sekvens": "verktyget_oppnar_aldrig",
+        "signal": "ST120_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 20000,
+        "antal": 0,
+        "varfor": "utan stigande flank pa ST120_MLD_OPEN far uttaget aldrig startas, hur lang tiden an blir"
+      },
+      {
+        "namn": "ett_uttag_nar_verktyget_kylt_av",
+        "sekvens": "verktyget_ar_for_varmt",
+        "signal": "ST120_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1900,
+        "antal": 1,
+        "varfor": "overtemperaturen forlanger kylningen och ska inte ge fler uttag; nar temperaturen fallit under 80 C tas detaljen ut en gang"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "stangning_utan_att_omradet_ar_fritt",
+        "st": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\nxVerktygOppnat := trigOppet.Q;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen ligger an mot avlaggsbandet forst nar roboten stannat.\n               Ett vakuum som slapps under rorelsen tappar detaljen fran hojd. *)\n            IF NOT ST120_RB_BUSY THEN\n                ST120_VAC_ON := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST120_MLD_CLOSE_OK ges utan att lasa ST120_RB_CLEAR, sa stangningsklart star kvar hogt medan roboten ar inne i verktyget. EUROMAP 67 sager om A3/C3 att verktyget varken far oppnas eller stangas nar kontakten ar oppen. Cellen ser felfri ut sa lange maskinen anda vantar in sin egen sekvens - och stanger om griparmen forsta gangen den inte gor det.",
+        "faller_pa": [
+          "invariant:stangning_forutsatter_att_omradet_ar_fritt@lang_kylning_och_ett_uttag",
+          "lang_kylning_och_ett_uttag@14500ms:ST120_MLD_CLOSE_OK",
+          "flank:en_frigivning_per_verktygsoppning"
+        ]
+      },
+      {
+        "namn": "uttaget_pa_tid_fran_cykelstart",
+        "st": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    tmrCykel    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\ntmrCykel(IN := NOT ST120_MLD_OPEN, PT := T#11s);\nxVerktygOppnat := tmrCykel.Q;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen ligger an mot avlaggsbandet forst nar roboten stannat.\n               Ett vakuum som slapps under rorelsen tappar detaljen fran hojd. *)\n            IF NOT ST120_RB_BUSY THEN\n                ST120_VAC_ON := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := xUte AND NOT ST120_VAC_ON AND NOT ST120_VAC_OK\n                          AND NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Uttaget startas pa en TON om 11,0 s raknad fran att verktyget stangde, i stallet for pa stigande flank pa lagesgivaren. Med den korta kylningen ser det ut att fungera. Nar kylningen forlangs mot 14 s rustas gripdonet och roboten gar in medan verktyget annu ar stangt, och griparmen tar i formhalvan.",
+        "faller_pa": [
+          "invariant:griparen_rustas_bara_mot_ett_oppet_verktyg@lang_kylning_och_ett_uttag",
+          "lang_kylning_och_ett_uttag@11500ms:ST120_VAC_ON",
+          "verktyget_oppnar_aldrig@20000ms:ST120_VAC_ON"
+        ]
+      },
+      {
+        "namn": "stangningsklart_i_samma_scan_som_omradesfritt",
+        "st": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\nxVerktygOppnat := trigOppet.Q;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen ligger an mot avlaggsbandet forst nar roboten stannat.\n               Ett vakuum som slapps under rorelsen tappar detaljen fran hojd. *)\n            IF NOT ST120_RB_BUSY THEN\n                ST120_VAC_ON := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := xUte AND NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "ST120_MLD_CLOSE_OK satts i samma scan som ST120_RB_CLEAR, utan villkoret att gripdonet ar tomt. Roboten star ute, men detaljen sitter annu kvar pa sugkopparna, och en detalj som lossnar over det oppna verktyget faller ner i formen och slas sonder nar verktyget stanger.",
+        "faller_pa": [
+          "lang_kylning_och_ett_uttag@18100ms:ST120_MLD_CLOSE_OK",
+          "verktyget_ar_for_varmt@1700ms:ST120_MLD_CLOSE_OK"
+        ]
+      },
+      {
+        "namn": "vakuumet_slapps_i_rorelsen",
+        "st": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    tmrSlapp    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\nxVerktygOppnat := trigOppet.Q;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen antas ligga an 0,5 s efter att uttaget startat. *)\n            tmrSlapp(IN := ST120_RB_BUSY, PT := T#500ms);\n            IF tmrSlapp.Q THEN\n                ST120_VAC_ON := FALSE;\n            END_IF;\n            IF NOT ST120_RB_BUSY THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := xUte AND NOT ST120_VAC_ON AND NOT ST120_VAC_OK\n                          AND NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vakuumet slapps 0,5 s efter att uttagsprogrammet startat, alltsa pa en tid i stallet for nar detaljen ligger an mot avlaggsbandet. Roboten ror sig fortfarande, sa plastholjet faller de sista centimetrarna och landar snett eller utanfor bandet.",
+        "faller_pa": [
+          "invariant:vakuumet_slapps_aldrig_i_rorelse@lang_kylning_och_ett_uttag",
+          "lang_kylning_och_ett_uttag@17800ms:ST120_VAC_ON"
+        ]
+      },
+      {
+        "namn": "uttaget_pa_niva_i_stallet_for_flank",
+        "st": "PROGRAM ST120_UTTAGSROBOT\nVAR\n    steg        : INT := 0;\n    trigOppet   : R_TRIG;\n    tmrUttag    : TON;\n    xVerktygOppnat : BOOL := FALSE;\n    xTempLag    : BOOL := FALSE;\n    xTempHog    : BOOL := FALSE;\n    xUttagFel   : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xUte        : BOOL := FALSE;\nEND_VAR\n\n(* ST120_MLD_OPEN ar \"Mould open position\", stift ZA7 fran formsprutmaskinen.\n   Uttaget startar pa givarens STIGANDE FLANK. Pa nivan startar uttaget om sig\n   sjalvt sa fort forra cykeln ar klar och verktyget annu star oppet, och en\n   tid raknad fran cykelstart gar in i verktyget nar kylningen forlangs. *)\ntrigOppet(CLK := ST120_MLD_OPEN);\nxVerktygOppnat := ST120_MLD_OPEN;\n\n(* Arbetsfonstret ar 40 till 80 C. Under 40 C fastnar detaljen i verktyget och\n   maskinen far inte stanga och spruta in; over 80 C ar detaljen for mjuk for\n   sugkopparna och uttaget far inte startas forran den kylt av. *)\nxTempLag := ST120_MLD_TEMP < 40.0;\nxTempHog := ST120_MLD_TEMP > 80.0;\n\n(* Tidsovervakning: uttaget far ta 4,5 s av cykelns 28,0 s. Kommer inte\n   ST120_RB_BUSY tillbaka lag inom 6,0 s star roboten kvar nagonstans pa\n   vagen, och da far verktyget aldrig fa stangningsklart. *)\ntmrUttag(IN := ST120_RB_BUSY, PT := T#6s);\nIF tmrUttag.Q THEN\n    xUttagFel := TRUE;\nEND_IF;\nIF NOT ST120_RB_BUSY AND NOT ST120_MLD_OPEN THEN\n    xUttagFel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND SYS_AUTO AND NOT xUttagFel;\n\nIF NOT xDriftsklar THEN\n    (* Roboten kan sta kvar inne i verktyget och lagesbilden ar forlorad.\n       A3/C3 oppnas: enligt EUROMAP 67 far verktyget da varken oppnas eller\n       stangas. Vakuumet halls - ett slappt grepp har tappar detaljen, i\n       varsta fall ner i verktyget. *)\n    ST120_RB_START := FALSE;\n    ST120_RB_CLEAR := FALSE;\n    ST120_MLD_CLOSE_OK := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST120_RB_START := FALSE;\n            IF xVerktygOppnat THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Verktyget star oppet med detaljen kvar i formhalvan. *)\n            IF NOT xTempHog THEN\n                ST120_VAC_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF ST120_VAC_OK THEN\n                ST120_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST120_RB_BUSY THEN\n                ST120_RB_START := FALSE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Detaljen ligger an mot avlaggsbandet forst nar roboten stannat.\n               Ett vakuum som slapps under rorelsen tappar detaljen fran hojd. *)\n            IF NOT ST120_RB_BUSY THEN\n                ST120_VAC_ON := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\n\n    (* A3/C3 \"Mould area free\", stift A3/C3 fran roboten till maskinen: sluten\n       NAR roboten ar utanfor verktygsomradet. Kontakten oppnas redan nar\n       uttaget begars, alltsa INNAN roboten kommenderas in - oppnas den forst\n       efter kommandot finns ett scan dar maskinen far stanga om armen. *)\n    xUte := (steg = 0) AND NOT ST120_RB_BUSY;\n    ST120_RB_CLEAR := xUte;\n\n    (* A6 \"Enable mould closure\": ges forst nar omradet ar fritt OCH gripdonet\n       ar tomt. En detalj kvar pa sugkopparna kan falla ner i verktyget. Ett\n       kallt verktyg sparrar ocksa stangningen: detaljen fastnar i formen. *)\n    ST120_MLD_CLOSE_OK := xUte AND NOT ST120_VAC_ON AND NOT ST120_VAC_OK\n                          AND NOT xTempLag;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Uttaget startas pa NIVAN hos ST120_MLD_OPEN i stallet for pa dess stigande flank. Verktyget star kvar oppet efter uttaget, sa styrningen startar ett andra uttag direkt och roboten gar in i ett tomt verktyg med vakuumet pa.",
+        "faller_pa": [
+          "flank:ett_uttag_per_verktygsoppning",
+          "invariant:inget_uttag_mot_ett_stangt_verktyg@lang_kylning_och_ett_uttag",
+          "lang_kylning_och_ett_uttag@18100ms:ST120_VAC_ON"
+        ]
+      }
+    ]
+  }
 }

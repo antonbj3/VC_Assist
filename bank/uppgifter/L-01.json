@@ -315,5 +315,1063 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: monstret kommer ur pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och kollit 400 x 300 mm: tva kolli i bredd langs 800 mm-sidan ar 2*400 = 800 mm och fyra i djup langs 1200 mm-sidan ar 4*300 = 1200 mm, alltsa 8 kolli i lagret. Arean stammer: 8*0,400*0,300 = 0,96 m2 mot pallens 1,200*0,800 = 0,96 m2, sa lagret tacker pallen exakt utan spill. Takten 5,5 s per kolli ger 8*5,5 = 44,0 s per lager. Rakningen star i M-106.",
+    "standard": "EUR-pallens matt 1200 x 800 mm bar stampeln STANDARDMATT i bankens katalogindex; vilken standardparagraf som faststaller dem har INTE verifierats har, och facit lutar sig darfor pa geometrin och inte pa en citerad paragraf. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; CTU for lagerrakningen och TON for tidsovervakning enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\ntmrVac(IN := xVakVantar, PT := T#1s);\nIF tmrVac.Q THEN\n    xGreppfel := TRUE;\nEND_IF;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND ST150_PLT_PRS\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                ST150_VAC_ON := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nraknare(CU := xRakna, R := xNyPall, PV := 8);\nST150_LYR_CNT := raknare.CV;\nST150_PLT_FULL := raknare.Q OR xOverHojd;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "atta_kollin_ett_lager",
+        "beskrivning": "Ett helt lager laggs pa en tom EUR-pall. Takten 5,5 s per kolli ar komprimerad i sparet: facit domer ordningen i signalspelet, inte robotens rorelsetid.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST150_PLT_HGT": 144.0,
+              "ST150_PLT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": false,
+              "ST150_LYR_CNT": 0,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "med tom pall i stationen och inget kolli i hamtlaget star cellen still, och rakningen for det nya lagret star pa noll"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 260,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true,
+              "ST150_RB_START": false
+            },
+            "varfor": "vakuumet slas pa forst; avlagget far inte kommenderas innan greppet ar bekraftat"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 360,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": true,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "med bekraftat undertryck far det forsta avlagget kommenderas"
+          },
+          {
+            "t_ms": 380,
+            "satt": {
+              "ST150_PLT_HGT": 344.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 440,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true,
+              "ST150_RB_START": true
+            },
+            "varfor": "lasthojdsgivaren ser kollits overkant pa 144 + 200 = 344 mm redan medan kollit hanger i sugkopparna; hojden ar ingen anliggning och far inte slappa vakuumet"
+          },
+          {
+            "t_ms": 460,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 520,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": false,
+              "ST150_LYR_CNT": 1,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "kvittensen fran avlagget sager att kollit star an: forst da slapps vakuumet, och rakningen gar upp exakt ett steg"
+          },
+          {
+            "t_ms": 540,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1700,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2980,
+            "satt": {},
+            "krav": {
+              "ST150_LYR_CNT": 7,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "vid sju kolli ar lagret inte fullt; en full-signal vid sju lamnar en tom ruta pa 400 x 300 mm i monstret"
+          },
+          {
+            "t_ms": 3380,
+            "satt": {},
+            "krav": {
+              "ST150_LYR_CNT": 8,
+              "ST150_PLT_FULL": true,
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": false
+            },
+            "varfor": "atta kolli tacker pallens 0,96 m2 exakt; da och forst da ar lagret fardigt"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3560,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": false,
+              "ST150_LYR_CNT": 8
+            },
+            "varfor": "ett nionde kolli far inte plockas; det finns ingen nionde ruta i monstret och kollit skulle hanga over karmen"
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "ny_pall_nollstaller_rakningen",
+        "beskrivning": "Tre kolli laggs, pallen byts ut och det forsta kollit pa den nya pallen ar kolli nummer ett igen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST150_PLT_HGT": 144.0,
+              "ST150_PLT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1300,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 560,
+            "satt": {
+              "ST150_PLT_HGT": 344.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1380,
+            "satt": {},
+            "krav": {
+              "ST150_LYR_CNT": 3,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "tre kolli ligger i lagret pa den forsta pallen"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST150_PLT_PRS": false,
+              "ST150_PLT_HGT": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1480,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": false
+            },
+            "varfor": "utan pall i stationen far ingenting kommenderas; kollit skulle laggas pa den tomma kedjetransportoren"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST150_PLT_PRS": true,
+              "ST150_PLT_HGT": 144.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1680,
+            "satt": {},
+            "krav": {
+              "ST150_LYR_CNT": 0,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "en ny pall ar ett nytt lager; en rakning som inte nollstalls gor lager tva till ett halvt lager"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1900,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST150_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {
+              "ST150_RB_DONE": false,
+              "ST150_VAC_OK": false,
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2120,
+            "satt": {
+              "ST150_PLT_HGT": 344.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2180,
+            "satt": {},
+            "krav": {
+              "ST150_LYR_CNT": 1,
+              "ST150_PLT_FULL": false
+            },
+            "varfor": "forsta kollit pa den nya pallen ar kolli nummer ett, inte nummer fyra"
+          }
+        ]
+      },
+      {
+        "id": "pallen_forsvinner_med_kolli_i_greppet",
+        "beskrivning": "ST150_PLT_PRS gar lag medan roboten bar ett kolli mot avlaggslaget.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST150_PLT_HGT": 144.0,
+              "ST150_PLT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 380,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": true,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "avlagget ar kommenderat och roboten bar kollit"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST150_PLT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 480,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "pallen ar borta: avlaggsordern tas bort i samma scan, men greppet halls - att slappa vakuumet har ar att tappa 4,8 kg over en tom station"
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true,
+              "ST150_RB_START": false,
+              "ST150_LYR_CNT": 0
+            },
+            "varfor": "inget kolli ar lagt, sa rakningen star kvar pa noll medan greppet halls"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_och_tryckluft",
+        "beskrivning": "Nodstoppet bryts mitt i ett avlagg och aterstalls, sedan faller tryckluften och kommer tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST150_PLT_HGT": 144.0,
+              "ST150_PLT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST150_VAC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 380,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": true,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "avlagget ar kommenderat med bekraftat grepp"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 480,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "ett brutet nodstopp tar bort avlaggsordern i samma scan; vakuumet halls, for ett slappt grepp pa nodstoppet tappar kollit fran hojd"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 680,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false
+            },
+            "varfor": "att nodstoppsdonet dras upp ar ingen startorder; avlagget maste kommenderas om fran ett nytt kolli i hamtlaget"
+          },
+          {
+            "t_ms": 700,
+            "satt": {
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 880,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": true
+            },
+            "varfor": "med sluten krets och ett nytt kolli i hamtlaget far cykeln startas om"
+          },
+          {
+            "t_ms": 900,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 980,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false,
+              "ST150_VAC_ON": true
+            },
+            "varfor": "utan tryckluft haller ejektorn inte och roboten far inte flytta kollit; vakuumkommandot star kvar, for att nollstalla det oppnar avblasningen och slapper kollit aktivt"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1180,
+            "satt": {},
+            "krav": {
+              "ST150_RB_START": false
+            },
+            "varfor": "tryckluften tillbaka ar ingen startorder heller; cellen startar om pa nasta kolli, inte av sig sjalv"
+          }
+        ]
+      },
+      {
+        "id": "vakuumet_kommer_aldrig",
+        "beskrivning": "ST150_VAC_OK kommer aldrig. Greppvakten ska falla i fonstret 1,0 till 1,2 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST150_PLT_HGT": 144.0,
+              "ST150_PLT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true,
+              "ST150_RB_START": false
+            },
+            "varfor": "vakuumet slas pa mot kollit i hamtlaget"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true,
+              "ST150_RB_START": false
+            },
+            "varfor": "0,8 s efter pasla far greppvakten annu inte ha fallit; en for kort grans stoppar cellen pa normal drift"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": false,
+              "ST150_RB_START": false,
+              "ST150_LYR_CNT": 0
+            },
+            "varfor": "1,0 s utan bekraftat undertryck ar ett greppfel: vakuumet slas av och avlagget kommenderas aldrig, i stallet for att cellen star och drar pa ett kolli den inte haller"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST150_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST150_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1880,
+            "satt": {},
+            "krav": {
+              "ST150_VAC_ON": true
+            },
+            "varfor": "greppfelet ar latchat tills kollit bytts ut; ett nytt kolli i hamtlaget ger ett nytt forsok"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "inget_avlagg_utan_pall",
+        "sekvens": "*",
+        "nar": {
+          "ST150_RB_START": true
+        },
+        "kraver": {
+          "ST150_PLT_PRS": true
+        },
+        "varfor": "ett avlagg over en tom station lagger kollit pa kedjetransportoren i stallet for pa pallen"
+      },
+      {
+        "namn": "vakuumet_halls_tills_kollit_star_an",
+        "sekvens": "*",
+        "nar": {
+          "ST150_RB_START": true,
+          "ST150_RB_DONE": false
+        },
+        "kraver": {
+          "ST150_VAC_ON": true
+        },
+        "varfor": "sa lange avlagget pagar och ST150_RB_DONE inte kvitterat star kollit inte an; ett vakuum som slapps dar tappar kollit fran hojd och det studsar snett in i grannkollit"
+      },
+      {
+        "namn": "ingen_robotrorelse_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST150_RB_START": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den: inget avlagg kommenderat med bruten krets"
+      },
+      {
+        "namn": "ingen_robotrorelse_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST150_RB_START": false
+        },
+        "varfor": "utan tryckluft haller ejektorn inte undertrycket, och ett avlagg med ett grepp som slapper ar ett tappat kolli"
+      },
+      {
+        "namn": "inget_nionde_kolli_pa_ett_fullt_lager",
+        "sekvens": "*",
+        "nar": {
+          "ST150_PLT_FULL": true
+        },
+        "kraver": {
+          "ST150_RB_START": false
+        },
+        "varfor": "monstret har atta rutor; ett nionde kolli har ingen plats och hamnar pa eller bredvid ett redan lagt kolli"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "atta_avlagg_i_lagret",
+        "sekvens": "atta_kollin_ett_lager",
+        "signal": "ST150_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3600,
+        "antal": 8,
+        "varfor": "atta kolli ska ge exakt atta avlagg; fler betyder att cykeln startas pa niva i stallet for pa flank och att roboten hamtar tomt, farre att en ruta i monstret star tom"
+      },
+      {
+        "namn": "atta_vakuumslapp_i_lagret",
+        "sekvens": "atta_kollin_ett_lager",
+        "signal": "ST150_VAC_ON",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 3600,
+        "antal": 8,
+        "varfor": "vakuumet ska slappas exakt en gang per lagt kolli; ett extra slapp ar ett tappat kolli och ett uteblivet ar ett kolli som dras med tillbaka"
+      },
+      {
+        "namn": "fyra_avlagg_over_pallbytet",
+        "sekvens": "ny_pall_nollstaller_rakningen",
+        "signal": "ST150_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2180,
+        "antal": 4,
+        "varfor": "tre kolli pa den forsta pallen och ett pa den andra ar fyra avlagg; pallbytet far varken tappa eller upprepa ett avlagg"
+      },
+      {
+        "namn": "inget_avlagg_utan_bekraftat_grepp",
+        "sekvens": "vakuumet_kommer_aldrig",
+        "signal": "ST150_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1880,
+        "antal": 0,
+        "varfor": "utan bekraftat undertryck far inget avlagg kommenderas alls; en enda flank har ar en robot som svanger ut med tomma koppar"
+      },
+      {
+        "namn": "ett_avlagg_per_kolli_efter_nodstopp",
+        "sekvens": "nodstopp_och_tryckluft",
+        "signal": "ST150_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1180,
+        "antal": 2,
+        "varfor": "ett avlagg fore nodstoppet och ett efter det nya kollit; en tredje flank ar en cell som startar om sig sjalv nar kretsen sluts"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "rakningen_pa_niva",
+        "st": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\ntmrVac(IN := xVakVantar, PT := T#1s);\nIF tmrVac.Q THEN\n    xGreppfel := TRUE;\nEND_IF;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND ST150_PLT_PRS\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                ST150_VAC_ON := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nIF xNyPall THEN\n    ST150_LYR_CNT := 0;\nEND_IF;\nIF ST150_RB_DONE AND xDriftsklar THEN\n    ST150_LYR_CNT := ST150_LYR_CNT + 1;\nEND_IF;\nST150_PLT_FULL := (ST150_LYR_CNT >= 8) OR xOverHojd;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lagerrakningen raknar upp sa lange ST150_RB_DONE ar hog i stallet for en gang per flank. Kvittensen star hog i flera scan, sa samma kolli raknas fyra ganger och lagret rapporteras fullt efter tva kolli. Felet syns aldrig i en enstegskorning dar nagon klickar kvittensen manuellt.",
+        "faller_pa": [
+          "atta_kollin_ett_lager@520ms:ST150_LYR_CNT",
+          "atta_kollin_ett_lager@2980ms:ST150_PLT_FULL",
+          "flank:atta_avlagg_i_lagret"
+        ]
+      },
+      {
+        "namn": "vakuumet_slapps_pa_hojd",
+        "st": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\ntmrVac(IN := xVakVantar, PT := T#1s);\nIF tmrVac.Q THEN\n    xGreppfel := TRUE;\nEND_IF;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND ST150_PLT_PRS\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_PLT_HGT >= 344.0 THEN\n                ST150_VAC_ON := FALSE;\n            END_IF;\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nraknare(CU := xRakna, R := xNyPall, PV := 8);\nST150_LYR_CNT := raknare.CV;\nST150_PLT_FULL := raknare.Q OR xOverHojd;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Vakuumet slapps nar lasthojdsgivaren visar 344 mm, alltsa nar kollits overkant passerat lagrets overkant. Kollit hanger da fortfarande i sugkopparna och faller de sista centimetrarna, studsar snett och tar i grannkollit. Anliggningen star i ST150_RB_DONE, inte i en hojd.",
+        "faller_pa": [
+          "invariant:vakuumet_halls_tills_kollit_star_an@atta_kollin_ett_lager",
+          "atta_kollin_ett_lager@440ms:ST150_VAC_ON"
+        ]
+      },
+      {
+        "namn": "rakningen_nollstalls_aldrig",
+        "st": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\ntmrVac(IN := xVakVantar, PT := T#1s);\nIF tmrVac.Q THEN\n    xGreppfel := TRUE;\nEND_IF;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND ST150_PLT_PRS\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                ST150_VAC_ON := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nraknare(CU := xRakna, PV := 8);\nST150_LYR_CNT := raknare.CV;\nST150_PLT_FULL := raknare.Q OR xOverHojd;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lagerrakningen far ingen nollstallning vid ny pall. Den forsta pallen blir riktig och varje pall darefter far farre kolli an den ska, tills cellen rapporterar fullt pa en nastan tom pall. Felet syns inte pa den forsta pallen i en provkorning.",
+        "faller_pa": [
+          "ny_pall_nollstaller_rakningen@1680ms:ST150_LYR_CNT",
+          "ny_pall_nollstaller_rakningen@2180ms:ST150_LYR_CNT"
+        ]
+      },
+      {
+        "namn": "avlagg_utan_pall",
+        "st": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\ntmrVac(IN := xVakVantar, PT := T#1s);\nIF tmrVac.Q THEN\n    xGreppfel := TRUE;\nEND_IF;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                ST150_VAC_ON := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nraknare(CU := xRakna, R := xNyPall, PV := 8);\nST150_LYR_CNT := raknare.CV;\nST150_PLT_FULL := raknare.Q OR xOverHojd;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Driftsvillkoret slapper ST150_PLT_PRS, sa cellen fortsatter lagga av aven nar pallen lamnat stationen. Sa lange pallbytet gar normalt fungerar cellen felfritt; forsta gangen en pall glider ur laget laggs kollit pa den tomma kedjetransportoren.",
+        "faller_pa": [
+          "invariant:inget_avlagg_utan_pall@pallen_forsvinner_med_kolli_i_greppet",
+          "pallen_forsvinner_med_kolli_i_greppet@480ms:ST150_RB_START"
+        ]
+      },
+      {
+        "namn": "utan_greppvakt",
+        "st": "PROGRAM ST150_PALLETERING\nVAR\n    steg        : INT := 0;\n    raknare     : CTU;\n    tmrVac      : TON;\n    trigPall    : R_TRIG;\n    trigPrt     : R_TRIG;\n    xNyPall     : BOOL := FALSE;\n    xNyttKolli  : BOOL := FALSE;\n    xGivarfel   : BOOL := FALSE;\n    xOverHojd   : BOOL := FALSE;\n    xGreppfel   : BOOL := FALSE;\n    xVakVantar  : BOOL := FALSE;\n    xDriftsklar : BOOL := FALSE;\n    xRakna      : BOOL := FALSE;\nEND_VAR\n\n(* Monstret ar pallens och kollits egna matt. EUR-pallen ar 1200 x 800 mm och\n   kollit 400 x 300 mm: tva i bredd langs 800 mm-sidan och fyra i djup langs\n   1200 mm-sidan ger atta kolli i lagret. Atta ar alltsa inget instalt tal. *)\n\n(* En ny pall i stationen ar ett nytt lager. Utan den nollstallningen bar\n   lager tva kvar forra lagrets rakning och blir ett halvt lager. *)\ntrigPall(CLK := ST150_PLT_PRS);\nxNyPall := trigPall.Q;\n\n(* Hamtningen startar pa FLANKEN av narvaron i hamtlaget, inte pa nivan. Pa\n   nivan startar cellen om av sig sjalv sa fort ett villkor slapper igen. *)\ntrigPrt(CLK := ST150_PRT_PRS);\nxNyttKolli := trigPrt.Q;\n\n(* EUR-pallen ar sjalv 144 mm hog. En lasthojd under 144 mm med pall i\n   stationen ar darfor ett givarfel, inte ett lage. *)\nxGivarfel := ST150_PLT_PRS AND (ST150_PLT_HGT < 144.0);\n\n(* Hogsta lasthojd pa pallen ar 1800 mm. Daroever far ingenting mer laggas,\n   oavsett vad lagerrakningen sager. *)\nxOverHojd := ST150_PLT_HGT > 1800.0;\n\n(* Greppvakt: undertrycket ska vara bekraftat inom 1,0 s. En vantan utan\n   tidsgrans lamnar cellen dragande pa ett kolli den inte haller. *)\nxVakVantar := ST150_VAC_ON AND NOT ST150_VAC_OK;\nIF NOT ST150_PRT_PRS THEN\n    xGreppfel := FALSE;\nEND_IF;\n\nxDriftsklar := EMG_OK AND AIR_OK AND ST150_PLT_PRS\n               AND NOT xGivarfel AND NOT xOverHojd AND NOT xGreppfel;\n\nxRakna := FALSE;\n\nIF NOT xDriftsklar THEN\n    (* Avlaggsordern tas bort i samma scan. Vakuumet star kvar: att slappa\n       greppet har ar att tappa kollit fran hojd, i varsta fall over en tom\n       station. Bara ett bekraftat greppfel slapper vakuumet. *)\n    ST150_RB_START := FALSE;\n    IF xGreppfel THEN\n        ST150_VAC_ON := FALSE;\n    END_IF;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            ST150_RB_START := FALSE;\n            IF xNyttKolli AND NOT ST150_PLT_FULL THEN\n                ST150_VAC_ON := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Avlagget kommenderas forst nar undertrycket ar bekraftat. *)\n            IF ST150_VAC_OK THEN\n                ST150_RB_START := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Vakuumet slapps pa ST150_RB_DONE, alltsa nar kollit star an mot\n               underlaget - aldrig pa en hojd. Lasthojdsgivaren ser kollits\n               overkant redan medan kollit hanger. *)\n            IF ST150_RB_DONE THEN\n                ST150_RB_START := FALSE;\n                ST150_VAC_ON := FALSE;\n                xRakna := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF NOT ST150_RB_DONE THEN\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Rakningen gar pa en puls som ar exakt en scan bred, en per lagt kolli. *)\nraknare(CU := xRakna, R := xNyPall, PV := 8);\nST150_LYR_CNT := raknare.CV;\nST150_PLT_FULL := raknare.Q OR xOverHojd;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Undertrycket vantas in utan tidsgrans. En sugkopp som lackt eller ett kolli med veckad ytterkartong ger aldrig ST150_VAC_OK, och cellen star kvar och drar vakuum pa ett kolli den inte haller tills nagon undrar varfor takten sjunkit.",
+        "faller_pa": [
+          "vakuumet_kommer_aldrig@1400ms:ST150_VAC_ON"
+        ]
+      }
+    ]
+  }
 }
