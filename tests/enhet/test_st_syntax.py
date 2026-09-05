@@ -514,3 +514,270 @@ def test_exponentoperatorn_binder_och_skrivs_tillbaka_likadant(in_text, ut_text)
     text = skriv_enhet(las(kalla))
     assert " r := %s;" % ut_text in text, text
     assert skriv_enhet(las(text)) == text
+
+
+# ======================================================================
+# M-99: differentialsvepet mot STruC++ 0.6.6
+#
+# Sex falska rodgrindar och tre hal, alla matta genom att kora samma
+# konstruktion genom bade vart lager och kompilatorn i var egen kedja.
+# Varje lagning har bade sitt giltiga fall OCH sin ogiltiga granne, sa att
+# rattelsen inte oppnar en lucka i stallet.
+# ======================================================================
+
+# ---- 1. INT:s minsta varde gick inte att skriva ------------------------
+
+HELTALSGRANSER = [
+    ("INT", "-32768", True), ("INT", "32767", True),
+    ("INT", "-32769", False), ("INT", "32768", False),
+    ("SINT", "-128", True), ("SINT", "127", True),
+    ("SINT", "-129", False), ("SINT", "128", False),
+    ("DINT", "-2147483648", True), ("DINT", "2147483647", True),
+    ("DINT", "-2147483649", False), ("DINT", "2147483648", False),
+]
+
+
+@pytest.mark.parametrize("typ,text,vantat", HELTALSGRANSER,
+                         ids=["%s_%s" % (t, x) for t, x, _v in HELTALSGRANSER])
+def test_negativ_literal_provas_mot_omradet_med_sitt_tecken(typ, text, vantat):
+    """FALSK RODGRIND, matt i M-99.
+
+    `iA := -32768;` avvisades med *"literalen 32768 ligger utanfor INT
+    (-32768..32767)"*. Talet i meddelandet fanns inte i koden: unart minus
+    lamnade literalvardet orort, sa intervallkontrollen provade 32768 i
+    stallet for -32768. Varje heltalstyps MINSTA varde var darmed omojligt
+    att skriva som literal, och STruC++ 0.6.6 kompilerar formen.
+
+    Grannarna i tabellen ar det som far rattelsen att inte bli en lucka:
+    -32769 och 32768 ska fortfarande falla.
+    """
+    kalla = ("PROGRAM P\nVAR\n v : %s;\nEND_VAR\n v := %s;\nEND_PROGRAM\n"
+             % (typ, text))
+    r = validera(kalla)
+    assert r.ok is vantat, "%s := %s gav %s" % (typ, text, r)
+
+
+# ---- 2. uttrycksdjupet matte parserramar, inte nastling ---------------
+
+def _parenteser(n):
+    return ("PROGRAM P\nVAR\n a, b : INT;\nEND_VAR\n a := %sb%s;\n"
+            "END_PROGRAM\n" % ("(" * n, ")" * n))
+
+
+def test_uttrycksdjupet_ar_nastlingsnivaer_inte_parserramar():
+    """FALSK RODGRIND, matt i M-99.
+
+    Meddelandet sa *"uttrycket ar djupare an 64 nivaer"*, men raknaren okade
+    en gang per prioritetsniva i NIVAER. En parentes kostade darfor atta steg
+    och det VERKLIGA taket lag vid atta parenteser. En modell som far det
+    felet pa `a := ((((((((b))))))));` har ingen vag att laga det: talet i
+    meddelandet finns inte i koden.
+    """
+    from vc_assist_svc.st.lasare import MAX_DJUP
+    assert validera(_parenteser(8)).ok is True, "atta parenteser ska ga"
+    assert validera(_parenteser(MAX_DJUP - 2)).ok is True
+    r = validera(_parenteser(MAX_DJUP + 5))
+    assert r.ok is False, "taket slutade falla"
+    assert "djupare" in str(r)
+
+
+def test_lasarens_djuptak_ligger_under_uppmatt_kapacitet():
+    """TRASIG FIXTUR for taket ovan: mat kapaciteten i stallet for att tro pa den.
+
+    Ett tak utan matreferens ar en gissning. Har stangs vakten av och
+    RecursionError bisekeras fram, sa MAX_DJUP alltid kan jamforas med det
+    djup lasaren faktiskt bar. MATT 2026-09-05 vid recursionlimit 1000: 89
+    nastlingsnivaer bar, den 90:e foll.
+    """
+    from vc_assist_svc.st import lasare as L
+    tidigare = L.MAX_DJUP
+    L.MAX_DJUP = 10 ** 9
+    try:
+        lo, hi = 1, 400
+        while lo < hi:
+            mitt = (lo + hi + 1) // 2
+            try:
+                L.las(_parenteser(mitt))
+                lo = mitt
+            except RecursionError:
+                hi = mitt - 1
+            except Exception:
+                hi = mitt - 1
+    finally:
+        L.MAX_DJUP = tidigare
+    assert lo > tidigare, (
+        "MAX_DJUP=%d men lasaren bar bara %d nivaer; taket skyddar inte mot "
+        "RecursionError langre" % (tidigare, lo))
+    assert lo < 400, "bisektionen tog aldrig slut - matningen ar inte en matning"
+
+
+# ---- 3. en grind som kraschar i stallet for att doma -------------------
+
+def test_en_baklanges_faltgrans_ger_en_anmarkning_inte_ett_undantag():
+    """FALSK RODGRIND av varsta sorten, matt i M-99.
+
+    `ARRAY[10..1] OF INT` kom ut ur `validera` som en OFANGAD ValueError ur
+    typlagrets `__post_init__`. `validera` fangar bara Syntaxfel, sa grinden
+    KRASCHADE i stallet for att doma - och en grind som kraschar lamnar
+    ingen anmarkning at nagon att laga.
+    """
+    r = validera("PROGRAM P\nVAR\n a : ARRAY[10..1] OF INT;\nEND_VAR\n"
+                 " a[1] := 1;\nEND_PROGRAM\n")
+    assert r.ok is False
+    assert "baklanges" in str(r).lower() or "baklänges" in str(r).lower()
+    # grannen: en gilltig grans far inte ha slutat fungera
+    assert validera("PROGRAM P\nVAR\n a : ARRAY[1..10] OF INT;\nEND_VAR\n"
+                    " a[1] := 1;\nEND_PROGRAM\n").ok is True
+    assert validera("PROGRAM P\nVAR\n a : ARRAY[-5..5] OF INT;\nEND_VAR\n"
+                    " a[1] := 1;\nEND_PROGRAM\n").ok is True
+
+
+# ---- 4. en grind som HANGER lamnar inte ens ett spar -------------------
+
+def test_en_kalla_som_slutar_mitt_i_en_prefixad_literal_hanger_inte():
+    """HAL, matt i M-99, och det farligaste fyndet i svepet.
+
+    `self._kika() in "_.#"` ar SANT for den tomma strangen, och `_kika()`
+    lamnar tom strang vid kallans slut. `BOOL#7` UTAN avslutande radbrytning
+    snurrade darfor for evigt i lexern. `BOOL#7\\n` foll ratt hela tiden, sa
+    felet bet bara pa text utan radbrytning sist - och det ar precis vad ett
+    kodstaket ur en modell kan ge.
+
+    Provet kors i en EGEN process med tidsgrans. Ett hang i sviten sjalv hade
+    inte gett ett rott prov, det hade gett ett prov som aldrig svarar.
+    """
+    import subprocess
+    kod = (
+        "import sys; sys.path.insert(0, %r)\n"
+        "from vc_assist_svc.st import tokenisera\n"
+        "from vc_assist_svc.st import Syntaxfel\n"
+        "for text in ('BOOL#7', 'X#', 'T#', 'WORD#16#FF', 'INT#5', 'T#5s'):\n"
+        "    try:\n"
+        "        tokenisera(text)\n"
+        "    except Syntaxfel:\n"
+        "        pass\n"
+        "print('KLAR')\n" % os.path.join(_ROT, "svc"))
+    klar = subprocess.run([sys.executable, "-c", kod], timeout=30,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    assert klar.returncode == 0, klar.stdout.decode("utf-8", "replace")
+    assert b"KLAR" in klar.stdout
+
+
+# ---- 5. adressens storleksbokstav mot typen ---------------------------
+
+ADRESSPAR_SOM_BYGGER = [
+    ("%IX0.0", "BOOL"), ("%QX0.1", "BOOL"), ("%I0.0", "BOOL"),
+    ("%IB2", "BYTE"), ("%IB2", "SINT"), ("%IB2", "USINT"),
+    ("%IW1", "WORD"), ("%IW1", "INT"), ("%QW1", "UINT"),
+    ("%MD4", "DWORD"), ("%MD4", "DINT"), ("%MD4", "UDINT"), ("%MD4", "REAL"),
+    ("%ML0", "LWORD"), ("%ML0", "LINT"), ("%ML0", "ULINT"), ("%ML0", "LREAL"),
+]
+
+ADRESSPAR_SOM_INTE_BYGGER = [
+    ("%QW1", "BOOL"), ("%IX0.0", "INT"), ("%MD4", "BOOL"), ("%IB2", "INT"),
+    ("%ML0", "REAL"), ("%IW1", "DINT"), ("%IX0.0", "TIME"), ("%IW1", "TIME"),
+    ("%I0.0", "INT"),
+]
+
+
+def _med_adress(adress, typ):
+    return ("PROGRAM P\nVAR\n v AT %s : %s;\n q : BOOL;\nEND_VAR\n"
+            " q := q;\nEND_PROGRAM\n" % (adress, typ))
+
+
+@pytest.mark.parametrize("adress,typ", ADRESSPAR_SOM_BYGGER,
+                         ids=["%s_%s" % (a, t) for a, t in ADRESSPAR_SOM_BYGGER])
+def test_adressens_storlek_slapper_igenom_de_typer_kompilatorn_bygger(adress, typ):
+    """HAL, matt i M-99: 80 av 96 kombinationer.
+
+    Sex storleksbokstaver x sexton typer gick genom STruC++ 0.6.6. Den byggde
+    16 par och avvisade 80 - vart lager slappte igenom alla 96. `q AT %QW1 :
+    BOOL;` ar ingen typfraga inne i ST-koden utan en fraga om VAR i
+    bildtabellen variabeln ligger, och en BOOL pa en ordadress laser och
+    skriver fel antal byte i drift.
+    """
+    r = validera(_med_adress(adress, typ))
+    assert r.ok is True, "%s : %s avvisas nu: %s" % (adress, typ, r)
+
+
+@pytest.mark.parametrize("adress,typ", ADRESSPAR_SOM_INTE_BYGGER,
+                         ids=["%s_%s" % (a, t) for a, t in ADRESSPAR_SOM_INTE_BYGGER])
+def test_adressens_storlek_faller_de_typer_kompilatorn_avvisar(adress, typ):
+    """Grannarna till provet ovan: halet far inte oppnas igen."""
+    r = validera(_med_adress(adress, typ))
+    assert r.ok is False, "%s : %s slapps igenom igen" % (adress, typ)
+    assert "storleken" in str(r)
+
+
+# ---- 6. sidmatning och vertikaltabb ar blanksteg ----------------------
+
+def test_ascii_styrtecken_skiljer_tokens_at_men_icke_ascii_faller_anda():
+    """FALSK RODGRIND, matt i M-99.
+
+    Vertikaltabb (0x0B) och sidmatning (0x0C) foll som *"ovantat tecken"*
+    medan STruC++ 0.6.6 bygger bada. De ar ASCII, sa lagrets EGET skal att
+    avvisa tecken - teckenkodningen genom OpenPLC och vidare ut som OPC
+    UA-namn - galler dem inte.
+
+    Grannen ar hela skalet att regeln finns: ett verkligt icke-ASCII-tecken
+    ska fortfarande falla.
+    """
+    for tecken in ("\x0b", "\x0c", "\t"):
+        kalla = ("PROGRAM P\nVAR\n a, b : BOOL;\nEND_VAR\n a := b;%s\n b := a;\n"
+                 "END_PROGRAM\n" % tecken)
+        assert validera(kalla).ok is True, "%r avvisas" % tecken
+    for tecken in ("å", "Ä", "–"):
+        kalla = ("PROGRAM P\nVAR\n a, b : BOOL;\nEND_VAR\n a := b; // %s\n"
+                 "END_PROGRAM\n" % tecken)
+        r = validera(kalla)
+        assert r.ok is False, "%r slapps igenom" % tecken
+        assert "ASCII" in str(r)
+
+
+# ---- 7. en decimalpunkt utan brakdel ---------------------------------
+
+REALFORMER = [
+    ("1.0", True), ("1.5e3", True), ("1.0E-3", True), ("0.0", True),
+    ("1.", False), ("1.e3", False),
+]
+
+
+@pytest.mark.parametrize("text,vantat", REALFORMER,
+                         ids=[t for t, _v in REALFORMER])
+def test_decimalpunkten_kraver_minst_en_siffra_efter_sig(text, vantat):
+    """HAL, matt i M-99. IEC 61131-3:s real_literal har bade en heltalsdel och
+    en brakdel; `1.` och `1.e3` har ingen brakdel. Bada slapptes igenom har
+    och avvisades av STruC++ 0.6.6 - ett hal at det hall dar felet syns forst
+    i bygget."""
+    kalla = ("PROGRAM P\nVAR\n r : REAL;\nEND_VAR\n r := %s;\nEND_PROGRAM\n"
+             % text)
+    assert validera(kalla).ok is vantat
+
+
+def test_omradesprickorna_ar_ororda_av_decimalregeln():
+    """Grannen: `1..5` ar tva prickar, inte en decimalpunkt utan siffra."""
+    assert validera("PROGRAM P\nVAR\n a : INT;\n b : BOOL;\nEND_VAR\n"
+                    " CASE a OF\n  1..5: b := TRUE;\n END_CASE;\n"
+                    "END_PROGRAM\n").ok is True
+    assert validera("PROGRAM P\nVAR\n a : ARRAY[1..10] OF INT;\nEND_VAR\n"
+                    " a[1] := 1;\nEND_PROGRAM\n").ok is True
+
+
+# ---- 8. RETAIN och CONSTANT pa samma block ----------------------------
+
+KVALIFICERARPAR = [
+    ("VAR CONSTANT", True), ("VAR RETAIN", True), ("VAR NON_RETAIN", True),
+    ("VAR RETAIN CONSTANT", False), ("VAR CONSTANT RETAIN", False),
+    ("VAR NON_RETAIN CONSTANT", False),
+]
+
+
+@pytest.mark.parametrize("block,vantat", KVALIFICERARPAR,
+                         ids=[b.replace(" ", "_") for b, _v in KVALIFICERARPAR])
+def test_retain_och_constant_gar_inte_ihop(block, vantat):
+    """HAL, matt i M-99: STruC++ 0.6.6 sager *"Variable cannot be both RETAIN
+    and CONSTANT"*; vart lager slappte igenom formen. En konstant har inget
+    tillstand att behalla over en varmstart."""
+    kalla = ("PROGRAM P\n%s\n G : INT := 1;\nEND_VAR\nVAR\n a : INT;\nEND_VAR\n"
+             " a := G;\nEND_PROGRAM\n" % block)
+    assert validera(kalla).ok is vantat
