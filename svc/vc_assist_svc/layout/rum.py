@@ -90,8 +90,8 @@ class Rektangel:
 
     def __init__(self, x0_m, y0_m, x1_m, y1_m):
         if x1_m <= x0_m or y1_m <= y0_m:
-            raise Layoutfel("rektangeln har noll eller negativ utsträckning: "
-                            "(%.4g, %.4g) till (%.4g, %.4g)"
+            raise Layoutfel("the rectangle has zero or negative extent: "
+                            "(%.4g, %.4g) to (%.4g, %.4g)"
                             % (x0_m, y0_m, x1_m, y1_m))
         self.x0_m, self.y0_m, self.x1_m, self.y1_m = (float(x0_m), float(y0_m),
                                                       float(x1_m), float(y1_m))
@@ -106,7 +106,7 @@ class Rektangel:
     def vid(cls, horn, bredd, djup):
         """Ur ett hörn (Vek2) plus bredd i X och djup i Y."""
         if not isinstance(horn, Vek2):
-            raise Enhetsfel("horn måste vara en Vek2")
+            raise Enhetsfel("corner must be a Vek2")
         b = krav(bredd, "bredd").som_m
         d = krav(djup, "djup").som_m
         return cls(horn.x_m, horn.y_m, horn.x_m + b, horn.y_m + d)
@@ -183,15 +183,15 @@ class Zon:
     def __init__(self, namn, typ, yta, fri_hojd=None, takhojd=None,
                  minsta_bredd=None):
         if not isinstance(typ, Zontyp):
-            raise Layoutfel("zontyp måste vara ett Zontyp-värde, fick %r" % (typ,))
+            raise Layoutfel("zone type must be a Zontyp value, got %r" % (typ,))
         if not isinstance(yta, Rektangel):
-            raise Layoutfel("zonens yta måste vara en Rektangel")
+            raise Layoutfel("the zone's area must be a Rektangel")
         self.namn = str(namn)
         self.typ = typ
         self.yta = yta
         if fri_hojd is not None and typ is Zontyp.ARBETSYTA:
-            raise Layoutfel("fri_hojd hör till en frihållen zon; %s är en "
-                            "arbetsyta och begränsas av takhojd i stället"
+            raise Layoutfel("fri_hojd belongs to a kept-clear zone; %s is a "
+                            "work area and is limited by takhojd instead"
                             % namn)
         # None betyder "hela hallens höjd" och fylls i av Hall vid inläggning.
         self.fri_hojd_m = None if fri_hojd is None else krav(
@@ -202,8 +202,8 @@ class Zon:
             self.minsta_bredd_m = None
         else:
             if typ not in (Zontyp.GANG, Zontyp.UTRYMNINGSVAG):
-                raise Layoutfel("minsta_bredd hör bara till en gång eller en "
-                                "utrymningsväg; %s är %s" % (namn, typ.value))
+                raise Layoutfel("minsta_bredd only applies to an aisle or an "
+                                "emergency route; %s is %s" % (namn, typ.value))
             self.minsta_bredd_m = krav(minsta_bredd, "minsta_bredd").som_m
 
     def __repr__(self):
@@ -217,7 +217,7 @@ class Pelare:
 
     def __init__(self, namn, mitt, tvarsnitt_x, tvarsnitt_y, hojd=None):
         if not isinstance(mitt, Vek2):
-            raise Enhetsfel("pelarens mitt måste vara en Vek2")
+            raise Enhetsfel("the pillar's center must be a Vek2")
         self.namn = str(namn)
         self.mitt = mitt
         self.tvarsnitt_x = krav(tvarsnitt_x, "tvarsnitt_x")
@@ -265,7 +265,7 @@ class Ankare:
     def ur_bounds(cls, center_mm, half_extent_mm):
         """Ur get_bounds svar: center och half_extent i millimeter."""
         if len(center_mm) != 3 or len(half_extent_mm) != 3:
-            raise Layoutfel("get_bounds ger tre tal per fält")
+            raise Layoutfel("get_bounds gives three values per field")
         return cls(cls.MATT,
                    Vek3.mm(*[float(v) for v in center_mm]),
                    Vek3.mm(*[float(v) for v in half_extent_mm]))
@@ -298,24 +298,24 @@ class Objekt:
                  ankare=None, kategori="", rackvidd=None, enhet=""):
         self.namn = str(namn)
         if not self.namn:
-            raise Layoutfel("ett objekt måste ha ett namn")
+            raise Layoutfel("an object must have a name")
         self.langd = krav(langd, "langd (utsträckning längs objektets X)")
         self.bredd = krav(bredd, "bredd (utsträckning längs objektets Y)")
         self.hojd = krav(hojd, "hojd")
         for m, vad in ((self.langd, "langd"), (self.bredd, "bredd"),
                        (self.hojd, "hojd")):
             if m.som_m <= 0.0:
-                raise Layoutfel("%s för %s måste vara positiv" % (vad, self.namn))
+                raise Layoutfel("%s for %s must be positive" % (vad, self.namn))
         self.underhallsmarginal = (Langd.noll() if underhallsmarginal is None
                                    else krav(underhallsmarginal,
                                              "underhallsmarginal"))
         if self.underhallsmarginal.som_m < 0.0:
-            raise Layoutfel("underhållsmarginalen kan inte vara negativ")
+            raise Layoutfel("the maintenance margin cannot be negative")
         self.kravd_fri_hojd = (Langd.noll() if kravd_fri_hojd is None
                                else krav(kravd_fri_hojd, "kravd_fri_hojd"))
         vr = tuple(krav_vinkel(v, "vridning") for v in tillatna_vridningar_grader)
         if not vr:
-            raise Layoutfel("%s måste ha minst en tillåten vridning" % self.namn)
+            raise Layoutfel("%s must have at least one allowed rotation" % self.namn)
         # Sorterad och avdubblad: sökordningen ska inte bero på hur listan
         # råkade skrivas. Determinism, uppdragets krav på lösaren.
         self.tillatna_vridningar_grader = tuple(sorted(set(vr)))
@@ -357,7 +357,7 @@ class Pose:
     def av(cls, punkt, vridning_grader=0.0):
         """Ur en Vek3 plus vridning i grader."""
         if not isinstance(punkt, Vek3):
-            raise Enhetsfel("pose byggs av en Vek3, fick %r" % (punkt,))
+            raise Enhetsfel("pose is built from a Vek3, got %r" % (punkt,))
         return cls(punkt.x_m, punkt.y_m, punkt.z_m, vridning_grader)
 
     @property
@@ -445,41 +445,41 @@ class Hall:
         self.djup = krav(djup, "hallens djup (Y)")
         self.hojd = krav(hojd, "hallens fria höjd")
         if min(self.bredd.som_m, self.djup.som_m, self.hojd.som_m) <= 0.0:
-            raise Layoutfel("hallens mått måste vara positiva")
+            raise Layoutfel("the hall's dimensions must be positive")
         self.golv = Rektangel(0.0, 0.0, self.bredd.som_m, self.djup.som_m)
         namn_sedda = set()
         zon_lista = []
         for z in zoner:
             if not isinstance(z, Zon):
-                raise Layoutfel("zoner måste vara Zon-objekt")
+                raise Layoutfel("zones must be Zon objects")
             if z.namn in namn_sedda:
-                raise Layoutfel("två zoner heter %r" % z.namn)
+                raise Layoutfel("two zones are named %r" % z.namn)
             namn_sedda.add(z.namn)
             if not self.golv.omsluter(z.yta):
-                raise Layoutfel("zonen %r ligger utanför hallens golv" % z.namn)
+                raise Layoutfel("zone %r lies outside the hall's floor" % z.namn)
             if z.fri_hojd_m is None:
                 z.fri_hojd_m = self.hojd.som_m
             if z.fri_hojd_m > self.hojd.som_m + LAGE_TOL_M:
-                raise Layoutfel("zonen %r kräver högre fri höjd än hallen har"
+                raise Layoutfel("zone %r requires more clear height than the hall has"
                                 % z.namn)
             if z.takhojd_m is None:
                 z.takhojd_m = self.hojd.som_m
             if z.takhojd_m > self.hojd.som_m + LAGE_TOL_M:
-                raise Layoutfel("zonen %r påstår högre tak än hallen har"
+                raise Layoutfel("zone %r claims a higher ceiling than the hall has"
                                 % z.namn)
             if z.minsta_bredd_m is not None:
                 smalast = min(z.yta.bredd_m, z.yta.djup_m)
                 if z.minsta_bredd_m > smalast + LAGE_TOL_M:
                     raise Layoutfel(
-                        "zonen %r är %.3g m smal men kräver %.3g m fri bredd; "
-                        "kravet går inte att uppfylla ens i en tom hall"
+                        "zone %r is %.3g m narrow but requires %.3g m clear width; "
+                        "the requirement cannot be met even in an empty hall"
                         % (z.namn, smalast, z.minsta_bredd_m))
             zon_lista.append(z)
         self.zoner = tuple(zon_lista)
         pel = []
         for p in pelare:
             if not isinstance(p, Pelare):
-                raise Layoutfel("pelare måste vara Pelare-objekt")
+                raise Layoutfel("pillars must be Pelare objects")
             if p.hojd is None:
                 p.hojd = self.hojd
             r = Rektangel(p.mitt.x_m - p.tvarsnitt_x.som_m / 2.0,
@@ -487,7 +487,7 @@ class Hall:
                           p.mitt.x_m + p.tvarsnitt_x.som_m / 2.0,
                           p.mitt.y_m + p.tvarsnitt_y.som_m / 2.0)
             if not self.golv.omsluter(r):
-                raise Layoutfel("pelaren %r står utanför hallen" % p.namn)
+                raise Layoutfel("pillar %r stands outside the hall" % p.namn)
             pel.append(p)
         self.pelare = tuple(pel)
 
@@ -495,7 +495,7 @@ class Hall:
         for z in self.zoner:
             if z.namn == namn:
                 return z
-        raise Layoutfel("hallen %r har ingen zon som heter %r"
+        raise Layoutfel("hall %r has no zone named %r"
                         % (self.namn, namn))
 
     def vaggens_lage_m(self, vagg):
@@ -508,7 +508,7 @@ class Hall:
             return ("y", 0.0, +1.0)
         if vagg is Vagg.NORR:
             return ("y", self.djup.som_m, -1.0)
-        raise Layoutfel("okänd vägg %r" % (vagg,))
+        raise Layoutfel("unknown wall %r" % (vagg,))
 
     def __repr__(self):
         return ("Hall(%r, %.4g x %.4g x %.4g m, %d zoner, %d pelare)"
@@ -528,7 +528,7 @@ class Scen:
 
     def __init__(self, hall):
         if not isinstance(hall, Hall):
-            raise Layoutfel("en scen byggs kring en Hall")
+            raise Layoutfel("a scene is built around a Hall")
         self.hall = hall
         self._objekt = {}
         self._placering = {}
@@ -544,15 +544,15 @@ class Scen:
 
     def lagg_till(self, objekt):
         if not isinstance(objekt, Objekt):
-            raise Layoutfel("bara Objekt går att lägga i en scen")
+            raise Layoutfel("only Objekt can be added to a scene")
         if objekt.namn.startswith(PELARPREFIX):
-            raise Layoutfel("namnet %r är reserverat för hallens pelare"
+            raise Layoutfel("the name %r is reserved for the hall's pillars"
                             % objekt.namn)
         if objekt.namn in self._objekt:
-            raise Layoutfel("scenen har redan ett objekt som heter %r"
+            raise Layoutfel("the scene already has an object named %r"
                             % objekt.namn)
         if objekt.hojd.som_m > self.hall.hojd.som_m:
-            raise Layoutfel("%s är %.3g m högt och hallen %.3g m"
+            raise Layoutfel("%s is %.3g m tall and the hall is %.3g m"
                             % (objekt.namn, objekt.hojd.som_m,
                                self.hall.hojd.som_m))
         self._objekt[objekt.namn] = objekt
@@ -562,7 +562,7 @@ class Scen:
         try:
             return self._objekt[namn]
         except KeyError:
-            raise Layoutfel("scenen har inget objekt som heter %r" % namn)
+            raise Layoutfel("the scene has no object named %r" % namn)
 
     def namn(self):
         """Alla objektnamn i inläggningsordning."""
@@ -577,12 +577,12 @@ class Scen:
     def placera(self, namn, pose, last=False):
         o = self.objekt(namn)
         if not isinstance(pose, Pose):
-            raise Layoutfel("placera kräver en Pose")
+            raise Layoutfel("placera requires a Pose")
         if namn in self._lasta:
-            raise Layoutfel("%s är låst och går inte att flytta" % namn)
+            raise Layoutfel("%s is locked and cannot be moved" % namn)
         v = round(pose.vridning_grader, 4)
         if v not in tuple(round(x, 4) for x in o.tillatna_vridningar_grader):
-            raise Layoutfel("%s får inte stå vriden %.4g grader; tillåtna är %s"
+            raise Layoutfel("%s may not stand rotated %.4g degrees; allowed are %s"
                             % (namn, pose.vridning_grader,
                                ", ".join("%g" % x for x in o.tillatna_vridningar_grader)))
         self._placering[namn] = pose
@@ -590,12 +590,12 @@ class Scen:
     def las(self, namn):
         """Låser ett redan placerat objekt, som en pelare."""
         if namn not in self._placering:
-            raise Layoutfel("%s är inte placerat och går inte att låsa" % namn)
+            raise Layoutfel("%s is not placed and cannot be locked" % namn)
         self._lasta.add(namn)
 
     def ta_bort_placering(self, namn):
         if namn in self._lasta:
-            raise Layoutfel("%s är låst" % namn)
+            raise Layoutfel("%s is locked" % namn)
         self._placering.pop(namn, None)
 
     def pose(self, namn):
