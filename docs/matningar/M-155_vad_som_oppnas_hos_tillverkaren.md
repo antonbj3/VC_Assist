@@ -96,10 +96,15 @@ att filen bevisligen öppnas — det gör att just den kända fällan är undvik
 | Att **vår** fil öppnas i TwinCAT | **OPRÖVAT** | Saknas: Windows med Visual Studio + TwinCAT 3 XAE och licens |
 
 Den femte raden är intressant för oss åt andra hållet: TwinCAT lägger
-deklarationernas **klartext** i filen utöver `<interface>`. En fil som kommer
-från TwinCAT bär alltså information vår importör inte läser — och vår importör
-avvisar inte den, eftersom den bor i `addData` (schemat tillåter det). Vad
-TwinCAT gör med en fil som **saknar** den klartexten är **oprövat**.
+deklarationernas **klartext** i filen utöver `<interface>`. Två frågor följer
+av det, och **båda är oprövade**, för ingen TwinCAT-fil har funnits här att
+prova på:
+
+* Läser vår importör en TwinCAT-fil utan att snubbla på den extra klartexten?
+  Var i dokumentet TwinCAT lägger den står inte i den hämtade sidan. Att gissa
+  att den hamnar i ett `addData` vi ignorerar vore ett påstående utan fil.
+* Vad gör TwinCAT med en fil som **saknar** klartexten — som vår? Sidan säger
+  att TwinCAT *skriver* den vid export, inte att den *krävs* vid import.
 
 ---
 
