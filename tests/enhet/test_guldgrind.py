@@ -379,3 +379,13 @@ def test_en_rapport_utan_HONESTY_sektionen_ar_inte_guld():
         % b.text())
 
 
+def test_en_korning_med_for_fa_prov_ar_inte_guld():
+    """Ögat har en egen tröskel `MIN_PROV` som gör en för kort körning
+    INCONCLUSIVE. Grinden bär ingen motsvarighet: kommer rapporten utifrån
+    med SAMPLES 1 och PASS räcker det."""
+    ett_prov = TOM_MB.replace("SAMPLES 0", "SAMPLES 1").replace("DUR 0.000s", "DUR 0.050s")
+    b = _grind_mb().doma([_cell_mb(ett_prov)])
+    assert not b.guld, "en körning på ett enda prov gav %s" % b.text()
+
+
+

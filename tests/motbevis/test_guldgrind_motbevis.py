@@ -57,15 +57,6 @@ UTAN_HONESTY = ("EYES v1\n"
                 "EYES VERDICT PASS allt bra\n")
 
 
-def test_en_korning_med_for_fa_prov_ar_inte_guld():
-    """Ögat har en egen tröskel `MIN_PROV` som gör en för kort körning
-    INCONCLUSIVE. Grinden bär ingen motsvarighet: kommer rapporten utifrån
-    med SAMPLES 1 och PASS räcker det."""
-    ett_prov = TOM.replace("SAMPLES 0", "SAMPLES 1").replace("DUR 0.000s", "DUR 0.050s")
-    b = _grind().doma([_cell(ett_prov)])
-    assert not b.guld, "en körning på ett enda prov gav %s" % b.text()
-
-
 def test_facit_grinden_ger_fortfarande_guld_at_en_riktig_rapport():
     """Utan detta vore proven ovan värdelösa: en grind som fäller allt klarar
     varje fällningsprov."""
