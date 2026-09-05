@@ -97,9 +97,9 @@ class Planerare(object):
         self.layoutsvar = None
         self.steg = []
         if layout is not None and not isinstance(layout, Layoutport):
-            raise Specfel("planeringen",
-                          ["layout maste vara en Layoutport; porten ar det "
-                           "som provar motorns svar innan det blir steg"])
+            raise Specfel("the planning",
+                          ["layout must be a Layoutport; the port is what "
+                           "checks the engine's answer before it becomes a step"])
 
     # -- bokforing --------------------------------------------------------
 
@@ -247,9 +247,9 @@ class Planerare(object):
             a, b = koppling.fran_roll, koppling.till_roll
             for roll in (a, b):
                 if roll not in klara:
-                    raise Specfel("planeringen",
-                                  ["kopplingen %d pekar pa rollen %r som "
-                                   "ingen del bar" % (n, roll)])
+                    raise Specfel("the planning",
+                                  ["connection %d points to the role %r that "
+                                   "no part carries" % (n, roll)])
             lista_a = self._lagg(Steg.verktygssteg(
                 "gr%d_a" % n, "list_interfaces", {"component": a},
                 "hamtar %s egna gransnitt ur scenen i stallet for att hitta "
@@ -304,7 +304,7 @@ class Planerare(object):
                 d["parallell_grupp"] = grupp
                 self.steg[i] = Steg.fran_json(d)
                 return
-        raise Specfel("planeringen", ["inget steg heter %r" % (steg_id,)])
+        raise Specfel("the planning", ["no step is named %r" % (steg_id,)])
 
     # -- beviset ----------------------------------------------------------
 
