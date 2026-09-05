@@ -81,7 +81,7 @@ def _asyncua():
     try:
         from asyncua import Client, ua
     except ImportError as fel:
-        raise MatFel("mätningen kräver paketet asyncua (pip install asyncua): %s"
+        raise MatFel("the measurement requires the asyncua package (pip install asyncua): %s"
                      % fel)
     return Client, ua
 
@@ -117,7 +117,7 @@ class Fordelning:
 
 def sammanfatta(namn: str, varden_s: Sequence[float]) -> Fordelning:
     if not varden_s:
-        raise MatFel("serien %s är tom; en tom serie är ingen mätning" % namn)
+        raise MatFel("series %s is empty; an empty series is not a measurement" % namn)
     ms = sorted(v * 1000.0 for v in varden_s)
     # p95 med närmaste-rang: index ceil(0.95*n)-1. Ingen interpolation, så
     # talet är ett värde som faktiskt uppmättes.
@@ -192,7 +192,7 @@ async def mat_tur_och_retur(nod_in, nod_ut, ua, antal: int = PER_SERIE,
             if bool(await nod_ut.read_value()) == nytt:
                 break
             if time.perf_counter() - t0 > TAK_S:
-                raise MatFel("utsignalen följde inte med inom %.1f s vid varv %d"
+                raise MatFel("the output did not follow within %.1f s at cycle %d"
                              % (TAK_S, i))
         t1 = time.perf_counter()
         vantat = nytt
@@ -220,7 +220,7 @@ async def _anslut(klient, tidsgrans: float = OPCUA_UPPSTART, paus: float = 0.5):
         except (ConnectionRefusedError, OSError, asyncio.TimeoutError) as fel:
             senaste = fel
             await asyncio.sleep(paus)
-    raise MatFel("nådde inte OPC UA-servern inom %.0f s: %s"
+    raise MatFel("did not reach the OPC UA server within %.0f s: %s"
                  % (tidsgrans, senaste))
 
 
@@ -274,7 +274,7 @@ def kor(bas: str, anvandare: str, losenord: str, strucpp_paket: str,
     # bli C++. Kostar millisekunder, sparar en byggcykel.
     dom = granska(kalla_pou, karta)
     if not dom.ok:
-        raise MatFel("grind 3 fällde provprogrammet:\n%s" % dom)
+        raise MatFel("gate 3 failed the test program:\n%s" % dom)
 
     # Kedjan är tvådelad, och det går inte att undvika: OPC UA-konfigurationen
     # behöver (arr, elem) ur kompilatorns debugkarta, men konfigurationen ska
