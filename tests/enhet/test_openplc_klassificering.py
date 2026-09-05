@@ -54,6 +54,22 @@ def scan_modul():
 
 
 @pytest.fixture(scope="module")
+def r3_modul():
+    return _ladda_modul(
+        os.path.join("tests", "protocol", "kor_openplc_r3.py"),
+        "kor_openplc_r3"
+    )
+
+
+@pytest.fixture(scope="module")
+def opcua_modul():
+    return _ladda_modul(
+        os.path.join("tests", "protocol", "kor_openplc_opcua.py"),
+        "kor_openplc_opcua"
+    )
+
+
+@pytest.fixture(scope="module")
 def svep_facit(svep_modul):
     FALL, kalla, STRANGARE, LATTARE = svep_modul._las_svep()
     return {
@@ -295,9 +311,11 @@ def _validera_bench4_post(bankpost: dict) -> list[str]:
 @pytest.mark.parametrize("skriptnamn,modul_fixtur", [
     ("kor_openplc_svepet.py", "svep_modul"),
     ("kor_openplc_scan.py", "scan_modul"),
+    ("kor_openplc_r3.py", "r3_modul"),
+    ("kor_openplc_opcua.py", "opcua_modul"),
 ])
 def test_bench4_bankpost_deklaration(skriptnamn, modul_fixtur, request):
-    """Båda protokollskriptens BANKPOST måste uppfylla BENCH-4-kraven."""
+    """Alla protokollskriptens BANKPOST måste uppfylla BENCH-4-kraven."""
     mod = request.getfixturevalue(modul_fixtur)
     assert hasattr(mod, "BANKPOST"), "%s saknar BANKPOST" % skriptnamn
     post = mod.BANKPOST
