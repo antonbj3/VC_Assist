@@ -412,7 +412,16 @@ def test_specen_namnger_de_trasiga_fixturerna(spectext):
 
 
 def test_specen_bar_paren(spectext):
-    for a, b in K.PAR_SOM_SKA_GA:
+    for a, b, harkomst in K.PAR_SOM_SKA_GA:
         assert "%s -> %s" % (a, b) in spectext, (a, b)
+        assert harkomst in spectext, (a, b, harkomst)
     for a, b, _skal in K.PAR_SOM_INTE_GAR:
         assert "%s -> %s" % (a, b) in spectext, (a, b)
+
+
+def test_varje_par_bar_ett_harkomstmarke():
+    """Ett par som star som "ja" utan att vara byggt ar en harledning som ser
+    ut som en matning. Tabellen far inte se ut som fem matningar nar den ar
+    tre."""
+    for a, b, harkomst in K.PAR_SOM_SKA_GA:
+        assert any(m in harkomst for m in MARKEN), (a, b, harkomst)

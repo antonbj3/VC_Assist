@@ -281,13 +281,18 @@ TRASIG_UTELAMNING = collections.OrderedDict((
     ("buffert", "bana"),
 ))
 
-# Vilka par specen säger ska gå ihop: (ut-sida, in-sida).
+# Vilka par specen säger ska gå ihop: (ut-sida, in-sida, härkomst).
+# Härkomsten är inte pynt: tre av paren är kedjan i M-101 och alltså MÄTTA,
+# två är HÄRLEDDA ur R5 och aldrig byggda. Utan kolumnen hade tabellen sett
+# ut som fem mätningar när den är tre.
 PAR_SOM_SKA_GA = (
-    ("matare", "transportor"),
-    ("transportor", "buffert"),
-    ("buffert", "sanka"),
-    ("transportor", "transportor"),
-    ("matare", "sanka"),
+    ("matare", "transportor", u"MÄTT M-101 (kedjans första led)"),
+    ("transportor", "buffert", u"MÄTT M-101 (kedjans andra led)"),
+    ("buffert", "sanka", u"MÄTT M-101 (kedjans tredje led)"),
+    ("transportor", "transportor",
+     u"HYPOTES: följer av R5, aldrig byggt som par i M-101"),
+    ("matare", "sanka",
+     u"HYPOTES: följer av R5, aldrig byggt som par i M-101"),
 )
 
 # Par som INTE ska gå ihop, och skälet.

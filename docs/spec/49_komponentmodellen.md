@@ -626,16 +626,16 @@ omätt.
 Riktningen bor i kontakten, inte i namnet: ut-sidan är den vars fält pekar på
 en `VC_CONNECTOR_OUTPUT`.
 
-| Ut-sida | In-sida | Ska gå ihop | Skäl |
-|---|---|---|---|
-| `matare` | `transportor` | **ja** (`matare -> transportor`) | ut-sidan bär Output, in-sidan Input |
-| `transportor` | `buffert` | **ja** (`transportor -> buffert`) | ut-sidan bär Output, in-sidan Input |
-| `buffert` | `sanka` | **ja** (`buffert -> sanka`) | ut-sidan bär Output, in-sidan Input |
-| `transportor` | `transportor` | **ja** (`transportor -> transportor`) | ut-sidan bär Output, in-sidan Input |
-| `matare` | `sanka` | **ja** (`matare -> sanka`) | ut-sidan bär Output, in-sidan Input |
-| `matare` | `matare` | **nej** (`matare -> matare`) | båda sidor bär VC_CONNECTOR_OUTPUT; MÄTT M-67: ut mot ut ger canConnect False |
-| `sanka` | `sanka` | **nej** (`sanka -> sanka`) | båda sidor bär VC_CONNECTOR_INPUT |
-| `sanka` | `matare` | **nej** (`sanka -> matare`) | sänkan har ingen utgång och mataren ingen ingång |
+| Ut-sida | In-sida | Ska gå ihop | Härkomst | Skäl |
+|---|---|---|---|---|
+| `matare` | `transportor` | **ja** (`matare -> transportor`) | MÄTT M-101 (kedjans första led) | ut-sidan bär Output, in-sidan Input |
+| `transportor` | `buffert` | **ja** (`transportor -> buffert`) | MÄTT M-101 (kedjans andra led) | ut-sidan bär Output, in-sidan Input |
+| `buffert` | `sanka` | **ja** (`buffert -> sanka`) | MÄTT M-101 (kedjans tredje led) | ut-sidan bär Output, in-sidan Input |
+| `transportor` | `transportor` | **ja** (`transportor -> transportor`) | HYPOTES: följer av R5, aldrig byggt som par i M-101 | ut-sidan bär Output, in-sidan Input |
+| `matare` | `sanka` | **ja** (`matare -> sanka`) | HYPOTES: följer av R5, aldrig byggt som par i M-101 | ut-sidan bär Output, in-sidan Input |
+| `matare` | `matare` | **nej** (`matare -> matare`) | MÄTT M-67 (ut mot ut) / härlett ur R5 | båda sidor bär VC_CONNECTOR_OUTPUT; MÄTT M-67: ut mot ut ger canConnect False |
+| `sanka` | `sanka` | **nej** (`sanka -> sanka`) | MÄTT M-67 (ut mot ut) / härlett ur R5 | båda sidor bär VC_CONNECTOR_INPUT |
+| `sanka` | `matare` | **nej** (`sanka -> matare`) | MÄTT M-67 (ut mot ut) / härlett ur R5 | sänkan har ingen utgång och mataren ingen ingång |
 
 ---
 
