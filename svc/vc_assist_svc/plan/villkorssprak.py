@@ -130,7 +130,7 @@ class Typvillkor(object):
             problem.append("text ska vara en manniskolaslig omskrivning, "
                            "aldrig sjalva kravet")
         if problem:
-            raise Specfel("villkoret %r" % (id,), problem)
+            raise Specfel("the requirement %r" % (id,), problem)
 
     def _granska_varde(self):
         problem = []
@@ -252,7 +252,7 @@ class Relation(object):
         if not isinstance(harkomst, Harkomst):
             problem.append("relationen bar ingen harkomst")
         if problem:
-            raise Specfel("relationen %s %s %s" % (fran_roll, sort, till_roll),
+            raise Specfel("the relation %s %s %s" % (fran_roll, sort, till_roll),
                           problem)
 
     def __repr__(self):
@@ -317,7 +317,7 @@ class Prosakrav(object):
         if not isinstance(harkomst, Harkomst):
             problem.append("prosakravet bar ingen harkomst")
         if problem:
-            raise Specfel("prosakravet %r" % (id,), problem)
+            raise Specfel("the prose requirement %r" % (id,), problem)
 
     def __repr__(self):
         return "Prosakrav(%s -> %s)" % (self.id, self.konsument)
