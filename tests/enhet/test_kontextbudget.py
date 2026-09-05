@@ -139,8 +139,8 @@ def test_en_budget_som_inte_rymmer_det_skyddade_kastar():
     with pytest.raises(Budgetfel) as info:
         B.Budget(prof).planera(delar)
     assert "signalkarta" in str(info.value)
-    assert "aldrig far trimmas" in str(info.value) or \
-        "Hellre inget anrop" in str(info.value)
+    assert "may never be trimmed" in str(info.value) or \
+        "Better no call" in str(info.value)
 
 
 def test_turen_delas_hellre_an_att_nagot_skyddat_offras():

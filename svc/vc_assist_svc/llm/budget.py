@@ -278,9 +278,9 @@ class Budget(object):
                       if d.skyddad or not _POST[d.post].far_trimmas)
         if skyddat > budget:
             raise Budgetfel(
-                "det skyddade ar %d tokens och budgeten %d (fonster %d minus "
-                "svarsmarginal %d). Poster som aldrig far trimmas: %s. "
-                "Hellre inget anrop an ett anrop dar en av dem tystnat (S1)"
+                "the protected amount is %d tokens and the budget %d (window %d "
+                "minus response margin %d). Items that may never be trimmed: %s. "
+                "Better no call than a call where one of them fell silent (S1)"
                 % (skyddat, budget, self.profil.kontext_tokens,
                    self.profil.svarsmarginal_tokens,
                    ", ".join(sorted(set(d.post for d in plan.delar
