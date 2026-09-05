@@ -215,14 +215,21 @@ def andrar_scenen(kod: str) -> Tuple[str, ...]:
             ut.append("rad %s: del-sats" % rad)
         elif isinstance(nod, ast.Call):
             namn = _sista_namnet(nod.func)
-            # Samma rattelse som i skrivgrind.py (M-94 fynd 2): undantaget
-            # galler ett DIREKT anrop pa en egen behallare. Rotnamnsvandringen
-            # slappte d["app"].deleteComponent(x) igenom, eftersom rotnamnet
-            # "d" ar egen - och da var VC-objektet i behallaren en oppning.
-            if (isinstance(nod.func, ast.Attribute)
-                    and isinstance(nod.func.value, ast.Name)
-                    and nod.func.value.id in egna):
-                continue
+            # Samma rattelse som i skrivgrind.py (M-94 fynd 2). Rotnamns-
+            # vandringen slappte d["app"].deleteComponent(x) igenom eftersom
+            # rotnamnet "d" ar egen, och da var ett VC-objekt i en egen
+            # behallare en vag rakt forbi. Ett DIREKT anrop pa namnet ar
+            # sakert; ett anrop GENOM behallaren slapps bara for en sluten
+            # lista av behallarmetoder, eftersom vi inte vet vad som ligger i
+            # facket. Listan LANAS ur skrivgrinden - tva kopior som glider isar
+            # vore ett hal i den ena.
+            if isinstance(nod.func, ast.Attribute):
+                if isinstance(nod.func.value, ast.Name):
+                    if nod.func.value.id in egna:
+                        continue
+                elif (_rotnamn(nod.func.value) in egna
+                      and namn in skrivgrind.BEHALLARMETODER):
+                    continue
             if namn in UPPDATERANDE:
                 continue
             if _ar_muterande_namn(namn):

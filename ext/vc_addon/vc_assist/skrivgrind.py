@@ -123,6 +123,14 @@ def _oppnar_for_skrivning(nod):
 
 BEHALLARANROP = ("dict", "list", "set", "OrderedDict", "defaultdict", "Counter")
 
+# Metoder en behallare har. SLUTEN vitlista med flit: den avgor vad som far
+# anropas GENOM en egen behallare, alltsa pa d["nagot"], dar vi inte vet vad
+# som ligger i facket. En prefixheuristik duger inte - bade `append` och
+# `deleteComponent` ar muterande namn, och det ar precis dem som ska skiljas.
+BEHALLARMETODER = ("append", "extend", "insert", "add", "update", "pop",
+                   "setdefault", "remove", "discard", "clear", "sort",
+                   "reverse", "popitem")
+
 
 def _lokala_behallare(trad):
     """Namn som binds till en behallare koden SJALV skapat.
@@ -172,21 +180,31 @@ def _ar_eget_behallaranrop(nod, egna):
     `rader.append(...)`, alltsa ett anrop DIREKT pa namnet. Det ar den formen
     som slapps igenom nu.
 
-    Andra ledet nekar OGENOMSKINLIGA namn aven pa en egen behallare: gor
-    anropet syntaktisk analys omojlig hjalper det inte att mottagaren ar var
-    egen.
+    Tva former slapps igenom, och skillnaden mellan dem ar matt:
 
-    Muterande namn nekas daremot INTE har, och det ar en matt grans: `append`
-    och `update` ar muterande, och de ar precis vad undantaget finns for. Ett
-    direkt anrop pa ett namn i `egna` ar med sakerhet ett behallaranrop -
-    `_lokala_behallare` binder bara namn som satts till en literal behallare
-    eller ett BEHALLARANROP, och stryker varje namn som nagonsin binds om.
+    DIREKT pa namnet - `rader.append(x)`. Namnet i `egna` ar med sakerhet en
+    behallare: `_lokala_behallare` binder bara namn som satts till en literal
+    behallare eller ett BEHALLARANROP, och stryker varje namn som nagonsin
+    binds om. Da racker det att metoden inte ar ogenomskinlig.
+
+    GENOM behallaren - `p["external"].append(x)`. Har vet vi INTE vad som ligger
+    i facket. Det ar den formen som var halet: `d["app"].deleteComponent(x)` har
+    exakt samma form. Skillnaden gar pa METODEN, inte pa djupet - en lista har
+    `append`, en VC-komponent har `deleteComponent`. Darfor en sluten vitlista i
+    stallet for prefixheuristiken: `_ar_muterande_namn` sager ja till bada.
+
+    Att neka den andra formen helt var forsta rattelsen, och den var for hard -
+    den fallde `p["external"].append(...)` i signal- och transportverktygen,
+    alltsa ren bokforing i lasande kod (MATT: 6 roda prov).
     """
     if not isinstance(nod.func, ast.Attribute):
         return False
-    if not (isinstance(nod.func.value, ast.Name) and nod.func.value.id in egna):
+    namn = _sista_namnet(nod.func)
+    if namn in OGENOMSKINLIGA:
         return False
-    return _sista_namnet(nod.func) not in OGENOMSKINLIGA
+    if isinstance(nod.func.value, ast.Name):
+        return nod.func.value.id in egna
+    return _rotnamn(nod.func.value) in egna and namn in BEHALLARMETODER
 
 
 def _doma_mal(mal, egna, rad, skal):

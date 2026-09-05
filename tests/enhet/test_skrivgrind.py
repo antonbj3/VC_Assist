@@ -236,3 +236,49 @@ def test_bokforing_i_en_egen_behallare_slapps_fortfarande_igenom(kod):
     svaret gar tillbaka som JSON. En rattelse som tar bort det gor grinden
     obrukbar i stallet for strangare."""
     assert not S.granska(kod).skriver, "bokforing fastnade"
+
+
+@pytest.mark.parametrize("kod", [
+    'p = {}\np["external"] = []\np["external"].append(1)\n',
+    'd = {}\nd["a"] = []\nd["a"].extend([1, 2])\n',
+])
+def test_bokforing_GENOM_en_egen_behallare_slapps_ocksa(kod):
+    """Forsta rattelsen nekade allt som nas genom en behallare, och var for hard.
+
+    MATT: sex roda prov i test_verktyg_signaler och test_verktyg_transport -
+    `p["external"].append(...)` ar ren bokforing i LASANDE verktyg. Gransen gar
+    pa metodens art, inte pa djupet: en lista har append, en VC-komponent har
+    deleteComponent. Darfor en sluten vitlista i stallet for prefixheuristiken,
+    som sager ja till bada.
+    """
+    assert not S.granska(kod).skriver
+
+
+def test_harnessen_lanar_vitlistan_i_stallet_for_att_kopiera_den():
+    """Tva kopior som glider isar vore ett hal i den ena.
+
+    turordning.py importerar redan skrivgrind (`_sista_namnet`), sa listan gar
+    att dela. Provet halller fast att den DELAS och inte dupliceras - en kopia
+    hade sett lika ut i dag och kunnat sluta gora det i morgon.
+    """
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.normpath(_os.path.join(
+        _os.path.dirname(__file__), "..", "..", "svc")))
+    from vc_assist_svc.harness import turordning as T
+    kalla = _os.path.join(_os.path.dirname(T.__file__), "turordning.py")
+    with open(kalla, encoding="utf-8") as f:
+        text = f.read()
+    assert "skrivgrind.BEHALLARMETODER" in text
+    assert "BEHALLARMETODER = (" not in text, "listan ar kopierad, inte lanad"
+
+
+def test_ett_kedjat_anrop_pa_ett_ANROPS_resultat_ar_fortfarande_konservativt():
+    """ut.setdefault("k", []).clear() flaggas, och det ar oforandrat.
+
+    `_rotnamn` vandrar genom Subscript och Attribute men inte genom Call, sa
+    mottagaren blir okand. Att flagga ar ratt hall for en skrivgrind, och
+    beteendet ar detsamma som fore M-94:s rattelse - det star har for att ingen
+    ska tro att rattelsen orsakade det.
+    """
+    assert S.granska('ut = {}\nut.setdefault("k", []).clear()\n').skriver
