@@ -183,3 +183,31 @@ plats. Om reglerna trängs ut av uppgiftstexten faller grindarna tyst — och de
 **E12. Skriv README:s installationsavsnitt om, mätt.** Varje steg ska ha körts
 av dig, i den ordningen, på en maskin utan förkunskap. Varje påstående som du
 inte kört stryks eller märks **oprövat**.
+
+**E13. Leverantörsdokumentationen får inte följa med ut — och ska inte det
+heller.** `docs/referens/vc_api/` och `docs/referens/vc_dotnet/` är **4,6 MB
+av Visual Components egen dokumentation**, tio filer, tagna ur en installation.
+`Create3D.Shared.xml` är deras .NET-dokumentation rakt av. Ett publikt repo som
+bär dem sprider leverantörens material.
+
+Det är dessutom fel konstruktion oavsett juridiken: vi skeppar **4.10:s**
+API-yta till en användare som kanske kör 4.9 eller 5.0, och indexet blir tyst
+fel för dem — samma klass av fel som `M-119` just mätte.
+
+Bygg en **extraktor** som läser API-ytan ur användarens egen VC-installation och
+bygger indexet lokalt vid installationen. Fas 4 mätte 3 444 symboler ur
+`api.xml` med 0 falskt positiva och 0 falskt negativa; extraktorn ska klara
+samma prov mot en lokal installation.
+
+Sedan: ta bort leverantörsfilerna ur det som publiceras, och lägg in en
+kontroll i utgivningen som fäller om de kommer tillbaka. **Trasig fixtur:** en
+`docs/referens/`-fil i utgivningsträdet ska stoppa utgivningen.
+
+**E14. Bryggans token är en fast sträng.** `ext/vc_addon/vc_assist/plats.py`
+har `TOKEN = "vc_assist_token"`. Bryggan lyssnar på `127.0.0.1:8901`, och vilken
+lokal process som helst kan alltså tala med den och köra kod i VC genom kön.
+
+För en brygga som bara lyssnar på loopback är det försvarbart. Men det ska vara
+ett **beslut med skäl i `docs/spec/31_brygga_protokoll.md`**, inte något som
+råkade bli så. Skriv beslutet — eller generera token per session och lägg den
+där bara ägaren kan läsa den. Välj, och skriv varför.
