@@ -157,6 +157,38 @@ def _rotnamn(nod):
     return nod.id if isinstance(nod, ast.Name) else None
 
 
+def _ar_eget_behallaranrop(nod, egna):
+    """Sant bara for ett DIREKT metodanrop pa en egen behallare.
+
+    Stod forut som `_rotnamn(nod.func.value) in egna`, vilket rotnamn-vandrar
+    genom Subscript och Attribute. Foljden (MATT, M-94 fynd 2): en egen
+    behallare med ett VC-objekt i blev en oppning rakt forbi grinden -
+
+        d = {"app": getApplication()}
+        d["app"].deleteComponent(x)        # rotnamn "d" ar egen -> slapptes
+        L[0].deleteComponent(x)            # samma sak
+
+    och bryggan kor da koden forbi godkannandekon (I12). Undantaget finns for
+    `rader.append(...)`, alltsa ett anrop DIREKT pa namnet. Det ar den formen
+    som slapps igenom nu.
+
+    Andra ledet nekar OGENOMSKINLIGA namn aven pa en egen behallare: gor
+    anropet syntaktisk analys omojlig hjalper det inte att mottagaren ar var
+    egen.
+
+    Muterande namn nekas daremot INTE har, och det ar en matt grans: `append`
+    och `update` ar muterande, och de ar precis vad undantaget finns for. Ett
+    direkt anrop pa ett namn i `egna` ar med sakerhet ett behallaranrop -
+    `_lokala_behallare` binder bara namn som satts till en literal behallare
+    eller ett BEHALLARANROP, och stryker varje namn som nagonsin binds om.
+    """
+    if not isinstance(nod.func, ast.Attribute):
+        return False
+    if not (isinstance(nod.func.value, ast.Name) and nod.func.value.id in egna):
+        return False
+    return _sista_namnet(nod.func) not in OGENOMSKINLIGA
+
+
 def _doma_mal(mal, egna, rad, skal):
     """Domer ETT tilldelningsmal.
 
@@ -202,8 +234,7 @@ def granska(kod):
 
         elif isinstance(nod, ast.Call):
             namn = _sista_namnet(nod.func)
-            if (isinstance(nod.func, ast.Attribute)
-                    and _rotnamn(nod.func.value) in egna):
+            if _ar_eget_behallaranrop(nod, egna):
                 continue    # metodanrop pa en egen behallare, t.ex. rader.append()
             if namn in OGENOMSKINLIGA:
                 skal.append("rad %s: %s() gor syntaktisk analys omojlig" % (rad, namn))

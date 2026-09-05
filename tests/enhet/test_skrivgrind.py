@@ -202,3 +202,37 @@ def test_vanliga_beteenden_flaggas_inte_som_skript(kod):
     """Fail-closed far inte bli fail-allt. Ett bundet VC_-namn som INTE ar en
     skripttyp ska ga igenom."""
     assert S.skapar_skriptbeteende(kod) == [], kod
+
+
+# --- ett VC-objekt i en egen behallare var en oppning forbi kon (M-94 fynd 2) --
+#
+# Undantaget for "eget behallaranrop" vandrade rotnamnet genom Subscript och
+# Attribute. En egen dict eller lista med ett VC-objekt i blev darfor en vag
+# rakt forbi grinden - och bryggan kor da koden utan att den passerat
+# godkannandekon (I12). Alla tre foll INTE fore rattelsen.
+
+@pytest.mark.parametrize("kod,vad", [
+    ('d = {"app": getApplication()}\nd["app"].deleteComponent(x)\n',
+     "VC-objekt i en egen dict"),
+    ('L = [getApplication()]\nL[0].deleteComponent(x)\n',
+     "VC-objekt i en egen lista"),
+    ('d = {}\nd["a"] = {}\nd["a"]["b"].setProperty(1)\n',
+     "tva niva ned i egna behallare"),
+])
+def test_ett_vc_objekt_i_en_egen_behallare_slipper_inte_forbi(kod, vad):
+    dom = S.granska(kod)
+    assert dom.skriver, "%s slapptes igenom" % vad
+
+
+@pytest.mark.parametrize("kod", [
+    'rader = []\nrader.append(1)\n',
+    'ut = {}\nut.update({"a": 1})\n',
+    'ut = {}\nut["k"] = 1\n',
+    'ut = dict()\nut.pop("a", None)\n',
+])
+def test_bokforing_i_en_egen_behallare_slapps_fortfarande_igenom(kod):
+    """Andra halvan. Undantaget finns for att ett LASANDE skript som samlar
+    sitt svar i en dict inte ska fallas - annars faller nastan alla, eftersom
+    svaret gar tillbaka som JSON. En rattelse som tar bort det gor grinden
+    obrukbar i stallet for strangare."""
+    assert not S.granska(kod).skriver, "bokforing fastnade"

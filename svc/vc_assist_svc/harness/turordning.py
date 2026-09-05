@@ -215,8 +215,13 @@ def andrar_scenen(kod: str) -> Tuple[str, ...]:
             ut.append("rad %s: del-sats" % rad)
         elif isinstance(nod, ast.Call):
             namn = _sista_namnet(nod.func)
+            # Samma rattelse som i skrivgrind.py (M-94 fynd 2): undantaget
+            # galler ett DIREKT anrop pa en egen behallare. Rotnamnsvandringen
+            # slappte d["app"].deleteComponent(x) igenom, eftersom rotnamnet
+            # "d" ar egen - och da var VC-objektet i behallaren en oppning.
             if (isinstance(nod.func, ast.Attribute)
-                    and _rotnamn(nod.func.value) in egna):
+                    and isinstance(nod.func.value, ast.Name)
+                    and nod.func.value.id in egna):
                 continue
             if namn in UPPDATERANDE:
                 continue
