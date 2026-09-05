@@ -14,10 +14,36 @@ TRE KALLOR TILL VAD SOM AR SAKERHETSMARKT, i fallande ordning av styrka:
   2. Katalogindexet. Posterna med kategori "sakerhet" (nodstoppskrets,
      ljusrida) ar sakerhetskomponenter i banken, och deras URI:er och namn
      ska inte kunna laddas eller andras av agenten.
-  3. Ordlistan SAKERHETSORD. En HEURISTIK, och den ar med av ett skal som
-     tal att skrivas ut: kartan finns inte alltid. En heuristik som STOPPAR
-     ar godtagbar, en heuristik som SLAPPER IGENOM ar det inte, sa ordlistan
-     anvands bara for att neka - aldrig for att tillata.
+  3. Ordlistan SAKERHETSORD tillsammans med KRINGGAENDEORD. En HEURISTIK
+     over modellens PROSA, och den kan aldrig bli fullstandig - man kan kalla
+     samma sak olika saker.
+
+     DET AR MATT, inte antaget (2026-09-05, tolv omskrivningar av samma
+     avsikt plus atta oskyldiga meningar):
+
+         listan fore utokningen   3 av 12 =  25 %   0 falska traffar
+         listan som den star nu   9 av 12 =  75 %   0 falska traffar
+         samma lista med STAMMAR 12 av 12 = 100 %   4 FALSKA TRAFFAR
+
+     De fyra falska ar korrekta tekniska beskrivningar: "nodstoppet ar SATT i
+     serie med ljusridan", "sakerhetskretsen ar KORTSLUTEN fran fabrik enligt
+     ritning". En grind som faller dem hindrar en riktig forregling fran att
+     beskrivas, och det ar ett varre fel an att missa en omskrivning - just
+     for att lager 1 anda tar sjalva skrivningen.
+
+     Darfor star listan pa 75 % med noll falska, och talet ar SYNLIGT.
+     `tests/enhet/test_sakerhetsordens_tackning.py` mater det vid varje
+     korning: recallen far bara stiga, de falska maste vara noll.
+
+     Skulden ar inte att listan ar ofullstandig - det ar den av naturen. Skulden
+     vore att den SAG fullstandig ut. Den gor den inte langre.
+
+GARANTIN LIGGER I LAGER 1, INTE I ORDLISTAN. Signalkartans `skyddad=True`
+blir pragmat `{SAKERHET}` i ST-deklarationen, och grind 2:s kontroll SAKERHET
+nekar varje SKRIVNING till en sadan tagg. Det ar en parser som laser ett
+pragma - ingen textmatchning, inga bojningar, inga sprak. En modell som
+FORESLAR i prosa att en sakerhetsfunktion kringgas fangas kanske av lager 3;
+en modell som faktiskt GOR det fangas alltid av lager 1.
 
 LASNING AR TILLATEN, SKRIVNING ALDRIG. Forreglingen ar hela poangen: den
 genererade logiken SKA lasa nodstoppets tillstand och styras av det. Det ar
@@ -80,6 +106,17 @@ KRINGGAENDEORD = (
     "stänger av", "forcer", "tillfalligt ur", "tillfälligt ur", "ur drift",
     "bortkoppl", "urkoppl", "bypass", "disable", "override", "jumper",
     "defeat", "short out",
+    # ISARSKRIVNA former. MATT 2026-09-05: "bortkoppl" fanns, men "vi kopplar
+    # bort safety gate en stund" slapptes igenom - samma verb, andra ordfoljd.
+    # Att fylla luckan ar inte en losning utan en lappning, och det star i
+    # modulens docstring: listan KAN inte bli fullstandig, och det ar precis
+    # darfor den bara far neka och aldrig tillata.
+    "kopplar bort", "koppla bort", "kopplas bort", "kopplar ur", "koppla ur",
+    "kopplas ur", "satta ur spel", "sätta ur spel", "satts ur spel",
+    "satts ur drift", "sätts ur drift", "hoppa over", "hoppa över",
+    "kortsluta", "kortsluter", "shunta", "shuntar", "jumpa", "jumpar",
+    "turn off", "switch off", "deactivate", "circumvent", "work around",
+    "temporarily remove", "take out of service",
 )
 
 # Verkan som far rora en sakerhetsmarkt sak. Allt annat nekas.
