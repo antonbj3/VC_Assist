@@ -83,11 +83,12 @@ avhuggen rapport är aldrig ett godkännande (`41_ogat_kontrakt.md`, regel 2).
 
 | Post | Härkomst |
 |---|---|
+| 1 | **MÄTT 2026-09-05 (M-141)**: Systemprompten med alla förhandsregler (`forhandsregler.py`) är **1 735 tokens** (6 929 tecken). Den kräver ett kontextfönster på minst **34 700 tokens** för att rymmas inom 5 %-allokeringen. I fönster ≤ 32k överskrids budgeten (vid 8k med 424,2 %), och vid trunkering bakifrån trängs ögats hederlighets- och säkerhetsregler (F12, F15) ut först |
 | 3 | **MÄTT 2026-09-05 (M-102)**: **122** registrerade verktyg ger **98 324 byte** OpenAI-schema, medel **805 byte**. Det är ungefär **32 775 tokens**, och postens tak på 10 % skulle alltså kräva ett fönster på **327 750 tokens**. Ingen profil vi känner har det. **Taket är därmed inte uppnåeligt utan urval** — se avsnitt 3 |
 | 5 | **MÄTT (M-45)**: bankens största signalkarta är **13 signaler** (`bank/uppgifter/C-02.json`). Deklarationsdelen är alltså liten i alla scenarier vi har. Taket är satt för operatörens egna, större anläggningar |
 | 6 | **MÄTT (M-45)**: bankens största scen är **9 komponenter**. Även här är taket satt för verkligheten utanför banken |
 | 8 | **MÄTT 2026-09-05 (M-102)** över **207 riktiga verktygssvar** ur repots egna handlare: minsta **294 byte**, median **2 388 byte**, största **67 911 byte** (`type_surface` på `vcApplication`). Vid ett fönster på 8 000 tokens kapas **45 av 207**, vid 32 000 kapas **19**, vid 128 000 och 200 000 **noll** |
-| 1, 2, 4, 7, 9 | **PRELIMINÄRA.** Ingen tokenräkning över verkliga turer med en riktig modell finns. Sätts av **M-29** |
+| 2, 4, 7, 9 | **PRELIMINÄRA.** Sätts av **M-29** |
 
 ### Vad ett token är i det här dokumentet, och varför det är två tal
 

@@ -48,6 +48,7 @@ Detta är **driftsnoteringar för Linux**, inte systemkrav:
 | `taskset` mot P-kärnor | prestanda | MÄTT |
 
 På Windows gäller inget av det. Detta flyttas till `docs/drift/linux_wine.md`.
+Driftsinstruktioner för Windows finns i `docs/drift/windows.md`.
 
 ## OpenPLC på båda
 
@@ -55,20 +56,22 @@ OPC UA-ändpunkten är en URL och OpenPLC kan ligga var som helst:
 i Docker på Linux, i Docker Desktop på Windows, eller på en annan maskin.
 **Adressen är konfiguration, aldrig antagande.** Samma för REST-ändpunkten.
 
-## Verifiering — ärligt om räckvidden
+## Verifiering — ärligt om räckvidden (M-44, M-139)
 
-| Plattform | Kan verifieras här | Anm |
+| Plattform | Status | Verifierat hur |
 |---|---|---|
-| Linux + Wine | **ja** | fungerande installation med licens finns |
-| Windows native | **nej** | ingen VC-installation på Windows-partitionen finns (kontrollerat) |
+| **Linux + Wine 11.16** | **mätt** | Fullständig körmätning mot körande VC 4.10 (M-01, M-112). Headless (:99) |
+| **Linux (Alpine/musl)** | **mätt** | Installation och verktygskedja fungerar i ren container (M-109) |
+| **Windows native x64** | **oprövat** | 16 mekaniserade acceptanspunkter i `tests/protocol/kor_E1_windows_16punkter.py` (M-44). Väntar på maskinkörning |
+| **Windows + OneDrive** | **mätt** | Registerläsning och `ntpath.expandvars` verifierad mot diskkupa (M-91, E2) |
+| **Windows ARM64** | **går inte** | Utgivarens paket `strucpp-win32-arm64.zip` är en x64-binär (M-56) |
 
-Windows-vägen specificeras och kodas plattformsneutralt, men **verifieras inte
-av mig**. Den behöver en körning på en Windows-maskin innan den får kallas klar.
-Detta står i faserna som ett eget, oavslutat krav — inte som ett antagande
-om att det nog fungerar.
+Windows-vägen specificeras och kodas plattformsneutralt, och dess 16 acceptanspunkter
+är fullständigt mekaniserade i `tests/protocol/kor_E1_windows_16punkter.py`.
+Ingen fas får kallas "klar på Windows" förrän skriptet körts grönt på en levande Windows-maskin.
 
 ## Konsekvens för grindarna
 
 Varje fas som stänger med en mätt grind ska köras på **båda** plattformarna
 innan fasen räknas som klar. Tills Windows-körningen finns är fasen
-"klar på Linux, oprövad på Windows".
+"klar på Linux, oprövad på Windows" (M-139).

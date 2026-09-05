@@ -83,6 +83,18 @@ Varje symbol bär `vc_version`. Frågor filtreras på den version som körs, avl
 ur installationens egen sökväg. VC 5.0 har Python 3 och delvis annat API;
 indexet ska kunna bära båda utan att blanda.
 
+## Reparationer och informationsåtkomst i skala (E3, E4, E13)
+
+Mätt i **M-119** och stängt i **M-136**:
+
+1. **Saknat värde vs noll (E3a):** En nolla i räckvidd eller nyttolast tolkas aldrig som ett mätvärde utan som saknat (`None` / `SAKNAS`).
+2. **Specifikationer i uppslag (E3b):** `docs/spec/41_ogat_kontrakt.md` och `docs/spec/50_grindar.md` indexeras vid körning så att grindregler (`RACE`, `MINDIST`, `EDGE` m.fl.) nås i rätt domän.
+3. **Fullständiga uppgifter och signalkarta (E3c):** `bench_task` levererar samtliga 23 fält och styrsignaler ur `bank/uppgifter/` är sökbara i `search_catalog`.
+4. **Konstantbeskrivningar (E3d):** Samtliga 709 konstanter bär semantisk beskrivning baserad på typfamilj.
+5. **Ordsegmentsgräns (E3e):** Rangen `delstrang_namn` kräver ordsegmentsgräns; interna delsträngar klassas `delstrang_inuti_ord` för att undvika falska namnträffar.
+6. **Ärvda medlemmar:** Uppslag namnger efterfrågad typ och deklarerar arv tydligt utan instruktionsmotsägelse.
+7. **Lokal extraktion (E13):** `install/extraktor.py` extraherar API-dokumentationen direkt ur användarens lokala `Auto Complete/`-mapp, och utgivningsgrinden förbjuder att leverantörsdokumentation distribueras i repot.
+
 ## Fas 4:s grind mot detta dokument
 
 1. Indexet innehåller minst de mätta 204 typerna, 966 metoderna och 1159 egenskaperna
