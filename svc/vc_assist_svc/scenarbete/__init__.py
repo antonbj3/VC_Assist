@@ -11,6 +11,10 @@ andrar den bara nar andringen gar att belagga.
                 matt ar lika trasig som en som gissar.
     avsikt.py   tolken: vad meningen vill, och budgeten det kostar.
     diagnos.py  intention 1, ur ogats egna rader.
+    markering.py  vad anvandaren PEKAR pa, och scenen i kort form. Markeringen
+                ar ett INDICIUM: den loser ut ett mal bara nar den stammer med
+                sorten meningen namner, den smalnar av annars, och en markering
+                av annan sort ar en MOTSAGELSE som staller fragan.
 
 Tre intentioner, och de ar inte samma sak:
 
@@ -23,6 +27,6 @@ Tre intentioner, och de ar inte samma sak:
 """
 from __future__ import annotations
 
-from . import avsikt, diagnos, fragor, sparr
+from . import avsikt, diagnos, fragor, markering, sparr
 
-__all__ = ["avsikt", "diagnos", "fragor", "sparr"]
+__all__ = ["avsikt", "diagnos", "fragor", "markering", "sparr"]

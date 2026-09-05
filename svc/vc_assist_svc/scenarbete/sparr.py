@@ -182,7 +182,17 @@ def _stods_av_grunden(belagg, grund):
         rent = ord_.strip(".,;:()[]\"'")
         if len(rent) < MIN_BELAGG_TECKEN or rent.replace(".", "").isdigit():
             continue
-        skal = grund.stodjer_namn(Namnpastaende(namn=rent, mening=str(belagg)))
+        # sort="citerat" ar OBLIGATORISK och saknades. FYND (M-171): utan den
+        # kastade raden TypeError vid VARJE anrop med en riktig grund, sa hela
+        # kontrollen for kallorna "scen" och "ogat" var strukturellt dod - och
+        # granska() lovar i sin egen docstring att aldrig kasta (S10). Felet
+        # syntes inte darfor att provet bara korde grund=None, som returnerar
+        # tidigare. Detta ar S2:s felklass: en grind som inte kan fyra.
+        # "citerat" ar ratt av de tre (uri | api | citerat) - belagget ar
+        # namn modellen tagit UR ett verktygssvar, inte en URI och inte ett
+        # API-namn.
+        skal = grund.stodjer_namn(
+            Namnpastaende(namn=rent, sort="citerat", mening=str(belagg)))
         if skal is not None:
             return skal
     return None

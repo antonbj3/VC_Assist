@@ -51,6 +51,7 @@ Endast standardbiblioteket plus tjanstens egna lager.
 from __future__ import annotations
 
 from ..plan.harkomst import normalisera
+from . import markering as markering_
 from . import sparr
 
 DIAGNOS = "DIAGNOS"
@@ -86,13 +87,21 @@ class Avsiktspastaende(object):
     stallet for att citera dem faller pa dem.
     """
 
-    __slots__ = ("avsikt", "belagg", "mal", "malbelagg")
+    __slots__ = ("avsikt", "belagg", "mal", "malbelagg", "malsort")
 
-    def __init__(self, avsikt, belagg, mal="", malbelagg=""):
+    def __init__(self, avsikt, belagg, mal="", malbelagg="", malsort=""):
         self.avsikt = avsikt
         self.belagg = belagg
         self.mal = mal
         self.malbelagg = malbelagg
+        # Den SORT modellen sager att meningens substantiv betecknar
+        # ("gripdon" -> verktyg). Till skillnad fran belagg och malbelagg ar
+        # det INTE ett citat - det ar en tolkning, och det ar meningen: det ar
+        # just har den riktiga tolkningen behovs, inte i att lasa ett namn.
+        # Tolkningen provas i stallet mot markeringens sort. Tom strang ar ett
+        # giltigt svar och betyder att meningen inte namner nagon sort; da far
+        # markeringen smalna av men aldrig avgora.
+        self.malsort = malsort
 
     def __repr__(self):
         return "Avsiktspastaende(%s, mal=%r)" % (self.avsikt, self.mal)
@@ -101,14 +110,22 @@ class Avsiktspastaende(object):
 class Avsiktsdom(object):
     """Utfallet, med sitt skal och sina kandidater."""
 
-    __slots__ = ("dom", "pastaende", "skal", "kandidater", "brott")
+    __slots__ = ("dom", "pastaende", "skal", "kandidater", "brott",
+                 "markering")
 
-    def __init__(self, dom, pastaende, skal=(), kandidater=(), brott=()):
+    def __init__(self, dom, pastaende, skal=(), kandidater=(), brott=(),
+                 markering=None):
         self.dom = dom
         self.pastaende = pastaende
         self.skal = tuple(skal)
         self.kandidater = tuple(kandidater)
         self.brott = tuple(brott)
+        # Belagget for att MARKERINGEN avgjorde malet, som en
+        # sparr.Scenharkomst med kallan "scen" - eller None nar den inte
+        # gjorde det. Falt och inte fri text: spar r 3 sager att markeringen
+        # ar ett belagg som ska ga att FOLJA, och ett namn utan sparbar
+        # harkomst ar ett tyst val.
+        self.markering = markering
 
     def __repr__(self):
         return "Avsiktsdom(%s)" % (self.dom,)
@@ -124,17 +141,25 @@ class Avsiktsdom(object):
         if self.kandidater:
             rader.append("    kandidater i scenen: %s"
                          % ", ".join(self.kandidater))
+        if self.markering is not None:
+            rader.append("    belagg: %s" % self.markering.text())
         for kod, text in self.brott:
             rader.append("    %s: %s" % (kod, text))
         return "\n".join(rader)
 
 
-def granska(pastaende, begaran_text, scenlage):
+def granska(pastaende, begaran_text, scenlage, markering=None):
     """Provar ett avsiktspastaende. Lamnar en dom, kastar aldrig (S10).
 
     Ordningen ar 82_felklasser.md sorteringsregel 1: forsta grinden som
     faller bestammer klassen. Den hardaste fragan stalls forst, sa att ett
     uppfunnet komponentnamn aldrig kan dolja sig bakom en tvetydighet.
+
+    `markering` ar vad anvandaren PEKAR PA (markering.Markering), eller None
+    nar turen inte last nagon. Den ar ett INDICIUM och far bara gora tva
+    saker: losa ut ett mal nar den STAMMER med sorten meningen namner, och
+    smalna av kandidatlistan. Den kan aldrig overtrumfa meningen, och den
+    kan aldrig gora en entydig mening tvetydig - se AV4.
     """
     if not isinstance(pastaende, Avsiktspastaende):
         return Avsiktsdom(OKANT, None, [
@@ -160,6 +185,20 @@ def granska(pastaende, begaran_text, scenlage):
 
     if pastaende.avsikt not in BYGGDA:
         return Avsiktsdom(OKANT, pastaende, [SKAL_OPTIMERING])
+
+    # AV1b. Sorten modellen pastar att meningens substantiv betecknar maste
+    # sta i den SLUTNA listan. En uppfunnen sort ar samma fel som en uppfunnen
+    # avsikt: den ser ut som kunskap och gar inte att prova mot nagot. Tom
+    # strang och OKAND ar bada giltiga och betyder "meningen namner ingen
+    # sort" - da avgor markeringen ingenting (AV4).
+    _sort = (pastaende.malsort or "").strip()
+    if _sort and _sort != markering_.OKAND and _sort not in markering_.SORTER:
+        return Avsiktsdom(OKANT, pastaende, [
+            "sorten %r finns inte; de kanda ar %s (och %r nar meningen inte "
+            "namner nagon sort). Sorterna kommer ur komponenternas struktur "
+            "och gar inte att hitta pa"
+            % (pastaende.malsort, ", ".join(markering_.SORTER),
+               markering_.OKAND)])
 
     # AV2. Ett mal som inte namns alls ar inte ett mal. En DIAGNOS utan mal
     # ar en fraga om hela scenen och tillats; en ANDRING utan mal ar en order
@@ -192,6 +231,40 @@ def granska(pastaende, begaran_text, scenlage):
         lage2, kandidater2 = scenlage.slaupp(pastaende.mal)
         if kandidater2:
             lage, kandidater = lage2, kandidater2
+
+    # AV3b. SORTEN vidgar uppslaget nar ordet inte ar ett komponentNAMN.
+    #
+    # Delstrangen ar sprakbunden, och det ar inte en skonhetsfrack: i en scen
+    # med `ST210_gripdon`, `GRP_A` och `Gripper_2F_85` traffar ordet "gripdon"
+    # EN av tre. Den forsta versionen loste da ut just den - alltsa valde ett
+    # av tre gripdon darfor att nagon rakat doppa det pa svenska. Det ar exakt
+    # felet M-69 matte i katalogen (namnet "Robots" ger 1736 komponenter,
+    # strukturen 2202), och det ar varre i en scen dar operatoren doper sjalv.
+    #
+    # Sorten kommer ur komponenternas STRUKTUR (beteendemarkorer, se
+    # verktyg/markering.py) och ar darfor inte sprakbunden. Unionen kan bara
+    # LAGGA TILL kandidater, aldrig ta bort nagon, sa vidgningen kan inte
+    # dolja en traff - den kan bara gora en tvetydighet SYNLIG som forut var
+    # ett tyst val.
+    #
+    # Villkoret "inte ett namn" ar det som gor att ett uttryckligt
+    # komponentnamn fortfarande avgor ensamt: sager modellen `GRP_A` ska den
+    # inte bli tvetydig mot alla verktyg i scenen.
+    _sortord = (pastaende.malsort or "").strip()
+    if _sortord in markering_.SORTER:
+        _ar_namn = any(normalisera(ord_) == normalisera(n)
+                       for n in scenlage.namn())
+        if not _ar_namn:
+            ur_sorten = tuple(n for n, t in scenlage.komponenter
+                              if t == _sortord)
+            if ur_sorten:
+                union = list(kandidater)
+                for n in ur_sorten:
+                    if n not in union:
+                        union.append(n)
+                kandidater = tuple(union)
+                lage = scenlage.LAST
+
     if not kandidater:
         # I9 FORST, och skild fran uppslagningen. Modellen far namnge det som
         # FINNS i scenen eller det OPERATOREN sa - aldrig nagot den satt ihop
@@ -230,10 +303,31 @@ def granska(pastaende, begaran_text, scenlage):
             + ("" if scenlage.fullstandig()
                else ". LASNINGEN AR AVKORTAD - det kan finnas fler")],
             kandidater=alla)
+    # AV4. MARKERINGEN provas mot meningen - men bara nar meningen ar
+    # TVETYDIG. Ordningen ar inte kosmetisk och den ar det som gor
+    # markeringen till ett indicium i stallet for en auktoritet:
+    #
+    #   * Rader meningen ensam ut malet (en traff) star den domen kvar
+    #     ORORD. En markering som gjorde en entydig mening tvetydig hade
+    #     forsamrat systemet mot hur det var innan markeringen fanns, och en
+    #     upplysning som bara kan gora skada ar ingen upplysning. En
+    #     motsagelse NAMNS dar, men andrar ingenting.
+    #   * Ar meningen tvetydig far markeringen losa ut - men bara nar den
+    #     STAMMER med sorten meningen namner. Tva oberoende kallor som pekar
+    #     at samma hall ar ett belagg; en kalla som pekar pa sig sjalv ar det
+    #     inte.
+    mdom = markering_.prova(markering, kandidater,
+                            (pastaende.malsort or "").strip())
+
     if len(kandidater) > 1:
+        if mdom.loste_ut():
+            return Avsiktsdom(pastaende.avsikt, pastaende,
+                              list(mdom.skal), kandidater=mdom.kandidater,
+                              markering=mdom.belagg)
         return Avsiktsdom(FRAGA, pastaende, [
             "%r kan syfta pa %d komponenter i scenen. Vilken menar du?"
-            % (ord_, len(kandidater))], kandidater=kandidater)
+            % (ord_, len(kandidater))] + list(mdom.skal),
+            kandidater=mdom.kandidater)
 
     # En traff, men modellen namngav nagot annat. Da har den valt sjalv, och
     # ett tyst val ar precis vad grinden finns for.
@@ -243,7 +337,12 @@ def granska(pastaende, begaran_text, scenlage):
             "Ett mal som inte foljer av dina ord ar ett tyst val"
             % (pastaende.mal, ord_, kandidater[0])])
 
-    return Avsiktsdom(pastaende.avsikt, pastaende, kandidater=kandidater)
+    # Meningen ensam racker. Markeringen behovdes inte, och da far den heller
+    # inget belagg: att skriva "markeringen avgjorde" om ett mal orden redan
+    # avgjort vore ett belagg som pekar pa fel sak.
+    skal = list(mdom.skal) if mdom.utfall == markering_.MOTSAGELSE else []
+    return Avsiktsdom(pastaende.avsikt, pastaende, skal,
+                      kandidater=kandidater)
 
 
 # ---- budgeten ------------------------------------------------------------
