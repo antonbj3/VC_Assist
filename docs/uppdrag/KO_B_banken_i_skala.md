@@ -114,6 +114,25 @@ Banken har vuxit sedan dess. Kör om baslinjen över hela den växta banken, så
 att B2 och B3 kan rapporteras parat. Utan det är de nya talen inte
 publicerbara enligt projektets egen regel.
 
+## B6b — motbevis som faller på fel sak
+
+`M-121` hittade det här och lämnade det: **tre av T-04:s fem motbevis föll
+enbart på ett delat typfel** i uppgiftens referens. Med typfelet rättat går
+alla tre igenom spårfacitet — deras **egna** brister mäts alltså inte av
+T-04:s spår.
+
+Ett motbevis som faller av fel skäl är värdelöst: det ser rött ut och bevisar
+ingenting om det det påstår sig bevisa. Och det är inte troligt att T-04 är
+ensam.
+
+Gå igenom bankens motbevis och kontrollera, för vart och ett, att det faller på
+**sin egen** brist. Metoden är enkel: rätta bristen motbeviset påstår sig bära
+och se att det blir grönt. Blir det inte grönt föll det på något annat.
+
+`tests/motbevis` bär 29 röda och 26 gröna. **De 26 gröna är i sig ett fynd** —
+ett motbevis som är grönt har antingen fällt sin brist och aldrig flyttats, eller
+aldrig mätt något. Ta reda på vilket.
+
 ## B7 — kontraktsrevision
 
 Gå igenom alla 63 uppgifters `facit_spar` mot `85_bankkontraktet.md` §2 och

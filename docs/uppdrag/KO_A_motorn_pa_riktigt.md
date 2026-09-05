@@ -26,6 +26,22 @@ talet fel — och vi vet inte åt vilket håll.
 
 ---
 
+## Vad som redan är gjort åt dig (M-121, samma dag)
+
+Vägen till tredje motorn är **öppnad, inte obeprövad**. `M-121` körde
+**matiec — OpenPLC:s egen kompilator — via wine** och fick ett skarpt svar:
+`4.0 * antal` med `antal : INT` avvisas med *"Data type mismatch for '*'"*,
+med IEC 61131-3:2003 §2.5.1.4 som grund. T-04:s referens bar det felet och är
+rättad.
+
+Två slutsatser att bygga vidare på, inte ompröva:
+
+* **STruC++ är inget typfacit.** Den accepterade samma rad — och accepterar
+  också `b := 4.0 * i` med `b : BOOL`. Där de två motorerna skiljer sig i
+  typfrågor har matiec rätt tills annat visas.
+* **Anropsvägen till matiec fungerar under wine.** Du behöver inte bygga den.
+  Läs hur `M-121` gjorde innan du skriver en egen.
+
 ## A1 — OpenPLC som tredje motor
 
 Ta `M-99`:s 490 konstruktioner och kör dem genom OpenPLC:s runtime. Jämför
