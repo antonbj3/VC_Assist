@@ -210,7 +210,11 @@ def test_registret_ar_fullt_och_delat_i_tva():
     # Ett MATT antal, inte ett tak. Raden ska andras MEDVETET nar en doman
     # laggs till - det ar hela poangen: ett verktyg far aldrig registrera sig
     # av misstag.
-    assert len(V.REGISTER) == 122, (
+    # 122 -> 124 den 2026-09-05: domanen `selection` lade till get_selection
+    # och scene_snapshot (M-171). Fore dem bar registret 122 verktyg och NOLL
+    # som rorde markering eller urval, sa ett pekord - "byt det dar
+    # gripdonet" - inte gick att losa ut alls.
+    assert len(V.REGISTER) == 124, (
         "registret har %d verktyg. Domaner: %r"
         % (len(V.REGISTER),
            sorted(set(v.doman for v in V.REGISTER.values()))))

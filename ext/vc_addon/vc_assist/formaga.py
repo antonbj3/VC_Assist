@@ -27,6 +27,14 @@ YTOR = [
     ("app.rayCast", "app", "rayCast"),
     ("app.rayIntersect", "app", "rayIntersect"),
     ("app.getSelection", "app", "getSelection"),
+    # MATT M-171 i en korande VC 4.10: app.getSelection, app.CurrentSelection
+    # och app.Selections ar de DEPREKERADE vagarna, och VC sager det sjalv i
+    # sitt Output-fonster ("Selections property is deprecated in version 4.0.
+    # Use SelectionManager instead"). CurrentSelection och Selections ar bada
+    # None headless. Den yta som faktiskt svarar ar SelectionManager, och den
+    # provas darfor for sig: ett verktyg som kraver den far inte slas pa av
+    # att en deprekerad granne rakar finnas.
+    ("app.SelectionManager", "app", "SelectionManager"),
     ("app.findLayer", "app", "findLayer"),
     ("app.createLayout", "app", "createLayout"),
     ("app.messageBox", "app", "messageBox"),

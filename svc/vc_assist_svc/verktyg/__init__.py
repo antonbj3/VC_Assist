@@ -14,6 +14,7 @@ en ren datalista i OpenAI:s function-calling-form, delad i tva register.
     granssnitt.py    domanen composition, 6 verktyg
     simulering.py    domanen simulation, 11 verktyg (tidsaxeln)
     matning.py       domanen measure, 7 verktyg (grindarnas ravara)
+    markering.py     domanen selection, 2 verktyg (vad anvandaren pekar pa)
     robotik.py       domanen robot, 24 verktyg (vcExecutor-slakten)
 
 Domanmodulerna importeras HAR, sa att registren alltid ar fulla nar nagon
@@ -40,6 +41,7 @@ from .utforare import OP_FOR_EFFECT, Resultat, Utforare, op_for_effect
 from . import granssnitt    # noqa: F401,E402
 from . import katalog       # noqa: F401,E402
 from . import kunskap       # noqa: F401,E402
+from . import markering     # noqa: F401,E402
 from . import matning       # noqa: F401,E402
 from . import ogonverktyg   # noqa: F401,E402
 from . import robotik      # noqa: F401,E402
