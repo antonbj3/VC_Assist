@@ -219,6 +219,22 @@ def test_de_gamla_tre_fragorna_svarar_som_forut():
     assert _svar("yta", "vcMatrix")
 
 
-def test_fortfarande_bara_de_fem_fragorna():
-    for okand in ("las", "komponentdatablad", "eval", "komponent2"):
+def test_bankfragan_verifierar_en_uri_och_avvisar_en_pahittad():
+    """M-84:s andra hal: en bank://-URI gick inte att kontrollera.
+
+    Den star i bankens eget index, och en URI som inte gor det ska ge
+    found=false med VERKLIGA alternativ - aldrig en gissad sokvag (I9).
+    """
+    d = _svar("bank", "bank://robot/abb_irb_660_180_3150")
+    assert d["found"] is True
+    assert d["post"]["namn"] == "ABB IRB 660-180/3.15"
+    p = _svar("bank", "bank://robot/finns_inte_alls")
+    assert p["found"] is False
+    assert p["post"] is None
+    assert p["alternativ"], "ett nej utan alternativ hjalper ingen"
+    assert all(x.startswith("bank://") for x in p["alternativ"])
+
+
+def test_fortfarande_bara_de_sex_fragorna():
+    for okand in ("las", "komponentdatablad", "eval", "komponent2", "banken"):
         assert kor(okand, "x").returncode == 2

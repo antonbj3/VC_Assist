@@ -12,6 +12,7 @@ Anvands sa har:
     python3 slaupp.py yta <TYP>          alla medlemmar pa en typ
     python3 slaupp.py komponent <NAMN>   databladet for EN komponent
     python3 slaupp.py komponentsok <ORD> vilka komponenter som finns
+    python3 slaupp.py bank <URI|ORD>     slar upp en bank://-URI i bankens index
 
 De tre forsta svaren kommer ur den officiella API-dokumentationen for VC 4.10:
 3444 symboler med signatur, returtyp och beskrivning.
@@ -28,7 +29,16 @@ lades till. M-84 matte att API-uppslagen bytte modellens ordforrad fran 13 till
 `komponent` svarar pa just det, ur komponentens egen component.rsc: dess
 egenskaper med namn, typ, standardvarde och deklarerad storhet; dess signaler
 och beteenden VID NAMN; dess granssnitt; dess leder med granser.
-`komponentsok` svarar pa vilken komponent som finns att valja.
+`komponentsok` svarar pa vilken komponent som finns att valja. `bank` svarar
+pa den TREDJE punkten i M-84:s lista - en bank://-URI ar inte en VC-URI och
+gick inte att kontrollera genom API-indexet. Den star i bankens eget index
+(bank/katalog_index.json, 65 poster), och en URI som inte star dar ger
+found=false med VERKLIGA alternativ, aldrig en gissad sokvag.
+
+BANKEN OCH BIBLIOTEKET AR TVA OLIKA VOKABULAR, och det ar mätt: 11 av bankens
+65 poster gar att sla upp i det installerade biblioteket, alla elva robotar
+(M-85). `komponent` svarar alltsa om biblioteket, `bank` om banken, och den som
+byter dem mot varandra far ett nej och inte ett hopblandat svar.
 
 Verktyget svarar pa de har fem fragorna och pa ingenting annat. Det ger dig
 inte repot.
@@ -71,7 +81,7 @@ REPO = _leta_rot()
 
 # De fragor verktyget svarar pa. Listan ar sluten med flit: allt utanfor den
 # avvisas, sa att verktyget inte blir en vag att lasa repot med.
-FRAGOR = ("namn", "sok", "yta", "komponent", "komponentsok")
+FRAGOR = ("namn", "sok", "yta", "komponent", "komponentsok", "bank")
 
 KOD = '''
 import sys, json
@@ -91,6 +101,11 @@ elif sort == "komponent":
     # ska vara LATTILLGANGLIG for en modell - inte bara korrekt.
     if isinstance(r.get("datablad"), str):
         r["datablad"] = r.pop("datablad").splitlines()
+elif sort == "bank":
+    if arg.startswith("bank://"):
+        r = V.DATA_HANDLERS["catalog_item"]({"uri": arg})
+    else:
+        r = V.DATA_HANDLERS["search_catalog"]({"query": arg})
 elif sort == "komponentsok":
     r = V.DATA_HANDLERS["search_installed_library"]({"query": arg,
                                                      "max_rows": 12})

@@ -69,8 +69,6 @@ import zipfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-FORMAT = 1
-
 METADATA = "component.rsc"
 KATALOGPOST = "model.xml"
 
