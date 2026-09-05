@@ -282,3 +282,18 @@ def test_ett_kedjat_anrop_pa_ett_ANROPS_resultat_ar_fortfarande_konservativt():
     ska tro att rattelsen orsakade det.
     """
     assert S.granska('ut = {}\nut.setdefault("k", []).clear()\n').skriver
+
+
+DUNDERSKRIVNINGAR_MB = [
+    ('c.__setattr__("Name", "x")', 'samma sak som c.Name = "x", som fastnar'),
+]
+
+
+@pytest.mark.parametrize("kod,skal", DUNDERSKRIVNINGAR_MB,
+                         ids=[k for k, _ in DUNDERSKRIVNINGAR_MB])
+def test_en_skrivning_skriven_som_dunderanrop_maste_ocksa_fastna(kod, skal):
+    dom = S.granska(kod)
+    assert dom.skriver is True, (
+        "%r dömdes som LÄSANDE och skulle köras direkt i exec, utan kö (%s)"
+        % (kod, skal))
+
