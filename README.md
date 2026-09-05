@@ -185,7 +185,10 @@ mätning är precis det projektet är byggt för att undvika.
 | **VC 4.10** | **prövat** | Tilläggets sökväg, uppstartskroken, API-ytan, pumpen — allt mätt på 4.10 |
 | **VC 5.0** | **OPRÖVAT** | Skolans licensserver har 4.10, så 5.0 går inte att köra här. Att 5.0:s tilläggsmapp heter `Python 3` är sannolikt, inte mätt. Installationen kan lägga tillägget där och märker då sökvägen `OPROVAD` |
 | **VC:s gränssnitt under last** | **OPRÖVAT** | Allt är kört headless. Att pumpen aldrig blockerar är visat mekaniskt, men "ingen märkbar frysning" är en syn, inte en slutsats |
-| **Python 3.7–3.9** | **OPRÖVAT** | Koden använder inget nyare än `dataclasses` (3.7). Körd på 3.10.12 och 3.13.11 |
+| **Python 3.10–3.13** | **prövat** | Mätt i M-90 och M-109. Full funktion inklusive verifiering |
+| **Python 3.9** | **delvis prövat** | Mätt i M-109: installationen fungerar, verifieringsmetoden saknar sys.stdlib_module_names |
+| **Python ≤ 3.8** | **stöds ej** | Ej prövat och stöds ej |
+| **VC Python 2.7 & 3.x (ext/)** | **prövat** | Alla 11 filer i ext/ är giltiga i både 2.7 och 3.x; kontrolleras mekaniskt vid varje installation (E5) |
 
 ### Faser (`docs/spec/70_faser.md`)
 

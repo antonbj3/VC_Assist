@@ -108,8 +108,8 @@ def _skriptmall(kalla, namn):
     return None
 
 
-def _py2fallor(trad, namn):
-    """Fel som Python 3 kompilerar men VC:s Python 2.7 vagrar.
+def _py2fallor(trad, kalla, namn):
+    """Fel som Python 3 kompilerar men VC:s Python 2.7 vagrar (M-09, E5).
 
     Bada har fallt pa riktigt: f-strangar finns inte i 2.7, och ``exec`` i en
     funktion som ocksa innehaller en nastlad funktion ar olagligt i 2.7 och
@@ -120,18 +120,32 @@ def _py2fallor(trad, namn):
         if isinstance(nod, ast.JoinedStr):
             problem.append("%s rad %s: f-strang, finns inte i Python 2.7"
                            % (namn, getattr(nod, "lineno", "?")))
-    for nod in ast.walk(trad):
-        if not isinstance(nod, ast.FunctionDef):
-            continue
-        har_exec = any(isinstance(n, ast.Call) and getattr(n.func, "id", None) == "exec"
-                       for n in ast.walk(nod))
-        if not har_exec:
-            continue
-        nastlade = [n for n in ast.walk(nod)
-                    if isinstance(n, (ast.Lambda, ast.FunctionDef)) and n is not nod]
-        if nastlade:
-            problem.append("%s: %s() blandar exec med en nastlad funktion - "
-                           "olagligt i Python 2.7" % (namn, nod.name))
+        elif type(nod).__name__ == "Nonlocal":
+            problem.append("%s rad %s: nonlocal finns inte i Python 2.7"
+                           % (namn, getattr(nod, "lineno", "?")))
+        elif type(nod).__name__ in ("AsyncFunctionDef", "AsyncWith", "AsyncFor", "Await"):
+            problem.append("%s rad %s: async/await finns inte i Python 2.7"
+                           % (namn, getattr(nod, "lineno", "?")))
+        elif isinstance(nod, ast.FunctionDef):
+            if getattr(nod, "returns", None):
+                problem.append("%s: %s() har returtypsannotering, finns inte i Python 2.7"
+                               % (namn, nod.name))
+            for arg in getattr(nod.args, "args", []) + getattr(nod.args, "kwonlyargs", []):
+                if getattr(arg, "annotation", None):
+                    problem.append("%s: %s(%s: ...) har parameterannotering, finns inte i Python 2.7"
+                                   % (namn, nod.name, getattr(arg, "arg", "?")))
+            har_exec = any(isinstance(n, ast.Call) and getattr(n.func, "id", None) == "exec"
+                           for n in ast.walk(nod))
+            if har_exec:
+                nastlade = [n for n in ast.walk(nod)
+                            if isinstance(n, (ast.Lambda, ast.FunctionDef)) and n is not nod]
+                if nastlade:
+                    problem.append("%s: %s() blandar exec med en nastlad funktion - "
+                                   "olagligt i Python 2.7" % (namn, nod.name))
+
+    if "unicode_literals" in kalla and ".Name = " in kalla and "def _s(" not in kalla:
+        problem.append("%s har unicode_literals och skriver till VC utan _s() (M-05)" % namn)
+
     return problem
 
 
@@ -146,7 +160,7 @@ def _crlf_problem(namn):
             % namn)
 
 
-def granska_pythonfiler(mapp, filer, pythonniva=None):
+def granska_pythonfiler(mapp, filer, pythonniva=None, krav_bada=False):
     """Lista over problem. Tom lista betyder att filerna gar att ladda.
 
     Prover, i ordning:
@@ -160,11 +174,11 @@ def granska_pythonfiler(mapp, filer, pythonniva=None):
       5. ``bridge_cmd.py``:s SKRIPT-mall parsar EFTER formatering, och borjar
          med ``from vcScript import *`` (utan den raden finns varken delay()
          eller getSimulation(), och OnRun dor tyst - M-06)
-      6. pa en Python 2-niva: inga py2-fallor
+      6. pa en Python 2-niva eller nar krav_bada ar satt: inga py2-fallor
+         (E5: allt i ext/ maste vara giltigt i BADE Python 2.7 och 3.x)
 
-    Punkt 3 kors av VARDMASKINENS Python 3. Det ar inte samma kompilator som
-    VC 4.10:s Python 2.7, och det pastas inte heller - punkt 6 finns just for
-    att tacka det gap den skillnaden lamnar.
+    Punkt 3 kors av VARDMASKINENS Python 3. Punkt 6 garanterar att py2-fallor
+    fångas aven vid installation pa en Python 3-niva.
     """
     problem = []
     for namn in filer:
@@ -213,10 +227,9 @@ def granska_pythonfiler(mapp, filer, pythonniva=None):
                     problem.append("SKRIPT-mallen borjar inte med "
                                    "'from vcScript import *' - OnRun dor tyst (M-06)")
 
-        # Okand niva behandlas som Python 2: konservativt, per 36_versioner.md
-        # ("Okant behandlas som saknad. Aldrig gissa").
-        if not pythonniva or pythonniva.strip().lower() == "python 2":
-            problem.extend(_py2fallor(trad, namn))
+        # E5: Allt i ext/ maste vara giltigt i BADE Python 2.7 och 3.x.
+        if krav_bada or not pythonniva or pythonniva.strip().lower() == "python 2":
+            problem.extend(_py2fallor(trad, kalla, namn))
 
     return problem
 
@@ -310,7 +323,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
         kalla = kallmapp()
     filer = kallfiler(kalla)
 
-    problem = granska_pythonfiler(kalla, filer, pythonniva)
+    problem = granska_pythonfiler(kalla, filer, pythonniva, krav_bada=True)
     if problem:
         raise Verifieringsfel(
             "kallan i %s gar inte att ladda - ingenting installerat" % kalla, problem)
@@ -370,7 +383,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
     except OSError as e:
         raise InstallationsFel("kunde inte skriva i %s: %s" % (malmapp, e))
 
-    problem = granska_malet(malmapp, summor, pythonniva)
+    problem = granska_malet(malmapp, summor, pythonniva, krav_bada=True)
     if problem:
         stadat, stadfel = _stada_efter_misslyckad(malmapp, list(summor) + [MANIFESTNAMN],
                                                   rapport.skapade_mappar)
@@ -383,7 +396,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
     return rapport
 
 
-def granska_malet(malmapp, summor, pythonniva=None):
+def granska_malet(malmapp, summor, pythonniva=None, krav_bada=False):
     """Filerna PA PLATS: ratt innehall (sha256) och gar de att ladda."""
     problem = []
     for namn in sorted(summor):
@@ -393,7 +406,7 @@ def granska_malet(malmapp, summor, pythonniva=None):
             continue
         if sha256(sokvag) != summor[namn]:
             problem.append("%s skiljer sig fran kallan efter kopieringen" % namn)
-    problem.extend(granska_pythonfiler(malmapp, sorted(summor), pythonniva))
+    problem.extend(granska_pythonfiler(malmapp, sorted(summor), pythonniva, krav_bada=krav_bada))
     return problem
 
 
@@ -543,7 +556,7 @@ def kontrollera(malmapp, kalla=None):
     rapport.installerad = True
     rapport.manifest = manifest
     summor = manifest.get("filer", {})
-    rapport.problem.extend(granska_malet(malmapp, summor, manifest.get("pythonniva")))
+    rapport.problem.extend(granska_malet(malmapp, summor, manifest.get("pythonniva"), krav_bada=True))
     try:
         rapport.aktuell = kallsumma(kalla, kallfiler(kalla)) == manifest.get("kallsumma")
     except InstallationsFel as e:
