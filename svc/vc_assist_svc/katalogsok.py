@@ -210,7 +210,7 @@ class Katalog(object):
     @staticmethod
     def fran_index(index: Dict[str, object]) -> "Katalog":
         if not isinstance(index, dict) or "poster" not in index:
-            raise Sokfel("det har ar inget katalogindex")
+            raise Sokfel("this is not a catalog index")
         poster = [Traff(namn=_text(p.get("namn")),
                         tillverkare=_text(p.get("tillverkare")),
                         kategori=_text(p.get("kategori")),
@@ -228,7 +228,7 @@ class Katalog(object):
     @staticmethod
     def las_fil(sokvag: str) -> "Katalog":
         if not os.path.exists(sokvag):
-            raise Sokfel("inget index pa %s" % sokvag)
+            raise Sokfel("no index at %s" % sokvag)
         with open(sokvag, "r", encoding="utf-8") as f:
             return Katalog.fran_index(json.load(f))
 
