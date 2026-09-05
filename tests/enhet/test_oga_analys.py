@@ -658,3 +658,20 @@ def test_placeringsgransen_ar_bestamd_av_minst_en_cell():
         "ligger på toleransgränsen, så gränsen har inget facit")
 
 
+def test_barstrackans_troskel_ar_bestamd_av_minst_en_cell():
+    """Samma sak för `carry["span_s"] < CARRY_MIN_SPAN_S` ."""
+    mut = _modul_med_bytt_operator(
+        'carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S',
+        'carry.get("span_s", 0.0) <= CARRY_MIN_SPAN_S')
+    fore, efter = {}, {}
+    for namn, bygg in sorted(celler.ALLA.items()):
+        b, plan = bygg()
+        fore[namn] = _rapport_mb(b.data(), plan).dom
+        b, plan = bygg()
+        efter[namn] = _rapport_mb(b.data(), plan, modul=mut).dom
+    assert fore != efter, (
+        "`<` och `<=` ger identiska domar för alla elva celler: bärsträckans "
+        "tröskel har inget facit vid sin gräns")
+
+
+

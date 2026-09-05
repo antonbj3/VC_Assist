@@ -57,45 +57,6 @@ def test_greppgrinden_och_never_gripped_ar_inte_samma_grind():
         "har ett prov där den är den enda som kan fälla")
 
 
-# ---- 2. placeringsgränsen är obestämd ----------------------------------
-
-def _modul_med_bytt_operator(gammal, ny):
-    """Laddar oga_analys på nytt med EN operator utbytt. Mätning, inte fix.
-
-    Raden slås upp på sitt INNEHÅLL, inte på ett radnummer: modulen växer, och
-    ett prov som bygger på ett radnummer mäter fel sak efter nästa commit.
-    """
-    stig = os.path.join(_ROT, "ext", "vc_addon", "vc_assist", "oga_analys.py")
-    rader = open(stig, encoding="utf-8").read().split("\n")
-    traff = [i for i, r in enumerate(rader) if gammal in r]
-    assert len(traff) == 1, ("hittade %d rader med %r; provet måste peka ut "
-                             "exakt en" % (len(traff), gammal))
-    i = traff[0]
-    rader[i] = rader[i].replace(gammal, ny, 1)
-    kalla = "\n".join(rader)
-    ast.parse(kalla)
-    m = types.ModuleType("_oga_analys_mut")
-    m.__file__ = stig
-    exec(compile(kalla, stig, "exec"), m.__dict__)
-    return m
-
-
-def test_barstrackans_troskel_ar_bestamd_av_minst_en_cell():
-    """Samma sak för `carry["span_s"] < CARRY_MIN_SPAN_S` ."""
-    mut = _modul_med_bytt_operator(
-        'carry.get("span_s", 0.0) < CARRY_MIN_SPAN_S',
-        'carry.get("span_s", 0.0) <= CARRY_MIN_SPAN_S')
-    fore, efter = {}, {}
-    for namn, bygg in sorted(celler.ALLA.items()):
-        b, plan = bygg()
-        fore[namn] = _rapport(b.data(), plan).dom
-        b, plan = bygg()
-        efter[namn] = _rapport(b.data(), plan, modul=mut).dom
-    assert fore != efter, (
-        "`<` och `<=` ger identiska domar för alla elva celler: bärsträckans "
-        "tröskel har inget facit vid sin gräns")
-
-
 # ---- 3. saknade prov som koden faktiskt klarar -------------------------
 #
 # Dessa är GRÖNA. Mutationen visade att ingen provade dem; koden håller.
