@@ -42,6 +42,8 @@ from typing import Dict, Optional, Tuple
 
 from ..api_index import Granskning
 from .deklarationsgrind import granska as granska_deklarationer
+from .industrigrind import Krav
+from .industrigrind import granska as granska_industriform
 from .signalkarta import Signalkarta
 from .skelett import Skelett, Skelettfel
 
@@ -51,6 +53,13 @@ NAMN_KOMPILERING = "kompilering"
 NAMN_STATISK = "statisk_analys"
 NAMN_DEKLARATION = "deklarationsmatchning"
 NAMN_ANROP = "anropsvalidering"
+
+# Grind 3b (M-159) är INTE en av guldgrindens fyra. Den ligger utanför
+# KORORDNING med avsikt: guldgrinden räknar "alla fyra körda och alla fyra
+# True", och en femte nyckel i den listan hade gjort varje befintlig cell röd
+# över en natt. Den körs bara när anroparen lämnar ett `Krav` — alltså när det
+# finns en uppgift att läsa kraven ur — och räknas då in i `ok`.
+NAMN_INDUSTRI = "industriell_form"
 
 # Ordningen grindarna körs i. Billigast först; se modulens huvud.
 KORORDNING = (NAMN_STATISK, NAMN_DEKLARATION, NAMN_ANROP, NAMN_KOMPILERING)
@@ -92,24 +101,43 @@ class Stationsdom:
 
     @property
     def ok(self) -> bool:
-        """Alla fyra körda och alla fyra True. Saknad grind är inte grönt."""
+        """Alla fyra körda och alla fyra True. Saknad grind är inte grönt.
+
+        Grind 3b räknas in **när den körts**. Att den saknas är inte ett
+        underkännande: den kräver en uppgift att läsa kraven ur, och den som
+        inte lämnar en har inte hoppat över en grind utan aldrig haft den.
+        """
         for namn in KORORDNING:
             if self.forgrindar.get(namn) is not True:
                 return False
+        if (NAMN_INDUSTRI in self.forgrindar
+                and self.forgrindar[NAMN_INDUSTRI] is not True):
+            return False
         return True
 
     @property
     def forsta_fallande(self) -> Optional[str]:
+        """Den grind som faktiskt fällde, före den som bara står tom.
+
+        Ordningen är körordningens, med grind 3b insatt där den körs. Att leta
+        efter en fällande grind FÖRE en saknad är samma rättelse som redan står
+        i `till_cell`: skälet ska namnge orsaken, inte den första grinden som
+        råkade stå tom därför att den aldrig hann köras.
+        """
+        ordning = (NAMN_STATISK, NAMN_DEKLARATION, NAMN_INDUSTRI,
+                   NAMN_ANROP, NAMN_KOMPILERING)
+        for namn in ordning:
+            if namn in self.forgrindar and self.forgrindar[namn] is not True:
+                return namn
         for namn in KORORDNING:
             if namn not in self.forgrindar:
-                return namn
-            if self.forgrindar[namn] is not True:
                 return namn
         return None
 
     def text(self) -> str:
         rader = []
-        for namn in KORORDNING:
+        for namn in list(KORORDNING) + (
+                [NAMN_INDUSTRI] if NAMN_INDUSTRI in self.forgrindar else []):
             utfall = self.forgrindar.get(namn, "EJ KORD")
             if utfall is True:
                 rader.append("%-22s GODKAND" % namn)
@@ -175,6 +203,23 @@ def _grind_2_och_3(dom: Stationsdom, kandidat: Kandidat,
         dom.forgrindar[NAMN_DEKLARATION] = "%d anmarkningar: %s" % (
             len(rapport.anmarkningar), ", ".join(sorted(set(rapport.koder()))))
     dom.utdata[NAMN_DEKLARATION] = str(rapport)
+
+
+def _grind_3b(dom: Stationsdom, kandidat: Kandidat, karta: Signalkarta,
+              krav: Krav) -> None:
+    """Den industriella minimiformen: tidsvakt, larmutgång och förregling.
+
+    Rapporterar sin EGEN utdata, oförvanskad (invariant I1), och tar med det
+    grinden INTE kunde döma — en grind som slänger det den inte förstod ser
+    större ut än den är.
+    """
+    rapport = granska_industriform(kandidat.st_kalla, karta, krav)
+    dom.utdata[NAMN_INDUSTRI] = str(rapport)
+    if rapport.ok:
+        dom.forgrindar[NAMN_INDUSTRI] = True
+    else:
+        dom.forgrindar[NAMN_INDUSTRI] = "%d anmarkningar: %s" % (
+            len(rapport.anmarkningar), ", ".join(sorted(set(rapport.koder()))))
 
 
 def _grind_4(dom: Stationsdom, kandidat: Kandidat, index) -> None:
@@ -250,11 +295,16 @@ def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
                     byggkatalog: Optional[str] = None,
                     node: str = "node",
                     strucpp_cli: Optional[str] = None,
-                    stanna_vid_forsta: bool = True) -> Stationsdom:
+                    stanna_vid_forsta: bool = True,
+                    krav: Optional[Krav] = None) -> Stationsdom:
     """Kör grind 1-4 över kandidaten och lämna varje grinds egen dom.
 
     `stanna_vid_forsta` sparar en byggcykel i drift. Sätt False när hela
     grindbilden behövs, till exempel när bänken räknar fel per klass.
+
+    `krav` är uppgiftens industrikrav (`industrigrind.Krav.ur_uppgift`). Lämnas
+    det körs grind 3b och läggs till under `NAMN_INDUSTRI`; lämnas det inte är
+    domen bit för bit densamma som förut.
     """
     if kandidat.station.upper() != karta.station.upper():
         raise Stationsfel("kandidaten galler %r men kartan galler %r"
@@ -265,6 +315,10 @@ def granska_station(kandidat: Kandidat, karta: Signalkarta, index=None,
     if stanna_vid_forsta and not dom.ok and dom.forsta_fallande in (
             NAMN_STATISK, NAMN_DEKLARATION):
         return dom
+    if krav is not None:
+        _grind_3b(dom, kandidat, karta, krav)
+        if stanna_vid_forsta and dom.forgrindar[NAMN_INDUSTRI] is not True:
+            return dom
     _grind_4(dom, kandidat, index)
     if stanna_vid_forsta and dom.forgrindar.get(NAMN_ANROP) is not True:
         return dom
