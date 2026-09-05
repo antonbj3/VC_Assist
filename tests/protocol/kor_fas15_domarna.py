@@ -382,10 +382,15 @@ def kor_svalt_i_vc(k, sekunder=6.0, max_svalt_s=1.0, satt_idle=False):
         "b = c.createBehaviour(VC_STATISTICS, 'stat')\n"
         "d = {'beteende': None if b is None else type(b).__name__,\n"
         "     'har_arrived': hasattr(b, 'ComponentsArrived'),\n"
-        "     'state_fore': str(b.State)}\n"
+        "     'state_fore': '%%s' %% (b.State,)}\n"
         "if %r:\n"
+        "    d['konstant'] = '%%r' %% (VC_STATISTICS_IDLE,)\n"
         "    b.State = VC_STATISTICS_IDLE\n"
-        "    d['state_satt'] = str(b.State)\n"
+        "    d['state_satt'] = '%%s' %% (b.State,)\n"
+        # VC:s Stackless 2.7.1-json foll pa den har raden i M-88:s andra
+        # korning ("expected string or Unicode object, int found") nar State
+        # var satt. Allt gors till text FORE dumps; talen har ar bara text.
+        "d = dict((k, '%%s' %% (v,)) for k, v in d.items())\n"
         "print(json.dumps(d))\n"
     ) % (str(station), bool(satt_idle))
     skapat = _kor(k, kod, "fas15: station med vcStatistics%s"
@@ -440,6 +445,8 @@ def main():
     ap.add_argument("--json", default=None)
     ap.add_argument("--anda", action="store_true")
     ap.add_argument("--hoppa", default="", help="punkter att hoppa over, t.ex. p15_5")
+    ap.add_argument("--bara", default="",
+                    help="bara dessa celler i P15-8 (kommaseparerat), t.ex. station_svalt")
     a = ap.parse_args()
 
     print("STEG 0 - kor VC repots kod?")
@@ -447,6 +454,7 @@ def main():
     if not ok_installation and not a.anda:
         return 2
     hoppa = set(x for x in a.hoppa.split(",") if x.strip())
+    bara = set(x for x in a.bara.split(",") if x.strip())
 
     k = Klient(port=a.port, tokenfil=a.token or tokenfil(), timeout=180.0).anslut()
     ut = {"tid": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -488,6 +496,8 @@ def main():
             print("\nP15-8 - trasiga celler byggda i VC")
             ut["p15_8"] = {}
             for namn, (kartor, med_plc, vantad) in sorted(CELLER.items()):
+                if bara and namn not in bara:
+                    continue
                 try:
                     r = kor_cell_i_vc(k, namn, kartor, med_plc)
                 except Exception as e:
@@ -517,6 +527,8 @@ def main():
             # fail-closed (M-88 §5: forsta korningen gav PASS pa den).
             for namn, satt_idle, vantat in (("station_svalt_inert", False, "INCONCLUSIVE"),
                                             ("station_svalt", True, "FAIL")):
+                if bara and namn not in bara:
+                    continue
                 try:
                     r = kor_svalt_i_vc(k, satt_idle=satt_idle)
                 except Exception as e:
