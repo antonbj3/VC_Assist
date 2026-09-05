@@ -176,10 +176,10 @@ The two halves were built separately and on purpose: the early phases proved the
 human versus machine — the reference bodies were written by a model too. It is
 **outside the loop** (full context, tools, the scene in view, unlimited
 attempts) versus **inside it** (one prompt, no tools, a cap of four rounds, a
-gate deciding). Joining them is the
-current work — as of today the generated code is judged by OpenPLC's own runtime
-rather than only by our interpreter, and the rig that lets a model author a
-whole line and receive the eye's reply is being built.
+gate deciding). Joining them is the current work: generated
+code is now judged by OpenPLC's own runtime rather than only by our interpreter,
+and the rig that lets a model author a whole line and receive the eye's reply is
+being built.
 
 ## What has been measured
 
@@ -208,8 +208,8 @@ its stated limits. Nothing here is an estimate.
 
 **The gate chain**
 * 247 permanent language cases cross-checked against a second compiler
-* and, since today, a third engine: code is judged by OpenPLC's own runtime,
-  not only by our interpreter
+* a third engine: code is judged by OpenPLC's own runtime, not only by our
+  interpreter
 
 ## Why it is built the way it is
 
