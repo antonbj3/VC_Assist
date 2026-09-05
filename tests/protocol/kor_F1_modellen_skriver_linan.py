@@ -191,6 +191,22 @@ KOMPOSITIONSFALL = ("K1", "K2", "K3", "K4", "K5")
 
 TRANSPORTER = ("claude", "opencode", "inspelad")
 
+# OGATS UPPLOSNING: M-73:S EGNA VARDEN, inte fas8:s argparse-standard.
+#
+# Fas 8:s standard ar 70 s matning, 25 s uppvarmning och 20 Hz - men M-73 och
+# M-74 kordes INTE dar. M-73 skriver ut vad ogat faktiskt sag ("ogats serie:
+# 80,0 s, 800 prov, 10,00 Hz") och M-74:s arton korningar har "45 s
+# uppvarmning och 80 s matning". Skillnaden ar inte kosmetisk: M-73:s fjarde
+# fynd ar att ett prov vars tolerans ar snavare an scenuppdateringens
+# eftersladning MATER eftersladningen, och facits fonster ar raknade vid 0,1 s
+# provintervall. En F1-korning pa fas8:s standard hade domt M-73:s facit vid en
+# upplosning facit aldrig kalibrerats mot - och 1400 prov ryms dessutom inte i
+# bryggans svar (684 586 byte matt har, mot taket MAX_KROPP // 2 = 524 288).
+MATNING_S = 80.0            # M-73: "ogats serie: 80,0 s"
+UPPVARMNING_S = 45.0        # M-74: "45 s uppvarmning"
+OGONRATE_HZ = 10.0          # M-73: "800 prov, 10,00 Hz"
+VARVTID_S = 0.3             # kopplarvarvet, oforandrat fran fas 8
+
 # De tva lagren varje transport maste bara for att fa fraga forfattarmodellen.
 # Kontrollen ar mekanisk och lases ur transportens EGEN kalla: ett forbud i en
 # docstring ar en bon, och den billigaste vagen till ett gront F1 vore en
@@ -501,6 +517,82 @@ class Bryggan(object):
             self._klient = None
 
 
+# Ogats serie pa VARDFILSYSTEMET. Bryggan lagger den i wine-prefixets
+# hemkatalog, samma katalog som token ligger i, och pumpen sager sjalv att
+# "ar den for stor far filen bara vagen".
+OGONFIL = os.path.join(os.path.dirname(L.TOKEN), "vc_assist_eyes.json")
+
+
+def serien_ur_ogonfilen(rad, a, konfig=KONFIG, sokvag=OGONFIL):
+    """Hamta ogats serie ur FILEN nar den inte rymdes i bryggans svar.
+
+    MATT har, forsta gangen F1 kordes mot riktig VC: LINJE-konfigurationens
+    serie ar 684 586 byte medan bryggan lagger in den i svaret bara under
+    `MAX_KROPP // 2` = 524 288. Utan den har vagen far ogat ALDRIG doma ett
+    enda varv - `kor_en` returnerar `fel` och `Ogonsteg` gor korningen OGILTIG.
+    Att i stallet sanka `--ogonrate` eller `--sekunder` hade krympt serien, men
+    det hade ocksa andrat matningen: M-73:s och M-74:s fonster ar raknade vid
+    20 Hz over 70 s.
+
+    Det ar SAMMA serie och SAMMA domare - bara en annan kanal in. Att den ar
+    fardata och inte svarsdata far darfor inte gora domen mildare, och den enda
+    nya felklassen ar en GAMMAL fil: filen ligger kvar pa vardens disk over en
+    VC-omstart. Darfor kravs att filens `run.started` ar EXAKT det ogonblick
+    den har korningens `eyes_start` svarade, plus att antal prov, langd och
+    takt stammer. Stammer nagot inte ar korningen ogiltig, aldrig fallande.
+    """
+    if rad.get("domar") or not rad.get("fel"):
+        return rad
+    stopp = rad.get("oga_stopp") or {}
+    start = rad.get("oga_start") or {}
+    if not stopp.get("samples"):
+        return rad
+    if not os.path.exists(sokvag):
+        raise Ogonfel(
+            "ogats serie rymdes inte i bryggans svar (%s) och filen %s finns "
+            "inte heller. Utan serie finns ingen dom, och korningen ar "
+            "OGILTIG." % (rad.get("fel"), sokvag))
+    with open(sokvag, encoding="utf-8") as f:
+        data = json.load(f)
+    kord = data.get("run") or {}
+    vantad = {"started": start.get("startad"),
+              "samples": stopp.get("samples"),
+              "dur_s": stopp.get("dur_s"),
+              "rate_hz": stopp.get("rate_hz")}
+    fick = dict((n, kord.get(n)) for n in vantad)
+    if fick != vantad:
+        raise Ogonfel(
+            "ogonfilen %s ar inte den har korningens: vantade %r, filen sager "
+            "%r. En fil som ligger kvar over en VC-omstart far aldrig domas "
+            "som om den vore farsk." % (sokvag, vantad, fick))
+    rad["serien_ur_fil"] = {"sokvag": sokvag,
+                            "byte": os.path.getsize(sokvag),
+                            "for_stor_for_svaret": rad.get("fel")}
+    rad.pop("fel", None)
+    rad["domar"] = L._domar(data, a, konfig)
+    # Cellerna byggs om ur de station-celler `kor_en` redan lagt in, med ogats
+    # text pa. `till_cell` ar en ren dict, sa formen ar densamma som den
+    # `kor_en` bygger nar serien kom med i svaret.
+    stationsceller = dict(rad.get("celler") or {})
+    mall = None
+    for cell in stationsceller.values():
+        mall = cell
+        break
+    celler = {}
+    for namn, d in rad["domar"].items():
+        grund = dict(stationsceller.get(namn) or mall or {})
+        grund["namn"] = "%s_%s" % (grund.get("namn") or namn, namn)
+        grund["klass"] = "linje" if namn == "linan" else "station"
+        grund["eyes"] = d["text"]
+        celler[namn] = grund
+    rad["celler"] = celler
+    if a.serier:
+        with open(os.path.join(a.serier, "%s_%s.json"
+                               % (rad.get("fall"), konfig)), "w") as f:
+            json.dump(data, f)
+    return rad
+
+
 class Scenkorare(object):
     """M-74:s `kor_en`, oforandrad, for EN kropp i LINJE-konfigurationen."""
 
@@ -523,7 +615,7 @@ class Scenkorare(object):
         rad = L.kor_en(etikett, self.konfig, st_kalla, self.a, self.index,
                        brygga)
         rad["kropp"] = st_kalla
-        return rad
+        return serien_ur_ogonfilen(rad, self.a, self.konfig)
 
 
 # ---- den inspelade scenen: for att PROVA riggen, aldrig for att mata ----
@@ -1200,10 +1292,10 @@ def main(argv=None):
                    default="docker restart vcassist-openplc-v4")
     p.add_argument("--endpoint-server",
                    default="opc.tcp://172.17.0.2:4840/openplc/opcua")
-    p.add_argument("--sekunder", type=float, default=70.0)
-    p.add_argument("--uppvarmning", type=float, default=25.0)
-    p.add_argument("--ogonrate", type=float, default=20.0)
-    p.add_argument("--varvtid", type=float, default=0.3)
+    p.add_argument("--sekunder", type=float, default=MATNING_S)
+    p.add_argument("--uppvarmning", type=float, default=UPPVARMNING_S)
+    p.add_argument("--ogonrate", type=float, default=OGONRATE_HZ)
+    p.add_argument("--varvtid", type=float, default=VARVTID_S)
     p.add_argument("--ingen-omstart-per-korning", action="store_true")
     p.add_argument("--serier", default=None)
     a = p.parse_args(argv)

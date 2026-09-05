@@ -476,3 +476,123 @@ def test_armarna_anropar_sina_byggare_med_etiketten():
     with pytest.raises(RuntimeError):
         F1.guldarmen(lambda etikett: None, bygg_ogonsteg, 3)
     assert sedda == ["guld#1"]
+
+
+# --- ögats serie via filen: den mätta transportgränsen ------------------
+
+def _rad_utan_serie(started="2026-01-01T00:00:00"):
+    """Vad `L.kor_en` returnerar när serien inte rymdes i bryggans svar."""
+    return {"fall": "F1_001", "konfig": "LINJE",
+            "oga_start": {"startad": started, "rate_hz": 20.0, "t0": 0.0},
+            "oga_stopp": {"samples": 1400, "dur_s": 70.0, "rate_hz": 20.0,
+                          "saknade": []},
+            "fel": "ogats serie kom inte med i svaret (684586)",
+            "klockkvot": 0.99, "klockan_ok": True,
+            "celler": {"stationA": {"namn": "F1_001_LINJE", "klass": "station",
+                                    "forgrindar": {}},
+                       "stationB": {"namn": "F1_001_LINJE", "klass": "station",
+                                    "forgrindar": {}}}}
+
+
+def _skriv_ogonfil(tmp_path, started, samples=1400, dur_s=70.0, rate_hz=20.0):
+    import json
+    sokvag = str(tmp_path / "vc_assist_eyes.json")
+    with open(sokvag, "w", encoding="utf-8") as f:
+        json.dump({"v": 1, "template": "fas8_linan", "rows": [],
+                   "run": {"started": started, "samples": samples,
+                           "dur_s": dur_s, "rate_hz": rate_hz}}, f)
+    return sokvag
+
+
+class _Arg:
+    ogonrate = 20.0
+    varvtid = 0.3
+    serier = None
+
+
+def test_fixtur_en_gammal_ogonfil_far_aldrig_domas_som_farsk(tmp_path,
+                                                             monkeypatch):
+    """Filen ligger kvar på värdens disk över en VC-omstart.
+
+    Serien hämtas ur filen när den inte rymdes i bryggans svar (mätt: 684 586
+    byte mot taket 524 288). Den enda nya felklassen den vägen bär är en
+    GAMMAL fil - och en gammal serie dömd som färsk hade varit ett facit ur
+    en annan körning. `run.started` måste vara exakt det ögonblick den här
+    körningens `eyes_start` svarade.
+    """
+    monkeypatch.setattr(F1.L, "_domar", lambda *_a, **_k: {})
+    gammal = _skriv_ogonfil(tmp_path, "2025-12-31T23:59:59")
+    with pytest.raises(F1.Ogonfel) as fel:
+        F1.serien_ur_ogonfilen(_rad_utan_serie(), _Arg(), sokvag=gammal)
+    assert "aldrig domas som om den vore farsk" in str(fel.value)
+
+
+@pytest.mark.parametrize("nyckel,varde", [
+    ("samples", 1399), ("dur_s", 69.0), ("rate_hz", 19.0)])
+def test_fixtur_ogonfil_med_annan_form_ar_ogiltig(tmp_path, monkeypatch,
+                                                  nyckel, varde):
+    """Rätt tidpunkt räcker inte: antal prov, längd och takt ska också stämma."""
+    monkeypatch.setattr(F1.L, "_domar", lambda *_a, **_k: {})
+    kwargs = {nyckel: varde}
+    fil = _skriv_ogonfil(tmp_path, "2026-01-01T00:00:00", **kwargs)
+    with pytest.raises(F1.Ogonfel):
+        F1.serien_ur_ogonfilen(_rad_utan_serie(), _Arg(), sokvag=fil)
+
+
+def test_fixtur_ingen_ogonfil_alls_ar_ogiltig_inte_tyst(tmp_path):
+    """En körning utan serie är OGILTIG, aldrig ett tyst godkännande."""
+    with pytest.raises(F1.Ogonfel) as fel:
+        F1.serien_ur_ogonfilen(_rad_utan_serie(), _Arg(),
+                               sokvag=str(tmp_path / "finns_inte.json"))
+    assert "OGILTIG" in str(fel.value)
+
+
+def test_serien_ur_filen_ger_samma_form_som_svarsvagen(tmp_path, monkeypatch):
+    """Samma serie, samma domare - bara en annan kanal in.
+
+    Cellerna ska bära ögats text och `linan` ska bli klassen `linje`, precis
+    som `kor_en` bygger dem när serien rymdes i svaret. Annars dömer
+    guldgrinden en linjecell som om den vore en station.
+    """
+    monkeypatch.setattr(F1.L, "_domar", lambda *_a, **_k: dict(
+        (n, {"text": "EYES VERDICT PASS %s" % n, "dom": ["PASS", "ok"],
+             "harledt": {}}) for n in F1.OGON_CELLER))
+    fil = _skriv_ogonfil(tmp_path, "2026-01-01T00:00:00")
+    rad = F1.serien_ur_ogonfilen(_rad_utan_serie(), _Arg(), sokvag=fil)
+    assert "fel" not in rad
+    assert rad["serien_ur_fil"]["sokvag"] == fil
+    assert set(rad["celler"]) == set(F1.OGON_CELLER)
+    assert rad["celler"]["linan"]["klass"] == "linje"
+    assert rad["celler"]["stationA"]["klass"] == "station"
+    for namn in F1.OGON_CELLER:
+        assert rad["celler"][namn]["eyes"] == "EYES VERDICT PASS %s" % namn
+
+
+def test_serien_ur_filen_ror_inte_en_korning_som_redan_har_domar(tmp_path):
+    """Rymdes serien i svaret ska filen aldrig läsas - då vore filen facit."""
+    rad = {"domar": {"linan": {"text": "x"}}, "fel": None}
+    assert F1.serien_ur_ogonfilen(dict(rad), _Arg()) == rad
+
+
+def test_ogats_upplosning_ar_m73s_egen_inte_fas8s_argparse_standard():
+    """M-73 skriver ut vad ögat FAKTISKT såg: 80,0 s, 800 prov, 10,00 Hz.
+
+    Fas 8:s argparse-standard är 70 s / 25 s / 20 Hz, och M-73 och M-74 kördes
+    inte där - M-74:s arton körningar har "45 s uppvärmning och 80 s mätning".
+    Skillnaden bär mätningen: M-73:s fjärde fynd är att ett prov vars tolerans
+    är snävare än scenuppdateringens eftersläpning mäter eftersläpningen, och
+    facits fönster är räknade vid 0,1 s provintervall. En rigg som säger
+    "M-74:s rigg, oförändrad" och kör vid en annan upplösning dömer facit vid
+    en upplösning facit aldrig kalibrerats mot.
+
+    Talen ligger i namngivna konstanter för att de ska gå att pröva: ett tal
+    som bara finns som ett `default=` i en parser inne i `main` går inte att
+    fråga om utan att köra hela riggen.
+    """
+    assert (F1.MATNING_S, F1.UPPVARMNING_S, F1.OGONRATE_HZ) == (80.0, 45.0, 10.0)
+    kalla = open(F1.__file__.replace(".pyc", ".py"), encoding="utf-8").read()
+    for flagga, konstant in (("--sekunder", "MATNING_S"),
+                             ("--uppvarmning", "UPPVARMNING_S"),
+                             ("--ogonrate", "OGONRATE_HZ")):
+        assert 'p.add_argument("%s", type=float, default=%s)' % (
+            flagga, konstant) in kalla, flagga
