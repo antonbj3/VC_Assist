@@ -472,27 +472,27 @@ class Bryggan(object):
         self.starta_om_mellan = starta_om_mellan
         self.tak_s = tak_s
         self._klient = None
-        self._forsta = True
+        self.omstarter = 0
 
     def fram(self):
-        if self._klient is not None and self._forsta:
-            return self._klient
-        if self._klient is not None and not self.starta_om_mellan:
-            return self._klient
         if self._klient is not None:
+            if not self.starta_om_mellan:
+                return self._klient
             self._klient.stang()
             self._klient = None
+            self.omstarter += 1
             L._starta_om_vc()
             if not L._vanta_pa_bryggan(self.tak_s):
                 raise Riggfel("bryggan kom aldrig upp igen efter omstarten")
-        if self._klient is None:
-            if not L._vanta_pa_bryggan(5.0):
-                raise Riggfel(
-                    "ingen brygga svarar. Starta VC med ~/bin/vc-test.sh, "
-                    "eller kor med --torrkorning for att prova riggen.")
-            self._klient = Klient(port=8901, tokenfil=L.TOKEN,
-                                  timeout=180.0).anslut()
-        self._forsta = False
+        elif not L._vanta_pa_bryggan(5.0):
+            # Fail-closed med ett besked som gar att handla pa. En rigg som
+            # kastar en AttributeError har sagt att nagot ar fel, inte VAD.
+            raise Riggfel(
+                "ingen brygga svarar pa port 8901. Starta VC med "
+                "~/bin/vc-test.sh, eller kor med --torrkorning for att prova "
+                "riggen utan VC.")
+        self._klient = Klient(port=8901, tokenfil=L.TOKEN,
+                              timeout=180.0).anslut()
         return self._klient
 
     def stang(self):

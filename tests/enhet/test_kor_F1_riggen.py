@@ -350,3 +350,39 @@ def test_kompileringsgrinden_lyfts_ur_kedjan_utan_strucpp():
     med = F1.bygg_slinga(F1.Ogonsteg(F1.Inspelad_scen([])), strucpp="/nagon/vag")
     assert S.NAMN_KOMPILERING not in utan.grindar[0].grindar
     assert S.NAMN_KOMPILERING in med.grindar[0].grindar
+
+
+def test_riggen_utan_brygga_faller_med_ett_besked_som_gar_att_handla_pa(
+        monkeypatch):
+    """En rigg som kastar AttributeError har sagt ATT något är fel, inte VAD."""
+    monkeypatch.setattr(L, "_vanta_pa_bryggan", lambda _tak: False)
+    with pytest.raises(F1.Riggfel) as fel:
+        F1.Bryggan().fram()
+    assert "vc-test.sh" in str(fel.value) and "torrkorning" in str(fel.value)
+
+
+def test_bryggan_startar_om_vc_mellan_korningar(monkeypatch):
+    """M-49: godkännandekön växer med en post per varv, och en omstart ger
+    varje körning samma utgångsläge - samma scen, samma simuleringstid, samma
+    tomma kö. Det är avgörande när fyra varv ska jämföras."""
+    startade = []
+    monkeypatch.setattr(L, "_vanta_pa_bryggan", lambda _tak: True)
+    monkeypatch.setattr(L, "_starta_om_vc", lambda: startade.append(1))
+
+    class Attrapp:
+        def anslut(self):
+            return self
+
+        def stang(self):
+            pass
+
+    monkeypatch.setattr(F1, "Klient", lambda **_k: Attrapp())
+    b = F1.Bryggan()
+    b.fram()
+    b.fram()
+    b.fram()
+    assert b.omstarter == 2 and len(startade) == 2
+    b2 = F1.Bryggan(starta_om_mellan=False)
+    b2.fram()
+    b2.fram()
+    assert b2.omstarter == 0
