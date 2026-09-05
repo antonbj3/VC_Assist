@@ -62,12 +62,13 @@ BANKPOST = {
         "inget tyst hopp over en domare",
     ),
     "kraver": ("vc",),
-    "matningar": ("M-88", "M-127"),
+    "matningar": ("M-88", "M-127", "M-128"),
 }
 import argparse
 import json
 import os
 import sys
+import threading
 import time
 
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -240,6 +241,150 @@ def p15_5(k, antal_par, sekunder=8.0):
             "saknade": data.get("saknade"),
         })
     return rader
+
+
+# ---- P15-7: fasdom mot en signal med kand fordrojning -------------------
+
+def p15_7(k, port=8901, token=None, fordrojning_s=0.300):
+    """P15-7: fasdom mot en VC-signal med kand fordrojning (M-128).
+
+    Kopplaren satter Start; ett VC-steg svarar med do_start efter en kand
+    fordrojning pa 300 ms.
+    Protokollet staller tre fragor pa SAMMA forlopp:
+      1. max_ms = 100 ms: fordrojningen 300 ms overskrider kravet -> FAIL timing (OUT_OF_TOL)
+         om upplosningen tillater det, annars INCONCLUSIVE.
+      2. max_ms = 500 ms: kravet ar rymligt -> PASS timing (OK).
+      3. max_ms = 20 ms: kravet ar finare an ogats upplosning i 20 Hz
+         -> INCONCLUSIVE (kravet finare an upplosningen). Ett PASS har ar ett FALSKT
+         GRONT.
+    """
+    token_str = token if token is not None else tokenfil()
+    k_sig = Klient(port=port, tokenfil=token_str, timeout=30.0).anslut()
+    k_plc = Klient(port=port, tokenfil=token_str, timeout=30.0).anslut()
+
+    prefix = PREFIX
+    kropp = "%s_p15_7_kropp" % prefix
+    robot = "%s_robot" % prefix
+
+    kod = (
+        "import json\n"
+        "app = getApplication()\n"
+        "c = app.createComponent()\n"
+        "c.Name = %r\n"
+        "sig = c.createBehaviour(VC_BOOLEANSIGNAL, 'do_start')\n"
+        "sig.signal(False)\n"
+        "c_kropp = app.createComponent()\n"
+        "c_kropp.Name = %r\n"
+        "print(json.dumps({'created': True}))\n"
+    ) % (robot, kropp)
+    post = k.koa(kod, desc="setup_p15_7")
+    k.godkann(post["qid"], inline=True)
+
+    plan = {
+        "template": "p15_7_fasdom",
+        "parts": [kropp],
+        "tools": [],
+        "rate_hz": 20.0,
+        "scen": "roles",
+        "signals": ["%s/do_start" % robot],
+        "plc_par": [
+            {"plc": "Start", "signal": "%s/do_start" % robot, "max_ms": 100.0}
+        ]
+    }
+
+    stop_plc = False
+    start_val = False
+    og = Ogonkoppling(k_plc)
+    og.synka(8)
+
+    def plc_loop():
+        while not stop_plc:
+            t_last = time.time()
+            try:
+                og.skjut_in({"Start": start_val}, t_last=t_last)
+            except Exception:
+                pass
+            time.sleep(0.025)
+
+    try:
+        t0 = k.simtid()
+        k.oga_start(plan, simtid=t0)
+        th = threading.Thread(target=plc_loop)
+        th.start()
+
+        time.sleep(0.5)
+        start_val = True
+        time.sleep(fordrojning_s)
+
+        # Trigger signal i VC via rat kor (0 ms exec, inget blocking koa)
+        k_sig.kor((
+            "app = getApplication()\n"
+            "c = app.findComponent(%r)\n"
+            "if c:\n"
+            "    s = c.findBehaviour('do_start')\n"
+            "    if s:\n"
+            "        s.signal(True)\n"
+        ) % (robot,))
+
+        time.sleep(1.0)
+        stop_plc = True
+        th.join()
+        ut = k.oga_stopp()
+        data = ut.get("data") or {}
+    finally:
+        del_post = k.koa((
+            "app = getApplication()\n"
+            "for n in [%r, %r]:\n"
+            "    c = app.findComponent(n)\n"
+            "    if c:\n"
+            "        app.deleteComponent(c)\n"
+        ) % (robot, kropp), desc="del_p15_7")
+        try:
+            k.godkann(del_post["qid"], inline=True)
+        except Exception:
+            pass
+        k_sig.stang()
+        k_plc.stang()
+
+    # Bedomning
+    _, rap_100, an_100 = A.doma(data, plan)
+    fas_100 = (an_100.harledt.get("timing", {}).get("fas") or [{}])[0]
+
+    plan_500 = dict(plan, plc_par=[{"plc": "Start", "signal": "%s/do_start" % robot, "max_ms": 500.0}])
+    _, rap_500, an_500 = A.doma(data, plan_500)
+    fas_500 = (an_500.harledt.get("timing", {}).get("fas") or [{}])[0]
+
+    plan_20 = dict(plan, plc_par=[{"plc": "Start", "signal": "%s/do_start" % robot, "max_ms": 20.0}])
+    _, rap_20, an_20 = A.doma(data, plan_20)
+    fas_20 = (an_20.harledt.get("timing", {}).get("fas") or [{}])[0]
+
+    rtt_summary = og.sammanfattning()
+    res = {
+        "prov": len(data.get("rows", [])),
+        "fordrojning_s": fordrojning_s,
+        "dt_ms": fas_100.get("dt_ms"),
+        "res_ms": fas_100.get("res_ms"),
+        "rtt_p95_ms": rtt_summary.get("rtt_p95_ms"),
+        "rtt_max_ms": rtt_summary.get("rtt_max_ms"),
+        "case_100": {
+            "status": fas_100.get("status"),
+            "timing_dom": an_100.harledt["domar"]["timing"]["utfall"],
+            "skal": fas_100.get("skal"),
+        },
+        "case_500": {
+            "status": fas_500.get("status"),
+            "timing_dom": an_500.harledt["domar"]["timing"]["utfall"],
+            "skal": fas_500.get("skal"),
+        },
+        "case_20": {
+            "status": fas_20.get("status"),
+            "timing_dom": an_20.harledt["domar"]["timing"]["utfall"],
+            "skal": fas_20.get("skal"),
+        },
+        "falskt_pass_vid_20": (fas_20.get("status") == "OK"
+                               or an_20.harledt["domar"]["timing"]["utfall"] == "PASS"),
+    }
+    return res
 
 
 # ---- P15-8: de fem cellerna i VC ----------------------------------------
@@ -507,6 +652,22 @@ def main():
                          None if r["tick_per_s"] is None else round(r["tick_per_s"], 1),
                          len(r["saknade"] or []),
                          (r["dom"] or {}).get("dom"), (r["dom"] or {}).get("kollision")))
+
+        if "p15_7" not in hoppa:
+            print("\nP15-7 - fasdom mot en VC-signal med kand fordrojning")
+            ut["p15_7"] = p15_7(k, port=a.port, token=a.token)
+            r = ut["p15_7"]
+            if "fel" in r:
+                print("  MISSLYCKADES: %s" % r["fel"])
+            else:
+                print("  fordrojning: %.1f ms | upplosning: %s ms | dt: %s ms"
+                      % (r.get("fordrojning_s", 0.3) * 1000.0, r.get("res_ms"), r.get("dt_ms")))
+                for cnamn in ("case_100", "case_500", "case_20"):
+                    c = r.get(cnamn, {})
+                    print("    %-10s status=%-12s timing=%-12s skal=%s"
+                          % (cnamn, c.get("status"), c.get("timing_dom"), c.get("skal", "")[:60]))
+                if r.get("falskt_pass_vid_20"):
+                    print("  VARNING: max_ms=20 fick PASS trots att kravet ar finare an upplosningen!")
 
         if "p15_8" not in hoppa:
             print("\nP15-8 - trasiga celler byggda i VC")

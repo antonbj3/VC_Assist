@@ -22,8 +22,8 @@ står i M-86, M-87, M-88 och M-97.
 | P15-4 `measureDistance` under körning | **GRÖNT** — monotont 3000 → 0,0 mm, kontakt vid 1000 mm origoavstånd; dom FAIL kollision ensam | M-88 |
 | P15-5 kostnad per bevakat par | **GRÖNT** — 20 Hz höll vid 20 par; ≈ 0,2 ms per par och slag; kollision PASS på avstånd | M-88 |
 | P15-6 PLC-flanken, upplösningen `RUN` | **GRÖNT** — `RUN` i 604 av 604; taket fick två termer till | M-87 |
-| P15-7 fasdom mot en VC-fördröjning | **INTE KÖRT** — kräver ett skriptbeteende (M-13) | — |
-| P15-8 fem trasiga celler i VC | **4 av 5** — grepp, sekvens, timing, kollision fälls ensamma; `station_bra` PASS. Genomflöde: inert statistik gav **PASS** (falskt grönt, lagat → INCONCLUSIVE); ingen VC-byggd cell fälls, `State` går inte att sätta utan process | M-88 |
+| P15-7 fasdom mot en VC-fördröjning | **GRÖNT** — känd 300 ms fördröjning gav dt 300,9 ms; max 500 ms OK/PASS, max 20 ms INCONCLUSIVE (vägrar falskt grönt); frågan om internt skriptbeteende var fel ställd (M-13) | M-128 |
+| P15-8 fem trasiga celler i VC | **5 av 5** — grepp, sekvens, timing, kollision och genomflöde fälls ensamma; `station_bra` och `station_svalt_matad` PASS. Genomflöde prövat med verklig process i Index Conveyor Process (M-127) | M-88, M-127 |
 | P15-9 LIMITS i riktig utdata | **GRÖNT** — 7 rader, `RUN`; utan sektionen NOT GOLD för alla | M-88 |
 | P15-10 ögat säger PASS om något det inte kan se | **FUNNET TVÅ GÅNGER, på riktigt** — inert `vcStatistics` (M-88 §4) och steg dömda utan flankens tak (M-97 §1); båda har nu fixturer som föll | M-88, M-97 |
 | hopfogningens giltighet (fas 8:s OGILTIG) | **BYGGT OCH PRÖVAT** — rad/flank/körning; jitter-störning fällde `station_bra` till INCONCLUSIVE i VC; taket håller inte under processtopp (7 av 300) | M-97 |
@@ -148,4 +148,4 @@ grind.
   detta protokoll. P15-2 och P15-3 ger dem underlag.
 
 ## Plattform
-Linux ☑ *(kört 2026-09-05, M-86/M-87/M-88/M-97; P15-7 inte kört)*   Windows ☐ **oprövad**
+Linux ☑ *(kört 2026-09-05, M-86/M-87/M-88/M-97/M-127/M-128)*   Windows ☐ **oprövad**
