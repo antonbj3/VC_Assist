@@ -123,8 +123,8 @@ class Grinddom:
     def __post_init__(self):
         if self.ok and not self.kord:
             raise Reparationsfel(
-                "grinden %s rapporterar godkänt utan att ha körts; tystnad är "
-                "aldrig ett godkännande (I3)" % (self.grind,))
+                "gate %s reports approved without having run; silence is "
+                "never an approval (I3)" % (self.grind,))
 
 
 class Grindsteg(object):
@@ -187,8 +187,8 @@ class Stationssteg(Grindsteg):
                                  % (", ".join(okanda), ", ".join(KORORDNING)))
         if not grindar:
             raise Reparationsfel(
-                "ett stationssteg utan grindar dömer ingenting och skulle "
-                "svara godkänt på allt")
+                "a station step without gates judges nothing and would "
+                "approve everything")
         self.karta = karta
         self.grindar = tuple(grindar)
         self.index = index
@@ -266,9 +266,10 @@ def kontrollera_ordagrant(text: str, domar: Sequence[Grinddom]) -> None:
             continue
         if d.utdata not in text:
             raise Reparationsfel(
-                "grinden %s ord nådde inte modellen ordagrant. Inramningen "
-                "skrev om domen, och en grind som tolkar om observatörens "
-                "svar mäter till slut sig själv (50_grindar.md)." % (d.grind,))
+                "gate %s's own words did not reach the model verbatim. The "
+                "framing rewrote the verdict, and a gate that reinterprets "
+                "the observer's response ends up measuring itself "
+                "(50_grindar.md)." % (d.grind,))
 
 
 _GRUNDPROMPT = (
@@ -411,25 +412,25 @@ class Reparationsslinga(object):
                  inramning: Optional[Callable[[Sequence[Grinddom]], str]] = None):
         if not grindar:
             raise Reparationsfel(
-                "en slinga utan grindar dömer ingenting och skulle släppa "
-                "igenom varje svar; ingen grind utan trasig fixtur")
+                "a loop without gates judges nothing and would let every "
+                "answer through; no gate without a broken fixture")
         if lage not in LAGEN:
             raise Reparationsfel("unknown mode %r; the modes are %s"
                                  % (lage, ", ".join(LAGEN)))
         if max_varv is None or isinstance(max_varv, bool) or \
                 not isinstance(max_varv, int):
             raise Reparationsfel(
-                "slingan måste ha ett tak, och taket måste vara ett heltal "
-                "varv; en obegränsad slinga döljer att uppgiften är olöslig "
-                "(61_st_generering.md)")
+                "the loop must have a cap, and the cap must be a whole "
+                "number of cycles; an unbounded loop hides that the task "
+                "is unsolvable (61_st_generering.md)")
         if max_varv < 1:
             raise Reparationsfel(
-                "taket %d ger noll varv; en slinga som aldrig kör mäter "
-                "ingenting" % max_varv)
+                "cap %d gives zero cycles; a loop that never runs measures "
+                "nothing" % max_varv)
         if max_varv > ABSOLUT_TAK:
             raise Reparationsfel(
-                "taket %d ligger över ABSOLUT_TAK %d; ett tak som får vara "
-                "godtyckligt stort är samma sak som inget tak"
+                "cap %d is above ABSOLUT_TAK %d; a cap that may be "
+                "arbitrarily large is the same as no cap"
                 % (max_varv, ABSOLUT_TAK))
         self.skelett = skelett
         self.grindar = tuple(grindar)

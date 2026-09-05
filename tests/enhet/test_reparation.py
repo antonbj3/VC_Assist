@@ -140,7 +140,7 @@ def test_en_inramning_som_skriver_om_domen_falls():
     with pytest.raises(R.Reparationsfel) as fel:
         slinga(inramning=omskrivande).kor(
             Manusmodell([FEL_KROPP, RATT_KROPP]), "uppgiften")
-    assert "ordagrant" in str(fel.value)
+    assert "verbatim" in str(fel.value)
 
 
 def test_en_inramning_som_bara_normaliserar_radbrytningar_falls_ocksa():
