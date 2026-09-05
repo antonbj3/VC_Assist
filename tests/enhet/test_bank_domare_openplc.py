@@ -268,6 +268,58 @@ def test_kanalfel_mitt_i_en_sekvens_ger_domsfel_aldrig_en_dom(monkeypatch):
     assert "kanalfel" in str(fel.value)
 
 
+def test_losning_som_skriver_over_sin_egen_ingang_blir_en_dom_inte_ett_domsfel():
+    """Den enda kanalavvikelse som ar LOSNINGENS, och inte riggens.
+
+    MATT LIVE 2026-09-05 (M-146 §4): P-07:s motbevis
+    `ridans_signal_tvingas_hog_i_koden` tvingar ljusridans givarsignal hog i
+    koden. Ateradlasningen ser da nagot annat an vi skrev - precis som en
+    kanal som tappar varden - och domaren gav forst ett Domsfel, alltsa
+    ingen dom alls, fast losningen var den som var fel. Med lista over
+    losningens egna tilldelningar blir det en Brist med namn.
+
+    Motsatsen provas ocksa: samma avvikelse pa en signal losningen INTE ror
+    ar riggens fel och maste forbli ett kanalfel.
+    """
+    post = las("P-07")
+    mb = [m for m in post["facit_spar"]["motbevis"]
+          if m["namn"] == "ridans_signal_tvingas_hog_i_koden"]
+    assert mb, "P-07 bar inte langre motbeviset fixturen vilar pa"
+    skrivna = DO.tilldelade_namn(mb[0]["st"])
+    assert "ST460_LGT_CLEAR" in skrivna, (
+        "motbeviset skriver inte langre sin egen ingang; fixturen mater "
+        "inget")
+    # Ingangen ar mappad, alltsa ags den av bildtabellen och inte av
+    # programmet - och det ar just den kollisionen bristen namnger.
+    karta = DO._karta_for_post(post)
+    assert karta.med_tagg("ST460_LGT_CLEAR").riktning == "TILL_PLC"
+
+    fel = DO._SkriverEgenIngang("ST460_LGT_CLEAR", False, True)
+    assert fel.signal == "ST460_LGT_CLEAR"
+    assert "ST460_LGT_CLEAR" in str(fel) and "dubbelskrivning" in str(fel)
+
+
+def test_egen_ingang_blir_en_brist_men_ett_kanalfel_blir_ett_domsfel(
+        monkeypatch):
+    """Samma symptom, tva orsaker, tva utfall. Skillnaden ar hela A2."""
+    post = las("P-05")
+
+    def egen_ingang(*a, **k):
+        raise DO._SkriverEgenIngang("EMG_OK", False, True)
+
+    d = _dom_med_attrapp(monkeypatch, post, post["facit_spar"]["referens"],
+                         AttrappKlient(), kor=egen_ingang)
+    assert d.koder == ["openplc:skriver_egen_ingang"]
+
+    def kanalen_foll(*a, **k):
+        raise D.Domsfel("sekvensen s1: kanalfel efter sekvensen: EMG_OK "
+                        "skrevs sist True men lastes False")
+
+    with pytest.raises(D.Domsfel):
+        _dom_med_attrapp(monkeypatch, post, post["facit_spar"]["referens"],
+                         AttrappKlient(), kor=kanalen_foll)
+
+
 def test_riggen_utan_strucpp_ger_domsfel_inte_en_dom(tmp_path):
     """En verktygskedja som saknas är ett domsfel med en åtgärd i klartext."""
     r = DO.Rigg(strucpp_paket=str(tmp_path / "finns-inte"),

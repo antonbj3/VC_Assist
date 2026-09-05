@@ -61,6 +61,13 @@ lösningen** och **ett påstående om maskinen**.
   debugtabell ger START:OK följt av EMPTY).
 * `openplc:signal_omdeklarerad` — lösningen deklarerar om en mappad signal.
   Deklarationerna ägs av kartan (I10).
+* `openplc:skriver_egen_ingang` — lösningen tilldelar en mappad INGÅNG och
+  skrev över facits stimulus, så spåret prövar inte det facit ber om. Symptomet
+  är detsamma som en kanal som tappar värden, och skillnaden avgörs statiskt:
+  ligger namnet bland lösningens egna tilldelningar är det lösningens fel.
+  Mätt 2026-09-05 (M-146 §4) på P-07:s motbevis
+  `ridans_signal_tvingas_hog_i_koden`, som utan den här klassningen blev ett
+  Domsfel — alltså ingen dom alls — fast lösningen var den som var fel.
 * punktkrav, invarianter och flanker: exakt `domare.py`:s bristkoder.
 
 **Domsfel (ingen dom alls, ett undantag i klartext):**
@@ -132,6 +139,7 @@ for _p in (_HAR, os.path.join(_ROT, "svc")):
         sys.path.insert(0, _p)
 
 import domare as _bankdomare  # noqa: E402
+from vc_assist_svc.plc import deklarationsgrind as _dekl  # noqa: E402
 from vc_assist_svc.plc import opcuakonfig as _opcuakonfig  # noqa: E402
 from vc_assist_svc.plc import openplc as _plc  # noqa: E402
 from vc_assist_svc.plc import paket as _paket  # noqa: E402
@@ -544,6 +552,40 @@ class _Kanalfel(Exception):
     """OPC UA-sidan svarade fel. Sidan kördes inte, alltså finns ingen dom."""
 
 
+class _SkriverEgenIngang(Exception):
+    """Lösningen tilldelar en mappad INGÅNG, och skrev över vår stimulus.
+
+    Skild från `_Kanalfel`, och skillnaden är mätt 2026-09-05 (M-146 §4):
+    P-07:s motbevis `ridans_signal_tvingas_hog_i_koden` tvingar ljusridåns
+    givarsignal hög i koden. Ateradlasningen ser då ett annat värde än vi
+    skrev — precis som en kanal som tappar värden. Men orsaken är lösningens,
+    inte riggens: stimulus nådde aldrig logiken, så spåret prövar inte det
+    facit ber om. Utan den här klassen blev motbeviset ett Domsfel, alltså
+    ingen dom alls, fast lösningen är den som är fel.
+    """
+
+    def __init__(self, signal, skrivet, last):
+        Exception.__init__(
+            self, "%s tilldelas i lösningen och skrevs över: vi satte %r, "
+                  "PLC:n läste tillbaka %r. En ingång ägs av bildtabellen, "
+                  "inte av programmet (I15/grind 2, dubbelskrivning)."
+                  % (signal, skrivet, last))
+        self.signal = signal
+
+
+def tilldelade_namn(st_text):
+    """Namnen lösningens PROGRAM tilldelar, i versaler. Tom mängd om texten
+    inte går att läsa — den vägen har redan gett en Brist före det här."""
+    try:
+        enhet = _lasare.las(st_text)
+    except Exception:
+        return set()
+    for p in enhet.pouer:
+        if p.sort == "PROGRAM":
+            return _dekl.bruk(p)[1]
+    return set()
+
+
 def _nollvarde(typnamn):
     if typnamn == "BOOL":
         return False
@@ -577,7 +619,8 @@ def _tagg_for(karta, namn):
                   "control.signals" % (namn,))
 
 
-async def _kor_sekvens(opc, ua, station, karta, sekv, flanker):
+async def _kor_sekvens(opc, ua, station, karta, sekv, flanker,
+                       egna_skrivningar=()):
     """Kör en facitsekvens i realtid mot en startad PLC.
 
     Allt — anslutning, nollställning, kanalkontroll, körning — ligger i EN
@@ -648,11 +691,14 @@ async def _kor_sekvens(opc, ua, station, karta, sekv, flanker):
         if s.riktning != TILL_PLC:
             continue
         noll = _nollvarde(s.typ.namn)
-        if not _samma_varde(s.typ.namn, noll, tillbaka.get(s.tagg)):
-            raise _Kanalfel(
-                "kanalfel före sekvensen: %s nollställdes men lästes %r; "
-                "insignalen fastnade inte i bildtabellen"
-                % (s.tagg, tillbaka.get(s.tagg)))
+        if _samma_varde(s.typ.namn, noll, tillbaka.get(s.tagg)):
+            continue
+        if s.tagg.upper() in egna_skrivningar:
+            raise _SkriverEgenIngang(s.tagg, noll, tillbaka.get(s.tagg))
+        raise _Kanalfel(
+            "kanalfel före sekvensen: %s nollställdes men lästes %r; "
+            "insignalen fastnade inte i bildtabellen"
+            % (s.tagg, tillbaka.get(s.tagg)))
 
     t0 = time.perf_counter()
     spar = []
@@ -683,14 +729,18 @@ async def _kor_sekvens(opc, ua, station, karta, sekv, flanker):
     _, sist = await las_alla()
     for namn, varde in skrivet.items():
         tagg = karta.med_tagg(namn)
-        if not _samma_varde(tagg.typ.namn, varde, sist.get(namn)):
-            raise _Kanalfel(
-                "kanalfel efter sekvensen: %s skrevs sist %r men lästes %r; "
-                "skrivvägen tappade värden" % (namn, varde, sist.get(namn)))
+        if _samma_varde(tagg.typ.namn, varde, sist.get(namn)):
+            continue
+        if namn.upper() in egna_skrivningar:
+            raise _SkriverEgenIngang(namn, varde, sist.get(namn))
+        raise _Kanalfel(
+            "kanalfel efter sekvensen: %s skrevs sist %r men lästes %r; "
+            "skrivvägen tappade värden" % (namn, varde, sist.get(namn)))
     return spar
 
 
-async def _anslut_och_kor(rigg, station, karta, sekv, flanker):
+async def _anslut_och_kor(rigg, station, karta, sekv, flanker,
+                          egna_skrivningar=()):
     Client, ua = _opcua_bibliotek()
     opc = Client(url=rigg.endpoint, timeout=5.0)
     try:
@@ -699,7 +749,8 @@ async def _anslut_och_kor(rigg, station, karta, sekv, flanker):
         raise Domsfel("nådde inte OPC UA-servern på %s: %s"
                       % (rigg.endpoint, fel))
     try:
-        return await _kor_sekvens(opc, ua, station, karta, sekv, flanker)
+        return await _kor_sekvens(opc, ua, station, karta, sekv, flanker,
+                                  egna_skrivningar)
     finally:
         try:
             await opc.disconnect()
@@ -707,7 +758,8 @@ async def _anslut_och_kor(rigg, station, karta, sekv, flanker):
             pass
 
 
-def _kor_en_sekvens(rigg, station, karta, sekv, flanker):
+def _kor_en_sekvens(rigg, station, karta, sekv, flanker,
+                    egna_skrivningar=()):
     """Synkron omslutning. Alla fel utom Domsfel blir Domsfel: en sekvens som
     inte kördes får aldrig bli en dom."""
     tak = (max([float(s["t_ms"]) for s in sekv["steg"]] +
@@ -717,11 +769,12 @@ def _kor_en_sekvens(rigg, station, karta, sekv, flanker):
 
     async def med_tak():
         return await asyncio.wait_for(
-            _anslut_och_kor(rigg, station, karta, sekv, flanker), timeout=tak)
+            _anslut_och_kor(rigg, station, karta, sekv, flanker,
+                            egna_skrivningar), timeout=tak)
 
     try:
         return asyncio.run(med_tak())
-    except Domsfel:
+    except (Domsfel, _SkriverEgenIngang):
         raise
     except asyncio.TimeoutError:
         raise Domsfel("sekvensen %s svarade inte inom %.0f s; sidan kördes "
@@ -898,13 +951,17 @@ def dom(post, st_text, spar=None, stationsdom=None, rigg=None, klient=None,
     if isinstance(bygge, Brist):
         return _dom_med(post, [bygge], 0, [])
     full_text, _prognamn = bygge
+    # Vilka namn lösningen SJÄLV tilldelar. Behövs för att skilja en kanal som
+    # tappar värden (riggens fel, Domsfel) från en lösning som skriver över
+    # sin egen ingång (lösningens fel, en Brist). Se `_SkriverEgenIngang`.
+    egna = tilldelade_namn(st_text)
 
     egen_katalog = byggkatalog is None
     if egen_katalog:
         byggkatalog = tempfile.mkdtemp(prefix="domare_openplc_")
     try:
         return _dom_med_katalog(post, facit, sekvenser, karta, full_text,
-                                rigg, klient, byggkatalog)
+                                rigg, klient, byggkatalog, egna)
     finally:
         if egen_katalog:
             shutil.rmtree(byggkatalog, ignore_errors=True)
@@ -917,7 +974,7 @@ def _dom_med(post, brister, scan, matpunkter):
 
 
 def _dom_med_katalog(post, facit, sekvenser, karta, full_text, rigg, klient,
-                     byggkatalog):
+                     byggkatalog, egna_skrivningar=()):
     zipvag = _bygg(full_text, karta, rigg, byggkatalog)
     if isinstance(zipvag, Brist):
         return _dom_med(post, [zipvag], 0, [])
@@ -949,7 +1006,12 @@ def _dom_med_katalog(post, facit, sekvenser, karta, full_text, rigg, klient,
         startbrist = _starta(klient)
         if startbrist is not None:
             return _dom_med(post, [startbrist], 0, [])
-        spar = _kor_en_sekvens(rigg, karta.station, karta, sekv, flanker)
+        try:
+            spar = _kor_en_sekvens(rigg, karta.station, karta, sekv, flanker,
+                                   egna_skrivningar)
+        except _SkriverEgenIngang as fel:
+            return _dom_med(post, [Brist("openplc:skriver_egen_ingang",
+                                         str(fel))], scan_totalt, matpunkter)
         seq_brister, n_scan, seq_matt = _dom_sekvens(
             karta, sekv, invarianter, flanker, spar)
         brister.extend(seq_brister)

@@ -80,6 +80,8 @@ BANKPOST = {
         "en referens som inte blir gron rapporteras med bristkoder, "
         "aldrig som en lyckad korning",
         "noll domda uppgifter ger returkod != 0",
+        "en losning som skriver over sin egen mappade ingang blir "
+        "openplc:skriver_egen_ingang - en dom, inte ett Domsfel",
     ),
     "kraver": ("openplc", "strucpp"),
     "matningar": ("M-146",),
