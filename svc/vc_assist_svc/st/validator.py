@@ -788,7 +788,20 @@ class Granskning(object):
         for namn, lista in poster.items():
             self._doma_dubbelskrivning(namn, lista)
             varden = set(p[2] for p in lista)
-            ut[namn] = (any(not p[0] for p in lista),
+            # Falt 1 heter VILLKORAD, och en hopslagen gren ar villkorad bara
+            # om VARJE bidrag ar det. Raden stod som `any(not p[0] ...)`,
+            # alltsa "minst ett bidrag ar OVILLKORAT" - tecknet var vant, och
+            # faltet bar motsatsen till sitt namn.
+            #
+            # Grinden hade darfor fel at BADA hallen (matt 2026-09-05):
+            #
+            #   IF/ELSE sen villkorad overskrivning   FALLDES    ska ga igenom
+            #     - kodens egen kommentar kallar "berakna, sedan tvinga" for
+            #       standardmonstret for en forregling
+            #   nastlade villkor i bada grenar + villkorad  SLAPPTES  ska falla
+            #     - a=F, b=T, c=T ger FALSE och sedan TRUE i samma scan, alltsa
+            #       precis den F7-kapplopning grinden finns for
+            ut[namn] = (all(p[0] for p in lista),
                         min(p[1] for p in lista),
                         lista[0][2] if len(varden) == 1 else None)
         return ut

@@ -566,3 +566,41 @@ def test_samma_literal_i_olika_typer_ar_inte_samma_varde():
     kod = ("    IF a THEN n := 0; END_IF;\n"
            "    IF b THEN n := 1; END_IF;\n")
     assert "DUBBELSKRIVNING" in _koder(kod)
+
+
+# ---- _sekvens bar motsatsen till sitt eget faltnamn -------------------------
+#
+# `_sekvens` returnerar ett falt som `_sla_ihop_grenar` laser som VILLKORAD.
+# Raden stod som `any(not p[0] ...)`, alltsa "minst ett bidrag ar OVILLKORAT" -
+# tecknet var vant. En hopslagen gren ar villkorad bara om VARJE bidrag ar det.
+#
+# Foljden var att grinden hade fel at BADA hallen, och den falska GRONA ar den
+# allvarliga: F7 finns for att fanga kapplopningar, och den slappte igenom en.
+
+@pytest.mark.parametrize("namn,kropp,ska_falla", [
+    ("IF/ELSE och sedan en villkorad overskrivning",
+     "IF a THEN\n UT := TRUE;\nELSE\n UT := FALSE;\nEND_IF;\n"
+     "IF c THEN\n UT := TRUE;\nEND_IF;\n", False),
+    ("CASE/ELSE och sedan en villkorad overskrivning",
+     "CASE b OF\n TRUE: UT := TRUE;\nELSE\n UT := FALSE;\nEND_CASE;\n"
+     "IF c THEN\n UT := TRUE;\nEND_IF;\n", False),
+    ("nastlade villkor i BADA grenarna, sedan en villkorad",
+     "IF a THEN\n IF b THEN\n  UT := TRUE;\n END_IF;\n"
+     "ELSE\n IF b THEN\n  UT := FALSE;\n END_IF;\nEND_IF;\n"
+     "IF c THEN\n UT := TRUE;\nEND_IF;\n", True),
+])
+def test_hopslagna_grenars_villkorlighet(namn, kropp, ska_falla):
+    """TRASIGA FIXTURER for det vanda tecknet.
+
+    Rad 1 och 2 FALLDES fore rattelsen. "Berakna, sedan tvinga" ar det
+    monster kodens egen kommentar kallar standardmonstret for en forregling -
+    grinden fallde alltsa det idiom den ar skriven for att skydda.
+
+    Rad 3 SLAPPTES fore rattelsen, och den ar den allvarliga. Med a=FALSE,
+    b=TRUE och c=TRUE skrivs UT till FALSE och sedan till TRUE i samma scan.
+    Det ar exakt den kapplopning F7 finns for.
+    """
+    kalla = _pou(" a : BOOL;\n b : BOOL;\n c : BOOL;\n UT AT %QX0.0 : BOOL;\n",
+                 kropp)
+    koder = [x.kod for x in validera(kalla).anmarkningar]
+    assert ("DUBBELSKRIVNING" in koder) is ska_falla, namn
