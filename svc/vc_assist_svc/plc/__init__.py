@@ -9,6 +9,14 @@ beskriven i docs/matningar/M-20_plcbandet.md:
                                                  --> OPC UA-server
                                                  --> VC:s OPC UA-klient --> scenen
 
+Och vagen UT ur var egen kedja, till anvandarens verktyg:
+
+    st.Enhet --> plcopen.exportera() --> PLCopen TC6 XML v2.01
+
+`exportera` laser tillbaka sin egen fil och faller om modellen inte kom
+tillbaka likadan. Matt i M-154; vad som gar att importera hos CODESYS, TIA
+Portal och TwinCAT star i M-155.
+
 Arkitekturen är mätt, inte antagen: Visual Components har ingen ST-motor, och
 VC Premiums connectivity är en OPC UA-**klient**. PLC:n måste alltså vara
 server, och det är OpenPLC v4:s opcua-plugin som är den servern.
@@ -22,6 +30,8 @@ from .deklarationsgrind import (Grind3Rapport, KONTROLLER_PLC, PlcAnmarkning,
                                 bruk, granska)
 from .opcuakonfig import konfiguration, nodid, variabel
 from .openplc import Kompilering, OpenPlcFel, OpenPlcV4
+from .plcopen import (ExportFel, Importfel, avvikelser, exportera,
+                      las_projekt, skriv_projekt)
 from .paket import (Byggfel, Debugkarta, Lov, bygg_projekt, kompilera,
                     konfigurationstext, skriv_arkiv)
 from .signalkarta import (Adress, FRAN_PLC, KartFel, Signal, Signalkarta,
@@ -36,4 +46,6 @@ __all__ = [
     "konfigurationstext", "skriv_arkiv",
     "konfiguration", "nodid", "variabel",
     "Kompilering", "OpenPlcFel", "OpenPlcV4",
+    "ExportFel", "Importfel", "avvikelser", "exportera", "las_projekt",
+    "skriv_projekt",
 ]
