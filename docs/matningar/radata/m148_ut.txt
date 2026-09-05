@@ -1,0 +1,16 @@
+=== KÖR C8: MUTATION AV BANK/DOMARE.PY ===
+FLOAT_TOLERANS_NOLL                 -> OVERLEVDE (provsviten tiger!)
+BOOL_STRIKT_STRUKEN                 -> OVERLEVDE (provsviten tiger!)
+SLUTTID_ETT_SCAN_TIDIGARE           -> FANGAD: motbevis falldes inte: A-02:underkand_skruv_dras_om_automatiskt (fick ['moment_under_fonstret_pa_position_3@5980ms:ST240_STA_STOP', 'flank:ingen_omdragning_automatiskt', 'moment_over_fonstret_pa_position_2@8920ms:ST240_STA_STOP'], vantade ['moment_under_fonstret_pa_position_3@9000ms:ST240_STA_STOP'])
+PUNKTKRAV_TOLERANS_NOLL             -> OVERLEVDE (provsviten tiger!)
+INVARIANT_RAPPPORTERA_ALLA_SCAN     -> OVERLEVDE (provsviten tiger!)
+INVARIANT_NAR_ANY                   -> FANGAD: referens falldes: C-06 (['invariant:roboten_gar_aldrig_mot_en_stangd_lucka@en_betjaning_av_maskin_ett', 'invariant:roboten_gar_aldrig_mot_en_stangd_lucka@bada_maskinerna_klara_samtidigt', 'invariant:roboten_gar_aldrig_mot_en_stangd_lucka@chucken_bekraftar_aldrig_spant'])
+INVARIANT_KRAVER_ANY                -> FANGAD: motbevis falldes inte: A-03:station_2_startar_pa_narvaron (fick ['enhet_i_station_2_utan_klarsignal@800ms:ST260_STA_BUSY', 'enhet_i_station_2_utan_klarsignal@800ms:ST260_ACK_RST', 'enhet_i_station_2_utan_klarsignal@10000ms:ST260_STA_BUSY'], vantade ['enhet_i_station_2_utan_klarsignal@800ms:ST260_STA_BUSY', 'enhet_i_station_2_utan_klarsignal@10000ms:ST260_STA_BUSY', 'invariant:station_2_startar_inte_pa_narvaron@enhet_i_station_2_utan_klarsignal', 'flank:ingen_kvittens_utan_klarsignal'])
+FLANK_STRYK_FRAN_MS                 -> FANGAD: referens falldes: A-01 (['flank:b_programmet_startas_efter_spannaren', 'flank:ingen_b_start_nar_lagesgivaren_uteblir', 'flank:inget_b_program_vid_lag_spannkraft'])
+FLANK_RISE_TILL_NIVA                -> FANGAD: referens falldes: A-01 (['flank:b_programmet_startas_efter_spannaren', 'flank:ett_spannkommando_per_enhet'])
+FLANK_FALL_TILL_NIVA                -> FANGAD: referens falldes: A-05 (['flank:frisningsbegaran_stangs_vid_nollstallning'])
+M106_OMEDELBAR_FORRA_UPPDATERING    -> FANGAD: referens falldes: A-01 (['flank:b_programmet_startas_efter_spannaren', 'flank:ett_spannkommando_per_enhet'])
+FORGRIND_IGNORERAS                  -> OVERLEVDE (provsviten tiger!)
+
+Sammanfattning:
+Mutanter totalt: 12, Fångade: 7 (58 %), Överlevde: 5
