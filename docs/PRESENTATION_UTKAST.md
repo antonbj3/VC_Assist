@@ -92,9 +92,11 @@ on a part the previous station had not finished.
 Search the installed library by what you need — reach, payload, manufacturer —
 rather than by guessing a part number.
 
-If the library does not know a machine's reach, it says so. It never shows a
-blank as zero — a distinction that matters, because a great many entries carry
-no reach at all while their datasheets do.
+Every reach figure carries where it came from. Not one of them is read from a
+field: the library declares no reach, so the number is computed from the robot's
+link lengths — 1 693 derived, 509 with nothing to derive from. Those 509 say
+*missing*, never zero, and a derived figure can never be compared as if it were
+a manufacturer's.
 
 ## The gate chain
 
