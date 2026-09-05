@@ -79,15 +79,15 @@ class Fraga(object):
             raise Fragefel("a question without text is not a question")
         if not (skal or "").strip():
             raise Fragefel(
-                "fragan %r bar inget skal. En fraga utan skal gar inte att "
-                "vaga mot att lata bli att stalla den" % (text,))
+                "the question %r carries no rationale. A question without a "
+                "rationale cannot be weighed against not asking it" % (text,))
         verktyg = tuple(verktyg)
         if vem == MATNING:
             if not verktyg:
                 raise Fragefel(
-                    "fragan %r ar markt MATNING men namner inget verktyg som "
-                    "kan kora den. En matning ingen kan utfora ar en gissning "
-                    "med bra rykte" % (text,))
+                    "the question %r is marked MATNING but names no tool that "
+                    "can run it. A measurement no one can perform is a guess "
+                    "with a good reputation" % (text,))
             _krav_lasande(text, verktyg)
         self.text_ = text
         self.vem = vem
