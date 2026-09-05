@@ -1,0 +1,90 @@
+{
+  "modell": "opencode/muse-spark-1.3-contributor-free",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 8,
+  "bank_vid_start": [
+    "C-04",
+    "L-06"
+  ],
+  "resultat": [
+    {
+      "uppgift": "C-04",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 3,
+      "varv_till_lost": 3,
+      "slog_i_taket": false,
+      "max_varv": 8,
+      "forhandsregler": true,
+      "anrop": 3,
+      "kostnad_usd": 0.0,
+      "tokens_in": 55077,
+      "tokens_ut": 2145,
+      "sekunder": 363.6,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 46 brister, 641 scan\n  [kallstart_kraver_kvittering@300ms:ST420_STA_SAFE/F5] ST420_STA_SAFE skulle vara 1 men var 0. en cell som far spanning far inte borja rora sig av sig sjalv (IEC 60204-1:2016 7.5); den star i sakert lage tills nagon kvitterar. Kedjan ar 185 ms, sa vid 300 "
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 18 brister, 641 scan\n  [kallstart_kraver_kvittering@600ms:ST420_RB_HOLD/F5] ST420_RB_HOLD skulle vara 0 men var 1. en kvitterad cell far ga, och forst da; kvittensen ar en stigande flank pa SYS_RESET med obruten ljusrida\n  [kallstart_kraver_kvittering@600ms:ST420_STA_STEP/F5] S"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\ntmrSafe(IN:=NOT EMG_OK, PT:=T#300ms);\nxStopp := NOT EMG_OK;\nIF xStopp THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nIF xStopp THEN\nxLarm := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK THEN\nxLarm := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xStopp AND NOT xKravOmstart AND ST420_LGT_CLEAR;\nxRor := ((steg = 1) OR (steg = 4) OR (steg = 6)) AND xDriftsklar;\ntmrRor(IN:=xRor, PT:=T#2s);\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 1;\nEND_IF;\n1:\nIF xDriftsklar AND tmrRor.Q AND ST420_LGT_CLEAR THEN\nsteg := 2;\nEND_IF;\n2:\nIF xDriftsklar AND ST420_LGT_CLEAR THEN\nsteg := 3;\nEND_IF;\n3:\nIF xDriftsklar AND (ST420_GRP_FORCE >= 120.0) AND ST420_LGT_CLEAR THEN\nsteg := 4;\nEND_IF;\n4:\nIF xDriftsklar AND tmrRor.Q AND (ST420_GRP_FORCE >= 120.0) AND ST420_LGT_CLEAR THEN\nsteg := 5;\nEND_IF;\n5:\nIF xDriftsklar AND ST420_PRT_PRS THEN\nsteg := 6;\nEND_IF;\n6:\nIF xDriftsklar AND tmrRor.Q AND ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 7;\nEND_IF;\n7:\nIF xDriftsklar AND NOT ST420_PRT_PRS THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST420_STA_STEP := steg;\nST420_STA_SAFE := NOT EMG_OK OR tmrSafe.Q OR xStopp;\nST420_RB_START := xDriftsklar AND NOT xStopp AND NOT xKravOmstart AND NOT tmrSafe.Q AND ((steg = 0) OR (steg = 1) OR (steg = 2) OR (steg = 3) OR (steg = 4) OR (steg = 5) OR (steg = 6)) AND ST420_LGT_CLEAR AND EMG_OK;\nST420_RB_HOLD := xStopp OR xKravOmstart OR NOT EMG_OK OR (tmrSafe.Q AND NOT xDriftsklar);\nST420_GRP_CLOSE := (steg = 2) OR (steg = 3) OR (steg = 4) OR ((steg = 5) AND NOT ST420_PRT_PRS);\nST420_STP_CLOSE := ((steg = 0) OR (steg = 1) OR (steg = 2) OR (steg = 3) OR (steg = 4) OR (steg = 5) OR (steg = 6) OR (steg = 7)) OR xStopp OR NOT EMG_OK;\nSYS_ALARM := xLarm OR xKravOmstart OR xStopp;\n",
+        "trigReset(CLK:=SYS_RESET);\nxStopp := NOT EMG_OK;\nIF xStopp THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nIF ((steg = 3) OR (steg = 4)) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0)) THEN\nxLarm := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) THEN\nxLarm := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xStopp AND NOT xKravOmstart AND ST420_LGT_CLEAR AND NOT xLarm;\nxRor := FALSE;\ntmrSafe(IN:=NOT xDriftsklar, PT:=T#185ms);\ntmrRor(IN:=xRor, PT:=T#100ms);\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 1;\nEND_IF;\n1:\nIF xDriftsklar AND ST420_LGT_CLEAR THEN\nsteg := 2;\nEND_IF;\n2:\nIF xDriftsklar AND ST420_LGT_CLEAR THEN\nsteg := 3;\nEND_IF;\n3:\nIF xDriftsklar AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) AND ST420_LGT_CLEAR THEN\nsteg := 4;\nEND_IF;\n4:\nIF xDriftsklar AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) AND ST420_LGT_CLEAR THEN\nsteg := 5;\nEND_IF;\n5:\nIF xDriftsklar AND ST420_PRT_PRS THEN\nsteg := 6;\nEND_IF;\n6:\nIF xDriftsklar AND ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 7;\nEND_IF;\n7:\nIF xDriftsklar AND NOT ST420_PRT_PRS THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST420_STA_STEP := steg;\nST420_STA_SAFE := tmrSafe.Q;\nST420_RB_START := ((steg = 1) OR (steg = 2) OR (steg = 3) OR (steg = 4) OR (steg = 5) OR (steg = 6));\nST420_RB_HOLD := NOT xDriftsklar;\nST420_GRP_CLOSE := ((steg = 2) OR (steg = 3) OR (steg = 4) OR ((steg = 5) AND NOT ST420_PRT_PRS));\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\nxStopp := NOT EMG_OK;\nIF xStopp THEN\nxKravOmstart := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK THEN\nxKravOmstart := FALSE;\nEND_IF;\nIF ((steg = 4) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0))) OR ((steg = 3) AND (ST420_GRP_FORCE > 500.0)) THEN\nxLarm := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR AND EMG_OK AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) THEN\nxLarm := FALSE;\nEND_IF;\nxDriftsklar := EMG_OK AND NOT xStopp AND NOT xKravOmstart AND ST420_LGT_CLEAR AND NOT xLarm;\nxRor := (steg = 1) OR (steg = 6);\ntmrSafe(IN:=NOT xDriftsklar, PT:=T#185ms);\ntmrRor(IN:=xRor, PT:=T#300ms);\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 1;\nEND_IF;\n1:\nIF xDriftsklar AND tmrRor.Q AND ST420_LGT_CLEAR THEN\nsteg := 2;\nEND_IF;\n2:\nIF xDriftsklar AND ST420_LGT_CLEAR THEN\nsteg := 3;\nEND_IF;\n3:\nIF xDriftsklar AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) AND ST420_LGT_CLEAR THEN\nsteg := 4;\nEND_IF;\n4:\nIF xDriftsklar AND ST420_PRT_PRS AND (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) AND ST420_LGT_CLEAR THEN\nsteg := 5;\nEND_IF;\n5:\nIF xDriftsklar AND ST420_PRT_PRS THEN\nsteg := 6;\nEND_IF;\n6:\nIF xDriftsklar AND tmrRor.Q AND ST420_PRT_PRS AND ST420_LGT_CLEAR THEN\nsteg := 7;\nEND_IF;\n7:\nIF xDriftsklar AND NOT ST420_PRT_PRS THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST420_STA_STEP := steg;\nST420_STA_SAFE := tmrSafe.Q;\nST420_RB_START := ((steg = 1) OR (steg = 2) OR (steg = 3) OR (steg = 4) OR (steg = 5) OR (steg = 6));\nST420_RB_HOLD := NOT xDriftsklar;\nST420_GRP_CLOSE := ((steg = 2) OR (steg = 3) OR (steg = 4) OR ((steg = 5) AND NOT ST420_PRT_PRS));\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "L-06",
+      "lage": "historik",
+      "utfall": "LOST",
+      "lost": true,
+      "varv_korda": 4,
+      "varv_till_lost": 4,
+      "slog_i_taket": false,
+      "max_varv": 8,
+      "forhandsregler": true,
+      "anrop": 4,
+      "kostnad_usd": 0.0,
+      "tokens_in": 64088,
+      "tokens_ut": 2849,
+      "sekunder": 399.0,
+      "domar_per_varv": [
+        [
+          "EJ GODKAND\n  rad 34: [ARGUMENT/F2] cntCykel har ingen ingång som heter RESET"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 4 brister, 1163 scan\n  [flank:sex_robotcykler_per_kartong/F15] ST540_RB_START skulle ha 6 RISE-flank(er) mellan 0 och 3200 ms, hade 11. tolv burkar om tva per cykel ar exakt sex robotcykler; en sjunde flank betyder att cykeln startas pa niva i stallet for pa flank och att robot"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 3 brister, 1163 scan\n  [flank:sex_robotcykler_per_kartong/F15] ST540_RB_START skulle ha 6 RISE-flank(er) mellan 0 och 3200 ms, hade 11. tolv burkar om tva per cykel ar exakt sex robotcykler; en sjunde flank betyder att cykeln startas pa niva i stallet for pa flank och att robot"
+        ],
+        [
+          "",
+          ""
+        ]
+      ],
+      "kroppar_per_varv": [
+        "(* carton erect and place control *)\ntrigReset(CLK := SYS_RESET);\ntmrRobot(IN := ST540_RB_START AND NOT ST540_RB_DONE, PT := T#6s);\ncntCykel(CU := ST540_RB_DONE, RESET := ST540_SEA_DONE, PV := 6);\nIF trigReset.Q THEN\n    xLarm := FALSE;\nELSIF tmrRobot.Q THEN\n    xLarm := TRUE;\nELSIF ST540_RB_START AND NOT ST540_VAC_OK AND NOT ST540_RB_DONE THEN\n    xLarm := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\nELSIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF NOT EMG_OK THEN\n    xDrift := FALSE;\nELSIF NOT AIR_OK THEN\n    xDrift := FALSE;\nELSIF NOT SYS_AUTO THEN\n    xDrift := FALSE;\nELSIF xLarm THEN\n    xDrift := FALSE;\nELSIF xKravOmstart THEN\n    xDrift := FALSE;\nELSE\n    xDrift := TRUE;\nEND_IF;\nIF ST540_SEA_DONE THEN\n    xNyKartong := FALSE;\nELSIF ST540_ERC_DONE THEN\n    xNyKartong := TRUE;\nEND_IF;\nCASE steg OF\n    0:\n        IF xDrift AND xNyKartong AND ST540_ERC_DONE THEN\n            steg := 20;\n        ELSIF xDrift AND NOT xNyKartong THEN\n            steg := 10;\n        END_IF;\n    10:\n        IF ST540_ERC_DONE AND xNyKartong THEN\n            steg := 20;\n        END_IF;\n    20:\n        IF xDrift AND (ST540_PCK_CNT >= 12) THEN\n            steg := 50;\n        ELSIF xDrift AND ST540_PEC_JAR AND (ST540_PCK_CNT < 12) THEN\n            steg := 30;\n        END_IF;\n    30:\n        IF xDrift AND ST540_VAC_OK THEN\n            steg := 40;\n        END_IF;\n    40:\n        IF ST540_RB_DONE THEN\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 50;\n            ELSE\n                steg := 20;\n            END_IF;\n        END_IF;\n    50:\n        IF ST540_SEA_DONE THEN\n            steg := 0;\n        END_IF;\nEND_CASE;\nST540_ERC_START := (steg = 10) AND xDrift AND NOT ST540_ERC_DONE;\nST540_VAC_ON := ((steg = 30) OR (steg = 40)) AND xDrift;\nST540_RB_START := (steg = 40) AND xDrift AND ST540_ERC_DONE AND xNyKartong AND ST540_VAC_OK;\nST540_SEA_START := (steg = 50) AND xDrift AND (ST540_PCK_CNT >= 12);\nST540_CNV_RUN := xDrift AND (ST540_PCK_CNT < 12) AND NOT cntCykel.Q;\nSYS_ALARM := xLarm;\n",
+        "(* carton erect and place control *)\ntrigReset(CLK := SYS_RESET);\ntmrRobot(IN := ST540_RB_START AND NOT ST540_RB_DONE, PT := T#6s);\nIF trigReset.Q THEN\n    xLarm := FALSE;\nELSIF tmrRobot.Q THEN\n    xLarm := TRUE;\nELSIF ST540_RB_START AND NOT ST540_VAC_OK AND NOT ST540_RB_DONE THEN\n    xLarm := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\nELSIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF NOT EMG_OK THEN\n    xDrift := FALSE;\nELSIF NOT AIR_OK THEN\n    xDrift := FALSE;\nELSIF NOT SYS_AUTO THEN\n    xDrift := FALSE;\nELSIF xLarm THEN\n    xDrift := FALSE;\nELSIF xKravOmstart THEN\n    xDrift := FALSE;\nELSE\n    xDrift := TRUE;\nEND_IF;\nIF ST540_SEA_DONE THEN\n    xNyKartong := FALSE;\nELSIF ST540_ERC_DONE THEN\n    xNyKartong := TRUE;\nEND_IF;\nCASE steg OF\n    0:\n        IF xDrift AND xNyKartong AND ST540_ERC_DONE THEN\n            steg := 20;\n        ELSIF xDrift AND NOT xNyKartong THEN\n            steg := 10;\n        END_IF;\n    10:\n        IF ST540_ERC_DONE AND xNyKartong THEN\n            steg := 20;\n        END_IF;\n    20:\n        IF xDrift AND (ST540_PCK_CNT >= 12) THEN\n            steg := 50;\n        ELSIF xDrift AND ST540_PEC_JAR AND (ST540_PCK_CNT < 12) THEN\n            steg := 30;\n        END_IF;\n    30:\n        IF xDrift AND ST540_VAC_OK THEN\n            steg := 40;\n        END_IF;\n    40:\n        IF ST540_RB_DONE THEN\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 50;\n            ELSE\n                steg := 20;\n            END_IF;\n        END_IF;\n    50:\n        IF ST540_SEA_DONE THEN\n            steg := 0;\n        END_IF;\nEND_CASE;\nST540_ERC_START := (steg = 10) AND xDrift AND NOT ST540_ERC_DONE;\nST540_VAC_ON := ((steg = 30) OR (steg = 40)) AND xDrift;\nST540_RB_START := (steg = 40) AND xDrift AND ST540_ERC_DONE AND xNyKartong AND ST540_VAC_OK;\nST540_SEA_START := (steg = 50) AND xDrift AND (ST540_PCK_CNT >= 12);\nST540_CNV_RUN := xDrift AND (ST540_PCK_CNT < 12);\nSYS_ALARM := xLarm;\n",
+        "(* carton erect and place control *)\ntrigReset(CLK := SYS_RESET);\ntmrRobot(IN := ST540_RB_START AND NOT ST540_RB_DONE, PT := T#6s);\ncntCykel(CU := ST540_RB_DONE, R := ST540_SEA_DONE, PV := 6);\nIF trigReset.Q THEN\n    xLarm := FALSE;\nELSIF tmrRobot.Q THEN\n    xLarm := TRUE;\nELSIF ST540_RB_START AND NOT ST540_VAC_OK AND NOT ST540_RB_DONE THEN\n    xLarm := TRUE;\nELSIF (steg = 20) AND cntCykel.Q AND (ST540_PCK_CNT < 12) THEN\n    xLarm := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\nELSIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF NOT EMG_OK THEN\n    xDrift := FALSE;\nELSIF NOT AIR_OK THEN\n    xDrift := FALSE;\nELSIF NOT SYS_AUTO THEN\n    xDrift := FALSE;\nELSIF xLarm THEN\n    xDrift := FALSE;\nELSIF xKravOmstart THEN\n    xDrift := FALSE;\nELSE\n    xDrift := TRUE;\nEND_IF;\nIF ST540_SEA_DONE THEN\n    xNyKartong := FALSE;\nELSIF ST540_ERC_DONE THEN\n    xNyKartong := TRUE;\nEND_IF;\nCASE steg OF\n    0:\n        IF xDrift AND xNyKartong AND ST540_ERC_DONE THEN\n            steg := 20;\n        ELSIF xDrift AND NOT xNyKartong THEN\n            steg := 10;\n        END_IF;\n    10:\n        IF ST540_ERC_DONE AND xNyKartong THEN\n            steg := 20;\n        END_IF;\n    20:\n        IF xDrift AND (ST540_PCK_CNT >= 12) THEN\n            steg := 50;\n        ELSIF xDrift AND ST540_PEC_JAR AND (ST540_PCK_CNT < 12) AND NOT cntCykel.Q THEN\n            steg := 30;\n        END_IF;\n    30:\n        IF xDrift AND ST540_VAC_OK THEN\n            steg := 40;\n        END_IF;\n    40:\n        IF ST540_RB_DONE THEN\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 50;\n            ELSE\n                steg := 20;\n            END_IF;\n        END_IF;\n    50:\n        IF ST540_SEA_DONE THEN\n            steg := 0;\n        END_IF;\nEND_CASE;\nST540_ERC_START := (steg = 10) AND xDrift AND NOT ST540_ERC_DONE;\nST540_VAC_ON := ((steg = 30) OR (steg = 40)) AND xDrift;\nST540_RB_START := (steg = 40) AND xDrift AND ST540_ERC_DONE AND xNyKartong AND ST540_VAC_OK;\nST540_SEA_START := (steg = 50) AND xDrift AND (ST540_PCK_CNT >= 12);\nST540_CNV_RUN := xDrift AND (ST540_PCK_CNT < 12) AND NOT cntCykel.Q;\nSYS_ALARM := xLarm;\n",
+        "(* carton erect and place control *)\ntrigReset(CLK := SYS_RESET);\ntmrRobot(IN := ST540_RB_START AND NOT ST540_RB_DONE, PT := T#6s);\ncntCykel(CU := ST540_RB_DONE, R := trigReset.Q OR ST540_SEA_DONE, PV := 6);\nIF trigReset.Q THEN\n    xLarm := FALSE;\nELSIF tmrRobot.Q THEN\n    xLarm := TRUE;\nELSIF ST540_RB_START AND NOT ST540_VAC_OK AND NOT ST540_RB_DONE THEN\n    xLarm := TRUE;\nELSIF (steg = 20) AND cntCykel.Q AND (ST540_PCK_CNT < 12) THEN\n    xLarm := TRUE;\nEND_IF;\nIF trigReset.Q THEN\n    xKravOmstart := FALSE;\nELSIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\nIF NOT EMG_OK THEN\n    xDrift := FALSE;\nELSIF NOT AIR_OK THEN\n    xDrift := FALSE;\nELSIF NOT SYS_AUTO THEN\n    xDrift := FALSE;\nELSIF xLarm THEN\n    xDrift := FALSE;\nELSIF xKravOmstart THEN\n    xDrift := FALSE;\nELSE\n    xDrift := TRUE;\nEND_IF;\nIF ST540_SEA_DONE THEN\n    xNyKartong := FALSE;\nELSIF ST540_ERC_DONE THEN\n    xNyKartong := TRUE;\nEND_IF;\nCASE steg OF\n    0:\n        IF xDrift AND xNyKartong AND ST540_ERC_DONE THEN\n            steg := 20;\n        ELSIF xDrift AND NOT xNyKartong THEN\n            steg := 10;\n        END_IF;\n    10:\n        IF ST540_ERC_DONE AND xNyKartong THEN\n            steg := 20;\n        END_IF;\n    20:\n        IF xDrift AND (ST540_PCK_CNT >= 12) THEN\n            steg := 50;\n        ELSIF xDrift AND ST540_PEC_JAR AND (ST540_PCK_CNT < 12) AND NOT cntCykel.Q THEN\n            steg := 30;\n        END_IF;\n    30:\n        IF xDrift AND ST540_VAC_OK AND NOT ST540_RB_DONE THEN\n            steg := 40;\n        END_IF;\n    40:\n        IF ST540_RB_DONE THEN\n            steg := 41;\n        END_IF;\n    41:\n        IF NOT ST540_RB_DONE THEN\n            IF ST540_PCK_CNT >= 12 THEN\n                steg := 50;\n            ELSE\n                steg := 20;\n            END_IF;\n        END_IF;\n    50:\n        IF ST540_SEA_DONE THEN\n            steg := 0;\n        END_IF;\nEND_CASE;\nST540_ERC_START := (steg = 10) AND xDrift AND NOT ST540_ERC_DONE;\nST540_VAC_ON := ((steg = 30) OR (steg = 40)) AND xDrift;\nST540_RB_START := (steg = 40) AND xDrift AND ST540_ERC_DONE AND xNyKartong AND ST540_VAC_OK;\nST540_SEA_START := (steg = 50) AND xDrift AND (ST540_PCK_CNT >= 12);\nST540_CNV_RUN := xDrift AND (ST540_PCK_CNT < 12);\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    }
+  ],
+  "lost": 2,
+  "slog_i_taket": 0
+}

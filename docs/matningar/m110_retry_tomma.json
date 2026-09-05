@@ -1,0 +1,67 @@
+{
+  "modell": "opencode/muse-spark-1.3-contributor-free",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 4,
+  "bank_vid_start": [
+    "C-04",
+    "H-01"
+  ],
+  "resultat": [
+    {
+      "uppgift": "C-04",
+      "lage": "historik",
+      "utfall": "TAK",
+      "lost": false,
+      "varv_korda": 4,
+      "varv_till_lost": null,
+      "slog_i_taket": true,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 4,
+      "kostnad_usd": 0.0,
+      "tokens_in": 73067,
+      "tokens_ut": 2680,
+      "sekunder": 534.4,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 41 brister, 641 scan\n  [kallstart_kraver_kvittering@300ms:ST420_STA_SAFE/F5] ST420_STA_SAFE skulle vara 1 men var 0. en cell som far spanning far inte borja rora sig av sig sjalv (IEC 60204-1:2016 7.5); den star i sakert lage tills nagon kvitterar. Kedjan ar 185 ms, sa vid 300 "
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 15 brister, 641 scan\n  [kallstart_kraver_kvittering@600ms:ST420_STA_STEP/F5] ST420_STA_STEP skulle vara 1 men var 2. en kvitterad cell far ga, och forst da; kvittensen ar en stigande flank pa SYS_RESET med obruten ljusrida\n  [nodstopp_mitt_i_greppet@700ms:ST420_STA_STEP/F5] ST4"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 7 brister, 641 scan\n  [nodstopp_mitt_i_greppet@2500ms:ST420_STA_STEP/F5] ST420_STA_STEP skulle vara 6 men var 5. cellen kor vidare fran det steg den stod pa och slapper konsolen forst i fixturen, aldrig i stoppet\n  [nodstoppet_aterstalls_utan_kvittering@2600ms:ST420_STA_STEP/F5"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 5 brister, 641 scan\n  [nodstopp_mitt_i_greppet@2500ms:ST420_STA_STEP/F5] ST420_STA_STEP skulle vara 6 men var 5. cellen kor vidare fran det steg den stod pa och slapper konsolen forst i fixturen, aldrig i stoppet\n  [nodstoppet_aterstalls_utan_kvittering@2600ms:ST420_STA_STEP/F5"
+        ]
+      ],
+      "kroppar_per_varv": [
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nxLarm := TRUE;\nELSIF trigReset.Q AND ST420_LGT_CLEAR THEN\nxStopp := FALSE;\nxKravOmstart := FALSE;\nxDriftsklar := TRUE;\nxLarm := FALSE;\nEND_IF;\nxRor := ((steg = 1) OR (steg = 4) OR (steg = 6)) AND xDriftsklar AND EMG_OK;\ntmrSafe(IN:=NOT EMG_OK, PT:=T#300ms);\ntmrRor(IN:=((steg = 1) OR (steg = 2) OR (steg = 5) OR (steg = 6) OR (steg = 7)) AND xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT tmrRor.Q, PT:=T#3s);\nIF xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart THEN\nCASE steg OF\n0:\nIF NOT ST420_PRT_PRS THEN\nsteg := 1;\nEND_IF;\n1:\nIF tmrRor.Q THEN\nsteg := 2;\nEND_IF;\n2:\nIF tmrRor.Q THEN\nsteg := 3;\nEND_IF;\n3:\nIF ST420_GRP_FORCE >= 120.0 THEN\nsteg := 4;\nEND_IF;\n4:\nIF ST420_PRT_PRS THEN\nsteg := 5;\nEND_IF;\n5:\nIF tmrRor.Q THEN\nsteg := 6;\nEND_IF;\n6:\nIF tmrRor.Q THEN\nsteg := 7;\nEND_IF;\n7:\nIF tmrRor.Q THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\nST420_STA_STEP := steg;\nST420_RB_START := ((xRor OR (steg = 2) OR (steg = 3) OR (steg = 5)) AND xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart);\nST420_RB_HOLD := NOT ((xRor OR (steg = 2) OR (steg = 3) OR (steg = 5)) AND xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart);\nST420_STA_SAFE := NOT EMG_OK OR tmrSafe.Q OR xStopp;\nST420_GRP_CLOSE := (steg = 2) OR (steg = 3) OR (steg = 4);\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm OR xKravOmstart OR xStopp OR NOT EMG_OK;\n",
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF NOT ST420_LGT_CLEAR THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR AND NOT (((steg = 3) OR (steg = 4)) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0))) THEN\nxStopp := FALSE;\nxKravOmstart := FALSE;\nxDriftsklar := TRUE;\nxLarm := FALSE;\nELSIF ((steg = 3) OR (steg = 4)) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0)) AND xDriftsklar THEN\nxLarm := TRUE;\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nEND_IF;\ntmrSafe(IN := xStopp OR xKravOmstart OR NOT EMG_OK OR xLarm, PT := T#185ms);\ntmrRor(IN := ((steg = 1) OR (steg = 2) OR (steg = 5) OR (steg = 6) OR (steg = 7)) AND xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT tmrRor.Q, PT := T#150ms);\nIF xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart AND NOT xLarm THEN\nCASE steg OF\n0:\nIF NOT ST420_PRT_PRS THEN\nsteg := 1;\nEND_IF;\n1:\nIF tmrRor.Q THEN\nsteg := 2;\nEND_IF;\n2:\nIF tmrRor.Q THEN\nsteg := 3;\nEND_IF;\n3:\nIF (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) THEN\nsteg := 4;\nEND_IF;\n4:\nIF ST420_PRT_PRS THEN\nsteg := 5;\nEND_IF;\n5:\nIF tmrRor.Q THEN\nsteg := 6;\nEND_IF;\n6:\nIF tmrRor.Q THEN\nsteg := 7;\nEND_IF;\n7:\nIF tmrRor.Q THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\nST420_STA_STEP := steg;\nST420_RB_START := (steg <> 0) AND (steg <> 7);\nST420_RB_HOLD := NOT EMG_OK OR NOT ST420_LGT_CLEAR OR NOT xDriftsklar OR xStopp OR xKravOmstart OR xLarm;\nST420_STA_SAFE := tmrSafe.Q;\nST420_GRP_CLOSE := (steg = 2) OR (steg = 3) OR (steg = 4);\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF NOT ST420_LGT_CLEAR THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR AND NOT ((steg = 4) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0))) THEN\nxStopp := FALSE;\nxKravOmstart := FALSE;\nxDriftsklar := TRUE;\nxLarm := FALSE;\nELSIF (steg = 4) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0)) AND xDriftsklar THEN\nxLarm := TRUE;\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nEND_IF;\nxRor := xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart AND NOT xLarm;\ntmrSafe(IN:=xStopp OR xKravOmstart OR NOT EMG_OK OR xLarm, PT:=T#185ms);\nIF steg = 1 THEN\ntmrRor(IN:=xRor AND NOT tmrRor.Q, PT:=T#350ms);\nELSIF steg = 6 THEN\ntmrRor(IN:=xRor AND NOT tmrRor.Q, PT:=T#300ms);\nELSE\ntmrRor(IN:=((steg = 2) OR (steg = 5) OR (steg = 7)) AND xRor AND NOT tmrRor.Q, PT:=T#120ms);\nEND_IF;\nIF xRor THEN\nCASE steg OF\n0:\nIF NOT ST420_PRT_PRS THEN\nsteg := 1;\nEND_IF;\n1:\nIF tmrRor.Q THEN\nsteg := 2;\nEND_IF;\n2:\nIF tmrRor.Q THEN\nsteg := 3;\nEND_IF;\n3:\nIF (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) THEN\nsteg := 4;\nEND_IF;\n4:\nIF ST420_PRT_PRS THEN\nsteg := 5;\nEND_IF;\n5:\nIF tmrRor.Q THEN\nsteg := 6;\nEND_IF;\n6:\nIF tmrRor.Q THEN\nsteg := 7;\nEND_IF;\n7:\nIF tmrRor.Q THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\nST420_STA_STEP := steg;\nST420_RB_START := (steg <> 0) AND (steg <> 7);\nST420_RB_HOLD := NOT xRor;\nST420_STA_SAFE := tmrSafe.Q;\nST420_GRP_CLOSE := (steg = 2) OR (steg = 3) OR (steg = 4);\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm;\n",
+        "trigReset(CLK:=SYS_RESET);\nIF NOT EMG_OK THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF NOT ST420_LGT_CLEAR THEN\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF (steg = 4) AND ((ST420_GRP_FORCE < 120.0) OR (ST420_GRP_FORCE > 500.0)) THEN\nxLarm := TRUE;\nxStopp := TRUE;\nxKravOmstart := TRUE;\nxDriftsklar := FALSE;\nELSIF trigReset.Q AND EMG_OK AND ST420_LGT_CLEAR THEN\nxStopp := FALSE;\nxKravOmstart := FALSE;\nxDriftsklar := TRUE;\nxLarm := FALSE;\nEND_IF;\nxRor := xDriftsklar AND EMG_OK AND ST420_LGT_CLEAR AND NOT xStopp AND NOT xKravOmstart AND NOT xLarm;\ntmrSafe(IN := xStopp OR xKravOmstart OR NOT EMG_OK OR xLarm, PT := T#185ms);\nIF steg = 1 THEN\ntmrRor(IN := xRor AND NOT tmrRor.Q, PT := T#350ms);\nELSIF steg = 6 THEN\ntmrRor(IN := xRor AND NOT tmrRor.Q, PT := T#250ms);\nELSE\ntmrRor(IN := ((steg = 2) OR (steg = 5) OR (steg = 7)) AND xRor AND NOT tmrRor.Q, PT := T#100ms);\nEND_IF;\nIF xRor THEN\nCASE steg OF\n0:\nIF NOT ST420_PRT_PRS THEN\nsteg := 1;\nEND_IF;\n1:\nIF tmrRor.Q THEN\nsteg := 2;\nEND_IF;\n2:\nIF tmrRor.Q THEN\nsteg := 3;\nEND_IF;\n3:\nIF (ST420_GRP_FORCE >= 120.0) AND (ST420_GRP_FORCE <= 500.0) THEN\nsteg := 4;\nEND_IF;\n4:\nIF ST420_PRT_PRS THEN\nsteg := 5;\nEND_IF;\n5:\nIF tmrRor.Q THEN\nsteg := 6;\nEND_IF;\n6:\nIF tmrRor.Q THEN\nsteg := 7;\nEND_IF;\n7:\nIF tmrRor.Q THEN\nsteg := 0;\nEND_IF;\nEND_CASE;\nEND_IF;\nST420_STA_STEP := steg;\nST420_RB_START := (steg <> 0) AND (steg <> 7);\nST420_RB_HOLD := NOT xRor;\nST420_STA_SAFE := tmrSafe.Q;\nST420_GRP_CLOSE := (steg = 2) OR (steg = 3) OR (steg = 4);\nST420_STP_CLOSE := TRUE;\nSYS_ALARM := xLarm;\n"
+      ],
+      "upprepning": 1
+    },
+    {
+      "uppgift": "H-01",
+      "lage": "historik",
+      "utfall": "KORNINGSFEL",
+      "lost": false,
+      "fel": "Modellfel('modellen svarade inte inom 600 s')",
+      "varv_korda": 0,
+      "varv_till_lost": null,
+      "upprepning": 1,
+      "slog_i_taket": false,
+      "kostnad_usd": 0.0
+    }
+  ],
+  "lost": 0,
+  "slog_i_taket": 1
+}
