@@ -65,6 +65,11 @@ def kor_en(post, lage, modellnamn, max_varv):
         "domar_per_varv": [
             [d.utdata[:300] for d in getattr(v, "domar", ())]
             for v in protokoll.varv],
+        # ...och KROPPEN som domdes. En dom utan sin kod gar inte att granska:
+        # nar TIDLITERAL-domarna visade sig vara var egen falska rodgrind
+        # (M-96) fanns modellens kod inte kvar att lasa, sa fyndet fick goras
+        # om fran borjan. Det som dommer och det som doms hor ihop.
+        "kroppar_per_varv": [getattr(v, "kropp", "") for v in protokoll.varv],
     }
 
 
