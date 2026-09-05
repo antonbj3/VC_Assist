@@ -183,11 +183,17 @@ project measures more.
 
 ## What is being built next
 
-**From one station to a whole line.** You state what you want and under which
-constraints — that stays the input, and the planner already turns it into a
-buildable spec or tells you which two conditions collide. What is not yet proven
-is the model writing the control code for a *complete line* and correcting it
-from what the eye reports. Faults between stations are a different problem from
+**Saying it however you like.** The input is plain language, and it should cover
+the whole range: a precise specification, a rough intention, or a change to a
+scene that already exists — *speed this line up*, *why does station 3 starve*,
+*swap that gripper*. The 122 tools underneath already read and modify a running
+scene, and the planner already turns a build order into a spec or tells you
+which two conditions collide. What is missing is the path from a loose sentence
+about an existing scene to the work being done; today that route is only proven
+for building something new.
+
+**From one station to a whole line.** Not yet proven: the model writing the
+control code for a *complete line* and correcting it from what the eye reports. Faults between stations are a different problem from
 faults inside one. The rig is built and waiting on a run. If it fails, that is
 worth knowing: it would mean the value sits in the testing rather than in the
 generation.
