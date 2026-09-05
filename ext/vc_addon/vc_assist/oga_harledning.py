@@ -911,7 +911,7 @@ def _lastid(rad):
     return t - float(alder), float(alder)
 
 
-def plcflanker(rader):
+def plcflanker(rader, farsk_s=None):
     """Flanker i PLC-variablerna, i samma form som signalflankerna.
 
     Namnen bar prefixet plc: sa en PLC-tagg och en VC-signal aldrig kan
@@ -920,6 +920,11 @@ def plcflanker(rader):
 
     Flankens tid ar LASNINGENS tid (se _lastid), och flanken bar ocksa
     provets tid och aldern, sa underlaget visar bada.
+
+    Med `farsk_s` bar flanken ocksa `otackt`: om radens hopfogning ar sa stor
+    att vardets farskhet inte gar att styrka (plc_otackt, M-97). Utan
+    `farsk_s` ar faltet None - fragan ar da inte stalld, och det ar inte
+    samma sak som ett nej.
     """
     ut = []
     taggar = sorted(set(t for r in rader for t in (r.get("plc") or {})))
@@ -941,10 +946,91 @@ def plcflanker(rader):
                            # skulle da gora hela korningens fasdomar
                            # obestambara. Osakerheten hor till DEN rad den
                            # mattes pa (M-87).
-                           "hopfogning_s": rad.get("plc_hopfogning_s")})
+                           "hopfogning_s": rad.get("plc_hopfogning_s"),
+                           "otackt": (None if farsk_s is None
+                                      else plc_otackt(rad, farsk_s))})
             forra = v
     ut.sort(key=lambda f: (f["t"], f["signal"]))
     return ut
+
+
+def plc_otackt(rad, farsk_s):
+    """Ar radens PLC-varde OTACKT - kan dess farskhet inte styrkas?
+
+    Raden bar vardets alder som en PUNKTSKATTNING (`plc_alder_s`) och
+    hopfogningens osakerhet som ett TAK (`plc_hopfogning_s`, M-87: matt
+    tackande i 899 av 900 varv). Den sanna aldern ligger da i
+    [alder - tak, alder + tak]. Att vardet ar farskt - hogst `farsk_s`
+    gammalt, sa att det ligger pa samma tidsaxel som fysiken - gar bara att
+    styrka nar alder + tak <= farsk_s.
+
+    M-42 skrev regeln utan att bygga den: "vore osakerheten i samma
+    storleksordning som fonstret vore plc_gammal brus och inte ett matt".
+    Fore M-97 sattes plc_gammal pa punktskattningen ensam, och en rad med
+    alder 0,10 s och tak 1,8 s (M-87 §6 matte sadana i en frisk korning)
+    raknades som farsk.
+
+    Tre fall som INTE ar otackta, for de ar andra storheter:
+      * utan alder ar raden redan plc_gammal (fail-closed i provtagaren);
+      * ar aldern SJALV over fonstret ar raden plc_gammal pa punktskattningen
+        - det ar provtagarens flagga, och samma rad ska inte bara tva namn
+        for ett fel;
+      * utan tak ar hopfogningen ANTAGEN, inte matt - PRIOR-fallet, som
+        LIMITS-raden redovisar for sig.
+    Otackt ar alltsa exakt: aldern ligger INOM fonstret, men taket lyfter
+    alder + tak OVER det. Det ar taket som avgor, och bara taket.
+    """
+    if rad.get("plc") is None:
+        return False
+    alder = rad.get("plc_alder_s")
+    tak = rad.get("plc_hopfogning_s")
+    if alder is None or tak is None:
+        return False
+    if float(alder) > float(farsk_s):
+        return False
+    return float(alder) + float(tak) > float(farsk_s) + 1e-9
+
+
+def plc_axel(rader, farsk_s):
+    """Hur stor del av PLC-axeln gar att lita pa? MATT ur serien (M-97).
+
+    Fas 8:s forebild: en korning vars klockkvot lag utanfor braketten var
+    OGILTIG - inte fallande, inte godkand - for facits fonster matte da
+    kopplingen mellan klockorna i stallet for stationen. Har ar storheten
+    andelen PLC-rader vars hopfogning tacker farskhetsfonstret (plc_otackt).
+    Policyn - vilken andel som gor korningen obestambar - bor i oga_analys.
+
+    Talen ar en RAKNING, inte en dom: rader med PLC, otackta, utan tak
+    (PRIOR), och fordelningen av tak och alder + tak.
+    """
+    med = [r for r in rader if r.get("plc") is not None]
+    otackta = [r for r in med if plc_otackt(r, farsk_s)]
+    utan_tak = [r for r in med if r.get("plc_alder_s") is not None
+                and r.get("plc_hopfogning_s") is None]
+    tak = sorted(float(r["plc_hopfogning_s"]) for r in med
+                 if r.get("plc_hopfogning_s") is not None)
+    summa = sorted(float(r["plc_alder_s"]) + float(r["plc_hopfogning_s"])
+                   for r in med
+                   if r.get("plc_alder_s") is not None
+                   and r.get("plc_hopfogning_s") is not None)
+
+    def _p(v, andel):
+        if not v:
+            return None
+        return v[min(len(v) - 1, int(round(andel * (len(v) - 1))))]
+
+    n = len(med)
+    return {"rader_med_plc": n,
+            "otackta": len(otackta),
+            "andel_otackt": (float(len(otackta)) / n) if n else 0.0,
+            "utan_tak": len(utan_tak),
+            "farsk_s": float(farsk_s),
+            "tak_median_s": _p(tak, 0.5), "tak_p95_s": _p(tak, 0.95),
+            "tak_max_s": _p(tak, 1.0),
+            "alder_tak_median_s": _p(summa, 0.5),
+            "alder_tak_p95_s": _p(summa, 0.95),
+            "alder_tak_max_s": _p(summa, 1.0),
+            "t_otackta": [round(float(r.get("t", 0.0)), 4) for r in otackta[:8]]}
 
 
 def plc_lastider(rader):
@@ -1128,8 +1214,9 @@ def _fasdom(dt_ms, max_ms, res_ms):
 # En sekvens kan halla medan forreglingen brister, och tvartom.
 
 
-def _flank_vid(flanker, signal, flank, fran, till):
-    """Forsta flanken av ratt sort i [fran, till]. None nar den uteblev."""
+def _flankpost_vid(flanker, signal, flank, fran, till):
+    """Forsta flanken av ratt sort i [fran, till], HELA posten. None nar den
+    uteblev. Posten behovs for flankens eget hopfogningstak (M-97)."""
     basta = None
     for f in flanker:
         if f["signal"] != signal or f["flank"] != flank:
@@ -1137,9 +1224,28 @@ def _flank_vid(flanker, signal, flank, fran, till):
         t = float(f["t"])
         if t < fran - 1e-9 or t > till + 1e-9:
             continue
-        if basta is None or t < basta:
-            basta = t
+        if basta is None or t < float(basta["t"]):
+            basta = f
     return basta
+
+
+def _flank_vid(flanker, signal, flank, fran, till):
+    """Forsta flanken av ratt sort i [fran, till]. None nar den uteblev."""
+    f = _flankpost_vid(flanker, signal, flank, fran, till)
+    return None if f is None else float(f["t"])
+
+
+def _flanktak(f):
+    """Flankens eget hopfogningstak i sekunder; 0 nar inget ar matt.
+
+    Noll ar ratt for en flank utan tak: en syntetisk serie har exakta tider,
+    och en PRIOR-korning redovisar sin antagna osakerhet i LIMITS. Har galler
+    bara den MATTA osakerheten, och den kan inte vara mindre an noll.
+    """
+    if not f:
+        return 0.0
+    tak = f.get("hopfogning_s")
+    return 0.0 if tak is None else max(0.0, float(tak))
 
 
 def sekvensdom(flanker, spec, t_slut):
@@ -1178,12 +1284,23 @@ def sekvensdom(flanker, spec, t_slut):
     uteblivet, och sekvensdomaren fallde da ocksa varje tidsfel. Tva domare
     som faller samma cell provar inte varandra.
 
-    Varje steg far ett status: OK, MISSING, TOO_LATE eller TOO_EARLY.
+    Varje steg far ett status: OK, MISSING, TOO_LATE, TOO_EARLY eller
+    INCONCLUSIVE.
+
+    INCONCLUSIVE ar M-97:s: steget lag utanfor sitt fonster, men med MINDRE
+    an hopfogningens egen osakerhet - startflankens tak plus stegflankens
+    tak, bada MATTA i sina rader. Samma regel som PHASE haft sedan M-65:
+    ett fel som ar mindre an ogats upplosning ar inte ett fel, det ar ett
+    prov. Fore M-97 dömde sekvensen stegens tid som om PLC-flankerna lag
+    exakt, medan M-87 matte tak pa upp till 1,8 s i samma korning. Ett steg
+    utan matt tak (syntetisk serie, PRIOR) doms som forut: osakerheten ar
+    da noll har och redovisas i LIMITS. MISSING pafverkas inte - ett steg
+    som aldrig kom i hela cykeln saknas oavsett tak.
 
     Returnerar {"cykler": [...], "domda": n, "brott": [...], "tidsbrott": [...],
-                "obestambar": ...}
+                "osakra": [...], "obestambar": ...}
     """
-    ut = {"cykler": [], "domda": 0, "brott": [], "tidsbrott": [],
+    ut = {"cykler": [], "domda": 0, "brott": [], "tidsbrott": [], "osakra": [],
           "obestambar": None, "avhuggna": 0}
     if not spec:
         ut["obestambar"] = "ingen sekvens deklarerad"
@@ -1194,9 +1311,11 @@ def sekvensdom(flanker, spec, t_slut):
         ut["obestambar"] = "sekvensen saknar start eller steg"
         return ut
     fonster = max(float(s.get("max_s", 0.0)) for s in steg)
-    starter = sorted(float(f["t"]) for f in flanker
-                     if f["signal"] == start["signal"]
-                     and f["flank"] == start.get("flank", "RISE"))
+    startposter = sorted((f for f in flanker
+                          if f["signal"] == start["signal"]
+                          and f["flank"] == start.get("flank", "RISE")),
+                         key=lambda f: float(f["t"]))
+    starter = [float(f["t"]) for f in startposter]
     if not starter:
         ut["obestambar"] = ("ingen %s-flank pa %s: ingen cykel borjade ens"
                             % (start.get("flank", "RISE"), start["signal"]))
@@ -1219,14 +1338,22 @@ def sekvensdom(flanker, spec, t_slut):
         cykelslut = nasta if nasta is not None else float(t_slut)
         felet = None
         tidsfel = []
+        osakra = []
+        tak_start = _flanktak(startposter[i])
         for s in steg:
             min_s = float(s.get("min_s", 0.0))
             max_s = float(s.get("max_s", 0.0))
-            t = _flank_vid(flanker, s["signal"], s["flank"], golv, cykelslut)
+            fpost = _flankpost_vid(flanker, s["signal"], s["flank"], golv, cykelslut)
+            t = None if fpost is None else float(fpost["t"])
+            # Osakerheten i dt = t - t0 ar bada flankernas tak. De ar tva
+            # olika inskott och kan ha stamplats med olika takt, sa de laggs
+            # ihop - en gemensam term hade antagit att felen ar lika.
+            osakerhet = tak_start + _flanktak(fpost)
             post = {"signal": s["signal"], "flank": s["flank"],
                     "min_s": min_s, "max_s": max_s,
                     "t": None if t is None else round(t, 4),
-                    "dt_s": None if t is None else round(t - t0, 4)}
+                    "dt_s": None if t is None else round(t - t0, 4),
+                    "osakerhet_s": round(osakerhet, 4)}
             if t is None:
                 post["status"] = "MISSING"
                 felet = ("cykel %d: %s %s uteblev i fonstret %.2f-%.2f s efter "
@@ -1234,15 +1361,33 @@ def sekvensdom(flanker, spec, t_slut):
                 rad["steg"].append(post)
                 break
             if t > t0 + max_s + 1e-9:
-                post["status"] = "TOO_LATE"
-                tidsfel.append("cykel %d: %s %s kom %.2f s efter starten, "
-                               "fonstret ar %.2f-%.2f s"
-                               % (i, s["signal"], s["flank"], t - t0, min_s, max_s))
+                if t - (t0 + max_s) <= osakerhet + 1e-9:
+                    post["status"] = "INCONCLUSIVE"
+                    osakra.append("cykel %d: %s %s kom %.2f s efter starten, "
+                                  "fonstret ar %.2f-%.2f s, men hopfogningens "
+                                  "osakerhet ar %.3f s"
+                                  % (i, s["signal"], s["flank"], t - t0, min_s,
+                                     max_s, osakerhet))
+                else:
+                    post["status"] = "TOO_LATE"
+                    tidsfel.append("cykel %d: %s %s kom %.2f s efter starten, "
+                                   "fonstret ar %.2f-%.2f s"
+                                   % (i, s["signal"], s["flank"], t - t0, min_s,
+                                      max_s))
             elif t < t0 + min_s - 1e-9:
-                post["status"] = "TOO_EARLY"
-                tidsfel.append("cykel %d: %s %s kom redan %.2f s efter starten, "
-                               "fonstret ar %.2f-%.2f s"
-                               % (i, s["signal"], s["flank"], t - t0, min_s, max_s))
+                if (t0 + min_s) - t <= osakerhet + 1e-9:
+                    post["status"] = "INCONCLUSIVE"
+                    osakra.append("cykel %d: %s %s kom redan %.2f s efter "
+                                  "starten, fonstret ar %.2f-%.2f s, men "
+                                  "hopfogningens osakerhet ar %.3f s"
+                                  % (i, s["signal"], s["flank"], t - t0, min_s,
+                                     max_s, osakerhet))
+                else:
+                    post["status"] = "TOO_EARLY"
+                    tidsfel.append("cykel %d: %s %s kom redan %.2f s efter "
+                                   "starten, fonstret ar %.2f-%.2f s"
+                                   % (i, s["signal"], s["flank"], t - t0, min_s,
+                                      max_s))
             else:
                 post["status"] = "OK"
             rad["steg"].append(post)
@@ -1260,13 +1405,16 @@ def sekvensdom(flanker, spec, t_slut):
             if n > tak and felet is None:
                 felet = ("cykel %d: %s gick hog %d ganger, hogst %d ar "
                          "tillatet" % (i, signal, n, tak))
-        rad["ok"] = felet is None and not tidsfel
+        rad["ok"] = felet is None and not tidsfel and not osakra
         if felet:
             rad["fel"] = felet
             ut["brott"].append(felet)
         if tidsfel:
             rad["tidsfel"] = list(tidsfel)
             ut["tidsbrott"].extend(tidsfel)
+        if osakra:
+            rad["osakra"] = list(osakra)
+            ut["osakra"].extend(osakra)
         ut["domda"] += 1
         ut["cykler"].append(rad)
     krav = int(spec.get("min_cykler", 1))
