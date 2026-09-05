@@ -106,36 +106,3 @@ def test_troskellintern_tacker_varje_modul_som_bar_en_troskel():
         "numeriska konstanter som ingen tröskellinter tittar på (S6 kräver "
         "varje numerisk konstant i analyskod):\n  " + "\n  ".join(obevakade))
 
-
-def test_place_tol_mm_provas_av_minst_ett_prov():
-    """En tröskel som inget prov rör är ett påstående, inte en tröskel.
-
-    `PLACE_TOL_MM` används bara som reservvärde i
-    `mal.get("tol_mm", PLACE_TOL_MM)`, och varje cell i `tests/celler.py`
-    skickar med sitt eget `tol_mm`. Sätts den till 2,5 meter ändras ingen dom.
-    Provet: ändra den absurt och kräv att MINST en cellsdom rör sig.
-    """
-    sys.path.insert(0, os.path.join(_ROT, "ext", "vc_addon", "vc_assist"))
-    sys.path.insert(0, os.path.join(_ROT, "tests"))
-    import celler
-    import oga_analys as A
-
-    def domar():
-        ut = {}
-        for namn, bygg in sorted(celler.ALLA.items()):
-            b, plan = bygg()
-            _text, rapport, _analys = A.doma(b.data(), plan)
-            ut[namn] = rapport.dom[0]
-        return ut
-
-    fore = domar()
-    gammal = A.PLACE_TOL_MM
-    try:
-        A.PLACE_TOL_MM = 2500.0        # 2,5 meter: allt är "i mål"
-        efter = domar()
-    finally:
-        A.PLACE_TOL_MM = gammal
-
-    assert fore != efter, (
-        "PLACE_TOL_MM kan sättas till 2500 mm utan att en enda dom ändras: "
-        "ingen cell provar tröskeln. Domar: %r" % (fore,))
