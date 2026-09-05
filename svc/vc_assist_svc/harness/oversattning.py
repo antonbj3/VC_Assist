@@ -94,21 +94,21 @@ def _argument(rad: Any, kalla: str) -> Dict[str, Any]:
         try:
             avkodat = json.loads(rad)
         except ValueError as e:
-            raise Modellfel("%s: argumenten gar inte att avkoda som JSON: %s"
+            raise Modellfel("%s: the arguments cannot be decoded as JSON: %s"
                             % (kalla, e))
         if not isinstance(avkodat, dict):
-            raise Modellfel("%s: argumenten avkodades till %s, inte ett objekt"
+            raise Modellfel("%s: the arguments decoded to %s, not an object"
                             % (kalla, type(avkodat).__name__))
         return avkodat
     if rad is None:
         return {}
-    raise Modellfel("%s: argumenten ar %s, varken objekt eller strang"
+    raise Modellfel("%s: the arguments are %s, neither an object nor a string"
                     % (kalla, type(rad).__name__))
 
 
 def fran_openai(svar: Dict[str, Any]) -> Modellsvar:
     if not isinstance(svar, dict) or not svar.get("choices"):
-        raise Modellfel("openai: svaret saknar choices")
+        raise Modellfel("openai: the response is missing choices")
     meddelande = (svar["choices"][0] or {}).get("message") or {}
     text = meddelande.get("content") or ""
     anrop = []
@@ -123,7 +123,7 @@ def fran_openai(svar: Dict[str, Any]) -> Modellsvar:
 
 def fran_anthropic(svar: Dict[str, Any]) -> Modellsvar:
     if not isinstance(svar, dict) or "content" not in svar:
-        raise Modellfel("anthropic: svaret saknar content")
+        raise Modellfel("anthropic: the response is missing content")
     texter, anrop = [], []
     for i, block in enumerate(svar.get("content") or []):
         sort = block.get("type")
@@ -140,7 +140,7 @@ def fran_anthropic(svar: Dict[str, Any]) -> Modellsvar:
 
 def fran_gemini(svar: Dict[str, Any]) -> Modellsvar:
     if not isinstance(svar, dict) or not svar.get("candidates"):
-        raise Modellfel("gemini: svaret saknar candidates")
+        raise Modellfel("gemini: the response is missing candidates")
     innehall = (svar["candidates"][0] or {}).get("content") or {}
     texter, anrop = [], []
     for i, del_ in enumerate(innehall.get("parts") or []):
@@ -163,6 +163,6 @@ IN = {"openai": fran_openai, "anthropic": fran_anthropic, "gemini": fran_gemini}
 def oversattare(leverantor: str):
     """(ut, in) for en leverantor. Kastar pa okand - aldrig en gissad form."""
     if leverantor not in UT:
-        raise Modellfel("okand leverantor %r; kanda ar %s"
+        raise Modellfel("unknown provider %r; known are %s"
                         % (leverantor, ", ".join(LEVERANTORER)))
     return UT[leverantor], IN[leverantor]
