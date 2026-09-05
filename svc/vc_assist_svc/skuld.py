@@ -406,7 +406,7 @@ _ORDLISTEKATALOGER = ("svc", "ext", "bank", "install")
 # moduldeklarerade stranglistor i svc/ext/bank/install ligger 23 av de 35
 # helt-inneslutna paren pa exakt 3 gemensamma ord, alltsa pa golvet - det ar
 # sammantraffanden, inte kopior.
-_MINSTA_ORDLISTA = 3
+_MINSTA_ORDLISTA = 3  # Satt av M-98 (golvet dar sammantraffandena ligger).
 
 # Nar tva listor i olika filer raknas som KOPIOR. Talet ar matt och inte valt:
 # fordelningen av parvis overlapp over de 163 listorna gar 19 par vid >=4, 7
@@ -414,7 +414,7 @@ _MINSTA_ORDLISTA = 3
 # gransen star pa 6 sa att ett femordigt sammantraffande inte blir ett fynd.
 # Listor med SAMMA namn raknas som kopior oavsett storlek - ett delat namn ar
 # ingen slump.
-KOPIEGRANS = 6
+KOPIEGRANS = 6  # Satt av M-98 (knacken i overlappsfordelningen).
 
 # `__all__` ar Pythons exportlista och ingen ordlista som domer nagot. Den
 # star for sig darfor att den annars ensam star for 43 av de identiska paren.

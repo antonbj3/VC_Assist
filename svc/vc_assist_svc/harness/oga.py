@@ -54,8 +54,14 @@ UNDERKANNANDEORD = ("fail", "inconclusive", "not gold", "underkand",
                     "underkänd", "rott", "rött", "avbrots", "avbröts",
                     "saknas")
 
-BARA_NEGATION_OGA = ("inte", "icke", "ingen", "inget", "utan att", "aldrig",
-                     "not ", "no ")
+# "inga" tillkom med M-98 och ar det ENDA ord listan blev bredare med. Skalet
+# ar matt: "Det finns inga PASS i rapporten." anklagades for att uttala en dom
+# i ogats namn, trots att meningen sager motsatsen. Listan bar "ingen" och
+# "inget" men inte pluralformen, och text.BARA_NEGATION bar den redan.
+# Efterlevnadsbanken star kvar pa 58 av 58 och 28 av 28 med tillagget - inget
+# matt fall tystnar av det.
+BARA_NEGATION_OGA = ("inte", "icke", "ingen", "inget", "inga", "utan att",
+                     "aldrig", "not ", "no ")
 
 NEKANDE_OGONORD = UNDERKANNANDEORD + BARA_NEGATION_OGA
 

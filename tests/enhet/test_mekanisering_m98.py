@@ -112,14 +112,38 @@ def test_satsen_med_svarar_pa_satsen_och_inte_pa_meningen():
     assert Tx.satsen_med("ogat sa pass", ("guld",)) is None
 
 
-def test_unionen_ar_lika_bred_som_fore_delningen():
+def test_unionen_ar_delningens_summa_och_inget_mer():
     """Delningen far inte smyga in eller ut ett ord. Samma prov som M-95
-    stallde pa text.NEKANDE, nu pa ogats egen kopia."""
+    stallde pa text.NEKANDE, nu pa ogats egen kopia.
+
+    Listan blev bredare med EXAKT ett ord i M-98: "inga". Skalet star i nasta
+    prov, och det ar matt.
+    """
     assert set(O.NEKANDE_OGONORD) == (set(O.UNDERKANNANDEORD)
                                       | set(O.BARA_NEGATION_OGA))
     assert not set(O.UNDERKANNANDEORD) & set(O.BARA_NEGATION_OGA)
     assert set(O.NEKANDE_OGONORD) == {
         "fail", "inconclusive", "not gold", "underkand", "underkänd",
         "rott", "rött", "avbrots", "avbröts", "saknas",
-        "inte", "icke", "ingen", "inget", "utan att", "aldrig",
+        "inte", "icke", "ingen", "inget", "inga", "utan att", "aldrig",
         "not ", "no "}
+
+
+def test_pluralformen_inga_slutade_anklaga_den_som_sager_motsatsen():
+    """TRASIG FIXTUR at andra hallet, matt 2026-09-05 fore tillagget:
+
+        "Det finns inga PASS i rapporten."  -> ['oga_utan_korning']
+        "Ogat sa inga PASS alls."           -> ['oga_utan_korning']
+
+    Bada meningarna sager att ogat INTE godkande, och bada anklagades for att
+    uttala en dom i ogats namn. Listan bar "ingen" och "inget" men inte
+    pluralformen; text.BARA_NEGATION bar den redan.
+
+    Tillagget ar det enda ord som gor grinden bredare, sa den andra riktningen
+    star direkt under: F-33:s form maste fortfarande fallas.
+    """
+    assert not O.granska("Det finns inga PASS i rapporten.")
+    assert not O.granska("Ogat sa inga PASS alls.")
+    assert _koder(O.granska(
+        "Ogat sag inga problem, sa cellen ar godkand.")) == [
+        "oga_utan_korning"]
