@@ -12,7 +12,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 En lista som bär både felord och bara negationer svarar på frågan *bär texten något av de här orden?* — och det är inte den fråga någon grind ställer sig. Mätt tre gånger: M-94 fynd 1 och 4, M-98. Taket är noll, och kriteriet har ingen undantagslista: en lista som bär båda storheterna ska vara **sammansatt** ur de listor som bär var sin.
 
-## Ordlistor som står i två filer: 13
+## Ordlistor som står i två filer: 11
 
 `harness/text.py` säger det själv: *"de ligger PA ETT STALLE just for att en kopierad ordlista blir tva ordlistor sa fort nagon ratter den ena"*. Registret såg inte att regeln bröts. Listan nedan är ett **register**, inte en anklagelse: en delad ordlista kan vara rätt, men den måste vara sedd.
 
@@ -22,15 +22,13 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 7 gemensamma — `svc/vc_assist_svc/harness/oga.py`.**GODKANNANDEORD** ↔ `svc/vc_assist_svc/harness/text.py`.**FRAMGANGSMARKORER**
 * 7 gemensamma — `svc/vc_assist_svc/st/lexer.py`.**NYCKELORD** ↔ `svc/vc_assist_svc/st/modell.py`.**VARSORTER**
 * 6 gemensamma — `svc/vc_assist_svc/st/skrivare.py`.**JAMFORELSER** ↔ `svc/vc_assist_svc/st/validator.py`.**JAMFORELSER**
-* 5 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/llm/urval.py`.**_RANGORDNING**
 * 4 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**INTE_NONE** ↔ `ext/vc_addon/vc_assist/oga_kontrakt.py`.**_INTE_NONE**
 * 3 gemensamma — `ext/vc_addon/vc_assist/plats.py`.**WINDOWSPLATTFORMAR** ↔ `install/upptackt.py`.**WINDOWSPLATTFORMAR**
 * 3 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**OBLIGATORISKA_SEKTIONER** ↔ `svc/vc_assist_svc/forlopp/yta.py`.**OBLIGATORISKA_SEKTIONER**
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
-* 1 gemensamma — `svc/vc_assist_svc/llm/urval.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 549 punkter
+## Vad mätningarna säger att de inte vet: 550 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -867,6 +865,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Kopiekriteriet missar en drivande kopia som är kortare än sex ord och har
 * Bänken har fortfarande ingen fälla av "ett nekande någon annanstans"-slaget
 * Tröskellintern är röd av annat, och det är mätt vems.**
+* De tio andra röda är också andras, och namngivna.**
 * Sju konsumenter är alla jag hittade, inte alla som finns.** Sökningen gick
 
 ### M-99_differentialsvepet_mot_kompilatorn.md — LIMITS
@@ -875,19 +874,20 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Facit är STruC++ v0.6.6, inte standarden och inte OpenPLC.
 * STruC++ är ingen namnauktoritet: `HITTEPA(x)` passerar dess främmande.
 
-## Produktionsmoduler som ingen provfil nämner: 3 (778 rader)
+## Produktionsmoduler som ingen provfil nämner: 3 (1558 rader)
 
-* `svc/vc_assist_svc/bankkontrakt.py` — 173 rader
 * `svc/vc_assist_svc/llm/ogontrim.py` — 432 rader
 * `svc/vc_assist_svc/llm/scenvy.py` — 173 rader
+* `svc/vc_assist_svc/tillverkardatablad.py` — 953 rader
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 4 (485 rader)
 
 * `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
+* `svc/vc_assist_svc/bankkontrakt.py` — 173 rader
 * `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 125
+## Markörer i koden: 126
 
 ### vc_assist_svc/harness/efterlevnad.py
 
@@ -1024,7 +1024,7 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * vc_addon/vc_assist/oga_harledning.py:91  UTSLUNGAD_MS = 3.0              # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:94  UTSLUNGAD_FLYG_MS = 1.5         # PRELIMINAR. Satts av matning M-10.
 * vc_addon/vc_assist/oga_harledning.py:96  FRITT_FALL_TOL = 0.35           # PRELIMINAR. Satts av matning M-10.
-* vc_addon/vc_assist/oga_harledning.py:1275  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
+* vc_addon/vc_assist/oga_harledning.py:1314  avhuggen sista cykel ar inte ett brott - den ar oprovad, och de tva far
 
 ### vc_addon/vc_assist/oga_provtagning.py
 
@@ -1138,6 +1138,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 * enhet/test_verktyg_transport.py:27  pastadd (95_testprotokoll.md: en grind som aldrig fallit ar oprovad).
 * enhet/test_verktyg_transport.py:554  assert "oprovad" in u.skal("station_statistics")
+
+### protocol/kor_fas20_modellen.py
+
+* protocol/kor_fas20_modellen.py:379  hans prefix rors aldrig av oprovad kod, och det galler ocksa att sla av
 
 ### protocol/kor_fas5.py
 
