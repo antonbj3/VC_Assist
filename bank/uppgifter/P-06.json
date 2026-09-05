@@ -1,0 +1,1709 @@
+{
+  "task_id": "P-06",
+  "title": "Robotbetjaning av CNC-svarv med lucka, chuck och spanntrycksvakt",
+  "goal": "Byta nav i en CNC-svarv med en robot, sa att luckan aldrig oppnas mot en roterande spindel, chucken aldrig slapper under bearbetning och spindeln aldrig startas utan bekraftad spanning.",
+  "grupp": "P",
+  "bransch": "fordonsmontering",
+  "orsak": "Speglar tre missar pa robotbetjanade svarvar. Den forsta: robotens betjaningscykel startas pa stationens eget lucka-kommando i stallet for pa luckans andlagesgivare, sa roboten gar in i luckoppningen medan bladet annu ror sig - i simulering, dar luckan oppnar sig i samma scan som kommandot, syns det aldrig. Den andra: chuckens tva ventilriktningar kommenderas fran var sitt stalle i koden, och forsta gangen en ny detalj traffar en chuck som redan star spand blir bada hoga i samma scan. Den tredje: spanningen kvitteras med backarnas lagesgivare men spanntrycket lases aldrig, sa en chuck som tappat tryck rapporterar grepp anda tills navet lamnar spindeln.",
+  "prompt": "Bygg en robotcell som betjanar en CNC-svarv och skriv styrningen till den.\n\nScen: en FANUC M-10iD/12 med tvabackat pneumatiskt gripdon, en CNC-svarv med automatisk\nlucka och kraftchuck, en ackumulerande rullbana som matar fram amnen, ett utmatningsband\nfor fardiga detaljer, tva induktiva narvarogivare och en nodstoppskrets.\n\nDetaljen ar ett svarvat nav i stal, diameter 90 mm och langd 60 mm, massa 3,0 kg.\nRobotens arbetsradie i cellen ar 1400 mm.\n\nUppgift, automatiken:\n1. Nar ST450_PRT_PRS ar hog och spindeln star stilla: kommendera ST450_DOR_OPEN hog.\n2. Nar luckan rapporterat oppet lage: slapp chucken med ST450_CHK_UNCLAMP.\n3. Nar ST450_CHK_CLAMPED gatt lag: satt ST450_RB_START hog och lat roboten byta detalj.\n4. Vid ST450_RB_DONE: nollstall ST450_RB_START och kommendera ST450_CHK_CLAMP hog.\n5. Nar chucken bekraftat spanning och spanntiden lopt ut: stang luckan.\n6. Nar ST450_DOR_CLOSED ar hog: satt ST450_CYC_START hog och vanta pa ST450_CYC_DONE.\n\nUppgift, de fem forreglingarna som gor cellen driftsatt:\n* ST450_CHK_CLAMP och ST450_CHK_UNCLAMP far aldrig sta hoga samtidigt. Chucken har en\n  ventil per riktning och tva hoga signaler ar en kortslutning.\n* Spindeln far aldrig kommenderas i gang utan att ST450_CHK_CLAMPED ar hog.\n* Chucken far aldrig kommenderas att oppna sig medan ST450_SPN_RUN ar hog.\n* Luckan far aldrig kommenderas oppen medan ST450_SPN_RUN ar hog.\n* Roboten far aldrig starta sin betjaningscykel forran ST450_DOR_OPENED ar hog och\n  ST450_SPN_RUN ar lag. Kommandot till luckan ar inte ett andlage.\n\nChuckens spanntid ar 0,8 s och luckans gangtid 2,5 s. Spanntrycket ST450_CHK_PRS ska\nligga mellan 25,0 och 35,0 bar nar chucken ar kommenderad spand. Under 25,0 bar haller\ninte chucken navet, over 35,0 bar klams det tunnvaggiga navet sonder: larma i bada\nfallen och stanna stationen.\n\nEMG_OK kommer fran en certifierad sakerhets-PLC och ska bara lasas; din logik far inte\ninnehalla nagon sakerhetsfunktion. Efter spanningspaslag och efter ett nodstopp kravs en\nstigande flank pa SYS_RESET innan nagot far ga.\n\nSkartiden ar 95,0 s och robotens betjaning 42,0 s, alltsa 137,0 s per detalj. Anvand de\nsignalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F5",
+    "F6"
+  ],
+  "stege": "plock_placera_tre_axlar",
+  "difficulty": 4,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "robotens betjaningscykel startas pa lucka-kommandot i stallet for pa andlagesgivaren",
+    "chuckens spann- och slappkommando kommenderas fran var sitt stalle och blir hoga i samma scan pa andra detaljen",
+    "spindeln startas pa luckans andlage utan att chuckens lagesgivare lases",
+    "spanntrycket lases aldrig, sa en chuck som tappat tryck rapporterar grepp",
+    "spanntrycket doms redan under uppbyggnaden, sa vakten faller varje normal cykel",
+    "omstartssparren slapper nar nodstoppet aterstalls i stallet for pa kvittensens flank",
+    "spannkommandot nollstalls vid larm, sa chucken slapper ett nav som annu roterar"
+  ],
+  "antaganden": [
+    {
+      "vad": "navets massa 3,0 kg",
+      "varde": "3,0 kg",
+      "motiv": "raknad ur navets egna matt och stalets densitet: V = pi/4 * 0,090^2 * 0,060 = 3,817e-4 m3, och 3,817e-4 * 7850 = 2,996 kg, avrundat till 3,0 kg. Densiteten 7850 kg/m3 ar konstruktionsstalets tabellvarde, sjalva navet ar bankens antagna detalj"
+    },
+    {
+      "vad": "chuckens spanntid 0,8 s",
+      "varde": "0,8 s",
+      "motiv": "star i katalogindexets post bank://station/cnc_svarv och ar ANTAGEN dar, inte hamtad ur ett datablad; posten sager att pneumatiska kraftchuckar spanner pa 0,5-1,2 s. Tiden anvands som fordrojning innan spanntrycket doms, sa att tryckuppbyggnaden inte laser ut vakten"
+    },
+    {
+      "vad": "luckans gangtid 2,5 s",
+      "varde": "2,5 s",
+      "motiv": "star i katalogindexets post bank://station/cnc_svarv och ar ANTAGEN dar; posten sager att en servolucka gar pa 2-3 s. Talet bar inget krav i logiken, som forreglar mot luckans andlagesgivare och aldrig mot en tid"
+    },
+    {
+      "vad": "luckans och chuckens tider ligger inne i robotens betjaningsfonster",
+      "varde": "2,5 s + 2,5 s luckgang inom robotens 6,0 s gang",
+      "motiv": "cykeltiden 137,0 s bar bara skartiden och robotens betjaning. Luckan oppnar sig medan roboten narmar sig och stangs medan roboten drar sig ur, sa luckans tva gangtider ryms i betjaningens 6,0 s gangtid och chuckens 0,8 s inne i de 18,0 s lastningen. Overlappet ar antaget och inte matt pa en riktig cell"
+    },
+    {
+      "vad": "spanntrycksfonstret 25,0 till 35,0 bar",
+      "varde": "25,0 till 35,0 bar",
+      "motiv": "undre gransen ar satt sa att backarna haller ett nav pa 3,0 kg i spindelvarvtal med marginal, ovre sa att ett tunnvaggigt nav inte klams ovalt. Bada talen ar antagna och inte matta mot ett datablad for den har chucken"
+    },
+    {
+      "vad": "skartiden 95,0 s",
+      "varde": "95,0 s",
+      "motiv": "en svarvoperation pa ett nav i den har storleken med grovsvarvning, finsvarvning och avstickning ligger runt en och en halv minut. Talet ar satt for uppgiften och inte hamtat ur ett bearbetningsunderlag"
+    },
+    {
+      "vad": "robotens betjaningstid 42,0 s",
+      "varde": "42,0 s (lossa 18,0 + lasta 18,0 + gang 6,0)",
+      "motiv": "delarna ar satta var for sig sa att raknningen gar att folja: att lossa och att lasta tar lika lang tid, och gangen mellan bana och spindel ar den korta forflyttningen. Talen ar antagna och inte matta pa en cell"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "svarvat nav i stal",
+      "l_mm": 90,
+      "b_mm": 90,
+      "h_mm": 60,
+      "massa_kg": 3.0
+    },
+    "arbetsradie_mm": 1400.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Nav kommer pa rullbanan, roboten byter detalj i svarven och maskinen skar i 95,0 s per detalj.",
+      "forvantat": "26,3 detaljer i timmen med en maskin, luckan aldrig oppen mot en roterande spindel och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "tryck_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST450_CHK_PRS",
+      "beskrivning": "ST450_CHK_PRS faller till 19,0 bar sedan chucken kommenderats spanna, alltsa under undre gransen 25,0 bar.",
+      "forvantat": "For lagt spanntryck betyder att chucken inte haller navet. Ett nav som lossnar i en roterande spindel ar en kastad projektil, sa styrningen ska larma och stanna innan cykeln startas."
+    },
+    {
+      "id": "tryck_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST450_CHK_PRS",
+      "beskrivning": "ST450_CHK_PRS stiger till 42,0 bar, alltsa over ovre gransen 35,0 bar.",
+      "forvantat": "For hogt spanntryck betyder att backarna klammer sonder det tunnvaggiga navet. Styrningen ska larma; en deformerad detalj far inte foras in i skarcykeln."
+    },
+    {
+      "id": "luckan_rapporterar_aldrig_oppet",
+      "typ": "vandning",
+      "signal": "ST450_DOR_OPENED",
+      "beskrivning": "Luckan kommenderas oppen men andlagesgivaren gar aldrig hog.",
+      "forvantat": "Robotens betjaningscykel far inte startas. Stationen ska sta kvar och vanta i stallet for att slappa in roboten mot ett lucklage som bara ar kommenderat."
+    },
+    {
+      "id": "spindeln_rullar_ut",
+      "typ": "vandning",
+      "signal": "ST450_SPN_RUN",
+      "beskrivning": "ST450_SPN_RUN star kvar hog en stund efter att ST450_CYC_DONE kommit, som en spindel som rullar ut.",
+      "forvantat": "Varken luckan eller chucken far kommenderas att oppna sig forran spindeln star stilla; nasta cykel far vanta pa att utrullningen ar klar."
+    },
+    {
+      "id": "chucken_bekraftar_aldrig",
+      "typ": "vandning",
+      "signal": "ST450_CHK_CLAMPED",
+      "beskrivning": "Chucken kommenderas spanna men lagesgivaren bekraftar aldrig, medan luckan rapporterar stangt lage.",
+      "forvantat": "Spindeln far inte kommenderas i gang. En stangd lucka ar inget bevis pa att navet sitter fast, och cykelstarten ska sta ute tills spanningen bekraftats."
+    }
+  ],
+  "core_outputs": [
+    "ST450_DOR_OPEN",
+    "ST450_CHK_CLAMP",
+    "ST450_CHK_UNCLAMP",
+    "ST450_CYC_START",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/fanuc_m10id_12",
+        "count": 1
+      },
+      {
+        "role": "gripdon",
+        "uri": "bank://gripdon/tvabackad_pneumatisk",
+        "count": 1
+      },
+      {
+        "role": "maskin",
+        "uri": "bank://station/cnc_svarv",
+        "count": 1
+      },
+      {
+        "role": "inmatning",
+        "uri": "bank://transport/rullbana_ackumulerande_500",
+        "count": 1
+      },
+      {
+        "role": "utmatning",
+        "uri": "bank://transport/band_400",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 2
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "inmatning",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "inmatning",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "gripdon"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "maskin"
+      },
+      {
+        "from_role": "maskin",
+        "to_role": "robot"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "utmatning"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST450_PRT_PRS",
+        "dir": "in",
+        "type": "bool",
+        "comment": "induktiv givare, hog nar ett amne ligger framme pa inmatningen"
+      },
+      {
+        "name": "ST450_CNV_RUN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "utmatningsbandet gar"
+      },
+      {
+        "name": "ST450_DOR_OPEN",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera maskinluckan till oppet lage"
+      },
+      {
+        "name": "ST450_DOR_OPENED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar luckan star oppen"
+      },
+      {
+        "name": "ST450_DOR_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "andlagesgivare, hog nar luckan ar stangd"
+      },
+      {
+        "name": "ST450_CHK_CLAMP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera chucken att spanna, egen ventil"
+      },
+      {
+        "name": "ST450_CHK_UNCLAMP",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera chucken att slappa, egen ventil"
+      },
+      {
+        "name": "ST450_CHK_CLAMPED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesgivare pa chuckbackarna, hog nar chucken haller"
+      },
+      {
+        "name": "ST450_CHK_PRS",
+        "dir": "in",
+        "type": "real",
+        "comment": "spanntryck i chuckcylindern, bar"
+      },
+      {
+        "name": "ST450_SPN_RUN",
+        "dir": "in",
+        "type": "bool",
+        "comment": "spindeln roterar, lases ur maskinens egen styrning"
+      },
+      {
+        "name": "ST450_CYC_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta maskinens bearbetningscykel"
+      },
+      {
+        "name": "ST450_CYC_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "maskinen rapporterar fardig bearbetningscykel"
+      },
+      {
+        "name": "ST450_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens betjaningscykel"
+      },
+      {
+        "name": "ST450_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten ar ute ur maskinen och betjaningen ar klar"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartssparren ute; ingenting gar forran SYS_RESET fatt en stigande flank",
+      "satt ST450_CNV_RUN hog nar EMG_OK, AIR_OK och SYS_AUTO ar hoga och inget larm star",
+      "nar ST450_PRT_PRS ar hog och ST450_SPN_RUN ar lag: kommendera ST450_DOR_OPEN hog",
+      "vid ST450_DOR_OPENED: nollstall ST450_CHK_CLAMP och satt ST450_CHK_UNCLAMP hog",
+      "nar ST450_CHK_CLAMPED gatt lag: nollstall ST450_CHK_UNCLAMP och satt ST450_RB_START hog",
+      "vid ST450_RB_DONE: nollstall ST450_RB_START och satt ST450_CHK_CLAMP hog",
+      "starta spanntidsuret 0,8 s pa ST450_CHK_CLAMP och dom spanntrycket forst nar det lopt ut",
+      "nar ST450_CHK_CLAMPED ar hog och spanntiden lopt ut: nollstall ST450_DOR_OPEN",
+      "vid ST450_DOR_CLOSED och bekraftad spanning: satt ST450_CYC_START hog",
+      "vid ST450_CYC_DONE: nollstall ST450_CYC_START och borja om",
+      "vid tryckfel eller slappt chuck under bearbetning: latcha SYS_ALARM och stanna stationen",
+      "nollstall larm och omstartssparr bara pa stigande flank pa SYS_RESET"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST450": 0.8
+      },
+      "cycle_s": 137.0,
+      "tolerance_s": 1.0
+    },
+    "interlocks": [
+      "ST450_CHK_CLAMP och ST450_CHK_UNCLAMP far aldrig sta hoga samtidigt",
+      "ST450_CYC_START far aldrig sta hog nar ST450_CHK_CLAMPED ar lag",
+      "ST450_CHK_UNCLAMP far aldrig sta hog nar ST450_SPN_RUN ar hog",
+      "ST450_DOR_OPEN far aldrig sta hog nar ST450_SPN_RUN ar hog",
+      "ST450_RB_START far aldrig sta hog nar ST450_DOR_OPENED ar lag",
+      "inget don far kommenderas nar EMG_OK ar lag; ST450_CHK_CLAMP ar undantaget med flit, en chuck som slapper vid strombortfall kastar detaljen",
+      "ett aterstallt nodstopp far aldrig i sig starta stationen"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 26.3,
+    "runs": 3,
+    "warmup_s": 300.0,
+    "must_pass": [
+      "TIMING",
+      "MOTION",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 15.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST450_DOR_OPEN RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST450_CHK_CLAMP RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST450_CYC_START RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST450_DOR_OPEN -> maskin *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST450 *s req=0.8s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST450 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "GRIP FORMED t=*s dist=*mm"
+      },
+      {
+        "section": "MOTION",
+        "template": "CARRY RIGID rot=*deg span=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE IN_TARGET err=*mm z=*m"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST nav+chuck *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "NEVER_GRIPPED OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "TIMING",
+        "template": "RACE ST450_CHK_CLAMP+ST450_CHK_UNCLAMP dt=*ms"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST450_DOR_OPEN+ST450_SPN_RUN BROKEN overlap=*s"
+      },
+      {
+        "section": "MOTION",
+        "template": "PLACE DROPPED err=*mm z=*m"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "STANDARD+RAKNAD: att spindeln inte far starta utan bekraftad spanning och att spanningen inte far slappa medan spindeln roterar star i ISO 23125:2015 5.2.3 \"Workpiece clamping conditions\". Att luckan inte far ga att oppna forran riskkallan upphort star i ISO 14119:2013 4.3.1 under 4.3 \"Principles of guard interlocking with guard locking\". Cykeltiden ar raknad ur maskinens och robotens egna tider: skartiden 95,0 s plus robotens betjaning 42,0 s (lossa 18,0 + lasta 18,0 + gang 6,0) = 137,0 s per detalj, alltsa 3600/137,0 = 26,3 detaljer i timmen med en maskin. Rakningen och paragraferna star i M-106.",
+    "standard": "ISO 23125:2015 5.2.3 \"Workpiece clamping conditions\" for spanningens forregling mot spindeln. Kraven ligger som bokstavspunkter b) 2) och b) 3) inne i 5.2.3 och inte som egna numrerade underklausuler, och punkternas ordalydelse ar bekraftad via en modifierad nationell adoption, inte ur ISO-texten sjalv - klausulnumret och rubriken ar dock verifierade mot ISO:s egen innehallsforteckning. ISO 14119:2013 4.3.1 under 4.3 \"Principles of guard interlocking with guard locking\": oppning av skyddet ska hindras av en lasanordning tills alla farliga maskinfunktioner som skyddet tacker har upphort; ytterligare krav i 5.7 \"Additional requirements on guard locking devices\" och 8.4 \"Release of guard locking device\". OBS att EN ISO 14119:2025 numrerar om: 4.3 blir 5.3, 5.7 blir 6.6 och 8.4 blir 9.3 - facit citerar 2013-utgavan och sager det. Manuell aterstallning efter nodstopp enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\"; TON och R_TRIG enligt IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanning pa med ett nav framme och maskinen stilla. Ingenting far ga forran kvittensen kommit.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": false,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST450_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST450_CNV_RUN": false,
+              "ST450_DOR_OPEN": false,
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_CHK_CLAMP": false,
+              "ST450_CYC_START": false,
+              "ST450_RB_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartssparren ute; ett nav som kommer fram far inte starta nagot, och en station som borjar oppna luckan pa egen hand vid uppstart ar den vanligaste driftsattningsmissen av alla"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST450_CNV_RUN": true,
+              "ST450_DOR_OPEN": true
+            },
+            "varfor": "forst en stigande flank pa kvittensen far ta stationen i drift, och da ar luckan det forsta som far ga"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "en_detalj_normalcykel",
+        "beskrivning": "Ett nav byts i svarven. Sekvensen kortar skartiden: ST450_CYC_DONE kommer efter 0,4 s i stallet for efter 95,0 s, sa logiken gar att doma utan att bara 95 s bearbetning genom facit.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_CHK_CLAMP": false,
+              "ST450_RB_START": false
+            },
+            "varfor": "luckan kommenderas oppen forst, och ingenting annat ar kommenderat an; chucken haller kvar navet tills luckan STATT oppen"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST450_CHK_UNCLAMP": true,
+              "ST450_CHK_CLAMP": false
+            },
+            "varfor": "chucken far slappa forst nar luckans andlage rapporterat oppet och spindeln star stilla; spanna och slappa ar en ventil var och far aldrig sta hoga samtidigt"
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_RB_START": true
+            },
+            "varfor": "roboten gar in i maskinen forst nar chuckens lagesgivare bevisat att backarna slappt; en robot som drar i ett fastspant nav river gripdonet"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": false,
+              "ST450_CHK_CLAMP": true,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "nar roboten ar ute ur maskinen kommenderas spanning, och slappkommandot maste vara borta i samma scan"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST450_CHK_CLAMPED": true,
+              "ST450_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_CHK_CLAMP": true,
+              "ST450_CYC_START": false
+            },
+            "varfor": "0,58 s efter spannkommandot har chuckens spanntid 0,8 s inte lopt ut; luckan star kvar oppen och spindeln far inte kommenderas i gang"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": false
+            },
+            "varfor": "spanntiden 0,8 s har lopt ut och chucken har bekraftat spanning, sa luckan far stangas"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST450_DOR_CLOSED": true,
+              "ST450_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": true
+            },
+            "varfor": "spindeln kommenderas i gang forst nar luckan ar stangd och chucken bekraftat spanning (ISO 23125:2015 5.2.3)"
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST450_SPN_RUN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_DOR_OPEN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "med spindeln i gang far varken luckan eller chucken kommenderas att oppna sig (ISO 14119:2013 4.3.1)"
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST450_CYC_DONE": true,
+              "ST450_SPN_RUN": false,
+              "ST450_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": false,
+              "SYS_ALARM": false,
+              "ST450_CHK_CLAMP": true
+            },
+            "varfor": "nar maskinen rapporterat fardig cykel nollstalls cykelstarten, men spanningen behalls tills luckan oppnats igen"
+          }
+        ]
+      },
+      {
+        "id": "tva_detaljer_i_foljd",
+        "beskrivning": "Tva nav i foljd, med kortad skartid. Den andra detaljen ar den forsta som traffar en chuck som redan star spand, och det ar dar bada ventilriktningarna kan bli hoga samtidigt.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_CHK_CLAMPED": true,
+              "ST450_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_CHK_CLAMP": true
+            },
+            "varfor": "0,58 s efter spannkommandot ar spanntiden 0,8 s inte ute, sa luckan star kvar oppen"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": false
+            },
+            "varfor": "spanntiden har lopt ut och luckan kommenderas stangd"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST450_DOR_CLOSED": true,
+              "ST450_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": true,
+              "ST450_CHK_CLAMP": true,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "forsta detaljens bearbetning startar mot stangd lucka och bekraftad spanning"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST450_SPN_RUN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST450_SPN_RUN": false,
+              "ST450_CYC_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST450_CYC_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_CHK_CLAMP": true,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "andra detaljens cykel borjar med att luckan oppnas medan chucken annu haller det fardiga navet"
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3400,
+            "satt": {},
+            "krav": {
+              "ST450_CHK_UNCLAMP": true,
+              "ST450_CHK_CLAMP": false
+            },
+            "varfor": "spannkommandot maste falla i samma scan som slappkommandot satts; tva hoga ventilriktningar ar en kortslutning och inte en rorelse"
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": true,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "roboten gar in forst nar backarna bevisat slappt"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4200,
+            "satt": {},
+            "krav": {
+              "ST450_CHK_CLAMP": true,
+              "ST450_RB_START": false,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "andra navet spanns nar roboten ar ute; slappkommandot ar borta"
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST450_CHK_CLAMPED": true,
+              "ST450_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5200,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "spanntiden 0,8 s har lopt ut for andra navet och luckan kommenderas stangd"
+          },
+          {
+            "t_ms": 5400,
+            "satt": {
+              "ST450_DOR_CLOSED": true,
+              "ST450_DOR_OPENED": false,
+              "ST450_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5600,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": true
+            },
+            "varfor": "andra bearbetningen startar; tva detaljer ska ge exakt tva cykelstarter"
+          },
+          {
+            "t_ms": 5800,
+            "satt": {
+              "ST450_CYC_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "cykelstarten nollstalls pa maskinens klarsignal och inget larm har uppstatt under tva hela cykler"
+          }
+        ]
+      },
+      {
+        "id": "luckan_star_stangd_med_spindeln_igang",
+        "beskrivning": "Ett nav star framme pa inmatningen medan spindeln roterar. Luckan far inte kommenderas oppen och chucken far inte kommenderas slappa.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": false,
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_RB_START": false,
+              "ST450_CNV_RUN": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "ISO 14119:2013 4.3.1: skyddet far inte ga att oppna forran riskkallan upphort. Spindeln roterar, sa luckan star stangd och chucken haller"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true
+            },
+            "varfor": "nar spindeln stannat ar riskkallan borta och luckan far kommenderas oppen"
+          }
+        ]
+      },
+      {
+        "id": "roboten_startar_inte_utan_oppnad_lucka",
+        "beskrivning": "Luckan kommenderas oppen men andlagesgivaren rapporterar aldrig oppet lage. Roboten far inte ga in i maskinen pa ett kommando.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": false,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_RB_START": false,
+              "ST450_CHK_UNCLAMP": false
+            },
+            "varfor": "kommandot till luckan ar inte ett andlage; roboten far inte starta sin betjaningscykel forran ST450_DOR_OPENED ar hog"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": false,
+              "ST450_CYC_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "en lucka som inte oppnar sig ar ingen anledning att slappa in roboten anda; stationen star kvar och vantar"
+          }
+        ]
+      },
+      {
+        "id": "spanningen_uteblir_ingen_spindelstart",
+        "beskrivning": "Roboten har lastat, chucken kommenderas spanna men lagesgivaren bekraftar aldrig. Luckan rapporteras stangd anda.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_RB_DONE": false,
+              "ST450_DOR_CLOSED": true,
+              "ST450_DOR_OPENED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": false,
+              "ST450_RB_START": false
+            },
+            "varfor": "ISO 23125:2015 5.2.3: spindeln far inte kommenderas i gang utan bekraftad spanning, aven om luckan rapporterar stangt lage"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST450_CYC_START": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "1,6 s senare star cykelstarten fortfarande ute; en chuck som inte bekraftar har inget grepp om navet"
+          }
+        ]
+      },
+      {
+        "id": "spanntrycket_faller",
+        "beskrivning": "Spanntrycket faller till 19,0 bar efter att chucken kommenderats spanna, alltsa under undre gransen 25,0 bar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST450_CHK_CLAMPED": true,
+              "ST450_RB_DONE": false,
+              "ST450_CHK_PRS": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false,
+              "ST450_DOR_OPEN": true
+            },
+            "varfor": "0,58 s efter spannkommandot har chucken annu inte haft sin spanntid 0,8 s; en vakt som domer under tryckuppbyggnaden faller varje normal cykel"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST450_CYC_START": false,
+              "ST450_DOR_OPEN": false,
+              "ST450_CNV_RUN": false,
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_CHK_CLAMP": true
+            },
+            "varfor": "under 25,0 bar haller chucken inte ett nav pa 3,0 kg i spindelvarvtal; stationen stannar, men spannkommandot behalls sa att navet inte slapps ut"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att trycket kommer tillbaka av sig sjalvt"
+          }
+        ]
+      },
+      {
+        "id": "spanntrycket_klammer_sonder",
+        "beskrivning": "Spanntrycket stiger till 42,0 bar efter spannkommandot, alltsa over ovre gransen 35,0 bar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "ST450_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {
+              "ST450_CHK_CLAMPED": true,
+              "ST450_RB_DONE": false,
+              "ST450_CHK_PRS": 42.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": false
+            },
+            "varfor": "spanntiden 0,8 s har inte lopt ut; trycket domes forst nar chucken ar fardigspand"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST450_CYC_START": false,
+              "ST450_DOR_OPEN": false
+            },
+            "varfor": "over 35,0 bar klammer backarna sonder det tunnvaggiga navet, och en deformerad detalj far inte foras in i skarcykeln"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_utan_automatisk_omstart",
+        "beskrivning": "Nodstoppet bryts mitt i robotens betjaning och aterstalls sedan utan kvittens.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST450_CHK_PRS": 30.0,
+              "ST450_DOR_CLOSED": true,
+              "ST450_CHK_CLAMPED": true,
+              "ST450_PRT_PRS": true,
+              "ST450_SPN_RUN": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST450_DOR_OPENED": true,
+              "ST450_DOR_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST450_CHK_CLAMPED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": true
+            },
+            "varfor": "betjaningen har startat och roboten ar inne i maskinen"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": false,
+              "ST450_DOR_OPEN": false,
+              "ST450_CHK_UNCLAMP": false,
+              "ST450_CYC_START": false,
+              "ST450_CNV_RUN": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; spannkommandot ar det enda som behalls, sa att chucken inte slapper navet nar trycket forsvinner"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST450_RB_START": false,
+              "ST450_DOR_OPEN": false,
+              "ST450_CNV_RUN": false
+            },
+            "varfor": "IEC 60204-1:2016 9.2.3.4.2: att slappa upp nodstoppsdonet far bara mojliggora omstart, aldrig utfora den"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST450_DOR_OPEN": true,
+              "ST450_CNV_RUN": true
+            },
+            "varfor": "forst kvittensen tar stationen tillbaka i drift"
+          },
+          {
+            "t_ms": 2700,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "chuckens_riktningar_utesluter_varandra",
+        "sekvens": "*",
+        "nar": {
+          "ST450_CHK_CLAMP": true
+        },
+        "kraver": {
+          "ST450_CHK_UNCLAMP": false
+        },
+        "varfor": "chucken har en ventil per riktning; tva hoga signaler ar en kortslutning i stallet for en rorelse, och backarna star kvar dar de star"
+      },
+      {
+        "namn": "ingen_spindelstart_utan_bekraftad_spanning",
+        "sekvens": "*",
+        "nar": {
+          "ST450_CHK_CLAMPED": false
+        },
+        "kraver": {
+          "ST450_CYC_START": false
+        },
+        "varfor": "ISO 23125:2015 5.2.3: bearbetningen far inte startas forran arbetsstycket ar spant och spanningen bekraftad. Ett olost nav i en spindel som drar upp varvet ar en projektil"
+      },
+      {
+        "namn": "chucken_oppnas_aldrig_med_spindeln_igang",
+        "sekvens": "*",
+        "nar": {
+          "ST450_SPN_RUN": true
+        },
+        "kraver": {
+          "ST450_CHK_UNCLAMP": false
+        },
+        "varfor": "ISO 23125:2015 5.2.3: spanningen far inte slappa medan spindeln roterar"
+      },
+      {
+        "namn": "luckan_oppnas_aldrig_med_spindeln_igang",
+        "sekvens": "*",
+        "nar": {
+          "ST450_SPN_RUN": true
+        },
+        "kraver": {
+          "ST450_DOR_OPEN": false
+        },
+        "varfor": "ISO 14119:2013 4.3.1: skyddet ska hallas last tills alla farliga maskinfunktioner som skyddet tacker har upphort"
+      },
+      {
+        "namn": "roboten_startar_inte_mot_stangd_lucka",
+        "sekvens": "*",
+        "nar": {
+          "ST450_DOR_OPENED": false
+        },
+        "kraver": {
+          "ST450_RB_START": false
+        },
+        "varfor": "kommandot till luckan ar inte ett andlage; en robot som gar in mot en lucka som annu inte oppnat sig kor gripdonet i luckbladet"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST450_DOR_OPEN": false,
+          "ST450_CHK_UNCLAMP": false,
+          "ST450_CYC_START": false,
+          "ST450_RB_START": false,
+          "ST450_CNV_RUN": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den; spannkommandot ar undantaget med flit, en chuck som slapper vid strombortfall kastar detaljen"
+      },
+      {
+        "namn": "larm_stoppar_stationen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST450_CYC_START": false,
+          "ST450_RB_START": false,
+          "ST450_CNV_RUN": false,
+          "ST450_DOR_OPEN": false
+        },
+        "varfor": "ett larm som lamnar bandet i gang och roboten i rorelse ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ingen_luckoppning_fore_kvittens",
+        "sekvens": "kallstart_utan_sjalvstart",
+        "signal": "ST450_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 480,
+        "antal": 0,
+        "varfor": "vid spanningspaslag far luckan inte kommenderas alls; en station som oppnar sig sjalv vid uppstart star oppen mot en roterande spindel som inte hunnit stanna"
+      },
+      {
+        "namn": "en_luckoppning_per_detalj",
+        "sekvens": "en_detalj_normalcykel",
+        "signal": "ST450_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3800,
+        "antal": 1,
+        "varfor": "ett nav ska ge exakt en lucka-oppning; tva betyder att sekvensen startar om pa niva i stallet for pa flank"
+      },
+      {
+        "namn": "en_cykelstart_per_detalj",
+        "sekvens": "en_detalj_normalcykel",
+        "signal": "ST450_CYC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 3800,
+        "antal": 1,
+        "varfor": "en detalj ska bearbetas en gang; tva cykelstarter pa samma nav ar en andra skarcykel i tomt material"
+      },
+      {
+        "namn": "tva_spannkommandon_pa_tva_detaljer",
+        "sekvens": "tva_detaljer_i_foljd",
+        "signal": "ST450_CHK_CLAMP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 6000,
+        "antal": 2,
+        "varfor": "tva nav ska ge tva spannkommandon; ett latchat spannkommando ger bara ett och slapper aldrig det fardiga navet"
+      },
+      {
+        "namn": "tva_cykelstarter_pa_tva_detaljer",
+        "sekvens": "tva_detaljer_i_foljd",
+        "signal": "ST450_CYC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 6000,
+        "antal": 2,
+        "varfor": "takten ar en bearbetning per nav, och flankrakningen ar det enda mekaniska provet pa det"
+      },
+      {
+        "namn": "ingen_luckoppning_med_spindeln_igang",
+        "sekvens": "luckan_star_stangd_med_spindeln_igang",
+        "signal": "ST450_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 700,
+        "antal": 0,
+        "varfor": "sa lange ST450_SPN_RUN ar hog far luckan inte kommenderas en enda gang; en enda flank racker for att lasningen ska slappa"
+      },
+      {
+        "namn": "ingen_robotstart_utan_oppnad_lucka",
+        "sekvens": "roboten_startar_inte_utan_oppnad_lucka",
+        "signal": "ST450_RB_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1400,
+        "antal": 0,
+        "varfor": "utan andlagesgivarens oppna-signal far robotens betjaningscykel aldrig startas"
+      },
+      {
+        "namn": "ingen_cykelstart_utan_spanning",
+        "sekvens": "spanningen_uteblir_ingen_spindelstart",
+        "signal": "ST450_CYC_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2400,
+        "antal": 0,
+        "varfor": "en enda stigande flank pa cykelstarten racker for att spindeln ska dra upp varvet pa ett olost nav"
+      },
+      {
+        "namn": "ingen_omstart_utan_kvittens",
+        "sekvens": "nodstopp_utan_automatisk_omstart",
+        "signal": "ST450_DOR_OPEN",
+        "typ": "RISE",
+        "fran_ms": 1500,
+        "till_ms": 2300,
+        "antal": 0,
+        "varfor": "mellan att nodstoppet aterstalls och att kvittensen kommer far ingen utgang ga hog; en station som startar pa aterstallningen startar med nagon kvar inne i maskinen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "luckan_oppnas_med_spindeln_igang",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND TRUE THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Sekvensen tittar inte pa ST450_SPN_RUN och forreglingen mot spindeln ar borta. Cellen kor felfritt sa lange maskinen alltid hinner stanna fore nasta detalj, och river luckan forsta gangen en langsam utrullning racker in i nasta cykel.",
+        "faller_pa": [
+          "luckan_star_stangd_med_spindeln_igang@600ms:ST450_DOR_OPEN",
+          "invariant:luckan_oppnas_aldrig_med_spindeln_igang@luckan_star_stangd_med_spindeln_igang",
+          "flank:ingen_luckoppning_med_spindeln_igang"
+        ]
+      },
+      {
+        "namn": "spindeln_startas_utan_bekraftad_spanning",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Sekvensen gar vidare pa spanntiden och pa luckans andlage, men laser aldrig chuckens egen lagesgivare. Ett nav som inte greppats ser precis ut som ett greppat nav anda tills spindeln drar upp varvet.",
+        "faller_pa": [
+          "spanningen_uteblir_ingen_spindelstart@1800ms:ST450_CYC_START",
+          "invariant:ingen_spindelstart_utan_bekraftad_spanning@spanningen_uteblir_ingen_spindelstart",
+          "flank:ingen_cykelstart_utan_spanning"
+        ]
+      },
+      {
+        "namn": "roboten_gar_in_pa_kommenderat_lucklage",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPEN AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Sekvensen gar vidare pa sitt eget lucka-kommando i stallet for pa andlagesgivaren. I simulering, dar luckan oppnar sig omedelbart, ser det riktigt ut; pa den riktiga maskinen ar roboten inne i luckoppningen innan bladet gatt undan.",
+        "faller_pa": [
+          "roboten_startar_inte_utan_oppnad_lucka@600ms:ST450_RB_START",
+          "invariant:roboten_startar_inte_mot_stangd_lucka@roboten_startar_inte_utan_oppnad_lucka",
+          "flank:ingen_robotstart_utan_oppnad_lucka"
+        ]
+      },
+      {
+        "namn": "bada_chuckriktningarna_samtidigt",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Slappkommandot satts utan att spannkommandot nollstalls, och den omsesidiga uteslutningen mellan ventilriktningarna ar borta. Forsta detaljen gar igenom utan anmarkning eftersom chucken da inte redan star spand.",
+        "faller_pa": [
+          "tva_detaljer_i_foljd@3400ms:ST450_CHK_CLAMP",
+          "invariant:chuckens_riktningar_utesluter_varandra@tva_detaljer_i_foljd"
+        ]
+      },
+      {
+        "namn": "spanntrycket_lases_aldrig",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntiden 0,8 s racknas, men trycket lases aldrig. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet startar ingenting (IEC 60204-1:2016 9.2.3.4.2). *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar pa chuckens lagesgivare och laser aldrig sjalva spanntrycket. Backarna star i ratt lage aven nar trycket sjunkit under det som behovs for att halla navet, och en for hard spanning syns inte alls.",
+        "faller_pa": [
+          "spanntrycket_faller@2400ms:SYS_ALARM",
+          "spanntrycket_klammer_sonder@2400ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "kvittensen_startar_om_av_sig_sjalv",
+        "st": "PROGRAM ST450_SVARVBETJANING\nVAR\n    steg        : INT := 0;\n    tmrSpann    : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK kommer fran en certifierad sakerhets-PLC och lases bara. Logiken har\n   ror inte sjalva sakerhetsfunktionen; den ar forreglad AV den. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Spanntrycket domes forst nar chucken haft sin spanntid 0,8 s pa sig.\n   Under uppbyggnaden star trycket lagre an fonstret, och en vakt som domer\n   for tidigt faller varje normal cykel pa tryckuppbyggnaden. *)\ntmrSpann(IN := ST450_CHK_CLAMP, PT := T#800ms);\nIF tmrSpann.Q AND (ST450_CHK_PRS < 25.0 OR ST450_CHK_PRS > 35.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Slapper chucken medan spindeln roterar ar navet en kastad projektil. *)\nIF ST450_SPN_RUN AND NOT ST450_CHK_CLAMPED THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Omstartssparren slapper sa fort nodstoppet ar aterstallt. *)\nIF EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\n\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\n\n(* Vid larm och nodstopp nollstalls varje kommenderat don UTOM spanningen.\n   ST450_CHK_CLAMP behaller sitt varde med flit: en chuck som slapper nar\n   strommen gar slapper ett roterande nav (ISO 23125:2015 5.2.3). *)\nIF NOT xDriftsklar THEN\n    ST450_CNV_RUN := FALSE;\n    ST450_DOR_OPEN := FALSE;\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_CYC_START := FALSE;\n    ST450_RB_START := FALSE;\n    steg := 0;\nELSE\n    ST450_CNV_RUN := TRUE;\n    CASE steg OF\n        0:\n            (* Detalj framme och spindeln stilla: oppna luckan. *)\n            ST450_CYC_START := FALSE;\n            IF ST450_PRT_PRS AND NOT ST450_SPN_RUN THEN\n                ST450_DOR_OPEN := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            (* Chucken far slappa forst nar luckan STATT oppen och spindeln\n               star stilla. Kommandot ar inte ett andlage. *)\n            IF ST450_DOR_OPENED AND NOT ST450_SPN_RUN THEN\n                ST450_CHK_CLAMP := FALSE;\n                ST450_CHK_UNCLAMP := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            IF NOT ST450_CHK_CLAMPED THEN\n                ST450_CHK_UNCLAMP := FALSE;\n                ST450_RB_START := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST450_RB_DONE THEN\n                ST450_RB_START := FALSE;\n                ST450_CHK_CLAMP := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            (* Luckan stangs forst nar chucken bekraftat spanning och haft sin\n               spanntid 0,8 s. *)\n            IF ST450_CHK_CLAMPED AND tmrSpann.Q THEN\n                ST450_DOR_OPEN := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF ST450_DOR_CLOSED AND ST450_CHK_CLAMPED THEN\n                ST450_CYC_START := TRUE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST450_CYC_DONE THEN\n                ST450_CYC_START := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST450_SPN_RUN THEN\n    ST450_CHK_UNCLAMP := FALSE;\n    ST450_DOR_OPEN := FALSE;\nEND_IF;\nIF ST450_CHK_UNCLAMP THEN\n    ST450_CHK_CLAMP := FALSE;\nEND_IF;\nIF NOT ST450_CHK_CLAMPED THEN\n    ST450_CYC_START := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Omstartssparren slapper sa fort nodstoppet ar aterstallt, utan att nagon tryckt pa kvittensen. Stationen startar alltsa nar operatoren vrider upp nodstoppsdonet, och den gor det ocksa vid varje spanningspaslag.",
+        "faller_pa": [
+          "kallstart_utan_sjalvstart@300ms:ST450_DOR_OPEN",
+          "nodstopp_utan_automatisk_omstart@2200ms:ST450_DOR_OPEN",
+          "flank:ingen_luckoppning_fore_kvittens",
+          "flank:ingen_omstart_utan_kvittens"
+        ]
+      }
+    ]
+  }
+}
