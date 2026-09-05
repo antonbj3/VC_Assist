@@ -8,8 +8,10 @@ Testerna kraver dessutom att fallningen sker pa RATT rad. En domare som faller
 allt ar lika oanvandbar som en som godkanner allt, och bada ser bra ut om man
 bara raknar fallningar.
 """
+import ast
 import os
 import sys
+import types
 
 import pytest
 
@@ -616,4 +618,43 @@ def test_en_trasig_cell_bryter_mot_exakt_en_felklass(namn, egen, frammande):
         "%s bryter mot fler klasser än sin egen: %s. Då täcker grindarna för "
         "varandra: mutationsprovet visar att %s-grinden kan stängas av utan "
         "att sviten fälls." % (namn, smitta, egen.split()[0]))
+
+
+def _modul_med_bytt_operator(gammal, ny):
+    """Laddar oga_analys på nytt med EN operator utbytt. Mätning, inte fix.
+
+    Raden slås upp på sitt INNEHÅLL, inte på ett radnummer: modulen växer, och
+    ett prov som bygger på ett radnummer mäter fel sak efter nästa commit.
+    """
+    stig = os.path.join(_ROT, "ext", "vc_addon", "vc_assist", "oga_analys.py")
+    rader = open(stig, encoding="utf-8").read().split("\n")
+    traff = [i for i, r in enumerate(rader) if gammal in r]
+    assert len(traff) == 1, ("hittade %d rader med %r; provet måste peka ut "
+                             "exakt en" % (len(traff), gammal))
+    i = traff[0]
+    rader[i] = rader[i].replace(gammal, ny, 1)
+    kalla = "\n".join(rader)
+    ast.parse(kalla)
+    m = types.ModuleType("_oga_analys_mut")
+    m.__file__ = stig
+    exec(compile(kalla, stig, "exec"), m.__dict__)
+    return m
+
+
+def test_placeringsgransen_ar_bestamd_av_minst_en_cell():
+    """`if plac["fel_mm"] > plac["tol_mm"]` . Byts `>` mot `>=`
+    ändras ingen dom i någon av bankens elva celler: gränsen är obestämd.
+    """
+    mut = _modul_med_bytt_operator(
+        'plac["fel_mm"] > plac["tol_mm"]', 'plac["fel_mm"] >= plac["tol_mm"]')
+    fore, efter = {}, {}
+    for namn, bygg in sorted(celler.ALLA.items()):
+        b, plan = bygg()
+        fore[namn] = _rapport_mb(b.data(), plan).dom
+        b, plan = bygg()
+        efter[namn] = _rapport_mb(b.data(), plan, modul=mut).dom
+    assert fore != efter, (
+        "`>` och `>=` ger identiska domar för alla elva celler: ingen cell "
+        "ligger på toleransgränsen, så gränsen har inget facit")
+
 

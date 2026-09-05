@@ -80,23 +80,6 @@ def _modul_med_bytt_operator(gammal, ny):
     return m
 
 
-def test_placeringsgransen_ar_bestamd_av_minst_en_cell():
-    """`if plac["fel_mm"] > plac["tol_mm"]` . Byts `>` mot `>=`
-    ändras ingen dom i någon av bankens elva celler: gränsen är obestämd.
-    """
-    mut = _modul_med_bytt_operator(
-        'plac["fel_mm"] > plac["tol_mm"]', 'plac["fel_mm"] >= plac["tol_mm"]')
-    fore, efter = {}, {}
-    for namn, bygg in sorted(celler.ALLA.items()):
-        b, plan = bygg()
-        fore[namn] = _rapport(b.data(), plan).dom
-        b, plan = bygg()
-        efter[namn] = _rapport(b.data(), plan, modul=mut).dom
-    assert fore != efter, (
-        "`>` och `>=` ger identiska domar för alla elva celler: ingen cell "
-        "ligger på toleransgränsen, så gränsen har inget facit")
-
-
 def test_barstrackans_troskel_ar_bestamd_av_minst_en_cell():
     """Samma sak för `carry["span_s"] < CARRY_MIN_SPAN_S` ."""
     mut = _modul_med_bytt_operator(
