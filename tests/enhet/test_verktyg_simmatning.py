@@ -372,7 +372,7 @@ def test_ett_dubblettnamn_avvisas():
     """TRASIG FIXTUR for registergrinden: samma namn tva ganger ska falla."""
     with pytest.raises(V.Schemafel) as e:
         V.registrera(REGISTER["sim_state"], lambda argument: "")
-    assert "redan registrerat" in str(e.value)
+    assert "already registered" in str(e.value)
 
 
 @pytest.mark.parametrize("modul", ["simulering.py", "matning.py"])

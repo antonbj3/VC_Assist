@@ -371,7 +371,7 @@ def test_ett_dubblettnamn_avvisas():
     """Trasig fixtur for registergrinden."""
     with pytest.raises(V.Schemafel) as e:
         V.registrera(REGISTER["get_signal"], lambda argument: "")
-    assert "redan registrerat" in str(e.value)
+    assert "already registered" in str(e.value)
 
 
 def test_operationsnamnen_star_inte_i_domanmodulen():

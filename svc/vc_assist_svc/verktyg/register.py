@@ -33,7 +33,7 @@ PARAMETERNAMN = "argument"
 
 def _granska_handlare(namn, handlare):
     if not callable(handlare):
-        raise Schemafel("%s: handlaren ar inte anropbar" % namn)
+        raise Schemafel("%s: the handler is not callable" % namn)
     sign = inspect.signature(handlare)
     parametrar = list(sign.parameters.values())
     fel = []
@@ -54,7 +54,7 @@ def _granska_handlare(namn, handlare):
 def registrera(verktyg, handlare):
     """Lagger verktyget i det register dess mode pekar ut."""
     if verktyg.namn in REGISTER:
-        raise Schemafel("%s ar redan registrerat (av doman %s)"
+        raise Schemafel("%s is already registered (by domain %s)"
                         % (verktyg.namn, REGISTER[verktyg.namn].doman))
     _granska_handlare(verktyg.namn, handlare)
     REGISTER[verktyg.namn] = verktyg

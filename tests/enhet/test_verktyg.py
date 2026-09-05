@@ -530,7 +530,7 @@ def test_en_handlare_som_lamnar_skrivande_kod_routas_anda_som_read(utf, brygga,
 def test_ett_dubblettnamn_avvisas():
     with pytest.raises(V.Schemafel) as e:
         V.registrera(V.REGISTER["connect"], lambda argument: "")
-    assert "redan registrerat" in str(e.value)
+    assert "already registered" in str(e.value)
 
 
 # ---- 4. formagegrinden ---------------------------------------------------
