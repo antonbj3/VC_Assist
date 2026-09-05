@@ -142,6 +142,34 @@ skäl, och den räknar nu ord på båda sidor om talet.
 
 ---
 
+## 3b. Fyndet ingen letade efter: trettio uppgifter ber om ett larm de inte kan ge
+
+När spårfacit skulle skrivas till de gamla uppgifterna stötte tre olika agenter
+oberoende av varandra på samma vägg: *scenariot säger "styrningen ska larma",
+men signalkartan har ingen `SYS_ALARM`.* Facit kunde bara döma följden — bandet
+stoppat, cykeln spärrad — aldrig larmet självt.
+
+Mätt över hela banken:
+
+| Vad | Antal |
+|---|---|
+| uppgifter vars scenarier säger "larma" men som saknar `SYS_ALARM` | **30** |
+| uppgifter med `SYS_ALARM` men utan `SYS_RESET` att kvittera med | **2** |
+| av dessa som är nya i M-106 | **0** |
+
+Alla 32 är äldre än det här arbetet. Var och en av de tolv nya uppgifterna bär
+både `SYS_ALARM` och `SYS_RESET`, och varje retrofit som stötte på gapet säger
+det rakt ut i sitt eget facit i stället för att låtsas döma något det inte kan.
+
+Talen ligger som **skuldtak** i `tests/protocol/kor_bankens_facit.py`
+(`LARMSKULD`, `KVITTENSSKULD`) och får bara gå åt ett håll: en ny uppgift som
+lägger sig i listan fäller körningen, och krymper listan ska talet skrivas ned.
+Att fylla gapet — ge de trettio uppgifterna en larmsignal och en kvittens — är
+ett eget arbete, för det ändrar deras signalkartor och därmed deras
+uppgiftstexter.
+
+---
+
 ## 4. Räkningarna, så de går att följa
 
 Varje rad är räknad ur scenens egna mått. Talen står också i uppgifternas
