@@ -54,10 +54,10 @@ def validera_autocomplete(mapp: str) -> List[str]:
 def extrahera(autocomplete_mapp: str, malmapp: str) -> Dict[str, str]:
     """Kopiera API-underlagen fran VC till en lokal datamapp."""
     if not os.path.isdir(autocomplete_mapp):
-        raise Extraktionsfel("kallmappen %s finns inte" % autocomplete_mapp)
+        raise Extraktionsfel("source folder %s does not exist" % autocomplete_mapp)
     saknas = validera_autocomplete(autocomplete_mapp)
     if saknas:
-        raise Extraktionsfel("kallmappen saknar nodvandiga filer: %s" % ", ".join(saknas))
+        raise Extraktionsfel("source folder is missing required files: %s" % ", ".join(saknas))
     os.makedirs(malmapp, exist_ok=True)
     kopierade = {}
     for fil in os.listdir(autocomplete_mapp):
