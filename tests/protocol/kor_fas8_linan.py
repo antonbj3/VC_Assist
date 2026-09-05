@@ -1204,7 +1204,10 @@ def kor_slingan(brygga, kopplare, sekunder, varvtid_s=0.0):
             # resultat (annars serialiserar `queue_list` hela kon, M-49), sa
             # anlaggningens egen konfliktflagga gar inte att lasa tillbaka.
             logg["konflikter"] += 1
-        stopp = bool(v.fran_plc.get("a_stopp"))
+        # Perturbationen ARMAS pa vilken som helst av stationernas bromsar.
+        # I en enstationskonfiguration finns bara den enas, och en paus som
+        # aldrig kom hade gjort kontrollkorningen mildare an linjekorningen.
+        stopp = bool(v.fran_plc.get("a_stopp") or v.fran_plc.get("b_stopp"))
         if (stopp and not forra_stopp and paus_till is None
                 and logg["paus"] is None
                 and time.time() - t_start >= PAUS_TIDIGAST_S):
@@ -1316,6 +1319,14 @@ def kor_en(namn, konfig, kropp_, a, index, brygga):
         vagg = vagg_efter - vagg_fore
         rad["klockkvot"] = round(((simtid_efter - simtid_fore) / vagg)
                                  if vagg > 0 else 0.0, 4)
+        # KLOCKGRINDEN. Facits fonster ar skalade med braketten, sa en kvot
+        # utanfor den gor fonstren meningslosa i stallet for snava: med kvoten
+        # 0,61 syns en 2-sekunderstimer som 1,22 s pa ogats axel, och en
+        # riktig station faller da pa TOO_EARLY. MATT i den har korningen: en
+        # provsvit som kordes samtidigt pa samma maskin tog pumpens tid och
+        # tryckte kvoten till 0,6131. Korningen sager nu ifran i stallet for
+        # att doma pa ett fonster som inte langre betyder nagot.
+        rad["klockan_ok"] = bool(KLOCKA_LAG <= rad["klockkvot"] <= KLOCKA_HOG)
     finally:
         ua.stang()
     rad["oga_stopp"] = dict((x, stopp.get(x))
@@ -1342,6 +1353,14 @@ def kor_en(namn, konfig, kropp_, a, index, brygga):
 # ---- huvudprogram ---------------------------------------------------------
 
 def _dom_av(rad, namn):
+    """Domen for en cell, eller None om korningen inte gar att lasa.
+
+    En korning vars klockkvot lag utanfor braketten ar OGILTIG, inte fallande:
+    facits fonster ar skalade med braketten, och utanfor den mater de
+    kopplingen mellan klockorna i stallet for stationen.
+    """
+    if rad.get("klockan_ok") is False:
+        return "OGILTIG"
     d = ((rad.get("domar") or {}).get(namn) or {}).get("dom")
     return d[0] if d else None
 
@@ -1369,9 +1388,11 @@ def _skriv(ut):
                                                  d["dom"][1][:100]))
         if rad.get("slinga"):
             s = rad["slinga"]
-            print("        %-9s %d varv, paus %s, %d konflikter, klockkvot %s"
+            print("        %-9s %d varv, paus %s, %d konflikter, klockkvot %s%s"
                   % ("slingan", s["varv"], s.get("paus"), s["konflikter"],
-                     rad.get("klockkvot")))
+                     rad.get("klockkvot"),
+                     "" if rad.get("klockan_ok") is not False
+                     else "  <- UTANFOR BRAKETTEN, korningen ar OGILTIG"))
     print("\n  guldgrinden: %s" % ut.get("guld"))
     for rad in ut.get("kompositionsprov", []):
         print("  %-4s %-28s linje=%-13s A=%-13s B=%-13s  %s"
@@ -1408,6 +1429,8 @@ def _kompositionsprov(ut):
             if rad is None:
                 return "EJ KORD"
             domar = [_dom_av(rad, x) for x in vilka]
+            if "OGILTIG" in domar:
+                return "OGILTIG"
             if any(x is None for x in domar):
                 return "EJ KORD"
             if all(x == "PASS" for x in domar):
@@ -1422,9 +1445,15 @@ def _kompositionsprov(ut):
         bdom = _samlad(b, ("stationB",))
         rader.append({
             "fall": namn, "vad": vad, "vantas_passera": vantas,
+            "alla_korda": not ({"EJ KORD", "OGILTIG"}
+                               & {linjedom, adom, bdom}),
             "slag": FIXTURSLAG.get(namn), "reduktion": reduktionen(namn),
             "linje": linjedom, "a": adom, "b": bdom,
-            "kompositionsfel": (linjedom != "PASS" and adom == "PASS"
+            # Bada halvorna kravs, och BADA korningarna maste ha gjorts. En
+            # kontrollkorning som inte kordes ar inte ett godkannande.
+            "kompositionsfel": (not ({"EJ KORD", "OGILTIG"}
+                                     & {linjedom, adom, bdom})
+                                and linjedom != "PASS" and adom == "PASS"
                                 and bdom == "PASS"),
         })
     return rader
