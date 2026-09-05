@@ -30,6 +30,41 @@ Ett åttonde, **underläge**: `utan självstart`. Bryggan har nått taket 20
 omstarter per minut och har slagit av sin egen självstart
 (`pump.begar_omstart`). Läses ur `sim` som `keepalive=false`.
 
+### 1.0 Två lägen till, och varför de är tillagda
+
+De sju ovan räcker inte för en **visning**, och de två som saknas står här i
+stället för att glida in i listan. Samma val som `forlopp.handelser` gjorde med
+`TILLAGDA_SORTER`: ett tillägg till en spec'ad lista ska synas.
+
+| Läge | Betyder | Hur tjänsten vet | Stämpel |
+|---|---|---|---|
+| **obestämt** | frågan gick inte att besvara ur det underlag som finns. Det är inte ett fall och inte ett arbete | avläsningen är äldre än `T_nere`, ligger i framtiden, eller bär bara en lyckad `connect()` | KOD@HEAD `aterhamtning.bild.lage_for` |
+| **blockerad** | bryggan svarar inte, och orsaken är känd och ofarlig: en modal ruta står öppen i VC | bryggloggens sista rad är `modal oppen` | **ANTAGET** — se varningen nedan |
+
+`obestämt` är I3 på visningens våning: *tystnad är aldrig ett godkännande.* Utan
+ett eget ord för det blir varje fråga som inte gick att besvara antingen ett
+grönt eller ett utelämnande, och båda är falska.
+
+`blockerad` finns därför att §3.6:s undantag kräver det. Specen säger att en
+öppen statusruta inte får bli `nere`; utan ett eget ord blev den i stället
+`ansluten`, vilket är en lögn åt andra hållet.
+
+> **Varning, och den ska stå kvar tills den är åtgärdad.** Raden `modal oppen`
+> **finns inte i koden.** `grep -n "modal" ext/vc_addon/vc_assist/*.py` ger noll
+> träffar 2026-09-05. Läget `blockerad` kan alltså inte fyras i dag, och att
+> `messageBox` över huvud taget blockerar pumpen är härlett ur M-07:s
+> `time.sleep`, inte mätt på en ruta. Både raden och mätningen väntar på
+> **M-21**. Ytan skriver ut det som en permanent ovisshet i varje visning
+> (`aterhamtning.yta.RACKVIDDEN`), i stället för att låtsas ha förmågan.
+
+Undantaget har dessutom en **gräns**, och den är ny: efter `T_modal` går det
+inte längre att skilja en ruta som står öppen från en brygga som dog bakom den.
+Läget blir då `obestämt`, inte `blockerad` och inte `nere`.
+
+| Storhet | Värde | Härkomst |
+|---|---|---|
+| `T_modal` | 300 s | **PRELIMINÄR.** Ingen mätning finns; sätts av M-21. Talet är valt så att en ruta en människa faktiskt läser hinner stängas |
+
 ### 1.1 Ordningen när flera gäller samtidigt
 
 Panelens fält 7 visar **ett** ord. Företräde, uppifrån och ned:
@@ -64,6 +99,43 @@ backlog beter sig likadant genom Wines winsock är **oprövat** och mäts i
 | `T_nere` | 3,0 s efter första uteblivna `ping` | **PRELIMINÄR**, samma härkomst |
 | Undantag | ingen övergång till `nere` medan bryggloggens sista rad är `modal oppen` | se §3.6 |
 | Omstartsspärr | ≥ 1,0 s mellan omstarter, högst 20 per minut | **PRELIMINÄR**, satt av M-13 |
+
+### 1.4 Ordningen mellan DELSYSTEM är en annan fråga
+
+§1.1 ordnar flera samtidiga lägen hos **ett** delsystem. Tre saker kan sluta
+svara oberoende av varandra — bryggan, OpenPLC och modellen — och vilken av
+dem som ska stå överst är en annan fråga med ett annat svar:
+
+```
+NERE > OBESTÄMT > BLOCKERAD > DEGRADERAD > FRÅNKOPPLAD
+     > KÖ VÄNTAR > PROVTAGNING PÅGÅR > SIMULERING IGÅNG > ANSLUTEN
+```
+
+`nere` står först och inte `obestämt`: en känd död är det användaren kan göra
+något åt. **Ingenting göms av valet** — varje delsystem står med sitt eget läge
+i sitt eget block, alltid (regel Å2 i fas 23:s grind).
+
+De två ordningarna får inte slås ihop. De svarar på olika frågor, och en
+gemensam ordning skulle göra en av dem fel.
+
+### 1.5 En avläsning åldras, och det är det enda som skiljer den från ett svar
+
+Ett läge är en **slutsats om en tystnad**, aldrig ett fält. Slutsatsen dras ur
+den senaste avläsningen och **läsarens** klocka, och en avläsning äldre än
+`T_nere` bär inget läge alls — varken ett grönt eller ett rött.
+
+Skälet är mätt två gånger i det här systemet, med två olika mekanismer och
+samma form: ett tal som skulle åldras gjorde det inte.
+
+| Mekanism | Utfall | Källa |
+|---|---|---|
+| ett hjärtslag räknades som framsteg | ARBETAR i **600 av 600** avläsningar av en körning där ingenting hände | M-64 |
+| en läsare frös klockan vid bildens egen skrivtid | ARBETAR i **60 av 60** avläsningar av en körning vars skrivare dog före den första | M-93 |
+| en avläsning återanvändes efter att den blivit gammal | ANSLUTEN i **60 av 60**; med läsarens egen klocka **3 av 60** | **M-103** |
+
+**Regel L-0.** Åldern räknas mot den klocka som **läser**, aldrig mot den som
+skrev. En härledning som fryser klockan bygger ett läge som självt säger
+ANSLUTEN, och då är texten korrekt mot ett läge som är fel.
 
 ---
 
@@ -186,6 +258,93 @@ Bryggan har slagit av sin egen omstart efter 20 försök på en minut. Panelen
 säger det rakt ut, med antalet, och pekar på menyval 2. Systemet försöker
 **inte** igen av sig självt. En omstartsstorm är mätt till tusentals varv i
 sekunden (M-13) och får aldrig upprepas.
+
+---
+
+### 3.8 När något dör mitt i — de fyra fallen, och vad användaren ser
+
+De sju lägena ovan handlar om **bryggan**. Tre saker kan sluta svara under ett
+uppdrag, och de har tre olika tystnader och tre olika vägar tillbaka. Att slå
+ihop dem till *"systemet"* är att svara `nere` på frågan *vad är det som är
+nere?*
+
+| Delsystem | Vad den bär | Var läget läses |
+|---|---|---|
+| **bryggan** | VC, scenen, kön, ögat | `ping`, `sim` |
+| **OpenPLC** | den körande PLC-koden, OPC UA-bandet | kopplarens varv |
+| **modellen** | språkmodellen som skriver och reparerar | modellklientens svar |
+
+Fyra dödsfall, och för vart och ett: vad systemet gör, och vad det **säger**.
+Meningarna nedan är de som faktiskt står i ytan (`aterhamtning.lagen.ORSAKER`),
+inte omskrivningar av dem.
+
+| # | Vad som dör | Vad systemet gör | Vad användaren ser | Försöker något igen? | Stämpel |
+|---|---|---|---|---|---|
+| 1 | **VC stängs under en körning** | slutar vänta på ett utfall som inte kan komma; kön är borta med processen | *"Visual Components avslutades. Anslutningen bröts av att processen försvann."* + `ECONNRESET` ordagrant | **nej.** Enda vägen: starta om VC | `31_brygga_protokoll.md`, KOD@HEAD |
+| 2 | **bryggan tappar sin socket** | ansluter om och pingar; **bara ett ping-svar** räknas som liv | *"Anslutningen till bryggan bröts, men bryggan svarar fortfarande. Bara vår ände tappade den."* | **ja**, och det kan lyckas: `klient.anslut` | KOD@HEAD |
+| 3 | **OpenPLC svarar inte** | kopplaren räknar raka fel; vid tredje ger den upp och kastar `Kopplarfel` | först *"OpenPLC svarade inte inom tidsgränsen … ger upp vid tredje"*, sedan *"Kopplaren gav upp efter tre raka fel. Ingenting försöker igen, och det är avsiktligt"* | **nej efter tredje.** En slinga som mal vidare mot en död PLC ser ut att arbeta | **MÄTT M-39**, `kopplare.MAX_RAKA_FEL = 3` |
+| 4 | **modellen tar slut mitt i en reparation** | varvet blir aldrig klart; grindarna efter det körs aldrig | *"Modellen slutade svara mitt i en reparation. Varvet blev aldrig klart, och de grindar som skulle ha kört efter det kördes aldrig."* | **nej.** Utfallet är kandidat i bästa fall, aldrig guld | KOD@HEAD `modellklient.Modellfel` |
+
+**Regel L-11.** De fyra får inte se likadana ut. En yta som svarar samma sak på
+alla fyra svarar ingenting på någon: den namnger inte saken, den döljer att tre
+av fyra kräver en människa, och den ger operatören ingenting att göra.
+*Mätbart:* fas 23 renderar alla fyra och jämför både första raden och
+orsaksblocket (`test_de_fyra_dodsfallen_ser_olika_ut`).
+
+**Regel L-12.** Skillnaden mellan fall 1 och fall 2 får kosta **en fråga till**.
+Ett brutet rör säger inte i sig vilket av dem det var, och svaret avgör vilken
+väg tillbaka användaren får. Frågan måste vara ett `ping` — en `connect()` som
+lyckas mot en död pump skulle skriva *"bryggan svarar fortfarande"* om en brygga
+som är stendöd (regel L-1).
+
+### 3.9 Ett återhämtningsförsök, och om det kan lyckas
+
+Det farligaste en yta kan säga till någon som väntar är *"Ett problem uppstod,
+vi försöker igen"* när ingenting försöker igen. Meningen är värre än tystnad:
+den ber användaren vänta på något som inte händer.
+
+**Regel L-13.** Ett försök redovisas som pågående endast om det **finns i
+protokollet** och **kan lyckas**. Vem som helst av de två som saknas gör
+redovisningen till en lögn.
+
+Kanskapen har **tre** värden, aldrig två:
+
+| Värde | Betyder | Vad ytan får säga |
+|---|---|---|
+| `kan lyckas` | mätt eller KOD@HEAD att vägen leder tillbaka för just den orsaken | att försöket pågår |
+| `kan inte lyckas` | mätt att den inte gör det | att försöket **inte** kan lyckas, med orsaken |
+| `okänt om den hjälper` | ingen mätning finns | att vägen finns och att utfallet inte är mätt |
+
+Ett `okänt` som skrivs som ett `ja` är ett löfte, och ett löfte till någon som
+väntar på en död brygga är det dyraste vi kan ge. Ett `okänt` som skrivs som ett
+`nej` slänger en väg som kanske fungerar.
+
+Svaret avgörs på **ett** ställe, i en oskrivbar tabell
+(`aterhamtning.lagen.KAN`, en `MappingProxyType`) — samma form som
+`utforare.OP_FOR_EFFECT` och av samma skäl: en fråga som besvaras på två
+ställen besvaras förr eller senare olika. Ett par som saknas i tabellen är
+`okänt`, aldrig `ja` (fail-closed, I3).
+
+Två spärrar utöver tabellen:
+
+* **Självstarten kan aldrig lovas.** Ingen orsak har `kan lyckas` för
+  `bryggans självstart`. Det är en strukturell spärr, inte en tillfällighet:
+  självstarten är den enda väg systemet går utan att fråga, och ett okänt
+  `keepalive` skulle annars kunna glida till ett löfte.
+  *Mätbart:* `test_ingen_orsak_lovar_att_sjalvstarten_kan_lyckas`.
+* **`utan självstart` gör varje självstartsförsök omöjligt**, oavsett orsak.
+  Omstartsstormen är mätt till tusentals varv i sekunden (M-13), och spärren
+  finns för att den aldrig ska upprepas.
+
+**Regel L-14.** Kanskapen räknas om **vid varje visning**, inte en gång när
+försöket började. Slår bryggan av sin självstart mitt i ett självstartsförsök
+blir försöket omöjligt utan att någon rör det, och det får då inte räknas bland
+de pågående. Det stryks inte heller — det står kvar med beskedet att det inte
+längre kan lyckas. Att stryka det vore att dölja att vi väntade förgäves.
+
+**Talet som gör regeln nödvändig:** av **18** orsaker har **3** en automatisk
+väg alls, och bara **2** en som är mätt att kunna lyckas. I 15 av 18 fall
+försöker ingenting igen — och ytan säger det med de orden.
 
 ---
 
@@ -327,6 +486,25 @@ tysthet, och felet syns först när någon litar på ett tal.
 | **Å-G9** | Var och en av N-1 till N-6 har ett test som **fäller** när skyddet tas bort. En grind utan trasig fixtur är oprövad (`95_testprotokoll.md`) |
 | **Å-G10** | Omstartsspärren håller: en framprovocerad storm ger högst 20 omstarter på en minut och slutar i `utan självstart` |
 
+### 8.1 Grindarna över VISNINGEN (fas 23)
+
+Å-G1 till Å-G10 dömer **systemet**. De säger ingenting om vad användaren får
+läsa om det, och det är en egen fråga med ett eget svar: en visning är en dom
+om systemets tillstånd, ställd till den enda som inte kan kontrollera den.
+
+| # | Godkänt när |
+|---|---|
+| **Å-G11** | Läget står först i visningen och **räknas om av grinden själv** ur de råa avläsningarna och läsarens klocka. En härledning som fryser klockan, räknar en lyckad `connect()` som liv, eller sanerar bort en negativ ålder fälls |
+| **Å-G12** | Varje delsystem står med sitt läge. Ett `obestämt` får varken visas som grönt eller utelämnas |
+| **Å-G13** | Ett läge som inte svarar bär en orsak, ordagrant — eller beskedet att orsaken inte gick att avgöra. *"Ett problem uppstod"* fälls |
+| **Å-G14** | Ett försök redovisas som pågående endast om det finns i protokollet och kan lyckas. Står ingenting på tur säger visningen det med orden `Ingenting försöker igen` |
+| **Å-G15** | Varje väg tillbaka bär sin kanskap och sin härkomst |
+| **Å-G16** | Räckvidden — det återhämtningen aldrig kan veta — står i varje visning, också en där allt svarar |
+
+Var och en av `Å1`–`Å14` i `svc/vc_assist_svc/aterhamtning/grind.py` har minst
+en trasig fixtur, och provet som håller regeln läser sin egen källa. En grind
+utan trasig fixtur är oprövad (`95_testprotokoll.md`).
+
 Plattform: **Linux ☐ Windows ☐** per grind.
 
 ---
@@ -340,6 +518,8 @@ Plattform: **Linux ☐ Windows ☐** per grind.
 | **M-21** | Menyytan, och om en öppen `messageBox` stoppar pumpen och hur länge | §3.6:s undantag för `modal oppen` |
 | **M-23** | Grön start, tid till lyssnande port över tio starter | `27_operatorsflodet.md` §4 |
 | **M-27 — fler dödande anrop** | Listan över operationer som dödar pumpen är **inte** härledd ur en princip. Den växte från ett till två genom mätning och kan växa igen | `skrivgrind.DODANDE_ANROP`. Ett svep över de skrivande verktygen mot en levande pump behövs |
+| **M-21, andra halvan** | Raden `modal oppen` finns inte i koden. Vem skriver den, och blockerar en `messageBox` verkligen pumpen? | läget `blockerad`, `T_modal`, hela §3.6:s undantag |
+| **M-25, Linux-halvan betald** | `connect()` mot en lyssnande socket som ingen accepterar lyckades **20 av 20** i den här processen (M-103). Wine-halvan står kvar | regel L-1:s premiss på Linux |
 
 Frågor till operatören. **Inget av detta är bestämt.**
 
@@ -353,3 +533,14 @@ Frågor till operatören. **Inget av detta är bestämt.**
    `eyes.json` per körning växer.
 4. **Om `utan självstart` ska kunna slås på igen från panelen** eller bara av
    en VC-omstart.
+5. **Om sonden ska gå av sig själv**, och hur ofta. Ytan i
+   `svc/vc_assist_svc/aterhamtning/` läser avläsningar som någon annan gjort;
+   vem som gör dem, och med vilket mellanrum, är inte bestämt. En sond som går
+   för sällan gör varje läge obestämt; en som går för ofta lägger trafik på en
+   brygga som kanske redan har det svårt.
+6. **Var systembilden ligger.** Speglingen skriver en fil, och sökvägen är i dag
+   ett argument. Förslagsvis samma katalog som uppdragsjournalen
+   (`27_operatorsflodet.md` §10 fråga 1). Ingen mapp är vald.
+7. **Om två sonder mot samma fil ska tillåtas.** `os.replace` gör varje
+   skrivning atomisk, men ingen låsning finns — samma öppna punkt fas 17 lämnade
+   för förloppsfilen.
