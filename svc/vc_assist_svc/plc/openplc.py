@@ -258,12 +258,35 @@ class OpenPlcV4(object):
                          % (tidsgrans, senaste))
 
     def logg(self, rader: int = 40, niva: Optional[str] = None) -> str:
+        """Runtimeloggens sista rader, som text.
+
+        MÄTT 2026-09-05 (M-178): `/api/runtime-logs` svarar
+        `{"runtime-logs": [{"id","level","message","timestamp"}, …]}`, medan
+        den här metoden bara letade efter nyckeln `"logs"`. Den har alltså
+        ALLTID lämnat en tom sträng — också i `starta_och_vanta`:s felmeddelande
+        ("Senaste loggrader:") och i `domare_openplc`:s Domsfel. Två fynd låg
+        i den loggen och lästes aldrig: OpenPLC skriver
+        `[task MAIN] terminated by signal 8` vid nolldivision (M-169) och
+        `[task MAIN] scan overrun #N: body exceeds its 20 ms period` när
+        kroppen inte hinner (M-178).
+
+        Alla tre svarsformer läses därför nu: en ren lista, `{"logs": …}` och
+        `{"runtime-logs": …}`. En post som är en dict skrivs som
+        `[NIVÅ] meddelande` i stället för som JSON — en logg ingen orkar läsa
+        är en logg ingen läser.
+        """
         param = {}
         if niva:
             param["level"] = niva
         data = self._hamta("/api/runtime-logs", param or None)
-        poster = data if isinstance(data, list) else data.get("logs", [])
-        text = [p if isinstance(p, str) else json.dumps(p) for p in poster]
+        if isinstance(data, list):
+            poster = data
+        elif isinstance(data, dict):
+            poster = (data.get("runtime-logs") or data.get("runtime_logs")
+                      or data.get("logs") or [])
+        else:
+            poster = []
+        text = [p if isinstance(p, str) else _loggrad(p) for p in poster]
         return "\n".join(text[-rader:])
 
     # ---- program --------------------------------------------------------
@@ -334,6 +357,19 @@ class OpenPlcV4(object):
         self.ladda_upp(zipvag)
         self.vanta_pa_kompilering()
         return self.starta_och_vanta()
+
+
+def _loggrad(post) -> str:
+    """En loggpost som en läsbar rad. Aldrig JSON åt en människa."""
+    if not isinstance(post, dict):
+        return str(post)
+    niva = post.get("level") or post.get("niva") or ""
+    text = post.get("message") or post.get("meddelande") or ""
+    tid = post.get("timestamp") or ""
+    if not text:
+        return json.dumps(post, ensure_ascii=False)
+    delar = [d for d in (tid, "[%s]" % niva if niva else "", text) if d]
+    return " ".join(delar)
 
 
 def _efter_kolon(text: str) -> str:
