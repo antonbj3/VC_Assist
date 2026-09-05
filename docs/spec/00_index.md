@@ -169,9 +169,12 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-128_p15_7_fasdom_och_den_felstallda_fragan.md` | M-128 — P15-7 körd: fasdom mot en känd fördröjning i VC, och varför frågan var fel ställd |
 | `M-129_braketten_pa_korningsniva_falld_i_verkligheten.md` | M-129 — braketten på körningsnivå fälld i verkligheten: osäkerhetsbraketten prövad mot naturlig last i VC |
 | `M-130_taket_under_naturlig_belastning_och_stopp.md` | M-130 — taket under naturlig belastning och processtopp: två frågor ur D4 besvarade med mätning |
-| `M-131_motorn_rattad_c0.md` | M-131 — mutationsmotorns tre rattelser och det nya utgangstalet |
+| `M-131_motorn_rattad_c0.md` | M-131 — mutationsmotorns tre rättelser och det nya utgångstalet |
 | `M-132_en_riktig_anlaggning_i_vc_och_gransen_3_av_28.md` | M-132 — en riktig anläggning i VC: I/O-spår från en transportörrigg med två givare, och varför produktionen ger 0 till 3 av 28 |
 | `M-133_kompositionsdomarna_over_fyra_linjetopologier.md` | M-133 — kompositionsdomarna över fyra nya linjetopologier: kaskadsvält, buffertblockering, sammanflödeskollision och slutet återflöde |
+| `M-134_de_29_skadorna_facit_kan_se.md` | M-134 — de skador facit kan se: klassning med saknat påstående och orsak |
+| `M-135_stimuli_som_ser_skadorna.md` | M-135 — stimuli som ser skadorna: C2-punktkrav, sekvenser och grind |
+| `M-136_llm_informationsatkomst.md` | M-136 — LLM-informationstäckning i skala över 50 bankuppgifter |
 
 <!-- SLUT MATNINGSTABELL -->
 
