@@ -38,3 +38,61 @@ GRID  scan 0-4 (ST040_STP_IN_OPEN): [False, True, True, True, True]
 OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 1040.0, 22440.0]
 OPLC  ST040_STP_IN_OPEN FALL vid [1020.0, 19720.0]
 FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+
+## T-04 inloppet_stangs_en_gang: 11 omprov av samma text (glitchen ar intermittent)
+# 5 varv utan rasamplen:
+--- varv 1 ---
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+--- varv 2 ---
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 1040.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [1020.0, 19740.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+--- varv 3 ---
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+OPLC  ST040_STP_IN_OPEN RISE vid [40.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+--- varv 4 ---
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+--- varv 5 ---
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22420.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+FACIT inloppet_stangs_en_gang: FALL antal=1 fonster [0, 21000] ms; openplc-domaren laser [0, 21080.0]
+# 6 varv med rasamplen runt 1030 ms:
+--- varv 1 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(914.3, True), (925.6, True), (937.4, True), (949.0, True), (960.6, True), (972.3, True), (984.0, True), (995.6, True), (1008.8, True), (1020.3, True), (1031.8, True), (1043.3, True), (1054.5, True), (1065.5, True), (1076.6, True), (1088.2, True), (1099.8, True), (1111.0, True), (1122.0, True), (1133.0, True), (1144.1, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+--- varv 2 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(921.8, True), (933.8, True), (945.7, True), (957.7, True), (969.7, True), (981.6, True), (993.6, True), (1007.2, True), (1019.0, True), (1030.8, True), (1042.7, True), (1054.6, True), (1066.2, True), (1077.4, True), (1088.5, True), (1099.9, True), (1111.5, True), (1123.4, True), (1135.4, True), (1147.3, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+--- varv 3 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(918.4, True), (930.4, True), (942.3, True), (954.2, True), (966.0, True), (977.9, True), (989.7, True), (1003.0, True), (1014.7, True), (1026.6, True), (1038.4, True), (1050.3, True), (1062.3, True), (1074.4, True), (1086.4, True), (1098.1, True), (1109.8, True), (1121.8, True), (1133.6, True), (1145.4, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19720.0]
+--- varv 4 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(913.0, True), (924.8, True), (936.7, True), (948.6, True), (960.4, True), (972.2, True), (983.8, True), (995.5, True), (1007.8, True), (1018.7, True), (1029.7, True), (1041.1, True), (1053.0, True), (1065.4, True), (1077.9, True), (1089.7, True), (1101.6, True), (1113.3, True), (1125.1, True), (1136.9, True), (1148.8, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22420.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19720.0]
+--- varv 5 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(912.7, True), (924.7, True), (936.6, True), (948.5, True), (960.0, True), (971.1, True), (982.6, True), (994.5, True), (1007.8, True), (1019.5, True), (1031.4, True), (1043.3, True), (1055.2, True), (1067.2, True), (1079.2, True), (1091.2, True), (1103.1, True), (1115.0, True), (1127.0, True), (1139.0, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22440.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+--- varv 6 ---
+RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(916.6, True), (927.7, True), (939.2, True), (951.1, True), (962.9, True), (974.7, True), (986.3, True), (997.7, True), (1010.3, True), (1021.4, True), (1032.7, True), (1043.9, True), (1055.3, True), (1066.6, True), (1077.8, True), (1089.0, True), (1100.1, True), (1111.2, True), (1122.3, True), (1133.4, True), (1144.5, True)]
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22420.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19720.0]

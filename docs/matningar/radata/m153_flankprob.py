@@ -93,6 +93,16 @@ for k in range(n_scan):
         if forra and not v:
             op_fall.append(k * DO.SCAN_MS)
     forra = v
+# Valfritt sjunde argument: skriv ut RASAMPLEN runt en tid (ms). Utan dem gar
+# det inte att skilja "PLC:n var lag ett helt scan" fran "ett enda prov foll
+# ur" - och det ar precis den skillnaden som avgor om en glitch ar motorns
+# eller domarens.
+if len(sys.argv) > 7:
+    runt = float(sys.argv[7])
+    print("RUNT  %.0f ms, rasamplen (t_ms, %s): %s"
+          % (runt, signal,
+             [(round(t, 1), v.get(tag)) for t, v in spar
+              if runt - 120 <= t <= runt + 120]))
 print("OPLC  %s RISE vid %s" % (signal, op_rise[:12]))
 print("OPLC  %s FALL vid %s" % (signal, op_fall[:12]))
 for f in (fs.get("flanker") or []):
