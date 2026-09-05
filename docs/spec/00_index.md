@@ -214,6 +214,8 @@ Ett prov fäller om filen på disk slutat stämma.
 | `M-173_omstarten_och_retain.md` | M-173 — Omstarten mitt i spåret: RETAIN, varmstart och vad banken förutsätter |
 | `M-174_gemini_enskott_spridning.md` | M-174 — Enskott med och utan regler over banken pa Gemini 3.8: n>=3 och spridning |
 | `M-175_gemini_flerskott_varv.md` | M-175 — Flerskottets varvfordelning pa Gemini 3.8: n>=3 och takanalys |
+| `M-176_flanken_over_skanngransen.md` | M-176 — Flanken över skanngränsen: samma R_TRIG två gånger i samma scan, på båda motorerna |
+| `M-177_rackvidden_kanns_igen_pa_variablerna.md` | M-177 — räckvidden känns igen på variablerna, inte på blocktypen |
 
 <!-- SLUT MATNINGSTABELL -->
 
