@@ -10,6 +10,7 @@
 
 Banken bar **51** uppgifter, varav **fyra** hade `facit_spar`. En uppgift utan
 spårfacit går inte att döma mekaniskt idag — den är en prompt, inte en bänkpost.
+Efter det här arbetet bär den **63**, varav **24** går att döma.
 
 Och ett spårfacit vars tal räknats fram av koden som ska dömas mäter ingenting.
 `BENCH-4` stod grön i månader mot ett tautologiskt facit; talet var perfekt.
@@ -22,7 +23,8 @@ Två frågor:
 
 ## LIMITS
 
-* **Tak: se avsnittet "Vad som INTE är mätt".** Talen nedan är räknade och
+* **Tak: 24 av 63 uppgifter.** Trettionio bär fortfarande inget spårfacit och
+  går alltså inte att döma. Talen nedan är räknade och
   citerade, inte körda mot en verklig anläggning. Ingen uppgift i banken är
   körd i Visual Components, så ögonfacit i `expect` är fortfarande oprövat.
 * Spårfacit döms av `bank/domare.py` genom vår egen ST-tolk. Tolken är **inte**
@@ -33,7 +35,7 @@ Två frågor:
   fall inte lästa i full text — där det gäller står det i uppgiftens eget
   `standard`-fält, ordagrant.
 * **Referenslösningarna är inte prövade mot grind 1–4.** MÄTT 2026-09-05:
-  samtliga 22 referenser fälls av `granska_station` på `ODEKLARERAD`, och det
+  samtliga referenser fälls av `granska_station` på `ODEKLARERAD`, och det
   gäller lika mycket de fyra som fanns före det här arbetet. Skälet är att en
   `facit_spar.referens` skrivs för tolken, som får signalkartan separat, medan
   stationsgrinden väntar sig skelettet med sina deklarationer. Referensen är
