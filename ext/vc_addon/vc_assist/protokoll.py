@@ -82,13 +82,13 @@ class Avramare(object):
                 break
             huvud = self._buf[:8]
             if self._buf[8:9] != b"\n":
-                raise Ramfel("saknar LF efter langdprefix")
+                raise Ramfel("missing LF after length prefix")
             try:
                 n = int(huvud, 16)
             except ValueError:
-                raise Ramfel("langdprefix ar ingen hexsiffra: %r" % (huvud,))
+                raise Ramfel("length prefix is not a hex digit: %r" % (huvud,))
             if huvud != ("%08x" % n).encode("ascii"):
-                raise Ramfel("langdprefix maste vara atta gemena hexsiffror: %r" % (huvud,))
+                raise Ramfel("length prefix must be eight lowercase hex digits: %r" % (huvud,))
             if n > self._max:
                 raise ForStor("angiven kropp %d byte over max %d" % (n, self._max))
             if len(self._buf) < 9 + n:
@@ -111,9 +111,9 @@ def avkoda(kropp):
     try:
         obj = json.loads(kropp.decode("utf-8"))
     except Exception as e:
-        raise Ramfel("trasig JSON: %s" % (e,))
+        raise Ramfel("broken JSON: %s" % (e,))
     if not isinstance(obj, dict):
-        raise Ramfel("toppnivan maste vara ett objekt, fick %s" % type(obj).__name__)
+        raise Ramfel("top level must be an object, got %s" % type(obj).__name__)
     return obj
 
 
