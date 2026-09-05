@@ -32,8 +32,10 @@ from __future__ import annotations
 
 import argparse
 import collections
+import difflib
 import json
 import os
+import re
 import sys
 
 _ROT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -55,6 +57,50 @@ def _las(katalog, namn):
         return None
     with open(p, "r", encoding="utf-8") as f:
         return f.read()
+
+
+# Ord som hor till spraket och inte till nagons val. Ett gemensamt `IF` sager
+# ingenting; ett gemensamt `tmrIndex` sager allt.
+_SPRAKORD = frozenset("""
+IF THEN ELSE ELSIF END_IF CASE OF END_CASE AND OR NOT TRUE FALSE VAR END_VAR
+PROGRAM END_PROGRAM TON TOF TP R_TRIG F_TRIG SR RS CTU CTD CTUD IN PT Q Q1 QU QD
+ET CLK S S1 R R1 LD CV PV BOOL INT DINT SINT REAL LREAL TIME WORD BYTE T RETURN
+XOR MOD AT EXIT WHILE DO END_WHILE FOR TO BY END_FOR REPEAT UNTIL END_REPEAT
+""".split())
+
+_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_KOMMENTAR = re.compile(r"\(\*.*?\*\)", re.S)
+
+
+def kontaminering(post, kropp, arbetsvariabler):
+    """Hur likt ar modellens svar referensen den aldrig fick se?
+
+    Matningens giltighet star och faller med att modellen inte sag facit. Ett
+    forbud i en prompt ar en bon; det har ar matningen.
+
+    Tre matt, och det tredje ar det starkaste: VARIABELNAMN ar ett fritt val.
+    Tva losningar som delar `tmrIndex` har inte kommit pa det var for sig. Tva
+    som delar `IF` har ingenting gemensamt alls.
+
+    Kommentarer raknas bort - de ar prosa pa samma sprak och skulle dranka
+    matningen i ord som "att" och "bara".
+    """
+    ref = _KOMMENTAR.sub(" ", post["facit_spar"]["referens"])
+    mod = _KOMMENTAR.sub(" ", (arbetsvariabler or "") + (kropp or ""))
+    signaler = set(s["name"].upper() for s in post["control"]["signals"])
+
+    def egna(text):
+        return set(x.upper() for x in _IDENT.findall(text)) - signaler - _SPRAKORD
+
+    a = re.sub(r"\s+", " ", ref)
+    b = re.sub(r"\s+", " ", mod)
+    m = difflib.SequenceMatcher(None, a, b).find_longest_match(0, len(a), 0, len(b))
+    return {
+        "likhet": round(difflib.SequenceMatcher(None, ref, mod).ratio(), 4),
+        "langsta_gemensamma": m.size,
+        "langsta_text": a[m.a:m.a + m.size],
+        "delade_namn": sorted(egna(ref) & egna(mod)),
+    }
 
 
 def _apiindex():
@@ -98,6 +144,7 @@ def kor_en(post, katalog, strucpp_cli=None, byggkatalog=None, index=None):
         ut["skal"] = str(fel)
         return ut
 
+    ut["kontaminering"] = kontaminering(post, kropp, arb)
     ut["arbetsvariabler"] = [r.strip() for r in arb.splitlines() if r.strip()]
     ut["kroppsrader"] = len([r for r in kropp.splitlines() if r.strip()])
 
@@ -263,6 +310,25 @@ def main(argv=None):
     except Exception as fel:
         print("\n  baslinjesidan gick inte att kora: %s: %s"
               % (type(fel).__name__, fel))
+    print("\n  KONTAMINERING - liknar svaret referensen modellen aldrig sag?")
+    print("    %-6s %8s %9s  %s" % ("", "likhet", "langsta", "delade egna namn"))
+    varning = 0
+    for r in resultat:
+        k = r.get("kontaminering")
+        if not k:
+            continue
+        print("    %-6s %7.1f%% %9d  %s"
+              % (r["task_id"], 100 * k["likhet"], k["langsta_gemensamma"],
+                 ", ".join(k["delade_namn"]) or "INGA"))
+        if k["delade_namn"] or k["likhet"] > 0.35:
+            varning += 1
+    if varning:
+        print("    VARNING: %d svar liknar referensen. Talen ovan ar inte att "
+              "lita pa." % varning)
+    else:
+        print("    Noll delade variabelnamn. Variabelnamn ar ett fritt val, och")
+        print("    tva losningar som inte delar ett enda har inte kopierat.")
+
     print("\n  fel per klass:")
     for kod, n in klasser.most_common():
         print("    %-24s %d" % (kod, n))
