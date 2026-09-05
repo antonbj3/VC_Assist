@@ -183,11 +183,14 @@ project measures more.
 
 ## What is being built next
 
-**Letting the model design the line.** Today a person describes the cell and the
-model writes the control code. The next step is the model laying out the line
-itself and correcting it from what the eye reports. The rig for it is built and
-waiting on a run. If it fails, that is worth knowing: it would mean the value is
-in the testing, not in the generation.
+**From one station to a whole line.** You state what you want and under which
+constraints — that stays the input, and the planner already turns it into a
+buildable spec or tells you which two conditions collide. What is not yet proven
+is the model writing the control code for a *complete line* and correcting it
+from what the eye reports. Faults between stations are a different problem from
+faults inside one. The rig is built and waiting on a run. If it fails, that is
+worth knowing: it would mean the value sits in the testing rather than in the
+generation.
 
 **Existing plants.** If a line is already running, its original code is often
 lost. Point the tool at a recording of the plant's inputs and outputs and it can
