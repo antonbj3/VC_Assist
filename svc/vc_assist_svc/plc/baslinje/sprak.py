@@ -859,9 +859,16 @@ _I_MELLAN = re.compile(r"\bmellan\s+(?P<lag>-?[\d.,]+)\s+och\s+(?P<hog>-?[\d.,]+
 _I_OMRADE = re.compile(r"\b\w*omradet\s+(?P<lag>-?[\d.,]+)\s+till\s+"
                        r"(?P<hog>-?[\d.,]+)", re.I)
 _I_NAR = re.compile(r"\bnar\s+(?P<sig>[A-Za-z0-9_]+)\s+ar\s+hog", re.I)
+# MATT 2026-09-05 (M-105): det HAR var det enda monstret i hela modulen utan
+# `re.I`. Alla sjutton `_M_*`, alla atta `_F_*` och de tre `_I_*` bar den, och
+# alla laser samma uppgiftstext. En mening som borjar med "Over 5" eller en rad
+# skriven i versaler lastes inte, och en oläst rad ar ett tal som rapporteras.
+# Jamforelsen av `tecken` gors darfor i gemener - annars hade `re.I` vant
+# jamforelsen at fel hall, vilket ar varre an att inte lasa raden alls.
 _T_UTGANG = re.compile(
     r"(?P<sig>[A-Za-z0-9_]+)\s+(?:ska\s+)?vara\s+hog\s+(?:for|nar)\b"
-    r"[^.]*?\b(?P<tecken>over|under|storre an|mindre an)\s+(?P<varde>[\d.,]+)")
+    r"[^.]*?\b(?P<tecken>over|under|storre an|mindre an)\s+(?P<varde>[\d.,]+)",
+    re.I)
 
 
 def _meningar(text: str):
@@ -916,7 +923,7 @@ def las_trosklar(prompt: str, kanda, matsignaler, utgangar) -> List[Troskel]:
             if len(matsignaler) != 1:
                 continue
             namn = [matsignaler[0]]
-        tecken = ">" if m.group("tecken") in ("over", "storre an") else "<"
+        tecken = ">" if m.group("tecken").lower() in ("over", "storre an") else "<"
         ut.append(Troskel(m.group("sig").upper(), namn[0], tecken,
                           _tal(m.group("varde")), mening))
     return ut
