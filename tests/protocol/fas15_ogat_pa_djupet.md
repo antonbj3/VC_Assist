@@ -6,13 +6,32 @@
 samma axel, och domar som fäller på sekvens, timing, grepp, kollision och
 genomflöde — var och en med en trasig cell som måste fällas. Hopfogningens
 osäkerhet mätt, inte antagen."*
-**körs av:** `tests/protocol/kor_fas15.py` (byggs)
+**körs av:** `tests/protocol/kor_fas15_scenen.py` (P15-1..3, M-86),
+`kor_fas15_hopfogning.py` (P15-6, M-87), `kor_fas15_domarna.py` (P15-4/5/8/9,
+M-88), `kor_fas15_plcaxeln.py` (M-97: hopfogningens giltighet, känd störning)
 
-**Status: UTKAST. Inte kört.** Protokollet kräver en körande VC, och
-VC-instansen ägs av fas 7-agenten. Allt som går att pröva utan VC är prövat i
-`tests/enhet/test_oga_pa_djupet.py` (M-65). Det som står här är det som
-**inte** går att pröva utan VC, och därför står som punkter med ett
-förutbestämt grönt svar.
+**Status: KÖRT 2026-09-05 mot en körande VC** (testprefixet, headless `:99`,
+`installationsgrind` grön i varje körning). Utfall per punkt nedan; talen
+står i M-86, M-87, M-88 och M-97.
+
+| punkt | utfall | mätning |
+|---|---|---|
+| P15-1 hela scenen i en enhet | **GRÖNT** — roll 1,0 m, bakgrund 1,5 m; världsmatrisen släpade i samma tick (M-11) | M-86 |
+| P15-2 en orörd komponents driv | **GRÖNT** — 49 av 49 stilla, brus 0,000000 mm (golv 1 µm) | M-86 |
+| P15-3 VC:s kostnad för hela scenen | **GRÖNT** — sex rader, inget TAK; 4,3 µs per komponent och prov | M-86 |
+| P15-4 `measureDistance` under körning | **GRÖNT** — monotont 3000 → 0,0 mm, kontakt vid 1000 mm origoavstånd; dom FAIL kollision ensam | M-88 |
+| P15-5 kostnad per bevakat par | **GRÖNT** — 20 Hz höll vid 20 par; ≈ 0,2 ms per par och slag; kollision PASS på avstånd | M-88 |
+| P15-6 PLC-flanken, upplösningen `RUN` | **GRÖNT** — `RUN` i 604 av 604; taket fick två termer till | M-87 |
+| P15-7 fasdom mot en VC-fördröjning | **INTE KÖRT** — kräver ett skriptbeteende (M-13) | — |
+| P15-8 fem trasiga celler i VC | **4 av 5** — grepp, sekvens, timing, kollision fälls ensamma; `station_bra` PASS. Genomflöde: inert statistik gav **PASS** (falskt grönt, lagat → INCONCLUSIVE); ingen VC-byggd cell fälls, `State` går inte att sätta utan process | M-88 |
+| P15-9 LIMITS i riktig utdata | **GRÖNT** — 7 rader, `RUN`; utan sektionen NOT GOLD för alla | M-88 |
+| P15-10 ögat säger PASS om något det inte kan se | **FUNNET TVÅ GÅNGER, på riktigt** — inert `vcStatistics` (M-88 §4) och steg dömda utan flankens tak (M-97 §1); båda har nu fixturer som föll | M-88, M-97 |
+| hopfogningens giltighet (fas 8:s OGILTIG) | **BYGGT OCH PRÖVAT** — rad/flank/körning; jitter-störning fällde `station_bra` till INCONCLUSIVE i VC; taket håller inte under processtopp (7 av 300) | M-97 |
+
+Originaltexten nedan är protokollets utkast från M-65 och står kvar som det
+förutbestämda facit punkterna dömdes mot.
+
+---
 
 ## Vad fasen påstår
 
@@ -129,4 +148,4 @@ grind.
   detta protokoll. P15-2 och P15-3 ger dem underlag.
 
 ## Plattform
-Linux ☐ *(inte kört)*   Windows ☐ **oprövad**
+Linux ☑ *(kört 2026-09-05, M-86/M-87/M-88/M-97; P15-7 inte kört)*   Windows ☐ **oprövad**
