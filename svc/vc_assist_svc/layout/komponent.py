@@ -100,14 +100,14 @@ class Bounds(object):
         c = [float(v) for v in center_mm]
         h = [float(v) for v in halv_mm]
         if len(c) != 3 or len(h) != 3:
-            raise Saknasfel("get_bounds ger tre tal per falt, fick %d och %d"
+            raise Saknasfel("get_bounds gives three values per field, got %d and %d"
                             % (len(c), len(h)))
         for v in h:
             if not v > 0.0:
                 raise Saknasfel(
-                    "halvt matt %.6g mm ar inte positivt. En komponent utan "
-                    "utstrackning gar inte att placera, och noll ar inget "
-                    "matt - det ar ett saknat matt som ser ut som ett matt."
+                    "half measurement %.6g mm is not positive. A component with no "
+                    "extent cannot be placed, and zero is not a "
+                    "measurement - it is a missing measurement that looks like one."
                     % v)
         self.center_mm = tuple(c)
         self.halv_mm = tuple(h)
@@ -122,10 +122,10 @@ class Bounds(object):
     def ur_svar(cls, svar, avlast_vid=""):
         """Ur verktygsskiktets ordbok: {"center": [...], "half_extent": [...]}."""
         if not isinstance(svar, dict):
-            raise Saknasfel("get_bounds-svaret ar ingen ordbok: %r" % (svar,))
+            raise Saknasfel("the get_bounds response is not a dict: %r" % (svar,))
         for nyckel in ("center", "half_extent"):
             if nyckel not in svar:
-                raise Saknasfel("get_bounds-svaret saknar %r" % nyckel)
+                raise Saknasfel("the get_bounds response is missing %r" % nyckel)
         return cls(svar["center"], svar["half_extent"], avlast_vid)
 
     @property
@@ -146,7 +146,7 @@ def rackvidd_ur_fakta(fakta):
     en `Langd`, sa att motorns enhetsskydd galler aven for den.
     """
     if not isinstance(fakta, Komponentfakta):
-        raise Layoutfel("rackvidd_ur_fakta tar en Komponentfakta")
+        raise Layoutfel("rackvidd_ur_fakta takes a Komponentfakta")
     mm, harkomst, kalla = fakta.rackvidd()
     return Matt(None if mm is None else Langd.mm(mm), harkomst, kalla)
 
@@ -165,7 +165,7 @@ def saknade_matt(fakta, bounds=None):
     sammanfattas efter `MAX_RAMRADER` rader med hur manga som aterstar.
     """
     if not isinstance(fakta, Komponentfakta):
-        raise Layoutfel("saknade_matt tar en Komponentfakta")
+        raise Layoutfel("saknade_matt takes a Komponentfakta")
     ut = []
     if bounds is None:
         ut.append("omslutande volym: %s" % fakta.lada_skal)
@@ -214,16 +214,16 @@ def objekt_ur_komponent(fakta, bounds=None, namn=None,
     den, och da bar anropet talet i stallet for modulen.
     """
     if not isinstance(fakta, Komponentfakta):
-        raise Layoutfel("objekt_ur_komponent tar en Komponentfakta")
+        raise Layoutfel("objekt_ur_komponent takes a Komponentfakta")
     if bounds is None:
         raise Saknasfel(
-            "komponenten %r bar ingen omslutande volym i sin fil. %s. "
-            "Las den i VC med verktyget get_bounds och lamna svaret som "
-            "Bounds.ur_svar(...). Saknas: %s"
+            "component %r carries no enclosing volume in its file. %s. "
+            "Read it in VC with the get_bounds tool and pass the response as "
+            "Bounds.ur_svar(...). Missing: %s"
             % (fakta.namn or fakta.sokvag, fakta.lada_skal,
-               "; ".join(saknade_matt(fakta)) or "inget mer"))
+               "; ".join(saknade_matt(fakta)) or "nothing more"))
     if not isinstance(bounds, Bounds):
-        raise Layoutfel("bounds maste vara ett Bounds, fick %s"
+        raise Layoutfel("bounds must be a Bounds, got %s"
                         % type(bounds).__name__)
     langd_mm, bredd_mm, hojd_mm = bounds.storlek_mm
     rackvidd = rackvidd_ur_fakta(fakta)
@@ -324,7 +324,7 @@ def kopplingsbara(fakta_a, fakta_b):
     """
     if not isinstance(fakta_a, Komponentfakta) or not isinstance(
             fakta_b, Komponentfakta):
-        raise Layoutfel("kopplingsbara tar tva Komponentfakta")
+        raise Layoutfel("kopplingsbara takes two Komponentfakta")
     ut = []
     for ga in fakta_a.granssnitt:
         for gb in fakta_b.granssnitt:
@@ -401,7 +401,7 @@ def flode_ur_fakta(fakta):
     och inte ett fel.
     """
     if not isinstance(fakta, Komponentfakta):
-        raise Layoutfel("flode_ur_fakta tar en Komponentfakta")
+        raise Layoutfel("flode_ur_fakta takes a Komponentfakta")
     inn = [g for g in fakta.granssnitt if _PORT_IN in _flodesportar(g)]
     ut = [g for g in fakta.granssnitt if _PORT_UT in _flodesportar(g)]
     if not inn and not ut:
@@ -442,9 +442,9 @@ class Bindning(object):
     def __init__(self, layoutnamn, fakta, bounds=None):
         self.layoutnamn = str(layoutnamn)
         if not self.layoutnamn:
-            raise Layoutfel("en bindning maste ha ett layoutnamn")
+            raise Layoutfel("a binding must have a layoutnamn")
         if not isinstance(fakta, Komponentfakta):
-            raise Layoutfel("bindningen tar en Komponentfakta")
+            raise Layoutfel("the binding takes a Komponentfakta")
         self.fakta = fakta
         self.bounds = bounds
 
@@ -463,9 +463,9 @@ def komponentnamn_karta(bindningar):
     ut = {}
     for b in bindningar:
         if not isinstance(b, Bindning):
-            raise Layoutfel("komponentnamn_karta tar Bindning-poster")
+            raise Layoutfel("komponentnamn_karta takes Bindning entries")
         if not b.fakta.namn:
-            raise Saknasfel("komponenten bakom %r bar inget namn i model.xml"
+            raise Saknasfel("the component behind %r carries no name in model.xml"
                             % b.layoutnamn)
         ut[b.layoutnamn] = b.fakta.namn
     return ut
