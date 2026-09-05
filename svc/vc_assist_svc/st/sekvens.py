@@ -81,7 +81,7 @@ class Sekvens:
 def _tid(literal: str, vad: str) -> M.Literal:
     ok, ms, skal = tolka_tidliteral(literal)
     if not ok:
-        raise SekvensFel("%s: %s är ingen giltig TIME-literal (%s)"
+        raise SekvensFel("%s: %s is not a valid TIME literal (%s)"
                          % (vad, literal, skal))
     return M.Literal("TID", literal, ms)
 
@@ -153,7 +153,7 @@ class _Bygge(object):
             for d in b.deklarationer:
                 nyckel = d.namn.upper()
                 if nyckel in self.dekl:
-                    raise SekvensFel("%s är deklarerad två gånger i signalkartan"
+                    raise SekvensFel("%s is declared twice in the signal map"
                                      % d.namn)
                 self.dekl[nyckel] = (b.sort, d)
         self._kontrollera_spec()
@@ -166,29 +166,29 @@ class _Bygge(object):
     def _kontrollera_spec(self):
         s = self.spec
         if not _IDENT.match(s.namn):
-            raise SekvensFel("%r duger inte som POU-namn i ST" % s.namn)
+            raise SekvensFel("%r does not work as a POU name in ST" % s.namn)
         if not s.steg:
-            raise SekvensFel("en sekvens utan steg är ingen sekvens")
+            raise SekvensFel("a sequence without steps is not a sequence")
         for namn in (s.tillstandsvar, s.larmvar):
             if not _IDENT.match(namn):
-                raise SekvensFel("%r duger inte som variabelnamn i ST" % namn)
+                raise SekvensFel("%r does not work as a variable name in ST" % namn)
         sedda = set()
         for st in s.steg:
             if not _IDENT.match(st.namn):
-                raise SekvensFel("stegnamnet %r måste vara ett ASCII-namn; det "
-                                 "blir både kommentar och timernamn" % st.namn)
+                raise SekvensFel("the step name %r must be an ASCII name; it "
+                                 "becomes both a comment and a timer name" % st.namn)
             if st.namn.upper() in sedda:
-                raise SekvensFel("två steg heter %s" % st.namn)
+                raise SekvensFel("two steps are named %s" % st.namn)
             sedda.add(st.namn.upper())
             if st.villkor is None and st.uppehall is None:
-                raise SekvensFel("steget %s har varken framåtvillkor eller "
-                                 "uppehåll och kan bli stående" % st.namn)
+                raise SekvensFel("the step %s has neither a forward condition nor "
+                                 "a dwell time and can get stuck" % st.namn)
         nod = self.dekl.get(s.nodstopp.upper())
         if nod is None:
-            raise SekvensFel("nödstoppstaggen %s finns inte i deklarationerna"
+            raise SekvensFel("the emergency-stop tag %s is not in the declarations"
                              % s.nodstopp)
         if nod[1].typ != T.BOOL:
-            raise SekvensFel("nödstoppstaggen %s måste vara BOOL, inte %s"
+            raise SekvensFel("the emergency-stop tag %s must be BOOL, not %s"
                              % (s.nodstopp, nod[1].typ.st()))
 
     # ---- bygget ----------------------------------------------------------
@@ -222,11 +222,11 @@ class _Bygge(object):
             if st.uppehall:
                 rader.append(self._timeranrop(self._urnamn(st), n,
                                               _tid(st.uppehall,
-                                                   "uppehallet i %s" % st.namn)))
+                                                   "the dwell time in %s" % st.namn)))
             if st.tidsgrans:
                 rader.append(self._timeranrop(self._gransnamn(st), n,
                                               _tid(st.tidsgrans,
-                                                   "tidsgransen i %s" % st.namn)))
+                                                   "the time limit in %s" % st.namn)))
         return rader
 
     def _timeranrop(self, namn: str, stegnr: int, tid: M.Literal):
@@ -244,8 +244,8 @@ class _Bygge(object):
 
     def _unikt(self, namn: str) -> str:
         if namn.upper() in self.dekl:
-            raise SekvensFel("byggaren behöver namnet %s till en timer, men det "
-                             "finns redan i signalkartan" % namn)
+            raise SekvensFel("the builder needs the name %s for a timer, but it "
+                             "already exists in the signal map" % namn)
         return namn
 
     def _vilogren(self) -> M.Fallgren:
@@ -309,12 +309,12 @@ class _Bygge(object):
             post = self.dekl.get(namn.upper())
             if post is None:
                 raise SekvensFel(
-                    "steget skriver till %s som inte finns i deklarationerna; "
-                    "taggar kommer ur signalkartan och hittas aldrig på" % namn)
+                    "the step writes to %s which is not in the declarations; "
+                    "tags come from the signal map and are never made up" % namn)
             if post[1].skyddad:
                 raise SekvensFel(
-                    "%s är märkt {SAKERHET} och får inte skrivas av genererad "
-                    "kod (invariant I15)" % namn)
+                    "%s is marked {SAKERHET} and must not be written by generated "
+                    "code (invariant I15)" % namn)
             ut.append(post[1].namn)
         return ut
 
@@ -328,7 +328,7 @@ class _Bygge(object):
             dekl.append(M.Deklaration(namn, T.Blocktyp("TON"),
                                       kommentar="steg %d" % stegnr))
         if self.spec.tillstandsvar.upper() in self.dekl:
-            raise SekvensFel("tillståndsvariabeln %s krockar med signalkartan"
+            raise SekvensFel("the state variable %s collides with the signal map"
                              % self.spec.tillstandsvar)
         return M.Varblock("VAR", tuple(dekl))
 
