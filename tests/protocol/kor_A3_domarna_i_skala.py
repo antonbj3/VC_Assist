@@ -262,14 +262,34 @@ def _redan_gjorda(jsonl):
 # ----------------------------------------------------------- sammanstallning
 
 def las_rader(monster):
+    """JSONL-raderna, med FORSTA raden per (task, etikett, domare, varv).
+
+    Aterupptagningen kan skriva en korning tva ganger: en arbetare som ser ut
+    att vara ute kan ha ett sista varv kvar, och den som startar om den far da
+    tva rader for samma varv. Hande 2026-09-05 pa C-01. Andra kopian raknas
+    bort och rapporteras - en tyst dubblett hade gjort n = 4 for en enda enhet
+    och alla tal darmed ojamforbara.
+    """
     rader = []
+    sedda = set()
+    dubbla = []
     for m in monster:
         for vag in sorted(glob.glob(m)):
             with open(vag, "r", encoding="utf-8") as f:
                 for rad in f:
                     rad = rad.strip()
-                    if rad:
-                        rader.append(json.loads(rad))
+                    if not rad:
+                        continue
+                    r = json.loads(rad)
+                    nyckel = (r["task"], r["etikett"], r["domare"], r["varv"])
+                    if nyckel in sedda:
+                        dubbla.append(nyckel)
+                        continue
+                    sedda.add(nyckel)
+                    rader.append(r)
+    if dubbla:
+        print("dubbletter bortraknade (forsta raden behalls): %d %s"
+              % (len(dubbla), sorted(set("%s/%s %s v%d" % d for d in dubbla))))
     return rader
 
 
