@@ -226,7 +226,20 @@ den dag ett par försvinner och ett annat tillkommer.
 Båda spärrarna syns nu i `SKULDREGISTER.md`, alltså i det register M-94 skrevs
 för att fråga vad det **inte** kunde se.
 
-## 5. Ett prov som slutade vara trasigt
+## 5. Vad sviterna sa
+
+`pytest tests/enhet` efter allt ovan: **6 719 gröna, 190 skippade, 1 röd**.
+Den röda är `test_troskelharkomst.py::test_skulden_ar_raknad_och_krymper`, och
+den är inte den här mätningens — se LIMITS.
+
+`pytest tests/motbevis` är **röd, 22 av 48**, som den ska vara. Motbevissviten
+är repots lista över det som ännu inte håller; en grön motbevissvit vore
+beviset på att den slutat fråga.
+
+Efterlevnadsbänken: **58 av 58** mekaniska fällor, **28 av 28** kontrollfall, 0
+falska avvisningar.
+
+## 6. Ett prov som slutade vara trasigt
 
 `tests/enhet/test_harness.py` skrev härkomsten `"M-99"` och litade på att det
 numret inte fanns. 2026-09-05 kl. 08:06 skapade en annan agent
@@ -279,13 +292,18 @@ påstår sig mäta.
   för ärlighetsgrinden eller redovisningen.** F-66 och F-67 täcker ögongrinden.
   De två andra formerna finns bara som enhetsprov, och ett enhetsprov mäter
   grinden — inte hela harnessen runt den.
-* **Tröskellintern är röd av annat.** `test_troskelharkomst.py` räknar 63
-  trösklar utan härkomst mot ett tak på 58 vid den här mätningens slut. Fem av
-  dem tillkom under natten i `llm/matt.py`, `llm/profil.py` och
-  kontextbudgetens konstanter, av en annan agent som skriver samtidigt. De två
-  konstanter den här mätningen införde (`_MINSTA_ORDLISTA`, `KOPIEGRANS`) bär
-  båda `M-98` på sin rad och räknas inte in. Skulden är alltså inte min, men
-  den är verklig och den ligger kvar när det här skrivs.
+* **Tröskellintern är röd av annat, och det är mätt vems.**
+  `test_troskelharkomst.py` räknade 58 trösklar utan härkomst mot ett tak på 58
+  när det här arbetet började, och **66** när det slutade. Diffen är nio
+  tillkomna och en borttagen, och **alla nio ligger under
+  `svc/vc_assist_svc/llm/`** (`matt.py` 3, `scenvy.py` 2, `budget.py` 2,
+  `profil.py` 1, `urval.py` 1) — ett träd som ännu inte ens är spårat i git och
+  som en annan agent skriver i samtidigt. De två konstanter den här mätningen
+  införde (`_MINSTA_ORDLISTA`, `KOPIEGRANS`) bär båda `M-98` på sin rad och
+  räknas inte in; jag har verifierat att `skuld.py` bidrar med noll. Skulden är
+  alltså inte min, men den är verklig, den gör `pytest tests/enhet` röd, och
+  den ligger kvar när det här skrivs. Att skriva upp taket hade varit att göra
+  någon annans grind lösare.
 * **Sju konsumenter är alla jag hittade, inte alla som finns.** Sökningen gick
   på `NEKANDE`, `namner_fel`, `nekar_pastaendet` och `talar_om_fel` i `svc/`,
   `ext/`, `bank/`, `install/` och `tests/`. En grind som kopierat orden utan
