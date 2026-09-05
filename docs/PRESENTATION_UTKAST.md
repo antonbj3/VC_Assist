@@ -171,8 +171,10 @@ being built.
 Every number here has a measurement file behind it, with the rig it ran on and
 what it does not show.
 
-**It sees the whole scene, accurately.** 812 objects tracked at once with no
-drift, sampled at 225 times a second while the simulation runs.
+**It reads the whole scene, cheaply.** A 812-object cell is captured in
+**3.5 milliseconds** — 4.3 microseconds per object — so it can sample 225 times
+a second while the simulation runs, without slowing it down. Positions come back
+with no drift.
 
 **It finds faults a single station cannot show you.** On a two-station line it
 caught five that each station passed on its own — the kind that only exist in
