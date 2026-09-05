@@ -77,10 +77,24 @@ def med_sekvens(post, ny_sekvens, ersatt_id=None):
     return probe
 
 
-def _stegnyckel(steg):
-    return (float(steg.get("t_ms", 0.0)),
-            json.dumps(steg.get("satt") or {}, sort_keys=True),
-            json.dumps(steg.get("krav") or {}, sort_keys=True))
+def steg_borttagna(gamla_steg, nya_steg):
+    """Gamla steg som ersattningen inte langre garanterar. Ett gammalt steg
+    ar kvar om ett nytt steg har samma t_ms, samma satt och minst samma krav
+    - att lagga krav till ett steg skarper, det tunnar inte ut."""
+    nya = list(nya_steg or [])
+    bort = []
+    for g in gamla_steg or []:
+        t = float(g.get("t_ms", 0.0))
+        gs, gk = g.get("satt") or {}, g.get("krav") or {}
+        kvar = any(float(n.get("t_ms", 0.0)) == t
+                   and (n.get("satt") or {}) == gs
+                   and all(k in (n.get("krav") or {}) and
+                           (n.get("krav") or {})[k] == v
+                           for k, v in gk.items())
+                   for n in nya)
+        if not kvar:
+            bort.append(g)
+    return bort
 
 
 def verifiera_stimulus(post, ny_sekvens, mutanter, ersatt_id=None):
@@ -94,9 +108,7 @@ def verifiera_stimulus(post, ny_sekvens, mutanter, ersatt_id=None):
     if ersatt_id is not None:
         gammal = next(s for s in (post.get("facit_spar") or {}).get("sekvenser")
                       or [] if s.get("id") == ersatt_id)
-        gamla_steg = set(_stegnyckel(s) for s in gammal.get("steg") or [])
-        nya_steg = set(_stegnyckel(s) for s in ny_sekvens.get("steg") or [])
-        borttagna = gamla_steg - nya_steg
+        borttagna = steg_borttagna(gammal.get("steg"), ny_sekvens.get("steg"))
         if borttagna:
             return False, ("avvisas: ersattningen tar bort %d gamla steg - "
                            "grinden far inte bli billig" % len(borttagna)), {}

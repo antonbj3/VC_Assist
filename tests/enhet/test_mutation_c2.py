@@ -102,3 +102,16 @@ def test_c2_ersattning_som_tunnar_ut_avvisas():
                                         ersatt_id="gammal")
     assert not ok, "mekanismen slappte igenom en sekvens som tunnar ut"
     assert "tar bort" in skal
+
+
+def test_c2_krav_som_laggs_till_ar_inte_att_ta_bort():
+    """Att lagga ett krav till ett befintligt steg (samma t_ms, samma satt,
+    fler krav) tunnar inte ut - det skärper. Bara borttagna steg avvisas."""
+    gammalt = [{"t_ms": 0, "satt": {"xIn": True},
+                "krav": {"xUt": True}}]
+    assert C2.steg_borttagna(gammalt, gammalt) == []
+    skarpt = [{"t_ms": 0, "satt": {"xIn": True},
+               "krav": {"xUt": True, "xFel": False}}]
+    assert C2.steg_borttagna(gammalt, skarpt) == []
+    tunt = [{"t_ms": 0, "satt": {"xIn": True}}]
+    assert len(C2.steg_borttagna(gammalt, tunt)) == 1
