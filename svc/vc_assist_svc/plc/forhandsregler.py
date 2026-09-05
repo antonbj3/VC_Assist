@@ -53,6 +53,20 @@ _KLASSRAD = re.compile(r"^\|\s*`(F\d+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*(
 # kod -> instruktionen som gor att kontrollen inte faller.
 #
 # Varje rad ar skriven mot vad grinden FAKTISKT gor, inte mot vad den heter.
+#
+# SYNTAX-regeln bar ett fel som ar vart att minnas: den forbjod icke-ASCII och
+# forsokte namna tecknen - men var sjalv skriven i translittererad svenska, sa
+# modellen last "a, a och o" och sag tre likadana bokstaver. En regel om tecken
+# som inte kan skriva tecknen ar sjalvupphavande.
+#
+# Kostnaden ar matt (M-96): T-07 forlorade TVA av fyra reparationsvarv pa ett
+# enda "a-med-prickar" i en kommentar, i varv 1 och igen i varv 4 - trots att
+# den sett grindens dom i varv 1. Uppgiften var pa vag att losas (fyra brister
+# i varv 2, EN i varv 3) och slog i taket pa ett formatfel.
+#
+# Att regeln ar STRANGARE an kompilatorn ar med flit och star kvar: STruC++
+# accepterar icke-ASCII i kommentarer, men teckenkodningen genom OpenPLC och
+# vidare ut som OPC UA-namn ager vi inte.
 # Tva av dem kommer ur matta modellfel: TIDLITERAL stod for nio av sexton
 # grinddomar i fas 9:s forsta modelldrivna korning (M-96), och DUBBELSKRIVNING
 # for fem av sexton.
@@ -63,9 +77,14 @@ REGLER: Dict[str, str] = {
         "END_CASE, WHILE med END_WHILE, FOR med END_FOR. Ett block som "
         "avslutas med fel END_ falls.",
     "SYNTAX":
-        "Skriv giltig ST och ingenting annat. Ingen prosa, inga "
-        "markdown-kodstaket, inga icke-ASCII-tecken - a, a och o i en "
-        "kommentar falls ocksa. EXIT far bara sta inne i en slinga.",
+        "Skriv giltig ST och ingenting annat: ingen prosa, inga "
+        "markdown-kodstaket, EXIT bara inne i en slinga.\n"
+        "        REN ASCII I HELA KALLAN, ocksa i kommentarer. Uppgiften ar "
+        "skriven pa svenska men koden far inte vara det: \u00e5, \u00e4, "
+        "\u00f6, \u00c5, \u00c4 och \u00d6 falls, aven inne i (* ... *). "
+        "Skriv 'nodstopp' och inte 'n\u00f6dstopp', 'lage' och inte "
+        "'l\u00e4ge', 'sankt' och inte 's\u00e4nkt'. Enklast: skriv "
+        "kommentarerna pa engelska.",
     "TIDLITERAL":
         "TIME-literaler: T#<tal><enhet>, enheterna d h m s ms us ns i fallande "
         "ordning, varje enhet hogst en gang, och BARA den minsta delen far ha "

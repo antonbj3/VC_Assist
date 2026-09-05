@@ -224,3 +224,43 @@ def test_forreglingsregeln_bar_M74_s_matta_fynd():
     """
     regel = F.OGATS_REGLER["F8"]
     assert "utgang" in regel.lower() and "scan" in regel.lower()
+
+
+def test_regeln_om_icke_ascii_kan_NAMNA_tecknen_den_forbjuder():
+    """TRASIG FIXTUR for en sjalvupphavande regel.
+
+    Regeln forbjod icke-ASCII och forsokte namna tecknen - men var sjalv
+    skriven i translittererad svenska, sa modellen last "a, a och o" och sag
+    tre likadana bokstaver.
+
+    Kostnaden ar matt (M-96): T-07 forlorade TVA av fyra reparationsvarv pa ett
+    enda a-med-prickar i en kommentar, i varv 1 och igen i varv 4 - trots att
+    den sett grindens dom i varv 1. Uppgiften var pa vag att losas: fyra
+    brister i varv 2, EN i varv 3, och sa slog den i taket pa ett formatfel.
+    """
+    regel = F.REGLER["SYNTAX"]
+    for tecken in "åäöÅÄÖ":
+        assert tecken in regel, (
+            "regeln namner inte %r, och en modell kan da inte veta vilket "
+            "tecken som menas" % tecken)
+
+
+def test_regeln_visar_omskrivningen_och_inte_bara_forbudet():
+    """Ett forbud utan en utvag lamnar modellen utan handling.
+
+    Uppgiften ar skriven pa svenska; att bara saga "ingen icke-ASCII" ar att
+    be den om nagot den inte vet hur den gor.
+    """
+    regel = F.REGLER["SYNTAX"].lower()
+    assert "nodstopp" in regel and "engelska" in regel
+
+
+def test_hela_prompten_ar_lasbar_som_utf8_men_kraver_ascii_av_svaret():
+    """Gransen gar mellan PROMPTEN och SVARET, och den ar med flit.
+
+    Prompten far bara tecken - den ar skriven pa svenska. Svaret far inte, for
+    teckenkodningen genom OpenPLC och ut som OPC UA-namn ager vi inte. Att de
+    tva reglerna skiljer sig ar poangen, inte ett misstag.
+    """
+    assert any(ord(c) > 127 for c in R.SYSTEMPROMPT), \
+        "prompten skulle bara de tecken den forbjuder, som exempel"
