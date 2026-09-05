@@ -69,7 +69,7 @@ def test_ett_steg_som_saknar_sitt_svar_FALLS(orakelspar=None):
     with pytest.raises(O.Orakelfel) as e:
         orakel()._plocka(svar("Executed 1 cycle(s). Total: 1",
                               "PRESS.Q : BOOL = TRUE"), spar)
-    assert "svarade inte pa" in str(e.value) and "ET" in str(e.value)
+    assert "did not answer" in str(e.value) and "ET" in str(e.value)
 
 
 def test_fel_antal_korningar_FALLS():
@@ -77,7 +77,7 @@ def test_fel_antal_korningar_FALLS():
     with pytest.raises(O.Orakelfel) as e:
         orakel()._plocka(svar("Executed 1 cycle(s). Total: 1",
                               "PRESS.Q : BOOL = TRUE"), spar)
-    assert "2 steg" in str(e.value) and "korde 1" in str(e.value)
+    assert "2 steps" in str(e.value) and "ran 1" in str(e.value)
 
 
 def test_okand_variabel_FALLS_i_stallet_for_att_tigas_bort():
@@ -86,7 +86,7 @@ def test_okand_variabel_FALLS_i_stallet_for_att_tigas_bort():
     with pytest.raises(O.Orakelfel) as e:
         orakel()._plocka(svar("Unknown variable: q in PRESS",
                               "Executed 1 cycle(s). Total: 1"), spar)
-    assert "kande inte igen" in str(e.value)
+    assert "did not recognize" in str(e.value)
 
 
 # ---- skillnadsregeln -------------------------------------------------------

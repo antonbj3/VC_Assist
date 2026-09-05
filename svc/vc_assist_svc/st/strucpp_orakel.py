@@ -107,7 +107,7 @@ class Orakel(object):
              katalog: Optional[str] = None,
              tidsgrans: float = 600.0) -> "Orakel":
         if not os.path.exists(strucpp_cli):
-            raise Orakelfel("hittar inte STruC++ på %s" % strucpp_cli)
+            raise Orakelfel("cannot find STruC++ at %s" % strucpp_cli)
         katalog = katalog or tempfile.mkdtemp(prefix="orakel_")
         os.makedirs(katalog, exist_ok=True)
         stfil = os.path.join(katalog, "p.st")
@@ -120,16 +120,16 @@ class Orakel(object):
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 timeout=tidsgrans)
         except OSError as fel:
-            raise Orakelfel("kunde inte starta %s: %s" % (strucpp_cli, fel))
+            raise Orakelfel("could not start %s: %s" % (strucpp_cli, fel))
         except subprocess.TimeoutExpired:
-            raise Orakelfel("bygget svarade inte inom %.0f s" % tidsgrans)
+            raise Orakelfel("the build did not respond within %.0f s" % tidsgrans)
         if k.returncode != 0:
-            raise Orakelfel("bygget foll (kod %d):\n%s"
+            raise Orakelfel("the build failed (code %d):\n%s"
                             % (k.returncode,
                                k.stdout.decode("utf-8", "replace").strip()))
         binar = os.path.join(katalog, "p")
         if not os.path.exists(binar):
-            raise Orakelfel("bygget sa lyckat men lamnade ingen binar pa %s"
+            raise Orakelfel("the build said it succeeded but left no binary at %s"
                             % binar)
         cykel = _las_cykel(binar)
         return Orakel(binar, program, cykel)
@@ -160,9 +160,9 @@ class Orakel(object):
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, timeout=300.0)
         except OSError as fel:
-            raise Orakelfel("kunde inte starta oraklet: %s" % fel)
+            raise Orakelfel("could not start the oracle: %s" % fel)
         except subprocess.TimeoutExpired:
-            raise Orakelfel("oraklet svarade inte inom 300 s")
+            raise Orakelfel("the oracle did not respond within 300 s")
         return k.stdout.decode("utf-8", "replace")
 
     def _plocka(self, utdata: str, spar: Sequence[Steg]) -> List[Dict[str, object]]:
@@ -181,12 +181,12 @@ class Orakel(object):
                 gransar.append(len(svar))
                 continue
             if rad.startswith("Unknown variable"):
-                raise Orakelfel("oraklet kande inte igen en variabel: %s" % rad)
+                raise Orakelfel("the oracle did not recognize a variable: %s" % rad)
             m = _SVARSRAD.match(rad.strip())
             if m:
                 svar.append((m.group(1).split(".", 1)[-1], _bool_ur(m.group(2))))
         if korningar != len(spar):
-            raise Orakelfel("spåret har %d steg men oraklet korde %d"
+            raise Orakelfel("the trace has %d steps but the oracle ran %d"
                             % (len(spar), korningar))
         ut: List[Dict[str, object]] = []
         for i, steg in enumerate(spar):
@@ -196,7 +196,7 @@ class Orakel(object):
             saknade = [n.upper().split(".", 1)[-1] for n in steg.las
                        if n.upper().split(".", 1)[-1] not in avlast]
             if saknade:
-                raise Orakelfel("steg %d: oraklet svarade inte pa %s"
+                raise Orakelfel("step %d: the oracle did not answer for %s"
                                 % (i, ", ".join(saknade)))
             ut.append(avlast)
         return ut
@@ -208,7 +208,7 @@ def _las_cykel(binar: str) -> float:
     text = k.stdout.decode("utf-8", "replace")
     m = _CYKELRAD.search(text)
     if not m:
-        raise Orakelfel("hittade ingen cykelrad i orakelts start:\n%s"
+        raise Orakelfel("found no cycle line in the oracle's startup:\n%s"
                         % text[:400])
     return float(m.group(1))
 
@@ -227,8 +227,8 @@ def jamfor(kalla: str, program: str, spar: Sequence[Steg], strucpp_cli: str,
     orakel = Orakel.bygg(kalla, program, strucpp_cli, katalog)
     tolk = Tolk(kalla, signaler=signaler or {})
     if abs(orakel.cykel_ms - tolk.scan_ms) > 1e-9:
-        raise Orakelfel("oraklet kor %.1f ms och tolken %.1f ms; sparen ligger "
-                        "inte pa samma rutnat" % (orakel.cykel_ms, tolk.scan_ms))
+        raise Orakelfel("the oracle runs %.1f ms and the interpreter %.1f ms; the traces "
+                        "are not on the same grid" % (orakel.cykel_ms, tolk.scan_ms))
 
     orakelsvar = orakel.kor(spar)
 
