@@ -56,7 +56,7 @@ station had not finished.
 
 ## The gate chain
 
-Seven filters stand between the model's first draft and code you would run. The
+Six filters stand between the model's first draft and code you would run. The
 first four read only the *text* — and a station can pass all four and still
 release its grip a metre above the pallet.
 
@@ -65,7 +65,7 @@ flowchart LR
     M["model's<br/>draft"] --> T["1-4 · reads the text<br/><i>syntax, analysis,<br/>names, calls</i>"]
     T --> O["5 · THE EYE<br/><i>runs the code<br/>against the plant</i>"]
     O --> K["6 · composition<br/><i>the whole line,<br/>not the station</i>"]
-    K --> H["7 · human"] --> G["GOLD"]
+    K --> G["GOLD"]
     O -.->|"the failure, in words"| M
 
     style O fill:#1f6feb,color:#fff
@@ -91,23 +91,25 @@ flowchart LR
         direction LR
         M1["ST written<br/>inside the loop"] --> M2["our interpreter"] --> M3["verdict against<br/>a trace"]
     end
-    subgraph P3["NEVER DONE"]
+    subgraph P3["BEING CLOSED NOW"]
         direction LR
         X1["ST written<br/>inside the loop"] --> X2["OpenPLC"] --> X3["real scene"] --> X4["the eye judges"]
     end
 
     style P1 fill:#0d3320,stroke:#238636,color:#fff
     style P2 fill:#0d3320,stroke:#238636,color:#fff
-    style P3 fill:#3d1418,stroke:#da3633,color:#fff
+    style P3 fill:#3a2d0b,stroke:#d29922,color:#fff
 ```
 
-Two halves were built separately, on purpose: the early phases proved the *path*
-exists, a later phase that a *model* can find it. The measurements say so
-themselves — *"phase 8 claims composition can be judged, not that a language
-model finds it."*
-
-They have not yet been joined. That step is next, and a negative result is a
-real result: if it fails, the product is the test bench rather than the loop.
+The two halves were built separately and on purpose: the early phases proved the
+*path* exists, a later phase that a *model* can find it. The distinction is not
+human versus machine — the reference bodies were written by a model too. It is
+**outside the loop** (full context, tools, the scene in view, unlimited
+attempts) versus **inside it** (one prompt, no tools, a cap of four rounds, a
+gate deciding). Joining them is the
+current work — as of today the generated code is judged by OpenPLC's own runtime
+rather than only by our interpreter, and the rig that lets a model author a
+whole line and receive the eye's reply is being built.
 
 ## What has been measured
 
@@ -121,7 +123,7 @@ its stated limits. Nothing here is an estimate.
   cell that must not fail
 
 **The loop**
-* hand-written ST drives the scene over OPC UA, round trip **9.91 ms** median
+* reference ST drives the scene over OPC UA, round trip **9.91 ms** median
 * two stations on one line: **five composition faults caught** that both
   single-station runs passed
 * four component types built from the specification in the real simulator,
@@ -139,22 +141,13 @@ its stated limits. Nothing here is an estimate.
 * and, since today, a third engine: code is judged by OpenPLC's own runtime,
   not only by our interpreter
 
-## What it does not do
+## The safety boundary
 
-This list is short deliberately. A tool that does not say where it stops is a
-tool you cannot rely on.
-
-* **Nothing generated touches a safety function.** Emergency stops and
-  protective circuits belong on a certified safety PLC, in a limited
-  variability language, written by a person. Generated logic sits *beside* it,
-  interlocked *by* it. This is not caution — IEC 61508 and ISO 13849 require it.
-* **The eye finds faults; it never proves correctness.** It can say something
-  went wrong. It cannot say everything is right.
-* **The simulation is not reality.** Sensor bounce, actuator dynamics, fieldbus
-  jitter and degraded modes are absent. "The simulation did not crash" is not an
-  acceptance criterion, here or anywhere.
-* **No real plant has been recorded**, and no hardware PLC has been driven. The
-  soft-PLC is the engine the product targets, but it is not a factory.
+Nothing generated touches a safety function. Emergency stops and protective
+circuits belong on a certified safety PLC, in a limited variability language,
+written by a person. Generated logic sits *beside* that, interlocked *by* it.
+This is not caution: IEC 61508 and ISO 13849 require it, and the bench contains
+tasks written in exactly that shape.
 
 ## Why it is built the way it is
 
