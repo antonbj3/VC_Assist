@@ -203,6 +203,14 @@ def mat_en(post):
             post, An.harled(spela_in(post, {prod_id}, UPPREPNINGAR[-1],
                                      "produktionssparet")).facit),
     }
+    tomt = _tomt_program(post)
+    ut["tomt_program"] = {
+        "handskrivet": not domare.dom(post, tomt).godkand,
+        "ur_provsparet": not domare.dom(post, tomt, spar=h_prov.facit).godkand,
+        "ur_produktionssparet": not domare.dom(
+            post, tomt, spar=An.harled(spela_in(
+                post, {prod_id}, UPPREPNINGAR[-1], "produktionssparet")).facit).godkand,
+    }
     ut["motbevis"] = {
         "antal": len(fs["motbevis"]),
         "handskrivet": _motbevis(post, None),
@@ -251,6 +259,23 @@ def _aterfunna(post, facit):
         vill |= _pargrupp(inv)
     har = _forbud(facit)
     return len(vill & har), len(vill)
+
+
+def _tomt_program(post):
+    """Ett program som STYR INGENTING: varje utgang skrivs en gang, till noll.
+
+    M-62 matte att golvet ar hogt - ett sadant program passerade grind 1, 2 och
+    3 pa 37 av 37 uppgifter. Ett facit som inte faller det mater ingenting alls,
+    och det galler ett harlett facit lika mycket som ett handskrivet.
+    """
+    rader = []
+    for sig in post["control"]["signals"]:
+        if sig.get("dir") != "out":
+            continue
+        typ = str(sig["type"]).lower()
+        varde = {"bool": "FALSE", "real": "0.0"}.get(typ, "0")
+        rader.append("    %s := %s;" % (sig["name"], varde))
+    return "PROGRAM Tomt\n%s\nEND_PROGRAM\n" % "\n".join(rader)
 
 
 def _motbevis(post, facit):
@@ -533,6 +558,18 @@ def main(argv=None):
                  m["harlett_ur_provsparet"], m["harlett_ur_produktionssparet"]))
     print("     %-6s %6d %12d %12d %12d"
           % ("SUMMA", s["antal"], s["hand"], s["prov"], s["prod"]))
+
+    print("\n  4b. GOLVET: ett program som STYR INGENTING")
+    print("     M-62: ett sadant program passerar grind 1-3 pa 37 av 37")
+    print("     uppgifter. Ett facit som inte faller det mater ingenting.\n")
+    print("     %-6s %12s %12s %14s" % ("", "handskrivet", "ur provspar",
+                                        "ur produktion"))
+    for r in alla:
+        t = r["tomt_program"]
+        print("     %-6s %12s %12s %14s"
+              % (r["task_id"], "FALLS" if t["handskrivet"] else "SLAPPS IGENOM",
+                 "FALLS" if t["ur_provsparet"] else "SLAPPS IGENOM",
+                 "FALLS" if t["ur_produktionssparet"] else "SLAPPS IGENOM"))
 
     print("\n  5. ATERFANN HARLEDNINGEN MANNISKANS FORREGLINGAR?")
     print("     Bankens handskrivna invarianter, nedbrutna i forbjudna")
