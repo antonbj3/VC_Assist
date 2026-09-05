@@ -57,17 +57,6 @@ UTAN_HONESTY = ("EYES v1\n"
                 "EYES VERDICT PASS allt bra\n")
 
 
-def test_en_rapport_utan_HONESTY_sektionen_ar_inte_guld():
-    """Regel 5 i kontraktet binder bara om sektionen finns. En rapport som
-    utelämnar den har inga överträdelser att hitta — och grinden som ska
-    fånga teleportgrepp, explosion och detalj under golvet blir tom."""
-    b = _grind().doma([_cell(UTAN_HONESTY)])
-    assert not b.guld, (
-        "rapporten saknar SECTION HONESTY helt och fick %s: hela "
-        "ärlighetsgrinden går att koppla ur genom att inte skriva den"
-        % b.text())
-
-
 def test_en_korning_med_for_fa_prov_ar_inte_guld():
     """Ögat har en egen tröskel `MIN_PROV` som gör en för kort körning
     INCONCLUSIVE. Grinden bär ingen motsvarighet: kommer rapporten utifrån

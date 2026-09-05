@@ -357,3 +357,25 @@ def test_en_rapport_utan_en_enda_matning_ar_inte_guld():
         "en rapport med noll sektioner, SAMPLES 0 och DUR 0,000 s gav %s. "
         "Tystnad är aldrig ett godkännande (I3)." % b.text())
 
+
+UTAN_HONESTY_MB = ("EYES v1\n"
+                   "TEMPLATE plocka_och_placera\n"
+                   "RUN 2026-09-04T17:00:00 DUR 9.500s SAMPLES 190 RATE 20.00Hz\n"
+                   "SECTION MOTION\n"
+                   "  GRIP FORMED t=0.950s dist=1.0mm\n"
+                   "  CARRY RIGID rot=0.0deg span=3.0s\n"
+                   "  PLACE IN_TARGET err=0.5mm z=0.750m\n"
+                   "EYES VERDICT PASS allt bra\n")
+
+
+def test_en_rapport_utan_HONESTY_sektionen_ar_inte_guld():
+    """Regel 5 i kontraktet binder bara om sektionen finns. En rapport som
+    utelämnar den har inga överträdelser att hitta — och grinden som ska
+    fånga teleportgrepp, explosion och detalj under golvet blir tom."""
+    b = _grind_mb().doma([_cell_mb(UTAN_HONESTY_MB)])
+    assert not b.guld, (
+        "rapporten saknar SECTION HONESTY helt och fick %s: hela "
+        "ärlighetsgrinden går att koppla ur genom att inte skriva den"
+        % b.text())
+
+
