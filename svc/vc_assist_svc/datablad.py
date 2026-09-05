@@ -211,7 +211,7 @@ class Varde:
             raise Databladsfel("unknown provenance %r" % (self.harkomst,))
         if not self.kalla:
             raise Databladsfel(
-                "%s: ett varde utan kalla ar inte ett varde" % self.storhet)
+                "%s: a value without a source is not a value" % self.storhet)
         if self.harkomst == SAKNAS and self.varde is not None:
             raise Databladsfel(
                 "%s: harkomst SAKNAS men vardet ar %r" % (self.storhet,
@@ -1192,13 +1192,13 @@ def harledningsvag(varde: Varde) -> str:
     """
     if varde.harkomst != HARLEDD:
         raise Databladsfel(
-            "%s: harledningsvagen fragas bara om ett HARLEDD varde, inte om %s"
-            % (varde.storhet, varde.harkomst))
+            "%s: the derivation path can only be asked for a HARLEDD value, "
+            "not for %s" % (varde.storhet, varde.harkomst))
     tratt = [v for v in (VAG_VARIABLER, VAG_TRANSFORMER) if v in varde.kalla]
     if len(tratt) != 1:
         raise Databladsfel(
-            "%s: kallan sager inte vilken harledning talet kom ur (%r)"
-            % (varde.storhet, varde.kalla))
+            "%s: the source does not say which derivation the number came "
+            "from (%r)" % (varde.storhet, varde.kalla))
     return tratt[0]
 
 
@@ -1242,7 +1242,8 @@ class Datablad:
                 "%r ar ingen storhet i ordforradet. Ordforradet ar: %s"
                 % (storhet, ", ".join(sorted(STORHETER))))
         raise Databladsfel(
-            "storheten %r hor inte till familjen %r. Familjens storheter: %s"
+            "the quantity %r does not belong to the family %r. The family's "
+            "quantities: %s"
             % (storhet, self.familj,
                ", ".join(FAMILJENS_STORHETER.get(self.familj, ()))))
 

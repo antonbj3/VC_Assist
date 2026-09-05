@@ -617,7 +617,7 @@ def test_TRASIG_storhet_utanfor_familjen_FALLER_och_svarar_inte_saknas(tmp_path)
     b = D.las(skriv_vcmx(str(tmp_path / "r.vcmx"), robot_rsc()), "ABB")
     with pytest.raises(D.Databladsfel) as fel:
         b["hastighet"]
-    assert "hor inte till familjen" in str(fel.value)
+    assert "does not belong to the family" in str(fel.value)
     assert "robot" in str(fel.value)
     assert not b.har("hastighet")
 
