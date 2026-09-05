@@ -1,0 +1,25 @@
+=== C10: PARVISA SKADOR (SECOND-ORDER MUTATION) ===
+
+P-03: 19 individuellt fangade enradiga beteendeskador
+  Par testade: 166, Par dar felen tog ut varandra: 0 (0.00 %)
+
+C-04: 25 individuellt fangade enradiga beteendeskador
+  PARVIS UTSLACKNING: rad 54 (NOT_STRUKEN) + rad 25 (FALSKT_TILL_SANT) -> GODKAND!
+  Par testade: 288, Par dar felen tog ut varandra: 1 (0.35 %)
+
+S-07: 29 individuellt fangade enradiga beteendeskador
+  Par testade: 393, Par dar felen tog ut varandra: 0 (0.00 %)
+
+A-03: 18 individuellt fangade enradiga beteendeskador
+  Par testade: 148, Par dar felen tog ut varandra: 0 (0.00 %)
+
+S-01: 20 individuellt fangade enradiga beteendeskador
+  Par testade: 181, Par dar felen tog ut varandra: 0 (0.00 %)
+
+P-05: 20 individuellt fangade enradiga beteendeskador
+  PARVIS UTSLACKNING: rad 26 (NOT_STRUKEN) + rad 28 (NOT_STRUKEN) -> GODKAND!
+  Par testade: 184, Par dar felen tog ut varandra: 1 (0.54 %)
+
+=== TOTALT OVER ALLA 6 UPPGIFTER ===
+Par testade: 1360
+Par dar felen tar ut varandra och blir osynliga: 2 (0.147 %)
