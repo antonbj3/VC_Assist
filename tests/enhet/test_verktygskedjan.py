@@ -116,7 +116,7 @@ def test_en_arkivpost_som_pekar_utanfor_malet_avvisas(tmp_path):
         t.add(str(inne / "ofarlig"), arcname="../utanfor")
     with pytest.raises(V.Kedjefel) as e:
         V.packa_upp(str(arkiv), _post(str(arkiv)), str(tmp_path / "mal"))
-    assert "utanfor" in str(e.value)
+    assert "outside" in str(e.value)
 
 
 def test_ett_zip_som_pekar_utanfor_malet_avvisas(tmp_path):
@@ -186,7 +186,7 @@ def test_utan_lasfil_installeras_inga_beroenden(tmp_path, monkeypatch):
     monkeypatch.setattr(V, "LASFIL", str(tmp_path / "finns-inte.json"))
     with pytest.raises(V.Kedjefel) as e:
         V.installera_beroenden(str(tmp_path), skriv=lambda *_a: None)
-    assert "lasfilen saknas" in str(e.value)
+    assert "lock file missing" in str(e.value)
 
 
 # ---- E6: Windows-vagen -----------------------------------------------------

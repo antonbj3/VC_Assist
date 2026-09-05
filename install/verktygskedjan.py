@@ -154,17 +154,17 @@ def plattformsnyckel(plattform=None, maskin=None):
     elif p == "darwin":
         familj = "darwin"
     else:
-        raise Kedjefel("okand plattform %r; manifestet har %s"
+        raise Kedjefel("unknown platform %r; manifest has %s"
                        % (p, ", ".join(sorted(MANIFEST))))
     if m in ("x86_64", "amd64", "x64"):
         arkitektur = "x64"
     elif m in ("aarch64", "arm64"):
         arkitektur = "arm64"
     else:
-        raise Kedjefel("okand arkitektur %r" % (m,))
+        raise Kedjefel("unknown architecture %r" % (m,))
     nyckel = "%s-%s" % (familj, arkitektur)
     if nyckel not in MANIFEST:
-        raise Kedjefel("ingen post for %s" % nyckel)
+        raise Kedjefel("no entry for %s" % nyckel)
     return nyckel
 
 
@@ -195,7 +195,7 @@ def kontrollera(sokvag, post):
 def hamta(nyckel, cache, skriv=print):
     """Hamtar posten om den saknas, kontrollerar den alltid, lamnar sokvagen."""
     if nyckel not in MANIFEST:
-        raise Kedjefel("okand post %r; manifestet har %s"
+        raise Kedjefel("unknown entry %r; manifest has %s"
                        % (nyckel, ", ".join(sorted(MANIFEST))))
     post = MANIFEST[nyckel]
     if post.varning:
@@ -215,7 +215,7 @@ def hamta(nyckel, cache, skriv=print):
     except (urllib.error.URLError, OSError) as fel:
         if os.path.exists(delvis):
             os.remove(delvis)
-        raise Kedjefel("kunde inte hamta %s: %s" % (post.url, fel))
+        raise Kedjefel("could not fetch %s: %s" % (post.url, fel))
     os.rename(delvis, mal)
     kontrollera(mal, post)
     skriv("kontrollerad: %s" % post.namn)
@@ -235,7 +235,7 @@ def packa_upp(arkiv, post, mal):
             for medlem in t.getmembers():
                 dit = os.path.abspath(os.path.join(absmal, medlem.name))
                 if not dit.startswith(absmal + os.sep) and dit != absmal:
-                    raise Kedjefel("arkivposten %r pekar utanfor malet"
+                    raise Kedjefel("archive entry %r points outside the target"
                                    % medlem.name)
             # filter="data" finns fran 3.12 och blir standard i 3.14. Den
             # avvisar specialfiler, absoluta sokvagar och lankar utat. Var egen
@@ -250,10 +250,10 @@ def packa_upp(arkiv, post, mal):
             for namn in z.namelist():
                 dit = os.path.abspath(os.path.join(absmal, namn))
                 if not dit.startswith(absmal + os.sep) and dit != absmal:
-                    raise Kedjefel("arkivposten %r pekar utanfor malet" % namn)
+                    raise Kedjefel("archive entry %r points outside the target" % namn)
             z.extractall(absmal)
     else:
-        raise Kedjefel("posten %s packas inte upp" % post.namn)
+        raise Kedjefel("entry %s cannot be unpacked" % post.namn)
     return absmal
 
 
@@ -265,7 +265,7 @@ def installera_beroenden(paketkatalog, npm="npm", skriv=print):
     att hamtningen sagt sig ha lyckats. Steget hor darfor till hamtningen.
     """
     if not os.path.exists(LASFIL):
-        raise Kedjefel("lasfilen saknas pa %s" % LASFIL)
+        raise Kedjefel("lock file missing at %s" % LASFIL)
     shutil.copyfile(LASFIL, os.path.join(paketkatalog, "package-lock.json"))
     skriv("installerar beroenden med npm ci (last, utan skript)")
     kommando_npm = shutil.which(npm) or npm
@@ -276,17 +276,17 @@ def installera_beroenden(paketkatalog, npm="npm", skriv=print):
             cwd=paketkatalog, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, timeout=900)
     except OSError as fel:
-        raise Kedjefel("kunde inte starta %s: %s. Node behovs for STruC++."
+        raise Kedjefel("could not start %s: %s. Node is required for STruC++."
                        % (npm, fel))
     except subprocess.TimeoutExpired:
-        raise Kedjefel("npm ci svarade inte inom 900 s")
+        raise Kedjefel("npm ci did not respond within 900 s")
     if k.returncode != 0:
-        raise Kedjefel("npm ci foll (kod %d):\n%s"
+        raise Kedjefel("npm ci failed (code %d):\n%s"
                        % (k.returncode,
                           k.stdout.decode("utf-8", "replace").strip()))
     moduler = os.path.join(paketkatalog, "node_modules")
     if not os.path.isdir(moduler):
-        raise Kedjefel("npm ci sa lyckat men lamnade ingen node_modules")
+        raise Kedjefel("npm ci reported success but left no node_modules")
     return moduler
 
 
