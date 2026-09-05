@@ -196,6 +196,8 @@ def main(argv=None):
     p.add_argument("--strucpp-cli", help="STruC++ CLI for grind 1")
     p.add_argument("--byggkatalog")
     p.add_argument("--json")
+    p.add_argument("--varv", type=int, default=1,
+                   help="vilket reparationsvarv svaren kommer fran")
     p.add_argument("--aterkoppling", action="store_true",
                    help="skriv grindernas egna ord till <svar>/<ID>_grinddom.md")
     a = p.parse_args(argv)
@@ -222,7 +224,11 @@ def main(argv=None):
                 print("           grind %-22s %s" % (g, str(v)[:60]))
         klasser.update(r.get("koder") or [])
 
-    print("\n  FORSTA FORSOKET: %d av %d" % (godkanda, len(resultat)))
+    if a.varv <= 1:
+        print("\n  FORSTA FORSOKET: %d av %d" % (godkanda, len(resultat)))
+    else:
+        print("\n  EFTER %d REPARATIONSVARV: %d av %d"
+              % (a.varv - 1, godkanda, len(resultat)))
 
     # Paret, och det ar hela poangen: specen sager att fas 9:s tal aldrig far
     # publiceras ensamt. Par.para KASTAR om sidorna domts av olika domare - en
@@ -260,8 +266,10 @@ def main(argv=None):
     print("\n  fel per klass:")
     for kod, n in klasser.most_common():
         print("    %-24s %d" % (kod, n))
-    print("\n  Efter k varv: EJ MATT. Slingan kraver en modell som svarar")
-    print("  automatiskt, och nagon sadan finns inte i repot.")
+    if a.varv <= 1:
+        print("\n  Efter k varv: kor om med --varv 2 nar modellen svarat pa")
+        print("  aterkopplingen. Slingan drivs for hand: bryggan mellan grind")
+        print("  och modell ar ett meddelande, inte ett API-anrop.")
 
     if a.aterkoppling:
         print("\n  aterkoppling skriven:")
