@@ -121,3 +121,104 @@ def test_en_pekare_till_fel_katalog_i_miljon_avvisas(tmp_path):
                   env={"VC_ASSIST_REPO": str(tmp_path)})
     assert r.returncode == 2
     assert "VC_ASSIST_REPO" in r.stdout.decode("utf-8")
+
+
+# --- komponentfragorna (M-85) -------------------------------------------------
+#
+# `komponent` och `komponentsok` stanger halet M-84 namngav: API-indexet
+# tacker symbolerna men inte per-komponent-data. De anropar befintliga
+# handlers - component_datasheet och search_installed_library - precis som de
+# tre aldre fragorna, sa att verktyget fortfarande inte ar en vag in i repot.
+#
+# Proven nedan domer FORMEN, inte att just den har maskinen har ett bibliotek
+# installerat. Utan bibliotek svarar handlaren funnet=false med ett skal, och
+# det ar ett giltigt svar - ett tomt svar utan skal ar det inte.
+
+def _svar(*argv):
+    r = kor(*argv)
+    assert r.returncode == 0, r.stdout.decode("utf-8")
+    return json.loads(r.stdout.decode("utf-8"))
+
+
+# Varje anrop som ror det installerade biblioteket bygger ett DJUPT index i sin
+# egen underprocess, och det kostar tio sekunder (M-69). Fixturerna ar darfor
+# module-scopade: tre bygganden i stallet for fem, och proven delar svaren.
+@pytest.fixture(scope="module")
+def komponentsvar():
+    return _svar("komponent", "IRB 1200-5/0.9")
+
+
+@pytest.fixture(scope="module")
+def okant_komponentsvar():
+    return _svar("komponent", "den har komponenten finns inte")
+
+
+@pytest.fixture(scope="module")
+def komponentsoksvar():
+    return _svar("komponentsok", "conveyor")
+
+
+def test_kapning_ger_giltig_json(komponentsvar, komponentsoksvar):
+    """Kapningen far ALDRIG skiva mitt i en struktur.
+
+    Det felet ar redan gjort en gang har: svaret kapades pa TECKEN, vilket gav
+    utdata som var lasbar for ett oga och oparsbar for allt annat. Provet
+    galler alla fem fragorna - `json.loads` ar hela domen, och den kan inte
+    passera pa en halv struktur.
+    """
+    svar = [_svar("sok", "interface"), _svar("yta", "vcComponent"),
+            _svar("namn", "vcApplication.load"), komponentsoksvar,
+            komponentsvar]
+    for d in svar:
+        assert isinstance(d, dict)
+        if "kapat" in d:
+            # Kapningen sager hur mycket den inte visade, och listan den
+            # kapade ar fortfarande en lista av HELA poster.
+            assert " av " in d["kapat"]
+            for nyckel in ("symbols", "traffar", "medlemmar", "members"):
+                if nyckel in d:
+                    assert all(isinstance(x, (dict, str)) for x in d[nyckel])
+
+
+def test_komponentfragan_svarar_med_ett_datablad_eller_ett_skal(komponentsvar):
+    d = komponentsvar
+    assert "funnet" in d
+    if not d["funnet"]:
+        assert d["notering"], "ett nej utan skal ar inte ett svar"
+        return
+    assert isinstance(d["datablad"], list), \
+        "databladet ska vara RADER, inte en strang med escapade radbrytningar"
+    assert d["datablad"][0].startswith("KOMPONENT: ")
+    assert isinstance(d["egenskapsnamn"], list)
+    assert isinstance(d["boolska_signaler"], list)
+
+
+def test_komponentfragan_pa_ett_okant_namn_ger_ett_nej_med_skal(
+        okant_komponentsvar):
+    d = okant_komponentsvar
+    assert d["funnet"] is False
+    assert d["notering"]
+    assert d["datablad"] is None
+
+
+def test_komponentsok_svarar_med_traffar_eller_ett_skal(komponentsoksvar):
+    d = komponentsoksvar
+    assert "antal" in d and "traffar" in d
+    if d["antal"] == 0:
+        assert d["notering"] or d["kalla"] == "inget bibliotek"
+
+
+def test_de_gamla_tre_fragorna_svarar_som_forut():
+    """Att fragorna blev fem far inte andra vad de tre forsta ger.
+
+    M-84 mattes med de tre, och en tyst formandring hade gjort matningen
+    ojamforbar med sin egen uppfoljning.
+    """
+    assert _svar("namn", "vcApplication.load")["found"] is True
+    assert _svar("sok", "interface")["traffar"]
+    assert _svar("yta", "vcMatrix")
+
+
+def test_fortfarande_bara_de_fem_fragorna():
+    for okand in ("las", "komponentdatablad", "eval", "komponent2"):
+        assert kor(okand, "x").returncode == 2

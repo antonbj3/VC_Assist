@@ -737,3 +737,172 @@ _lagg(
     }, ["antal", "familjer", "tillverkare", "kategorier", "kalla", "notering"]),
     _library_overview,
 )
+
+
+# ---- component_datasheet -------------------------------------------------
+#
+# HALET DET STANGER, ordagrant ur M-84:s sista avsnitt:
+#
+#     "Indexet tacker API-symboler. Det tacker inte per-komponent-data:
+#      komponenternas egenskapsnamn (ConveyorSpeed, StrokeTime, MaxPayload ...),
+#      bank://-URI:erna, och VILKEN boolsk signal
+#      findBehavioursByType(VC_BOOLEANSIGNAL)[0] ar pa en given komponent."
+#
+# search_installed_library svarar pa VILKEN komponent. Det har verktyget svarar
+# pa vad DEN komponenten heter invandigt: egenskaperna med namn, typ,
+# standardvarde och deklarerad storhet; beteendena och signalerna VID NAMN;
+# granssnitten med vad de bar; lederna med sina granser.
+#
+# Svaret ar TEXT och inte en struktur, av samma skal som katalogsok:
+# informationen ska vara lattillganglig for en sprakmodell, och en rad per
+# egenskap ar billigare att lasa an en JSON-lista med fem nycklar per post.
+# Den strukturerade sammanfattningen star bredvid for det som ska raknas pa.
+
+
+def _hitta_komponentfil(fraga):
+    """(sokvag, tillverkare, traffar) for ett komponentnamn.
+
+    Exakt namn vinner over delstrang, och kortast namn vinner bland
+    delstrangar - samma ordning som katalogsok sorterar i, och av samma skal:
+    den som sokte pa "IRB 120" menade grundmodellen och inte
+    "IRB 120-3/0.6 LID".
+    """
+    katalog, skal = _bibliotek()
+    if katalog is None:
+        return None, "", skal
+    exakt = katalog.med_namn(fraga)
+    if exakt is not None:
+        return exakt.sokvag, exakt.tillverkare, None
+    svar = katalog.sok(fraga=fraga, med_utfasade=True, max_rader=8)
+    if svar.totalt == 0:
+        return None, "", ("ingen komponent heter %r i det installerade "
+                          "biblioteket. Sok med search_installed_library "
+                          "forst." % fraga)
+    if svar.sammandrag is not None:
+        return None, "", ("%d komponenter matchar %r - for manga for att veta "
+                          "vilken du menar. Smalna av med "
+                          "search_installed_library forst." % (svar.totalt, fraga))
+    t = svar.traffar[0]
+    return t.sokvag, t.tillverkare, None
+
+
+def _component_datasheet(argument):
+    from .. import komponentdatablad as KD
+
+    fraga = (argument.get("name") or "").strip()
+    fil = (argument.get("file") or "").strip()
+    if not fraga and not fil:
+        return {"funnet": False, "datablad": None, "notering":
+                "ange name (komponentens namn) eller file (sokvag till .vcmx)."}
+    tillverkare = ""
+    if not fil:
+        fil, tillverkare, skal = _hitta_komponentfil(fraga)
+        if fil is None:
+            return {"funnet": False, "datablad": None, "notering": skal}
+    try:
+        blad = KD.las(fil, tillverkare=tillverkare)
+    except Exception as felet:                      # noqa: BLE001
+        # Fail-closed: ett datablad som inte gick att lasa ar INTE ett tomt
+        # datablad. Skalet foljer med, sa att den som fragade kan se skillnad
+        # pa "komponenten bar inga egenskaper" och "filen gick inte att oppna".
+        return {"funnet": False, "datablad": None,
+                "notering": "%s gick inte att lasa: %s: %s"
+                            % (fil, type(felet).__name__, felet)}
+    text = KD.text(
+        blad,
+        max_egenskaper=int(argument.get("max_properties")
+                           or KD.MAX_EGENSKAPER),
+        max_beteenden=int(argument.get("max_behaviours") or KD.MAX_BETEENDEN))
+    boolska = blad.signaler_av_typ("rSimBoolSignal")
+    return {
+        "funnet": True,
+        "datablad": text,
+        "namn": blad.namn,
+        "fil": blad.sokvag,
+        "antal_egenskaper": len(blad.egenskaper),
+        "egenskapsnamn": [e.namn for e in blad.egenskaper],
+        "signalnamn": [s.namn for s in blad.signaler()],
+        "boolska_signaler": [s.namn for s in boolska],
+        "granssnittsnamn": [g.namn for g in blad.granssnitt],
+        "antal_leder": len(blad.leder),
+        "notering": None,
+    }
+
+
+_lagg(
+    "component_datasheet",
+    "Databladet for EN komponent ur det installerade biblioteket: dess EGNA "
+    "egenskaper med namn, typ, standardvarde och deklarerad storhet; dess "
+    "beteenden och signaler VID NAMN; dess granssnitt och vad de bar; dess "
+    "leder med granser. Fraga detta INNAN du skriver getProperty('...') eller "
+    "findBehaviour('...') - det ar de namnen som avgor om raden kor. "
+    "Egenskaperna lases ur komponentens STRUKTUR (rotens variabelrymd) och ar "
+    "darfor komponentens egna; search_installed_library:s has_parameter soker "
+    "i hela filen och far med geometrins variabler (M-59). "
+    "Enheter: kallan deklarerar en STORHET (Distance, Velocity, Angle ...) for "
+    "14 procent av egenskaperna och ingen enhet alls. Star det saknas ska "
+    "talet INTE forses med en enhet.",
+    params({
+        "name": {"type": "string",
+                 "description": ("Komponentens namn. Exakt namn vinner; annars "
+                                 "narmaste delstrangstraff. Ger flera an atta "
+                                 "traffar blir svaret ett nej med skal.")},
+        "file": {"type": "string",
+                 "description": ("Sokvag till en .vcmx, nar du redan har den ur "
+                                 "search_installed_library. Gar fore name.")},
+        "max_properties": {"type": "integer", "minimum": 1, "maximum": 400,
+                           "description": ("Hogsta antal egenskapsrader. "
+                                           "Standard 47 = p90 over biblioteket "
+                                           "(M-85). Kapas pa ANTAL RADER, "
+                                           "aldrig mitt i en post.")},
+        "max_behaviours": {"type": "integer", "minimum": 1, "maximum": 200,
+                           "description": ("Hogsta antal beteenderader. "
+                                           "Standard 20 = p99 (M-85).")},
+    }),
+    returns({
+        "funnet": {"type": "boolean",
+                   "description": "Om ett datablad kunde lasas. False bar alltid ett skal i notering."},
+        "datablad": {"type": ["string", "null"],
+                     "description": ("Databladet som text, i den ordning som "
+                                     "avgor om en genererad rad kor: namn, "
+                                     "egenskaper, signaler, beteenden, "
+                                     "granssnitt, leder. null nar funnet ar false.")},
+        "namn": {"type": "string", "description": "Komponentens namn ur dess katalogpost."},
+        "fil": {"type": "string", "description": "Filen databladet lastes ur."},
+        "antal_egenskaper": {"type": "integer", "description": "Antal egna egenskaper."},
+        "egenskapsnamn": {"type": "array",
+                          "items": {"type": "string",
+                                    "description": "Ett exakt egenskapsnamn."},
+                          "description": ("Exakta egenskapsnamn, for "
+                                          "getProperty(). Listan ar ALLTID hel, "
+                                          "aven nar databladets egenskapsavsnitt "
+                                          "ar kapat vid max_properties - ett namn "
+                                          "kostar 25 tecken och en rad 85. Tom "
+                                          "lista betyder att rotens variabelrymd "
+                                          "ar tom; 126 av 3201 komponenter har "
+                                          "det (M-85).")},
+        "signalnamn": {"type": "array",
+                       "items": {"type": "string",
+                                 "description": "En signals exakta namn."},
+                       "description": "Signalbeteendena vid namn, i filens ordning."},
+        "boolska_signaler": {"type": "array",
+                             "items": {"type": "string",
+                                       "description": "En boolsk signals exakta namn."},
+                             "description": ("De BOOLSKA signalerna vid namn. Ar "
+                                             "listan tom kastar "
+                                             "findBehavioursByType(VC_BOOLEANSIGNAL)[0] "
+                                             "IndexError - det galler 88 procent av "
+                                             "biblioteket (M-85). Har den ett enda "
+                                             "namn ar [0] entydigt. Har den flera ar "
+                                             "ordningen filens, inte API:ets: anvand "
+                                             "findBehaviour(namn).")},
+        "granssnittsnamn": {"type": "array",
+                            "items": {"type": "string",
+                                      "description": "Ett granssnitts exakta namn."},
+                            "description": "Granssnitten vid namn, for connectComponents."},
+        "antal_leder": {"type": "integer", "description": "Antal leder med granser."},
+        "notering": {"type": ["string", "null"],
+                     "description": "Varfor svaret inte bar ett datablad, eller null."},
+    }, ["funnet", "datablad", "notering"]),
+    _component_datasheet,
+)
