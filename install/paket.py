@@ -65,7 +65,7 @@ def kallfiler(mapp):
                    if n.endswith(".py") and os.path.isfile(os.path.join(mapp, n)))
     if "__init__.py" not in filer:
         raise InstallationsFel(
-            "%s saknar __init__.py - utan den ar det inget VC-tillagg" % mapp)
+            "%s is missing __init__.py - without it, it is not a VC addon" % mapp)
     return filer
 
 
@@ -254,7 +254,7 @@ def las_manifest(malmapp):
         raise InstallationsFel("cannot read manifest %s: %s" % (sokvag, e))
     if data.get("format") != MANIFESTFORMAT:
         raise InstallationsFel(
-            "manifestet %s har format %r, denna installation kan format %d"
+            "manifest %s has format %r, this installer supports format %d"
             % (sokvag, data.get("format"), MANIFESTFORMAT))
     return data
 
@@ -303,9 +303,9 @@ def _skapa_mappar(malmapp):
         os.makedirs(malmapp, exist_ok=True)
     except OSError as e:
         raise InstallationsFel(
-            "kunde inte skapa %s: %s\n"
-            "  Mappen ovanfor ar antagligen skrivskyddad. Ratta rattigheterna "
-            "eller ange en annan mapp med --mal." % (malmapp, e))
+            "could not create %s: %s\n"
+            "  The folder above is probably read-only. Fix the permissions "
+            "or specify a different folder with --mal." % (malmapp, e))
     skapade.extend(reversed(saknade))
     return skapade
 
@@ -326,7 +326,7 @@ def installera(malmapp, kalla=None, pythonniva=None, vc_version="", nivakalla=""
     problem = granska_pythonfiler(kalla, filer, pythonniva, krav_bada=True)
     if problem:
         raise Verifieringsfel(
-            "kallan i %s gar inte att ladda - ingenting installerat" % kalla, problem)
+            "source in %s failed to load - nothing installed" % kalla, problem)
 
     rapport = Installationsrapport(
         malmapp=malmapp,
@@ -483,8 +483,8 @@ def avinstallera(malmapp):
     manifest = las_manifest(malmapp)
     if manifest is None:
         raise InstallationsFel(
-            "inget manifest i %s - da vet jag inte vilka filer som ar mina, "
-            "och gissar inte. Ta bort mappen for hand om den ar din." % malmapp)
+            "no manifest in %s - so I don't know which files are mine, "
+            "and I won't guess. Remove the folder by hand if it is yours." % malmapp)
 
     rapport = Avinstallationsrapport(malmapp=malmapp)
     filer = manifest.get("filer", {})

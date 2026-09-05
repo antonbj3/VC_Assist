@@ -768,7 +768,7 @@ def test_avinstallation_utan_manifest_vagrar_gissa(tmp_path):
     fore = trad(malmapp)
     with pytest.raises(paket.InstallationsFel) as fel:
         paket.avinstallera(malmapp)
-    assert "gissar inte" in str(fel.value)
+    assert "won't guess" in str(fel.value)
     assert trad(malmapp) == fore
 
 
