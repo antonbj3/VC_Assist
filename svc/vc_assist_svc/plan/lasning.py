@@ -100,16 +100,25 @@ _RACKVIDD = re.compile(
 # Ord som gor rackvidden till ett KRAV pa roboten i stallet for en uppgift om
 # den. "rackvidd 1650 mm" ar robotens egenskap; "arbetsradie 1500 mm" ar vad
 # uppgiften kraver av den. Blandas de ihop gar motsagelsen mellan dem forlorad.
-_KRAVORD = ("arbetsradie", "arbetsomrade", "arbetsområde")
+#
+# ALLA fyra listorna nedan jamfors mot `harkomst.normalisera(...)`, som byter
+# a-ring och prickar mot ASCII. En post som SJALV bar diakritik kan darfor
+# aldrig traffa nagonting. MATT 2026-09-05 (M-105): sex sadana poster lag har -
+# "arbetsområde", "lång", "längd", "hög", "höjd", "högst" - och gav intrycket
+# att bada stavningarna tacktes. Utfallet var ofarligt, ASCII-tvillingen fanns
+# i alla sex fallen, men det ar samma falska trygghet som kostade M-70 atta
+# doda grenar. De ar borttagna: det ar NORMALISERINGEN som bar bada
+# stavningarna, inte listan. Grinden heter
+# test_monsterbevis.py::test_planlasningens_ordlistor_star_i_jamforelseform.
+_KRAVORD = ("arbetsradie", "arbetsomrade")
 
 _SIDONAMN = {"bred": "bredd_mm", "bredd": "bredd_mm", "djup": "djup_mm",
-             "lang": "bredd_mm", "lång": "bredd_mm", "langd": "bredd_mm",
-             "längd": "bredd_mm", "hog": "hojd_mm", "hög": "hojd_mm",
-             "hojd": "hojd_mm", "höjd": "hojd_mm"}
+             "lang": "bredd_mm", "langd": "bredd_mm",
+             "hog": "hojd_mm", "hojd": "hojd_mm"}
 
 # Ord som gor en gransangivelse till ett TAK eller ett GOLV. Star inget av dem
 # ar talet ett konstaterande ("cellen ar 2x2 m") och inte ett krav.
-_TAK = ("hogst", "högst", "max", "maximalt", "inom")
+_TAK = ("hogst", "max", "maximalt", "inom")
 _GOLV = ("minst", "minimum")
 
 
