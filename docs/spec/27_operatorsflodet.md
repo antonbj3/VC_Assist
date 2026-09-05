@@ -105,6 +105,36 @@ bara *"kunde inte ansluta"*.
 
 ---
 
+## 4.5 Från att programmet öppnas till att panelen lever
+
+Grön start ovan säger vad som ska finnas på disk. Det här säger vad **operatören
+gör**, i ordning, och vad han ser när steget inte går igenom. Varje rad har en
+härkomst: **MÄTT**, **KOD@HEAD**, **DOK** eller **ANTAGET**.
+
+| # | Steget | Vad som ska hända | Vad som kan gå fel | Vad han ser då | Stämpel |
+|---|---|---|---|---|---|
+| A1 | **Licens och VPN** | `~/bin/vpn-skolan.sh start` innan VC | VPN nere, eller fel produkt på licensservern | VC startar inte, eller startar utan förmågorna. Förmågerapporten namnger ytorna som saknas | **MÄTT** — licensserverns feature mismatch är ett eget fel, inte platsbrist |
+| A2 | **Starta VC** | VC:s process startar, `OnAppInitialized` fyrar | fel `Python N`-nivå ⇒ inget tillägg, ingen rad någonstans | panelen säger vilken av de tre filerna som saknas och vilken av de fem fällorna det pekar på (regel F-2) | **MÄTT M-01** |
+| A3 | **Tillägget laddas** | `loadCommand` + `bridge_cmd executed` + skriptet kompilerar | syntaxfel i modulen: `execute()` kastar inte, modulkroppen körs aldrig | stegen i `28_lagen...` §5.3 stannar på steg 2 eller 3 och visar loggens egen rad | **MÄTT M-09** |
+| A4 | **Bryggan binder porten** | `startar pa …` följt av `lyssnar pa …` | porten hålls av en kvarlevande `wineserver` | *"Ingenting lyssnar på 127.0.0.1:8901."* + `vc-stoppa.sh` på Linux, `netstat -ano` på Windows | **MÄTT M-13** (sidofynd); Windows **OPRÖVAT** (M-44) |
+| A5 | **Starta tjänsten** | operatören startar den via installationens genväg | tillägget får inte starta processer, så ingenting gör det åt honom | inget alls händer förrän han startar den. Det är en **ANTAGEN** väg, inte en byggd | **ANTAGET** — `35_plattformar.md` regel 4 förbjuder `subprocess` inifrån VC |
+| A6 | **Öppna panelen** | `http://127.0.0.1:8902`, loopback endast | ingen webbläsare, eller adressen okänd | menyval 1 i VC visar adressen — men menyytan är **oprövad** (M-21) | **ANTAGET** — ytan är inte byggd, valet webbläsare/terminal är öppet |
+| A7 | **Tjänsten läser tokenet** | `~/vc_assist_token`, omskrivet vid varje bryggstart | gammalt token ⇒ `E_AUTH` | *"Tokenet är från en tidigare VC-session."* Tjänsten läser om filen och försöker en gång till, och **säger att den gjorde det** | KOD@HEAD |
+| A8 | **Första `ping`** | svar inom `T_ping`, RTT ~10 ms | anslutningen går att öppna men inget svar kommer | **inte** `ansluten`. En lyckad `connect()` är inget livstecken (regel L-1); läget blir `obestämt` tills något svarar | **MÄTT M-03** (RTT); L-1 **HÄRLEDD**, Wine-halvan oprövad (M-25) |
+
+**Regel F-10.** Varje steg A1–A8 har ett eget besked. Ingen av dem får svara
+*"kunde inte ansluta"*: det är sant om alla åtta och till hjälp i noll.
+
+**Det som inte är byggt, och det står här och inte i en fotnot:** A5 och A6 är
+**ANTAGNA**. Ingen genväg läggs av installationen i dag, och ingen panelyta
+finns — varken webbsida eller terminalvy. Det som finns är texten de skulle ha
+visat (`svc/vc_assist_svc/forlopp/` och `svc/vc_assist_svc/aterhamtning/`) och
+grindarna som dömer den. Valet mellan webbläsare och terminal står öppet i
+`26_appen.md` §7, och att bygga fönstret innan valet är gjort vore att göra
+valet i förbifarten.
+
+---
+
 ## 5. Ett fullständigt genomlopp
 
 Turens mekanik — verktygsloopen, honesty-rewrite, verify-contract och den
@@ -143,6 +173,41 @@ Att detta fungerar är prövat på fem celler mot en körande VC: **5 av 5 enlig
 facit**, och att den bra cellen fick PASS är sitt eget prov — en domare som
 fäller allt klarar varje fällningsprov och är ändå värdelös
 (`tests/protocol/fas2_ogat.md`).
+
+---
+
+### 5.1 Vad som kan gå fel i varje steg, och vad operatören ser
+
+Tabellen ovan säger vad som händer när det går bra. Den här säger vad som
+händer annars. Varje rad pekar på det ställe där felet hanteras, så att
+ingenting hänger i luften.
+
+| Steg | Felet | Vad operatören ser | Var det står |
+|---|---|---|---|
+| 1 | en förmåga saknas | verktyget **stängs av** och ytan namnges. Aldrig tyst mindre funktion | N-1, `36_versioner.md` |
+| 2 | modellen svarar varken text eller anrop | uppdraget stannar; *"Modellen svarade varken text eller anrop."* Inget tomt varv körs | `28_lagen...` §3.8 fall 4 |
+| 3 | katalogen har ingen matchande komponent | hårt stopp med en fråga, `NOT GOLD (komponent saknas)`. Ingen halv scen | §6.2, regel F-4 |
+| 3 | modellen hittar på en URI | hårt fel (I9). Noll uppfunna URI:er är fas 4:s mätta grind | §9 F-G7 |
+| 4 | kön full, 256 poster | `E_QUEUE_FULL`. Systemet slänger aldrig en post själv | `26_appen.md` G-7 |
+| 4 | posten dödar pumpen | varningen står **före** godkännandet, och posten kan inte samgodkännas | `26_appen.md` G-1, G-2 |
+| 5 | godkänd post körs inte inom 100 ms medan `kor=true` | `kö stillastående`, och `sim` kontrolleras en gång till | `28_lagen...` §3.3 |
+| 5 | VC stängs mitt i | *"Visual Components avslutades."* Kön är borta med processen; posten står som `interrupted` vid nästa pumpstart | `28_lagen...` §3.8 fall 1 |
+| 6 | `canConnect` är falskt | kopplingen köas inte. `can_connect` var **False i varje prövad uppställning** — sju stycken | **M-14** |
+| 7 | två komponenter kolliderar | minsta avstånd per bevakat par, i mm. Inte "kollision: nej" | §5 steg 7 |
+| 8 | signalkartan och scenen går isär | grind 3 fäller. Det är ett **systemfel**, inte ett modellfel, eftersom deklarationerna genereras | §6.4 |
+| 9–10 | ST-koden kompilerar inte | kompilatorns egna rader, oförändrade, med radnummer | §6.4, I1 |
+| 11 | OpenPLC svarar inte | kopplaren räknar raka fel och ger upp vid tredje. Efter det **försöker ingenting igen**, och det står med de orden | **MÄTT M-39**; `28_lagen...` §3.8 fall 3 |
+| 12 | provtagningstakten faller under 15 Hz | körningen blir `INCONCLUSIVE`, aldrig `PASS` | `26_appen.md` A-8 |
+| 12 | ett provtagningsfel kastas | `PROVTAGNINGSFEL` med traceback, `aktiv=False`, körningen `INCONCLUSIVE` | `28_lagen...` §3.5 |
+| 13 | ögats rapport är avhuggen | ingen `EYES VERDICT`-rad ⇒ `NOT GOLD (truncated eyes output)`. Aldrig ett godkännande | §6.3 |
+| 13 | ögats rapport saknar `SECTION HONESTY` | domen visas **inte** som en dom: en rapport utan sektionen har ingen ärlighetsgrind alls | N-2; fas 17 regel Y6 |
+| 14 | guld utan ögondom | förbjudet. Fält 6 renderas aldrig utan fält 5 | `26_appen.md` A-6 |
+| 1–14 | modellen tar slut mitt i en reparation | varvet blev aldrig klart, och **de grindar som skulle ha kört efter det kördes aldrig**. Utfallet är kandidat i bästa fall | `28_lagen...` §3.8 fall 4 |
+
+**Regel F-11.** Ett steg som inte kördes får aldrig se ut som ett steg som höll.
+Det är samma regel fas 17 mekaniserade som `Y11` — *en avslutad körning räknar
+stegen som aldrig kördes* — och den gäller lika hårt när skälet till att steget
+uteblev var att något dog.
 
 ---
 
@@ -357,3 +422,51 @@ Ytan **går att driva**, men ingenting driver den. Noll moduler i `svc/` utanfö
 Kopplaren och reparationsslingan ska **inte** laga det själva: att låta ett
 lägre lager känna presentationslagret vore fel beroenderiktning. Vägen in går
 genom `forlopp.kallor`, och den är byggd och provad.
+
+---
+
+## F-G13 — vad användaren ser när något dött
+
+`F-G12` stänger ytan som visar vad som händer **medan** en körning går. Ingen
+grind säger något om vad användaren ser **efteråt**, och det är den dyrare
+halvan: en körning som lever kan berätta vad den gör, men ett delsystem som dog
+kan inte berätta någonting alls.
+
+> **F-G13.** När ett delsystem slutat svara säger ytan vad som dog, varför, om
+> något försöker igen och vad operatören själv kan göra — och den fäller sin
+> egen grind. Trasiga fall som måste falla: en härledning som räknar en gammal
+> avläsning som ett svar, en som räknar en lyckad `connect()` som ett livstecken,
+> en visning som lovar ett nytt försök när ingenting försöker, och ett läge som
+> inte gick att avgöra som visas som grönt eller utelämnas.
+
+### Glappet som gav upphov till grinden
+
+**MÄTT 2026-09-05 (M-103), före koden fanns:**
+
+| | antal |
+|---|---:|
+| lägen `28_lagen_och_aterhamtning.md` specar | **7** |
+| som någon kod i `svc/` kunde härleda | **0** |
+| ställen i `svc/` som skilde `nere` från `frånkopplad` | **0** |
+| moduler som räknade en avläsnings ÅLDER mot läsarens klocka | **0** |
+
+Sju lägen, noll härledningar. `svc/vc_assist_svc/klient.py` kastar `BryggFel`
+och `OSError` uppåt, och den som fångar dem har inget ordförråd att svara med.
+Ordet `degraded` fanns i pumpens `ping`-svar och lästes inte av någon.
+
+### Vad grinden inte binder
+
+Ytan är **text**, och valet mellan webbläsare och terminal (`26_appen.md` §7
+fråga 1) står kvar öppet med flit. Grinden dömer paret avläsningar och text, och
+fäller därför också en webbsida som inte är skriven än — utan en rad ny kod den
+dagen den byggs.
+
+### Hålen som står öppna
+
+* **Ingen sond går av sig själv.** Ytan läser avläsningar; vem som gör dem, och
+  hur ofta, är inte bestämt (`28_lagen...` §9 fråga 5).
+* **Ingen väg tillbaka har körts mot en VC som verkligen gick ned.** Alla fyra
+  dödsfallen är framprovocerade mot attrapper. Det står som en permanent
+  ovisshet i varje visning, inte som en fotnot här.
+* **Windows är oprövat**, hela vägen. `wineserver -k` finns inte där, och
+  `netstat`-vägen är skriven men aldrig körd (M-44).
