@@ -118,3 +118,39 @@ skriven.
 *Kontroll:* `skuld.nummerkollisioner()`, spärr i
 `tests/enhet/test_skuld.py::test_inga_nya_nummerkollisioner`, och kollisionerna
 skrivs ut i `SKULDREGISTER.md`.
+
+## S12. En ordlista som avgör en dom bär en storhet, och står på ett ställe
+
+En grind som frågar en ordlista frågar egentligen *"gäller den här storheten
+här?"*. Bär listan två storheter blir svaret sant för fel skäl, och grinden
+tiger i det vanliga fallet — det vanliga fallet är just det som ser rätt ut.
+
+Mätt sju gånger på tre dygn, alla på samma lista. `text.NEKANDE` blandade
+**felord** (`saknas`, `foll`, `timeout` — ordet säger att något gick fel) med
+**bara negationer** (`inte`, `ingen`, `aldrig` — ordet säger att påståendet inte
+gäller) och förbehållet `utan`, som i *"utan problem"* påstår motsatsen.
+Följden, M-94 fynd 1: *"Layouten ar klar"* fälldes, *"Layouten ar klar utan
+problem"* gick fri. M-94 fynd 4: *"Simuleringen bevisar att inga kollisioner
+finns"* filtrerades bort av regeln som fanns just för den meningen. M-98:
+`oga.py` bar en **egen kopia** av listan och frågade *"bär MENINGEN något
+nekande ord?"*, så *"Ogat sa PASS och inget fel uppstod"* gav tomt — modellen
+fick döma i ögats namn (I11).
+
+Två krav, båda mekaniserade:
+
+1. **En lista som bär två storheter måste vara sammansatt** ur de listor som
+   bär var sin (`NEKANDE = FELORD + BARA_NEGATION + FORBEHALL`). Då går var
+   storhet att fråga om för sig, och unionen finns kvar för den som verkligen
+   vill ha bredden. Kriteriet är strukturellt och har ingen undantagslista.
+2. **En kopia av en ordlista ska vara sedd.** `harness/text.py` säger det själv:
+   *"de ligger PÅ ETT STÄLLE just för att en kopierad ordlista blir två
+   ordlistor så fort någon rättar den ena."* Mätt 2026-09-05: det hade redan
+   hänt — `guldgrind.DALIGA_ORD` och `oga_kontrakt._FYNDORD` läser samma
+   ögonrapport, delar tolv ord, och den ena bär `CEILING` som den andra med
+   flit lagt i en annan klass.
+
+*Kontroll:* `skuld.ordlistor_med_tva_storheter()` (tak 0) och
+`skuld.kopierade_ordlistor()` (register, får bara gå nedåt), spärrar i
+`tests/enhet/test_ordlistegrind.py`, och båda utskrivna i `SKULDREGISTER.md`.
+Grindens kärnor läses ur `harness/text.py`, alltså ur den modul som **äger**
+delningen — en grind mot kopierade ordlistor får inte själv bära en kopia.
