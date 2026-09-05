@@ -62,6 +62,7 @@ class Ogonkoppling:
         self.n_brutna = 0
         self.n_utan_axel = 0        # lagrat, men utan giltig simuleringstid
         self.n_oga_stangt = 0       # ögat provtog inte; värdet gick ingenstans
+        self.n_rattade = 0          # tak som höjts i efterhand (M-87)
         self.rtt_s: List[float] = []
         self.takt_sist: Optional[float] = None
         self.simtid_sist: Optional[float] = None
@@ -118,9 +119,21 @@ class Ogonkoppling:
         # och ogat ska bara det i serien som ett MATT tal i stallet for att
         # anta M-42:s (M-65 §3). Ett tak pa noll (ingen synkning gjord) ar
         # ingen matning och skickas inte.
-        return self._anrop(varden=dict(varden or {}),
+        n0 = len(self.rtt_s)
+        svar = self._anrop(varden=dict(varden or {}),
                            alder_s=alder + tak,
                            hopfogning_s=(tak if tak > 0.0 else None))
+        # RATTELSEN. Taket ovan ar max av de ATTA FOREGAENDE turerna, alltsa
+        # en backspegel. Blev just den har rundan langre an alla atta bar
+        # taket inte sin egen runda - och M-87 matte, med en styrd hicka, att
+        # felet da gar at det FARLIGA hallet (upp till +69,5 ms, 10 % av
+        # varven). Rundans egen langd ar kand FORST NU, och skickas darfor
+        # efterat som en hojning av taket for vardet som redan ligger inne.
+        egen = max(self.rtt_s[n0:]) if len(self.rtt_s) > n0 else 0.0
+        if egen > tak > 0.0:
+            self.n_rattade += 1
+            self._anrop(hopfogning_s=egen)
+        return svar
 
     def synka(self, n=KOMPENSATIONSFONSTER):
         """Mäter tur och retur utan att skjuta in något värde.
@@ -155,6 +168,7 @@ class Ogonkoppling:
             "lagrade": self.n_lagrade,
             "utan_axel": self.n_utan_axel,
             "oga_stangt": self.n_oga_stangt,
+            "rattade_tak": self.n_rattade,
             "rtt_median_ms": p(0.5),
             "rtt_p95_ms": p(0.95),
             "rtt_max_ms": round(ms[-1], 3) if ms else None,

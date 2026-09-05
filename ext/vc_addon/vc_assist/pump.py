@@ -61,6 +61,12 @@ OMSTART_TAK_PER_MINUT = 20          # PRELIMINAR. Satts av matning M-13.
 # slapar matningen efter nar takten byter regim.
 TAKTFONSTER = 20                    # Satt av M-42.
 
+# I hur manga delar taktfonstret delas nar dess EGEN spridning mats
+# (takt_spridning). Fyra delar av tjugo par ger fem par per del - kort nog att
+# vara brusigare an helheten, och det ar avsikten: max-avvikelsen ska
+# OVERTACKA helhetens fel, inte skatta det. Ett val, motiverat i M-87.
+TAKT_DELFONSTER = 4
+
 
 def _s(x):
     """Bytestrang i py2, oforandrad i py3.
@@ -357,6 +363,94 @@ class Brygga(object):
         if dv <= 0 or ds < 0:
             return None
         return ds / dv
+
+    def takt_spridning(self):
+        """Hur mycket takten sjalv varierar over sitt eget fonster, MATT.
+
+        `takt()` ar en KVOT MELLAN TVA KLOCKOR mott over 20 slag. Fonstret ar
+        kort (aktiv pump slar var 5:e ms), och slagens mellanrum jittrar, sa
+        kvoten jittrar med dem. MATT i M-87 mot VC:s egen brygga: den langa
+        regressionen gav 1,00002 simsekunder per vaggsekund medan `takt()`
+        samtidigt spred sig 0,864-1,234, med enstaka utslag upp mot 2,6.
+
+        Det ar ingen kuriositet. Stampeln ar `simtid - alder * takt`, sa
+        felet i takten skalar RAKT MED ALDERN: vid 400 ms alder gav utslaget
+        2,6 en stampel 650 ms fel. Kopplarens tur-och-retur-tak bar inte den
+        termen - det ar en helt annan storhet - och M-87 matte att seriens
+        hopfogningstak overskreds i 30,7 % av varven vid 400 ms alder.
+
+        Talet har ar spridningen MATT och inte antagen, och den mats pa TVA
+        satt som fangar olika fel. Det STORSTA av de tva galler.
+
+        1. SPRIDNINGEN mellan delfonster. Fonstret delas i TAKT_DELFONSTER
+           lika delar, var och en ar en egen matning av samma kvot, och det
+           de INTE ar overens om ar precis det matningen inte vet. Ett
+           delfonster ar kortare och darfor brusigare an helheten, sa
+           max-avvikelsen OVERTACKER helhetens eget fel. Den termen ser
+           slumpen.
+
+        2. HUR KROKIGT fonstret ar. Simuleringstiden gar i hela steg - M-08
+           matte hela delay-kvanta, M-87 matte 5 ms i VC - och kvoten laser
+           bara fonstrets tva andpunkter. Ligger de pa var sin sida av ett
+           steg ar taljaren fel med det steget, och kvoten med
+           steget / fonstrets vaggspann. Felet ar SYSTEMATISKT: alla
+           delfonster kan vara helt overens och anda ligga fel at samma hall,
+           sa term 1 ser det inte.
+
+           Storheten mats som punkternas storsta avvikelse fran fonstrets
+           egen rata linje. En slat klocka ligger pa linjen och ger noll; en
+           som gar i steg avviker med ett halvt steg, och andpunktsfelet ar
+           hogst tva sadana avvikelser. Det ar darfor 2 * max-avvikelse
+           delat med vaggspannet - matt ur fonstret, inte antaget ur ett
+           kvantum ingen sagt oss.
+
+        Storheten ar ett TAK, inte ett standardfel. Ett standardfel tacker
+        tva fall av tre och duger inte till att bunda ett fel med. En for los
+        grans gor en fasdom mer INCONCLUSIVE an den behover vara; en for tat
+        gor den till ett falskt PASS, och det ar det varre av de tva.
+
+        None nar fonstret ar for kort for delarna. Da ar spridningen okand,
+        och en okand osakerhet far aldrig raknas som noll.
+        """
+        par = self._klockpar
+        helhet = self.takt()
+        if helhet is None or len(par) < 2 * TAKT_DELFONSTER:
+            return None
+
+        def kvot(a, b):
+            dv = b[0] - a[0]
+            ds = b[1] - a[1]
+            if dv <= 0 or ds < 0:
+                return None
+            return ds / dv
+
+        bredd = len(par) // TAKT_DELFONSTER
+        varsta = 0.0
+        sett = False
+        for i in range(TAKT_DELFONSTER):
+            slut = len(par) - 1 if i == TAKT_DELFONSTER - 1 else (i + 1) * bredd
+            k = kvot(par[i * bredd], par[slut])
+            if k is None:
+                continue
+            sett = True
+            varsta = max(varsta, abs(k - helhet))
+        if not sett:
+            return None
+        # Term 2: fonstrets storsta avvikelse fran sin egen rata linje.
+        n = len(par)
+        dv = par[-1][0] - par[0][0]
+        if dv > 0:
+            v0 = par[0][0]
+            xs = [q[0] - v0 for q in par]
+            ys = [q[1] for q in par]
+            sx = sum(xs)
+            namn = n * sum(x * x for x in xs) - sx * sx
+            if namn > 0:
+                b = (n * sum(x * y for x, y in zip(xs, ys)) - sx * sum(ys)) / namn
+                a = (sum(ys) - b * sx) / n
+                avvik = max(abs(y - (a + b * x)) for x, y in zip(xs, ys))
+                varsta = max(varsta, 2.0 * avvik / dv)
+        return varsta
 
     def tick(self, simtid=None):
         """Ett varv. Anropas fran skriptets OnRun. Blockerar aldrig.
@@ -720,6 +814,15 @@ class Brygga(object):
             svar["avbrott"] = kalla.avbrott
             return P.svar_ok(id_, svar)
         if not varden:
+            # En begaran UTAN varden men MED ett tak ar en rattelse: kopplaren
+            # har matt sin egen runda och sett att den blev langre an det tak
+            # den hann skicka. Taket hojs da for vardet som redan ligger inne.
+            # Se Plckalla.hoj_hopfogning och M-87.
+            if args.get("hopfogning_s") is not None and takt is not None:
+                hojt = max(0.0, float(args["hopfogning_s"])) * takt
+                svar["hojt"] = bool(kalla.hoj_hopfogning(hojt))
+                svar["hopfogning_s"] = kalla.hopfogning_s
+                return P.svar_ok(id_, svar)
             svar["skal"] = "inga varden i begaran"
             return P.svar_ok(id_, svar)
         # t = None betyder att ogat raknar vardet som gammalt. Det ar avsikten:
@@ -727,14 +830,39 @@ class Brygga(object):
         # vardet pa, och da ar ett hal ratt svar.
         t = None
         hop = None
+        spridning = self.takt_spridning()
+        svar["takt_spridning"] = spridning
         if self.simtid is not None and takt is not None and alder_s is not None:
-            t = self.simtid - max(0.0, float(alder_s)) * takt
-            # Kopplarens matta tak for tur och retur, i SAMMA klocka som
-            # aldern: vaggsekunder in, simuleringssekunder ut. Det ar
-            # hopfogningens egen osakerhet, och den foljer med varje varde
-            # sa analysen kan rakna med den i stallet for att anta den.
+            alder = max(0.0, float(alder_s))
+            t = self.simtid - alder * takt
+            # HOPFOGNINGENS OSAKERHET AR TVA TERMER, inte en. Bada ar matta.
+            #
+            #   vagen    kopplarens tak for tur och retur, i SAMMA klocka som
+            #            aldern: vaggsekunder in, simuleringssekunder ut.
+            #   klockan  aldern raknas om med `takt`, och takten ar sjalv en
+            #            matning med en spridning (takt_spridning). Felet i
+            #            den skalar RAKT MED ALDERN. M-87 matte det mot VC:s
+            #            egen brygga: utan den har termen overskreds taket i
+            #            30,7 % av varven vid 400 ms alder, och varsta
+            #            overskridandet var 647 ms.
+            #
+            # Utan spridningen ar en okand osakerhet raknad som noll, och da
+            # bar serien ett tak som ser matt ut men inte tacker sin egen
+            # storsta felkalla. Kan spridningen inte matas skickas INGET tak:
+            # analysen faller da tillbaka pa priorn och SAGER att den gjort
+            # det (PRIOR i stallet for RUN).
             if args.get("hopfogning_s") is not None:
-                hop = max(0.0, float(args.get("hopfogning_s"))) * takt
+                vagen = max(0.0, float(args.get("hopfogning_s"))) * takt
+                if spridning is None and alder > 0.0:
+                    hop = None
+                    svar["skal_hopfogning"] = (
+                        "takten spridning gar inte att mata; taket vore en "
+                        "gissning")
+                else:
+                    hop = vagen + alder * (spridning or 0.0)
+                    svar["hopfogning_delar"] = {
+                        "vagen_s": vagen,
+                        "klockan_s": alder * (spridning or 0.0)}
         kalla.skjut_in(varden, t, hopfogning_s=hop)
         svar["lagrat"] = True
         svar["pa"] = t

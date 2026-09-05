@@ -661,6 +661,8 @@ class Plckalla(object):
         self.avbrott = None
         self.n_inskott = 0
         self.n_avbrott = 0
+        # Hur manga ganger taket rattats uppat i efterhand (hoj_hopfogning).
+        self.n_hojda = 0
         # Hopfogningens egen osakerhet, MATT av den som skot in: kopplarens
         # tak for tur och retur, omraknat till simuleringssekunder. None nar
         # ingen matning foljde med - da faller analysen tillbaka pa M-42:s
@@ -674,6 +676,31 @@ class Plckalla(object):
         self.avbrott = None
         self.n_inskott += 1
         return self
+
+    def hoj_hopfogning(self, hopfogning_s):
+        """Rattar taket UPPAT for det varde som redan ligger inne.
+
+        Kopplarens tak ar max av de ATTA FOREGAENDE turerna - en backspegel.
+        Blir just den har rundan langre an alla atta bar taket inte sin egen
+        runda, och MATT (M-87, styrd hicka): da gar felet at det FARLIGA
+        hallet, upp till +69,5 ms, i 10 % av varven. Kopplaren far veta
+        rundans langd forst nar vardet redan ar stamplat, och skickar den da
+        efterat.
+
+        Taket far bara VAXA. En snabb runda som sanker det hade tvattat bort
+        en langsam rundas osakerhet, och en osakerhet som gar att tvatta bort
+        ar ingen osakerhet.
+
+        Returnerar True nar taket verkligen hojdes.
+        """
+        if hopfogning_s is None:
+            return False
+        v = float(hopfogning_s)
+        if self.hopfogning_s is None or v > self.hopfogning_s:
+            self.hopfogning_s = v
+            self.n_hojda += 1
+            return True
+        return False
 
     def bryt(self, skal, t=None):
         """Kontakten ar borta. Vardena SLAPPS, de foljer inte med vidare.
