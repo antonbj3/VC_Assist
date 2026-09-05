@@ -1,0 +1,122 @@
+--- trasiga fallen ---
+  RETAIN-fixtur, varmstart vid 500 ms:
+    VAR RETAIN antal -> GODKAND 
+    VAR        antal -> UNDERKAND fyra_detaljer_med_stromavbrott@900ms:PLT_FULL
+    VAR RETAIN vid KALLSTART -> UNDERKAND fyra_detaljer_med_stromavbrott@900ms:PLT_FULL
+  omstartsbegreppet skiljer RETAIN fran flyktigt, och varm fran kall
+
+--- sjalvkontrollen (M-166): utan omstart = bank/domare.py ---
+  0 avvikelser
+
+  A-01   klar
+  A-02   klar
+  A-03   klar
+  A-04   klar
+  A-05   klar
+  A-06   klar
+  A-07   klar
+  A-08   klar
+  C-01   klar
+  C-02   klar
+  C-03   klar
+  C-04   klar
+  C-05   klar
+  C-06   klar
+  H-01   klar
+  H-02   klar
+  H-03   klar
+  H-04   klar
+  H-05   klar
+  L-01   klar
+  L-02   klar
+  L-03   klar
+  L-04   klar
+  L-05   klar
+  L-06   klar
+  L-07   klar
+  P-01   klar
+  P-02   klar
+  P-03   klar
+  P-04   klar
+  P-05   klar
+  P-06   klar
+  P-07   klar
+  S-01   klar
+  S-02   klar
+  S-03   klar
+  S-04   klar
+  S-05   klar
+  S-06   klar
+  S-07   klar
+  T-01   klar
+  T-02   klar
+  T-03   klar
+  T-04   klar
+  T-05   klar
+  T-06   klar
+  T-07   klar
+  T-08   klar
+  T-09   klar
+
+=== RETAIN i banken ===
+  enheter som deklarerar RETAIN: 0 av 217
+
+=== enheter vars UTFALL andras av en omstart ===
+uppgift      0.25      0.50      0.75      kall
+A-01            1         1         1         1
+A-02            1         1         1         1
+A-03            1         1         1         1
+A-04            1         1         1         1
+A-05            1         1         1         1
+A-06            1         1         1         1
+A-07            1         1         1         1
+A-08            1         1         1         1
+C-01            1         1         1         1
+C-02            1         1         1         1
+C-03            1         1         1         1
+C-04            1         1         1         1
+C-05            1         1         1         1
+C-06            1         1         1         1
+H-01            1         1         1         1
+H-02            1         1         1         1
+H-03            1         1         1         1
+H-04            1         1         1         1
+H-05            1         1         1         1
+L-01            1         1         1         1
+L-02            1         1         1         1
+L-03            1         1         1         1
+L-04            1         1         1         1
+L-05            1         1         1         1
+L-06            1         1         1         1
+L-07            1         1         1         1
+P-01            1         0         1         0
+P-02            0         1         0         1
+P-03            1         1         1         1
+P-04            1         1         1         1
+P-05            1         1         1         1
+P-06            1         1         1         1
+P-07            1         1         1         1
+S-01            1         1         1         1
+S-02            0         1         1         1
+S-03            0         1         0         1
+S-04            0         1         1         1
+S-05            1         1         1         1
+S-06            1         1         1         1
+S-07            1         1         1         1
+T-01            1         1         1         1
+T-02            1         1         1         1
+T-03            1         1         1         1
+T-04            1         1         1         1
+T-05            1         1         1         1
+T-06            1         1         1         1
+T-07            1         1         1         1
+T-08            1         1         1         1
+T-09            1         1         1         1
+
+=== totalt ===
+  omstart vid 0.25 : 45 enheter byter utfall i 45 uppgifter
+  omstart vid 0.50 : 48 enheter byter utfall i 48 uppgifter
+  omstart vid 0.75 : 47 enheter byter utfall i 47 uppgifter
+  omstart vid kall : 48 enheter byter utfall i 48 uppgifter
+
+  varmstart och kallstart skiljer sig i 0 enheter (vantat 0: ingen banklosning deklarerar RETAIN)
