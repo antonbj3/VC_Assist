@@ -229,7 +229,7 @@ def _ar_av_typ(varde, typ):
         return isinstance(varde, dict)
     if typ == "null":
         return varde is None
-    raise Schemafel("okand type %r; skulle ha fastnat i schemakontrollen" % (typ,))
+    raise Schemafel("unknown type %r; should have been caught by the schema check" % (typ,))
 
 
 def _typnamn(typ):
@@ -322,7 +322,7 @@ def validera_resultat(verktyg, resultat):
     sin egen form far aldrig raknas som en lyckad korning.
     """
     if not isinstance(resultat, dict):
-        raise Svarsfel("%s: svaret ar %s, inte ett objekt"
+        raise Svarsfel("%s: the response is %s, not an object"
                        % (verktyg.namn, type(resultat).__name__))
     f = []
     r = verktyg.returns
