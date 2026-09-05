@@ -465,8 +465,8 @@ def fri_bredd_m(scen, zon, extra=None, hoppa=()):
     ``extra`` är en kropp som inte står i scenen ännu, för förhandskontroll.
     """
     if zon.typ not in (Zontyp.GANG, Zontyp.UTRYMNINGSVAG):
-        raise Layoutfel("fri bredd mäts i en gång eller en utrymningsväg, "
-                        "inte i %s" % zon.typ.value)
+        raise Layoutfel("clear width is measured in an aisle or an emergency "
+                        "route, not in %s" % zon.typ.value)
     yta = zon.yta
     langs_x = yta.bredd_m >= yta.djup_m
     hinder = _hinder_i_zon(scen, zon, extra, hoppa)
@@ -572,7 +572,7 @@ def provplacera(scen, namn, pose, bortse_fran=()):
 def granska(scen):
     """EFTERHANDSKONTROLL. Hela layouten, allt som kan fällas."""
     if not isinstance(scen, Scen):
-        raise Layoutfel("granska tar en Scen")
+        raise Layoutfel("granska takes a Scen")
     placerade = scen.placerade_namn()
     overlapp = []
     zonbrott = []
