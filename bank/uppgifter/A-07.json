@@ -1,0 +1,1538 @@
+{
+  "task_id": "A-07",
+  "title": "MIG-svetscell med vandbord, gasfloden och bagovervakning",
+  "goal": "Svetsa fyra fogar pa en konsol i en robotcell med vandbord, sa att bagen aldrig tands utan gasforflode och spand fixtur, att efterflodet halls, och att bordet aldrig indexerar med bagen tand.",
+  "grupp": "A",
+  "bransch": "svetsning",
+  "orsak": "Speglar tre missar pa robotsvetsceller med vandbord. Den forsta: bordet indexeras pa robotens klarsignal utan att bagen slacks forst, sa pistolhalsen sliter mot fixturen forsta gangen robotprogrammet slutar en tiondel innan bagen slocknat. Den andra: gasforflodet och efterflodet skrivs som vantesteg utan tidsur, eller tas bort helt for att korta takten, sa varje fogande borjar och slutar i oskyddad luft och porerna syns forst i rontgen. Den tredje: cellen vantar pa ST470_ARC_OK utan tidsgrans, sa ett tandfel lamnar gasen och tradmatningen pa tills nagon undrar varfor stationen aldrig blev klar.",
+  "prompt": "Bygg en robotcell for MIG-svetsning med vandbord och skriv styrningen till den.\n\nScen: en ABB IRB 2600-20/1.65 med robotmonterad MIG-pistol, ett vandbord med tva\nsvetsstationer och skiljevagg, tva pneumatiska fixturer med lagesgivare, en\nsakerhetsklassad ljusrida pa operatorssidan, en induktiv narvarogivare och en\nnodstoppskrets.\n\nDetaljen ar en svetsad konsol av 6 mm stalplat, 300 x 200 x 80 mm, massa 4,0 kg.\nRobotens arbetsradie i cellen ar 1600 mm. Fyra fogar a 120 mm svetsas med\nsvetshastigheten 8 mm/s.\n\nUppgift, automatiken:\n1. Nar vandbordet star i ett indexlage (ST470_TBL_POS_A eller ST470_TBL_POS_B),\n   ST470_LGT_CLEAR ar hog och fixturen ar oppen: satt ST470_CLP_CLOSE hog.\n2. Vid ST470_CLP_CLOSED: satt ST470_GAS_ON hog och lat gasforflodet 0,8 s lopa.\n3. Nar gasforflodet lopt ut: satt ST470_WIR_FEED och ST470_ARC_ON hoga.\n4. Vid ST470_ARC_OK: satt ST470_RB_START hog och lat roboten kora svetsbanan.\n5. Vid ST470_RB_DONE: slack bagen och stanna tradmatningen, men hall gasen kvar\n   under efterflodet 1,5 s innan ST470_GAS_ON nollstalls.\n6. Darefter: satt ST470_TBL_INDEX hog tills bordet natt sitt andra indexlage,\n   nollstall da indexet och slapp fixturen.\n\nUppgift, de fem forreglingarna som gor cellen driftsatt:\n* Vandbordet far aldrig indexera medan ST470_ARC_ON ar hog. Ett bord som vrider sig\n  med bagen tand river av pistolen.\n* Bagen far aldrig tandas utan att gasforflodet 0,8 s lopt ut och ST470_CLP_CLOSED\n  ar hog.\n* Efterflodet 1,5 s ska hallas efter att bagen slackts. En smalta som svalnar utan\n  skyddsgas oxiderar.\n* Bagen far aldrig tandas nar ST470_LGT_CLEAR ar lag, och bordet far aldrig indexera\n  da heller.\n* Uteblir ST470_ARC_OK inom 1,0 s efter att gas, trad och bage kommenderats ar det\n  ett tandfel: stang av gas, trad och bage och ge larm.\n\nSvetsstrommen ST470_ARC_CUR ska ligga mellan 210,0 och 260,0 A medan bagen brinner.\nUnder 210,0 A blir intrangningen for liten i 6 mm plat och fogen haller inte, over\n260,0 A branner bagen igenom: larma i bada fallen.\n\nEMG_OK och ST470_LGT_CLEAR kommer fran en certifierad sakerhets-PLC och ska bara\nlasas; din logik far inte innehalla nagon sakerhetsfunktion och far aldrig skriva i\ndem. Efter spanningspaslag, efter ett nodstopp och efter ett tryckluftsbortfall kravs\nen stigande flank pa SYS_RESET innan nagot far ga.\n\nCykeltiden ar 85,0 s per konsol. Anvand de signalnamn som star i signalkartan.\n\nKedjan: din ST kompileras och kors i OpenPLC Runtime v4, som exponerar variablerna\nover OPC UA. Visual Components ar OPC UA-klient och mappar variablerna mot\nsimuleringsvariabler i scenen. VC kor ingen ST internt, sa allt som ska handa i\nscenen maste ga via en mappad OPC UA-variabel. Signalnamnen i kartan ar alltsa\nOPC UA-variabelnamn.",
+  "targets_class": [
+    "F8",
+    "F6",
+    "F5"
+  ],
+  "stege": "produktionslinje",
+  "difficulty": 5,
+  "difficulty_stamp": "DEKLARERAD",
+  "failure_modes": [
+    "bordet indexeras pa robotens klarsignal utan att bagen slacks forst",
+    "gasforflodet skrivs som ett vantesteg utan tidsur, sa bagen tands i samma scan som gasen",
+    "efterflodet tas bort for att korta takten",
+    "cellen vantar pa ST470_ARC_OK utan tidsgrans, sa ett tandfel lamnar gas och trad pa",
+    "sekvensen gar vidare pa spannkommandot i stallet for pa spannarnas lagesgivare",
+    "svetsstrommen lases aldrig, sa en bage pa halva strommen ser ut som en riktig bage",
+    "omstartssparren slapper nar nodstoppet eller tryckluften kommer tillbaka i stallet for pa kvittensens flank"
+  ],
+  "antaganden": [
+    {
+      "vad": "konsolens massa 4,0 kg",
+      "varde": "4,0 kg",
+      "motiv": "raknad ur platarean och godstjockleken: 0,30 * 0,20 + 0,30 * 0,08 = 0,084 m2, och 0,084 * 0,006 = 5,04e-4 m3, som med 7850 kg/m3 ger 3,96 kg, avrundat till 4,0 kg. Densiteten ar konstruktionsstalets tabellvarde, sjalva konsolens form ar bankens antagna detalj"
+    },
+    {
+      "vad": "bagtiden 60,0 s",
+      "varde": "60,0 s",
+      "motiv": "raknad ur fogarnas langd och svetshastigheten: fyra fogar a 120 mm ar 480 mm, och 480/8 = 60,0 s vid 8 mm/s. Fogarnas langd och svetshastigheten ar satta for uppgiften; sjalva bagtiden foljer av dem och ar inte vald"
+    },
+    {
+      "vad": "svetshastigheten 8 mm/s",
+      "varde": "8 mm/s",
+      "motiv": "en robotiserad MIG-korning i 6 mm plat med kalsom ligger i det har omradet. Talet ar satt for uppgiften och inte hamtat ur en svetsdatablad eller en WPS, och all bagtid i uppgiften faller med det"
+    },
+    {
+      "vad": "cykeltiden 85,0 s",
+      "varde": "85,0 s",
+      "motiv": "raknad ur delarna: 60,0 s bage + fyra mellanforflyttningar a 2,0 s = 8,0 s + gasfor- och efterflode 4*(0,8+1,5) = 9,2 s + vandbordets index 4,0 s = 81,2 s, sa 85,0 s lamnar 3,8 s marginal och ger 3600/85,0 = 42,4 konsoler i timmen"
+    },
+    {
+      "vad": "gasforflodet 0,8 s och efterflodet 1,5 s",
+      "varde": "0,8 s forflode och 1,5 s efterflode",
+      "motiv": "forflodet ska hinna spola bort luften ur gaskapan innan bagen tands och efterflodet skydda kratern medan den stelnar; efterflodet ar langre for att stelnandet tar langre tid an spolningen. Bada talen ar antagna och inte hamtade ur en WPS"
+    },
+    {
+      "vad": "tandfonstret 1,0 s",
+      "varde": "1,0 s",
+      "motiv": "en normal MIG-tandning tar nagra tiondelar, sa 1,0 s lamnar marginal utan att dolja ett tandfel. Talet ar satt, och facit domer det i tva punkter (0,76 s far inte ha fallt, 1,16 s ska ha fallt) sa att domen ar okanslig for ett scan hit eller dit"
+    },
+    {
+      "vad": "stromfonstret 210,0 till 260,0 A",
+      "varde": "210,0 till 260,0 A",
+      "motiv": "undre gransen ar satt sa att intrangningen racker i 6 mm plat, ovre sa att bagen inte branner igenom. Bada talen ar antagna och inte hamtade ur ett svetsdatablad for den har tradkombinationen"
+    },
+    {
+      "vad": "en gemensam spannsignal for bada fixturerna",
+      "varde": "2 fixturer, 1 spannkommando",
+      "motiv": "ST470_CLP_CLOSE kommenderar bada fixturernas pneumatiska spannare och ST470_CLP_CLOSED ar deras seriekopplade bekraftelse. Forenklingen ar bankens och inte en beskrivning av en verklig ventilo; en cell med tva separata ventiler hade behovt tva signalpar"
+    },
+    {
+      "vad": "vandbordets indexeringstid 4,0 s",
+      "varde": "4,0 s",
+      "motiv": "star i katalogindexets post bank://station/vandbord_svets och ar ANTAGEN dar, inte hamtad ur ett datablad. Tiden bar cykelrakningen men inget krav i logiken, som forreglar mot bordets lagesgivare och aldrig mot en tid"
+    }
+  ],
+  "fysik": {
+    "detalj": {
+      "namn": "svetsad konsol av 6 mm stalplat",
+      "l_mm": 300,
+      "b_mm": 200,
+      "h_mm": 80,
+      "massa_kg": 4.0
+    },
+    "arbetsradie_mm": 1600.0
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "typ": "normaldrift",
+      "signal": null,
+      "beskrivning": "Konsoler laddas pa operatorssidan medan roboten svetsar fyra fogar a 120 mm pa den andra sidan skiljevaggen, 85,0 s per konsol.",
+      "forvantat": "42,4 konsoler i timmen, bordet aldrig indexerat med bagen tand, gasfor- och efterflode hallna vid varje fog och SYS_ALARM lag hela matperioden."
+    },
+    {
+      "id": "strom_lag",
+      "typ": "gransvarde_lag",
+      "signal": "ST470_ARC_CUR",
+      "beskrivning": "ST470_ARC_CUR faller till 150,0 A medan bagen brinner, alltsa under undre gransen 210,0 A.",
+      "forvantat": "For lag strom ger for liten intrangning i 6 mm plat och fogen haller inte lasten. Styrningen ska larma och stanna i stallet for att lagga resten av banan."
+    },
+    {
+      "id": "strom_hog",
+      "typ": "gransvarde_hog",
+      "signal": "ST470_ARC_CUR",
+      "beskrivning": "ST470_ARC_CUR stiger till 300,0 A medan bagen brinner, alltsa over ovre gransen 260,0 A.",
+      "forvantat": "For hog strom branner igenom 6 mm plat och lamnar ett hal i stallet for en fog. Styrningen ska larma innan resten av svetsbanan gas."
+    },
+    {
+      "id": "tandningen_uteblir",
+      "typ": "vandning",
+      "signal": "ST470_ARC_OK",
+      "beskrivning": "Gas, trad och bage kommenderas men ST470_ARC_OK gar aldrig hog.",
+      "forvantat": "Inom 1,0 s ska gas, trad och bage stangas av och larm ges. En cell som vantar utan tidsgrans matar flera meter kall trad in i fixturen."
+    },
+    {
+      "id": "ljusridan_bryts_under_svetsning",
+      "typ": "vandning",
+      "signal": "ST470_LGT_CLEAR",
+      "beskrivning": "Operatoren bryter ljusridan pa lastsidan och slapper den fri igen medan roboten svetsar bakom skiljevaggen.",
+      "forvantat": "Bagen ska brinna vidare, det ar vad skiljevaggen ar till for, men vandbordet far inte indexera sa lange ridan ar bruten och far inte heller ta den fria ridan som en indexbegaran."
+    },
+    {
+      "id": "fixturen_bekraftar_aldrig",
+      "typ": "vandning",
+      "signal": "ST470_CLP_CLOSED",
+      "beskrivning": "Spannaren kommenderas men lagesgivaren gar aldrig hog.",
+      "forvantat": "Varken gas eller bage far ga. Cellen ska sta kvar och vanta i stallet for att svetsa pa en konsol som krympningen drar ur lage."
+    }
+  ],
+  "core_outputs": [
+    "ST470_ARC_ON",
+    "ST470_GAS_ON",
+    "ST470_TBL_INDEX",
+    "ST470_CLP_CLOSE",
+    "SYS_ALARM"
+  ],
+  "variant_av": null,
+  "scene": {
+    "components": [
+      {
+        "role": "robot",
+        "uri": "bank://robot/abb_irb_2600_20_1650",
+        "count": 1
+      },
+      {
+        "role": "svetspistol",
+        "uri": "bank://gripdon/mig_pistol",
+        "count": 1
+      },
+      {
+        "role": "vandbord",
+        "uri": "bank://station/vandbord_svets",
+        "count": 1
+      },
+      {
+        "role": "fixtur",
+        "uri": "bank://station/fixtur_pneumatisk_spann",
+        "count": 2
+      },
+      {
+        "role": "ljusrida",
+        "uri": "bank://givare/ljusridla",
+        "count": 1
+      },
+      {
+        "role": "narvarogivare",
+        "uri": "bank://givare/induktiv_narvaro",
+        "count": 1
+      },
+      {
+        "role": "nodstopp",
+        "uri": "bank://sakerhet/nodstoppskrets",
+        "count": 1
+      }
+    ],
+    "connections": [
+      {
+        "from_role": "robot",
+        "to_role": "svetspistol"
+      },
+      {
+        "from_role": "robot",
+        "to_role": "vandbord"
+      },
+      {
+        "from_role": "vandbord",
+        "to_role": "fixtur"
+      },
+      {
+        "from_role": "fixtur",
+        "to_role": "narvarogivare"
+      },
+      {
+        "from_role": "ljusrida",
+        "to_role": "vandbord"
+      }
+    ],
+    "layout_uri": null
+  },
+  "control": {
+    "signals": [
+      {
+        "name": "ST470_ARC_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera bagen tand"
+      },
+      {
+        "name": "ST470_ARC_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "bagen brinner, lases ur svetskallan"
+      },
+      {
+        "name": "ST470_GAS_ON",
+        "dir": "out",
+        "type": "bool",
+        "comment": "oppna skyddsgasen"
+      },
+      {
+        "name": "ST470_WIR_FEED",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta tradmatningen"
+      },
+      {
+        "name": "ST470_TBL_INDEX",
+        "dir": "out",
+        "type": "bool",
+        "comment": "kommendera vandbordet att indexera ett halvt varv"
+      },
+      {
+        "name": "ST470_TBL_POS_A",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vandbordet i indexlage A"
+      },
+      {
+        "name": "ST470_TBL_POS_B",
+        "dir": "in",
+        "type": "bool",
+        "comment": "vandbordet i indexlage B"
+      },
+      {
+        "name": "ST470_CLP_CLOSE",
+        "dir": "out",
+        "type": "bool",
+        "comment": "spann fixturens pneumatiska spannare"
+      },
+      {
+        "name": "ST470_CLP_CLOSED",
+        "dir": "in",
+        "type": "bool",
+        "comment": "lagesgivare, hog nar spannarna haller konsolen"
+      },
+      {
+        "name": "ST470_LGT_CLEAR",
+        "dir": "in",
+        "type": "bool",
+        "comment": "ljusridan pa operatorssidan obruten; ligger pa sakerhets-PLC och far bara lasas"
+      },
+      {
+        "name": "ST470_ARC_CUR",
+        "dir": "in",
+        "type": "real",
+        "comment": "svetsstrom, A"
+      },
+      {
+        "name": "ST470_RB_START",
+        "dir": "out",
+        "type": "bool",
+        "comment": "starta robotens svetsbana"
+      },
+      {
+        "name": "ST470_RB_DONE",
+        "dir": "in",
+        "type": "bool",
+        "comment": "roboten har kort hela svetsbanan"
+      },
+      {
+        "name": "EMG_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "nodstoppskretsen sluten, lases fran sakerhets-PLC"
+      },
+      {
+        "name": "AIR_OK",
+        "dir": "in",
+        "type": "bool",
+        "comment": "tryckluft over lagsta tryck"
+      },
+      {
+        "name": "SYS_AUTO",
+        "dir": "in",
+        "type": "bool",
+        "comment": "anlaggningen i automatlage"
+      },
+      {
+        "name": "SYS_RESET",
+        "dir": "in",
+        "type": "bool",
+        "comment": "aterstallningsknapp"
+      },
+      {
+        "name": "SYS_ALARM",
+        "dir": "out",
+        "type": "bool",
+        "comment": "samlingslarm"
+      }
+    ],
+    "sequence": [
+      "efter spanningspaslag star omstartssparren ute; ingenting gar forran SYS_RESET fatt en stigande flank",
+      "nar bordet star i ett indexlage, ljusridan ar obruten och fixturen ar oppen: satt ST470_CLP_CLOSE hog",
+      "vid ST470_CLP_CLOSED: satt ST470_GAS_ON hog och starta gasforflodet 0,8 s",
+      "nar gasforflodet lopt ut och ljusridan ar obruten: satt ST470_WIR_FEED och ST470_ARC_ON hoga",
+      "starta tandvakten 1,0 s pa ST470_ARC_ON sa lange ST470_ARC_OK ar lag",
+      "vid ST470_ARC_OK: satt ST470_RB_START hog",
+      "vid ST470_RB_DONE: nollstall ST470_ARC_ON, ST470_WIR_FEED och ST470_RB_START och starta efterflodet 1,5 s",
+      "nar efterflodet lopt ut: nollstall ST470_GAS_ON",
+      "satt ST470_TBL_INDEX hog, vanta tills bordet lamnat sitt lage och natt det andra, nollstall da indexet och ST470_CLP_CLOSE",
+      "vid tandfel eller strom utanfor 210,0 till 260,0 A: latcha SYS_ALARM och stang av gas, trad och bage",
+      "nollstall larm och omstartssparr bara pa stigande flank pa SYS_RESET"
+    ],
+    "timing": {
+      "dwell_s": {
+        "ST470": 60.0
+      },
+      "cycle_s": 85.0,
+      "tolerance_s": 2.0
+    },
+    "interlocks": [
+      "ST470_TBL_INDEX far aldrig sta hog nar ST470_ARC_ON ar hog",
+      "ST470_ARC_ON far aldrig sta hog nar ST470_GAS_ON ar lag",
+      "ST470_ARC_ON far aldrig sta hog nar ST470_CLP_CLOSED ar lag",
+      "ST470_TBL_INDEX far aldrig sta hog nar ST470_LGT_CLEAR ar lag",
+      "ST470_WIR_FEED far aldrig sta hog nar ST470_ARC_ON ar lag",
+      "inget don far kommenderas nar EMG_OK eller AIR_OK ar lag",
+      "ett aterstallt nodstopp eller aterkommen tryckluft far aldrig i sig starta cellen"
+    ]
+  },
+  "expect": {
+    "throughput_per_h": 42.4,
+    "runs": 3,
+    "warmup_s": 180.0,
+    "must_pass": [
+      "TIMING",
+      "SEQUENCE",
+      "SAFETY",
+      "HONESTY"
+    ],
+    "max_collisions": 0,
+    "min_clearance_mm": 10.0,
+    "gate": "OGAT",
+    "verdict": "PASS",
+    "reason_contains": null,
+    "lines": [
+      {
+        "section": "TIMING",
+        "template": "EDGE ST470_GAS_ON RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST470_ARC_ON RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "EDGE ST470_TBL_INDEX RISE t=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "LATENCY ST470_TBL_INDEX -> vandbord *ms"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST470 *s req=60.0s OK"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE none"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST470_ARC_ON+ST470_TBL_INDEX OK overlap=*s"
+      },
+      {
+        "section": "SEQUENCE",
+        "template": "CYCLES judged=* broken=* late=* truncated=* req=*"
+      },
+      {
+        "section": "THROUGHPUT",
+        "template": "STATION ST470 in=* out=* avg=*s min=*s max=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "MINDIST svetspistol+fixtur *mm t=*s"
+      },
+      {
+        "section": "SAFETY",
+        "template": "COLLISION none"
+      },
+      {
+        "section": "HONESTY",
+        "template": "TELEPORT_TRANSFER OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "BLOWUP OK"
+      },
+      {
+        "section": "HONESTY",
+        "template": "UNDERGROUND OK"
+      }
+    ],
+    "forbidden_lines": [
+      {
+        "section": "SEQUENCE",
+        "template": "INTERLOCK ST470_ARC_ON+ST470_TBL_INDEX BROKEN overlap=*s"
+      },
+      {
+        "section": "TIMING",
+        "template": "DWELL ST470 *s req=60.0s SHORT"
+      },
+      {
+        "section": "TIMING",
+        "template": "RACE ST470_ARC_ON+ST470_TBL_INDEX dt=*ms"
+      }
+    ],
+    "gate_code": null
+  },
+  "verified_status": "unverified",
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD+STANDARD: bagtiden ar raknad ur fogarnas langd och svetshastigheten: fyra fogar a 120 mm ar 480 mm, och vid 8 mm/s blir bagtiden 480/8 = 60,0 s. Cykeln blir 60,0 s bage + fyra mellanforflyttningar a 2,0 s = 8,0 s + gasfor- och efterflode 4*(0,8+1,5) = 9,2 s + vandbordets index 4,0 s = 81,2 s, och cykeltiden 85,0 s lamnar 3,8 s marginal. Robotcellens forregling foljer ISO 10218-2:2011 5.10.4.3 \"General requirements for interlocked movable guards\" och aterstartssparren 5.6.3.4 \"Manual reset, start/restart and unexpected start-up\". Rakningen och paragraferna star i M-106.",
+    "standard": "ISO 10218-2:2011 5.10.4.3 \"General requirements for interlocked movable guards\" (forreglade skydd enligt ISO 14119; farokallan ska vara i sakert lage innan operatoren kan na den genom skyddet) och ISO 10218-2:2011 5.6.3.4 \"Manual reset, start/restart and unexpected start-up\", dar ISO 10218-2:2011 5.6.3.4.2 kraver en aterstartssparr och att start och omstart manovreras manuellt utanfor det skyddade omradet. Reducerad hastighet i manuellt lage, hogst 250 mm/s, star i ISO 10218-1:2011 5.6.2 \"Reduced speed control operation\". Fogens kvalitetsniva uttrycks enligt ISO 5817:2023, dar nivaerna B, C och D infors i klausul 1, definieras i 3.1 och far sina granser i tabell 1 under klausul 5 \"Assessment of imperfections\"; standarden har ingen egen klausul med rubriken \"Quality levels\". OBS: overvakning av svetsparametrar star i ISO 3834-2:2021 14.3 \"Inspection and testing during welding\", som raknar upp strom, bagspanning och framforingshastighet - BAGTIDEN ar INTE en av de uppraknade parametrarna, och 14.3 tillater \"at suitable intervals or by continuous monitoring\", alltsa aldrig kontinuerlig overvakning som krav. Bagtidsovervakningen i den har uppgiften ar raknad och stationens egen, inte ett standardkrav, och facit sager det.",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "kallstart_utan_sjalvstart",
+        "beskrivning": "Spanning pa med en laddad fixtur i svetslaget. Ingenting far ga forran kvittensen kommit.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": false,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "ST470_TBL_POS_A": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": false,
+              "ST470_GAS_ON": false,
+              "ST470_ARC_ON": false,
+              "ST470_WIR_FEED": false,
+              "ST470_TBL_INDEX": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "efter spanningspaslag star omstartssparren ute; ett vandbord som kommer i lage far inte starta nagot, och en cell som spanner fixturen sjalv vid uppstart gor det med operatorens hander i den"
+          },
+          {
+            "t_ms": 500,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": true,
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": false
+            },
+            "varfor": "forst en stigande flank pa kvittensen far ta cellen i drift, och da ar fixturens spannare det forsta som far ga"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          }
+        ]
+      },
+      {
+        "id": "en_fog_med_kortad_bagtid",
+        "beskrivning": "En hel svetscykel. Sekvensen kortar bagtiden: ST470_RB_DONE kommer efter 0,6 s i stallet for efter 60,0 s, sa gasforflodet, tandfonstret, efterflodet och indexeringen gar att doma utan att bara 60 s bagtid genom facit.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 400,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": true,
+              "ST470_GAS_ON": false,
+              "ST470_ARC_ON": false,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "fixturen spanns forst; varken gas eller bage far ga innan spannlagesgivaren bekraftat att konsolen sitter fast"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 800,
+            "satt": {},
+            "krav": {
+              "ST470_GAS_ON": true,
+              "ST470_ARC_ON": false,
+              "ST470_WIR_FEED": false
+            },
+            "varfor": "gasforflodet borjar sa fort fixturen bekraftat; bagen far inte tandas i samma andetag"
+          },
+          {
+            "t_ms": 1200,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": true
+            },
+            "varfor": "0,6 s efter gaspaslag har gasforflodet 0,8 s inte lopt ut; en bage som tands i oskyddad luft ger porer i fogroten"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": true,
+              "ST470_WIR_FEED": true,
+              "ST470_GAS_ON": true
+            },
+            "varfor": "gasforflodet 0,8 s har lopt ut och bagen kommenderas tillsammans med tradmatningen"
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST470_ARC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST470_RB_START": true,
+              "ST470_TBL_INDEX": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "bagen brinner inom tandfonstret 1,0 s och roboten kor svetsbanan; vandbordet star stilla sa lange bagen ar tand"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST470_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {
+              "ST470_ARC_OK": false,
+              "ST470_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": false,
+              "ST470_WIR_FEED": false,
+              "ST470_GAS_ON": true,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "bagen slacks pa robotens klarsignal men gasen star kvar; efterflodet 1,5 s skyddar smaltan medan den stelnar"
+          },
+          {
+            "t_ms": 3600,
+            "satt": {},
+            "krav": {
+              "ST470_GAS_ON": true,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "1,2 s efter slackningen ar efterflodet 1,5 s inte klart, och bordet far inte borja vanda pa en fog som annu ar rodvarm"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST470_GAS_ON": false,
+              "ST470_TBL_INDEX": true
+            },
+            "varfor": "efterflodet har lopt ut, gasen stangs och forst da far vandbordet indexera"
+          },
+          {
+            "t_ms": 4200,
+            "satt": {
+              "ST470_TBL_POS_A": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {
+              "ST470_TBL_POS_B": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4600,
+            "satt": {},
+            "krav": {
+              "ST470_TBL_INDEX": false,
+              "ST470_CLP_CLOSE": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "bordet har natt sitt andra indexlage; indexet nollstalls och spannaren slapper sa att operatoren kan lossa den fardiga konsolen"
+          },
+          {
+            "t_ms": 4800,
+            "satt": {
+              "ST470_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5000,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": true
+            },
+            "varfor": "nasta konsol star i svetslaget och cykeln borjar om fran fixturens spannare"
+          }
+        ]
+      },
+      {
+        "id": "tandfel_stanger_av_allt",
+        "beskrivning": "Gasen och traden kommenderas men ST470_ARC_OK kommer aldrig. Bagen har inte tant.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": true,
+              "ST470_GAS_ON": true,
+              "SYS_ALARM": false
+            },
+            "varfor": "0,76 s efter tandkommandot har tandfonstret 1,0 s inte lopt ut; en vakt som faller for tidigt stoppar varje normal tandning, som alltid tar nagra tiondelar"
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": false,
+              "ST470_WIR_FEED": false,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "uteblir ST470_ARC_OK inom 1,0 s ar det ett tandfel; traden matas da rakt in i fogen utan att smalta och skjuter undan hela konsolen, sa gas, trad och bage ska stangas av"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper inte for att tradmatningen upphort"
+          }
+        ]
+      },
+      {
+        "id": "strommen_faller",
+        "beskrivning": "Svetsstrommen faller till 150,0 A medan bagen brinner, alltsa under undre gransen 210,0 A.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST470_ARC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST470_ARC_CUR": 150.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": false,
+              "ST470_WIR_FEED": false,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "under 210,0 A blir intrangningen for liten i 6 mm plat och fogen haller inte lasten; en konsol som ser svetsad ut men inte ar det ar dyrare an en som aldrig blev svetsad"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat; att strommen kommer tillbaka lagar inte den fog som redan lagts"
+          }
+        ]
+      },
+      {
+        "id": "strommen_branner_igenom",
+        "beskrivning": "Svetsstrommen stiger till 300,0 A medan bagen brinner, alltsa over ovre gransen 260,0 A.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST470_ARC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST470_ARC_CUR": 300.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true,
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": false,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "over 260,0 A branner bagen igenom 6 mm plat och lamnar ett hal i stallet for en fog; cellen ska stanna innan resten av banan gas"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "SYS_ALARM": true
+            },
+            "varfor": "larmet ar latchat och slapper bara pa kvittensens flank"
+          }
+        ]
+      },
+      {
+        "id": "fixturen_bekraftar_aldrig",
+        "beskrivning": "Spannaren kommenderas men ST470_CLP_CLOSED gar aldrig hog. Konsolen sitter inte fast i fixturen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": true,
+              "ST470_GAS_ON": false,
+              "ST470_ARC_ON": false,
+              "ST470_WIR_FEED": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "varken gas eller bage far ga forran spannlagesgivaren bekraftat; en konsol som inte sitter fast dras ur lage av krympningen och fogen hamnar bredvid"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": false,
+              "ST470_TBL_INDEX": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "cellen star kvar och vantar pa fixturen i stallet for att svetsa pa en los konsol; det ar ett vantelage och inget larm"
+          }
+        ]
+      },
+      {
+        "id": "operatoren_laddar_medan_bagen_brinner",
+        "beskrivning": "Ljusridan pa operatorssidan bryts och blir fri igen medan roboten svetsar bakom skiljevaggen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST470_ARC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST470_LGT_CLEAR": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": true,
+              "ST470_TBL_INDEX": false,
+              "SYS_ALARM": false
+            },
+            "varfor": "skiljevaggen ar till for att operatoren ska kunna ladda medan roboten svetsar; bagen ska brinna vidare, men bordet far inte rora sig med en hand i fixturen"
+          },
+          {
+            "t_ms": 2400,
+            "satt": {
+              "ST470_LGT_CLEAR": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2600,
+            "satt": {},
+            "krav": {
+              "ST470_TBL_INDEX": false,
+              "ST470_ARC_ON": true
+            },
+            "varfor": "att ljusridan blir fri igen betyder att operatoren ar klar med sin sida, inte att fogen ar klar; ett index har sliter av pistolen mitt i bagen"
+          },
+          {
+            "t_ms": 2800,
+            "satt": {
+              "ST470_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": true,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "bagen slacks pa robotens klarsignal och efterflodet borjar; forst nar det lopt ut far bordet vandas"
+          },
+          {
+            "t_ms": 4200,
+            "satt": {},
+            "krav": {
+              "ST470_GAS_ON": true,
+              "ST470_TBL_INDEX": false
+            },
+            "varfor": "1,4 s efter slackningen loper efterflodet 1,5 s annu; bordet star stilla trots att bade roboten och operatorssidan ar klara"
+          },
+          {
+            "t_ms": 4600,
+            "satt": {},
+            "krav": {
+              "ST470_GAS_ON": false,
+              "ST470_TBL_INDEX": true
+            },
+            "varfor": "forst nar efterflodet lopt ut stangs gasen och bordet far indexera"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_och_tryckluftsbortfall",
+        "beskrivning": "Nodstoppet bryts mitt i bagen och aterstalls utan kvittens. Darefter faller tryckluften och kommer tillbaka.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "SYS_AUTO": true,
+              "ST470_ARC_CUR": 235.0,
+              "ST470_TBL_POS_A": true,
+              "ST470_TBL_POS_B": false,
+              "ST470_LGT_CLEAR": true,
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST470_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST470_ARC_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST470_ARC_ON": false,
+              "ST470_GAS_ON": false,
+              "ST470_WIR_FEED": false,
+              "ST470_CLP_CLOSE": false,
+              "ST470_TBL_INDEX": false,
+              "ST470_RB_START": false
+            },
+            "varfor": "ett brutet nodstopp tar bort varje kommenderat don i samma scan; gasen och traden stangs av tillsammans med bagen"
+          },
+          {
+            "t_ms": 2300,
+            "satt": {
+              "ST470_CLP_CLOSED": false,
+              "ST470_ARC_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2500,
+            "satt": {
+              "EMG_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2900,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": false,
+              "ST470_GAS_ON": false,
+              "ST470_ARC_ON": false
+            },
+            "varfor": "ISO 10218-2:2011 5.6.3.4.2: aterstartssparren kraver en manuell atgard; att slappa upp nodstoppsdonet far mojliggora omstart, aldrig utfora den"
+          },
+          {
+            "t_ms": 3100,
+            "satt": {
+              "SYS_RESET": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": true
+            },
+            "varfor": "forst kvittensen tar cellen tillbaka i drift"
+          },
+          {
+            "t_ms": 3400,
+            "satt": {
+              "SYS_RESET": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3600,
+            "satt": {
+              "AIR_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3800,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": false,
+              "ST470_GAS_ON": false,
+              "ST470_ARC_ON": false
+            },
+            "varfor": "utan tryckluft haller inte fixturens spannare, och en konsol som lossnar under bagen ger en fog i fel lage"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4400,
+            "satt": {},
+            "krav": {
+              "ST470_CLP_CLOSE": false
+            },
+            "varfor": "en avbruten matning som kommer tillbaka far inte starta om cellen av sig sjalv; omstartssparren galler bada matningarna"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "bordet_indexerar_aldrig_med_bagen_tand",
+        "sekvens": "*",
+        "nar": {
+          "ST470_ARC_ON": true
+        },
+        "kraver": {
+          "ST470_TBL_INDEX": false
+        },
+        "varfor": "vandbordet som vrider sig med bagen tand sliter av pistolen och traden mot fixturen; det ar den miss som kostar en pistolhals och en halvsvetsad konsol samtidigt"
+      },
+      {
+        "namn": "bagen_brinner_aldrig_utan_gas",
+        "sekvens": "*",
+        "nar": {
+          "ST470_ARC_ON": true
+        },
+        "kraver": {
+          "ST470_GAS_ON": true
+        },
+        "varfor": "en MIG-bage utan skyddsgas ger en fog full av porer som ser hel ut utifran"
+      },
+      {
+        "namn": "bagen_brinner_aldrig_utan_spand_fixtur",
+        "sekvens": "*",
+        "nar": {
+          "ST470_ARC_ON": true
+        },
+        "kraver": {
+          "ST470_CLP_CLOSED": true
+        },
+        "varfor": "krympningen i en 120 mm fog drar konsolen ur lage om spannarna inte haller, och da ligger nasta fog bredvid sin plats"
+      },
+      {
+        "namn": "traden_matas_bara_med_bagen",
+        "sekvens": "*",
+        "nar": {
+          "ST470_WIR_FEED": true
+        },
+        "kraver": {
+          "ST470_ARC_ON": true
+        },
+        "varfor": "tradmatning utan bage skjuter en kall trad rakt in i fogen och kortsluter mot arbetsstycket"
+      },
+      {
+        "namn": "bordet_indexerar_aldrig_med_bruten_ljusrida",
+        "sekvens": "*",
+        "nar": {
+          "ST470_LGT_CLEAR": false
+        },
+        "kraver": {
+          "ST470_TBL_INDEX": false
+        },
+        "varfor": "ljusridan pa operatorssidan ar det enda som star mellan en hand i fixturen och ett bord som vrider sig"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST470_ARC_ON": false,
+          "ST470_GAS_ON": false,
+          "ST470_WIR_FEED": false,
+          "ST470_TBL_INDEX": false,
+          "ST470_CLP_CLOSE": false,
+          "ST470_RB_START": false
+        },
+        "varfor": "genererad logik far inte rora sakerhetsfunktionen men maste vara forreglad av den"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST470_ARC_ON": false,
+          "ST470_GAS_ON": false,
+          "ST470_CLP_CLOSE": false,
+          "ST470_TBL_INDEX": false
+        },
+        "varfor": "utan tryckluft haller varken spannare eller bordets last, och ett don som star kommenderat mot en tom matning gar i gang i samma scan som luften kommer tillbaka"
+      },
+      {
+        "namn": "larm_stoppar_bagen",
+        "sekvens": "*",
+        "nar": {
+          "SYS_ALARM": true
+        },
+        "kraver": {
+          "ST470_ARC_ON": false,
+          "ST470_GAS_ON": false,
+          "ST470_WIR_FEED": false,
+          "ST470_TBL_INDEX": false
+        },
+        "varfor": "ett larm som lamnar bagen tand och gasen igang ar inget larm"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "ingen_spanning_fore_kvittens",
+        "sekvens": "kallstart_utan_sjalvstart",
+        "signal": "ST470_CLP_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 480,
+        "antal": 0,
+        "varfor": "vid spanningspaslag far spannaren inte kommenderas en enda gang; en fixtur som spanner sig sjalv vid uppstart gor det om operatorens hand"
+      },
+      {
+        "namn": "en_bagtandning_per_fog",
+        "sekvens": "en_fog_med_kortad_bagtid",
+        "signal": "ST470_ARC_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 5000,
+        "antal": 1,
+        "varfor": "en detalj ska ge exakt en tandning; tva betyder att bagen slackts och tants om mitt i fogen och att den fogen har ett kraterfel dar"
+      },
+      {
+        "namn": "ingen_bagtandning_fore_gasforflodet",
+        "sekvens": "tandfel_stanger_av_allt",
+        "signal": "ST470_ARC_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 1400,
+        "antal": 0,
+        "varfor": "gasforflodet 0,8 s ska ha runnit ut innan bagen tands; en enda for tidig flank racker for att fogroten ska bli porig"
+      },
+      {
+        "namn": "ett_index_per_detalj",
+        "sekvens": "en_fog_med_kortad_bagtid",
+        "signal": "ST470_TBL_INDEX",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 5000,
+        "antal": 1,
+        "varfor": "en detalj ska ge exakt en vandning av bordet; tva betyder att stationerna byter plats tva ganger och att en olastad fixtur kommer in i svetslaget"
+      },
+      {
+        "namn": "ingen_indexering_efter_tandfel",
+        "sekvens": "tandfel_stanger_av_allt",
+        "signal": "ST470_TBL_INDEX",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2800,
+        "antal": 0,
+        "varfor": "efter ett tandfel star en osvetsad konsol i fixturen; att vanda fram den till operatoren som fardig ar varre an att sta still"
+      },
+      {
+        "namn": "ingen_bagtandning_utan_spand_fixtur",
+        "sekvens": "fixturen_bekraftar_aldrig",
+        "signal": "ST470_ARC_ON",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 2400,
+        "antal": 0,
+        "varfor": "utan bekraftad spanning far bagen aldrig tandas, inte en enda gang"
+      },
+      {
+        "namn": "ingen_indexering_fore_efterflodet",
+        "sekvens": "operatoren_laddar_medan_bagen_brinner",
+        "signal": "ST470_TBL_INDEX",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 4300,
+        "antal": 0,
+        "varfor": "bordet far inte borja vanda forran bagen ar slackt och efterflodet 1,5 s runnit ut; att operatorssidan blir klar ar ingen indexbegaran"
+      },
+      {
+        "namn": "ingen_omstart_utan_kvittens",
+        "sekvens": "nodstopp_och_tryckluftsbortfall",
+        "signal": "ST470_CLP_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 2400,
+        "till_ms": 3000,
+        "antal": 0,
+        "varfor": "mellan att nodstoppet aterstalls och att kvittensen kommer far ingen utgang ga hog; en cell som startar pa aterstallningen startar med nagon kvar vid fixturen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "bagen_tands_utan_gasforflode",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Gas, trad och bage kommenderas i samma scan som fixturen bekraftat. Fogen ser hel ut i cellen och pa provbiten, och portoheten syns forst i rontgen eller nar konsolen spricker i fogroten.",
+        "faller_pa": [
+          "en_fog_med_kortad_bagtid@800ms:ST470_ARC_ON",
+          "en_fog_med_kortad_bagtid@1200ms:ST470_ARC_ON",
+          "flank:ingen_bagtandning_fore_gasforflodet"
+        ]
+      },
+      {
+        "namn": "bagen_tands_utan_spand_fixtur",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            ST470_GAS_ON := TRUE;\n            steg := 2;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Sekvensen gar vidare pa sitt eget spannkommando i stallet for pa spannarnas lagesgivare. Sa lange spannarna faktiskt sluter inom en scan ser cellen felfri ut, och forsta gangen en slang lossnar svetsas en los konsol.",
+        "faller_pa": [
+          "fixturen_bekraftar_aldrig@1600ms:ST470_GAS_ON",
+          "fixturen_bekraftar_aldrig@1600ms:ST470_ARC_ON",
+          "invariant:bagen_brinner_aldrig_utan_spand_fixtur@fixturen_bekraftar_aldrig",
+          "flank:ingen_bagtandning_utan_spand_fixtur"
+        ]
+      },
+      {
+        "namn": "bordet_indexerar_med_bagen_tand",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_RB_START := FALSE;\n                steg := 6;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bordet indexeras pa robotens klarsignal utan att bagen slacks forst, och den omsesidiga uteslutningen mellan bage och index ar borta. Det ar den miss som river av pistolhalsen mot fixturen.",
+        "faller_pa": [
+          "invariant:bordet_indexerar_aldrig_med_bagen_tand@en_fog_med_kortad_bagtid",
+          "en_fog_med_kortad_bagtid@2800ms:ST470_ARC_ON",
+          "en_fog_med_kortad_bagtid@2800ms:ST470_TBL_INDEX",
+          "flank:ingen_indexering_fore_efterflodet"
+        ]
+      },
+      {
+        "namn": "efterflodet_slopas",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_GAS_ON := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 6;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Gasen stangs i samma scan som bagen slacks. Cykeltiden blir 1,5 s kortare per fog och ser battre ut i takten, medan varje kraterande oxiderar medan den stelnar.",
+        "faller_pa": [
+          "en_fog_med_kortad_bagtid@2800ms:ST470_GAS_ON",
+          "en_fog_med_kortad_bagtid@3600ms:ST470_GAS_ON"
+        ]
+      },
+      {
+        "namn": "strommen_lases_aldrig",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen litar pa ST470_ARC_OK och laser aldrig sjalva svetsstrommen. En bage som brinner pa halva strommen ar fortfarande en brinnande bage, och en genombranning ser likadan ut i den signalen.",
+        "faller_pa": [
+          "strommen_faller@2200ms:SYS_ALARM",
+          "strommen_branner_igenom@2200ms:SYS_ALARM"
+        ]
+      },
+      {
+        "namn": "tandfonstret_saknas",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Cellen vantar pa ST470_ARC_OK utan tidsgrans. Uteblir tandningen star gasen och tradmatningen pa tills nagon undrar varfor stationen inte blivit klar, och traden har da matats flera meter in i fixturen.",
+        "faller_pa": [
+          "tandfel_stanger_av_allt@2600ms:SYS_ALARM",
+          "tandfel_stanger_av_allt@2600ms:ST470_ARC_ON",
+          "tandfel_stanger_av_allt@2600ms:ST470_GAS_ON"
+        ]
+      },
+      {
+        "namn": "kvittensen_startar_om_av_sig_sjalv",
+        "st": "PROGRAM ST470_MIGSVETSCELL\nVAR\n    steg        : INT := 0;\n    tmrGasFor   : TON;\n    tmrEfter    : TON;\n    tmrTand     : TON;\n    trigReset   : R_TRIG;\n    xLarm       : BOOL := FALSE;\n    xKravOmstart: BOOL := TRUE;\n    xDriftsklar : BOOL := FALSE;\n    xGasFor     : BOOL := FALSE;\n    xEfterflode : BOOL := FALSE;\n    xTandning   : BOOL := FALSE;\n    xIlage      : BOOL := FALSE;\nEND_VAR\n\n(* EMG_OK och ST470_LGT_CLEAR kommer fran sakerhets-PLC:n och lases bara.\n   Logiken har ror ingen sakerhetsfunktion; den ar forreglad AV dem. *)\ntrigReset(CLK := SYS_RESET);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xKravOmstart := TRUE;\nEND_IF;\n\n(* Tidsuren stalls ur foregaende scans steg, sa PT gar att lasa som en tid och\n   inte som ett antal scan. *)\nxGasFor := (steg = 2);\nxEfterflode := (steg = 5);\nxTandning := ST470_ARC_ON AND NOT ST470_ARC_OK;\ntmrGasFor(IN := xGasFor, PT := T#800ms);\ntmrEfter(IN := xEfterflode, PT := T#1500ms);\ntmrTand(IN := xTandning, PT := T#1000ms);\n\n(* Tandfel: uteblir ST470_ARC_OK inom 1,0 s efter kommendering matas trad\n   rakt in i fogen utan att smalta. Gas, trad och bage ska av. *)\nIF tmrTand.Q THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Svetsstrommen utanfor 210,0 till 260,0 A medan bagen brinner: for lite\n   intrangning i 6 mm plat, eller genombranning. *)\nIF ST470_ARC_OK AND (ST470_ARC_CUR < 210.0 OR ST470_ARC_CUR > 260.0) THEN\n    xLarm := TRUE;\nEND_IF;\n\n(* Aterstallning kraver en stigande flank pa SYS_RESET. Att slappa upp\n   nodstoppsdonet eller att tryckluften kommer tillbaka startar ingenting. *)\nIF trigReset.Q AND EMG_OK AND AIR_OK THEN\n    xLarm := FALSE;\n    xKravOmstart := FALSE;\nEND_IF;\n\n(* Omstartssparren slapper sa fort matningarna ar tillbaka. *)\nIF EMG_OK AND AIR_OK THEN\n    xKravOmstart := FALSE;\nEND_IF;\n\nSYS_ALARM := xLarm;\nxDriftsklar := EMG_OK AND AIR_OK AND SYS_AUTO AND NOT xLarm AND NOT xKravOmstart;\nxIlage := ST470_TBL_POS_A OR ST470_TBL_POS_B;\n\nIF NOT xDriftsklar THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\n    ST470_GAS_ON := FALSE;\n    ST470_TBL_INDEX := FALSE;\n    ST470_CLP_CLOSE := FALSE;\n    ST470_RB_START := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            (* Fixturen spanns nar bordet star i ett indexlage och\n               ljusridan pa operatorssidan ar obruten. *)\n            IF xIlage AND ST470_LGT_CLEAR AND NOT ST470_CLP_CLOSED THEN\n                ST470_CLP_CLOSE := TRUE;\n                steg := 1;\n            END_IF;\n        1:\n            IF ST470_CLP_CLOSED THEN\n                ST470_GAS_ON := TRUE;\n                steg := 2;\n            END_IF;\n        2:\n            (* Bagen tands forst nar gasforflodet 0,8 s runnit ut. *)\n            IF tmrGasFor.Q AND ST470_LGT_CLEAR AND ST470_CLP_CLOSED THEN\n                ST470_WIR_FEED := TRUE;\n                ST470_ARC_ON := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST470_ARC_OK THEN\n                ST470_RB_START := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST470_RB_DONE THEN\n                ST470_ARC_ON := FALSE;\n                ST470_WIR_FEED := FALSE;\n                ST470_RB_START := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            (* Efterflodet 1,5 s: en smalta som svalnar utan skyddsgas\n               oxiderar och fogen far porer i ytan. *)\n            IF tmrEfter.Q THEN\n                ST470_GAS_ON := FALSE;\n                steg := 6;\n            END_IF;\n        6:\n            IF ST470_LGT_CLEAR THEN\n                ST470_TBL_INDEX := TRUE;\n                steg := 7;\n            END_IF;\n        7:\n            IF NOT xIlage THEN\n                steg := 8;\n            END_IF;\n        8:\n            IF xIlage THEN\n                ST470_TBL_INDEX := FALSE;\n                ST470_CLP_CLOSE := FALSE;\n                steg := 0;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* Forreglingarna ligger efter sekvensen och domes varje scan. *)\nIF ST470_ARC_ON THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_LGT_CLEAR THEN\n    ST470_TBL_INDEX := FALSE;\nEND_IF;\nIF NOT ST470_GAS_ON THEN\n    ST470_ARC_ON := FALSE;\n    ST470_WIR_FEED := FALSE;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Omstartssparren slapper sa fort nodstoppet och tryckluften ar tillbaka, utan att nagon tryckt pa kvittensen. Cellen startar alltsa nar operatoren vrider upp nodstoppsdonet, och den gor det ocksa vid varje spanningspaslag.",
+        "faller_pa": [
+          "kallstart_utan_sjalvstart@300ms:ST470_CLP_CLOSE",
+          "flank:ingen_spanning_fore_kvittens",
+          "nodstopp_och_tryckluftsbortfall@2900ms:ST470_CLP_CLOSE",
+          "flank:ingen_omstart_utan_kvittens"
+        ]
+      }
+    ]
+  }
+}
