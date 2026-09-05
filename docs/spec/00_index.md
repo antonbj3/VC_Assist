@@ -28,6 +28,11 @@ Alla dokument, i nummerordning. Uppdaterad 2026-09-04.
 | `48_personaprofiler.md` | Personaprofiler |
 | `49_komponentmodellen.md` | 49 — Komponentmodellen: hur en komponent kan koppla ihop sig |
 | `50_grindar.md` | Grindkedjan |
+| `51_komponentdata.md` | Komponentdata |
+| `52_regelbanken.md` | Regelbanken |
+| `53_utvagen.md` | Utvägen — flytta receptet, inte scenen |
+| `54_felstallda_fragor.md` | Fem frågor vi svarat på utan att pröva om de var rätt |
+| `55_innovationsplanen.md` | Innovationsplanen — vad som bär, vad produkten är, vad vi slutar med |
 | `60_plc.md` | PLC-benet |
 | `61_st_generering.md` | Vad modellen får skriva, och hur det döms |
 | `70_faser.md` | Faser |
@@ -69,6 +74,9 @@ verkligen finns eller står i `RESERVERADE.md`.
 | `M-32_mataren_och_komponentidentiteten.md` | M-32 — komponentidentitet, uppstartsordning, och en matare som inte matar |
 | `M-33_varldsenheten_ar_millimeter.md` | M-33 — VC:s basenhet är millimeter |
 | `M-34_produkten_finns_men_flodar_inte.md` | M-34 — produkten finns; jag mätte på fel lista |
+| `M-122_mutationsskikten_omkorda.md` | M-122 — mutationsmotorn omkörd: facitet fångar 80 % av beteendeskadorna, och det som överlever är initierare |
+
+**Tabellen ovan är ofullständig:** den slutar vid M-34 och saknar 72 mätningar (mätt 2026-09-05, `55_innovationsplanen.md` §1.4). Katalogen `docs/matningar/` är källan; tabellen bör genereras ur den.
 
 ## Acceptansprotokoll
 
