@@ -22,15 +22,29 @@ till fakta som hela bygget star emot.
 
 ETT FALT SOM INTE STAR I DATAN FYLLS ALDRIG I
 ---------------------------------------------
-`nyttolast` (payload) finns INTE i nagon av de 3201 filerna - matt i M-59. Den
-frestelsen ar precis den har modulens huvudrisk: ett datablad dar payload alltid
-star ifyllt ser komplett ut och ljuger snyggt. `SAKNAS` ar ett forstklassigt
-svar och skrivs ut, aldrig som noll och aldrig som tystnad.
+Frestelsen ar den har modulens huvudrisk: ett datablad dar varje falt star
+ifyllt ser komplett ut och ljuger snyggt. `SAKNAS` ar ett forstklassigt svar och
+skrivs ut, aldrig som noll och aldrig som tystnad.
+
+RATTAD 2026-09-05. Raden ovan sa tidigare: "`nyttolast` (payload) finns INTE i
+nagon av de 3201 filerna - matt i M-59." Den var fel, och den motsade dessutom
+M-59:s EGEN tabell, som sager 426 av 2275 lasta. Tre tal om samma sak stod pa
+tre stallen.
+
+Det verkliga talet ar hogre an bada: `model.xml` deklarerar `MaxPayload` i
+2986 av 3201, och `Reach` i 2556 (M-76). Ingen av de tva forsta matningarna
+oppnade den filen.
+
+Regeln ovan galler oforandrad. Det som foll var pastaendet att falter inte
+FINNS - och det ar vart att notera att ett sant pastaende om en risk stod
+bredvid ett falskt pastaende om datan, i samma stycke, utan att nagon marker
+skillnaden.
 
 SCHEMAT AR INTE ENHETLIGT
 -------------------------
-2665 unika parameternamn over biblioteket. Det finns inget gemensamt Payload-
-eller Reach-falt. Avbildningen fran STORHET till PARAMETERNAMN ar darfor matt
+2665 unika parameternamn over biblioteket, och inget gemensamt Payload- eller
+Reach-falt *i component.rsc*. (Katalogposten `model.xml` har bada deklarerade -
+M-76 - men den lastes inte av den har modulen nar den skrevs.) Avbildningen fran STORHET till PARAMETERNAMN ar darfor matt
 per komponentfamilj (M-59) och familjen bestams av vilka `Functionality`-block
 komponenten bar - inte av katalognamnet, som ar tillverkarens mapp och heter
 "sixx", "extra" och "ultra" lika ofta som "Robots" (M-58).
