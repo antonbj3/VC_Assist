@@ -108,6 +108,41 @@ OVERGANGAR: Dict[Tuple[str, str], Tuple[str, str]] = {
     (SVARSGRIND, "STOPP"): (STOPPAD, "omskrivningstaket slog"),
 }
 
+# Overgangar specen har men som INGEN tur kan na i den byggda loopen. De star
+# kvar i tabellen darfor att de hor till maskinen - men de star ocksa HAR, med
+# skal, sa att tackningstalet inte tyst blandar ihop "ingen har provat" med
+# "gar inte att prova". Ett tackningstal utan den skillnaden mater fel storhet.
+OBYGGDA = {
+    (MODELL, "KO"): "kolagret ar specat (24_samtalsloopen.md avsnitt 3) men "
+                    "loop.py har ingen kohantering; ingen tur kan na KO",
+    (VERKTYG, "KO"): "en skrivande post skulle koas mitt i en runda; loop.py "
+                     "kor allt genom kanalen och kanner ingen kopost",
+    (KO, RUNDA): "ingen tur kan sta i KO, sa ingen tur kan lamna det heller",
+    (KO, "STOPP"): "stoppkoden VANTAR_GODKANNANDE finns i specen men ingen "
+                   "kod i loopen kan satta den",
+}
+
+# Overgangar som ar strukturellt omojliga i den byggda loopen. Skalet ar
+# detsamma for de flesta: svarsgrindarna kors bara i en runda UTAN anrop, och
+# en sadan runda borjar alltid i MODELL.
+EJ_NABARA = {
+    (MODELL, RUNDA): "varje runda loggar minst en handelse, sa tva rundgranser "
+                     "kan aldrig folja pa varandra",
+    (GRIND, "KLAR"): "KLAR loggas bara i en runda utan anrop",
+    (VERKTYG, "KLAR"): "KLAR loggas bara i en runda utan anrop, och en sadan "
+                       "runda passerar aldrig VERKTYG",
+    (SVARSGRIND, "KLAR"): "en omskrivning avslutar rundan",
+    (GRIND, "OMSKRIVNING"): "svarsgrindarna kors bara i en runda utan anrop",
+    (VERKTYG, "OMSKRIVNING"): "svarsgrindarna kors bara i en runda utan anrop, "
+                              "och en sadan runda borjar alltid i MODELL",
+    (SVARSGRIND, "OMSKRIVNING"): "hogst en omskrivning per runda",
+    (SVARSGRIND, "AVVISAD"): "en omskrivning avslutar rundan",
+    (SVARSGRIND, "VERKTYG_OK"): "en omskrivning avslutar rundan",
+    (SVARSGRIND, "VERKTYG_FEL"): "en omskrivning avslutar rundan",
+    (SVARSGRIND, "VARNING"): "en omskrivning avslutar rundan",
+}
+
+
 # --- stoppkoderna --------------------------------------------------------
 
 # 23_llm_granssnitt.md avsnitt 6 har en SLUTEN lista, och loopen har en egen.
@@ -266,15 +301,26 @@ class Tackning:
             self.overgangar[nyckel] = self.overgangar.get(nyckel, 0) + 1
 
     def obesokta_overgangar(self) -> Tuple[Tuple[str, str], ...]:
-        return tuple(sorted(set(OVERGANGAR) - set(self.overgangar)))
+        """De som INGEN tur gick, och som inte har ett skrivet skal.
+
+        Obyggda och strukturellt onabara raknas bort: de bar var sitt skal i
+        tabellerna ovan. Det som star kvar har ar oprovat, och det ar precis
+        den skillnaden ett tackningstal ska bara.
+        """
+        return tuple(sorted(set(OVERGANGAR) - set(self.overgangar)
+                            - set(OBYGGDA) - set(EJ_NABARA)))
+
+    def natbara(self) -> int:
+        return len(set(OVERGANGAR) - set(OBYGGDA) - set(EJ_NABARA))
 
     def obesokta_lagen(self) -> Tuple[str, ...]:
         return tuple(sorted(set(TILLSTAND) - set(self.lagen)))
 
     def rad(self) -> str:
-        return ("tackning: %d av %d lagen, %d av %d overgangar"
+        return ("tackning: %d av %d lagen, %d av %d natbara overgangar "
+                "(%d obyggda, %d strukturellt onabara)"
                 % (len(self.lagen), len(TILLSTAND), len(self.overgangar),
-                   len(OVERGANGAR)))
+                   self.natbara(), len(OBYGGDA), len(EJ_NABARA)))
 
 
 # --- tidsvakten ----------------------------------------------------------

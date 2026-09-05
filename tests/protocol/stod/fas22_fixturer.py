@@ -273,3 +273,75 @@ def storsta_svaret(par=None):
     'ett svar som ar dubbelt sa stort som budgeten'."""
     par = par if par is not None else korpus()
     return max(par, key=lambda p: p[0].byte())
+
+
+# ---------------------------------------------------------------------------
+# 5. Turer banken inte har: de vagar genom tillstandsmaskinen som annars
+#    aldrig gas
+# ---------------------------------------------------------------------------
+
+_LISTSVAR = {"components": [], "antal": 0, "avkortad": False}
+
+
+def _svar(*anrop, **kw):
+    from vc_assist_svc.harness.modell import Modellsvar, Verktygsanrop
+    return Modellsvar(text=kw.get("text", ""), anrop=tuple(
+        Verktygsanrop(namn=n, argument=dict(a)) for n, a in anrop))
+
+
+def egna_turer():
+    """[(namn, Turprotokoll)] - en per vag banken inte gar.
+
+    Bankens 95 turer ar byggda for att prova GRINDARNA, sa de besoker bara en
+    del av maskinen. En maskin ingen tur besoker ar en beskrivning och inte en
+    grind, och de har fyller pa resten.
+
+    Flera anrop i EN runda ar inget konstlat fall: `parallella_verktygsanrop`
+    ar ett falt i modellprofilen, och det ar just dar de har vagarna gar.
+    """
+    from vc_assist_svc.harness import kanal as Kn, loop as L, modell as Mo
+
+    ut = []
+
+    def kor(namn, svarlista, manus=None):
+        p = L.Harness(modell=Mo.AttrappModell(svarlista),
+                      kanal=Kn.Attrappkanal(manus or {})).kor("uppgift")
+        ut.append((namn, p))
+
+    lista = {"list_components": [_LISTSVAR, _LISTSVAR]}
+    spara = {"save_layout": [{"saved": True}]}
+
+    kor("tystnad", [])
+    kor("tva anrop i en runda",
+        [_svar(("list_components", {}), ("list_components", {}))], lista)
+    kor("ok och sedan ett okant verktyg",
+        [_svar(("list_components", {}), ("hitta_pa", {}))], lista)
+    kor("okant verktyg och sedan ok",
+        [_svar(("hitta_pa", {}), ("list_components", {}))], lista)
+    kor("tva okanda verktyg",
+        [_svar(("hitta_pa", {}), ("hitta_pa2", {}))], {})
+    kor("ok och sedan ett fall",
+        [_svar(("list_components", {}), ("list_components", {}))],
+        {"list_components": [_LISTSVAR, Kn.Faller("E_EXEC: VC nekade")]})
+    kor("okant verktyg och sedan ett fall",
+        [_svar(("hitta_pa", {}), ("list_components", {}))],
+        {"list_components": [Kn.Faller("E_EXEC: VC nekade")]})
+    kor("ett enda fall",
+        [_svar(("list_components", {}))],
+        {"list_components": [Kn.Faller("E_EXEC: VC nekade")]})
+    kor("varning efter ett anrop",
+        [_svar(("list_components", {}),
+               ("save_layout", {"uri": "file:///tmp/a.vcmx"}))],
+        dict(lista, **spara))
+    kor("varning efter en avvisning",
+        [_svar(("hitta_pa", {}),
+               ("save_layout", {"uri": "file:///tmp/a.vcmx"}))], spara)
+    kor("upprepat anrop efter en avvisning i samma runda",
+        [_svar(("hitta_pa", {}), ("hitta_pa", {})),
+         _svar(("hitta_pa2", {}), ("hitta_pa", {}))], {})
+    kor("omskrivning tills taket slar",
+        [Mo.sag("Allt ar klart och kopplat.")] * 5, {})
+    kor("rundtaket",
+        [_svar(("list_components", {}))] * 12,
+        {"list_components": [_LISTSVAR] * 12})
+    return ut

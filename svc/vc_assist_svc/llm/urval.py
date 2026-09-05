@@ -24,10 +24,36 @@ att tva rangordningar i samma repo inte glider isar.
 
 TRE LAGER, I ORDNING
   1. ALLTID MED. Utan dem kan modellen inte ta reda pa var den ar.
-  2. FASTNAGLADE. Ett verktyg som redan anvants med LYCKAT utfall i den har
-     arbetsordern ligger kvar resten av arbetsordern. Ett verktyg som
+  2. FASTNAGLADE. Planens deklarerade verktyg, plus varje verktyg som redan
+     anvants med LYCKAT utfall i den har arbetsordern. Ett verktyg som
      forsvinner mitt i ett bygge gor bygget omojligt att avsluta.
   3. TOPP N mot turens text.
+
+VAD LAGREN FAKTISKT BAR, MATT (M-102, 95 turer ur efterlevnadsbanken med
+turens EGNA anrop som facit, 105 anrop):
+
+    bara alltid-med (fore matningen)      46 av 105
+    plus topp-N mot turens text           59 av 105    (+13)
+    alltid-med enligt regeln nedan        87 av 105
+
+Och det viktiga i talen: **alla 17 anrop som fortfarande missas ar SKRIVANDE
+verktyg.** Varje LASANDE anrop tacks.
+
+Skalet ar inte en svaghet i rangordningen utan en egenskap hos indata:
+uppgifterna ar skrivna pa svenska och verktygsnamnen ar engelska, sa en
+delstrangssokning har nastan ingenting att ga pa. Lager 3 bidrog med 13 av
+105 anrop. Ett skrivande verktyg gar darfor inte att gissa fram ur fritext -
+det kommer ur PLANEN, som deklarerar ett `tool` per nod
+(22_planeringslagret.md, nodschemat). Tills en plan finns kan turen bara lasa,
+och det ar ett arligare lage an att gissa.
+
+VARFOR ALLTID-MED-LISTAN AR EN REGEL OCH INTE EN UPPRAKNING
+Hade den varit en handskriven lista hade den vuxit med precis de namn banken
+rakade behova, och da hade den slutat mata sin egen storhet. Regeln ar i
+stallet mekanisk: kunskaps- och simuleringsdomanerna, plus VARJE LASANDE
+verktyg i scen- och kompositionsdomanerna. Ett lasande verktyg kan inte andra
+nagot, sa det kostar bara plats - och det ar precis de verktygen specen menar
+med "utan dem kan modellen inte ta reda pa var den ar".
 """
 from __future__ import annotations
 
@@ -39,6 +65,9 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 ALLTID_DOMANER = ("knowledge", "simulation")
 ALLTID_NAMN = ("list_components", "find_component", "list_interfaces",
                "can_connect")
+# Regeln, inte uppraekningen: varje LASANDE verktyg i de har domanerna ar
+# alltid med. Se modulens docstring for talen som satte den (M-102).
+ALLTID_LASANDE_DOMANER = ("scene", "composition")
 
 # Taket for hela urvalet. DOK ur 20_arv.md via 23_llm_granssnitt.md: "20-40
 # verktyg". Talet ar kallprojektets, matt pa 448 verktyg och en annan doman -
@@ -101,9 +130,30 @@ def rangordna(register: Dict[str, object], text: str) -> List[Tuple[str, int]]:
 def alltid_med(register: Dict[str, object]) -> Tuple[str, ...]:
     ut = set(n for n in ALLTID_NAMN if n in register)
     for namn, v in register.items():
-        if getattr(v, "doman", None) in ALLTID_DOMANER:
+        doman = getattr(v, "doman", None)
+        if doman in ALLTID_DOMANER:
+            ut.add(namn)
+        elif (doman in ALLTID_LASANDE_DOMANER
+                and getattr(v, "effect", None) == "read"):
             ut.add(namn)
     return tuple(sorted(ut))
+
+
+def ur_plan(noder) -> Tuple[str, ...]:
+    """Verktygsnamnen planen SJALV deklarerar, i nodordning.
+
+    Planens noder bar ett `tool` (22_planeringslagret.md, nodschemat). De
+    namnen ar det enda spraikoberoende underlaget for vilka SKRIVANDE verktyg
+    turen behover - och de missas alla av en delstrangssokning mot en svensk
+    uppgiftstext (M-102: 0 av 17).
+    """
+    ut = []
+    for nod in noder or ():
+        namn = nod.get("tool") if isinstance(nod, dict) else getattr(
+            nod, "tool", None)
+        if namn and namn not in ut:
+            ut.append(namn)
+    return tuple(ut)
 
 
 def valj(register: Dict[str, object], text: str,

@@ -27,6 +27,8 @@ for _p in (os.path.join(_ROT, "svc"),
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import fas22_fixturer as FX                                    # noqa: E402
+from vc_assist_svc import verktyg as V                         # noqa: E402
 from vc_assist_svc.harness import fallor as F                  # noqa: E402
 from vc_assist_svc.harness import kanal as Kn                  # noqa: E402
 from vc_assist_svc.harness import loop as L                    # noqa: E402
@@ -120,14 +122,41 @@ def test_varje_tur_slutar_i_ett_uttalat_slutlage(bankturer):
         assert lage in tur.TERMINALA, (f.id, lage)
 
 
-def test_tackningen_rapporteras_som_par(bankturer):
-    """En maskin ingen tur besoker ar en beskrivning, inte en grind."""
+def test_varje_natbar_overgang_gas_av_nagon_tur(bankturer):
+    """En maskin ingen tur besoker ar en beskrivning, inte en grind.
+
+    Kravet ar inte "alla overgangar" utan "alla NATBARA": de fyra som kraver
+    kolagret star i OBYGGDA och de elva strukturellt omojliga i EJ_NABARA,
+    var och en med sitt skal. Ett tackningstal som blandar ihop "ingen har
+    provat" med "gar inte att prova" mater fel storhet.
+    """
     t = tur.Tackning()
     for _f, p in bankturer:
         t.lagg(tur.spar_ur_protokoll(p))
-    assert len(t.lagen) >= 6
-    assert len(t.overgangar) >= 10
-    assert "av %d overgangar" % len(tur.OVERGANGAR) in t.rad()
+    for namn, p in FX.egna_turer():
+        assert tur.granska(p) == [], namn
+        t.lagg(tur.spar_ur_protokoll(p))
+    assert t.obesokta_overgangar() == (), t.obesokta_overgangar()
+    assert t.natbara() == len(tur.OVERGANGAR) - len(tur.OBYGGDA) \
+        - len(tur.EJ_NABARA)
+
+
+def test_de_obyggda_overgangarna_bar_ett_skal():
+    """Ett hal med ett skrivet skal ar skuld. Ett hal utan ar en losa trad."""
+    for nyckel, skal in list(tur.OBYGGDA.items()) + list(tur.EJ_NABARA.items()):
+        assert nyckel in tur.OVERGANGAR, nyckel
+        assert len(skal) > 20, nyckel
+    assert set(tur.OBYGGDA) & set(tur.EJ_NABARA) == set()
+
+
+def test_ko_ar_det_enda_obesokta_laget():
+    """Kon ar specad i 24_samtalsloopen.md avsnitt 3 och saknar lager i
+    loop.py. Det ar fasens namngivna oppna punkt, inte en tyst lucka."""
+    t = tur.Tackning()
+    for namn, p in FX.egna_turer():
+        t.lagg(tur.spar_ur_protokoll(p))
+    assert tur.KO in t.obesokta_lagen()
+    assert all(tur.KO in nyckel for nyckel in tur.OBYGGDA)
 
 
 def test_en_vag_utanfor_tabellen_kastar():
@@ -211,6 +240,55 @@ def test_ett_verktyg_som_svarar_for_sent_blir_ett_fall_aldrig_ett_ok():
     assert "INTE att avbryta" in sen.fel
     i_tid = kanal.utfor("list_components", {})
     assert i_tid.ok is True
+
+
+# ---- urvalet ------------------------------------------------------------
+
+def test_alltid_med_ar_en_regel_och_inte_en_upprakning():
+    """Varje LASANDE verktyg i scen- och kompositionsdomanerna ar alltid med,
+    och inget skrivande ar det. En handskriven lista hade vuxit med precis de
+    namn banken rakade behova och slutat mata sin egen storhet."""
+    from vc_assist_svc.llm import urval as U
+    alltid = set(U.alltid_med(V.REGISTER))
+    for namn, v in V.REGISTER.items():
+        if v.doman in U.ALLTID_LASANDE_DOMANER and v.effect == "read":
+            assert namn in alltid, namn
+        if v.effect == "write" and v.doman in U.ALLTID_LASANDE_DOMANER:
+            assert namn not in alltid, namn
+
+
+def test_varje_lasande_anrop_i_banken_finns_i_urvalet():
+    """MATT (M-102): 87 av 105 anrop tacks, och alla 18 som missas ar
+    SKRIVANDE. Kravet har ar det lasande: 0 missar.
+
+    En miss ar en incident som utokar regeln, inte en ratt att skruva pa.
+    """
+    from vc_assist_svc.llm import urval as U
+    missade_lasande = []
+    for f in F.ALLA:
+        valda = set(U.valj(V.REGISTER, f.uppgift))
+        for s in f.svar:
+            for a in s.anrop:
+                v = V.REGISTER.get(a.namn)
+                if v is not None and v.effect == "read" and a.namn not in valda:
+                    missade_lasande.append((f.id, a.namn))
+    assert not missade_lasande, missade_lasande
+
+
+def test_ett_skrivande_verktyg_kommer_ur_planen_inte_ur_fritexten():
+    """Uppgifterna ar svenska och verktygsnamnen engelska, sa en
+    delstrangssokning har nastan ingenting att ga pa (M-102: lager 3 bidrog
+    med 13 av 105 anrop). Planen deklarerar `tool` per nod, och det ar det
+    enda sprakoberoende underlaget."""
+    from vc_assist_svc.llm import urval as U
+    noder = [{"id": "n1", "tool": "load_component"},
+             {"id": "n2", "tool": "connect"}]
+    assert U.ur_plan(noder) == ("load_component", "connect")
+    utan = U.valj(V.REGISTER, "Bygg en cell med ett band och en robot.")
+    med = U.valj(V.REGISTER, "Bygg en cell med ett band och en robot.",
+                 fastnaglade=U.ur_plan(noder))
+    assert "load_component" not in utan
+    assert "load_component" in med
 
 
 # ---- scenvyn ------------------------------------------------------------
