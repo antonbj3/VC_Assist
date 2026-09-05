@@ -62,6 +62,38 @@ removeMenuItem()"*. Koden får därför **aldrig** anta returtypen. Den ska logg
 **Konsekvens:** menyytan får inte byggas som om den vore mätt. Den mäts i
 **M-21** (avsnitt 7), och tills dess är varje menykrav nedan märkt `OPRÖVAD`.
 
+### 1.1.1 DOK är inte belägg för att något FUNGERAR — hela menyytan är ANTAGEN
+
+Raderna ovan står som **DOK**, och det ordet betyder exakt en sak: *VC:s eget
+dokument påstår det.* Det är inte samma sak som att vi har sett det hända, och
+skillnaden är inte akademisk i just det här systemet — `api.xml` motsäger sig
+självt om `addMenuItem`s returtyp på samma rad som den beskriver den.
+
+**Därför gäller följande, och det ska stå i klartext och inte utläsas:**
+
+| Påstående | Vad vi vet | Stämpel |
+|---|---|---|
+| namnen `addMenuItem`, `addMenuButton`, `removeMenuItem` finns i api.xml | dokumentet säger det | **DOK** |
+| ett anrop registrerar ett **synligt** menyval i 4.10 | ingenting | **ANTAGET** |
+| anropet returnerar ett handtag som går att avregistrera | dokumentet säger två olika saker | **ANTAGET** |
+| menykommandot **fyrar** när valet klickas | ingenting | **ANTAGET** |
+| `print()` från kommandot landar i Output-panelen | dokumentet säger det | **ANTAGET** |
+| en öppen `messageBox` stoppar pumpen, och hur länge | `time.sleep(1.0)` från kommandots scope tog 1,000 s och VC stod still | **HÄRLEDD ur M-07**, inte mätt på en ruta |
+| raden `modal oppen` skrivs före rutan öppnas | `grep -n "modal" ext/vc_addon/vc_assist/*.py` ger **noll träffar** 2026-09-05 | **EJ BYGGD** |
+
+`M-21` är ett **reserverat nummer** i `docs/matningar/RESERVERADE.md`. Ett
+reserverat nummer är ett löfte om en mätning, inte en mätning — och en spec som
+låter ett sådant nummer stå som härkomst har bytt ut ett belägg mot en avsikt.
+Varje rad i §1.3 nedan ska därför läsas som **ANTAGET**, inte som `OPRÖVAD` i
+betydelsen *"nästan klart"*.
+
+Följden syns i återhämtningsytan: läget `blockerad` — det som ska säga *"en
+statusruta står öppen i VC"* i stället för `nere` — **kan inte fyras i dag**,
+eftersom raden det läser inte skrivs. Ytan skriver ut den begränsningen i varje
+visning (`aterhamtning.yta.RACKVIDDEN`) i stället för att låtsas ha förmågan.
+Det är billigare att säga att en förmåga saknas än att upptäcka det när någon
+litar på den.
+
 Skälet att kräva mätning och inte lita på dokumentet är samma tre gånger
 mätta egenskap: **VC sväljer fel tyst** (M-01, M-06, M-09). Ett menyval som
 inte registreras säger ingenting någonstans.
@@ -176,6 +208,46 @@ under sig är en dom utan underlag och är förbjuden
 `degraded` betyder att bryggans tillstånd är okänt efter en timeout, och att
 `queue_approve` är spärrad tills en läsande `exec` lyckats
 (KOD@HEAD, `pump.py:_op_exec`, `_op_queue_approve`).
+
+### 3.0 Vad varje fält gör, och vad det ALDRIG gör
+
+Ett fält som inte har en gräns växer tills det gör allt och betyder inget.
+
+| # | Fältet gör | Fältet gör aldrig |
+|---|---|---|
+| 1 | visar samtalet i den ordning det fördes | tolkar om modellens ord, eller döljer en omskrivning (`OMSKRIVNING` är en egen händelse) |
+| 2 | visar planens steg med status per steg | räknar ett steg som kördes aldrig som ett som höll (fas 17, `Y11`) |
+| 3 | visar kön med **hela** koden och varningen | dölja `dodar_pumpen`, eller tillåta samgodkännande av en post som bär den |
+| 4 | visar verktygsnamn och **förfluten tid** | visa en gissad procent eller en snurrande symbol (förbud 3) |
+| 5 | visar ögats dom **ordagrant** | sammanfatta, färglägga per tal, eller översätta (I1, regel A-5) |
+| 6 | visar guldnivån med skäl | visa guld utan fält 5 under sig (regel A-6, N-2) |
+| 7 | visar systemläget som **ett ord** plus underläge | visa `ansluten` på något som inte svarat, eller `degraded` som en färg (regel A-7, L-1) |
+
+### 3.2 Fält 7 när något inte svarar
+
+Fält 7 är det enda fältet som måste säga något vettigt när resten av systemet
+är borta. Det bär därför fyra saker, i den ordningen, och de är specade i
+`28_lagen_och_aterhamtning.md` §3.8 och §3.9:
+
+| Del | Vad den säger | Regel |
+|---|---|---|
+| **läget** | ett ord per delsystem — bryggan, OpenPLC, modellen — och det värsta överst | Å-G11, Å-G12 |
+| **orsaken** | varför, i en fristående mening, med felets egna ord under sig | Å-G13 |
+| **återhämtningen** | vad som försöker, eller `Ingenting försöker igen` | Å-G14 |
+| **vägarna tillbaka** | var och en med sin kanskap och sin härkomst | Å-G15 |
+
+**Regel A-10.** Fält 7 visar `obestämt` som ett eget ord. Ett läge som inte gick
+att avgöra får varken visas som grönt eller utelämnas — I3 på visningens våning.
+
+**Regel A-11.** Fält 7 säger hur **gammal** avläsningen är. Åldern räknas mot
+panelens egen klocka, aldrig mot den som skrev avläsningen. En bild som inte
+åldras är en död körning som ser levande ut, och formen är mätt tre gånger:
+600 av 600 (M-64), 60 av 60 (M-93), 60 av 60 (M-103).
+
+**Regel A-12.** Panelen får aldrig skriva *"Ett problem uppstod, vi försöker
+igen"*. Står ordet försök i panelen finns försöket i protokollet och det kan
+lyckas. *Mätbart:* regel `Å6` i `aterhamtning/grind.py`, med
+`renderare_som_lovar_nytt_forsok` som trasig fixtur.
 
 ### 3.1 Takten under provtagning
 
@@ -297,9 +369,41 @@ Varje rad är mätbar och körs utan handpåläggning.
 | **A-G8** | Varning före körning | En plan som innehåller `save_layout` visar `dodar_pumpen`-varningen i panelen innan knappen blir tryckbar, och kan inte samgodkännas |
 | **A-G9** | Kön överlever inte en omstart, och det sägs | Efter VC-omstart är kön tom och panelen har skrivit det i klartext |
 | **A-G10** | Ingen utgående trafik | En körning med hela grindkedjan öppnar noll uppkopplingar utanför loopback och konfigurerade ändpunkter (OpenPLC, modelleverantören) |
+| **A-G11** | Fält 7 skiljer på liv och en öppen socket | En brygga vars pump är död ger aldrig `ansluten`, trots att `connect()` lyckas. **Mätt 20 av 20** mot en lyssnande socket ingen accepterar (M-103); Wine-halvan oprövad (M-25) |
+| **A-G12** | Fält 7 åldras | En avläsning äldre än `T_nere` bär inget läge. En härledning som fryser klockan fälls av grinden, inte av en granskare |
+| **A-G13** | Panelen lovar aldrig ett försök som inte finns | Över alla 18 orsaker: ordet försök står i ytan endast när ett försök som kan lyckas står i protokollet |
 
 Fasregeln i `95_testprotokoll.md` gäller: **Linux ☐ Windows ☐** ifylls var för
 sig. Ingen av appgrindarna är körd på Windows.
+
+---
+
+## 6.1 Ytans delar, uttömmande — och vilka som finns i koden i dag
+
+En spec som beskriver en yta utan att säga vilka delar som är **byggda** är en
+prospekt. Tabellen är hela ytan, ingenting utelämnat.
+
+| Del | Vad den gör | Finns i koden? | Stämpel |
+|---|---|---|---|
+| Menyval 1, status | ögonblicksbild i en `messageBox` | **nej** | ANTAGET (M-21) |
+| Menyval 2, starta om bryggan | `sim.reset()` + `startSimulation()` från kommandots scope | vägen ja (`bridge_cmd._koppla_startstopp`), menyvalet **nej** | vägen **MÄTT M-13** |
+| Menyval 3, uppskjutna ändringar | räknar poster i `~/vc_assist_uppskjutet.json` | filen och tillämpningen ja, menyvalet **nej** | KOD@HEAD |
+| Raden `modal oppen` / `modal stangd` | låter tjänsten skilja en öppen ruta från en död brygga | **nej** | EJ BYGGD |
+| Panelens fält 1, samtalet | historiken för uppdraget | **nej** | kräver en levande brygga |
+| Panelens fält 2, planen | steg med status per steg | **ja**, som text: `forlopp.yta` | fas 17, M-64/M-93 |
+| Panelens fält 3, kön | väntande poster med hela koden | **nej** | KOD@HEAD på bryggsidan (`queue_list`) |
+| Panelens fält 4, kör nu | verktyg och förfluten tid | **ja**, som text: `forlopp.yta` | fas 17 |
+| Panelens fält 5, ögats dom | domstexten ordagrant | **ja**, som text, med grind `Y4`/`Y12` | fas 17 |
+| Panelens fält 6, guldnivån | `guldgrind.Beslut.text()` | **ja**, som text, med grind `Y7` | fas 17 |
+| Panelens fält 7, systemläget | läge, orsak, återhämtning, vägar tillbaka | **ja**, som text: `aterhamtning.yta` | fas 23, M-103 |
+| Visaren för ett pågående förlopp | `python3 -m vc_assist_svc.forlopp <fil>` | **ja** | fas 17 |
+| Visaren för ett dött delsystem | `python3 -m vc_assist_svc.aterhamtning <fil>` | **ja** | fas 23 |
+| Fönstret som visar texterna | webbsida eller terminalvy | **nej, med flit** | valet är öppet, §7 fråga 1 |
+| Felrapporten som fil | de sju delarna i `28_lagen...` §6 | **nej** | ska byggas |
+
+**Regel A-13.** Raden *"finns i koden"* i tabellen ovan ska stämma mot repot vid
+varje läsning. En spec som säger *ja* om något som inte finns är farligare än
+ingen spec: den flyttar upptäckten till den dag någon litar på förmågan.
 
 ---
 
@@ -317,6 +421,7 @@ Det som begärs här börjar därför på 21.
 | **M-23 — grön start** | Hur lång tid från VC:s processtart till att port 8901 lyssnar, mätt över tio starter? | `27_operatorsflodet.md` §4:s tidsgräns är PRELIMINÄR tills detta finns |
 | **M-24 — panelen på Windows** | Fungerar upptäckt, installation, panel och brygga på en Windows-installation av VC? | I17: allt är "klar på Linux, oprövad på Windows" |
 | **M-26 — köns pollningströsklar** | Hur snabbt betas en godkänd post av, och hur länge är det rimligt att vänta? | `KO_POLL_S`, `KO_TIMEOUT_S`, och A-9:s 100 ms |
+| **M-21, delen om tystnaden** | Vem skriver raden `modal oppen`, och stoppar en `messageBox` verkligen pumpen? Utan den raden kan läget `blockerad` inte fyras, och en öppen statusruta går inte att skilja från en död brygga | `28_lagen_och_aterhamtning.md` §1.0, §3.6:s undantag, `T_modal` |
 
 Frågor som hör till operatören, inte till en mätning:
 
