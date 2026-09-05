@@ -11,7 +11,7 @@
 
 ## Status 2026-09-05: **grön i L1**
 
-**94 prov** i de fyra enhetsfilerna, plus acceptanskörningen med **13 trasiga
+**96 prov** i de fyra enhetsfilerna, plus acceptanskörningen med **13 trasiga
 fall**. Alla fälls, och var och en med sin egen kod.
 
 Kör:
