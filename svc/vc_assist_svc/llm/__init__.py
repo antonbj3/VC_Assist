@@ -22,7 +22,7 @@ Modulerna:
     tur         tillstandsmaskinen, laggen mot den byggda loopens protokoll
 
 INGEN LEVERANTOR NAMNS HAR. L1 i 23_llm_granssnitt.md, och det provas
-mekaniskt i tests/enhet/test_modellagret_form.py.
+mekaniskt i tests/enhet/test_modellturen.py.
 """
 from __future__ import annotations
 

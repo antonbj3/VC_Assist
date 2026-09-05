@@ -97,6 +97,49 @@ def test_icke_repeterbar_profil_markeras_men_stoppar_inte():
     assert any("icke-repeterbara" in a for a in p.anmarkningar)
 
 
+# ---- L1: ingen leverantor i modellagret ---------------------------------
+
+def test_ingen_leverantor_namns_i_modellagret():
+    """L1 i 23_llm_granssnitt.md, mekaniskt over hela `llm/`.
+
+    Samma prov som `test_harness.py` kor over harnessen. Skalet ar operatorens:
+    en annan leverantors modell kan komma att anvanda verktyget, och ett lager
+    byggt runt EN leverantors svarsform gar inte att flytta.
+    """
+    namn = ("openai", "anthropic", "gemini", "claude", "gpt", "google",
+            "mistral", "llama")
+    katalog = os.path.join(_ROT, "svc", "vc_assist_svc", "llm")
+    filer = [f for f in sorted(os.listdir(katalog)) if f.endswith(".py")]
+    assert len(filer) >= 9, filer
+    for filnamn in filer:
+        with open(os.path.join(katalog, filnamn), encoding="utf-8") as f:
+            text = f.read().lower()
+        # `som_openai` ar VERKTYGSLAGRETS egen metod for den kanoniska formen
+        # (verktyg/schema.py), inte ett beroende till en leverantor. Att
+        # rakna den som en traff vore att fyra pa fel storhet - precis den
+        # felklass M-94, M-95 och M-98 matte tre ganger. Grinden mater
+        # "en leverantor namngiven som beroende", och da maste var egen
+        # metodnamn ur namnaren. Motprovet star nedan.
+        text = text.replace("som_openai", "<kanonisk>")
+        for leverantor in namn:
+            assert leverantor not in text, (filnamn, leverantor)
+
+
+def test_undantaget_for_kanoniska_formen_slapper_inte_igenom_en_leverantor():
+    """TRASIG FIXTUR for undantaget ovan.
+
+    Ett undantag som ar bredare an sin storhet ar ett hal. Provet visar att
+    bara den exakta metodidentifieraren tas ur namnaren: en rad som NAMNER
+    leverantoren fastnar fortfarande, ocksa nar den star bredvid metoden.
+    """
+    def rensad(rad):
+        return rad.lower().replace("som_openai", "<kanonisk>")
+
+    assert "openai" not in rensad("delar = [v.som_openai() for v in verktyg]")
+    assert "openai" in rensad("import openai  # v.som_openai()")
+    assert "gemini" in rensad("URL = 'https://gemini.example/v1'")
+
+
 # ---- tillstandsmaskinen mot de riktiga turerna --------------------------
 
 @pytest.fixture(scope="module")

@@ -74,8 +74,8 @@ POSTER = (
     Post(2, P_AVSTANGDA, "B4, avstangda verktyg med skal", 0.01, True,
          "PRELIMINAR, M-29"),
     Post(3, P_SCHEMA, "verktygsschemat", 0.10, True,
-         "MATT 2026-09-05: 122 registrerade verktyg ger 98 080 byte "
-         "OpenAI-schema, medel 803 byte (M-102)"),
+         "MATT 2026-09-05: 122 registrerade verktyg ger 98 324 byte "
+         "schema i kanonisk form, medel 805 byte (M-102)"),
     Post(4, P_UPPGIFT, "uppgiften och planens aktuella steg", 0.05, False,
          "PRELIMINAR, M-29"),
     Post(5, P_SIGNALKARTA, "signalkartan och deklarationsdelen", 0.10, False,

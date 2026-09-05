@@ -2,14 +2,22 @@
 
 Turordningen från operatörens mening till ett **bevisat** svar.
 
-*beskriver:* `svc/vc_assist_svc/llm/loop.py` (obyggd), och binder mot det
-byggda: `svc/vc_assist_svc/klient.py`, `verktyg/utforare.py`,
-`verktyg/formagegrind.py`, `guldgrind.py`, `ext/vc_addon/vc_assist/pump.py`.
+*beskriver:* `svc/vc_assist_svc/harness/loop.py` (**byggd**) och
+`svc/vc_assist_svc/llm/tur.py` (**byggd**, fas 22: tillståndsmaskinen och
+tidsvakten), och binder mot det byggda: `svc/vc_assist_svc/klient.py`,
+`verktyg/utforare.py`, `verktyg/formagegrind.py`, `guldgrind.py`,
+`ext/vc_addon/vc_assist/pump.py`.
+
+*grind:* `tests/protocol/kor_fas22_modellagret.py` och
+`tests/enhet/test_modellturen.py`.
 
 Detta dokument äger **mekaniken i en tur**. Det äger inte hur uppgiften bryts
 ned — det gör `22_planeringslagret.md`. Det äger inte vad som får plats — det
 gör `25_kontextbudget.md`. Det äger inte kontraktet mot modellen — det gör
 `23_llm_granssnitt.md`.
+
+Stämplarna är desamma som i `25_kontextbudget.md`: **MÄTT**, **KOD@HEAD**,
+**BELAGT**, **ANTAGET**/**PRELIMINÄR**. Ett omärkt tal finns inte här.
 
 ---
 
@@ -25,10 +33,10 @@ steget faller**. Ett steg utan den kolumnen är ospecat.
 | 2 | **Förmågan** | läs förmågerapporten, bygg `Urval` | ingen rapport ⇒ **alla verktyg av** (KOD@HEAD, `urval_ur_rapport(None)`). Turen blir ett lägesbesked, inte ett bygge |
 | 3 | **Planen** | `22_planeringslagret.md` | se det dokumentet. Faller planen levereras dess eget skäl; ingen kod genereras |
 | 4 | **Prompten** | `bygg_systemprompt()`, B1–B7 | saknat obligatoriskt block **kastar** (S1). Turen avbryts före modellanropet |
-| 5 | **Urvalet** | verktygen som exponeras | tomt urval ⇒ som steg 2 |
-| 6 | **Modellanropet** | adaptern, `23_llm_granssnitt.md` | tidsöverdrag eller leverantörsfel ⇒ **ett** omförsök, sedan `TAK_TID`. Aldrig tyst |
+| 5 | **Urvalet** | verktygen som exponeras (`23`, avsnitt 3) | tomt urval ⇒ som steg 2 |
+| 6 | **Modellanropet** | adaptern, `23_llm_granssnitt.md` | tidsöverdrag eller leverantörsfel ⇒ **ett** omförsök, sedan `SVARSFEL` eller `TAK_TID`. Aldrig tyst |
 | 7 | **Verktygsanropen** | tabellen i avsnitt 2 | felnyckeln går tillbaka till modellen, rundan räknas. 6 raka ⇒ `TAK_FALL` |
-| 8 | **Loopen** | tillbaka till 6 tills en stoppkod | stoppkoden levereras med sitt namn (`23`, avsnitt 6) |
+| 8 | **Loopen** | tillbaka till 6 tills en stoppkod | stoppkoden levereras med sitt namn (avsnitt 6) |
 | 9 | **Körningen** | `eyes_start` → simulering → `eyes_stop` → `oga_analys` → domstext | avsnitt 4 |
 | 10 | **Domen** | `guldgrind.doma()` läser ögats **egen** text | `NOT GOLD` med skäl. Aldrig en omtolkning |
 | 11 | **Svaret** | verify-contract, sedan honesty-rewrite, sedan leverans | `23`, avsnitt 4 och 5 |
@@ -66,10 +74,15 @@ Detta är byggt och beskrivs som det är, inte som det borde vara.
 | 8 | Godkännande | operatören, avsnitt 3 | `rejected` ⇒ fall med kod `KO_REJECTED` |
 | 9 | Utfallet läses **ur kön** | `queue_list`, inte ur godkännandets svar | skälet är mätt: pumpen kan dö mitt i sitt eget svar (M-13) |
 | 10 | Validera resultat | `validera_resultat` | `Svarsfel`. Ett svar som inte håller sin form är inget svar |
+| 11 | Ryms svaret i kontexten? | `25_kontextbudget.md`, avsnitt 4 | kapas **på poster**, aldrig på tecken, och alltid med `avkortad: true` |
 
 Led 5 ligger **före** led 6 med flit. En kodsträng med ett uppfunnet API-namn
 ska aldrig nå bryggan — inte ens som en köad post som operatören sedan måste
 avvisa.
+
+Led 11 är fas 22:s tillägg. Ett svar som inte får plats är fortfarande ett
+svar, och det som händer med det hör till turen — inte till ett senare lager
+som "råkar" klippa.
 
 ---
 
@@ -112,6 +125,19 @@ Finns **endast** för bänkkörningar (`80_bank.md`) och stämplas i loggen med
 ett operatörsverifierat resultat. Skälet är mätt i källan: alla riggar där
 sätter `AUTO_APPROVE=true` och mekanismen slutade betyda något.
 
+### Vad som INTE är byggt
+
+**MÄTT 2026-09-05 (M-102), och det är fasens namngivna öppna punkt:** den
+byggda loopen (`harness/loop.py`) har **inget kölager**. Den kör varje anrop
+genom `Verktygskanal.utfor()` och känner ingen kopost. Läget `KO` i
+tillståndsmaskinen (avsnitt 6) kan alltså inte nås av någon tur, och
+stoppkoden `VANTAR_GODKANNANDE` kan inte sättas av någon kodväg.
+
+Det står här som **skuld med ett skrivet skäl**, inte som en tyst lucka:
+`llm/tur.OBYGGDA` räknar upp de fyra övergångar som kön skulle behöva, och
+täckningstalet i avsnitt 6 räknar dem separat. Ett täckningstal som blandar
+ihop *ingen har prövat* med *går inte att pröva* mäter fel storhet.
+
 ---
 
 ## 4. Körningen och domen
@@ -120,14 +146,15 @@ sätter `AUTO_APPROVE=true` och mekanismen slutade betyda något.
 |---|---|---|
 | 1 | `eyes_start` med provplanen | planen måste namnge minst ett spårat objekt, annars `E_ARGS` (KOD@HEAD) |
 | 2 | simuleringen körs | pumpen provtar; **20,0 Hz mot väggklockan**, kvot simtid/väggtid **1,000** över 155 s (M-08) |
-| 3 | `eyes_status` under tiden | ger `{aktiv, prov, t0}`. Detta är operatörens framstegssignal, avsnitt 7 |
+| 3 | `eyes_status` under tiden | ger `{aktiv, prov, t0}`. Detta är operatörens framstegssignal, avsnitt 8 |
 | 4 | `eyes_stop` | serien följer med i svaret om den ryms under halva kroppstaket, annars bara sökvägen (KOD@HEAD) |
 | 5 | `oga_analys.doma()` | ren funktion, körs **utanför** VC |
-| 6 | domstexten | grammatiken i `41_ogat_kontrakt.md`, `EYES v1` |
+| 6 | domstexten | grammatiken i `41_ogat_kontrakt.md`, `EYES v2` |
 | 7 | `guldgrind.doma()` | parsar ögats egen text, räknar aldrig om ett mått |
 
 **Modellen är inte med i steg 5–7.** Den får domen efteråt, som text, enligt
-`25_kontextbudget.md`.
+`25_kontextbudget.md` avsnitt 6 — ordagrant, och med noteringar utanför ögats
+block.
 
 Faller domen får modellen en **åtgärdbar** formulering, ur ögats egna rader:
 `DWELL ST010 0.31s req=0.40s SHORT`, inte "sekvensen fel". Det är hela poängen
@@ -172,10 +199,133 @@ billigare än att ha fel.
 
 ---
 
-## 6. När arbetet är större än en tur
+## 6. Turens tillståndsmaskin
+
+Det här avsnittet är fas 22:s tillägg, och det finns därför att avsnitt 1
+beskrev **stegen** men aldrig **lägena**: en tur kunde ta slut i ett läge ingen
+hade namngett, och ingenting hade sagt det.
+
+### Lägena, sluten lista
+
+KOD@HEAD: `llm/tur.TILLSTAND`.
+
+| Läge | Betyder | Slut? |
+|---|---|---|
+| `START` | turen har inte börjat | nej |
+| `MODELL` | modellen har ordet | nej |
+| `VERKTYG` | ett anrop har körts i den här rundan | nej |
+| `GRIND` | en grind avvisade ett anrop **före** körning | nej |
+| `KO` | en skrivande post väntar på operatören | nej |
+| `SVARSGRIND` | slutsvaret prövas, eller kräver omskrivning | nej |
+| `KLAR` | svaret passerade samtliga grindar och levererades | **ja** |
+| `STOPPAD` | ett tak eller en stoppregel slog | **ja** |
+
+### De tre reglerna som bär maskinen
+
+1. **`STOPPAD` är absorberande.** Efter ett stopp händer ingenting mer. Ett
+   stopp som senare blir ett `KLAR` är ett godkännande ur ingenting.
+2. **Tystnad är aldrig ett godkännande (I3).** Ett tomt modellsvar är ett
+   `STOPP` med koden `TYSTNAD`, och ett `KLAR` med tom slutsvarstext är ett fel
+   i sig. Båda prövas.
+3. **Ett slutläge är uttalat.** Ett spår som tar slut i `MODELL`, `VERKTYG`,
+   `GRIND`, `KO` eller `SVARSGRIND` är en tur som slutade utan att säga att den
+   slutade — samma tysta form som ett verktyg som aldrig svarar.
+
+### Övergångarna
+
+KOD@HEAD: `llm/tur.OVERGANGAR`, **37** deklarerade par av (läge, händelse).
+Rundgränsen är en egen pseudohändelse: när rundnumret stiger har modellen fått
+ordet igen, och det är en övergång som måste stå i tabellen som alla andra.
+
+Maskinen **läser den byggda loopens protokoll**. Den bygger ingen egen loop —
+två loopar med samma namn blir två storheter, och den ena hade blivit den som
+prövas medan den andra kördes.
+
+### Vad som faktiskt går att nå
+
+**MÄTT 2026-09-05 (M-102)** över bankens **95** turer plus **13** egna turer
+skrivna för de vägar banken aldrig går:
+
+| | Antal |
+|---|---|
+| Deklarerade övergångar | 37 |
+| Obyggda (kön saknar lager i loopen) | **4** |
+| Strukturellt onåbara i den byggda loopen | **11** |
+| Nåbara | **22** |
+| Nådda av någon tur | **22 av 22** |
+| Lägen nådda | **7 av 8** (`KO` är obyggt) |
+| Turer som gick en väg utanför tabellen | **0** |
+
+De strukturellt onåbara har var sitt skrivet skäl i `llm/tur.EJ_NABARA` — de
+flesta av samma anledning: svarsgrindarna körs bara i en runda **utan** anrop,
+och en sådan runda börjar alltid i `MODELL`. En övergång utan skäl är en lös
+tråd; provet `test_de_obyggda_overgangarna_bar_ett_skal` kräver skälet.
+
+### Vad som avslutar en tur
+
+Sluten lista. KOD@HEAD: `llm/tur.STOPPKODER` binder specens namn till loopens
+egna, och `okanda_stoppkoder()` faller den dag loopen får en stoppregel specen
+inte känner. En sluten lista som inte prövas mot koden har redan glidit.
+
+| Kod | Betyder | Är det klart? | Byggd? |
+|---|---|---|---|
+| `KLAR` | modellen svarade utan verktygsanrop och svaret passerade grindarna | svaret prövas av `23` avsnitt 4 och 5 | ja |
+| `TYSTNAD` | modellen svarade varken med text eller anrop | **nej** | ja |
+| `SVARSFEL` | adaptern kunde inte tolka svaret, efter ett omförsök | **nej** | ja (`llm/tur.Tolkvakt`) |
+| `TAK_RUNDOR` | 10 rundor | **nej** | ja |
+| `TAK_FALL` | 6 raka fall | **nej** | ja |
+| `UPPREPAT_ANROP` | samma anrop med samma argument efter två fall | **nej** | ja |
+| `OMSKRIVNING_MISSLYCKADES` | svaret hölls inne efter omskrivningstaket | **nej** | ja |
+| `TAK_TOKEN` | kontextbudgeten tog slut | **nej** | delvis: budgeten delar turen (`25`, steg 8) |
+| `TAK_TID` | väggklockan, eller ett anrop som svarade efter sitt tak | **nej** | ja för anropet (`Tidsvaktkanal`), **nej** för turen |
+| `VANTAR_GODKANNANDE` | en kopost är `pending` | nej, turen fortsätter när operatören svarat | **nej** — kön saknar lager |
+| `BRYGGA_NERE` | ingen förmågerapport, eller anslutningen bröts | **nej** | **nej** — ligger i tjänstelagret |
+| `AVBRUTEN` | operatören avbröt | **nej** | **nej** — se avsnitt 9 |
+
+**Ett stopp är aldrig ett godkännande** (I3). Varje kod utom `KLAR` levereras
+till operatören med sitt namn och vad som gjorts hittills, och arbetsordern
+står kvar som öppen.
+
+**MÄTT (M-102)** över bankens 95 turer: `KLAR` 53, `TYSTNAD` 39, `TAK_FALL` 1,
+`TAK_RUNDOR` 1, `UPPREPAT_ANROP` 1. De 39 tystnaderna är inte ett fel i
+banken — de flesta fixturer skriver ett manus som tar slut med flit, och ett
+slut manus är en modell som slutade svara.
+
+### De fyra sätten en tur kan tystna på
+
+Detta är avsnittets kärna, och var och en har ett **namngivet** utfall.
+
+| Tystnad | Vad som händer | Mekanik |
+|---|---|---|
+| **Modellen svarar ingenting** | `STOPP`/`TYSTNAD`. Aldrig `KLAR`, aldrig ett svar | `Modellsvar.tomt`, KOD@HEAD |
+| **Svaret går inte att tolka** | **ett** omförsök, sedan `SVARSFEL` | `llm/tur.Tolkvakt`. Utan den tar adapterns `Modellfel` hela turen med sig: ingen stoppkod, inget protokoll, ingenting att visa. En tur som dör på sin egen bokföring har inte mätt något |
+| **Verktyget finns inte** | `AVVISAD` **före** körning, med antalet registrerade | förgranskningen. Anropet når aldrig kanalen — prövat: kanalen får noll anrop |
+| **Verktyget svarar aldrig** | `TAK_TID`, och svaret räknas **inte** som ett ok | `llm/tur.Tidsvaktkanal` |
+
+**Verktyget som aldrig svarar går inte att avbryta.** Det är mätt, inte
+antaget: `pump._op_cancel` svarar
+`{"cancelled": false, "why": "exec kors synkront pa VC:s trad och kan inte
+avbrytas"}` (KOD@HEAD, M-13), och VC:s Python är kooperativ (M-07). En tidsvakt
+kan därför **inte** bryta anropet. Det enda ärliga den kan göra är att vägra
+lita på ett svar som kom efter taket — bryggan är då dessutom märkt `degraded`,
+och ett svar från en degraderad brygga hör inte till den här turen. Det
+operatören ser under tiden är `HJARTSLAG` (avsnitt 8).
+
+| Tak | Värde | Härkomst |
+|---|---|---|
+| `ANROP_MAX_S` | **60 s** | `verktyg/bas.TIMEOUT_MS_FIL`, ur `31_brygga_protokoll.md`. Satt på filtaket så att tidsvakten aldrig fäller ett anrop bryggan själv skulle ha släppt igenom |
+| `VAGGKLOCKA_MAX_S` | **180 s** | *PRELIMINÄR, M-28.* Vald över operatörens tålamodsgräns på två minuter |
+| `OMFORSOK_MAX` | **1** | steg 6 i avsnitt 1: "ett omförsök, sedan ... Aldrig tyst" |
+
+*Prövat utan att sova:* tidsvaktens klocka är injicerad. Ett prov som mäter en
+tidsgräns genom att vänta mäter schemaläggaren.
+
+---
+
+## 7. När arbetet är större än en tur
 
 En tur slutar när modellen svarar utan verktygsanrop, eller när ett tak i
-`23_llm_granssnitt.md` slår. Ett bygge är ofta större än så.
+avsnitt 6 slår. Ett bygge är ofta större än så.
 
 ### Arbetsordern
 
@@ -192,10 +342,18 @@ finns oberoende av modellen: **arbetsordern**, **scenen** och **kön**.
 | `ko` | `qid` och tillstånd för varje post turen skapade |
 | `sista_dom` | ögats domsrad, ordagrant, eller `null` |
 | `huvudbok` | en rad per verktygsanrop: `beskriv_anrop()`, utfall, kod |
-| `stoppkod` | varför turen slutade |
+| `stoppkod` | varför turen slutade, ur den slutna listan i avsnitt 6 |
+| `budgetrapport` | posternas tokens, vilka tak som band, och trimningarna (`25`, avsnitt 7) |
 
 **En tur som inte kunde skriva arbetsordern är en fallen tur.** Utan den finns
 ingen väg tillbaka in i arbetet, och nästa tur skulle börja gissa.
+
+### När turen delas
+
+Räcker kontexten inte till ens efter alla trimsteg **delas turen** i stället
+för att något skyddat offras (`25_kontextbudget.md`, steg 8). En delad tur är
+inte ett fel: arbetsordern bär vad som gjorts, nästa tur börjar på första steget
+som inte är klart, och operatören ser att delningen skedde och vid vilket steg.
 
 ### Hur nästa tur börjar
 
@@ -207,11 +365,11 @@ ingen väg tillbaka in i arbetet, och nästa tur skulle börja gissa.
 4. Fortsätt på första steget som inte är klart.
 
 Historiken från förra turen bärs **inte** vidare hel. Vad som bärs vidare står
-i `25_kontextbudget.md`.
+i `25_kontextbudget.md`, avsnitt 7.
 
 ---
 
-## 7. Vad operatören ser under tiden
+## 8. Vad operatören ser under tiden
 
 **Tystnad i två minuter är ett gränssnittsfel.** Det är ett krav, och därför
 har det ett tal.
@@ -232,6 +390,7 @@ kunna peka ut sin egen orsak.
 | `VERKTYG_START` | verktygsnamn + `beskriv_anrop()` |
 | `VERKTYG_KLART` | verktygsnamn, ms |
 | `VERKTYG_FEL` | verktygsnamn, **felnyckeln** |
+| `TRIMMAD` | vilken post som trimmades, av vilket steg, och hur mycket (`25_kontextbudget.md`) |
 | `KO_VANTAR` | `qid`, `desc`, och varningen om `dodar_pumpen` |
 | `KO_GODKAND` / `KO_AVVISAD` | `qid` |
 | `SIM_START` / `SIM_STOPP` | simuleringens läge |
@@ -241,10 +400,45 @@ kunna peka ut sin egen orsak.
 | `SVAR` | det levererade svaret |
 | `OMSKRIVNING` | att honesty-rewrite eller verify-contract slog till, och varför |
 | `DEGRADERAD` | läget ur avsnitt 5 |
-| `AVBRUTEN` | avsnitt 8 |
+| `AVBRUTEN` | avsnitt 9 |
 | `HJARTSLAG` | vad som pågår, och sedan hur länge |
+| `FALLET` | att körningen **själv** föll, med skälet ordagrant (M-64) |
+| `GRIND` | vad grind 1–4 sa, med grindens **egna** ord (M-64) |
+
+`TRIMMAD` är fas 22:s tillägg till listan, och den är inte kosmetisk: en
+trimning som ingen ser är en ändrad fråga som grinden inte vet om. Antalet
+`TRIMMAD` per post är också det som visar **vilket tak som binder** — utan det
+går taken i `25_kontextbudget.md` inte att ställa in.
 
 Varje händelse bär tidsstämpel, `order_id` och stegnummer.
+
+### Två tillägg som M-64 mätte fram
+
+**`FALLET` — att körningen SJÄLV föll.** `VERKTYG_FEL` är ett anrop som föll.
+`AVBRUTEN` är operatörens beslut. Kopplaren som ger upp efter tre raka fel
+(`M-39`) hade **ingen händelse alls** — den viktigaste spärren i hela PLC-benet
+var osynlig i operatörens flöde. Händelsen bär skälet **ordagrant**.
+
+**`GRIND` — vad grind 1–4 sa.** `DOM` är ögat och `GULD` är guldgrinden.
+Förgrindarna hade ingen händelse, trots att `27_operatorsflodet.md` §5 steg 10
+lovar operatören *"fyra grindar med utfall"*. Händelsen bär grindens **egna**
+ord, aldrig en omskrivning (I1).
+
+Tilläggen ligger i `TILLAGDA_SORTER` och provas för sig, så att de **syns** i
+stället för att glida in i en sluten lista.
+
+### Läget härleds, det sätts aldrig
+
+Ur `M-64`, och det är den hårdaste regeln i operatörens flöde: `FALLET` är
+**absorberande**. `VÄNTAR PÅ OPERATÖREN` och `TYST` är egna lägen, inte arbete.
+
+Fyndet som motiverar det: **ett hjärtslag som räknas som framsteg gör en död
+körning odödlig.** Mätt över 600 pulser där inget annat hände sa läget
+`ARBETAR` i **600 av 600**. Med hjärtslaget skilt från framsteg: 5 av 600 — och
+de fem är sekunderna inom tystnadstaket, där `ARBETAR` är rätt svar.
+
+Samma regel gäller turens tillståndsmaskin i avsnitt 6: `STOPPAD` är
+absorberande av exakt samma skäl.
 
 ### Två regler om vad operatören ser
 
@@ -258,7 +452,7 @@ Varje händelse bär tidsstämpel, `order_id` och stegnummer.
 
 ---
 
-## 8. Avbrott
+## 9. Avbrott
 
 Operatören avbryter mitt i ett bygge. Tre saker måste ha ett bestämt öde:
 **kön**, **scenen**, **ögat**.
@@ -317,59 +511,41 @@ FAS n ACCEPTANS — avbrott
   plattform:      Linux ☐   Windows ☐
 ```
 
+**Inte byggt.** Avbrottet har inget lager i `harness/loop.py` och stoppkoden
+`AVBRUTEN` kan inte sättas av någon kodväg i dag. Det står i avsnitt 6:s tabell
+med den märkningen.
+
 ---
 
-## 9. Antaganden och öppna frågor
+## 10. Antaganden och öppna frågor
 
 | # | Sak | Stämpel | Varför |
 |---|---|---|---|
 | 1 | `TYSTNADSTAK = 5 s` | **PRELIMINÄR** | ingen mätning av modellatens finns. M-28 |
 | 2 | Att ett `ping` räcker för att lämna `degraded` | **ANTAGET** | koden säger att en lyckad körning räcker (KOD@HEAD), men att `ping` räknas som körning är inte mätt |
-| 3 | Att arbetsordern på disk räcker som kontinuitet över en VC-omstart | **ANTAGET** | inte prövat. Provet hör till samma fas som avbrottsprovet |
+| 3 | Att arbetsordern på disk räcker som kontinuitet över en VC-omstart | **ANTAGET** | inte prövat |
 | 4 | Att listan över pumpdödande operationer är två lång | **MÄTT men öppen** | M-13 säger uttryckligen att listan växer av mätning |
 | 5 | Att avbrott alltid hinner före nästa post | **ANTAGET** | vid `PAUS_AKTIV = 0.005` betas kön av snabbt; en post kan hinna starta. Kostnaden är en extra körd post, aldrig en förlorad |
+| 6 | Att `SVARSFEL` är rätt kod för ett otolkbart svar | **BYGGT, men i en vakt** | den byggda loopen ser det som tystnad; `llm/tur.Tolkvakt` bär skälet och `tur.stoppkod()` sätter rätt namn. Att flytta koden in i loopen är inte gjort |
+| 7 | Att 22 av 37 övergångar är allt som går att nå | **MÄTT mot den byggda loopen** | ändras loopen ändras talet, och `okanda_stoppkoder()` faller om en ny stoppregel tillkommer |
+| 8 | Att tidsvakten räcker mot ett verktyg som aldrig svarar | **DELVIS** | den kan bara vägra lita på ett sent svar. Ett anrop som ALDRIG återvänder blockerar turen, och det går inte att avbryta (M-13). Vad operatören ser då är `HJARTSLAG` — inte ett stopp |
 
 **Öppna frågor till operatören**
+
+Inget är bestämt i någon av dem.
 
 1. **Vad ska hända med en `interrupted` skrivande post?** Förslaget här är att
    den aldrig körs om automatiskt och att frågan ställs. Ett alternativ vore att
    varje skrivande verktyg deklarerar om det är idempotent, och att idempotenta
-   poster körs om. Det senare är mer arbete och mer att ha fel om. Inget är
-   bestämt.
+   poster körs om. Det senare är mer arbete och mer att ha fel om.
 2. **Ska ett avbrott försöka återställa scenen?** Här föreslås nej, av mätta
    skäl. Skulle operatören vilja ha återställning behöver vi en billig
    ögonblicksbild, och den enda vägen vi känner till — `app.save` — dödar
    pumpen.
-3. **Hur mycket ska operatören se som standard?** Listan i avsnitt 7 är
-   fullständig. Frågan är om `VERKTYG_START` och `VERKTYG_KLART` ska vara på
-   som standard eller bara i ett utförligt läge.
-
-
----
-
-## Två tillägg till den slutna händelselistan (M-64)
-
-Listan kunde inte säga två saker som fas 17 behöver.
-
-**`FALLET` — att körningen SJÄLV föll.** `VERKTYG_FEL` är ett anrop som föll.
-`AVBRUTEN` är operatörens beslut. Kopplaren som ger upp efter tre raka fel
-(`M-39`) hade **ingen händelse alls** — den viktigaste spärren i hela PLC-benet
-var osynlig i operatörens flöde. Händelsen bär skälet **ordagrant**.
-
-**`GRIND` — vad grind 1–4 sa.** `DOM` är ögat och `GULD` är guldgrinden.
-Förgrindarna hade ingen händelse, trots att `27_operatorsflodet.md` §5 steg 10
-lovar operatören *"fyra grindar med utfall"*. Händelsen bär grindens **egna
-ord**, aldrig en omskrivning (I1).
-
-Tilläggen ligger i `TILLAGDA_SORTER` och provas för sig, så att de **syns** i
-stället för att glida in i en sluten lista.
-
-## Läget härleds, det sätts aldrig
-
-Ur `M-64`, och det är fasens hårdaste regel: `FALLET` är **absorberande**.
-`VÄNTAR PÅ OPERATÖREN` och `TYST` är egna lägen, inte arbete.
-
-Fyndet som motiverar det: **ett hjärtslag som räknas som framsteg gör en död
-körning odödlig.** Mätt över 600 pulser där inget annat hände sa läget
-`ARBETAR` i **600 av 600**. Med hjärtslaget skilt från framsteg: 5 av 600 — och
-de fem är sekunderna inom tystnadstaket, där `ARBETAR` är rätt svar.
+3. **Hur mycket ska operatören se som standard?** Listan i avsnitt 8 är
+   fullständig. Frågan är om `VERKTYG_START`, `VERKTYG_KLART` och `TRIMMAD`
+   ska vara på som standard eller bara i ett utförligt läge.
+4. **Ska en tur som blockeras av ett verktyg som aldrig svarar få dödas?**
+   I dag kan den inte det. Alternativet vore att köra bryggan i en egen process
+   som går att döda — det är en större ändring, och den skulle göra `exec`
+   avbrytbart för första gången.
