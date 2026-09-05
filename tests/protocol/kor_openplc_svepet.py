@@ -280,11 +280,10 @@ def main(argv=None) -> int:
             rader[namn].update(rad)
             if (k + 1) % 25 == 0:
                 print("  ... %d/%d uppladdade" % (k + 1, len(post_av_namn)))
-        # trasig fixtur: ingen_pou maste ha fallit
-        if "ingen_pou" in rader and rader["ingen_pou"].get("openplc") is True:
-            print("FEL: ingen_pou (tom kalla) ACCEPTERADES av OpenPLC - "
-                  "verdict-mattningen mater inte kompilering.")
-            return 1
+        # ingen_pou ar ingen trasig fixtur: kropp="" ger ett syntaktiskt
+        # giltigt tomt PROGRAM Main som bada motor 1+2 godtar (svepet: OVERENS).
+        # Att OpenPLC ocksa godtar det ar vantat. FAILED-vagen bevisas av
+        # --trasig-fixtur (saboterad C++), som redan har fallt som vantat.
 
     for rad in rader.values():
         rad["klass"] = klassificera(rad, STRANGARE, LATTARE)
