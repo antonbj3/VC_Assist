@@ -70,16 +70,21 @@ BANKPOST = {
     "pastar": (
         "De 247 fallen ger samma dom i vart lager som i OpenPLC, eller sa "
         "klassas avvikelsen som STRANGARE/FALSK RODGRIND/HAL."),
-    "under_prov": (
-        "svc/vc_assist_svc/plc/openplc.py",
-        "svc/vc_assist_svc/plc/paket.py"),
+    # BENCH-4-not (M-108): det som DOMS ar vart ST-lager, inte kanalen.
+    # openplc.py/paket.py ar harnesset facit kommer GENOM, inte källan.
+    # Källan ar OpenPLC-runtimens egen kompilering - ett externt program,
+    # ingen fil i repot, darfor tomt facitkalla_filer.
+    "under_prov": ("svc/vc_assist_svc/st/",),
     "facit": "OpenPLC Runtime v4 (oberoende tredje motor)",
-    "facitkalla": "OpenPLC Runtime v4 over REST, /api/compilation-status",
-    "facitkalla_filer": ("svc/vc_assist_svc/plc/openplc.py",),
+    "facitkalla": "OpenPLC Runtime v4:s egen kompilering, last over REST "
+                  "(/api/compilation-status)",
+    "facitkalla_filer": (),
     "trasiga_fall": (
         "OpenPLC som inte svarar far aldrig ge tyst gront",
-        "ingen_pou maste falla i OpenPLC",
+        "saboterad C++ maste ge FAILED (--trasig-fixtur)",
         "EJ_KORD far aldrig rapporteras som OVERENS",
+        "kanalens eget fel (paket/openplc) far inte klassas som "
+        "motoroenighet - se icke_ascii (ascii-mur i paket.kompilera)",
     ),
     "kraver": ("openplc",),
     "matningar": ("M-108",),
