@@ -246,7 +246,23 @@ def main(argv=None):
              "nej" if a.utan_forhandsregler else "ja"))
 
     resultat = []
-    for post in poster:
+    bank_vid_start = [x["task_id"] for x in poster]
+
+    def skriv_delresultat():
+        # Inkrementell flush efter VARJE uppgift: en avbruten korning tappar
+        # hogst en uppgift, aldrig hela armen (M-110 lar av avbruten fullarm).
+        if a.json:
+            with open(a.json, "w", encoding="utf-8") as f:
+                json.dump({"modell": a.modell, "lage": a.lage,
+                           "forhandsregler": not a.utan_forhandsregler,
+                           "max_varv": a.max_varv,
+                           "bank_vid_start": bank_vid_start,
+                           "resultat": resultat,
+                           "lost": len([r for r in resultat if r["lost"]]),
+                           "slog_i_taket": len(
+                               [r for r in resultat
+                                if r.get("slog_i_taket")])}, f,
+                          indent=2, ensure_ascii=False)
         for varv_nr in range(1, a.upprepa + 1):
             etikett = post["task_id"] if a.upprepa == 1 else "%s #%d" % (
                 post["task_id"], varv_nr)
@@ -262,11 +278,12 @@ def main(argv=None):
                      "upprepning": varv_nr, "slog_i_taket": False,
                      "kostnad_usd": 0.0}
                 print(" FEL: %r" % e)
-            else:
-                print(" %s efter %d varv, %d/%d tokens, %.0f s"
-                      % (r["utfall"], r["varv_korda"], r["tokens_in"],
-                         r["tokens_ut"], r["sekunder"]))
-            resultat.append(r)
+        else:
+            print(" %s efter %d varv, %d/%d tokens, %.0f s"
+                  % (r["utfall"], r["varv_korda"], r["tokens_in"],
+                     r["tokens_ut"], r["sekunder"]))
+        resultat.append(r)
+        skriv_delresultat()
 
     losta = [r for r in resultat if r["lost"]]
     taket = [r for r in resultat if r.get("slog_i_taket")]
