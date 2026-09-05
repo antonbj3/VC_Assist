@@ -151,3 +151,62 @@ def test_indexet_gar_att_skriva_och_lasa(tmp_path):
     igen = json.load(open(str(ut), encoding="utf-8"))
     assert igen["antal"] == ix["antal"]
     assert igen["format"] == K.FORMAT
+
+
+# ---- familjemarkorerna: tva listor som INTE far glida isar ------------------
+
+def test_familjemarkorerna_ar_identiska_med_databladets():
+    """Grinden som modulens egen kommentar redan lovar.
+
+    `katalogindex._FAMILJEMARKORER` bar samma markorer som
+    `datablad.FAMILJEMARKORER`, och dubbleringen ar avsiktlig: katalogindexet
+    ska inte bero pa databladslagret. Kommentaren vid listan sager att "ett
+    prov binder ihop de tva listorna sa att de inte kan glida isar".
+
+    MATT 2026-09-05: det provet fanns inte. Tva kopior utan grind glider isar
+    tyst, och da svarar de tva lagren olika pa samma fraga om samma fil - det
+    varsta stallet for en skillnad att uppsta, for ingen av dem blir rod.
+    """
+    from vc_assist_svc import datablad as D
+
+    assert K._FAMILJEMARKORER == D.FAMILJEMARKORER, (
+        "familjemarkorerna har glidit isar:\n  katalogindex: %r\n  datablad:    %r"
+        % (K._FAMILJEMARKORER, D.FAMILJEMARKORER))
+
+
+def test_de_tva_lagren_ger_samma_familj_for_samma_funktion():
+    """Listorna kan vara lika och funktionerna anda svara olika.
+
+    Provet gar pa SVARET och inte bara pa datan. Tva skillnader ar avsiktliga
+    och matta, och de star har sa att de inte kan glida bort:
+
+    * `katalogindex` soker markoren som DELSTRANG i hela texten; `datablad`
+      laser den ur `Functionality`-blockens namn.
+    * utan markor svarar `katalogindex` tomt och `datablad` "ovrig".
+    """
+    from vc_assist_svc import datablad as D
+
+    for familj, markorer in K._FAMILJEMARKORER:
+        text = 'Node "rSimResource"\n{\nFunctionality "%s"\n{\nId 1\n}\n}\n' % markorer[0]
+        assert K._familj(text) == familj
+        assert D._familj(D.funktionsnamn(D.las_trad(text))) == familj
+
+    tom = 'Node "rSimResource"\n{\nFunctionality "rPythonScript"\n{\nId 1\n}\n}\n'
+    assert K._familj(tom) == ""
+    assert D._familj(D.funktionsnamn(D.las_trad(tom))) == "ovrig"
+
+
+def test_delstrangsokningen_traffar_aven_utanfor_ett_funktionsblock():
+    """TRASIG FIXTUR: markoren star i ett PYTHON-SKRIPT, inte som en funktion.
+
+    `katalogindex._familj` soker i hela texten och kallar komponenten robot.
+    `datablad` laser bara funktionsblockens namn och gor det inte. Skillnaden
+    ar liten i biblioteket men den finns, och den ska vara MATT och inte
+    upptackt i en korning.
+    """
+    from vc_assist_svc import datablad as D
+
+    text = ('Node "rSimResource"\n{\nFunctionality "rPythonScript"\n{\n'
+            'Script "b = comp.findBehaviour(\'rSimRobotController\')"\n}\n}\n')
+    assert K._familj(text) == "robot"
+    assert D._familj(D.funktionsnamn(D.las_trad(text))) == "ovrig"
