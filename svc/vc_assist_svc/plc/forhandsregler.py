@@ -110,14 +110,20 @@ REGLER: Dict[str, str] = {
     "AVVIKANDE_DEKLARATION":
         "Andra aldrig en signals typ, adress eller skyddsmarkning.",
     "ORORD_SIGNAL":
-        "Anvand varje signal i kartan. En signal som koden varken laser eller "
-        "skriver betyder att en del av uppgiften inte ar gjord.",
+        "Ror varje signal i skelettets VAR-block minst en gang. Las varje "
+        "ingang, skriv varje utgang. En signal som koden varken laser eller "
+        "skriver betyder att en del av uppgiften inte ar gjord - ga igenom "
+        "deklarationerna och kontrollera att inget namn blev over.",
     "SKRIVEN_INGANG":
-        "Skriv aldrig till en signal som PLC:n bara laser - en givare, en "
-        "knapp eller ett vaktvillkor.",
+        "Skriv aldrig till en signal som PLC:n bara laser. Adressen sager "
+        "vilken sort det ar: AT %I... ar en INGANG och lases bara (givare, "
+        "knappar, vaktvillkor), AT %Q... ar en UTGANG och skrivs, AT %M... ar "
+        "minne. Star det %I i deklarationen far namnet aldrig sta till vanster "
+        "om ett :=.",
     "ODRIVEN_UTGANG":
-        "Skriv varje utgang i kartan. En utgang som koden aldrig satter ar en "
-        "stalldon som aldrig ror sig.",
+        "Skriv varje utgang i kartan - alltsa varje namn med AT %Q... i "
+        "deklarationen. En utgang som koden aldrig satter ar ett stalldon som "
+        "aldrig ror sig, och uppgiften ar da inte gjord.",
 }
 
 

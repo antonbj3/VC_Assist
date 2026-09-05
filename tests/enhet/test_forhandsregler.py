@@ -102,3 +102,17 @@ def test_regeln_mot_kodstaket_finns():
     men regeln ska sta i prompten ocksa - ett lager som bara stader upp doljer
     att modellen gor fel sak."""
     assert "kodstaket" in R.SYSTEMPROMPT
+
+
+def test_riktningsreglerna_sager_hur_man_SER_riktningen():
+    """En regel som sager 'skriv inte till en ingang' utan att saga hur man
+    kanner igen en ar en bon.
+
+    Skelettet ger riktningen i adressen - AT %I ar ingang, AT %Q utgang. Utan
+    den raden maste modellen veta IEC-adressering utantill, och gor den inte
+    det faller SKRIVEN_INGANG pa nagot ingen sagt at den.
+    """
+    for kod in ("SKRIVEN_INGANG", "ODRIVEN_UTGANG"):
+        regel = F.REGLER[kod]
+        assert "%I" in regel or "%Q" in regel, \
+            "%s sager inte hur riktningen syns" % kod
