@@ -259,9 +259,11 @@ def test_grontkriteriet_raknar_bada_och_sager_vilket_som_foll():
              "slog_i_taket": False, "utfall": R.UTFALL_LOST},
             {"gold": False, "varv_till_gold": None, "lost": False,
              "slog_i_taket": True, "utfall": R.UTFALL_TAK}]
-    komp = [{"fall": f, "lagat": lagat, "seeden_foll": True, "upprepning": 1}
+    # Tre körningar per fall, så majoritetsregeln är det som räknas.
+    komp = [{"fall": f, "lagat": lagat, "seeden_foll": True, "upprepning": i}
             for f, lagat in (("K1", True), ("K2", True), ("K3", False),
-                             ("K4", False), ("K5", False))]
+                             ("K4", False), ("K5", False))
+            for i in (1, 2, 3)]
     dom = F1.grontkriteriet(guld, komp, n=3)
     assert dom["kriterium_guld"] is True
     assert dom["kriterium_komposition"] is False
@@ -386,3 +388,35 @@ def test_bryggan_startar_om_vc_mellan_korningar(monkeypatch):
     b2.fram()
     b2.fram()
     assert b2.omstarter == 0
+
+
+def test_ogiltig_korning_raknas_varken_i_taljaren_eller_namnaren():
+    """M-74:s regel: en körning vars klocka låg utanför braketten är OGILTIG,
+    inte fällande. Den får inte straffa fallet - och inte bära det heller."""
+    komp = []
+    for f in ("K1", "K2", "K3", "K4", "K5"):
+        komp.append({"fall": f, "utfall": "OGILTIG", "lagat": False,
+                     "seeden_foll": False, "upprepning": 1})
+        komp += [{"fall": f, "lagat": True, "seeden_foll": True,
+                  "upprepning": i} for i in (2, 3)]
+    dom = F1.grontkriteriet([], komp, n=3)
+    assert dom["kriterium_komposition"] is True
+    for r in dom["per_kompositionsfall"]:
+        assert r["ogiltiga_korningar"] == 1
+        assert r["giltiga_korningar"] == 2
+        assert r["lagat"] is True
+
+
+def test_ett_fall_med_bara_en_giltig_korning_raknas_aldrig_som_lagat():
+    """En enda lyckad körning kan vara jitter (A2)."""
+    komp = []
+    for f in ("K1", "K2", "K3", "K4", "K5"):
+        komp.append({"fall": f, "utfall": "OGILTIG", "lagat": False,
+                     "seeden_foll": False, "upprepning": 1})
+        komp.append({"fall": f, "utfall": "OGILTIG", "lagat": False,
+                     "seeden_foll": False, "upprepning": 2})
+        komp.append({"fall": f, "lagat": True, "seeden_foll": True,
+                     "upprepning": 3})
+    dom = F1.grontkriteriet([], komp, n=3)
+    assert dom["kompositionsfall_lagade"] == 0
+    assert dom["kriterium_komposition"] is False

@@ -936,15 +936,30 @@ def grontkriteriet(guld_rader, komp_rader, n):
     lagade = 0
     for fall in sorted(per_fall):
         mina = per_fall[fall]
-        k = sum(1 for r in mina if r.get("lagat"))
-        seedar = sum(1 for r in mina if r.get("seeden_foll"))
-        # Ett fall raknas som lagat nar det lagades i en MAJORITET av sina
-        # korningar. Skalet ar A2:s: en enda lyckad korning kan vara jitter.
-        ok = bool(mina) and k >= _majoritet(len(mina)) and seedar == len(mina)
+        # Tre sorters korningar, och skillnaden bar rakningen:
+        #   OGILTIG   seeden gick inte att doma (klockan utanfor braketten,
+        #             ogat utan ord). M-74:s regel: en sadan korning ar inte
+        #             fallande, den ar ogiltig - den raknas darfor varken i
+        #             taljaren eller i namnaren.
+        #   SLAPPTE   ogat slapp igenom M-74:s egen K-kropp. Da ar FIXTUREN
+        #             trasig, och fallet far aldrig raknas som lagat.
+        #   giltig    seeden foll, modellen fick ogats ord och sitt tak.
+        ogiltiga = [r for r in mina if r.get("utfall") == "OGILTIG"]
+        slappte = [r for r in mina
+                   if r.get("utfall") != "OGILTIG" and not r.get("seeden_foll")]
+        giltiga = [r for r in mina if r not in ogiltiga and r not in slappte]
+        k = sum(1 for r in giltiga if r.get("lagat"))
+        # Majoritet av de GILTIGA korningarna, och minst tva av dem. En enda
+        # lyckad korning kan vara jitter (A2), och ett fall vars fixtur inte
+        # fallde mater ingenting om modellens formaga att laga.
+        ok = (not slappte) and len(giltiga) >= 2 and k >= _majoritet(len(giltiga))
         lagade += 1 if ok else 0
         fallrader.append({"fall": fall, "lagade_korningar": k,
                           "korningar": len(mina),
-                          "seeden_foll_i": seedar, "lagat": ok})
+                          "giltiga_korningar": len(giltiga),
+                          "ogiltiga_korningar": len(ogiltiga),
+                          "seeden_slappte_igenom_i": len(slappte),
+                          "seeden_foll_i": len(giltiga), "lagat": ok})
     kriterium_komposition = lagade >= KOMPOSITION_AV
 
     torra = [r for r in list(guld_rader) + list(komp_rader)
@@ -1101,9 +1116,11 @@ def skriv_domen(dom):
              dom["kompositionsfall_kravda"],
              "JA" if dom["kriterium_komposition"] else "NEJ"))
     for r in dom["per_kompositionsfall"]:
-        print("      %-4s lagat i %d av %d korningar, seeden foll i %d  %s"
-              % (r["fall"], r["lagade_korningar"], r["korningar"],
-                 r["seeden_foll_i"], "LAGAT" if r["lagat"] else "-"))
+        print("      %-4s lagat i %d av %d giltiga korningar (%d ogiltiga, "
+              "%d dar seeden slapp igenom)  %s"
+              % (r["fall"], r["lagade_korningar"], r["giltiga_korningar"],
+                 r["ogiltiga_korningar"], r["seeden_slappte_igenom_i"],
+                 "LAGAT" if r["lagat"] else "-"))
     if not dom["giltigt"]:
         print("\n  OGILTIG MATNING:")
         for s in dom["ogiltighetsskal"]:

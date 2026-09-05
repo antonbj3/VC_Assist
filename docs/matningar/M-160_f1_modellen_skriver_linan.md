@@ -129,11 +129,20 @@ Båda halvorna räknas, och körningen säger **vilken** som föll:
 | | krav | hur det räknas |
 |---|---|---|
 | `guld` | GOLD inom fyra varv i minst 2 av 3 körningar | en majoritet av körningarna, aldrig färre än 2 av 3 |
-| `komposition` | minst 3 av 5 kompositionsfall lagade på ögats egna ord | ett fall räknas som lagat när det lagades i en **majoritet** av sina körningar |
+| `komposition` | minst 3 av 5 kompositionsfall lagade på ögats egna ord | ett fall räknas som lagat när det lagades i en **majoritet** av sina **giltiga** körningar, och det måste finnas minst två sådana |
 
 Majoritetsregeln på kompositionssidan är A2:s: en enda lyckad körning kan vara
-jitter. Rådata per körning ligger kvar i JSON:en, så en annan regel går att
-räkna i efterhand utan att köra om.
+jitter. Tre sorters körningar skiljs åt, och skillnaden bär räkningen:
+
+* **OGILTIG** — seeden gick inte att döma (klockan utanför M-73:s brakett, ögat
+  utan ord). M-74:s regel: en sådan körning är inte fällande, den är ogiltig.
+  Den räknas därför varken i täljaren eller i nämnaren.
+* **seeden släppte igenom** — ögat lät M-74:s egen K-kropp passera. Då är
+  **fixturen** trasig, och fallet får aldrig räknas som lagat.
+* **giltig** — seeden föll, modellen fick ögats ord och sitt tak.
+
+Rådata per körning ligger kvar i JSON:en, så en annan regel går att räkna i
+efterhand utan att köra om.
 
 Kompositionsarmen seedar varje fall med M-74:s egen K-kropp, kör den genom
 ögat **en gång** (varv noll, som inte kostar av modellens fyra), och lägger
@@ -143,7 +152,7 @@ var fixturen trasig, inte modellen duktig.
 
 ## 3. Vad som är prövat i dag, utan modell och utan VC
 
-`tests/enhet/test_kor_F1_riggen.py`, 28 prov, gröna. Provet skrevs **före**
+`tests/enhet/test_kor_F1_riggen.py`, 30 prov, gröna. Provet skrevs **före**
 mekanismen och var rött.
 
 ### 3.1 De tre trasiga fixturerna
@@ -192,8 +201,8 @@ guld:         GOLD i 2 av 3 korningar (kravs 2)  -> JA
     korning 3: TAK    varv till GOLD None     (slog i taket)
 
 komposition:  4 av 5 fall lagade (kravs 3)  -> JA
-    K1..K4  lagat i 3 av 3 korningar, seeden foll i 3   LAGAT
-    K5      lagat i 0 av 3 korningar, seeden foll i 3   -
+    K1..K4  lagat i 3 av 3 giltiga korningar   LAGAT
+    K5      lagat i 0 av 3 giltiga korningar   -
 
 OGILTIG MATNING:
     18 av korningarna ar torrkorningar; en inspelning kan aldrig ge ett
