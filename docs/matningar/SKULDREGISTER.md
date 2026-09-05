@@ -12,7 +12,7 @@ Byggs med `python3 -m vc_assist_svc.skuld` ur två källor som båda skrivs samt
 
 En lista som bär både felord och bara negationer svarar på frågan *bär texten något av de här orden?* — och det är inte den fråga någon grind ställer sig. Mätt tre gånger: M-94 fynd 1 och 4, M-98. Taket är noll, och kriteriet har ingen undantagslista: en lista som bär båda storheterna ska vara **sammansatt** ur de listor som bär var sin.
 
-## Ordlistor som står i två filer: 11
+## Ordlistor som står i två filer: 12
 
 `harness/text.py` säger det själv: *"de ligger PA ETT STALLE just for att en kopierad ordlista blir tva ordlistor sa fort nagon ratter den ena"*. Registret såg inte att regeln bröts. Listan nedan är ett **register**, inte en anklagelse: en delad ordlista kan vara rätt, men den måste vara sedd.
 
@@ -25,10 +25,11 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * 4 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**INTE_NONE** ↔ `ext/vc_addon/vc_assist/oga_kontrakt.py`.**_INTE_NONE**
 * 3 gemensamma — `ext/vc_addon/vc_assist/plats.py`.**WINDOWSPLATTFORMAR** ↔ `install/upptackt.py`.**WINDOWSPLATTFORMAR**
 * 3 gemensamma — `svc/vc_assist_svc/guldgrind.py`.**OBLIGATORISKA_SEKTIONER** ↔ `svc/vc_assist_svc/forlopp/yta.py`.**OBLIGATORISKA_SEKTIONER**
+* 2 gemensamma — `svc/vc_assist_svc/scenarbete/sparr.py`.**KALLOR** ↔ `svc/vc_assist_svc/plan/harkomst.py`.**KALLOR**
 * 2 gemensamma — `svc/vc_assist_svc/verktyg/matning.py`.**_YTOR_LAYOUT** ↔ `svc/vc_assist_svc/verktyg/robotik.py`.**_YTOR_LAYOUT**
 * 1 gemensamma — `svc/vc_assist_svc/api_index.py`.**_RANGORDNING** ↔ `svc/vc_assist_svc/verktyg/katalog.py`.**_RANGORDNING**
 
-## Vad mätningarna säger att de inte vet: 947 punkter
+## Vad mätningarna säger att de inte vet: 983 punkter
 
 ### M-01_tillaggsmekanismen.md — Vad som INTE är mätt
 
@@ -701,6 +702,22 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * Kalibreringen är kvalitativ på felklassnivå.** Att motorn kan framkalla
 * Fysiska fel (F9–F12) kräver scen och öga.** En ST-motor kan aldrig
 
+### M-153_domarna_i_skala.md — LIMITS
+
+* Mätningen jämför två DOMARE, inte två motorer.** `bank/domare.py` och
+* Bara tre av de tio utfallsoenigheterna är spårade till en mekanism.**
+* inte** enskilt utredda, och att kalla dem "samma mekanism" vore en gissning
+* Ingen tredje domare avgör vem som har rätt.** Där de två skiljer sig säger
+* 13 instabila enheter är ett GOLV, inte ett tal.** Instabiliteten mättes vid
+* Omprovens urval är inte oberoende (§5).** De 13 enheterna valdes för att de
+* Enskansglitchen i §4c är inte hänförd.** Om pulsen ligger i OpenPLC eller i
+* Punktkravens 0-offset gäller punktkrav, inte flanker.** 34 275 av 34 291
+* En maskin, en scanperiod, en runtimeversion.** 20 ms, OpenPLC v4.2.1, en
+* Kostnadstalen gäller under tolv parallella runtimes.** 84,9 s median per
+* Mätningen säger inget om att bankens facit är rätt.** När en referens är
+* Ingen modell kördes.** Talen säger ingenting om någon modells förmåga; de
+* Ingenting är lagat.** `bank/` ligger utanför kö A:s yta i briefen, så de
+
 ### M-154_plcopen_export_ut.md — LIMITS — vad den här mätningen INTE visar
 
 * Ingen kommersiell PLC-IDE har öppnat filen.** Varken CODESYS, TIA Portal
@@ -747,7 +764,9 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 
 ### M-158_den_riktiga_f15_mutationen.md — LIMITS
 
-* Skriv vad mätningen INTE visar. En mätning utan det här avsnittet fälls av
+* Körningen mäter spårdomaren mot vår ST-tolk.** A2:s OpenPLC-domare kör
+* Den sista överlevaren i S-05 rad 39 är inte ekvivalent.** Den är observerbar
+* Banken rör sig vidare.** Fler uppgifter från kö B förskjuter nämnaren ytterligare.
 
 ### M-159_larmet_tidsvakten_och_forreglingen.md — LIMITS
 
@@ -774,9 +793,45 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 * `VC_TRANSPORT` som kandidat till `Ref<ComponentProcessor>` är märkt oprövad i
 * Python-typen i högerkolumnen är läst av typnamnet på det returnerade objektet.
 
+### M-160_f1_modellen_skriver_linan.md — 4. Vad som INTE är mätt
+
+* Ingenting om en modell.** Ingen modellslinga har körts. Riggen är
+* Ingenting genom VC.** `Ogonsteg`:s dyra väg — VC-omstart, uppladdning till
+* Grind 4 (anropsvalidering) i ögonsteget.** Att den passerar med M-74:s
+* Kostnaden per körning.** `Forfattare` summerar transportens kostnad, men
+* Vilken modell.** Rättelsen 2026-09-05 16:25 gäller: modellnamnet skrivs i
+* Att kompositionsfallen faller i den här riggens uppställning.** M-74 fällde
+* F2:s klassning.** Varje misslyckat reparationsvarv ska klassas i "ögat sa
+
 ### M-160_f1_modellen_skriver_linan.md — LIMITS
 
+* Riggen är **byggd och prövad, inte körd**. Allt i §3 är prövat utan modell
+* Den dyra vägen (VC, OpenPLC, ögat) är oprövad i den här riggen. Den är
+* Torrkörningens ögondomar är **inspelade**. De bevisar att räkningen,
+* Ingen modell är vald, så inget tal här hör till någon modell.
+* Ingenting om fler än två stationer, om längre körningar, eller om scenen
+
+### M-161_komponentsoket_tva_hal.md — LIMITS
+
+* Mätningen gäller bibliotekets 3 201 komponenter i VC 4.10 på denna maskin.
+* 60 av de 75 frågorna bär antagna namn utan motsvarande tillverkarbeteckning.
+* Sökningen provar statisk namnnormalisering och ersätter inte semantisk förståelse.
+
+### M-162_fritext_om_befintlig_scen.md — LIMITS
+
 * Skriv vad mätningen INTE visar. En mätning utan det här avsnittet fälls av
+
+### M-163_forslag_nar_valet_faller.md — LIMITS
+
+* Skriv vad mätningen INTE visar. En mätning utan det här avsnittet fälls av
+
+### M-164_baslinjens_golv_i_skala.md — LIMITS
+
+* Båda hypoteserna prövades på samma 44 uppgifter som gav upphov till dem.**
+* Baslinjen körs bara på `NIVA_SPEC`.** `NIVA_MAGER` och `NIVA_PROSA` är
+* `uppfyllda` är ett antal, inte vilka.** Två domar med samma antal kan
+* Ingen tredje hypotes prövades.** Jag stannade vid två för att en tredje
+* De 17 nya uppgifternas facit skrevs av en annan session samma dag**, och de
 
 ### M-16_canconnect_dodar_pumpen.md — Vad som INTE är mätt
 
@@ -1475,13 +1530,11 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ## Produktionsmoduler som ingen provfil nämner: 0 (0 rader)
 
 
-## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 3 (312 rader)
+## Produktionsmoduler som bara nämns av en L3-körning (kräver VC/OpenPLC, körs inte av `pytest tests/enhet`): 1 (135 rader)
 
-* `svc/vc_assist_svc/aterhamtning/__main__.py` — 94 rader
-* `svc/vc_assist_svc/forlopp/__main__.py` — 83 rader
 * `svc/vc_assist_svc/plc/opcuakonfig.py` — 135 rader
 
-## Markörer i koden: 144
+## Markörer i koden: 145
 
 ### vc_assist_svc/processer.py
 
@@ -1731,6 +1784,10 @@ En lista som bär både felord och bara negationer svarar på frågan *bär text
 ### enhet/test_readme_faser.py
 
 * enhet/test_readme_faser.py:114  assert "inte prövat, och det är fasens öppna punkt" not in text.lower()
+
+### enhet/test_scenarbete.py
+
+* enhet/test_scenarbete.py:472  # Stegen är härledda ur mätta grindar; att rundtalet RÄCKER är inte prövat.
 
 ### enhet/test_troskelharkomst.py
 
