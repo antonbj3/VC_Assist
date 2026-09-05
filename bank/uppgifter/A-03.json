@@ -406,6 +406,14 @@
             "varfor": "station 2 startar pa station 1:s klarsignal, kvitterar mottagandet och kvittensen nollstaller klarsignalen; utan den nollstallningen arver nasta enhet beskedet"
           },
           {
+            "t_ms": 29600,
+            "satt": {},
+            "krav": {
+              "ST260_ACK_RST": false
+            },
+            "varfor": "kvittensen ar en puls: efter 29200 maste den vara nere igen (M-134 klass 1)"
+          },
+          {
             "t_ms": 59600,
             "satt": {},
             "krav": {
@@ -538,6 +546,14 @@
               "ST260_STA_BUSY": true
             },
             "varfor": "station 2 tog emot foregaende enhet och kvitterade; kvittensen nollstaller station 1:s klarsignal"
+          },
+          {
+            "t_ms": 30600,
+            "satt": {},
+            "krav": {
+              "ST260_ACK_RST": false
+            },
+            "varfor": "kvittensen ar en puls: efter 30400 maste den vara nere igen (M-134 klass 1)"
           },
           {
             "t_ms": 31000,

@@ -515,6 +515,14 @@
             "varfor": "byte pagar"
           },
           {
+            "t_ms": 3500,
+            "satt": {},
+            "krav": {
+              "ST140_TCH_BUSY": false
+            },
+            "varfor": "lasfelet star kvar: verktyget ar inte upptaget (M-134 klass 2)"
+          },
+          {
             "t_ms": 4000,
             "satt": {},
             "krav": {

@@ -1207,6 +1207,14 @@
             "varfor": ""
           },
           {
+            "t_ms": 2300,
+            "satt": {},
+            "krav": {
+              "ST190_CNV_RUN": true
+            },
+            "varfor": "hemvaktens transportband maste ga medan utskjutaren star ute (M-134 klass 1)"
+          },
+          {
             "t_ms": 2600,
             "satt": {},
             "krav": {

@@ -115,3 +115,13 @@ def test_c2_krav_som_laggs_till_ar_inte_att_ta_bort():
     assert C2.steg_borttagna(gammalt, skarpt) == []
     tunt = [{"t_ms": 0, "satt": {"xIn": True}}]
     assert len(C2.steg_borttagna(gammalt, tunt)) == 1
+
+
+def test_c2_invariant_som_faller_referensen_avvisas():
+    """Samma grind for invarianter: en invariant som referensen bryter ar
+    inget skydd utan ett facit i forkla dnad."""
+    dålig_inv = [{"namn": "x", "sekvens": "*", "nar": {"xIn": True},
+                  "kraver": {"xUt": False}, "varfor": "y"}]
+    ok, skal, _ = C2.verifiera_stimulus(POST, BRA, [MUTANT],
+                                        extra_invarianter=dålig_inv)
+    assert not ok and "referens" in skal

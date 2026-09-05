@@ -803,6 +803,14 @@
             "varfor": "4,8 s efter att bandet startade har tidsgransen 5,0 s inte lopt ut; ett kort som bara ar pa vag tar 233/350 = 0,666 s over givaren och far inte larma"
           },
           {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST050_CNV_RUN": true
+            },
+            "varfor": "narvarovakten gar: bandet maste ga har (M-134 klass 1)"
+          },
+          {
             "t_ms": 6200,
             "satt": {},
             "krav": {

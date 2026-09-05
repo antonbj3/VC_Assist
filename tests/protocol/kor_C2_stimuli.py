@@ -58,7 +58,8 @@ from vc_assist_svc.plc.mutation import skador          # noqa: E402
 from bank import domare                                # noqa: E402
 
 
-def med_sekvens(post, ny_sekvens, ersatt_id=None):
+def med_sekvens(post, ny_sekvens, ersatt_id=None, extra_invarianter=None,
+                extra_flanker=None):
     """Proben: uppgiften med stimulusen inlagd. Ror aldrig `post`."""
     facit = dict(post.get("facit_spar") or {})
     gamla = list(facit.get("sekvenser") or [])
@@ -72,6 +73,11 @@ def med_sekvens(post, ny_sekvens, ersatt_id=None):
             raise ValueError("sekvens %r finns inte att ersatta" % (ersatt_id,))
         facit["sekvenser"] = [ny_sekvens if s.get("id") == ersatt_id else s
                               for s in gamla]
+    if extra_invarianter:
+        facit["invarianter"] = list(facit.get("invarianter") or []) \
+            + list(extra_invarianter)
+    if extra_flanker:
+        facit["flanker"] = list(facit.get("flanker") or []) + list(extra_flanker)
     probe = dict(post)
     probe["facit_spar"] = facit
     return probe
@@ -97,7 +103,8 @@ def steg_borttagna(gamla_steg, nya_steg):
     return bort
 
 
-def verifiera_stimulus(post, ny_sekvens, mutanter, ersatt_id=None):
+def verifiera_stimulus(post, ny_sekvens, mutanter, ersatt_id=None,
+                       extra_invarianter=None, extra_flanker=None):
     """Provar en stimulus. Returnerar (ok, skal, detaljer).
 
     `mutanter` ar ST-kroppar. Tom lista ar fellagt anvand - en stimulus utan
@@ -113,7 +120,8 @@ def verifiera_stimulus(post, ny_sekvens, mutanter, ersatt_id=None):
             return False, ("avvisas: ersattningen tar bort %d gamla steg - "
                            "grinden far inte bli billig" % len(borttagna)), {}
     try:
-        probe = med_sekvens(post, ny_sekvens, ersatt_id)
+        probe = med_sekvens(post, ny_sekvens, ersatt_id, extra_invarianter,
+                            extra_flanker)
     except ValueError as fel:
         return False, "avvisas: %s" % (fel,), {}
     ref = (post.get("facit_spar") or {}).get("referens") or ""
@@ -155,33 +163,135 @@ def _bygg_mutanter(ref, val):
 
 
 # En stimulus per klass ur M-134. Fylls pa klass for klass; korningen
-# verifierar dem alla. "lage": "ny" (sekvens + scenariokatalogpost laggs
-# till) eller "ersatt:<sekvens-id>" (steg laggs till i befintlig sekvens).
-STIMULI = []
+# verifierar dem alla MOT FILEN SOM DEN LIGGER (disk truth): referensen ska
+# vara gron, varje mutant falla, och mina steg ska finnas. Andrar nagon min
+# sekvens utan att bevisa om den faller korningen - da syns det har.
+# "lage": "ny" (ny sekvens + scenariokatalogpost) eller "ersatt" (steg
+# tillagda i befintlig sekvens). "steg": de steg C2 lade till - for en ny
+# sekvens hela stegen, for en ersatt sekvens bara tillaggen.
+STIMULI = [
+    # --- klass 1: checkpoint-gleshet (M-134) ---
+    {"uppgift": "A-03", "sekvens": "en_enhet_genom_bada_stationerna",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 29600, "satt": {},
+                "krav": {"ST260_ACK_RST": False},
+                "varfor": "kvittensen ar en puls: efter 29200 maste den vara "
+                          "nere igen (M-134 klass 1)"}],
+     "mutanter": [{"sort": "TID_FORDUBBLAD", "rad": 30, "fore": "T#500ms",
+                   "forekomst": 0}]},
+    {"uppgift": "A-03", "sekvens": "ingen_dubbelslapp_pa_samma_klarsignal",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 30600, "satt": {},
+                "krav": {"ST260_ACK_RST": False},
+                "varfor": "kvittensen ar en puls: efter 30400 maste den vara "
+                          "nere igen (M-134 klass 1)"}],
+     "mutanter": [{"sort": "TID_FORDUBBLAD", "rad": 30, "fore": "T#500ms",
+                   "forekomst": 0}]},
+    {"uppgift": "S-01", "sekvens": "utskjutaren_star_kvar_ute",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 2300, "satt": {},
+                "krav": {"ST190_CNV_RUN": True},
+                "varfor": "hemvaktens transportband maste ga medan "
+                          "utskjutaren star ute (M-134 klass 1)"}],
+     "mutanter": [{"sort": "AND_TILL_OR", "rad": 34, "fore": "AND",
+                   "forekomst": 0}]},
+    {"uppgift": "S-07", "sekvens": "nodstopp_kraver_kvittens",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 1400, "satt": {},
+                "krav": {"ST510_LBL_PRINT": False, "ST510_LBL_APPLY": False,
+                         "ST510_CNV_RUN": False},
+                "varfor": "ett aterstallt nodstopp far inte i sig starta "
+                          "stationen (IEC 60204-1: urkopplingen mojliggor "
+                          "omstart, den utfor den inte) | transportbandet "
+                          "star still tills kvittens (M-134 klass 1)"}],
+     "mutanter": [{"sort": "SANT_TILL_FALSKT", "rad": 24, "fore": "TRUE",
+                   "forekomst": 0}]},
+    {"uppgift": "T-05", "sekvens": "materialet_kommer_aldrig_fram",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 6000, "satt": {},
+                "krav": {"ST050_CNV_RUN": True},
+                "varfor": "narvarovakten gar: bandet maste ga har "
+                          "(M-134 klass 1)"}],
+     "mutanter": [{"sort": "AND_TILL_OR", "rad": 32, "fore": "AND",
+                   "forekomst": 0}]},
+    {"uppgift": "H-01", "sekvens": "kvittensen_uteblir",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 13520, "satt": {},
+                "krav": {"ST290_HS_REQ": False},
+                "varfor": "begaran maste vara nere igen (M-134 klass 1)"}],
+     "mutanter": [{"sort": "FALSKT_TILL_SANT", "rad": 35, "fore": "FALSE",
+                   "forekomst": 0}]},
+    {"uppgift": "P-07", "sekvens": "stopptiden_for_kort",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 160, "satt": {},
+                "krav": {"ST460_CNV_RUN": False},
+                "varfor": "bandet star under stopptid (M-134 klass 1)"}],
+     "mutanter": [{"sort": "FLANK_TILL_NIVA", "rad": 46,
+                   "fore": "trigReset.Q", "forekomst": 0}]},
+    # --- klass 2: nytt tunt facit (P-05, M-134) ---
+    {"uppgift": "P-05", "sekvens": "locked_uteblir_ger_stopp",
+     "lage": "ersatt", "scenario": None,
+     "steg": [{"t_ms": 3500, "satt": {},
+                "krav": {"ST140_TCH_BUSY": False},
+                "varfor": "lasfelet star kvar: verktyget ar inte upptaget "
+                          "(M-134 klass 2)"}],
+     "mutanter": [{"sort": "TID_FORDUBBLAD", "rad": 21, "fore": "T#3s",
+                   "forekomst": 0},
+                  {"sort": "NOT_STRUKEN", "rad": 22, "fore": "NOT ",
+                   "forekomst": 0},
+                  {"sort": "SANT_TILL_FALSKT", "rad": 23, "fore": "TRUE",
+                   "forekomst": 0},
+                  {"sort": "AND_TILL_OR", "rad": 26, "fore": "AND",
+                   "forekomst": 0},
+                  {"sort": "AND_TILL_OR", "rad": 26, "fore": "AND",
+                   "forekomst": 1},
+                  {"sort": "FALSKT_TILL_SANT", "rad": 30, "fore": "FALSE",
+                   "forekomst": 0}]},
+    # normal_drift_med_byte struken: rad 38/41 ar 1 scans transienter i
+    # verktygsbytet. Ingen M33-ren punkt ser dem (marginalen ar 2 scan) och
+    # ingen sann invariant haller for referensen sjalv (matt i M-135) - de
+    # star kvar som overlevare med skal istallet for med en billig grind.
+]
 
 
 def kor_stimulus(defn):
     post = _las_post(defn["uppgift"])
     facit = post.get("facit_spar") or {}
-    ref = facit.get("referens") or ""
-    mutanter, fel = _bygg_mutanter(ref, defn["mutanter"])
-    if mutanter is None:
-        return False, fel, {}
-    ersatt_id = None
-    if defn["lage"].startswith("ersatt:"):
-        ersatt_id = defn["lage"].split(":", 1)[1]
-    ok, skal, detaljer = verifiera_stimulus(post, defn["sekvens"], mutanter,
-                                            ersatt_id)
-    if not ok:
-        return False, skal, detaljer
+    seqs = [s for s in facit.get("sekvenser") or []
+            if s.get("id") == defn["sekvens"]]
+    if not seqs:
+        return False, ("sekvensen %r ligger inte i filen"
+                       % (defn["sekvens"],)), {}
+    fil_seq = seqs[0]
+    saknas = steg_borttagna(defn["steg"], fil_seq.get("steg"))
+    if saknas:
+        return False, ("mina %d steg ligger inte i filen langre - nagon har "
+                       "andrat sekvensen utan att bevisa om den"
+                       % len(saknas)), {}
     if defn["lage"] == "ny":
         if defn.get("scenario") is None:
-            return False, "ny sekvens saknar scenariokatalogpost", detaljer
+            return False, "ny sekvens saknar scenariokatalogpost", {}
         ids = [s.get("id") for s in post.get("scenarios") or []]
         if defn["scenario"].get("id") not in ids:
             return False, ("scenariot %r ligger inte i uppgiftens scenarios"
-                           % (defn["scenario"].get("id"),)), detaljer
-    return True, skal, detaljer
+                           % (defn["scenario"].get("id"),)), {}
+    ref = facit.get("referens") or ""
+    dref = domare.dom(post, ref)
+    if not dref.godkand:
+        return False, ("referensen faller: %s"
+                       % ", ".join(dref.koder[:5])), {}
+    mutanter, fel = _bygg_mutanter(ref, defn["mutanter"])
+    if mutanter is None:
+        return False, fel, {}
+    grona = 0
+    for m in mutanter:
+        if domare.dom(post, m).godkand:
+            grona += 1
+    if grona:
+        return False, ("%d av %d mutanterna star - stimulusen ser dem inte"
+                       % (grona, len(mutanter))), {}
+    return True, ("ok: referensen gron, %d av %d mutanter fallda"
+                  % (len(mutanter), len(mutanter))), {}
 
 
 def main(argv=None):
@@ -194,12 +304,12 @@ def main(argv=None):
     daliga = []
     for d in STIMULI:
         ok, skal, _ = kor_stimulus(d)
-        print("%-8s %-40s %s" % (d["uppgift"], d["sekvens"].get("id"), skal))
+        print("%-8s %-40s %s" % (d["uppgift"], d["sekvens"], skal))
         if not ok:
-            daliga.append(d["sekvens"].get("id"))
+            daliga.append("%s:%s" % (d["uppgift"], d["sekvens"]))
     if a.json:
         with open(a.json, "w", encoding="utf-8") as h:
-            json.dump([dict(uppgift=d["uppgift"], sekvens=d["sekvens"].get("id"))
+            json.dump([dict(uppgift=d["uppgift"], sekvens=d["sekvens"])
                        for d in STIMULI], h, ensure_ascii=False, indent=1)
     if daliga:
         print("UNDERKANDA: %s" % ", ".join(daliga), file=sys.stderr)

@@ -544,6 +544,14 @@
             "varfor": "4,0 s efter begaran har ingen kvittens kommit. Roboten star kvar med modulen i griparen och far inte slappa mot ett upptaget mottagningslage; bandet star still eftersom en begaran ligger."
           },
           {
+            "t_ms": 13520,
+            "satt": {},
+            "krav": {
+              "ST290_HS_REQ": false
+            },
+            "varfor": "begaran maste vara nere igen (M-134 klass 1)"
+          },
+          {
             "t_ms": 13600,
             "satt": {},
             "krav": {

@@ -1309,9 +1309,10 @@
             "satt": {},
             "krav": {
               "ST510_LBL_PRINT": false,
-              "ST510_LBL_APPLY": false
+              "ST510_LBL_APPLY": false,
+              "ST510_CNV_RUN": false
             },
-            "varfor": "ett aterstallt nodstopp far inte i sig starta stationen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte)"
+            "varfor": "ett aterstallt nodstopp far inte i sig starta stationen (IEC 60204-1: urkopplingen mojliggor omstart, den utfor den inte) | transportbandet star still tills kvittens (M-134 klass 1)"
           },
           {
             "t_ms": 1500,

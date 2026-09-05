@@ -992,6 +992,14 @@
             "varfor": ""
           },
           {
+            "t_ms": 160,
+            "satt": {},
+            "krav": {
+              "ST460_CNV_RUN": false
+            },
+            "varfor": "bandet star under stopptid (M-134 klass 1)"
+          },
+          {
             "t_ms": 400,
             "satt": {
               "ST460_PRT_PRS": true
