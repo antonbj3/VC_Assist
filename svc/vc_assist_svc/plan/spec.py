@@ -135,10 +135,10 @@ class Grundbegaran(object):
     def fran_json(cls, data):
         granska_nycklar(data, ("v", "niva", "id", "text", "kalla"), "grundbegaran")
         if data["v"] != SPECVERSION:
-            raise Specfel("grundbegaran", ["formatversion %r, lasaren kan %d"
+            raise Specfel("grundbegaran", ["format version %r, the reader can handle %d"
                                            % (data["v"], SPECVERSION)])
         if data["niva"] != "grundbegaran":
-            raise Specfel("grundbegaran", ["niva %r, forvantade grundbegaran"
+            raise Specfel("grundbegaran", ["level %r, expected grundbegaran"
                                            % (data["niva"],)])
         return cls(data["id"], data["text"], data["kalla"])
 
@@ -167,7 +167,7 @@ class Antagande(object):
             problem.append("kalla %r ar inte en av %s"
                            % (kalla, ", ".join(ANTAGANDEKALLOR)))
         if problem:
-            raise Specfel("antagandet %r" % (vad,), problem)
+            raise Specfel("the assumption %r" % (vad,), problem)
 
     def __repr__(self):
         return "Antagande(%s = %s, %s)" % (self.vad, self.varde, self.kalla)
@@ -207,7 +207,7 @@ class Fraga(object):
         if svar is not None and not isinstance(svar, str):
             problem.append("svaret %r ar varken None eller text" % (svar,))
         if problem:
-            raise Specfel("fragan %r" % (id,), problem)
+            raise Specfel("the question %r" % (id,), problem)
 
     def __repr__(self):
         return "Fraga(%s, %s)" % (self.id, "besvarad" if self.svar else "oppen")
@@ -219,7 +219,7 @@ class Fraga(object):
     def besvara(self, svar):
         """Operatorens svar. Ett tomt svar ar inget svar."""
         if not isinstance(svar, str) or not svar.strip():
-            raise Specfel("fragan %s" % self.id, ["ett tomt svar ar inget svar"])
+            raise Specfel("the question %s" % self.id, ["an empty answer is no answer"])
         self.svar = svar
         return self
 
@@ -268,7 +268,7 @@ class Del(object):
         if massa_kg is not None:
             _tal(massa_kg, "massa_kg", problem, minst=0)
         if problem:
-            raise Specfel("delen %r" % (roll,), problem)
+            raise Specfel("the part %r" % (roll,), problem)
 
     def __repr__(self):
         return "Del(%s, %s)" % (self.roll, self.uri)
@@ -309,7 +309,7 @@ class Koppling(object):
         if harkomst is not None and not isinstance(harkomst, Harkomst):
             problem.append("harkomsten ar ingen Harkomst")
         if problem:
-            raise Specfel("kopplingen %s->%s" % (fran_roll, till_roll), problem)
+            raise Specfel("the connection %s->%s" % (fran_roll, till_roll), problem)
 
     def __repr__(self):
         return "Koppling(%s -> %s)" % (self.fran_roll, self.till_roll)
@@ -349,7 +349,7 @@ class Signal(object):
         if not isinstance(kommentar, str):
             problem.append("kommentaren ar ingen text")
         if problem:
-            raise Specfel("signalen %r" % (namn,), problem)
+            raise Specfel("the signal %r" % (namn,), problem)
 
     def __repr__(self):
         return "Signal(%s %s %s)" % (self.namn, self.riktning, self.typ)
@@ -569,7 +569,7 @@ class DetaljeradSpec(object):
             problem += ["%s: %s" % p for p in granska_roller(
                 self.villkor, self.relationer, roller)]
         if problem:
-            raise Specfel("specen %r" % (self.id,), problem)
+            raise Specfel("the spec %r" % (self.id,), problem)
 
     def __repr__(self):
         return ("DetaljeradSpec(%s, %d delar, %d villkor, %d processer, "
@@ -596,7 +596,7 @@ class DetaljeradSpec(object):
         for d in self.delar:
             if d.roll == namn:
                 return d
-        raise Specfel("specen %s" % self.id, ["ingen del har rollen %r" % (namn,)])
+        raise Specfel("the spec %s" % self.id, ["no part has the role %r" % (namn,)])
 
     # -- harkomsten -------------------------------------------------------
 
@@ -654,14 +654,14 @@ class DetaljeradSpec(object):
                         "signaler", "takt", "villkor", "antaganden", "fragor",
                         "verifiering", "omrade", "relationer",
                         "processordning", "prosakrav", "fragerunda"),
-                        "detaljerad spec")
+                        "detailed spec")
         if data["v"] != SPECVERSION:
-            raise Specfel("detaljerad spec",
-                          ["formatversion %r, lasaren kan %d"
+            raise Specfel("detailed spec",
+                          ["format version %r, the reader can handle %d"
                            % (data["v"], SPECVERSION)])
         if data["niva"] != "detaljerad_spec":
-            raise Specfel("detaljerad spec",
-                          ["niva %r, forvantade detaljerad_spec"
+            raise Specfel("detailed spec",
+                          ["level %r, expected detaljerad_spec"
                            % (data["niva"],)])
         return cls(
             data["id"],
