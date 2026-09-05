@@ -107,13 +107,14 @@ def test_ett_tomt_modellsvar_kastar_i_klienten_och_blir_aldrig_tystnad():
 def test_ett_staket_runt_hela_svaret_tas_bort():
     m = A.ClaudeModell(klient=MK.Inspelad(["```st\nIF A THEN\n  B := TRUE;\nEND_IF;\n```"]))
     svar = m.svara("", [Meddelande(roll="uppgift", text="x")], [])
-    assert svar.text == "IF A THEN\n  B := TRUE;\nEND_IF;"
+    # Radbrytningen sist ar med FLIT, se test_avskalat_staket_... nedan.
+    assert svar.text == "IF A THEN\n  B := TRUE;\nEND_IF;\n"
     assert "`" not in svar.text
 
 
 def test_staket_utan_sprakrad_ocksa():
     m = A.ClaudeModell(klient=MK.Inspelad(["```\nA := 1;\n```"]))
-    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == "A := 1;"
+    assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == "A := 1;\n"
 
 
 def test_flera_block_valjs_INTE_at_modellen():
@@ -140,3 +141,40 @@ def test_prosa_runt_ett_staket_ror_vi_inte_heller():
     text = "Har ar kroppen:\n```st\nA := 1;\n```"
     m = A.ClaudeModell(klient=MK.Inspelad([text]))
     assert m.svara("", [Meddelande(roll="uppgift", text="x")], []).text == text
+
+
+def test_avskalat_staket_slutar_alltid_med_en_radbrytning():
+    """TRASIG FIXTUR for en vaxelverkan mellan tva av nattens andringar.
+
+    Kodstaketsborttagningen gjorde `.strip("\\n")` och lamnade en kalla utan
+    radbrytning sist. M-99:s muterade svep fann sedan att `BOOL#7` UTAN
+    avslutande radbrytning fick lexern att HANGA - `_kika() in "_.#"` ar sant
+    for tomma strangen. Med radbrytning foll samma text ratt hela tiden.
+
+    Felet bet alltsa bara pa exakt den form adaptern tillverkade. Lexern ar
+    lagad, men formen ska inte tillverkas: en grind som hanger lamnar inget
+    spar alls, och da ar tva lager battre an ett.
+    """
+    for svar in ("```st\nA := 1;\n```", "```\nA := 1;```", "```st\nA := BOOL#7;\n```"):
+        m = A.ClaudeModell(klient=MK.Inspelad([svar]))
+        text = m.svara("", [Meddelande(roll="uppgift", text="x")], []).text
+        assert text.endswith("\n"), repr(text)
+        assert "`" not in text
+
+
+def test_en_kalla_utan_radbrytning_far_lexern_att_SVARA():
+    """Andra halvan: att lexern ar lagad ar ocksa ett pastaende som ska provas.
+
+    Kors med tidsgrans i egen process - ett hangprov i sviten ger inte rott,
+    det ger ett prov som aldrig svarar.
+    """
+    import subprocess as _sp
+    import sys as _sys
+    kod = (
+        "import sys; sys.path.insert(0, %r)\n"
+        "from vc_assist_svc.st.validator import validera\n"
+        "validera('PROGRAM P\\nVAR\\n a : BOOL;\\nEND_VAR\\n a := BOOL#7;\\nEND_PROGRAM')\n"
+        "print('SVARADE')\n" % os.path.join(_ROT, "svc"))
+    k = _sp.run([_sys.executable, "-c", kod], stdout=_sp.PIPE, stderr=_sp.STDOUT,
+                timeout=30)
+    assert b"SVARADE" in k.stdout, k.stdout[:300]

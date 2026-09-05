@@ -92,7 +92,16 @@ def _utan_kodstaket(text: str) -> str:
     rader = inre.splitlines()
     if rader and rader[0].strip() and " " not in rader[0].strip():
         rader = rader[1:]    # sprakraden, t.ex. "st" eller "iecst"
-    return "\n".join(rader).strip("\n")
+    # Avslutande radbrytning GARANTERAS. Den forsta versionen gjorde
+    # .strip("\n") och lamnade darfor en kalla utan radbrytning sist.
+    #
+    # MATT (M-99): `BOOL#7` UTAN avslutande radbrytning fick lexern att hanga
+    # for evigt - `self._kika() in "_.#"` ar sant for tomma strangen. Med
+    # radbrytning foll samma text ratt hela tiden, sa felet bet BARA pa den
+    # form ett avskalat kodstaket ger. Lexern ar lagad, men adaptern ska inte
+    # tillverka formen: en grind som hanger lamnar inte ens ett spar, och tva
+    # lager ar battre an ett nar det ena felet ar osynligt.
+    return "\n".join(rader).strip("\n") + "\n"
 
 
 def _en_strang(systemprompt: str, meddelanden: Sequence[Meddelande]) -> str:
