@@ -161,7 +161,7 @@ def _delar(rad: str) -> List[str]:
     bitar = rad.strip().split("|")
     # En markdown-rad borjar och slutar med |, sa forsta och sista biten ar tomma.
     if len(bitar) < 2 or bitar[0].strip() or bitar[-1].strip():
-        raise Specfel("raden ar ingen hel tabellrad: %r" % rad[:80])
+        raise Specfel("the line is not a full table row: %r" % rad[:80])
     return [b.strip() for b in bitar[1:-1]]
 
 
@@ -209,7 +209,7 @@ def las_profiler(text: str) -> List[Profil]:
             continue
         delar = _delar(rad)
         if len(delar) != 5:
-            raise Specfel("rad %d i %s har %d kolumner, ska ha 5: %r"
+            raise Specfel("line %d in %s has %d columns, should have 5: %r"
                           % (radnr, kod, len(delar), rad[:90]))
         nummer = int(delar[0])
         stegtext = delar[1].strip()
@@ -217,13 +217,13 @@ def las_profiler(text: str) -> List[Profil]:
         kraver = _poster(delar[3])
         tackt_av = _poster(delar[4])
         if not stegtext:
-            raise Specfel("rad %d i %s saknar stegtext" % (radnr, kod))
+            raise Specfel("line %d in %s is missing step text" % (radnr, kod))
         if not kraver:
-            raise Specfel("%s steg %d: kolumnen Kraver ar tom; ett steg utan "
-                          "krav gar inte att doma" % (kod, nummer))
+            raise Specfel("%s step %d: the Requires column is empty; a step "
+                          "without requirements cannot be judged" % (kod, nummer))
         if not tackt_av:
-            raise Specfel("%s steg %d: kolumnen Tackt av ar tom; skriv "
-                          "verktygsnamn, UI, .NET eller %s"
+            raise Specfel("%s step %d: the Covered by column is empty; write "
+                          "a tool name, UI, .NET or %s"
                           % (kod, nummer, OBYGGT))
         steg.append(Steg(kod, nummer, stegtext, verkan, kraver, tackt_av))
     stang()
@@ -248,7 +248,7 @@ def dotnet_namn(katalog: str = DOTNET_KATALOG) -> frozenset:
     ut = set()
     filer = sorted(f for f in os.listdir(katalog) if f.endswith(".xml"))
     if not filer:
-        raise Specfel("inga .NET-XML-filer i %s" % katalog)
+        raise Specfel("no .NET XML files in %s" % katalog)
     for filnamn in filer:
         rot = ET.parse(os.path.join(katalog, filnamn)).getroot()
         for medlem in rot.findall("./members/member"):
@@ -260,8 +260,8 @@ def dotnet_namn(katalog: str = DOTNET_KATALOG) -> frozenset:
             if namn:
                 ut.add(namn)
     if len(ut) < 1000:
-        raise Specfel("bara %d .NET-namn lasta ur %s; kallan ar for tunn for "
-                      "att doma pa" % (len(ut), katalog))
+        raise Specfel("only %d .NET names read from %s; the source is too "
+                      "thin to judge against" % (len(ut), katalog))
     return frozenset(ut)
 
 
