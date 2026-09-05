@@ -1,0 +1,53 @@
+{
+  "modell": "opencode/muse-spark-1.3-contributor-free",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 4,
+  "bank_vid_start": [
+    "H-01"
+  ],
+  "resultat": [
+    {
+      "uppgift": "H-01",
+      "lage": "historik",
+      "utfall": "TAK",
+      "lost": false,
+      "varv_korda": 4,
+      "varv_till_lost": null,
+      "slog_i_taket": true,
+      "max_varv": 4,
+      "forhandsregler": true,
+      "anrop": 4,
+      "kostnad_usd": 0.0,
+      "tokens_in": 49248,
+      "tokens_ut": 2152,
+      "sekunder": 1024.5,
+      "domar_per_varv": [
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 6 brister, 1742 scan\n  [tva_moduler_med_full_handskakning@3400ms:ST300_CNV_RUN/F5] ST300_CNV_RUN skulle vara 1 men var 0. sa lange ingen begaran ligger gar bandet och for undan foregaende modul; roboten ar pa vag med nasta\n  [tva_moduler_med_full_handskakning@3400ms:ST290_HS_RE"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 13 brister, 1742 scan\n  [tva_moduler_med_full_handskakning@3400ms:ST300_CNV_RUN/F5] ST300_CNV_RUN skulle vara 1 men var 0. sa lange ingen begaran ligger gar bandet och for undan foregaende modul; roboten ar pa vag med nasta\n  [tva_moduler_med_full_handskakning@3400ms:ST290_HS_R"
+        ],
+        [
+          "",
+          "SPARFACIT EJ GODKAND, 8 brister, 1742 scan\n  [tva_moduler_med_full_handskakning@3400ms:ST300_CNV_RUN/F5] ST300_CNV_RUN skulle vara 1 men var 0. sa lange ingen begaran ligger gar bandet och for undan foregaende modul; roboten ar pa vag med nasta\n  [tva_moduler_med_full_handskakning@3400ms:ST290_HS_RE"
+        ],
+        [
+          "EJ GODKAND\n  rad 64: [BALANS/F1] END_PROGRAM på rad 64 avslutar ett IF som började på rad 62"
+        ]
+      ],
+      "kroppar_per_varv": [
+        "xStopp := NOT EMG_OK OR NOT AIR_OK;\ntmrAck(IN := steg = 1, PT := T#2s);\ntmrDone(IN := steg = 3, PT := T#2s);\ntmrHamta(IN := steg <> 0, PT := T#5s);\nxLarm := tmrAck.Q OR tmrDone.Q OR tmrHamta.Q;\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\n1:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_ACK AND NOT ST300_PEC_RCV THEN\nsteg := 2;\nEND_IF;\n2:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST290_GRP_OPENED THEN\nsteg := 3;\nEND_IF;\n3:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_DONE AND ST300_PEC_RCV AND ST290_GRP_OPENED THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 0;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST290_HS_REQ := ((steg = 1) OR (steg = 2) OR (steg = 3)) AND NOT (steg = 0) AND NOT (steg = 4) AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\nST290_HS_RST := (steg = 4) AND NOT (steg = 0) AND NOT (steg = 1) AND NOT (steg = 2) AND NOT (steg = 3) AND EMG_OK AND AIR_OK AND NOT xStopp;\nST290_GRP_OPEN := ((steg = 2) OR (steg = 3)) AND NOT (steg = 0) AND NOT (steg = 1) AND NOT (steg = 4) AND ST300_HS_ACK AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\nST300_CNV_RUN := (steg = 0) AND NOT (steg = 1) AND NOT (steg = 2) AND NOT (steg = 3) AND NOT (steg = 4) AND ST300_PEC_RCV AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\n",
+        "xStopp := NOT EMG_OK OR NOT AIR_OK;\ntmrAck(IN := steg = 1, PT := T#10s);\ntmrDone(IN := (steg = 2) OR (steg = 3), PT := T#10s);\ntmrHamta(IN := steg = 5, PT := T#4s);\nIF tmrAck.Q OR tmrDone.Q THEN\nxLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\n1:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_ACK AND NOT ST300_PEC_RCV THEN\nsteg := 2;\nEND_IF;\n2:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST290_GRP_OPENED THEN\nsteg := 3;\nEND_IF;\n3:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_DONE AND ST300_PEC_RCV AND ST290_GRP_OPENED THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 5;\nEND_IF;\n5:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF tmrHamta.Q AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST290_HS_REQ := ((steg = 1) OR (steg = 2) OR (steg = 3)) AND NOT ST290_HS_RST AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\nST290_HS_RST := (steg = 4) AND NOT ST290_HS_REQ AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\nST290_GRP_OPEN := ((steg = 2) OR (steg = 3)) AND ST300_HS_ACK AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\nST300_CNV_RUN := ((steg = 0) OR (steg = 5)) AND NOT ST290_HS_REQ AND EMG_OK AND AIR_OK AND NOT xLarm AND NOT xStopp;\n",
+        "xStopp := NOT EMG_OK OR NOT AIR_OK;\ntmrAck(IN := steg = 1, PT := T#10s);\ntmrDone(IN := (steg = 2) OR (steg = 3), PT := T#10s);\ntmrHamta(IN := steg = 5, PT := T#5s);\nIF tmrAck.Q OR tmrDone.Q OR xStopp THEN\nxLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nCASE steg OF\n0:\nIF xDriftsklar AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\n1:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_ACK AND NOT ST300_PEC_RCV THEN\nsteg := 2;\nEND_IF;\n2:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST290_GRP_OPENED AND ST300_HS_ACK THEN\nsteg := 3;\nEND_IF;\n3:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_DONE AND ST300_PEC_RCV AND ST290_GRP_OPENED THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 5;\nEND_IF;\n5:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF tmrHamta.Q AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\nELSE\nsteg := 0;\nEND_CASE;\nST290_HS_REQ := ((steg = 1) OR (steg = 2) OR (steg = 3)) AND EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nST290_HS_RST := (steg = 4) AND EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nST290_GRP_OPEN := ((steg = 2) OR (steg = 3)) AND ST300_HS_ACK AND EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nST300_CNV_RUN := ((steg = 0) OR (steg = 5)) AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE AND EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\n",
+        "xStopp := NOT EMG_OK OR NOT AIR_OK;\ntmrAck(IN := steg = 1, PT := T#10s);\ntmrDone(IN := (steg = 2) OR (steg = 3), PT := T#10s);\ntmrHamta(IN := (steg = 0) OR (steg = 5), PT := T#3500ms);\nIF tmrAck.Q OR tmrDone.Q OR xStopp THEN\nxLarm := TRUE;\nEND_IF;\nxDriftsklar := EMG_OK AND AIR_OK AND NOT xStopp AND NOT xLarm;\nCASE steg OF\n0:\nIF xDriftsklar AND tmrHamta.Q AND NOT ST300_PEC_RCV AND NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 1;\nEND_IF;\n1:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_ACK AND NOT ST300_PEC_RCV THEN\nsteg := 2;\nEND_IF;\n2:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST290_GRP_OPENED AND ST300_HS_ACK THEN\nsteg := 3;\nEND_IF;\n3:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF ST300_HS_DONE AND ST300_PEC_RCV AND ST290_GRP_OPENED THEN\nsteg := 4;\nEND_IF;\n4:\nIF NOT xDriftsklar THEN\nsteg := 0;\nELSIF NOT ST300_HS_ACK AND NOT ST300_HS_DONE THEN\nsteg := 5;\nEND_IF;\n5:\nIF NOT xDriftsklar THEN"
+      ],
+      "upprepning": 1
+    }
+  ],
+  "lost": 0,
+  "slog_i_taket": 1
+}

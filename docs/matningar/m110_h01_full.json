@@ -1,0 +1,25 @@
+{
+  "modell": "opencode/muse-spark-1.3-contributor-free",
+  "lage": "historik",
+  "forhandsregler": true,
+  "max_varv": 4,
+  "bank_vid_start": [
+    "H-01"
+  ],
+  "resultat": [
+    {
+      "uppgift": "H-01",
+      "lage": "historik",
+      "utfall": "KORNINGSFEL",
+      "lost": false,
+      "fel": "Modellfel('opencode gav ingen text tillbaka')",
+      "varv_korda": 0,
+      "varv_till_lost": null,
+      "upprepning": 1,
+      "slog_i_taket": false,
+      "kostnad_usd": 0.0
+    }
+  ],
+  "lost": 0,
+  "slog_i_taket": 0
+}
