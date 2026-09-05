@@ -271,6 +271,57 @@ Varje kod har en trasig fixtur i `tests/enhet/test_bank.py` som fäller den, och
 ett prov som visar att en giltig uppgift släpps igenom. En linter som avvisar
 allt klarar annars alla prov.
 
+## Ett spår från en befintlig anläggning
+
+Tillagt av **M-89**, fas 18. `bank/anlaggning.py` går åt andra hållet: i stället
+för att skriva ett facit och pröva en lösning mot det, tar den ett **inspelat
+I/O-spår** och härleder ett facit ur det. Det är den väg operatören pekade ut —
+*"Man lyssnar väl på kablarna typ, och lägger ihop signalerna?"* — och den finns
+därför att originalkoden ofta är borttappad.
+
+```
+python3 tests/protocol/kor_fas18_anlaggning.py
+python3 tests/protocol/kor_fas18_anlaggning.py --brief <katalog>
+python3 -m pytest tests/enhet/test_anlaggning.py -q
+```
+
+Formen är densamma som `facit_spar`, så `bank/domare.py` dömer den oförändrad
+genom sitt `spar`-argument. Ingen ny domare skrivs.
+
+Två fält bankens schema inte känner följer med, och det är avsiktligt:
+
+| Fält | Vad det är |
+|---|---|
+| `tackning` | vilka värden varje signal antog och hur många gånger den bytte |
+| `underlag` | nämnaren bakom varje härlett påstående: `n_rader`, `n_episoder`, `n_avsnitt` |
+
+Ett härlett facit är **inte** en bankuppgift. En bankuppgift bär en
+referenslösning som bevisar att facit går att uppfylla; en anläggning har ingen
+källkod att lämna ifrån sig. Det som bär uppfyllbarheten i stället är
+inspelningen själv: varje påstående är en avläsning som redan har hänt.
+
+### Grinden: täckning innan påstående
+
+`anlaggning.granska(facit, spar)` fäller varje påstående inspelningen inte bär.
+
+| Kod | Fel |
+|---|---|
+| `T1_OTACKT_VILLKOR` | invariantens villkor förekom aldrig i spåret |
+| `T2_OKAND_SIGNAL` | påståendet läser en signal spåret inte har |
+| `T3_UTAN_UNDERLAG` | ett härlett påstående utan sin nämnare |
+| `T4_OTACKT_KRAV` | kravet vill ha ett värde signalen aldrig antog |
+
+Kravet på nämnare gäller bara facit som stämplat sig som härlett. Ett
+**handskrivet** facit har sin härkomst i en publicerad standard — `IEC 60204-1`
+säger att en nödstoppskrets kräver manuell återställning, och det påståendet står
+upp utan en enda observation.
+
+`T1` är fasens viktigaste grind. Ett stillastående nödstopp som ingen tryckt på
+under inspelningen säger ingenting om vad som händer när någon gör det. **Mätt i
+M-89:** `EMG_OK` gick aldrig till 0 i något av de fyra produktionsspåren, och 12
+av bankens 18 handskrivna invarianter går inte att döma ur ett sådant spår — men
+**0 av 18** ur ett provspår, så grinden vägrar inte allt.
+
 ## Spårjämförelse
 
 `lasare.spar_poang(referens, kandidat, karnutgangar)` jämför flankspåren per
