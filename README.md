@@ -131,18 +131,6 @@ between stations. Five in our measurement passed each station individually and
 appeared only when the stations were connected: a downstream station started on
 *"a part is present"* instead of on *"the previous station is finished"*.
 
-## Where the project stands
-
-| the code was written | judged by | status |
-|---|---|---|
-| outside the loop, by hand | OpenPLC, driving a real scene, watched by the eye | **proven** |
-| inside the loop, by a model | our own interpreter, against a recorded trace | **proven** |
-| inside the loop, by a model | OpenPLC, driving a real scene, watched by the eye | **rig built, not yet run** |
-
-The first two were built separately and on purpose. The third joins them, and
-until it has been run, whether a model can close the loop is an open question
-rather than a claim.
-
 ## What has been measured
 
 | | |
