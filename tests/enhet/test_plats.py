@@ -416,3 +416,55 @@ def test_bridge_cmd_gar_genom_plats_men_overlever_utan_det(monkeypatch):
     monkeypatch.setenv("VC_ASSIST_HEM", os.path.join("C:", "vc"))
     assert med["_anvandarmapp"]() == os.path.join("C:", "vc")
     assert utan["_anvandarmapp"]() == os.path.expanduser("~")
+
+
+# --- att en misslyckad harledning sager ifran i stallet for att gissa (M-92) --
+#
+# MATT: bade Python 2.7.18:s och Python 3.13.11:s ntpath.expanduser lamnar
+# strangen ORORD nar den inte kan losa den. De svarar alltsa "~" i stallet for
+# att saga ifran. Anvands det som en mapp skapas en relativ katalog som HETER
+# "~" dar VC:s arbetskatalog rakar ligga - tillagget skriver sin token dit,
+# tjansten letar nagon annanstans, och felet blir E_AUTH utan orsak i loggen.
+
+def test_ett_olost_tilde_ar_ett_fel_inte_en_mapp():
+    with pytest.raises(plats.HemsokningMisslyckades) as e:
+        plats.anvandarmapp(env={}, plattform="win32", expanduser=lambda _: "~")
+    text = str(e.value)
+    assert "USERPROFILE" in text, "felet maste namna vad som saknades"
+    assert plats.HEMVARIABEL in text, "felet maste saga vad man ska satta"
+
+
+def test_samma_vakt_pa_posixgrenen():
+    with pytest.raises(plats.HemsokningMisslyckades):
+        plats.anvandarmapp(env={}, plattform="linux", expanduser=lambda _: "~")
+
+
+def test_ett_tomt_svar_ar_ocksa_ett_misslyckande():
+    with pytest.raises(plats.HemsokningMisslyckades):
+        plats.anvandarmapp(env={}, plattform="linux", expanduser=lambda _: "")
+
+
+def test_en_sokvag_som_BORJAR_med_tilde_ar_inte_heller_ett_svar():
+    """~/Documents ar lika oanvandbart som ~ - det ar bara langre."""
+    with pytest.raises(plats.HemsokningMisslyckades):
+        plats.anvandarmapp(env={}, plattform="linux",
+                       expanduser=lambda _: "~/Documents")
+
+
+def test_ett_riktigt_svar_slapps_igenom():
+    """Andra halvan: en vakt som fyrar pa allt gor modulen obrukbar."""
+    assert plats.anvandarmapp(env={}, plattform="win32",
+                          expanduser=lambda _: "C:\\Users\\PC") == "C:\\Users\\PC"
+    assert plats.anvandarmapp(env={}, plattform="linux",
+                          expanduser=lambda _: "/home/anton") == "/home/anton"
+
+
+def test_userprofile_gar_fore_home_sa_bada_pythonversionerna_pekar_lika():
+    """Sommens hela poang, och nu med bada sidorna MATTA (M-92).
+
+    py2.7 ntpath.expanduser laser HOME forst, py3 laser USERPROFILE och
+    struntar i HOME. Modulen valjer USERPROFILE sjalv, sa VC:s 2.7 och
+    tjanstens 3.x hamnar i samma mapp aven nar HOME ar satt.
+    """
+    env = {"HOME": "H:\\hem", "USERPROFILE": "C:\\Users\\PC"}
+    assert plats.anvandarmapp(env=env, plattform="win32") == "C:\\Users\\PC"

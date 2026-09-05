@@ -115,6 +115,16 @@ def ar_wine(plattform=None, ctypesmodul=None, env=None):
 # Anvandarmappen
 # --------------------------------------------------------------------------
 
+
+class HemsokningMisslyckades(RuntimeError):
+    """Anvandarmappen gick inte att harleda, och ingen gissning ar battre.
+
+    Egen typ sa att den som anropar kan skilja det har fran vilket fel som
+    helst och skriva ut det i bootloggen i stallet for att do tyst (M-09).
+    """
+
+
+
 def anvandarmapp(env=None, plattform=None, expanduser=None):
     """Mappen dar token, loggar och tillstandsfiler bor.
 
@@ -125,7 +135,13 @@ def anvandarmapp(env=None, plattform=None, expanduser=None):
        och tjanstens Python 3 pekar pa samma mapp (se modulens docstring).
     3. Windows utan ``USERPROFILE``: ``HOMEDRIVE`` + ``HOMEPATH``.
     4. Posix: ``HOME``.
-    5. Sist ``expanduser("~")``, som ar det enda svaret som finns kvar.
+    5. Sist ``expanduser("~")`` - och SVARET PROVAS. Ger den tillbaka ett
+       ``~`` har harledningen misslyckats, och da ar tystnad det farliga
+       svaret: en relativ mapp som heter "~" skapas dar VC:s arbetskatalog
+       rakar ligga, tillagget skriver sin token dit, tjansten letar nagon
+       annanstans och far E_AUTH utan att nagon logg sager varfor. MATT
+       (M-92): pa Python 3.13.11 ger ``ntpath.expanduser("~")`` exakt "~" nar
+       bara ``HOME`` ar satt.
     """
     if env is None:
         env = os.environ
@@ -141,11 +157,28 @@ def anvandarmapp(env=None, plattform=None, expanduser=None):
         stig = env.get("HOMEPATH")
         if stig:
             return os.path.join(env.get("HOMEDRIVE", ""), stig)
-        return expanduser("~")
+        return _sista_utvagen(expanduser, ("USERPROFILE", "HOMEDRIVE+HOMEPATH"))
     hem = env.get("HOME")
     if hem:
         return hem
-    return expanduser("~")
+    return _sista_utvagen(expanduser, ("HOME",))
+
+
+def _sista_utvagen(expanduser, provade):
+    """``expanduser("~")``, men bara om den faktiskt svarade nagot.
+
+    Bade Python 2.7:s och Python 3:s ``ntpath.expanduser`` lamnar strangen
+    ORORD nar den inte kan losa den - de returnerar alltsa "~" i stallet for
+    att saga ifran. Anvands det svaret som en mapp blir felet tyst och
+    fjarran fran sin orsak, vilket ar den dyraste sorten (I3, S9).
+    """
+    svar = expanduser("~")
+    if not svar or svar == "~" or svar.startswith("~"):
+        raise HemsokningMisslyckades(
+            "kunde inte harleda anvandarmappen: %s saknas och expanduser(\"~\")"
+            " gav %r. Satt %s till mappen dar token och loggar ska bo."
+            % (", ".join(provade), svar, HEMVARIABEL))
+    return svar
 
 
 def fil(namn, env=None, plattform=None, expanduser=None):

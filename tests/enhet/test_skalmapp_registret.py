@@ -128,3 +128,82 @@ def test_en_trasig_lasare_blir_varning_inte_tystnad():
     m = U.Miljo(plattform="win32", env={}, hem="C:\\Users\\PC", skalmapp=sprucken)
     assert m.hemta_skalmapp() is None
     assert any("Personal" in v for v in m.varningar)
+
+
+# --- Windows-vagarna som fanns men aldrig kordes (M-92) ----------------------
+#
+# Matt med coverage over hela enhetssviten: raderna som bygger OneDrive-rotterna
+# och Program Files-rotterna var OKORDA. Koden fanns, ingen grind hade last den.
+# Bada gar att prova harifran - Miljo tar env och plattform som data - sa de var
+# otestade av forbiseende, inte av nodvandighet.
+#
+# OneDrive-raden ar M-44:s huvudfynd: tillaggsmappen hittas inte nar Dokument
+# ligger i OneDrive.
+
+def _windows(env):
+    return U.Miljo(plattform="win32", env=env, hem="C:\\Users\\PC",
+                   skalmapp=lambda: None)
+
+
+def test_onedrive_rotterna_kommer_med_alla_tre():
+    m = _windows({"OneDrive": "C:\\Users\\PC\\OneDrive",
+                  "OneDriveCommercial": "C:\\Users\\PC\\OneDrive - Firman",
+                  "OneDriveConsumer": "C:\\Users\\PC\\OneDrive Personal"})
+    rotter = dict((s, k) for s, k in U._windowsrotter(m))
+    for var, rot in (("OneDrive", "C:\\Users\\PC\\OneDrive"),
+                     ("OneDriveCommercial", "C:\\Users\\PC\\OneDrive - Firman"),
+                     ("OneDriveConsumer", "C:\\Users\\PC\\OneDrive Personal")):
+        vantad = os.path.join(rot, "Documents")
+        assert vantad in rotter, "%s saknas bland rotterna" % var
+        assert var in rotter[vantad], "kallan namner inte %s" % var
+
+
+def test_en_osatt_onedrive_variabel_ger_ingen_rot():
+    """Trasig fixtur: en tom variabel far inte bli sokvagen "\\Documents".
+
+    os.path.join("", "Documents") ger "Documents" - en RELATIV sokvag som pekar
+    pa arbetskatalogen. En sadan rot hade sokt igenom fel trad tyst.
+    """
+    m = _windows({"OneDrive": ""})
+    for sokvag, _kalla in U._windowsrotter(m):
+        assert sokvag not in ("Documents", os.path.join("", "Documents"))
+        assert os.path.isabs(sokvag) or ":" in sokvag
+
+
+def test_programrotterna_pa_windows_tar_bada_bitbredderna(tmp_path):
+    """_programrotter slapper bara igenom rotter som FINNS.
+
+    Forsta versionen av det har provet pekade pa "C:\\Program Files" och fick
+    tom lista - och jag holl pa att kalla det ett fel i koden. Filtret ar ratt:
+    en rot som inte finns ar ingen rot. Provet maste alltsa peka pa riktiga
+    kataloger, annars mater det filtret i stallet for grenen.
+    """
+    pf = tmp_path / "Program Files"
+    pf86 = tmp_path / "Program Files (x86)"
+    sys_ = tmp_path / "sys"
+    for d in (pf, pf86, sys_):
+        d.mkdir()
+    (sys_ / "Program Files").mkdir()
+    m = _windows({"ProgramFiles": str(pf),
+                  "ProgramFiles(x86)": str(pf86),
+                  "SystemDrive": str(sys_).rstrip(os.sep)})
+    rotter = U._programrotter(m)
+    assert str(pf) in rotter
+    assert str(pf86) in rotter, "32-bitarsroten saknas"
+
+
+def test_tva_variabler_mot_samma_mapp_ger_en_rot(tmp_path):
+    """ProgramFiles och ProgramW6432 pekar ofta pa SAMMA mapp pa 64-bitars.
+
+    Utan avdubbleringen hade samma trad sokts igenom tva ganger, och varje
+    fynd rapporterats dubbelt.
+    """
+    pf = tmp_path / "Program Files"
+    pf.mkdir()
+    m = _windows({"ProgramFiles": str(pf), "ProgramW6432": str(pf)})
+    assert U._programrotter(m).count(str(pf)) == 1
+
+
+def test_en_rot_som_inte_finns_slapps_inte_igenom(tmp_path):
+    m = _windows({"ProgramFiles": str(tmp_path / "finns-inte")})
+    assert U._programrotter(m) == []
