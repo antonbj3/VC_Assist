@@ -96,8 +96,12 @@ def main(argv=None):
         print("\n  VARNING: grinden kontrollerade NOLL namn. Ett svep som inte")
         print("  provar nagot godkanner allt, och talet ovan betyder ingenting.")
     elif fel == 0:
-        print("\n  Noll uppfunna namn over %d kontrollerade. Fas 4:s lofte haller")
-        print("  ocksa mot en modell - inte bara mot vara egna mallar." % kontrollerade)
+        print("\n  Noll uppfunna namn over %d kontrollerade namn." % kontrollerade)
+        print("  Fas 4:s lofte haller ocksa mot en modell, inte bara mot vara")
+        print("  egna mallar.")
+        print()
+        print("  MEN: grinden domer att namnet FINNS, inte att det anvands ratt.")
+        print("  Returvarden, argumentantal och enheter ligger utanfor.")
 
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:
