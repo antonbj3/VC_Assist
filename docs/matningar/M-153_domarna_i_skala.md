@@ -73,7 +73,21 @@ och rapporterar i klartext i stället för att tyst göra n = 4 för en enhet.
 | — varav instabiliteten byter UTFALL, inte bara koder | **4** | 185 enheter |
 | **(c) självinstabilitet, tolkdomaren** | **0** | 185 enheter |
 
-Två saker att läsa rakt ur tabellen:
+De 184 jämförbara enheterna delar sig utan rest:
+
+| | enheter |
+|---|---|
+| helt eniga (samma utfall, samma bristkoder, båda stabila) | **107** |
+| (a) oense om utfall | 10 |
+| (b) eniga om utfall, oense om koder | 55 |
+| (c) OpenPLC-domaren oense med sig själv (ingen jämförelse går att göra) | 12 |
+| *(den trettonde instabila enheten är den odömda i §7 och ligger utanför de 184)* | |
+| summa | 184 |
+
+Alltså: **de två domarna ger samma svar på 107 av 184 enheter (58 %)**. På
+motbevisen är kvoten 87 av 151.
+
+Två saker till att läsa rakt ur tabellen:
 
 * **Tolkdomaren är exakt reproducerbar.** 555 körningar, 185 enheter, noll
   vacklande koder. Den är deterministisk, och det är mätt och inte antaget.
@@ -244,6 +258,31 @@ går att återge säkert — och en flank som finns i en körning och inte i nä
 precis vad undersampling ser ut som. Om glitchen är motorns eller domarens går
 **inte** att avgöra ur den här datan; att provtagningen inte räcker för att
 avgöra det är däremot mätt.
+
+### 4d. Toleransen mot sin egen mätning, i skala
+
+`TOLERANS_SCAN` = 4 scan = 80 ms är härledd som 2 (M-20, PLC:ns svarstid) + 2
+(M-108, kanalfas). OpenPLC-domaren mäter själv hur många scan efter `t_ms` det
+väntade värdet först syntes. Över alla 555 OpenPLC-körningar:
+
+| offset | punktkrav |
+|---|---|
+| 0 scan | 34 275 |
+| 1 scan | 9 |
+| 2 scan | 7 |
+| 3 scan | 0 |
+| 4 scan | 0 |
+| **summa** | **34 291** |
+
+`M-146` mätte 654 punktkrav, alla på offset 0, och kunde därför inte säga om
+toleransen behövdes alls. Nu vet vi: den behövdes **16 gånger av 34 291**
+(0,05 %) och **aldrig mer än 2 scan**. De två scan som behövs är M-20:s
+svarstid; M-108:s kanalfas syns inte alls i punktkraven.
+
+Det talet hör ihop med §4a. Halva toleransen — de två scan kanalfas — är inte
+observerad på punktkravssidan, och den är ändå med och töjer **varje**
+flankfönster med 80 ms. Ett mått som är ren marginal där det mäts och en
+felkälla där det inte mäts är samma parameter använd till två storheter.
 
 ## 5. Är instabiliteten maskinens last eller domarens?
 
