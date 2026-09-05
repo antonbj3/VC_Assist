@@ -72,6 +72,13 @@ Att ge modellen `lookup_api` och `search_api` är alltså inte en bekvämlighet.
 Det är skillnaden mellan en scen som byggs och en som lämnas halv med ärliga
 kommentarer.
 
+> **Prövat i M-84, och slutsatsen håller — men inte på det sätt som stod här.**
+> Med uppslag skrev modellen **hälften** så mycket kod. Skillnaden syns inte i
+> mängd utan i ordförråd: 13 distinkta API-namn utan uppslag mot 32 med, där två
+> namn ensamma stod för 61 % av alla kontroller i körningen utan. Alla tre
+> ogjorda punkterna gjordes. Meningen ovan var alltså rätt i sak och skulle ha
+> mätts fel av det mått den inbjuder till.
+
 ## Ett mätfel av mig, för fjärde gången samma form
 
 Första körningen läste svarets nycklar som `traff` och `post`. Verktyget svarar i

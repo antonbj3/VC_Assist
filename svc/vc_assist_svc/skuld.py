@@ -92,6 +92,12 @@ _ARLIGHET = re.compile(
     r"|rackvidd(?:en)?\s*$"
     r"|.*\bforbehall\b.*"
     r"|.*\bbegransningar?\b.*"
+    # LIMITS star i guldgrindens OBLIGATORISKA_SEKTIONER - systemet KRAVER
+    # ordet av ogats rapporter men registret kunde inte se det i en
+    # matning. Tva delar av samma system var alltsa oense om vad ett
+    # arlighetsavsnitt heter, och sparren fangade det pa M-84.
+    r"|limits\b.*"
+    r"|limitations\b.*"
     r")$",
     re.I | re.M)
 

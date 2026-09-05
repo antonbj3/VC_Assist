@@ -106,6 +106,12 @@ def test_ett_numrerat_avsnitt_raknas_ocksa(tmp_path):
     ("## Förbehåll", "form"),
     ("## Oprövat", "form"),
     ("## Öppna frågor", "form"),
+    # LIMITS ar guldgrindens obligatoriska sektionsnamn (v2, M-65). Att
+    # registret inte sag det betydde att en matning kunde skriva exakt den
+    # rubrik systemet KRAVER pa annat hall och anda raknas som tyst.
+    ("## LIMITS", "guldgrindens sektionsnamn"),
+    ("## LIMITS", "M-84"),
+    ("## Limitations", "form"),
 ])
 def test_monstret_ser_rubriker_skrivna_i_riktig_svenska(rubrik, punkt):
     """Trasig fixtur for MONSTRET sjalvt (M-70).
