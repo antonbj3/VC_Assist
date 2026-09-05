@@ -92,11 +92,17 @@ on a part the previous station had not finished.
 Search the installed library by what you need — reach, payload, manufacturer —
 rather than by guessing a part number.
 
-Every reach figure carries where it came from. Not one of them is read from a
-field: the library declares no reach, so the number is computed from the robot's
-link lengths — 1 693 derived, 509 with nothing to derive from. Those 509 say
-*missing*, never zero, and a derived figure can never be compared as if it were
-a manufacturer's.
+Every reach figure carries where it came from, because none of them is read
+from a field — the library declares no reach at all. The number is computed from
+the robot's own kinematics, two ways: from its named link lengths where it has
+them, and from the transforms of its kinematic chain where it does not.
+**1 993 of 2 202 robots** get a figure that way. The remaining 209 say *missing*,
+never zero.
+
+Which of the two paths produced a figure is written into the answer, and the
+order between them is measured rather than assumed: where they disagree by more
+than 5 %, the link-length formula is closer to the manufacturer's own published
+reach in 86 cases and the transform path in 47, so the first runs first.
 
 ## The gate chain
 
@@ -148,27 +154,25 @@ flowchart LR
 ```
 
 The two halves were built separately and on purpose: the early phases proved the
-*path* exists, a later phase that a *model* can find it. The distinction is not
-human versus machine — the reference bodies were written by a model too. It is
-**outside the loop** (full context, tools, the scene in view, unlimited
-attempts) versus **inside it** (one prompt, no tools, a cap of four rounds, a
-gate deciding). Generated code is now judged by OpenPLC's own runtime rather than only by our
-interpreter, and the rig that lets a model author a whole line and receive the
-eye's reply is finished. It has not been run. Until it has, whether a model can
-close the loop is an open question, not a claim.
+path exists, a later phase that a model can find it.
+
+Generated code is now judged by OpenPLC's own runtime rather than only by our
+interpreter, and the rig that lets a model write a whole line and correct it
+from the eye's reply is finished. It has not been run. Until it has, whether a
+model can close the loop is an open question, not a claim.
 
 ## What has been measured
 
 | | |
 |---|---|
 | **linear** | cost of reading the scene grows proportionally with component count, measured from 200 to 800 — 4.3 µs per component per sample on an i5-13600K running VC under Wine |
-| **225 /s** | samples taken while the simulation runs, without slowing it |
+| **20 /s** | scene samples taken while the simulation runs, its default rate |
 | **0** | positional drift over a full run |
 | **5 of 5** | classes of line fault caught that each station passed on its own |
 | **25 of 26** | tasks solved within four rounds of writing and correcting, median two |
 | **4 of 26** | solved on the first attempt — which is why the correction loop exists |
-| **718 of 809** | deliberate faults injected into working code, and caught |
-| **63** | cells in the task set: transport, picking, assembly, sorting, palletising, whole lines, robot handover |
+| **834 of 899** | deliberate faults injected into working code, and caught |
+| **63** | cells in the task set — 49 with a full answer key — across transport, picking, assembly, sorting, palletising, whole lines and robot handover |
 
 Every number has a measurement file behind it, stating the rig it ran on and
 what it does not show. Figures above are as of **2026-09-06**; they change as the
