@@ -868,3 +868,80 @@ def test_rapportera_talen(matning, capsys):
         print("  fangade som OBESTAMBART:     %d" % matning["fangade_som_obestambart"])
         print("  avsett namn i forslagen:     %d av %d"
               % (matning["forslag_traff"], matning["forslag_mojliga"]))
+
+
+# ---- grind 4:s stranghet, provad med trasiga fixturer (M-83) ---------------
+#
+# M-82 matte att en modell skrev 691 rader scenkod med NOLL uppfunna namn over
+# 584 kontrollerade. Det talet ar bara vart nagot om grinden faktiskt hade
+# fallt ett pahitt. Proven nedan ar den provningen: fyra satt att skriva fel,
+# alla fyra ska fallas.
+
+def _v():
+    from vc_assist_svc.api_index import bygg_validator
+    return bygg_validator()
+
+
+def test_ett_pahittat_namn_pa_ett_LISTELEMENT_falls():
+    """findBehavioursByType ger en lista; elementets typ maste folja med.
+
+    Utan elementtypning hade varje anrop efter en listgenomgang varit odomt,
+    och en scen byggs nastan alltid genom en sadan.
+    """
+    g = _v().granska(
+        "for b in getApplication().findComponent('x')"
+        ".findBehavioursByType(VC_ONETOONEINTERFACE):\n    b.hittepaMetod()\n")
+    assert not g.godkand
+    assert any("hittepaMetod" in f.text for f in g.fel)
+
+
+def test_ett_RIKTIGT_namn_pa_FEL_typ_falls():
+    """connect finns - men inte pa vcComponent.
+
+    Det ar den svaraste sorten att fanga: namnet star i indexet, sa en grind
+    som bara slar upp namn hade sagt gront.
+    """
+    g = _v().granska("getApplication().findComponent('x').connect()\n")
+    assert not g.godkand
+    assert any("connect" in f.text and "vcComponent" in f.text for f in g.fel)
+
+
+def test_en_pahittad_KONSTANT_falls():
+    g = _v().granska(
+        "getApplication().findComponent('x').findBehavioursByType(VC_HITTEPA)\n")
+    assert not g.godkand
+    assert any("VC_HITTEPA" in f.text for f in g.fel)
+
+
+def test_den_riktiga_kedjan_gar_igenom_och_kontrollerar_namn():
+    """Motprovet: grinden far inte falla det som ar ratt.
+
+    Och den maste ha KONTROLLERAT nagot - ett svep som provar noll namn
+    godkanner allt.
+    """
+    g = _v().granska(
+        "for b in getApplication().findComponent('x')"
+        ".findBehavioursByType(VC_ONETOONEINTERFACE):\n    b.connect(b)\n")
+    assert g.godkand, [str(f) for f in g.fel]
+    assert g.kontrollerade_namn >= 4
+
+
+def test_indexet_svarar_pa_returtyp_och_signatur_men_ALDRIG_pa_enhet():
+    """M-83: sex av modellens sju osakerheter gick att sla upp. Den sjunde inte.
+
+    Ingen av de nio rotate-metoderna namner grader eller radianer. Indexet bar
+    existens och typer, aldrig enheter - och en enhetsforvaxling ar tyst.
+    M-72 matte svaret empiriskt i stallet: rotateAbsZ tar GRADER.
+    """
+    ix = _v().index
+    last = [s for s in ix.symboler if s.namn == "load" and s.typ_namn == "vcApplication"]
+    assert last and "returns the component" in (last[0].beskrivning or "")
+
+    rotationer = [s for s in ix.symboler
+                  if s.namn and s.namn.startswith("rotate") and s.beskrivning]
+    assert len(rotationer) >= 7
+    for s in rotationer:
+        text = (s.beskrivning or "").lower()
+        assert "degree" not in text and "radian" not in text, (
+            "%s namner en enhet - da ar M-83:s slutsats inaktuell och ska "
+            "matas om" % s.namn)
