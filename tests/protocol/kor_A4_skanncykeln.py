@@ -13,9 +13,9 @@ millisekunder, och ett spar med tider i millisekunder betyder olika saker vid
 
     if abs(float(s["t_ms"]) - (nu - scan_ms)) > 1e-9: continue
 
-Bankens tider ar alla multiplar av 20 ms (matt har: gcd = 20 over 348 skilda
-`t_ms`). Byter man scanperiod till 40 eller 100 ms hamnar 156 av dem MELLAN tva
-scan, och den raden hoppar da over kravet UTAN ETT ORD. En naiv svep hade
+Bankens tider ar alla multiplar av 20 ms (matt har: gcd = 20 over 349 skilda
+`t_ms`). Byter man scanperiod till 40 ms hamnar 156 av dem MELLAN tva scan, vid
+100 ms 119 av dem, och den raden hoppar da over kravet UTAN ETT ORD. En naiv svep hade
 darfor rapporterat "inga andrade dom" - inte for att banken ar cykeloberoende
 utan for att halva facit tystnade. Det ar en matning som mater sitt eget
 rutnat.

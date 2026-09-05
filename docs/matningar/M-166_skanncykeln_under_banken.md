@@ -42,9 +42,10 @@ skriver ut och ingen användare kan garantera i sin egen anläggning.
 if abs(float(s["t_ms"]) - (nu - scan_ms)) > 1e-9: continue
 ```
 
-Bankens tider är alla multiplar av 20 ms (mätt: gcd = 20 över 348 skilda
-`t_ms`). Byter man period till 40 eller 100 ms hamnar tusentals av dem
-**mellan** två scan, och den raden hoppar då över kravet **utan ett ord**. En
+Bankens tider är alla multiplar av 20 ms (mätt vid bankspegeln: gcd = 20 över
+349 skilda `t_ms`, varav 156 inte är delbara med 40 och 119 inte med 100).
+Byter man period till 40 eller 100 ms hamnar tusentals punktkrav **mellan** två
+scan, och den raden hoppar då över kravet **utan ett ord**. En
 naiv omkörning hade rapporterat "inga ändrade dom" — inte för att banken är
 cykeloberoende, utan för att en tredjedel av facit tystnade. Det hade varit en
 mätning av sitt eget rutnät.
