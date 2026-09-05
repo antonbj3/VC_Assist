@@ -198,8 +198,14 @@ finns ändå, och `test_delstrangsokningen_traffar_aven_utanfor_ett_funktionsblo
 håller den synlig med en fixtur där markören sitter i ett skript.
 
 `layout/komponent.objekt_ur_komponent` sätter `kategori` ur `Type`, och det
-står i koden vilken av de tre det är. Layoutens `kategori` används bara till att
-skilja hallens pelare från allt annat; valet av komponent hör till sökskiktet.
+står i koden vilken av de fyra det är. Layoutens `kategori` används bara till
+att skilja hallens pelare från allt annat; valet av komponent hör till
+sökskiktet.
+
+Och bryggan **frågar inte efter kategorin** när den ska avgöra om en saknad
+räckvidd är ett hål. Den frågar efter **rörliga leder**, för det är en
+strukturell uppgift som redan är läst. En regel som frågade "är kategorin
+`Robots`?" hade tigit bort de 33 robotar vars `Type` säger något annat.
 
 ## Räckvidden: ett fält och en profil
 

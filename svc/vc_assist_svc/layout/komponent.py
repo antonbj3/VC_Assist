@@ -177,9 +177,15 @@ def saknade_matt(fakta, bounds=None):
         ut.append("namn: model.xml bar inget Name")
     if not fakta.kategori:
         ut.append("kategori: model.xml bar inget Type")
+    # Rackvidden efterlyses nar komponenten har RORLIGA LEDER och anda ingen
+    # rackvidd. Att i stallet fraga om kategorin ar "Robots" vore att lita pa
+    # den svagaste av de fyra lasningarna: model.xml:s Type traffar 2169 av
+    # strukturens 2202 robotar (M-61), sa 33 robotar hade tigits bort. Leder
+    # ar en STRUKTURELL uppgift, och den ar redan last.
     rackvidd = rackvidd_ur_fakta(fakta)
-    if fakta.kategori == "Robots" and not rackvidd:
-        ut.append("rackvidd: %s" % rackvidd.kalla)
+    if fakta.leder and not rackvidd:
+        ut.append("rackvidd: %s (komponenten bar %d rorliga leder)"
+                  % (rackvidd.kalla, len(fakta.leder)))
     utan_lage = [r for r in fakta.ramar if r.harkomst == Harkomst.SAKNAS]
     for r in utan_lage[:MAX_RAMRADER]:
         ut.append("ramen %r: lage %s%s"

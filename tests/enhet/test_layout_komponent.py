@@ -105,6 +105,34 @@ def test_listan_over_saknade_matt_kortas_men_sager_hur_mycket_den_kortade(tmp_pa
     assert any("och 7 ramar till utan lage, av 12" in r for r in rader)
 
 
+def test_rackvidden_efterlyses_ur_LEDERNA_och_inte_ur_kategorin(tmp_path):
+    """TRASIG FIXTUR mot den svagaste lasningen.
+
+    En robot vars `Type` sager nagot annat - 33 av bibliotekets 2202 robotar
+    heter `Advanced Motion` eller `Robot Tools` i model.xml (M-61). En regel
+    som fragar "ar kategorin Robots?" tiger bort dem. Leder ar en strukturell
+    uppgift och gor det inte.
+    """
+    kropp = A.LED % {"namn": "Axis1", "sort": "Rotational",
+                     "min": -180.0, "max": 180.0}
+    sokvag = A.skriv(tmp_path / "udda.vcmx",
+                     A.modelxml(Name="Udda", Type="Advanced Motion",
+                                Manufacturer="A", Reach="0"),
+                     A.rsc("Udda", kropp))
+    f = K.las(sokvag, djupt=True, geometri=True)
+    assert f.kategori == "Advanced Motion"
+    rader = KO.saknade_matt(f, bounds(100.0, 100.0, 100.0))
+    assert any(r.startswith("rackvidd:") and "1 rorliga leder" in r
+               for r in rader), rader
+
+
+def test_en_komponent_utan_leder_efterlyser_ingen_rackvidd(tmp_path):
+    """Ett band har ingen rackvidd och saknar den inte heller."""
+    f = K.las(band(tmp_path), djupt=True, geometri=True)
+    rader = KO.saknade_matt(f, bounds(3000.0, 600.0, 900.0))
+    assert not any(r.startswith("rackvidd:") for r in rader), rader
+
+
 def test_en_lada_med_noll_utstrackning_avvisas():
     with pytest.raises(KO.Saknasfel):
         KO.Bounds([0.0, 0.0, 0.0], [500.0, 0.0, 500.0])
