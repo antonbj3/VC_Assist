@@ -266,7 +266,7 @@ def test_inom_rackvidd_gissar_aldrig_en_rackvidd():
     scen.placera("pall", L.Pose.meter(11.0, 6.0, 0.0, 0.0))
     with pytest.raises(L.Layoutfel) as fel:
         L.InomRackvidd("pall", "robot").prova(scen)
-    assert "gissa" in str(fel.value)
+    assert "guess" in str(fel.value)
 
 
 def test_fast_lage_ar_den_enda_relation_som_bar_en_koordinat():

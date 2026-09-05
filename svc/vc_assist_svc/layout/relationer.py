@@ -116,7 +116,7 @@ def _riktning_i_ram(kropp, sida):
         return (vx, vy)
     if sida is Sida.HOGER:
         return (-vx, -vy)
-    raise Layoutfel("okänd sida %r" % (sida,))
+    raise Layoutfel("unknown side %r" % (sida,))
 
 
 def _tvarsriktning(riktning):
@@ -192,7 +192,7 @@ class FastLage(Relation):
         if isinstance(punkt, Vek2):
             punkt = Vek3.m(punkt.x_m, punkt.y_m, 0.0)
         if not isinstance(punkt, Vek3):
-            raise Enhetsfel("FastLage kräver en Vek2 eller Vek3")
+            raise Enhetsfel("FastLage requires a Vek2 or Vek3")
         self.punkt = punkt
         self.vridning_grader = krav_vinkel(vridning_grader, "vridning_grader")
 
@@ -243,12 +243,12 @@ class Sidorelation(Relation):
         self.mal = str(mal)
         self.referens = str(referens)
         if self.mal == self.referens:
-            raise Layoutfel("%s kan inte stå bredvid sig självt" % self.mal)
+            raise Layoutfel("%s cannot stand next to itself" % self.mal)
         self.sidor = tuple(sidor)
         self.mellanrum_m = (None if mellanrum is None
                             else krav(mellanrum, "mellanrum").som_m)
         if self.mellanrum_m is not None and self.mellanrum_m < 0.0:
-            raise Layoutfel("ett mellanrum kan inte vara negativt")
+            raise Layoutfel("a gap cannot be negative")
         self.tolerans_m = _tol(tolerans)
 
     def berorda(self):
@@ -419,12 +419,12 @@ class MotVagg(Relation):
     def __init__(self, mal, vagg, marginal=None):
         self.mal = str(mal)
         if not isinstance(vagg, Vagg):
-            raise Layoutfel("vagg måste vara ett Vagg-värde, fick %r" % (vagg,))
+            raise Layoutfel("vagg must be a Vagg value, got %r" % (vagg,))
         self.vagg = vagg
         self.marginal_m = (0.0 if marginal is None
                            else krav(marginal, "marginal").som_m)
         if self.marginal_m < 0.0:
-            raise Layoutfel("marginalen mot väggen kan inte vara negativ")
+            raise Layoutfel("the margin to the wall cannot be negative")
 
     def berorda(self):
         return (self.mal,)
@@ -496,7 +496,7 @@ class IHorn(Relation):
     def __init__(self, mal, horn, marginal=None):
         self.mal = str(mal)
         if not isinstance(horn, Horn):
-            raise Layoutfel("horn måste vara ett Horn-värde, fick %r" % (horn,))
+            raise Layoutfel("horn must be a Horn value, got %r" % (horn,))
         self.horn = horn
         self.marginal_m = (0.0 if marginal is None
                            else krav(marginal, "marginal").som_m)
@@ -560,7 +560,7 @@ class Pa(Relation):
         self.mal = str(mal)
         self.underlag = str(underlag)
         if self.mal == self.underlag:
-            raise Layoutfel("%s kan inte stå på sig självt" % self.mal)
+            raise Layoutfel("%s cannot stand on itself" % self.mal)
 
     def berorda(self):
         return (self.mal, self.underlag)
@@ -574,8 +574,8 @@ class Pa(Relation):
     def _kontrollera(self, scen):
         Relation._kontrollera(self, scen)
         if not scen.objekt(self.underlag).barande:
-            raise Layoutfel("%s är inte bärande, så %s kan inte stå på det. "
-                            "Sätt barande=True på underlaget om det ska gå."
+            raise Layoutfel("%s is not load-bearing, so %s cannot stand on it. "
+                            "Set barande=True on the base if that should be allowed."
                             % (self.underlag, self.mal))
 
     def forslag_for(self, scen, namn, raster_m=FORSLAGSRASTER_M):
@@ -655,7 +655,7 @@ class Under(Relation):
         self.mal = str(mal)
         self.over = str(over)
         if self.mal == self.over:
-            raise Layoutfel("%s kan inte stå under sig självt" % self.mal)
+            raise Layoutfel("%s cannot stand under itself" % self.mal)
 
     def berorda(self):
         return (self.mal, self.over)
@@ -860,15 +860,15 @@ class IRad(Relation):
     def __init__(self, objekt, riktning, mellanrum, tolerans=None):
         self.objekt = tuple(str(n) for n in objekt)
         if len(self.objekt) < 2:
-            raise Layoutfel("en rad behöver minst två objekt")
+            raise Layoutfel("a line needs at least two objects")
         if len(set(self.objekt)) != len(self.objekt):
-            raise Layoutfel("samma objekt står två gånger i raden")
+            raise Layoutfel("the same object appears twice in the line")
         if not isinstance(riktning, Riktning):
-            raise Layoutfel("riktning måste vara ett Riktning-värde")
+            raise Layoutfel("riktning must be a Riktning value")
         self.riktning = riktning
         self.mellanrum_m = krav(mellanrum, "mellanrum").som_m
         if self.mellanrum_m < 0.0:
-            raise Layoutfel("ett mellanrum kan inte vara negativt")
+            raise Layoutfel("a gap cannot be negative")
         self.tolerans_m = _tol(tolerans)
 
     def berorda(self):
@@ -955,7 +955,7 @@ class Mellanrum(Relation):
     def __init__(self, a, b, avstand, tolerans=None):
         self.a, self.b = str(a), str(b)
         if self.a == self.b:
-            raise Layoutfel("ett mellanrum går mellan två olika objekt")
+            raise Layoutfel("a gap runs between two different objects")
         self.avstand_m = krav(avstand, "avstand").som_m
         self.tolerans_m = _tol(tolerans)
 
@@ -989,7 +989,7 @@ class MinstaAvstand(Relation):
     def __init__(self, a, b, avstand):
         self.a, self.b = str(a), str(b)
         if self.a == self.b:
-            raise Layoutfel("ett avstånd går mellan två olika objekt")
+            raise Layoutfel("a distance runs between two different objects")
         self.avstand_m = krav(avstand, "avstand").som_m
 
     def berorda(self):
@@ -1033,7 +1033,7 @@ class InomRackvidd(Relation):
         self.mal = str(mal)
         self.robot = str(robot)
         if self.mal == self.robot:
-            raise Layoutfel("roboten når trivialt sig själv")
+            raise Layoutfel("the robot trivially reaches itself")
         self.radie_m = None if radie is None else krav(radie, "radie").som_m
         self.helt = bool(helt)
 
@@ -1051,8 +1051,8 @@ class InomRackvidd(Relation):
             return self.radie_m
         o = scen.objekt(self.robot)
         if o.rackvidd is None:
-            raise Layoutfel("%s bär ingen räckvidd och InomRackvidd fick "
-                            "ingen radie; gissa aldrig en räckvidd" % self.robot)
+            raise Layoutfel("%s carries no reach and InomRackvidd got "
+                            "no radius; never guess a reach" % self.robot)
         return o.rackvidd.som_m
 
     def _matt_m(self, scen, kropp, mitt):
