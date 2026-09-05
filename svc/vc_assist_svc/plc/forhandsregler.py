@@ -117,10 +117,20 @@ REGLER: Dict[str, str] = {
         "ETT uttryck `UT := villkorA AND NOT villkorB;`, eller satt ett "
         "grundvarde OVILLKORAT forst och skriv over det villkorat efterat. "
         "Alla tre gar igenom. Det som falls ar tva SEPARATA IF-block som ger "
-        "samma utgang OLIKA varden - bada kan koras i samma scan och da avgor "
-        "ordningen, inte logiken. Ocksa: en ovillkorad skrivning EFTER en "
-        "villkorad (den villkorade blir verkningslos), och tva ovillkorade "
-        "(den forsta syns aldrig).",
+        "samma utgang OLIKA varden och vars villkor KAN vara sanna i samma "
+        "scan - da avgor ordningen, inte logiken. Villkor som bevisligen "
+        "utesluter varandra gar igenom: samma ingang med och utan NOT, "
+        "`steg = 1` mot `steg = 2`, eller genom rena mellanvariabler som "
+        "`xAuto := ... AND SYS_AUTO` mot `xHand := ... AND NOT SYS_AUTO`. "
+        "Grinden ser INTE uteslutning som bara foljer av stegmaskinens "
+        "tillstand: en utgang som sekvensen satte i steg 2 och slackte i steg "
+        "4 kan i grindens ogon vara hog i steg 6. Sekvens plus forregling "
+        "skrivs darfor sa: sekvensen satter en arbetsvariabel i sina steg "
+        "(`xBage := TRUE;` / `xBage := FALSE;`) och utgangen skrivs EN gang "
+        "langst ner med forreglingen i samma uttryck: "
+        "`ST470_ARC_ON := xBage AND ST470_GAS_ON;`. Ocksa: en ovillkorad "
+        "skrivning EFTER en villkorad (den villkorade blir verkningslos), och "
+        "tva ovillkorade (den forsta syns aldrig).",
     "OATKOMLIG":
         "Skriv ingen kod som aldrig kan koras: en gren efter ett villkor som "
         "alltid ar falskt, eller satser efter RETURN eller EXIT.",
