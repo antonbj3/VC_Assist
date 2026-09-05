@@ -108,9 +108,17 @@ _RANGORDNING = (
     "exakt_skiftlagesokant",
     "prefix",
     "delstrang_namn",
+    "delstrang_inuti_ord",
     "delstrang_typ",
     "delstrang_beskrivning",
 )
+
+_ORD_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z]+|[0-9]+")
+
+
+def _segment(text: str) -> set:
+    """Dela namn i ordsegment for ordgranskontroll (M-119 / E3e)."""
+    return {m.group(0).lower() for m in _ORD_RE.finditer(text or "")}
 
 # Medlemsnamn som hor till Python sjalv, hamtade ur den korande tolkens egna
 # typer i stallet for en handskriven lista som skulle aldras.
@@ -188,9 +196,14 @@ class Symbol:
             text += " (signatur ur %s)" % self.berikad_av
         return text
 
-    def svar(self) -> str:
+    def svar(self, anropad_typ: Optional[str] = None) -> str:
         """Svarstexten till modellen. Bar alltid INSTRUKTION (spec 46)."""
-        rader = ["%s %s" % (self.sort, self.fullnamn)]
+        arvd = anropad_typ and self.typ_namn and anropad_typ != self.typ_namn
+        fullnamn = "%s.%s" % (anropad_typ, self.namn) if arvd else self.fullnamn
+        rad0 = "%s %s" % (self.sort, fullnamn)
+        if arvd:
+            rad0 += " (arvd fran %s)" % self.typ_namn
+        rader = [rad0]
         if self.signatur is not None:
             rader.append("parametrar: %s" % self.signatur)
         if self.vardetyp:
@@ -199,7 +212,10 @@ class Symbol:
             rader.append("atkomst: %s" % self.atkomst)
         if self.beskrivning:
             rader.append(self.beskrivning)
-        rader.append("harkomst: %s" % self.harkomst())
+        harkomst = self.harkomst()
+        if arvd:
+            harkomst += " (arvd fran typ %s, kan anropas pa %s)" % (self.typ_namn, anropad_typ)
+        rader.append("harkomst: %s" % harkomst)
         rader.append(INSTRUKTION)
         return "\n".join(rader)
 
@@ -231,6 +247,7 @@ class ApiIndex(object):
         self.vc_version = vc_version
 
         self.symboler: List[Symbol] = []
+        self.spec_symboler: List[Symbol] = []
         self.typer: Dict[str, Symbol] = {}
         self.hjalpmoduler: Dict[str, Symbol] = {}
         self.konstanter: Dict[str, Symbol] = {}
@@ -251,6 +268,7 @@ class ApiIndex(object):
         self._berika_ur_api_xml()
         self._las_konstanter()
         self._las_hjalpare()
+        self._las_spec()
         self._efterbygg()
 
     # ---------------------------------------------------------------- laddning
@@ -287,6 +305,7 @@ class ApiIndex(object):
             data = json.load(f)
         for typ_namn in data:
             self._lagg(Symbol(sort="typ", typ_namn="", namn=typ_namn,
+                              beskrivning="Visual Components API-typ %s." % typ_namn,
                               kalla=kalla, vc_version=self.vc_version))
         for typ_namn, kropp in data.items():
             for m in kropp.get("methods", []):
@@ -315,6 +334,7 @@ class ApiIndex(object):
                 # Matt: events i JSON-filen ar rena strangar, inga objekt.
                 self._lagg(Symbol(
                     sort="handelse", typ_namn=typ_namn, namn=self._rent(e),
+                    beskrivning="Handelse %s pa typen %s." % (self._rent(e), typ_namn),
                     kalla=kalla, vc_version=self.vc_version))
 
     def _berika_ur_api_xml(self) -> None:
@@ -357,8 +377,130 @@ class ApiIndex(object):
         for namn in (rot.text or "").split():
             namn = namn.strip()
             if namn:
+                besk = self._konstantbeskrivning(namn)
                 self._lagg(Symbol(sort="konstant", typ_namn="", namn=namn,
+                                  beskrivning=besk,
                                   kalla=kalla, vc_version=self.vc_version))
+
+    @staticmethod
+    def _konstantbeskrivning(namn: str) -> str:
+        """Beskrivning av en VC-konstant ur dess familj och namn (M-119 / E3d)."""
+        if namn.startswith("VC_STATEMENT_"):
+            return "Typkonstant for satsen %s i sekvenser och rutiner." % namn[13:]
+        if namn.endswith("SIGNAL") or namn.endswith("SIGNALMAP"):
+            return "Typkonstant for signal av typen %s i komponenters beteendestruktur." % namn[3:]
+        if namn.startswith("VC_ACTION_"):
+            return "Atgardskonstant %s for vcAction och vcExecutor." % namn[10:]
+        if namn.startswith("VC_JOINT_"):
+            return "Ledtypkonstant %s for vcJoint." % namn[9:]
+        if namn.startswith("VC_KINEMATICS_"):
+            return "Kinematikkonstant %s for kinematikmodeller." % namn[14:]
+        if namn.startswith("VC_MATERIAL_"):
+            return "Materialkonstant %s for visuell representation." % namn[12:]
+        if namn.startswith("VC_MOTION_"):
+            return "Rorelsekonstant %s for rorelseplaneraren och robotcontrollers." % namn[10:]
+        if namn.startswith("VC_PHYSICS_"):
+            return "Fysikkonstant %s for fysikmotorn i scenen." % namn[11:]
+        if namn.startswith("VC_SIMULATION_"):
+            return "Simuleringskonstant %s for simuleringsstatus och handelser." % namn[14:]
+        if namn.startswith("VC_SELECTION_"):
+            return "Urvalskonstant %s for 3D-markering och interaktion." % namn[13:]
+        if namn.startswith("VC_PROPERTY_"):
+            return "Egenskapskonstant %s for komponentvariabler." % namn[12:]
+        if namn.startswith("VC_INTERFACE_"):
+            return "Granssnittskonstant %s for komponentkopplingar." % namn[13:]
+        if namn.startswith("VC_FEATURE_"):
+            return "Geometri-feature-konstant %s for noder." % namn[11:]
+        if namn.startswith("VC_COLOR_"):
+            return "Fargkonstant %s for grafisk visualisering." % namn[9:]
+        if namn.startswith("VC_CAMERA_"):
+            return "Kamerakonstant %s for vyhantering i 3D-scenen." % namn[10:]
+        delar = namn.split("_")[1:]
+        if delar:
+            return "Konstant %s for %s i Visual Components API." % (namn, " ".join(delar).lower())
+        return "Konstant %s i Visual Components API." % namn
+
+    def _las_spec(self) -> None:
+        """Grindregler och specifikationer ur docs/spec/ och bankens facit_spar."""
+        rot = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        kontrakt_fil = os.path.join(rot, "docs", "spec", "41_ogat_kontrakt.md")
+        if os.path.isfile(kontrakt_fil):
+            try:
+                with open(kontrakt_fil, "r", encoding="utf-8") as f:
+                    rader = f.readlines()
+                akt_sektion = ""
+                for rad in rader:
+                    rad_s = rad.strip()
+                    if rad_s.startswith("SECTION "):
+                        akt_sektion = rad_s
+                        sekt_namn = rad_s.split()[1]
+                        sym = Symbol(sort="grindregel", typ_namn="OGAT", namn=sekt_namn,
+                                     beskrivning="Ogats sektion %s i domskontraktet (docs/spec/41_ogat_kontrakt.md)." % sekt_namn,
+                                     kalla="docs/spec/41_ogat_kontrakt.md", vc_version=self.vc_version)
+                        self.spec_symboler.append(sym)
+                    elif akt_sektion and (rad.startswith("  ") or rad.startswith("\t")):
+                        delar = rad_s.split(None, 1)
+                        if delar:
+                            nyckelord = delar[0]
+                            sig = delar[1] if len(delar) > 1 else ""
+                            besk = ("Ogats rapportrad %s i %s (docs/spec/41_ogat_kontrakt.md). Signatur: %s"
+                                    % (nyckelord, akt_sektion, sig))
+                            sym = Symbol(sort="grindregel", typ_namn=akt_sektion, namn=nyckelord,
+                                         signatur=sig, beskrivning=besk,
+                                         kalla="docs/spec/41_ogat_kontrakt.md", vc_version=self.vc_version)
+                            self.spec_symboler.append(sym)
+                    elif rad_s.startswith("EYES VERDICT"):
+                        sym = Symbol(sort="grindregel", typ_namn="OGAT", namn="VERDICT",
+                                     signatur="<PASS|FAIL|INCONCLUSIVE> <orsak>",
+                                     beskrivning="Ogats slutdom i domskontraktet (docs/spec/41_ogat_kontrakt.md).",
+                                     kalla="docs/spec/41_ogat_kontrakt.md", vc_version=self.vc_version)
+                        self.spec_symboler.append(sym)
+            except Exception:
+                pass
+
+        # Grindar ur docs/spec/50_grindar.md
+        grindar_fil = os.path.join(rot, "docs", "spec", "50_grindar.md")
+        if os.path.isfile(grindar_fil):
+            for g_namn, g_besk in (
+                ("KOMPILERING", "Grind 1: syntax, typer, okanda symboler via STruC++ CLI."),
+                ("STATISK_ANALYS", "Grind 2: statisk analys av kanda dodsfallor och stilbrott."),
+                ("DEKLARATIONSMATCHNING", "Grind 3: deklarationer matchade mot scenens signalkarta."),
+                ("ANROPSVALIDERING", "Grind 4: anropsvalidering AST mot verktygsschema."),
+                ("OGAT", "Grind 5: vc_eyes simuleringsovervakning av sekvens, timing, grepp."),
+                ("KOMPOSITION", "Grind 6: komposition per station och hela linan."),
+                ("GRANSKNING", "Grind 7: granskning."),
+            ):
+                self.spec_symboler.append(
+                    Symbol(sort="grindregel", typ_namn="GRIND", namn=g_namn,
+                           beskrivning=g_besk, kalla="docs/spec/50_grindar.md",
+                           vc_version=self.vc_version)
+                )
+
+        # Standarder ur bank/uppgifter/
+        bank_kat = os.path.join(rot, "bank", "uppgifter")
+        if os.path.isdir(bank_kat):
+            import glob
+            STD_RE = re.compile(r"\b(?:ISO|IEC|EN|DIN|ANSI|VDI|VDA|RIA)\s?\d{3,5}(?:-\d+)?(?::\d{4})?")
+            sedda_std = set()
+            for fil in sorted(glob.glob(os.path.join(bank_kat, "*.json"))):
+                try:
+                    with open(fil, "r", encoding="utf-8") as f:
+                        d = json.load(f)
+                    fs = d.get("facit_spar") or {}
+                    std_text = fs.get("standard", "")
+                    for m in STD_RE.findall(std_text + " " + json.dumps(d)):
+                        clean = m.strip()
+                        kort = clean.split(":")[0]
+                        if kort not in sedda_std:
+                            sedda_std.add(kort)
+                            self.spec_symboler.append(
+                                Symbol(sort="standard", typ_namn="STANDARD", namn=clean,
+                                       beskrivning="Standardhanvisning ur bankens facit_spar: %s. %s" % (clean, std_text[:200]),
+                                       kalla="docs/spec/ och bankens facit_spar",
+                                       vc_version=self.vc_version)
+                            )
+                except Exception:
+                    continue
 
     def _las_hjalpare(self) -> None:
         """vcHelpers-modulerna. Samma form som en typ, egen kalla."""
@@ -478,11 +620,17 @@ class ApiIndex(object):
             typ_namn, _, medlem = namn.rpartition(".")
             if typ_namn in self.typer:
                 return self.medlem(typ_namn, medlem)
+            for s in self.spec_symboler:
+                if s.fullnamn == namn:
+                    return [s]
             return []
         ut: List[Symbol] = []
         if namn in self.typer:
             ut.append(self.typer[namn])
         ut.extend(self._globala.get(namn, []))
+        for s in self.spec_symboler:
+            if s.namn == namn and s not in ut:
+                ut.append(s)
         return ut
 
     def symboler_med_namn(self, namn: str) -> List[Symbol]:
@@ -500,7 +648,7 @@ class ApiIndex(object):
             return []
         lag = fras.lower()
         traffar: List[Traff] = []
-        for s in self.symboler:
+        for s in self.symboler + self.spec_symboler:
             rang = self._rang(s, fras, lag)
             if rang is None:
                 continue
@@ -520,7 +668,10 @@ class ApiIndex(object):
         if namn_lag.startswith(lag):
             return "prefix"
         if lag in namn_lag:
-            return "delstrang_namn"
+            segs = _segment(s.namn)
+            if lag in segs or any(seg.startswith(lag) for seg in segs):
+                return "delstrang_namn"
+            return "delstrang_inuti_ord"
         if lag in s.typ_namn.lower():
             return "delstrang_typ"
         if lag in s.beskrivning.lower():

@@ -60,6 +60,16 @@ def _text(x) -> str:
     return "" if x is None else str(x)
 
 
+def _positivt_tal(x) -> Optional[float]:
+    if x is None:
+        return None
+    try:
+        v = float(x)
+        return v if v > 0.0 else None
+    except (TypeError, ValueError):
+        return None
+
+
 @dataclass
 class Traff:
     namn: str
@@ -82,9 +92,9 @@ class Traff:
         return "%s | %s | %s | rackvidd %s | nyttolast %s%s" % (
             self.tillverkare or SAKNAS, self.namn,
             self.familj or self.kategori or SAKNAS,
-            ("%.0f mm" % self.rackvidd_mm) if self.rackvidd_mm is not None
+            ("%.0f mm" % self.rackvidd_mm) if (self.rackvidd_mm is not None and self.rackvidd_mm > 0.0)
             else SAKNAS,
-            ("%.0f kg" % self.nyttolast_kg) if self.nyttolast_kg is not None
+            ("%.0f kg" % self.nyttolast_kg) if (self.nyttolast_kg is not None and self.nyttolast_kg > 0.0)
             else SAKNAS,
             "  [UTFASAD]" if self.utfasad else "")
 
@@ -172,8 +182,8 @@ class Katalog(object):
                         sokvag=_text(p.get("sokvag")),
                         granssnitt=int(p.get("granssnitt") or 0),
                         familj=_text(p.get("familj")),
-                        rackvidd_mm=p.get("rackvidd_mm"),
-                        nyttolast_kg=p.get("nyttolast_kg"),
+                        rackvidd_mm=_positivt_tal(p.get("rackvidd_mm")),
+                        nyttolast_kg=_positivt_tal(p.get("nyttolast_kg")),
                         utfasad=bool(p.get("utfasad")),
                         parametrar=dict(p.get("parametrar") or {}))
                    for p in index["poster"]]

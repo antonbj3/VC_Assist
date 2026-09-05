@@ -183,11 +183,20 @@ def _index_ut():
             "kallor": list(_KALLOR)}
 
 
-def _symbol_ut(s):
-    return {"sort": s.sort, "type_name": s.typ_namn, "name": s.namn,
-            "full_name": s.fullnamn, "signature": s.signatur,
+def _symbol_ut(s, anropad_typ=None):
+    arvd = bool(anropad_typ and s.typ_namn and anropad_typ != s.typ_namn)
+    fullnamn = "%s.%s" % (anropad_typ, s.namn) if arvd else s.fullnamn
+    harkomst = s.harkomst()
+    if arvd:
+        harkomst += " (arvd fran typ %s, kan anropas pa %s)" % (s.typ_namn, anropad_typ)
+    besk = s.beskrivning
+    if arvd and besk:
+        besk += " (arvd fran %s)" % s.typ_namn
+    return {"sort": s.sort, "type_name": anropad_typ if arvd else s.typ_namn,
+            "name": s.namn,
+            "full_name": fullnamn, "signature": s.signatur,
             "value_type": s.vardetyp, "access": s.atkomst,
-            "description": s.beskrivning, "harkomst": s.harkomst(),
+            "description": besk, "harkomst": harkomst,
             "vc_version": s.vc_version}
 
 
@@ -212,9 +221,9 @@ def _lookup_api(argument):
     return {
         "found": bool(symboler),
         "name": namn,
-        "symbols": [_symbol_ut(s) for s in symboler],
+        "symbols": [_symbol_ut(s, typ_namn) for s in symboler],
         "antal": len(symboler),
-        "svar": "\n\n".join(s.svar() for s in symboler),
+        "svar": "\n\n".join(s.svar(typ_namn) for s in symboler),
         "forslag": _forslag_ut(forslag),
         "instruktion": INSTRUKTION,
         "index": _index_ut(),
@@ -276,7 +285,7 @@ _TRAFF["properties"] = dict(_SYMBOL["properties"])
 _TRAFF["properties"]["rang"] = {
     "type": "string",
     "description": ("Hur den traffades: exakt, exakt_skiftlagesokant, prefix, "
-                    "delstrang_namn, delstrang_typ eller delstrang_beskrivning."),
+                    "delstrang_namn, delstrang_inuti_ord, delstrang_typ eller delstrang_beskrivning."),
 }
 _TRAFF["required"] = list(_SYMBOL["required"]) + ["rang"]
 

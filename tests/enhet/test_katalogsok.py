@@ -225,3 +225,19 @@ def test_beskrivningen_namner_filtren():
     """Beskrivningen syns i sammandraget och i nolltraffsvaret."""
     t = kat_dekl().sok(min_rackvidd_mm=99999, min_nyttolast_kg=50).text()
     assert "rackvidd >= 99999 mm" in t and "nyttolast >= 50 kg" in t
+
+
+def test_nolla_i_katalogpost_blir_saknas_inte_noll_mm():
+    """Trasig fixtur for E3a: en post med 0 eller 0.0 ska behandlas som saknad (None/SAKNAS)."""
+    post = {"format": 1, "rot": "/x", "djupt": False, "poster": [
+        {"namn": "nollrobot", "tillverkare": "ABB", "kategori": "Robots",
+         "sokvag": "/x/z.vcmx", "rackvidd_mm": 0.0, "nyttolast_kg": 0}
+    ]}
+    k = Katalog.fran_index(post)
+    t = k.poster[0]
+    assert t.rackvidd_mm is None, "0.0 ska bli None i lasningen"
+    assert t.nyttolast_kg is None, "0 ska bli None i lasningen"
+    rad = t.rad()
+    assert " 0 mm" not in rad, "far inte saga '0 mm'"
+    assert " 0 kg" not in rad, "far inte saga '0 kg'"
+    assert rad.count(SAKNAS) >= 2

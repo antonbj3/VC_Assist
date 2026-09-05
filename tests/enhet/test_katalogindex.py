@@ -210,3 +210,14 @@ def test_delstrangsokningen_traffar_aven_utanfor_ett_funktionsblock():
             'Script "b = comp.findBehaviour(\'rSimRobotController\')"\n}\n}\n')
     assert K._familj(text) == "robot"
     assert D._familj(D.funktionsnamn(D.las_trad(text))) == "ovrig"
+
+
+def test_tal_noll_eller_mindre_blir_none():
+    """Trasig fixtur for E3a: katalogindex._tal svaljer inte noll som ett matt."""
+    assert K._tal("0") is None
+    assert K._tal("0.0") is None
+    assert K._tal(0) is None
+    assert K._tal(0.0) is None
+    assert K._tal("-5") is None
+    assert K._tal(None) is None
+    assert K._tal("900") == 900.0

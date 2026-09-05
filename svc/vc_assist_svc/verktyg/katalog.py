@@ -93,6 +93,40 @@ def _las_katalog(sokvag=KATALOGFIL):
 
 DATA, POSTER = _las_katalog()
 
+
+def _las_bank_signaler():
+    signaler = collections.OrderedDict()
+    uppgifter_kat = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "bank", "uppgifter"))
+    if not os.path.isdir(uppgifter_kat):
+        return signaler
+    import glob
+    for fil in sorted(glob.glob(os.path.join(uppgifter_kat, "*.json"))):
+        try:
+            with open(fil, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            t_id = d.get("task_id", "")
+            ctrl = d.get("control") or {}
+            for s in ctrl.get("signals") or []:
+                s_namn = s.get("name")
+                if s_namn and s_namn not in signaler:
+                    signaler[s_namn] = {
+                        "uri": "bank://signal/" + s_namn,
+                        "namn": s_namn,
+                        "kategori": "signal",
+                        "riktning": s.get("dir", ""),
+                        "typ": s.get("type", ""),
+                        "uppgift": t_id,
+                        "kommentar": s.get("comment", ""),
+                        "stampel": "BANK_CONTROL_SIGNALS",
+                        "not": "Signal ur bankuppgift %s (control.signals): %s, %s" % (t_id, s.get("dir", ""), s.get("type", "")),
+                    }
+        except Exception:
+            continue
+    return signaler
+
+
+SIGNAL_POSTER = _las_bank_signaler()
+
 # Falt som ar postens identitet och inte ett matt varde.
 _IDENTITETSFALT = ("uri", "namn", "kategori", "stampel", "not")
 
@@ -329,6 +363,25 @@ def _search_catalog(argument):
             rang = None
         traffar.append((_RANGORDNING.index(rang) if rang else len(_RANGORDNING),
                         post["uri"], _post_ut(post, rang)))
+
+    if fraga and kategori in (None, "signal"):
+        v_lag = fraga.lower()
+        for sig in SIGNAL_POSTER.values():
+            s_lag = sig["namn"].lower()
+            if v_lag in s_lag or s_lag in v_lag:
+                rang = "exakt_namn" if v_lag == s_lag else "delstrang_namn"
+                ut_post = {
+                    "uri": sig["uri"],
+                    "namn": sig["namn"],
+                    "kategori": "signal",
+                    "grupp": "signal",
+                    "matt": [],
+                    "stampel": sig["stampel"],
+                    "not": sig["not"],
+                    "rang": rang,
+                }
+                traffar.append((_RANGORDNING.index(rang), sig["uri"], ut_post))
+
     traffar.sort(key=lambda t: (t[0], t[1]))
     return {
         "traffar": [t[2] for t in traffar],
@@ -590,10 +643,12 @@ _BIBLIOTEKSTRAFF = {
 
 
 def _traff_ut(t, djupt):
+    rackvidd = t.rackvidd_mm if (t.rackvidd_mm is not None and t.rackvidd_mm > 0.0) else None
+    nyttolast = t.nyttolast_kg if (t.nyttolast_kg is not None and t.nyttolast_kg > 0.0) else None
     return {"namn": t.namn, "tillverkare": t.tillverkare or "",
             "familj": (t.familj or None) if djupt else None,
             "kategori": t.kategori or "", "fil": t.sokvag,
-            "rackvidd_mm": t.rackvidd_mm, "nyttolast_kg": t.nyttolast_kg,
+            "rackvidd_mm": rackvidd, "nyttolast_kg": nyttolast,
             "utfasad": bool(t.utfasad),
             "granssnitt": (t.granssnitt if djupt else None)}
 

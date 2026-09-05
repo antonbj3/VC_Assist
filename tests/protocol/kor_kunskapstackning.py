@@ -741,6 +741,9 @@ def dom(f, svar, rc, parsfel):
         namn3 = ", ".join((t.get("full_name") or "") for t in traffar[:3])
         if segmenttraff:
             if f.sort in ("S9_standard", "S10_grindregel"):
+                speckallor = [t for t in segmenttraff if "spec" in (t.get("harkomst") or "").lower() or t.get("sort") in ("grindregel", "standard")]
+                if speckallor:
+                    return SVAR, "R32_SOKTRAFF", "%d traffar ur specen" % len(speckallor)
                 return HALVT, "R34_NAMNTRAFF_FEL_DOMAN",\
                     "%d traffar i VC:s API-index, men fragan galler %s: %s" % (
                         len(traffar),

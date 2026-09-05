@@ -53,7 +53,7 @@ import lasare  # noqa: E402
 # och ogats egen skrivare anvander.
 K = lasare.K
 
-BANK = lasare.ladda()
+BANK = lasare.ladda(strikt=False)
 UPPGIFTS_ID = tuple(sorted(u.id for u in BANK))
 
 
@@ -257,6 +257,15 @@ def _bench_task(argument):
                            for c in d["scene"]["connections"]],
             "layout_uri": d["scene"]["layout_uri"],
         },
+        "control": d.get("control"),
+        "scenarios": d.get("scenarios"),
+        "facit_spar": d.get("facit_spar"),
+        "verified_status": d.get("verified_status"),
+        "last_run": d.get("last_run"),
+        "orsak": d.get("orsak"),
+        "failure_modes": list(d.get("failure_modes") or []),
+        "antaganden": d.get("antaganden"),
+        "fysik": d.get("fysik"),
         "kanda_id": [],
     }
 
@@ -354,6 +363,15 @@ _lagg(
             },
             "required": ["komponenter", "kopplingar"],
         },
+        "control": {"type": ["object", "null"], "description": "Signalkarta och sekvens."},
+        "scenarios": {"type": ["array", "null"], "description": "Provningsscenarier."},
+        "facit_spar": {"type": ["object", "null"], "description": "Facitspar med standardreferenser och ST-referens."},
+        "verified_status": {"type": ["string", "null"], "description": "Verifieringsstatus."},
+        "last_run": {"type": ["object", "null"], "description": "Senaste provningskorning."},
+        "orsak": {"type": ["string", "null"], "description": "Bakgrund/orsak till uppgiften."},
+        "failure_modes": {"type": ["array", "null"], "description": "Kanda felfall."},
+        "antaganden": {"type": ["array", "null"], "description": "Tekniska antaganden."},
+        "fysik": {"type": ["object", "null"], "description": "Fysikaliska matt och parametrar."},
         "kanda_id": _RET_UPPGIFTS_ID,
     }, ["found", "task_id", "uppgift", "facit", "scen", "kanda_id"]),
     KRAVER_UPPGIFT,

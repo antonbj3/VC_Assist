@@ -582,3 +582,13 @@ def test_beteendetyper_utan_avbildning_namns(blad):
     t = KD.text(blad)
     assert "BETEENDETYPER UTAN KAND API-KONSTANT" in t
     assert "rKinScara2" in t
+
+
+def test_nolla_i_model_xml_blir_saknas_inte_noll():
+    """Trasig fixtur for E3a: _tal('0') och _tal(0.0) maste ge None."""
+    assert KD._tal("0") is None
+    assert KD._tal("0.0") is None
+    assert KD._tal(0) is None
+    assert KD._tal(0.0) is None
+    assert KD._tal(None) is None
+    assert KD._tal("703") == 703.0

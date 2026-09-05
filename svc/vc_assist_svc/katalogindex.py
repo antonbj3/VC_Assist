@@ -303,10 +303,11 @@ def _tal(text):
     """Ett tal ur ett deklarerat falt, eller None. Tomt och skrap ar None.
 
     None och inte 0.0: en robot utan angiven rackvidd har inte rackvidden noll,
-    och den skillnaden ar hela poangen med falten.
+    och den skillnaden ar hela poangen med falten (M-119 / E3a).
     """
     try:
-        return float(str(text).strip().replace(",", "."))
+        v = float(str(text).strip().replace(",", "."))
+        return v if v > 0.0 else None
     except (TypeError, ValueError):
         return None
 
