@@ -83,12 +83,11 @@ That example is real. The syntax was flawless, every name existed, the sequence
 was in order — and the robot closed its gripper more than half a metre from the
 part. Only running it against a plant reveals that.
 
-A second execution check looks at the **whole line rather than one station**.
-Faults live in the gaps between stations: in our measurement, five of them
-passed each station individually and appeared only once the stations were
-connected — a downstream station that started on *"a part is present"* instead
-of on *"the previous station is finished"*, and so began working on a part that
-was not ready.
+It watches the whole line, not one station — which matters because faults live
+in the gaps between stations. Five in our measurement passed each station
+individually and appeared only once the stations were connected: a downstream
+station started on *"a part is present"* instead of on *"the previous station
+is finished"*, and so began working on a part that was not ready.
 
 ## Where the project stands
 
