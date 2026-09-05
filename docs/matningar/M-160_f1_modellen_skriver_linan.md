@@ -143,7 +143,7 @@ var fixturen trasig, inte modellen duktig.
 
 ## 3. Vad som är prövat i dag, utan modell och utan VC
 
-`tests/enhet/test_kor_F1_riggen.py`, 26 prov, gröna. Provet skrevs **före**
+`tests/enhet/test_kor_F1_riggen.py`, 28 prov, gröna. Provet skrevs **före**
 mekanismen och var rött.
 
 ### 3.1 De tre trasiga fixturerna
@@ -159,10 +159,12 @@ mekanismen och var rött.
 modellen en inramning utan ord — ett bränt varv av fyra på ingenting. Hålet är
 stängt på ögats sida, där det uppstår.
 
-Fyra fixturer till: en transport utan `_neka_repot` avvisas, en klockkvot
+Sex fixturer till: en transport utan `_neka_repot` avvisas, en klockkvot
 utanför M-73:s brakett gör körningen OGILTIG i stället för fällande, en seed
-som ögat släpper igenom räknas aldrig som lagad, och en torrkörning kan aldrig
-ge ett grönt F1.
+som ögat släpper igenom räknas aldrig som lagad, en torrkörning kan aldrig ge
+ett grönt F1, grind 4 avvisas ur den billiga kedjan, och en rigg utan brygga
+faller med ett besked som namnger `vc-test.sh` och `--torrkorning` i stället
+för en `AttributeError`.
 
 ### 3.2 Mutationsprovet: biter fixturerna?
 
