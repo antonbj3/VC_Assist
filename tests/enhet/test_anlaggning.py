@@ -14,6 +14,7 @@ raknar avvisningar.
 
 beskriver: bank/anlaggning.py, bank/domare.py
 """
+import json
 import os
 import sys
 
@@ -397,6 +398,19 @@ def test_inspelningen_bar_bara_signalkartan():
     spar = spar_med_nodstopp()
     for r in spar.rader():
         assert set(r["varden"]) == set(SIGNALER)
+
+
+def test_harledningen_ar_deterministisk():
+    """Samma inspelning ska ge samma facit, tecken for tecken.
+
+    Harledningen loper over ordbocker och mangder. Ett facit vars innehall
+    beror pa iterationsordning gar inte att jamfora mellan tva korningar, och
+    da gar heller inget tal ur den att upprepa.
+    """
+    spar = spar_med_nodstopp()
+    a = json.dumps(A.harled(spar).facit, sort_keys=True)
+    b = json.dumps(A.harled(spar).facit, sort_keys=True)
+    assert a == b
 
 
 def test_ett_spar_utan_harkomst_avvisas():
