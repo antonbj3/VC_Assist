@@ -96,3 +96,32 @@ OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
 RUNT  1030 ms, rasamplen (t_ms, ST040_STP_IN_OPEN): [(916.6, True), (927.7, True), (939.2, True), (951.1, True), (962.9, True), (974.7, True), (986.3, True), (997.7, True), (1010.3, True), (1021.4, True), (1032.7, True), (1043.9, True), (1055.3, True), (1066.6, True), (1077.8, True), (1089.0, True), (1100.1, True), (1111.2, True), (1122.3, True), (1133.4, True), (1144.5, True)]
 OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22420.0]
 OPLC  ST040_STP_IN_OPEN FALL vid [19720.0]
+
+## Provtagningstakt UTAN A3-last (efter svepet), samma text som ovan
+TOLK  ST040_STP_IN_OPEN RISE vid [22400.0]
+TOLK  ST040_STP_IN_OPEN FALL vid [19700.0]
+POLL  n=1995 prov, median 11.75 ms, p95 12.07 ms, max 16.78 ms (POLL_S=10 ms, 1.70 prov per 20 ms scan)
+OPLC  ST040_STP_IN_OPEN RISE vid [20.0, 22420.0]
+OPLC  ST040_STP_IN_OPEN FALL vid [19740.0]
+
+## Provtagningstakt UNDER 12-arbetarlast
+POLL  n=2001 prov, median 11.77 ms, p95 12.07 ms, max 15.63 ms (POLL_S=10 ms, 1.70 prov per 20 ms scan)
+
+## Bristtexterna for T-08:s och C-04:s referenser (domare_openplc mot domare)
+=== OPENPLC ===
+T-08: UNDERKAND, 1 brister
+  en_detalj_genom_ugnen@1300ms:ST520_PRT_CNT
+      ST520_PRT_CNT skulle vara 0 men var 1 inom 4 scan efter 1300 ms. fotocellen ut raknar ned; ugnen ar tom igen och det ar inget larm
+=== TOLK ===
+T-08: GODKAND, 892 scan
+########## C-04 ##########
+=== OPENPLC ===
+C-04: UNDERKAND, 3 brister
+  flank:sakert_lage_bekraftas_en_gang
+      ST420_STA_SAFE skulle ha 1 RISE-flank(er) mellan 0 och 600 ms (+ 4 scan kanalfas), hade 0. kallstarten ska ge exakt en bekraftelse pa sakert lage, 185 ms in i uppstarten; noll betyder att signalen laggs pa kommandot i stallet for efter kedjan
+  invariant:greppet_behalls_over_stoppet@nodstopp_mitt_i_greppet
+      vid t=0 ms gällde ST420_STA_SAFE=1 men inte ST420_GRP_CLOSE=1 i 5 scan i rad (bortom 4 scan kanal+svarstid). en detalj som tappas i ett nodstopp ar ett varre lage an en som halls kvar; greppet ska over hela stoppet vara kommenderat slutet
+  invariant:lagesbilden_ar_kvar_i_sakert_lage@nodstopp_mitt_i_greppet
+      vid t=0 ms gällde ST420_STA_SAFE=1 men inte ST420_STA_STEP=4 i 5 scan i rad (bortom 4 scan kanal+svarstid). lagesbilden ar cellens minne av var den var; nollstalls den borjar cellen om fran steg noll med en konsol i griparen
+=== TOLK ===
+C-04: GODKAND, 641 scan
