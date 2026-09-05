@@ -274,5 +274,624 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: skruvstationens egna tider ur uppgiftens text. Fyra dragningar a 2,8 s = 11,2 s och lasfordrojningen 0,10 s per dragning ar dubbelt momentgivarens svarstid 50 ms. Vakten mot utebliven ST240_SCR_DONE ar 6,0 s, alltsa mer an dubbla dragtiden 2*2,8 = 5,6 s. Takten 18,0 s per enhet ger 3600/18,0 = 200 enheter i timmen, vilket ar expect genomflodet. Momentfonstret 20,0 till 24,0 Nm kring atdragningsmomentet 22,0 Nm star i uppgiftens text. Detta ar manniskans facit skrivet ur scenarios normal, trq_lag, trq_hog och done_uteblir samt expect, fore korning. M-124 provar facitformen.",
+    "standard": "Momentfonstret och korsordningen ar stationens egna krav ur uppgiftens text, inte nagon paragraf i en publicerad standard; facit sager det hellre an gissar en. Lasfordrojningens och vaktens tidskretsar ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46), och nodstoppets forregling av spindeln lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST240_SKRUVSTATION\nVAR\n    steg    : INT := 0;\n    drag    : INT := 0;\n    xPos    : INT := 0;\n    xNokPos : INT := 0;\n    xDrag   : BOOL := FALSE;\n    xLas    : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrLas  : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* Korsordningen 1, 3, 2, 4: drag nummer k borjar pa position 1, 3, 2 och 4.\n   Den naturliga rakneordningen 1, 2, 3, 4 ar precis den miss uppgiften\n   handlar om. *)\nCASE drag OF\n    1: xPos := 1;\n    2: xPos := 3;\n    3: xPos := 2;\n    4: xPos := 4;\nEND_CASE;\n\n(* Lasfonstret 0,10 s borjar nar spindeln stannat, alltsa pa ST240_SCR_DONE,\n   sa att momentgivarens svarstid hinner ut med marginal. Vaktloppet 6,0 s\n   borjar nar dragningen startat. *)\ntmrLas(IN := xLas, PT := T#100ms);\ntmrVakt(IN := xDrag AND NOT ST240_SCR_DONE, PT := T#6000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xDrag := FALSE;\n    xLas := FALSE;\n    steg := 0;\n    drag := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST240_PRT_PRS AND NOT xStopp THEN\n                drag := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xDrag := TRUE;\n            steg := 2;\n        2:\n            IF ST240_SCR_DONE THEN\n                xDrag := FALSE;\n                xLas := TRUE;\n                steg := 3;\n            ELSIF tmrVakt.Q THEN\n                (* DONE uteblir: spindeln stoppas och ingen ny position\n                   borjar. *)\n                xDrag := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        3:\n            IF tmrLas.Q THEN\n                xLas := FALSE;\n                IF ST240_TRQ_VAL >= 20.0 AND ST240_TRQ_VAL <= 24.0 THEN\n                    IF drag >= 4 THEN\n                        steg := 5;\n                    ELSE\n                        drag := drag + 1;\n                        steg := 1;\n                    END_IF;\n                ELSE\n                    (* Utanfor fonstret 20,0 till 24,0 Nm: positionen\n                       markeras och stationen stoppas. Ingen automatisk\n                       omdragning. *)\n                    xNokPos := xPos;\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        5:\n            (* Alla fyra positioner godkanda. *)\n            IF NOT ST240_PRT_PRS THEN\n                drag := 0;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xDrag := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ingen\n   dragning utan detalj, med brutet nodstopp eller utan tryckluft, och aldrig\n   nar stationen ar stoppad pa en underkand skruv. *)\nST240_SCR_POS := xPos;\nST240_SCR_START := xDrag AND ST240_PRT_PRS AND EMG_OK AND AIR_OK\n                   AND NOT xStopp;\nST240_NOK_POS := xNokPos;\nST240_STA_STOP := xStopp;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "fyra_skruvar_i_korsordning",
+        "beskrivning": "En detalj dras i korsordningen 1, 3, 2, 4. Varje gang visar givaren ett for lagt varde pa ST240_SCR_DONE och det ratta vardet forst nar svarstiden runnit ut.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST240_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 1,
+              "ST240_SCR_START": true,
+              "ST240_NOK_POS": 0,
+              "ST240_STA_STOP": false
+            },
+            "varfor": "forsta dragningen startar pa position 1, korsordningens forsta tal"
+          },
+          {
+            "t_ms": 2820,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 17.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2880,
+            "satt": {
+              "ST240_TRQ_VAL": 21.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2940,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false,
+              "ST240_SCR_POS": 1,
+              "ST240_NOK_POS": 0
+            },
+            "varfor": "spindeln stoppas pa DONE men momentet lases fortfarande inte: lasfonstret 0,10 s paagar och det dynamiska vardet 17,0 Nm far inte doma skruven"
+          },
+          {
+            "t_ms": 2960,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3060,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 3,
+              "ST240_SCR_START": true
+            },
+            "varfor": "position 3 ar korsordningens andra tal, och nast start kommer forst 0,10 s efter foregaende klarbesked"
+          },
+          {
+            "t_ms": 5760,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 18.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5820,
+            "satt": {
+              "ST240_TRQ_VAL": 23.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 2,
+              "ST240_SCR_START": true
+            },
+            "varfor": "korsordningens tredje tal ar position 2"
+          },
+          {
+            "t_ms": 8700,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 19.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8760,
+            "satt": {
+              "ST240_TRQ_VAL": 22.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8840,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8940,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 4,
+              "ST240_SCR_START": true
+            },
+            "varfor": "korsordningens fjarde tal ar position 4"
+          },
+          {
+            "t_ms": 11640,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 16.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11700,
+            "satt": {
+              "ST240_TRQ_VAL": 20.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11860,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false,
+              "ST240_SCR_POS": 4,
+              "ST240_NOK_POS": 0,
+              "ST240_STA_STOP": false
+            },
+            "varfor": "alla fyra positioner godkanda inom fonstret: ingen underkan och ingen stopp"
+          }
+        ]
+      },
+      {
+        "id": "moment_under_fonstret_pa_position_3",
+        "beskrivning": "Position 3, korsordningens andra dragning, stannar pa 6,5 Nm, langt under fonstrets 20,0 Nm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST240_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 1,
+              "ST240_SCR_START": true
+            },
+            "varfor": "dragningen pa position 1 star pa nar detaljen ligger i fixturen"
+          },
+          {
+            "t_ms": 2820,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 5.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2880,
+            "satt": {
+              "ST240_TRQ_VAL": 21.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2960,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3060,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 3,
+              "ST240_SCR_START": true
+            },
+            "varfor": "position 3 ar korsordningens andra tal aven har"
+          },
+          {
+            "t_ms": 5760,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 4.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5820,
+            "satt": {
+              "ST240_TRQ_VAL": 6.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5980,
+            "satt": {},
+            "krav": {
+              "ST240_NOK_POS": 3,
+              "ST240_STA_STOP": true,
+              "ST240_SCR_START": false,
+              "ST240_SCR_POS": 3
+            },
+            "varfor": "6,5 Nm ar under fonstret: position 3 markeras i ST240_NOK_POS och stationen stoppas"
+          },
+          {
+            "t_ms": 9000,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false,
+              "ST240_NOK_POS": 3,
+              "ST240_STA_STOP": true,
+              "ST240_SCR_POS": 3
+            },
+            "varfor": "skruven dras inte om automatiskt och positionen star kvar i NOK_POS"
+          }
+        ]
+      },
+      {
+        "id": "moment_over_fonstret_pa_position_2",
+        "beskrivning": "Position 2, korsordningens tredje dragning, stannar pa 31,0 Nm, over fonstrets 24,0 Nm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST240_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 1,
+              "ST240_SCR_START": true
+            },
+            "varfor": "position 1 forst"
+          },
+          {
+            "t_ms": 2820,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 17.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2880,
+            "satt": {
+              "ST240_TRQ_VAL": 21.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2960,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3060,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 3,
+              "ST240_SCR_START": true
+            },
+            "varfor": "position 3 som andra tal"
+          },
+          {
+            "t_ms": 5760,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 18.5
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5820,
+            "satt": {
+              "ST240_TRQ_VAL": 23.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5900,
+            "satt": {
+              "ST240_SCR_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6000,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 2,
+              "ST240_SCR_START": true
+            },
+            "varfor": "position 2 som tredje tal"
+          },
+          {
+            "t_ms": 8700,
+            "satt": {
+              "ST240_SCR_DONE": true,
+              "ST240_TRQ_VAL": 26.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8760,
+            "satt": {
+              "ST240_TRQ_VAL": 31.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8920,
+            "satt": {},
+            "krav": {
+              "ST240_NOK_POS": 2,
+              "ST240_STA_STOP": true,
+              "ST240_SCR_START": false,
+              "ST240_SCR_POS": 2
+            },
+            "varfor": "31,0 Nm ar over fonstret: overdragning markeras pa position 2 och stationen stoppas"
+          },
+          {
+            "t_ms": 12000,
+            "satt": {},
+            "krav": {
+              "ST240_STA_STOP": true,
+              "ST240_NOK_POS": 2,
+              "ST240_SCR_START": false
+            },
+            "varfor": "overdragen gangan lamnar inte stationen utan atgard; stoppet star kvar"
+          }
+        ]
+      },
+      {
+        "id": "done_uteblir",
+        "beskrivning": "ST240_SCR_START satts hog men ST240_SCR_DONE uteblir; vaktens 6,0 s loper ut.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST240_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 1,
+              "ST240_SCR_START": true
+            },
+            "varfor": "dragningen pa position 1 startar"
+          },
+          {
+            "t_ms": 6140,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false,
+              "ST240_STA_STOP": true,
+              "ST240_SCR_POS": 1
+            },
+            "varfor": "nar DONE uteblir 6,0 s stoppas spindeln och stationen; momentet lases aldrig pa en spindel som fortfarande gar"
+          },
+          {
+            "t_ms": 9000,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false
+            },
+            "varfor": "stationen gar inte vidare till nasta position"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_dragningen",
+        "beskrivning": "Nodstoppskretsen bryts medan den forsta dragningen pagar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST240_PRT_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 200,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_POS": 1,
+              "ST240_SCR_START": true
+            },
+            "varfor": "dragningen pagar"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1480,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false
+            },
+            "varfor": "brutet nodstopp stoppar spindeln omedelbart"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST240_SCR_START": false,
+              "ST240_SCR_POS": 1
+            },
+            "varfor": "ingen aterstart och ingen ny position efter nodstopp"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_dragning_utan_detalj",
+        "sekvens": "*",
+        "nar": {
+          "ST240_SCR_START": true
+        },
+        "kraver": {
+          "ST240_PRT_PRS": true
+        },
+        "varfor": "ingen dragning far startas nar detaljen inte ligger i fixturen"
+      },
+      {
+        "namn": "underkand_skruv_dras_aldrig_om",
+        "sekvens": "*",
+        "nar": {
+          "ST240_STA_STOP": true
+        },
+        "kraver": {
+          "ST240_SCR_START": false
+        },
+        "varfor": "en underkand skruv far aldrig dras om automatiskt"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST240_SCR_START": false
+        },
+        "varfor": "ingen dragning med brutet nodstopp"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST240_SCR_START": false
+        },
+        "varfor": "spannaren i fixturen behover tryckluft; utan den ar ingen dragning aktuell"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "fyra_dragningar_per_enhet",
+        "sekvens": "fyra_skruvar_i_korsordning",
+        "signal": "ST240_SCR_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 11860,
+        "antal": 4,
+        "varfor": "exakt fyra dragningar per detalj, en per position i korsordningen"
+      },
+      {
+        "namn": "ingen_omdragning_automatiskt",
+        "sekvens": "moment_under_fonstret_pa_position_3",
+        "signal": "ST240_SCR_START",
+        "typ": "RISE",
+        "fran_ms": 5880,
+        "till_ms": 9000,
+        "antal": 0,
+        "varfor": "efter en underkand skruv startar ingen ny dragning av sig sjalv"
+      },
+      {
+        "namn": "ingen_ny_position_efter_vakten",
+        "sekvens": "done_uteblir",
+        "signal": "ST240_SCR_START",
+        "typ": "RISE",
+        "fran_ms": 6040,
+        "till_ms": 9000,
+        "antal": 0,
+        "varfor": "nar DONE uteblir borjar ingen ny position"
+      },
+      {
+        "namn": "ingen_aterstart_efter_nodstopp",
+        "sekvens": "nodstopp_mitt_i_dragningen",
+        "signal": "ST240_SCR_START",
+        "typ": "RISE",
+        "fran_ms": 1400,
+        "till_ms": 2500,
+        "antal": 0,
+        "varfor": "efter brutet nodstopp startar ingen dragning av sig sjalv"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "rakneordningen_istallet_for_korsordning",
+        "st": "PROGRAM ST240_SKRUVSTATION\nVAR\n    steg    : INT := 0;\n    drag    : INT := 0;\n    xPos    : INT := 0;\n    xNokPos : INT := 0;\n    xDrag   : BOOL := FALSE;\n    xLas    : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrLas  : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* Korsordningen 1, 3, 2, 4: drag nummer k borjar pa position 1, 3, 2 och 4.\n   Den naturliga rakneordningen 1, 2, 3, 4 ar precis den miss uppgiften\n   handlar om. *)\nCASE drag OF\n    1: xPos := 1;\n    2: xPos := 2;\n    3: xPos := 3;\n    4: xPos := 4;\nEND_CASE;\n\n(* Lasfonstret 0,10 s borjar nar spindeln stannat, alltsa pa ST240_SCR_DONE,\n   sa att momentgivarens svarstid hinner ut med marginal. Vaktloppet 6,0 s\n   borjar nar dragningen startat. *)\ntmrLas(IN := xLas, PT := T#100ms);\ntmrVakt(IN := xDrag AND NOT ST240_SCR_DONE, PT := T#6000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xDrag := FALSE;\n    xLas := FALSE;\n    steg := 0;\n    drag := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST240_PRT_PRS AND NOT xStopp THEN\n                drag := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xDrag := TRUE;\n            steg := 2;\n        2:\n            IF ST240_SCR_DONE THEN\n                xDrag := FALSE;\n                xLas := TRUE;\n                steg := 3;\n            ELSIF tmrVakt.Q THEN\n                (* DONE uteblir: spindeln stoppas och ingen ny position\n                   borjar. *)\n                xDrag := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        3:\n            IF tmrLas.Q THEN\n                xLas := FALSE;\n                IF ST240_TRQ_VAL >= 20.0 AND ST240_TRQ_VAL <= 24.0 THEN\n                    IF drag >= 4 THEN\n                        steg := 5;\n                    ELSE\n                        drag := drag + 1;\n                        steg := 1;\n                    END_IF;\n                ELSE\n                    (* Utanfor fonstret 20,0 till 24,0 Nm: positionen\n                       markeras och stationen stoppas. Ingen automatisk\n                       omdragning. *)\n                    xNokPos := xPos;\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        5:\n            (* Alla fyra positioner godkanda. *)\n            IF NOT ST240_PRT_PRS THEN\n                drag := 0;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xDrag := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ingen\n   dragning utan detalj, med brutet nodstopp eller utan tryckluft, och aldrig\n   nar stationen ar stoppad pa en underkand skruv. *)\nST240_SCR_POS := xPos;\nST240_SCR_START := xDrag AND ST240_PRT_PRS AND EMG_OK AND AIR_OK\n                   AND NOT xStopp;\nST240_NOK_POS := xNokPos;\nST240_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Positionerna kodas i den naturliga rakneordningen 1, 2, 3, 4. Sekvensen ser hel ut och momenten sitter, men korsordningen finns inte i koden: de positioner ska sitta diagonalt emot varandra spansas i tur och ordning pa samma sida, och detaljen vrids i fixturen nar den sista spansas.",
+        "faller_pa": [
+          "fyra_skruvar_i_korsordning@3060ms:ST240_SCR_POS"
+        ]
+      },
+      {
+        "namn": "momentet_lases_innan_svarstiden",
+        "st": "PROGRAM ST240_SKRUVSTATION\nVAR\n    steg    : INT := 0;\n    drag    : INT := 0;\n    xPos    : INT := 0;\n    xNokPos : INT := 0;\n    xDrag   : BOOL := FALSE;\n    xLas    : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrLas  : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* Korsordningen 1, 3, 2, 4: drag nummer k borjar pa position 1, 3, 2 och 4.\n   Den naturliga rakneordningen 1, 2, 3, 4 ar precis den miss uppgiften\n   handlar om. *)\nCASE drag OF\n    1: xPos := 1;\n    2: xPos := 3;\n    3: xPos := 2;\n    4: xPos := 4;\nEND_CASE;\n\n(* Lasfonstret 0,10 s borjar nar spindeln stannat, alltsa pa ST240_SCR_DONE,\n   sa att momentgivarens svarstid hinner ut med marginal. Vaktloppet 6,0 s\n   borjar nar dragningen startat. *)\ntmrLas(IN := xLas, PT := T#100ms);\ntmrVakt(IN := xDrag AND NOT ST240_SCR_DONE, PT := T#6000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xDrag := FALSE;\n    xLas := FALSE;\n    steg := 0;\n    drag := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST240_PRT_PRS AND NOT xStopp THEN\n                drag := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xDrag := TRUE;\n            steg := 2;\n        2:\n            IF ST240_SCR_DONE THEN\n                xDrag := FALSE;\n                xLas := TRUE;\n                steg := 3;\n            ELSIF tmrVakt.Q THEN\n                (* DONE uteblir: spindeln stoppas och ingen ny position\n                   borjar. *)\n                xDrag := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        3:\n            IF ST240_SCR_DONE THEN\n                xLas := FALSE;\n                IF ST240_TRQ_VAL >= 20.0 AND ST240_TRQ_VAL <= 24.0 THEN\n                    IF drag >= 4 THEN\n                        steg := 5;\n                    ELSE\n                        drag := drag + 1;\n                        steg := 1;\n                    END_IF;\n                ELSE\n                    (* Utanfor fonstret 20,0 till 24,0 Nm: positionen\n                       markeras och stationen stoppas. Ingen automatisk\n                       omdragning. *)\n                    xNokPos := xPos;\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        5:\n            (* Alla fyra positioner godkanda. *)\n            IF NOT ST240_PRT_PRS THEN\n                drag := 0;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xDrag := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ingen\n   dragning utan detalj, med brutet nodstopp eller utan tryckluft, och aldrig\n   nar stationen ar stoppad pa en underkand skruv. *)\nST240_SCR_POS := xPos;\nST240_SCR_START := xDrag AND ST240_PRT_PRS AND EMG_OK AND AIR_OK\n                   AND NOT xStopp;\nST240_NOK_POS := xNokPos;\nST240_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Momentet lases i samma andetag som ST240_SCR_DONE gar hog, innan momentgivarens svarstid runnit ut. Vardet ar dags dynamikens, inte dragningens: varje skruv underkands eller overdras beroende pa hur spindeln just stannade, och styrningen drar om eller stoppar pa ett vardde ingen bett om.",
+        "faller_pa": [
+          "fyra_skruvar_i_korsordning@2940ms:ST240_NOK_POS"
+        ]
+      },
+      {
+        "namn": "underkand_skruv_dras_om_automatiskt",
+        "st": "PROGRAM ST240_SKRUVSTATION\nVAR\n    steg    : INT := 0;\n    drag    : INT := 0;\n    xPos    : INT := 0;\n    xNokPos : INT := 0;\n    xDrag   : BOOL := FALSE;\n    xLas    : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrLas  : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* Korsordningen 1, 3, 2, 4: drag nummer k borjar pa position 1, 3, 2 och 4.\n   Den naturliga rakneordningen 1, 2, 3, 4 ar precis den miss uppgiften\n   handlar om. *)\nCASE drag OF\n    1: xPos := 1;\n    2: xPos := 3;\n    3: xPos := 2;\n    4: xPos := 4;\nEND_CASE;\n\n(* Lasfonstret 0,10 s borjar nar spindeln stannat, alltsa pa ST240_SCR_DONE,\n   sa att momentgivarens svarstid hinner ut med marginal. Vaktloppet 6,0 s\n   borjar nar dragningen startat. *)\ntmrLas(IN := xLas, PT := T#100ms);\ntmrVakt(IN := xDrag AND NOT ST240_SCR_DONE, PT := T#6000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xDrag := FALSE;\n    xLas := FALSE;\n    steg := 0;\n    drag := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST240_PRT_PRS AND NOT xStopp THEN\n                drag := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xDrag := TRUE;\n            steg := 2;\n        2:\n            IF ST240_SCR_DONE THEN\n                xDrag := FALSE;\n                xLas := TRUE;\n                steg := 3;\n            ELSIF tmrVakt.Q THEN\n                (* DONE uteblir: spindeln stoppas och ingen ny position\n                   borjar. *)\n                xDrag := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        3:\n            IF tmrLas.Q THEN\n                xLas := FALSE;\n                IF ST240_TRQ_VAL >= 20.0 AND ST240_TRQ_VAL <= 24.0 THEN\n                    IF drag >= 4 THEN\n                        steg := 5;\n                    ELSE\n                        drag := drag + 1;\n                        steg := 1;\n                    END_IF;\n                ELSE\n                    (* Utanfor fonstret: positionen markeras men skruven\n                       dras om igen pa en gang. *)\n                    xNokPos := xPos;\n                    steg := 1;\n                END_IF;\n            END_IF;\n        5:\n            (* Alla fyra positioner godkanda. *)\n            IF NOT ST240_PRT_PRS THEN\n                drag := 0;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xDrag := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ingen\n   dragning utan detalj, med brutet nodstopp eller utan tryckluft, och aldrig\n   nar stationen ar stoppad pa en underkand skruv. *)\nST240_SCR_POS := xPos;\nST240_SCR_START := xDrag AND ST240_PRT_PRS AND EMG_OK AND AIR_OK\n                   AND NOT xStopp;\nST240_NOK_POS := xNokPos;\nST240_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "En skruv utanfor momentfonstret dras om pa en gang, i stallet for att markeras och stoppas. En skruv som inte fatt gang bor aldrig dras om automatiskt: den andra dragningen overdriver en halvfardig gang, och en overdragen gang borjar gallra redan pa omdragningen.",
+        "faller_pa": [
+          "moment_under_fonstret_pa_position_3@9000ms:ST240_STA_STOP"
+        ]
+      },
+      {
+        "namn": "vakten_pa_done_saknas",
+        "st": "PROGRAM ST240_SKRUVSTATION\nVAR\n    steg    : INT := 0;\n    drag    : INT := 0;\n    xPos    : INT := 0;\n    xNokPos : INT := 0;\n    xDrag   : BOOL := FALSE;\n    xLas    : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrLas  : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* Korsordningen 1, 3, 2, 4: drag nummer k borjar pa position 1, 3, 2 och 4.\n   Den naturliga rakneordningen 1, 2, 3, 4 ar precis den miss uppgiften\n   handlar om. *)\nCASE drag OF\n    1: xPos := 1;\n    2: xPos := 3;\n    3: xPos := 2;\n    4: xPos := 4;\nEND_CASE;\n\n(* Lasfonstret 0,10 s borjar nar spindeln stannat, alltsa pa ST240_SCR_DONE,\n   sa att momentgivarens svarstid hinner ut med marginal. Vaktloppet 6,0 s\n   borjar nar dragningen startat. *)\ntmrLas(IN := xLas, PT := T#100ms);\ntmrVakt(IN := xDrag AND NOT ST240_SCR_DONE, PT := T#6000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xDrag := FALSE;\n    xLas := FALSE;\n    steg := 0;\n    drag := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST240_PRT_PRS AND NOT xStopp THEN\n                drag := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xDrag := TRUE;\n            steg := 2;\n        2:\n            IF ST240_SCR_DONE THEN\n                xDrag := FALSE;\n                xLas := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrLas.Q THEN\n                xLas := FALSE;\n                IF ST240_TRQ_VAL >= 20.0 AND ST240_TRQ_VAL <= 24.0 THEN\n                    IF drag >= 4 THEN\n                        steg := 5;\n                    ELSE\n                        drag := drag + 1;\n                        steg := 1;\n                    END_IF;\n                ELSE\n                    (* Utanfor fonstret 20,0 till 24,0 Nm: positionen\n                       markeras och stationen stoppas. Ingen automatisk\n                       omdragning. *)\n                    xNokPos := xPos;\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        5:\n            (* Alla fyra positioner godkanda. *)\n            IF NOT ST240_PRT_PRS THEN\n                drag := 0;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xDrag := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ingen\n   dragning utan detalj, med brutet nodstopp eller utan tryckluft, och aldrig\n   nar stationen ar stoppad pa en underkand skruv. *)\nST240_SCR_POS := xPos;\nST240_SCR_START := xDrag AND ST240_PRT_PRS AND EMG_OK AND AIR_OK\n                   AND NOT xStopp;\nST240_NOK_POS := xNokPos;\nST240_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen vantar pa ST240_SCR_DONE utan tidsgrans. En spindel som fastnat i gang eller en matare som tampar star och snurrar i all oandlighet, med startsignalen hog, och momentet lases aldrig: ingen vet om skruven sitter eller inte.",
+        "faller_pa": [
+          "done_uteblir@6140ms:ST240_SCR_START"
+        ]
+      }
+    ]
+  }
 }

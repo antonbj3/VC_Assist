@@ -322,5 +322,448 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: montagestationens egna tider ur uppgiftens text. Spannaren tar 0,6 s och vakten mot utebliven lagesgivare ar 2,0 s, alltsa mer an tre spannartider. Spannkraftens fonster 400 till 1100 N styrs av konsolens granser i scenariotexten, och normalfallet ligger pa 650 N. Takten 24,0 s per enhet ger 3600/24,0 = 150 enheter i timmen, vilket ar expect genomflodet. Detta ar manniskans facit skrivet ur scenarios normal, force_lag, force_hog och closed_uteblir samt expect, fore korning. M-124 provar facitformen.",
+    "standard": "Ordningen A fore B med spannare mellan ar cellens egen sekvens och ingen paragraf i en publicerad standard; facit sager det hellre an gissar en. Nodstoppets forregling av robot och spannare lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\"; tidskretsen for spannvakten ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST230_MONTERINGSSTATION\nVAR\n    steg      : INT := 0;\n    xPrg      : INT := 1;\n    xStartA   : BOOL := FALSE;\n    xStartB   : BOOL := FALSE;\n    xSpann    : BOOL := FALSE;\n    xStopp    : BOOL := FALSE;\n    tmrSpann  : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Vakten mot utebliven lagesgivare: 2,0 s, alltsa spannarens 0,6 s med\n   god marginal. Rakningen borjar nar spannaren kommenderas och slutar nar\n   ST230_CLP_CLOSED bekrastar. *)\ntmrSpann(IN := xSpann AND NOT ST230_CLP_CLOSED, PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStartA := FALSE;\n    xStartB := FALSE;\n    xSpann := FALSE;\n    xPrg := 1;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Program A: hamta del A och lagg den i fixturen. *)\n            xStartA := TRUE;\n            steg := 2;\n        2:\n            IF ST230_RB_DONE AND ST230_PRT_A_PRS THEN\n                xStartA := FALSE;\n                xSpann := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST230_CLP_CLOSED AND ST230_CLP_FORCE >= 400.0\n                    AND ST230_CLP_FORCE <= 1100.0 THEN\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            ELSIF ST230_CLP_CLOSED AND (ST230_CLP_FORCE < 400.0\n                    OR ST230_CLP_FORCE > 1100.0) THEN\n                (* Spant lage utan kraft, eller overkraft mot konsolen:\n                   spannaren slapps och del B laggs aldrig in. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            ELSIF tmrSpann.Q THEN\n                (* Lagesgivaren uteblir: vakten 2,0 s ar runnit. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF ST230_RB_DONE AND ST230_PRT_B_PRS THEN\n                xStartB := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST230_PRT_B_PRS THEN\n                xSpann := FALSE;\n                xPrg := 1;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSpann := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7-doktrinen):\n   spannaren kommenderas bara med del A i fixturen, B-programmet bara nar\n   stationen inte ar stoppad, och programnumret foljer sekvensens fase. *)\nST230_RB_PRG := xPrg;\nST230_RB_START := (xStartA OR xStartB) AND EMG_OK AND AIR_OK AND NOT xStopp;\nST230_CLP_CLOSE := xSpann AND ST230_PRT_A_PRS AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_enhet_a_sedan_b",
+        "beskrivning": "En enhet: program A lagger in del A, spannaren spander och bekrastar efter 0,6 s, program B lagger in del B och enheten lamnar stationen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 60,
+            "satt": {},
+            "krav": {
+              "ST230_RB_PRG": 1,
+              "ST230_RB_START": true,
+              "ST230_CLP_CLOSE": false
+            },
+            "varfor": "program A startar sa fort nodstopp och tryckluft star; spannaren kommenderas inte fore del A finns"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "ST230_PRT_A_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5000,
+            "satt": {
+              "ST230_RB_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5080,
+            "satt": {},
+            "krav": {
+              "ST230_RB_START": false,
+              "ST230_CLP_CLOSE": true,
+              "ST230_RB_PRG": 1
+            },
+            "varfor": "spannaren kommenderas forst nar program A ar klart och del A ligger an; PRG star fortfarande pa 1, B-programmet ar inte startat"
+          },
+          {
+            "t_ms": 5600,
+            "satt": {
+              "ST230_CLP_CLOSED": true,
+              "ST230_CLP_FORCE": 650.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5680,
+            "satt": {},
+            "krav": {
+              "ST230_RB_PRG": 2,
+              "ST230_RB_START": true,
+              "ST230_CLP_CLOSE": true
+            },
+            "varfor": "B-programmet startas forst nar spannarnas lagesgivare bekrastat spant lage och spannkraften 650 N ligger i fonstret 400 till 1100 N"
+          },
+          {
+            "t_ms": 5760,
+            "satt": {
+              "ST230_RB_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11000,
+            "satt": {
+              "ST230_RB_DONE": true,
+              "ST230_PRT_B_PRS": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11080,
+            "satt": {},
+            "krav": {
+              "ST230_RB_START": false,
+              "ST230_RB_PRG": 2,
+              "ST230_CLP_CLOSE": true
+            },
+            "varfor": "del B ligger pa plats och B-programmet har slappat start; fixturen forblir spand tills enheten lamnar stationen"
+          },
+          {
+            "t_ms": 12000,
+            "satt": {
+              "ST230_PRT_B_PRS": false,
+              "ST230_PRT_A_PRS": false,
+              "ST230_CLP_CLOSED": false,
+              "ST230_CLP_FORCE": 0.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12080,
+            "satt": {},
+            "krav": {
+              "ST230_CLP_CLOSE": false
+            },
+            "varfor": "spannaren slapper nar enheten lamnar stationen"
+          }
+        ]
+      },
+      {
+        "id": "closed_uteblir",
+        "beskrivning": "ST230_CLP_CLOSE satts hog men ST230_CLP_CLOSED uteblir; vakten 2,0 s loper ut och B far aldrig laggas in.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST230_PRT_A_PRS": true,
+              "ST230_RB_DONE": true,
+              "ST230_CLP_FORCE": 650.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST230_CLP_CLOSE": false,
+              "ST230_RB_START": false,
+              "ST230_RB_PRG": 1
+            },
+            "varfor": "vakten 2,0 s slapper spannkommandot; B-programmet startas aldrig pa ett ospant A"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST230_RB_PRG": 1,
+              "ST230_RB_START": false
+            },
+            "varfor": "stationen star kvar til manuell atgard; inget B-program startas senare heller"
+          }
+        ]
+      },
+      {
+        "id": "spannkraft_under_fonstret",
+        "beskrivning": "Lagesgivaren ger spant lage men spannkraften stannar pa 180 N, under den lagsta spannkraften 400 N.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST230_PRT_A_PRS": true,
+              "ST230_RB_DONE": true,
+              "ST230_CLP_FORCE": 180.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 620,
+            "satt": {
+              "ST230_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST230_CLP_CLOSE": false,
+              "ST230_RB_START": false,
+              "ST230_RB_PRG": 1
+            },
+            "varfor": "spant lage utan kraft: spannaren slapps och del B laggs aldrig in"
+          },
+          {
+            "t_ms": 800,
+            "satt": {
+              "ST230_CLP_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST230_RB_START": false,
+              "ST230_CLP_CLOSE": false
+            },
+            "varfor": "stationen forblir stoppad til manuell atgard"
+          }
+        ]
+      },
+      {
+        "id": "spannkraft_over_fonstret",
+        "beskrivning": "Spannkraften nar 1400 N, over den hogsta tillatna 1100 N for konsolen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST230_PRT_A_PRS": true,
+              "ST230_RB_DONE": true,
+              "ST230_CLP_FORCE": 1400.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 620,
+            "satt": {
+              "ST230_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 700,
+            "satt": {},
+            "krav": {
+              "ST230_CLP_CLOSE": false,
+              "ST230_RB_START": false,
+              "ST230_RB_PRG": 1
+            },
+            "varfor": "overkraft deformerar konsolen: spannaren slapps och del B laggs aldrig in"
+          },
+          {
+            "t_ms": 1600,
+            "satt": {},
+            "krav": {
+              "ST230_RB_START": false,
+              "ST230_CLP_CLOSE": false
+            },
+            "varfor": "stationen forblir stoppad; overkraft ar inget automatiken far prova igen sjalv"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_b_programmet",
+        "beskrivning": "Nodstoppskretsen bryts medan B-programmet kor och spannaren ar spand.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST230_PRT_A_PRS": true,
+              "ST230_RB_DONE": true,
+              "ST230_CLP_FORCE": 650.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST230_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1180,
+            "satt": {},
+            "krav": {
+              "ST230_RB_START": false,
+              "ST230_CLP_CLOSE": false
+            },
+            "varfor": "brutet nodstopp stoppar all robotrorelse och slapper spannaren"
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST230_RB_PRG": 1,
+              "ST230_RB_START": false
+            },
+            "varfor": "programvalet atergar till A; inget B-program ar igang efter nodstopp"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "spannaren_kommenderas_bara_med_del_a_i_fixturen",
+        "sekvens": "*",
+        "nar": {
+          "ST230_CLP_CLOSE": true
+        },
+        "kraver": {
+          "ST230_PRT_A_PRS": true
+        },
+        "varfor": "spannaren far inte kommenderas nar del A inte ligger an; backen trycker annars A ur lage"
+      },
+      {
+        "namn": "b_bar_aldrig_laggas_in_utan_spant_lage",
+        "sekvens": "*",
+        "nar": {
+          "ST230_RB_PRG": 2
+        },
+        "kraver": {
+          "ST230_CLP_CLOSED": true
+        },
+        "varfor": "del B far aldrig laggas in nar spannarnas lagesgivare inte bekrastat spant lage"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST230_RB_START": false,
+          "ST230_CLP_CLOSE": false
+        },
+        "varfor": "ingen robotrorelse och ingen spannare med brutet nodstopp"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "b_programmet_startas_efter_spannaren",
+        "sekvens": "en_enhet_a_sedan_b",
+        "signal": "ST230_RB_START",
+        "typ": "RISE",
+        "fran_ms": 5000,
+        "till_ms": 12000,
+        "antal": 1,
+        "varfor": "B-programmets start kommer efter spannkommandot vid 5000 ms och efter bekrastat spant lage, exakt en gang"
+      },
+      {
+        "namn": "ett_spannkommando_per_enhet",
+        "sekvens": "en_enhet_a_sedan_b",
+        "signal": "ST230_CLP_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 12080,
+        "antal": 1,
+        "varfor": "spannaren kommenderas exakt en gang per enhet"
+      },
+      {
+        "namn": "ingen_b_start_nar_lagesgivaren_uteblir",
+        "sekvens": "closed_uteblir",
+        "signal": "ST230_RB_START",
+        "typ": "RISE",
+        "fran_ms": 2000,
+        "till_ms": 4000,
+        "antal": 0,
+        "varfor": "uteblir lagesgivaren startas aldrig B-programmet"
+      },
+      {
+        "namn": "inget_b_program_vid_lag_spannkraft",
+        "sekvens": "spannkraft_under_fonstret",
+        "signal": "ST230_RB_START",
+        "typ": "RISE",
+        "fran_ms": 620,
+        "till_ms": 1600,
+        "antal": 0,
+        "varfor": "spannkraft under fonstret far aldrig starta B-programmet"
+      },
+      {
+        "namn": "inget_b_program_vid_overkraft",
+        "sekvens": "spannkraft_over_fonstret",
+        "signal": "ST230_RB_START",
+        "typ": "RISE",
+        "fran_ms": 620,
+        "till_ms": 1600,
+        "antal": 0,
+        "varfor": "spannkraft over fonstret far aldrig starta B-programmet"
+      },
+      {
+        "namn": "ingen_start_efter_nodstopp",
+        "sekvens": "nodstopp_mitt_i_b_programmet",
+        "signal": "ST230_RB_START",
+        "typ": "RISE",
+        "fran_ms": 1100,
+        "till_ms": 2000,
+        "antal": 0,
+        "varfor": "efter brutet nodstopp startar ingen robotrorelse av sig sjalv"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "b_startas_pa_spannkommandot",
+        "st": "PROGRAM ST230_MONTERINGSSTATION\nVAR\n    steg      : INT := 0;\n    xPrg      : INT := 1;\n    xStartA   : BOOL := FALSE;\n    xStartB   : BOOL := FALSE;\n    xSpann    : BOOL := FALSE;\n    xStopp    : BOOL := FALSE;\n    tmrSpann  : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Vakten mot utebliven lagesgivare: 2,0 s, alltsa spannarens 0,6 s med\n   god marginal. Rakningen borjar nar spannaren kommenderas och slutar nar\n   ST230_CLP_CLOSED bekrastar. *)\ntmrSpann(IN := xSpann AND NOT ST230_CLP_CLOSED, PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStartA := FALSE;\n    xStartB := FALSE;\n    xSpann := FALSE;\n    xPrg := 1;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Program A: hamta del A och lagg den i fixturen. *)\n            xStartA := TRUE;\n            steg := 2;\n        2:\n            IF ST230_RB_DONE AND ST230_PRT_A_PRS THEN\n                xStartA := FALSE;\n                xSpann := TRUE;\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            END_IF;\n        3:\n            IF ST230_CLP_CLOSED AND ST230_CLP_FORCE >= 400.0\n                    AND ST230_CLP_FORCE <= 1100.0 THEN\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            ELSIF ST230_CLP_CLOSED AND (ST230_CLP_FORCE < 400.0\n                    OR ST230_CLP_FORCE > 1100.0) THEN\n                (* Spant lage utan kraft, eller overkraft mot konsolen:\n                   spannaren slapps och del B laggs aldrig in. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            ELSIF tmrSpann.Q THEN\n                (* Lagesgivaren uteblir: vakten 2,0 s ar runnit. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF ST230_RB_DONE AND ST230_PRT_B_PRS THEN\n                xStartB := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST230_PRT_B_PRS THEN\n                xSpann := FALSE;\n                xPrg := 1;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSpann := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7-doktrinen):\n   spannaren kommenderas bara med del A i fixturen, B-programmet bara nar\n   stationen inte ar stoppad, och programnumret foljer sekvensens fase. *)\nST230_RB_PRG := xPrg;\nST230_RB_START := (xStartA OR xStartB) AND EMG_OK AND AIR_OK AND NOT xStopp;\nST230_CLP_CLOSE := xSpann AND ST230_PRT_A_PRS AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "B-programmet startas i samma andetag som spannkommandot, pa ST230_CLP_CLOSE i stallet for pa ST230_CLP_CLOSED. Sa lange spannarna rakar sluta innan roboten nar fixturen ser cellen gron ut, men nar spannaren drar eller lagesgivaren staller sig trycks ett ospant A ur lage av B, och felet syns forst i skruvstationen.",
+        "faller_pa": [
+          "en_enhet_a_sedan_b@5080ms:ST230_RB_PRG"
+        ]
+      },
+      {
+        "namn": "vakten_pa_lagesgivaren_saknas",
+        "st": "PROGRAM ST230_MONTERINGSSTATION\nVAR\n    steg      : INT := 0;\n    xPrg      : INT := 1;\n    xStartA   : BOOL := FALSE;\n    xStartB   : BOOL := FALSE;\n    xSpann    : BOOL := FALSE;\n    xStopp    : BOOL := FALSE;\n    tmrSpann  : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Vakten mot utebliven lagesgivare: 2,0 s, alltsa spannarens 0,6 s med\n   god marginal. Rakningen borjar nar spannaren kommenderas och slutar nar\n   ST230_CLP_CLOSED bekrastar. *)\ntmrSpann(IN := xSpann AND NOT ST230_CLP_CLOSED, PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStartA := FALSE;\n    xStartB := FALSE;\n    xSpann := FALSE;\n    xPrg := 1;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Program A: hamta del A och lagg den i fixturen. *)\n            xStartA := TRUE;\n            steg := 2;\n        2:\n            IF ST230_RB_DONE AND ST230_PRT_A_PRS THEN\n                xStartA := FALSE;\n                xSpann := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST230_CLP_CLOSED AND ST230_CLP_FORCE >= 400.0\n                    AND ST230_CLP_FORCE <= 1100.0 THEN\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            ELSIF ST230_CLP_CLOSED AND (ST230_CLP_FORCE < 400.0\n                    OR ST230_CLP_FORCE > 1100.0) THEN\n                (* Spant lage utan kraft, eller overkraft mot konsolen:\n                   spannaren slapps och del B laggs aldrig in. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF ST230_RB_DONE AND ST230_PRT_B_PRS THEN\n                xStartB := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST230_PRT_B_PRS THEN\n                xSpann := FALSE;\n                xPrg := 1;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSpann := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7-doktrinen):\n   spannaren kommenderas bara med del A i fixturen, B-programmet bara nar\n   stationen inte ar stoppad, och programnumret foljer sekvensens fase. *)\nST230_RB_PRG := xPrg;\nST230_RB_START := (xStartA OR xStartB) AND EMG_OK AND AIR_OK AND NOT xStopp;\nST230_CLP_CLOSE := xSpann AND ST230_PRT_A_PRS AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Styrningen vantar pa ST230_CLP_CLOSED utan tidsgrans. Givaren som aldrig kommer lat spannkommandot sta hogt i all oandlighet medan tryckluften lar ga at genom spannaren, och ingen larm nars operatoren.",
+        "faller_pa": [
+          "closed_uteblir@2200ms:ST230_CLP_CLOSE"
+        ]
+      },
+      {
+        "namn": "spannkraften_lases_aldrig",
+        "st": "PROGRAM ST230_MONTERINGSSTATION\nVAR\n    steg      : INT := 0;\n    xPrg      : INT := 1;\n    xStartA   : BOOL := FALSE;\n    xStartB   : BOOL := FALSE;\n    xSpann    : BOOL := FALSE;\n    xStopp    : BOOL := FALSE;\n    tmrSpann  : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Vakten mot utebliven lagesgivare: 2,0 s, alltsa spannarens 0,6 s med\n   god marginal. Rakningen borjar nar spannaren kommenderas och slutar nar\n   ST230_CLP_CLOSED bekrastar. *)\ntmrSpann(IN := xSpann AND NOT ST230_CLP_CLOSED, PT := T#2000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStartA := FALSE;\n    xStartB := FALSE;\n    xSpann := FALSE;\n    xPrg := 1;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Program A: hamta del A och lagg den i fixturen. *)\n            xStartA := TRUE;\n            steg := 2;\n        2:\n            IF ST230_RB_DONE AND ST230_PRT_A_PRS THEN\n                xStartA := FALSE;\n                xSpann := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST230_CLP_CLOSED THEN\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            ELSIF FALSE THEN\n                (* Spant lage utan kraft, eller overkraft mot konsolen:\n                   spannaren slapps och del B laggs aldrig in. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            ELSIF tmrSpann.Q THEN\n                (* Lagesgivaren uteblir: vakten 2,0 s ar runnit. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF ST230_RB_DONE AND ST230_PRT_B_PRS THEN\n                xStartB := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST230_PRT_B_PRS THEN\n                xSpann := FALSE;\n                xPrg := 1;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSpann := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7-doktrinen):\n   spannaren kommenderas bara med del A i fixturen, B-programmet bara nar\n   stationen inte ar stoppad, och programnumret foljer sekvensens fase. *)\nST230_RB_PRG := xPrg;\nST230_RB_START := (xStartA OR xStartB) AND EMG_OK AND AIR_OK AND NOT xStopp;\nST230_CLP_CLOSE := xSpann AND ST230_PRT_A_PRS AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Lagesgivarens spanta lage racker som bekrastelse; spannkraften lases aldrig. En tom luftledning spanner fixturen med 180 N och cellen fortsatter som om ingenting hant, till detaljen glider under B-palettningen.",
+        "faller_pa": [
+          "spannkraft_under_fonstret@700ms:ST230_CLP_CLOSE"
+        ]
+      },
+      {
+        "namn": "nodstoppskretsen_forreglar_inte",
+        "st": "PROGRAM ST230_MONTERINGSSTATION\nVAR\n    steg      : INT := 0;\n    xPrg      : INT := 1;\n    xStartA   : BOOL := FALSE;\n    xStartB   : BOOL := FALSE;\n    xSpann    : BOOL := FALSE;\n    xStopp    : BOOL := FALSE;\n    tmrSpann  : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Vakten mot utebliven lagesgivare: 2,0 s, alltsa spannarens 0,6 s med\n   god marginal. Rakningen borjar nar spannaren kommenderas och slutar nar\n   ST230_CLP_CLOSED bekrastar. *)\ntmrSpann(IN := xSpann AND NOT ST230_CLP_CLOSED, PT := T#2000ms);\n\nIF NOT AIR_OK THEN\n    xStartA := FALSE;\n    xStartB := FALSE;\n    xSpann := FALSE;\n    xPrg := 1;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF EMG_OK AND AIR_OK THEN\n                steg := 1;\n            END_IF;\n        1:\n            (* Program A: hamta del A och lagg den i fixturen. *)\n            xStartA := TRUE;\n            steg := 2;\n        2:\n            IF ST230_RB_DONE AND ST230_PRT_A_PRS THEN\n                xStartA := FALSE;\n                xSpann := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST230_CLP_CLOSED AND ST230_CLP_FORCE >= 400.0\n                    AND ST230_CLP_FORCE <= 1100.0 THEN\n                xPrg := 2;\n                xStartB := TRUE;\n                steg := 4;\n            ELSIF ST230_CLP_CLOSED AND (ST230_CLP_FORCE < 400.0\n                    OR ST230_CLP_FORCE > 1100.0) THEN\n                (* Spant lage utan kraft, eller overkraft mot konsolen:\n                   spannaren slapps och del B laggs aldrig in. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            ELSIF tmrSpann.Q THEN\n                (* Lagesgivaren uteblir: vakten 2,0 s ar runnit. *)\n                xSpann := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF ST230_RB_DONE AND ST230_PRT_B_PRS THEN\n                xStartB := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST230_PRT_B_PRS THEN\n                xSpann := FALSE;\n                xPrg := 1;\n                steg := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSpann := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7-doktrinen):\n   spannaren kommenderas bara med del A i fixturen, B-programmet bara nar\n   stationen inte ar stoppad, och programnumret foljer sekvensens fase. *)\nST230_RB_PRG := xPrg;\nST230_RB_START := (xStartA OR xStartB) AND AIR_OK AND NOT xStopp;\nST230_CLP_CLOSE := xSpann AND ST230_PRT_A_PRS AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "EMG_OK lases in nagonstans men forreglar varken roboten eller spannaren. Cellen fortsatter montera med brutet nodstopp, och forst nar nagon trycker pallbrytaren med handen blir stillastallningen verklig.",
+        "faller_pa": [
+          "nodstopp_mitt_i_b_programmet@1180ms:ST230_RB_START"
+        ]
+      }
+    ]
+  }
 }

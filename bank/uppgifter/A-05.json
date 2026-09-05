@@ -295,5 +295,768 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: punktsvetscellens egna tider ur uppgiftens text. Halltiden 0,25 s = 12,5 scan a 20 ms och vakten mot utebliven ST280_WLD_DONE ar 2,5 s. Varje punkt tar 2,0 s i sparet, alltsa 8*2,0 = 16,0 s svetsdel, och takten 34,0 s per detalj ger 3600/34,0 = 105,9 enheter i timmen, vilket ar expect genomflodet. Frasningsgransen 200 svetsar motsvarar 200/8 = 25 detaljer mellan frasningar. Scenariot elc_lag, en raknare som star pa 0, ar inte dombart mot sparet: ett larm kraver en larmsignal och signalkartan bar ingen, sa facit domer vad det kan och saga det har. Detta ar manniskans facit skrivet ur scenarios normal, elc_hog och done_uteblir samt expect, fore korning. M-124 provar facitformen.",
+    "standard": "Att detaljen ska ligga spand i fixturen medan pistolen trycker lutar mot ISO 23125:2015 5.2.3 \"Workpiece clamping conditions\" for motstandsvetsning. Halltiden 0,25 s, svetstiden och frasningsgransen 200 svetsar ar stationens egna valda tal, inte nagon paragraf; facit sager det. Tidskretsarna ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46), och nodstoppets forregling av svets och pistol lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" med ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\".",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST280_PUNKTSVETSCELL\nVAR\n    steg    : INT := 0;\n    punkt   : INT := 0;\n    xPistol : BOOL := FALSE;\n    xSvet   : BOOL := FALSE;\n    xHall   : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrHall : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Halltiden 0,25 s borjar nar svetstimern sag klart, alltsa pa\n   ST280_WLD_DONE, och pistolen oppnar forst nar halltiden runnit ut.\n   Vaktloppet 2,5 s borjar nar svetsen begards och slutar nar timern\n   kvitterar. *)\ntmrHall(IN := xHall, PT := T#250ms);\ntmrVakt(IN := xSvet AND NOT ST280_WLD_DONE, PT := T#2500ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xPistol := FALSE;\n    xSvet := FALSE;\n    xHall := FALSE;\n    steg := 0;\n    punkt := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST280_PRT_PRS AND ST280_ELC_CNT < 200 AND NOT xStopp THEN\n                punkt := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xPistol := TRUE;\n            steg := 2;\n        2:\n            IF ST280_GUN_CLOSED THEN\n                xSvet := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST280_WLD_DONE THEN\n                xSvet := FALSE;\n                xHall := TRUE;\n                steg := 4;\n            ELSIF tmrVakt.Q THEN\n                (* Svetsen uteblir: strommen slacks men pistolen haller\n                   detaljen kvar. Roboten far inte flytta pistolen. *)\n                xSvet := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF tmrHall.Q THEN\n                xHall := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST280_GUN_CLOSED THEN\n                IF punkt >= 8 THEN\n                    steg := 6;\n                ELSE\n                    punkt := punkt + 1;\n                    xPistol := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        6:\n            (* Alla atta punkter svetsade. Enheten lamnar cellen forst nu. *)\n            IF NOT ST280_PRT_PRS THEN\n                steg := 0;\n                punkt := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSvet := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): pistolen\n   trycker bara mot en detalj som ligger i fixturen, svetstrommen bara genom\n   en sluten pistol, och frasningen begars av raknaren som den ar. *)\nST280_WLD_POS := punkt;\nST280_GUN_CLOSE := xPistol AND ST280_PRT_PRS AND EMG_OK AND AIR_OK;\nST280_WLD_START := xSvet AND ST280_GUN_CLOSED AND EMG_OK AND AIR_OK;\nST280_DRS_REQ := (ST280_ELC_CNT >= 200) AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "atta_punkter_i_ordning",
+        "beskrivning": "En detalj svetsas i atta punkter i ordningen 1 till 8: pistolen stangs, svetsen startar pa bekrastat slutet lage, strommen slapps pa klarsignalen och pistolen oppnar forst 0,25 s senare.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST280_PRT_PRS": true,
+              "ST280_ELC_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 1,
+              "ST280_WLD_START": false
+            },
+            "varfor": "punkt 1 borjar med pistolen pa vag att stangas; svetsen startas inte fore sluten pistol"
+          },
+          {
+            "t_ms": 420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_GUN_CLOSE": true
+            },
+            "varfor": "svetsen begars forst nar pistolen bekrastat sluten mot detaljen"
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false,
+              "ST280_GUN_CLOSE": true
+            },
+            "varfor": "strommen slapps pa svetstimerns klarsignal; pistolen haller detaljen under eferhallningen"
+          },
+          {
+            "t_ms": 1660,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 1
+            },
+            "varfor": "halltiden 0,25 s pagar fortfarande: pistolen har inte oppnat och roboten har inte flyttat detaljen"
+          },
+          {
+            "t_ms": 2420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 9420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 11420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 12420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 13420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 14420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 15420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 16020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2100,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 2,
+              "ST280_WLD_START": false
+            },
+            "varfor": "nasta punkt borjar forst nar pistolen oppnat; roboten far flytta detaljen forst nu"
+          },
+          {
+            "t_ms": 8500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_WLD_POS": 5
+            },
+            "varfor": "punkt fem i ordningen: varje punkt startas pa sluten pistol"
+          },
+          {
+            "t_ms": 14500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_WLD_POS": 8
+            },
+            "varfor": "punkt atta i ordningen"
+          },
+          {
+            "t_ms": 15660,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": true
+            },
+            "varfor": "den sista punktens halltid pagar: pistolen forblir sluten 0,25 s efter klarsignalen"
+          },
+          {
+            "t_ms": 16100,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": false,
+              "ST280_WLD_POS": 8
+            },
+            "varfor": "efter den attaende punkten oppnar pistolen och inget nytt punktnummer ges"
+          },
+          {
+            "t_ms": 17000,
+            "satt": {
+              "ST280_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 17080,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_POS": 0
+            },
+            "varfor": "cellen nollstalls forst nar enheten lamnat"
+          }
+        ]
+      },
+      {
+        "id": "utebliven_svets_pa_punkt_5",
+        "beskrivning": "ST280_WLD_START satts hog pa punkt 5 men ST280_WLD_DONE uteblir; pistolen ska hallas sluten och strommen slackas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST280_PRT_PRS": true,
+              "ST280_ELC_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 1
+            },
+            "varfor": "punkt 1 paborjas"
+          },
+          {
+            "t_ms": 420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7420,
+            "satt": {
+              "ST280_WLD_DONE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8020,
+            "satt": {
+              "ST280_GUN_CLOSED": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false,
+              "ST280_GUN_CLOSE": true
+            },
+            "varfor": "punkt 1 ar klar och pistolen haller detaljen"
+          },
+          {
+            "t_ms": 8420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_WLD_POS": 5
+            },
+            "varfor": "punkt 5 svetsas: starten ar gjord men svetstimern kvitterar aldrig"
+          },
+          {
+            "t_ms": 11020,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false,
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 5
+            },
+            "varfor": "svetstrommen slacks men pistolen haller detaljen kvar; roboten far aldrig flytta detaljen med sluten pistol och gaende strom"
+          },
+          {
+            "t_ms": 14000,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false,
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 5
+            },
+            "varfor": "cellen star kvar til manuell atgard och inget nytt punktnummer ges"
+          }
+        ]
+      },
+      {
+        "id": "elektroderna_behover_frasning",
+        "beskrivning": "ST280_ELC_CNT nar 260, over gransen 200; frasning begars och ingen ny detalj paborjas forran raknaren nollstalls.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST280_PRT_PRS": true,
+              "ST280_ELC_CNT": 260
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST280_DRS_REQ": true,
+              "ST280_GUN_CLOSE": false,
+              "ST280_WLD_POS": 0
+            },
+            "varfor": "raknaren over 200: frasning begars och ingen punkt paborjas"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {
+              "ST280_ELC_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4080,
+            "satt": {},
+            "krav": {
+              "ST280_DRS_REQ": false,
+              "ST280_GUN_CLOSE": true,
+              "ST280_WLD_POS": 1
+            },
+            "varfor": "efter nollstallning begars ingen frasning langre och punkt 1 paborjas"
+          },
+          {
+            "t_ms": 4420,
+            "satt": {
+              "ST280_GUN_CLOSED": true,
+              "ST280_WLD_DONE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 4500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_WLD_POS": 1
+            },
+            "varfor": "svetsen paborjas forst efter frasningen, pa sluten pistol"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_en_svets",
+        "beskrivning": "Nodstoppskretsen bryts medan punkt 1 svetsas.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST280_PRT_PRS": true,
+              "ST280_ELC_CNT": 0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 420,
+            "satt": {
+              "ST280_GUN_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": true,
+              "ST280_GUN_CLOSE": true
+            },
+            "varfor": "svetsen pa punkt 1 pagar"
+          },
+          {
+            "t_ms": 1400,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1480,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false,
+              "ST280_GUN_CLOSE": false
+            },
+            "varfor": "brutet nodstopp slacker bade svetsstrom och pistol"
+          },
+          {
+            "t_ms": 2500,
+            "satt": {},
+            "krav": {
+              "ST280_WLD_START": false
+            },
+            "varfor": "ingen aterstart av sig sjalv"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "svets_bara_med_sluten_pistol",
+        "sekvens": "*",
+        "nar": {
+          "ST280_WLD_START": true
+        },
+        "kraver": {
+          "ST280_GUN_CLOSED": true
+        },
+        "varfor": "ST280_WLD_START far aldrig ga hog nar pistolen inte ar sluten mot detaljen"
+      },
+      {
+        "namn": "pistolen_trycker_bara_mot_en_detalj",
+        "sekvens": "*",
+        "nar": {
+          "ST280_GUN_CLOSE": true
+        },
+        "kraver": {
+          "ST280_PRT_PRS": true
+        },
+        "varfor": "pistolen far inte trycka mot en tom fixtur; elektroderna deformeras"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST280_WLD_START": false,
+          "ST280_GUN_CLOSE": false,
+          "ST280_DRS_REQ": false
+        },
+        "varfor": "ingen svets och ingen pistol med brutet nodstopp"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST280_WLD_START": false,
+          "ST280_GUN_CLOSE": false
+        },
+        "varfor": "punktsvetspistolen ar pneumatisk; utan tryckluft holder den inte detaljen"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_svetsstart_per_punkt",
+        "sekvens": "atta_punkter_i_ordning",
+        "signal": "ST280_WLD_START",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 16020,
+        "antal": 8,
+        "varfor": "exakt en svetsstart per punkt, atta per detalj"
+      },
+      {
+        "namn": "ett_pistolstangning_per_punkt",
+        "sekvens": "atta_punkter_i_ordning",
+        "signal": "ST280_GUN_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 16020,
+        "antal": 8,
+        "varfor": "pistolen stangs exakt en gang per punkt"
+      },
+      {
+        "namn": "pistolen_oppnar_inte_efter_utebliven_svets",
+        "sekvens": "utebliven_svets_pa_punkt_5",
+        "signal": "ST280_GUN_CLOSE",
+        "typ": "FALL",
+        "fran_ms": 10940,
+        "till_ms": 14000,
+        "antal": 0,
+        "varfor": "nar svetsen uteblir haller pistolen detaljen; den oppnar inte av sig sjalv"
+      },
+      {
+        "namn": "ingen_punkt_ovanfor_frasningsgransen",
+        "sekvens": "elektroderna_behover_frasning",
+        "signal": "ST280_GUN_CLOSE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 4000,
+        "antal": 0,
+        "varfor": "ingen punkt paborjas medan raknaren star over frasningsgransen"
+      },
+      {
+        "namn": "frisningsbegaran_stangs_vid_nollstallning",
+        "sekvens": "elektroderna_behover_frasning",
+        "signal": "ST280_DRS_REQ",
+        "typ": "FALL",
+        "fran_ms": 4000,
+        "till_ms": 4600,
+        "antal": 1,
+        "varfor": "begaran om frasning slapps nar raknaren nollstalls"
+      },
+      {
+        "namn": "ingen_aterstart_efter_nodstopp",
+        "sekvens": "nodstopp_mitt_i_en_svets",
+        "signal": "ST280_WLD_START",
+        "typ": "RISE",
+        "fran_ms": 1400,
+        "till_ms": 2500,
+        "antal": 0,
+        "varfor": "efter brutet nodstopp startar ingen svets av sig sjalv"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "nasta_punkt_pa_fast_tid",
+        "st": "PROGRAM ST280_PUNKTSVETSCELL\nVAR\n    steg    : INT := 0;\n    punkt   : INT := 0;\n    xPistol : BOOL := FALSE;\n    xSvet   : BOOL := FALSE;\n    xHall   : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrHall : TON;\n    tmrVakt : TON;\n    tmrFast : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Halltiden 0,25 s borjar nar svetstimern sag klart, alltsa pa\n   ST280_WLD_DONE, och pistolen oppnar forst nar halltiden runnit ut.\n   Vaktloppet 2,5 s borjar nar svetsen begards och slutar nar timern\n   kvitterar. *)\ntmrHall(IN := xHall, PT := T#250ms);\ntmrVakt(IN := xSvet AND NOT ST280_WLD_DONE, PT := T#2500ms);\ntmrFast(IN := xSvet, PT := T#1000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xPistol := FALSE;\n    xSvet := FALSE;\n    xHall := FALSE;\n    steg := 0;\n    punkt := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST280_PRT_PRS AND ST280_ELC_CNT < 200 AND NOT xStopp THEN\n                punkt := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xPistol := TRUE;\n            steg := 2;\n        2:\n            IF ST280_GUN_CLOSED THEN\n                xSvet := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrFast.Q THEN\n                xSvet := FALSE;\n                xHall := TRUE;\n                steg := 4;\n            ELSIF tmrVakt.Q THEN\n                (* Svetsen uteblir: strommen slacks men pistolen haller\n                   detaljen kvar. Roboten far inte flytta pistolen. *)\n                xSvet := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF tmrHall.Q THEN\n                xHall := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST280_GUN_CLOSED THEN\n                IF punkt >= 8 THEN\n                    steg := 6;\n                ELSE\n                    punkt := punkt + 1;\n                    xPistol := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        6:\n            (* Alla atta punkter svetsade. Enheten lamnar cellen forst nu. *)\n            IF NOT ST280_PRT_PRS THEN\n                steg := 0;\n                punkt := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSvet := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): pistolen\n   trycker bara mot en detalj som ligger i fixturen, svetstrommen bara genom\n   en sluten pistol, och frasningen begars av raknaren som den ar. *)\nST280_WLD_POS := punkt;\nST280_GUN_CLOSE := xPistol AND ST280_PRT_PRS AND EMG_OK AND AIR_OK;\nST280_WLD_START := xSvet AND ST280_GUN_CLOSED AND EMG_OK AND AIR_OK;\nST280_DRS_REQ := (ST280_ELC_CNT >= 200) AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Punkten avslutas pa en fast tid, en sekund efter starten, i stallet for pa ST280_WLD_DONE fran svetstimern. Sa lange varje svets tar precis en sekund ser cellen gron ut, men nar en svets behover langre tid dras pistolen medan strommen gar eller oppnar medan smaltan fortfarande ar halvflytande: svetsen blir kall och syns forst i provbrottet veckor senare.",
+        "faller_pa": [
+          "utebliven_svets_pa_punkt_5@11020ms:ST280_GUN_CLOSE"
+        ]
+      },
+      {
+        "namn": "pistolen_oppnar_fore_halltiden",
+        "st": "PROGRAM ST280_PUNKTSVETSCELL\nVAR\n    steg    : INT := 0;\n    punkt   : INT := 0;\n    xPistol : BOOL := FALSE;\n    xSvet   : BOOL := FALSE;\n    xHall   : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrHall : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Halltiden 0,25 s borjar nar svetstimern sag klart, alltsa pa\n   ST280_WLD_DONE, och pistolen oppnar forst nar halltiden runnit ut.\n   Vaktloppet 2,5 s borjar nar svetsen begards och slutar nar timern\n   kvitterar. *)\ntmrHall(IN := xHall, PT := T#250ms);\ntmrVakt(IN := xSvet AND NOT ST280_WLD_DONE, PT := T#2500ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xPistol := FALSE;\n    xSvet := FALSE;\n    xHall := FALSE;\n    steg := 0;\n    punkt := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST280_PRT_PRS AND ST280_ELC_CNT < 200 AND NOT xStopp THEN\n                punkt := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xPistol := TRUE;\n            steg := 2;\n        2:\n            IF ST280_GUN_CLOSED THEN\n                xSvet := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST280_WLD_DONE THEN\n                xSvet := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            ELSIF tmrVakt.Q THEN\n                (* Svetsen uteblir: strommen slacks men pistolen haller\n                   detaljen kvar. Roboten far inte flytta pistolen. *)\n                xSvet := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF tmrHall.Q THEN\n                xHall := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST280_GUN_CLOSED THEN\n                IF punkt >= 8 THEN\n                    steg := 6;\n                ELSE\n                    punkt := punkt + 1;\n                    xPistol := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        6:\n            (* Alla atta punkter svetsade. Enheten lamnar cellen forst nu. *)\n            IF NOT ST280_PRT_PRS THEN\n                steg := 0;\n                punkt := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSvet := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): pistolen\n   trycker bara mot en detalj som ligger i fixturen, svetstrommen bara genom\n   en sluten pistol, och frasningen begars av raknaren som den ar. *)\nST280_WLD_POS := punkt;\nST280_GUN_CLOSE := xPistol AND ST280_PRT_PRS AND EMG_OK AND AIR_OK;\nST280_WLD_START := xSvet AND ST280_GUN_CLOSED AND EMG_OK AND AIR_OK;\nST280_DRS_REQ := (ST280_ELC_CNT >= 200) AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Pistolen oppnas i samma andetag som svetsstrommen slacks. Eferhallningen 0,25 s finns inte i koden: cykeln blir kvart sekund kortare per punkt och takten ser battre ut, men varje svetpunkt lossnar ur detaljen medan smaltan fortfarande ar mjuk, och provet haller bara nar ingen kollar.",
+        "faller_pa": [
+          "atta_punkter_i_ordning@1660ms:ST280_GUN_CLOSE"
+        ]
+      },
+      {
+        "namn": "raknaren_pavverkar_ingenting",
+        "st": "PROGRAM ST280_PUNKTSVETSCELL\nVAR\n    steg    : INT := 0;\n    punkt   : INT := 0;\n    xPistol : BOOL := FALSE;\n    xSvet   : BOOL := FALSE;\n    xHall   : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrHall : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Halltiden 0,25 s borjar nar svetstimern sag klart, alltsa pa\n   ST280_WLD_DONE, och pistolen oppnar forst nar halltiden runnit ut.\n   Vaktloppet 2,5 s borjar nar svetsen begards och slutar nar timern\n   kvitterar. *)\ntmrHall(IN := xHall, PT := T#250ms);\ntmrVakt(IN := xSvet AND NOT ST280_WLD_DONE, PT := T#2500ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xPistol := FALSE;\n    xSvet := FALSE;\n    xHall := FALSE;\n    steg := 0;\n    punkt := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST280_PRT_PRS AND NOT xStopp THEN\n                punkt := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xPistol := TRUE;\n            steg := 2;\n        2:\n            IF ST280_GUN_CLOSED THEN\n                xSvet := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST280_WLD_DONE THEN\n                xSvet := FALSE;\n                xHall := TRUE;\n                steg := 4;\n            ELSIF tmrVakt.Q THEN\n                (* Svetsen uteblir: strommen slacks men pistolen haller\n                   detaljen kvar. Roboten far inte flytta pistolen. *)\n                xSvet := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF tmrHall.Q THEN\n                xHall := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST280_GUN_CLOSED THEN\n                IF punkt >= 8 THEN\n                    steg := 6;\n                ELSE\n                    punkt := punkt + 1;\n                    xPistol := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        6:\n            (* Alla atta punkter svetsade. Enheten lamnar cellen forst nu. *)\n            IF NOT ST280_PRT_PRS THEN\n                steg := 0;\n                punkt := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSvet := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): pistolen\n   trycker bara mot en detalj som ligger i fixturen, svetstrommen bara genom\n   en sluten pistol, och frasningen begars av raknaren som den ar. *)\nST280_WLD_POS := punkt;\nST280_GUN_CLOSE := xPistol AND ST280_PRT_PRS AND EMG_OK AND AIR_OK;\nST280_WLD_START := xSvet AND ST280_GUN_CLOSED AND EMG_OK AND AIR_OK;\nST280_DRS_REQ := (ST280_ELC_CNT >= 200) AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Elektrodraknaren lases men styr ingen sekvens: ny detalj paborjas aven nar raknaren passerat 200 svetsar och frasning begards. Slitna elektroder ger kalla svetsar en hel produktionsserie innan nagon marker att tippdiametern blivit platt.",
+        "faller_pa": [
+          "elektroderna_behover_frasning@80ms:ST280_GUN_CLOSE"
+        ]
+      },
+      {
+        "namn": "svetsen_startas_fore_sluten_pistol",
+        "st": "PROGRAM ST280_PUNKTSVETSCELL\nVAR\n    steg    : INT := 0;\n    punkt   : INT := 0;\n    xPistol : BOOL := FALSE;\n    xSvet   : BOOL := FALSE;\n    xHall   : BOOL := FALSE;\n    xStopp  : BOOL := FALSE;\n    tmrHall : TON;\n    tmrVakt : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Halltiden 0,25 s borjar nar svetstimern sag klart, alltsa pa\n   ST280_WLD_DONE, och pistolen oppnar forst nar halltiden runnit ut.\n   Vaktloppet 2,5 s borjar nar svetsen begards och slutar nar timern\n   kvitterar. *)\ntmrHall(IN := xHall, PT := T#250ms);\ntmrVakt(IN := xSvet AND NOT ST280_WLD_DONE, PT := T#2500ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xPistol := FALSE;\n    xSvet := FALSE;\n    xHall := FALSE;\n    steg := 0;\n    punkt := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST280_PRT_PRS AND ST280_ELC_CNT < 200 AND NOT xStopp THEN\n                punkt := 1;\n                steg := 1;\n            END_IF;\n        1:\n            xPistol := TRUE;\n            xSvet := TRUE;\n            steg := 2;\n        2:\n            IF ST280_GUN_CLOSED THEN\n                xSvet := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST280_WLD_DONE THEN\n                xSvet := FALSE;\n                xHall := TRUE;\n                steg := 4;\n            ELSIF tmrVakt.Q THEN\n                (* Svetsen uteblir: strommen slacks men pistolen haller\n                   detaljen kvar. Roboten far inte flytta pistolen. *)\n                xSvet := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        4:\n            IF tmrHall.Q THEN\n                xHall := FALSE;\n                xPistol := FALSE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST280_GUN_CLOSED THEN\n                IF punkt >= 8 THEN\n                    steg := 6;\n                ELSE\n                    punkt := punkt + 1;\n                    xPistol := TRUE;\n                    steg := 2;\n                END_IF;\n            END_IF;\n        6:\n            (* Alla atta punkter svetsade. Enheten lamnar cellen forst nu. *)\n            IF NOT ST280_PRT_PRS THEN\n                steg := 0;\n                punkt := 0;\n            END_IF;\n        9:\n            (* Last til manuell atgard. *)\n            xSvet := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): pistolen\n   trycker bara mot en detalj som ligger i fixturen, svetstrommen bara genom\n   en sluten pistol, och frasningen begars av raknaren som den ar. *)\nST280_WLD_POS := punkt;\nST280_GUN_CLOSE := xPistol AND ST280_PRT_PRS AND EMG_OK AND AIR_OK;\nST280_WLD_START := xSvet AND EMG_OK AND AIR_OK;\nST280_DRS_REQ := (ST280_ELC_CNT >= 200) AND EMG_OK AND AIR_OK;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Svetstrommen kommenderas i samma andetag som pistolen, pa pistolkommandot i stallet for pa bekrastat slutet lage. En pistol som inte trycker detaljen ger en svets i luften eller en brandskada pa pistolveggan, och forst nar nagon hor smalleten spotta syntes felet.",
+        "faller_pa": [
+          "atta_punkter_i_ordning@80ms:ST280_WLD_START"
+        ]
+      }
+    ]
+  }
 }

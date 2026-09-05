@@ -339,5 +339,494 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: limningscellens egna matt ur uppgiftens text. Holjets omkrets ar (180 + 120) * 2 = 600 mm och med overlapp i skarven blir strangen 640 mm inom fonstret 620 till 660 mm. Doseringen 8,0 s ger 640/8,0 = 80 mm per sekund. Oppentiden 180,0 s raknas fran fallande flank pa ST290_ADH_VALVE, och lock och spanning ar klara cirka 0,8 s efter ventilnedslag, alltsa med 179 s marginal. Takten 46,0 s per enhet ger 3600/46,0 = 78,3 enheter i timmen, vilket ar expect genomflodet. Temperaturfonstret 150 till 190 grader och normalfallet 172 grader star i scenariotexten. Detta ar manniskans facit skrivet ur scenarios normal, temp_lag, temp_hog, len_lag, len_hog och closed_uteblir samt expect, fore korning. M-124 provar facitformen.",
+    "standard": "Oppentiden 180,0 s, doseringstiden och langdfonstret ar limtypens och stationens egna tal ur uppgiftens text, inte nagon paragraf i en publicerad standard; facit sager det hellre an gissar en. Att en avbruten dosering inte far aterupptas och att nodstoppet forreglar ventilen lutar mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\", och tidskretsarna ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST290_LIMNINGSCELL\nVAR\n    steg     : INT := 0;\n    xStart   : BOOL := FALSE;\n    xValv    : BOOL := FALSE;\n    xTrig    : BOOL := FALSE;\n    xLid     : BOOL := FALSE;\n    xSpann   : BOOL := FALSE;\n    xOppen   : BOOL := FALSE;\n    xStopp   : BOOL := FALSE;\n    tmrDos   : TON;\n    tmrOppen : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Doseringen 8,0 s, och ventilen stangs aven pa robotprogrammets egna\n   klarbesked ST290_RB_DONE. Oppentiden 180,0 s borjar nar doseringsventilen\n   STANGS, alltsa nar ST290_ADH_VALVE gar lag, och aldrig nar programmet\n   startar: en strang som tar langre tid ar fortfarande limmets egen klocka. *)\ntmrDos(IN := xValv, PT := T#8000ms);\ntmrOppen(IN := xOppen, PT := T#180000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStart := FALSE;\n    xValv := FALSE;\n    xTrig := FALSE;\n    xLid := FALSE;\n    xSpann := FALSE;\n    xOppen := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF (ST290_ADH_TEMP >= 150.0) AND (ST290_ADH_TEMP <= 190.0)\n                    AND NOT xStopp THEN\n                steg := 1;\n            ELSIF ST290_ADH_TEMP > 190.0 THEN\n                (* Overhettat lim skinnar snabbare och oppentiden galler\n                   inte langre: stationen stoppas. *)\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        1:\n            xStart := TRUE;\n            xValv := TRUE;\n            steg := 2;\n        2:\n            IF tmrDos.Q OR ST290_RB_DONE THEN\n                xValv := FALSE;\n                xOppen := TRUE;\n                xStart := FALSE;\n                xTrig := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST290_CAM_LEN > 0.0 THEN\n                xTrig := FALSE;\n                IF (ST290_CAM_LEN >= 620.0) AND (ST290_CAM_LEN <= 660.0) THEN\n                    xLid := TRUE;\n                    steg := 4;\n                ELSE\n                    (* Brott i strangen eller dubbeldosering: locket laggs\n                       aldrig pa och enheten lamnas oppen. *)\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        4:\n            xSpann := TRUE;\n            steg := 5;\n        5:\n            IF ST290_CLP_CLOSED AND NOT tmrOppen.Q THEN\n                steg := 6;\n            ELSIF tmrOppen.Q THEN\n                (* Oppentiden gatt ut: enheten kasseras och fogningen\n                   fullfoljs aldrig. *)\n                xSpann := FALSE;\n                xLid := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        6:\n            (* Fogad och spand inom oppentiden. *)\n            xTrig := FALSE;\n        9:\n            (* Last til manuell atgard. *)\n            xValv := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ventilen\n   bara inom temperaturfonstret, locket bara pa en hel strang inom\n   langdfonstret, spannaren bara efter locket. *)\nST290_ADH_VALVE := xValv AND (ST290_ADH_TEMP >= 150.0)\n                   AND (ST290_ADH_TEMP <= 190.0) AND EMG_OK AND AIR_OK;\nST290_RB_START := xStart AND EMG_OK AND AIR_OK;\nST290_CAM_TRIG := xTrig;\nST290_LID_PLACE := xLid AND (ST290_CAM_LEN >= 620.0)\n                   AND (ST290_CAM_LEN <= 660.0) AND NOT xStopp;\nST290_CLP_CLOSE := xSpann AND EMG_OK AND AIR_OK;\nST290_STA_STOP := xStopp;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_strang_inom_oppentiden",
+        "beskrivning": "En enhet: temperaturkontroll, 8,0 s dosering, kameratning av strangen, lock pa och fixturen spand, allt med god marginal till oppentidens 180,0 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 172.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": true,
+              "ST290_RB_START": true
+            },
+            "varfor": "limprogrammet startar och ventilen oppnas nar temperaturen 172 grader star i fonstret 150 till 190"
+          },
+          {
+            "t_ms": 8100,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": false,
+              "ST290_RB_START": false,
+              "ST290_STA_STOP": false
+            },
+            "varfor": "ventilen stangs efter 8,0 s; oppentiden startar pa den fallande flanken nu"
+          },
+          {
+            "t_ms": 8200,
+            "satt": {
+              "ST290_CAM_LEN": 634.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8280,
+            "satt": {},
+            "krav": {
+              "ST290_CAM_TRIG": false,
+              "ST290_LID_PLACE": true,
+              "ST290_CLP_CLOSE": true,
+              "ST290_STA_STOP": false
+            },
+            "varfor": "kameran har svarat 634 mm inom fonstret: locket far laggas pa och fixturen spannas om den fogade enheten"
+          },
+          {
+            "t_ms": 8820,
+            "satt": {
+              "ST290_CLP_CLOSED": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8900,
+            "satt": {},
+            "krav": {
+              "ST290_CLP_CLOSE": true,
+              "ST290_LID_PLACE": true,
+              "ST290_STA_STOP": false,
+              "ST290_ADH_VALVE": false
+            },
+            "varfor": "spannaren bekrastar 0,8 s efter ventilnedslag: enheten fogad med 179 s kvar av oppentiden, ingen kassation"
+          }
+        ]
+      },
+      {
+        "id": "kallt_lim_haller_ventilen_stangd",
+        "beskrivning": "ST290_ADH_TEMP faller till 138 grader, under fonstret 150 till 190; ventilen far inte oppnas alls.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 138.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": false,
+              "ST290_RB_START": false,
+              "ST290_STA_STOP": false
+            },
+            "varfor": "kallt lim flyter inte: ventilen oppnas inte alls, styrningen vantar pa temperaturen"
+          },
+          {
+            "t_ms": 5000,
+            "satt": {
+              "ST290_ADH_TEMP": 168.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 5100,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": true
+            },
+            "varfor": "ventilen oppnar forst nar temperaturen ar tillbaka i fonstret"
+          }
+        ]
+      },
+      {
+        "id": "overhettat_lim_stopper_stationen",
+        "beskrivning": "ST290_ADH_TEMP stiger till 205 grader, over fonstret; stationen stoppas och oppentiden forks inte pa egen hand.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 205.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": false,
+              "ST290_STA_STOP": true
+            },
+            "varfor": "overhettat lim skinnar snabbare: stationen stoppas och ventilen oppnas inte"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_ADH_VALVE": false,
+              "ST290_RB_START": false
+            },
+            "varfor": "stationen forblir stoppad; oppentiden forks inte pa egen hand"
+          }
+        ]
+      },
+      {
+        "id": "oppentiden_loper_ut_utan_spannare",
+        "beskrivning": "ST290_CLP_CLOSE satts hog men ST290_CLP_CLOSED uteblir och oppentidens 180,0 s loper ut medan enheten star ofogad.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 172.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8200,
+            "satt": {
+              "ST290_CAM_LEN": 640.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 10000,
+            "satt": {},
+            "krav": {
+              "ST290_CLP_CLOSE": true,
+              "ST290_LID_PLACE": true,
+              "ST290_STA_STOP": false
+            },
+            "varfor": "spannaren kommenderas men bekrastar aldrig; oppentiden 180,0 s racker annu"
+          },
+          {
+            "t_ms": 185000,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": false
+            },
+            "varfor": "oppentiden, raknad fran att ventilen stangdes vid 8,0 s, har inte gatt ut: den som raknar fra programstart har gjort det"
+          },
+          {
+            "t_ms": 188200,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_CLP_CLOSE": false,
+              "ST290_LID_PLACE": false
+            },
+            "varfor": "oppentiden gatt ut: stationen stoppas, fogningen fullfoljs aldrig och enheten markeras for kassation"
+          }
+        ]
+      },
+      {
+        "id": "brott_i_strangen",
+        "beskrivning": "ST290_CAM_LEN mater 480 mm, under fonstrets 620 mm, alltsa ett brott i strangen.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 172.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8200,
+            "satt": {
+              "ST290_CAM_LEN": 480.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8280,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_LID_PLACE": false
+            },
+            "varfor": "strang med brott: stationen stoppas och locket laggs aldrig pa"
+          },
+          {
+            "t_ms": 12000,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_LID_PLACE": false,
+              "ST290_CLP_CLOSE": false
+            },
+            "varfor": "enheten lamnas oppen for manuell bedomning"
+          }
+        ]
+      },
+      {
+        "id": "dubbeldosering_i_skarven",
+        "beskrivning": "ST290_CAM_LEN mater 810 mm, over fonstrets 660 mm, alltsa dubbeldosering i skarven.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 172.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8200,
+            "satt": {
+              "ST290_CAM_LEN": 810.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 8280,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_LID_PLACE": false
+            },
+            "varfor": "for mycket lim pressas ut i fogen och forstor tatningen: stationen stoppas"
+          },
+          {
+            "t_ms": 10000,
+            "satt": {},
+            "krav": {
+              "ST290_STA_STOP": true,
+              "ST290_LID_PLACE": false
+            },
+            "varfor": "stationen forblir stoppad"
+          }
+        ]
+      },
+      {
+        "id": "nodstopp_mitt_i_doseringen",
+        "beskrivning": "Nodstoppskretsen bryts medan doseringen pagar.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST290_ADH_TEMP": 172.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "EMG_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2080,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": false,
+              "ST290_RB_START": false
+            },
+            "varfor": "brutet nodstopp stanger ventilen och stoppar limprogrammet omedelbart"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST290_ADH_VALVE": false
+            },
+            "varfor": "ingen terstart av doseringen"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "spannaren_bara_efter_locket",
+        "sekvens": "*",
+        "nar": {
+          "ST290_CLP_CLOSE": true
+        },
+        "kraver": {
+          "ST290_LID_PLACE": true
+        },
+        "varfor": "fixturen spans bara om en fogad enhet: locket pa plats forst"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST290_ADH_VALVE": false,
+          "ST290_RB_START": false,
+          "ST290_CLP_CLOSE": false
+        },
+        "varfor": "ingen limning och ingen spanning med brutet nodstopp"
+      },
+      {
+        "namn": "inget_don_utan_tryckluft",
+        "sekvens": "*",
+        "nar": {
+          "AIR_OK": false
+        },
+        "kraver": {
+          "ST290_ADH_VALVE": false
+        },
+        "varfor": "doseringsventilen och spannarna drivs med tryckluft; utan den ar ingen limning aktuell"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_ventiloppning_per_strang",
+        "sekvens": "en_strang_inom_oppentiden",
+        "signal": "ST290_ADH_VALVE",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 9000,
+        "antal": 1,
+        "varfor": "ventilen oppnas exakt en gang per strang"
+      },
+      {
+        "namn": "oppentiden_startar_pa_fallande_flank",
+        "sekvens": "en_strang_inom_oppentiden",
+        "signal": "ST290_ADH_VALVE",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 9000,
+        "antal": 1,
+        "varfor": "ventilen stangs en gang, efter 8,0 s, och det ar den fallande flanken som startar oppentiden"
+      },
+      {
+        "namn": "ett_kamerautlos_per_strang",
+        "sekvens": "en_strang_inom_oppentiden",
+        "signal": "ST290_CAM_TRIG",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 9000,
+        "antal": 1,
+        "varfor": "kameran utloses en gang, nar strangen ar lagd"
+      },
+      {
+        "namn": "ventilen_stangs_efter_dosering",
+        "sekvens": "oppentiden_loper_ut_utan_spannare",
+        "signal": "ST290_ADH_VALVE",
+        "typ": "FALL",
+        "fran_ms": 0,
+        "till_ms": 188200,
+        "antal": 1,
+        "varfor": "ventilen stangs en gang efter doseringen; ett extra nedslag vore en ny dosering pa en halvfogad enhet"
+      },
+      {
+        "namn": "locket_slapps_vid_kassation",
+        "sekvens": "oppentiden_loper_ut_utan_spannare",
+        "signal": "ST290_LID_PLACE",
+        "typ": "FALL",
+        "fran_ms": 186000,
+        "till_ms": 188200,
+        "antal": 1,
+        "varfor": "nar oppentiden gatt ut slapps locket: en skinnad strang fogs aldrig"
+      },
+      {
+        "namn": "locket_laggs_aldrig_pa_brottet",
+        "sekvens": "brott_i_strangen",
+        "signal": "ST290_LID_PLACE",
+        "typ": "RISE",
+        "fran_ms": 8000,
+        "till_ms": 12000,
+        "antal": 0,
+        "varfor": "pa en bruten strang laggs locket aldrig"
+      },
+      {
+        "namn": "locket_laggs_aldrig_pa_dubbeldosering",
+        "sekvens": "dubbeldosering_i_skarven",
+        "signal": "ST290_LID_PLACE",
+        "typ": "RISE",
+        "fran_ms": 8000,
+        "till_ms": 10000,
+        "antal": 0,
+        "varfor": "pa en overdosering laggs locket aldrig"
+      },
+      {
+        "namn": "ventilen_stangs_vid_nodstopp",
+        "sekvens": "nodstopp_mitt_i_doseringen",
+        "signal": "ST290_ADH_VALVE",
+        "typ": "FALL",
+        "fran_ms": 2000,
+        "till_ms": 3000,
+        "antal": 1,
+        "varfor": "nodstoppet stanger ventilen mitt i doseringen"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "oppentiden_raknas_fran_programstart",
+        "st": "PROGRAM ST290_LIMNINGSCELL\nVAR\n    steg     : INT := 0;\n    xStart   : BOOL := FALSE;\n    xValv    : BOOL := FALSE;\n    xTrig    : BOOL := FALSE;\n    xLid     : BOOL := FALSE;\n    xSpann   : BOOL := FALSE;\n    xOppen   : BOOL := FALSE;\n    xStopp   : BOOL := FALSE;\n    tmrDos   : TON;\n    tmrOppen : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Doseringen 8,0 s, och ventilen stangs aven pa robotprogrammets egna\n   klarbesked ST290_RB_DONE. Oppentiden 180,0 s borjar nar doseringsventilen\n   STANGS, alltsa nar ST290_ADH_VALVE gar lag, och aldrig nar programmet\n   startar: en strang som tar langre tid ar fortfarande limmets egen klocka. *)\ntmrDos(IN := xValv, PT := T#8000ms);\ntmrOppen(IN := xStart OR xOppen, PT := T#180000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStart := FALSE;\n    xValv := FALSE;\n    xTrig := FALSE;\n    xLid := FALSE;\n    xSpann := FALSE;\n    xOppen := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF (ST290_ADH_TEMP >= 150.0) AND (ST290_ADH_TEMP <= 190.0)\n                    AND NOT xStopp THEN\n                steg := 1;\n            ELSIF ST290_ADH_TEMP > 190.0 THEN\n                (* Overhettat lim skinnar snabbare och oppentiden galler\n                   inte langre: stationen stoppas. *)\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        1:\n            xStart := TRUE;\n            xValv := TRUE;\n            steg := 2;\n        2:\n            IF tmrDos.Q OR ST290_RB_DONE THEN\n                xValv := FALSE;\n                xOppen := TRUE;\n                xStart := FALSE;\n                xTrig := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST290_CAM_LEN > 0.0 THEN\n                xTrig := FALSE;\n                IF (ST290_CAM_LEN >= 620.0) AND (ST290_CAM_LEN <= 660.0) THEN\n                    xLid := TRUE;\n                    steg := 4;\n                ELSE\n                    (* Brott i strangen eller dubbeldosering: locket laggs\n                       aldrig pa och enheten lamnas oppen. *)\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        4:\n            xSpann := TRUE;\n            steg := 5;\n        5:\n            IF ST290_CLP_CLOSED AND NOT tmrOppen.Q THEN\n                steg := 6;\n            ELSIF tmrOppen.Q THEN\n                (* Oppentiden gatt ut: enheten kasseras och fogningen\n                   fullfoljs aldrig. *)\n                xSpann := FALSE;\n                xLid := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        6:\n            (* Fogad och spand inom oppentiden. *)\n            xTrig := FALSE;\n        9:\n            (* Last til manuell atgard. *)\n            xValv := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ventilen\n   bara inom temperaturfonstret, locket bara pa en hel strang inom\n   langdfonstret, spannaren bara efter locket. *)\nST290_ADH_VALVE := xValv AND (ST290_ADH_TEMP >= 150.0)\n                   AND (ST290_ADH_TEMP <= 190.0) AND EMG_OK AND AIR_OK;\nST290_RB_START := xStart AND EMG_OK AND AIR_OK;\nST290_CAM_TRIG := xTrig;\nST290_LID_PLACE := xLid AND (ST290_CAM_LEN >= 620.0)\n                   AND (ST290_CAM_LEN <= 660.0) AND NOT xStopp;\nST290_CLP_CLOSE := xSpann AND EMG_OK AND AIR_OK;\nST290_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Oppentidsklockan startar nar robotprogrammet startar, i stallet for nar doseringsventilen stanger. Pa en kort strang skiller det nagon sekund och ingen marker det, men efter ett munstycksbyte, nar strangen tar langre tid, ar limmet redan skinnat nar delarna fogas: fogen ser perfekt ut och haller i provet, men slapper i falt.",
+        "faller_pa": [
+          "oppentiden_loper_ut_utan_spannare@185000ms:ST290_STA_STOP"
+        ]
+      },
+      {
+        "namn": "langden_lases_efter_fogningen",
+        "st": "PROGRAM ST290_LIMNINGSCELL\nVAR\n    steg     : INT := 0;\n    xStart   : BOOL := FALSE;\n    xValv    : BOOL := FALSE;\n    xTrig    : BOOL := FALSE;\n    xLid     : BOOL := FALSE;\n    xSpann   : BOOL := FALSE;\n    xOppen   : BOOL := FALSE;\n    xStopp   : BOOL := FALSE;\n    tmrDos   : TON;\n    tmrOppen : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Doseringen 8,0 s, och ventilen stangs aven pa robotprogrammets egna\n   klarbesked ST290_RB_DONE. Oppentiden 180,0 s borjar nar doseringsventilen\n   STANGS, alltsa nar ST290_ADH_VALVE gar lag, och aldrig nar programmet\n   startar: en strang som tar langre tid ar fortfarande limmets egen klocka. *)\ntmrDos(IN := xValv, PT := T#8000ms);\ntmrOppen(IN := xOppen, PT := T#180000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStart := FALSE;\n    xValv := FALSE;\n    xTrig := FALSE;\n    xLid := FALSE;\n    xSpann := FALSE;\n    xOppen := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF (ST290_ADH_TEMP >= 150.0) AND (ST290_ADH_TEMP <= 190.0)\n                    AND NOT xStopp THEN\n                steg := 1;\n            ELSIF ST290_ADH_TEMP > 190.0 THEN\n                (* Overhettat lim skinnar snabbare och oppentiden galler\n                   inte langre: stationen stoppas. *)\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        1:\n            xStart := TRUE;\n            xValv := TRUE;\n            steg := 2;\n        2:\n            IF tmrDos.Q OR ST290_RB_DONE THEN\n                xValv := FALSE;\n                xOppen := TRUE;\n                xStart := FALSE;\n                xTrig := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST290_CAM_LEN > 0.0 THEN\n                xTrig := FALSE;\n                xLid := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            xSpann := TRUE;\n            steg := 5;\n        5:\n            IF ST290_CLP_CLOSED AND NOT tmrOppen.Q THEN\n                steg := 6;\n            ELSIF tmrOppen.Q THEN\n                (* Oppentiden gatt ut: enheten kasseras och fogningen\n                   fullfoljs aldrig. *)\n                xSpann := FALSE;\n                xLid := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        6:\n            (* Fogad och spand inom oppentiden. *)\n            xTrig := FALSE;\n        9:\n            (* Last til manuell atgard. *)\n            xValv := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ventilen\n   bara inom temperaturfonstret, locket bara pa en hel strang inom\n   langdfonstret, spannaren bara efter locket. *)\nST290_ADH_VALVE := xValv AND (ST290_ADH_TEMP >= 150.0)\n                   AND (ST290_ADH_TEMP <= 190.0) AND EMG_OK AND AIR_OK;\nST290_RB_START := xStart AND EMG_OK AND AIR_OK;\nST290_CAM_TRIG := xTrig;\nST290_LID_PLACE := xLid AND NOT xStopp;\nST290_CLP_CLOSE := xSpann AND EMG_OK AND AIR_OK;\nST290_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Locket laggs pa innan kamerans svar har domt strangen, och langdfonstret finns inte kvar som forregling i uttrycket. En bruten strang eller en dubbeldosering fogs som om ingenting varit fel: fogen ser hel ut och felet betalar kunden i vattenskador.",
+        "faller_pa": [
+          "brott_i_strangen@8280ms:ST290_LID_PLACE"
+        ]
+      },
+      {
+        "namn": "temperaturen_lases_bara_vid_start",
+        "st": "PROGRAM ST290_LIMNINGSCELL\nVAR\n    steg     : INT := 0;\n    xStart   : BOOL := FALSE;\n    xValv    : BOOL := FALSE;\n    xTrig    : BOOL := FALSE;\n    xLid     : BOOL := FALSE;\n    xSpann   : BOOL := FALSE;\n    xOppen   : BOOL := FALSE;\n    xStopp   : BOOL := FALSE;\n    tmrDos   : TON;\n    tmrOppen : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Doseringen 8,0 s, och ventilen stangs aven pa robotprogrammets egna\n   klarbesked ST290_RB_DONE. Oppentiden 180,0 s borjar nar doseringsventilen\n   STANGS, alltsa nar ST290_ADH_VALVE gar lag, och aldrig nar programmet\n   startar: en strang som tar langre tid ar fortfarande limmets egen klocka. *)\ntmrDos(IN := xValv, PT := T#8000ms);\ntmrOppen(IN := xOppen, PT := T#180000ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xStart := FALSE;\n    xValv := FALSE;\n    xTrig := FALSE;\n    xLid := FALSE;\n    xSpann := FALSE;\n    xOppen := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF NOT xStopp THEN\n                steg := 1;\n            END_IF;\n        1:\n            xStart := TRUE;\n            xValv := TRUE;\n            steg := 2;\n        2:\n            IF tmrDos.Q OR ST290_RB_DONE THEN\n                xValv := FALSE;\n                xOppen := TRUE;\n                xStart := FALSE;\n                xTrig := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST290_CAM_LEN > 0.0 THEN\n                xTrig := FALSE;\n                IF (ST290_CAM_LEN >= 620.0) AND (ST290_CAM_LEN <= 660.0) THEN\n                    xLid := TRUE;\n                    steg := 4;\n                ELSE\n                    (* Brott i strangen eller dubbeldosering: locket laggs\n                       aldrig pa och enheten lamnas oppen. *)\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        4:\n            xSpann := TRUE;\n            steg := 5;\n        5:\n            IF ST290_CLP_CLOSED AND NOT tmrOppen.Q THEN\n                steg := 6;\n            ELSIF tmrOppen.Q THEN\n                (* Oppentiden gatt ut: enheten kasseras och fogningen\n                   fullfoljs aldrig. *)\n                xSpann := FALSE;\n                xLid := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        6:\n            (* Fogad och spand inom oppentiden. *)\n            xTrig := FALSE;\n        9:\n            (* Last til manuell atgard. *)\n            xValv := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ventilen\n   bara inom temperaturfonstret, locket bara pa en hel strang inom\n   langdfonstret, spannaren bara efter locket. *)\nST290_ADH_VALVE := xValv AND EMG_OK AND AIR_OK;\nST290_RB_START := xStart AND EMG_OK AND AIR_OK;\nST290_CAM_TRIG := xTrig;\nST290_LID_PLACE := xLid AND (ST290_CAM_LEN >= 620.0)\n                   AND (ST290_CAM_LEN <= 660.0) AND NOT xStopp;\nST290_CLP_CLOSE := xSpann AND EMG_OK AND AIR_OK;\nST290_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Temperaturen kontrolleras inte alls fore strangen: ventilen oppnas aven pa 138 grader. Kallt lim flyter inte och strangen bryts, och eftersom ingen forregling stoppar ventilen under doseringen fortsatter cellen limma med en strang som aldrig nar fogen.",
+        "faller_pa": [
+          "kallt_lim_haller_ventilen_stangd@80ms:ST290_ADH_VALVE"
+        ]
+      },
+      {
+        "namn": "nodstoppet_forreglar_inte_ventilen",
+        "st": "PROGRAM ST290_LIMNINGSCELL\nVAR\n    steg     : INT := 0;\n    xStart   : BOOL := FALSE;\n    xValv    : BOOL := FALSE;\n    xTrig    : BOOL := FALSE;\n    xLid     : BOOL := FALSE;\n    xSpann   : BOOL := FALSE;\n    xOppen   : BOOL := FALSE;\n    xStopp   : BOOL := FALSE;\n    tmrDos   : TON;\n    tmrOppen : TON;\nEND_VAR\n\n(* EMG_OK och AIR_OK lases bara. Logiken forreglas AV nodstoppskretsen och\n   tryckluftsvakten; den bar ingen sakerhetsfunktion sjalv. *)\n\n(* Doseringen 8,0 s, och ventilen stangs aven pa robotprogrammets egna\n   klarbesked ST290_RB_DONE. Oppentiden 180,0 s borjar nar doseringsventilen\n   STANGS, alltsa nar ST290_ADH_VALVE gar lag, och aldrig nar programmet\n   startar: en strang som tar langre tid ar fortfarande limmets egen klocka. *)\ntmrDos(IN := xValv, PT := T#8000ms);\ntmrOppen(IN := xOppen, PT := T#180000ms);\n\nIF FALSE AND (NOT EMG_OK OR NOT AIR_OK) THEN\n    xStart := FALSE;\n    xValv := FALSE;\n    xTrig := FALSE;\n    xLid := FALSE;\n    xSpann := FALSE;\n    xOppen := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF (ST290_ADH_TEMP >= 150.0) AND (ST290_ADH_TEMP <= 190.0)\n                    AND NOT xStopp THEN\n                steg := 1;\n            ELSIF ST290_ADH_TEMP > 190.0 THEN\n                (* Overhettat lim skinnar snabbare och oppentiden galler\n                   inte langre: stationen stoppas. *)\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        1:\n            xStart := TRUE;\n            xValv := TRUE;\n            steg := 2;\n        2:\n            IF tmrDos.Q OR ST290_RB_DONE THEN\n                xValv := FALSE;\n                xOppen := TRUE;\n                xStart := FALSE;\n                xTrig := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF ST290_CAM_LEN > 0.0 THEN\n                xTrig := FALSE;\n                IF (ST290_CAM_LEN >= 620.0) AND (ST290_CAM_LEN <= 660.0) THEN\n                    xLid := TRUE;\n                    steg := 4;\n                ELSE\n                    (* Brott i strangen eller dubbeldosering: locket laggs\n                       aldrig pa och enheten lamnas oppen. *)\n                    xStopp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        4:\n            xSpann := TRUE;\n            steg := 5;\n        5:\n            IF ST290_CLP_CLOSED AND NOT tmrOppen.Q THEN\n                steg := 6;\n            ELSIF tmrOppen.Q THEN\n                (* Oppentiden gatt ut: enheten kasseras och fogningen\n                   fullfoljs aldrig. *)\n                xSpann := FALSE;\n                xLid := FALSE;\n                xStopp := TRUE;\n                steg := 9;\n            END_IF;\n        6:\n            (* Fogad och spand inom oppentiden. *)\n            xTrig := FALSE;\n        9:\n            (* Last til manuell atgard. *)\n            xValv := FALSE;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): ventilen\n   bara inom temperaturfonstret, locket bara pa en hel strang inom\n   langdfonstret, spannaren bara efter locket. *)\nST290_ADH_VALVE := xValv AND (ST290_ADH_TEMP >= 150.0)\n                   AND (ST290_ADH_TEMP <= 190.0);\nST290_RB_START := xStart AND EMG_OK AND AIR_OK;\nST290_CAM_TRIG := xTrig;\nST290_LID_PLACE := xLid AND (ST290_CAM_LEN >= 620.0)\n                   AND (ST290_CAM_LEN <= 660.0) AND NOT xStopp;\nST290_CLP_CLOSE := xSpann AND EMG_OK AND AIR_OK;\nST290_STA_STOP := xStopp;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Nodstoppskretsen lases men stanger inte ventilen, och aterstallningsblocket kan aldrig kora. Med brutet nodstopp fortsatter varmt lim att rinna ur munstycket tills nagon stanger huvudkranen for hand.",
+        "faller_pa": [
+          "nodstopp_mitt_i_doseringen@2080ms:ST290_ADH_VALVE"
+        ]
+      }
+    ]
+  }
 }

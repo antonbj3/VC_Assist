@@ -292,5 +292,445 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: presstationens egna tider ur uppgiftens text. Presstiden ar 3,2 s och halltiden i botten 0,80 s = 40 scan a 20 ms, raknad fran ST270_PRS_BOTTOM och inte fran kommandot. Ljusridans svarstid 20 ms ar ett scan, sa ett 40 ms langt avbrott syns i tva scan. Arbetskraftens fonster 40 till 80 kN och normalfallet 55 kN star i scenariotexten. Takten 14,0 s per detalj ger 3600/14,0 = 257,1 enheter i timmen, vilket ar expect genomflodet. Detta ar manniskans facit skrivet ur scenarios normal, force_lag, force_hog och saf_uteblir samt expect, fore korning. M-124 provar facitformen.",
+    "standard": "Att den genererade logiken far lasa men aldrig skriva i sakerhetstaggen och att tvahandsdonets samtidighetskontroll ligger klar i sakerhets-PLC:n ar uppgiftens egen arkitektur; facit lutar sig pa den, inte pa en paragraf det skulle gissa sig till. Att en avbruten rorelse inte far aterupptas av sig sjalv efter ett avbrott lutar mot IEC 60204-1:2016 7.5 \"Protection against the effects of supply interruption or voltage reduction and subsequent restoration\", stillastallningens kategorier mot IEC 60204-1:2016 9.2.2 \"Categories of stop functions\", och nodstoppskretsen mot IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" med ISO 13850:2015 4.1.4 \"Disengagement (e.g. unlatching) of the emergency stop device\". Tidskretsen for halltiden och flankdetekteringen ar IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON och triggerblocken, tabellerna 44 till 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST270_PRESSTATION\nVAR\n    steg    : INT := 0;\n    xNed    : BOOL := FALSE;\n    xUp     : BOOL := FALSE;\n    xHold   : BOOL := FALSE;\n    xDone   : BOOL := FALSE;\n    xSparr  : BOOL := FALSE;\n    trigSaf : F_TRIG;\n    tmrHold : TON;\nEND_VAR\n\n(* ST270_SAF_OK ar sakerhets-PLC:ns fardiga forregning: tvahandsdonet och\n   ljusridan. Logiken LAS den och skriver aldrig i den; den upprepar ingen\n   samtidighetskontroll och overbygger inget flimmer. Ett avbrott pa fallande\n   flank sparrar pressen til manuell aterstart. *)\ntrigSaf(CLK := ST270_SAF_OK);\n\nIF trigSaf.Q THEN\n    xSparr := TRUE;\nEND_IF;\n\n(* Halltiden 0,80 s borjar nar pressen NATT BOTTENLAGET, alltsa nar\n   ST270_PRS_BOTTOM gar hog, aldrig nar nedrorelsen kommenderas. *)\ntmrHold(IN := xHold, PT := T#800ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xNed := FALSE;\n    xUp := FALSE;\n    xHold := FALSE;\n    xDone := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST270_PRT_PRS AND ST270_PRS_TOP AND ST270_SAF_OK\n                    AND NOT xSparr THEN\n                steg := 1;\n            END_IF;\n        1:\n            xNed := TRUE;\n            steg := 2;\n        2:\n            IF ST270_PRS_BOTTOM THEN\n                xNed := FALSE;\n                IF ST270_PRS_FORCE >= 40.0 AND ST270_PRS_FORCE <= 80.0 THEN\n                    xHold := TRUE;\n                    steg := 3;\n                ELSE\n                    (* Bottenlage utan arbetskraft, eller overkraft over\n                       pressens tak 80 kN: pressen kor upp och cykeln\n                       avbryts. *)\n                    xUp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        3:\n            IF tmrHold.Q THEN\n                xHold := FALSE;\n                xUp := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST270_PRS_TOP THEN\n                xUp := FALSE;\n                xDone := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST270_PRT_PRS THEN\n                xDone := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            (* Avbruten cykel: pressen kor upp och star sedan stilla. *)\n            IF NOT ST270_PRS_TOP THEN\n                xUp := TRUE;\n            ELSE\n                xUp := FALSE;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): nedrorelsen\n   bara med sluten sakerhetskrets och utan aterstartssparr, upprorelsen\n   aldrig samtidigt som nedrorelsen. *)\nST270_PRS_DOWN := xNed AND ST270_SAF_OK AND EMG_OK AND AIR_OK AND NOT xSparr;\nST270_PRS_UP := xUp AND EMG_OK AND AIR_OK AND NOT xNed;\nST270_CYC_DONE := xDone;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "en_cykel_med_halltid_fran_bottenlaget",
+        "beskrivning": "En detalj pressas: ned 3,2 s, halltid 0,80 s i bottenlaget, upp igen, klar nar pressen star i topplage.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST270_SAF_OK": true,
+              "ST270_PRT_PRS": true,
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_FORCE": 55.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 80,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": true,
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "nedrorelsen startar nar detalj, topplage och sakerhetsforregning allt star"
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST270_PRS_TOP": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST270_PRS_BOTTOM": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3280,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "i bottenlaget slapper nedrorelsen; halltiden raknas harifran, fran ST270_PRS_BOTTOM"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": false
+            },
+            "varfor": "halltiden 0,80 s pagar fortfarande: pressen star still i botten och ingen upprorelse ar kommenderad"
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_UP": true,
+              "ST270_PRS_DOWN": false
+            },
+            "varfor": "efter halltiden kor pressen upp"
+          },
+          {
+            "t_ms": 6820,
+            "satt": {
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_BOTTOM": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6900,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": true
+            },
+            "varfor": "cykeln ar klar nar pressen star i topplage"
+          },
+          {
+            "t_ms": 7800,
+            "satt": {
+              "ST270_PRT_PRS": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 7880,
+            "satt": {},
+            "krav": {
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "klarignalen slapps nar detaljen lamnat stationen"
+          }
+        ]
+      },
+      {
+        "id": "sakerhetssignalen_faller_mitt_i_nedrorelsen",
+        "beskrivning": "ST270_SAF_OK gar lag i 40 ms mitt i nedrorelsen och sedan hog igen; pressen far inte ateruppta rorelsen av sig sjalv.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST270_SAF_OK": true,
+              "ST270_PRT_PRS": true,
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_FORCE": 55.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST270_PRS_TOP": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {
+              "ST270_SAF_OK": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2040,
+            "satt": {
+              "ST270_SAF_OK": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2120,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false
+            },
+            "varfor": "rorelsen avbryts pa fallande flank pa sakerhetssignalen"
+          },
+          {
+            "t_ms": 3000,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": false
+            },
+            "varfor": "nar signalen kommer tillbaka aterupptas inte rorelsen automatiskt; aterstart kraver manuell atgard"
+          },
+          {
+            "t_ms": 4000,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false
+            },
+            "varfor": "pressen forblir sparrad"
+          }
+        ]
+      },
+      {
+        "id": "bottenlage_utan_arbetskraft",
+        "beskrivning": "ST270_PRS_FORCE stannar pa 12 kN, under det lagsta arbetsvardet 40 kN, trots att ST270_PRS_BOTTOM gatt hog.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST270_SAF_OK": true,
+              "ST270_PRT_PRS": true,
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_FORCE": 12.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST270_PRS_TOP": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST270_PRS_BOTTOM": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": true
+            },
+            "varfor": "bottenlage utan kraft: pressen kor upp och halltid raknas inte"
+          },
+          {
+            "t_ms": 6000,
+            "satt": {
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_BOTTOM": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6100,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "pressen stoppar i topplage utan klarad cykel"
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "cykeln begin inte om av sig sjalv"
+          }
+        ]
+      },
+      {
+        "id": "overkraft_i_bottenlaget",
+        "beskrivning": "ST270_PRS_FORCE nar 96 kN, over pressens hogsta tillatna 80 kN, i bottenlaget.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "AIR_OK": true,
+              "ST270_SAF_OK": true,
+              "ST270_PRT_PRS": true,
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_FORCE": 96.0
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {
+              "ST270_PRS_TOP": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {
+              "ST270_PRS_BOTTOM": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3300,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": true
+            },
+            "varfor": "overkraft skadar verktyg och detalj: pressen kors upp omedelbart"
+          },
+          {
+            "t_ms": 6000,
+            "satt": {
+              "ST270_PRS_TOP": true,
+              "ST270_PRS_BOTTOM": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 6100,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_UP": false,
+              "ST270_CYC_DONE": false
+            },
+            "varfor": "ingen klarad cykel efter overkraft"
+          },
+          {
+            "t_ms": 8000,
+            "satt": {},
+            "krav": {
+              "ST270_PRS_DOWN": false,
+              "ST270_PRS_UP": false
+            },
+            "varfor": "cykeln begin inte om av sig sjalv"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "nedrorelse_bara_med_sluten_sakerhetskrets",
+        "sekvens": "*",
+        "nar": {
+          "ST270_PRS_DOWN": true
+        },
+        "kraver": {
+          "ST270_SAF_OK": true
+        },
+        "varfor": "ST270_PRS_DOWN far aldrig ga hog nar sakerhetsforregningen ST270_SAF_OK ar lag"
+      },
+      {
+        "namn": "ned_och_upp_aldrig_samtidigt",
+        "sekvens": "*",
+        "nar": {
+          "ST270_PRS_DOWN": true
+        },
+        "kraver": {
+          "ST270_PRS_UP": false
+        },
+        "varfor": "nedrorelse och upprorelse ar aldri kommenderade i samma scan; det ar just den kapvaxlingen facit forbjuder"
+      },
+      {
+        "namn": "inget_don_med_brutet_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST270_PRS_DOWN": false,
+          "ST270_PRS_UP": false
+        },
+        "varfor": "ingen pressrorelse med brutet nodstopp"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "en_nedrorelse_per_cykel",
+        "sekvens": "en_cykel_med_halltid_fran_bottenlaget",
+        "signal": "ST270_PRS_DOWN",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 8000,
+        "antal": 1,
+        "varfor": "en nedrorelse per detalj"
+      },
+      {
+        "namn": "en_upprorelse_efter_halltiden",
+        "sekvens": "en_cykel_med_halltid_fran_bottenlaget",
+        "signal": "ST270_PRS_UP",
+        "typ": "RISE",
+        "fran_ms": 0,
+        "till_ms": 8000,
+        "antal": 1,
+        "varfor": "upprorelsen kommer forst nar halltiden i botten runnit ut"
+      },
+      {
+        "namn": "ingen_aterupptagen_nedrorelse",
+        "sekvens": "sakerhetssignalen_faller_mitt_i_nedrorelsen",
+        "signal": "ST270_PRS_DOWN",
+        "typ": "RISE",
+        "fran_ms": 2040,
+        "till_ms": 4000,
+        "antal": 0,
+        "varfor": "efter sakerhetsavbrottet aterupptas inte nedrorelsen nar signalen kommer tillbaka"
+      },
+      {
+        "namn": "ingen_ny_cykel_efter_kraftbortfall",
+        "sekvens": "bottenlage_utan_arbetskraft",
+        "signal": "ST270_PRS_DOWN",
+        "typ": "RISE",
+        "fran_ms": 3300,
+        "till_ms": 8000,
+        "antal": 0,
+        "varfor": "efter kraftbortfall i bottenlaget borjar ingen ny cykel"
+      },
+      {
+        "namn": "ingen_ny_cykel_efter_overkraft",
+        "sekvens": "overkraft_i_bottenlaget",
+        "signal": "ST270_PRS_DOWN",
+        "typ": "RISE",
+        "fran_ms": 3300,
+        "till_ms": 8000,
+        "antal": 0,
+        "varfor": "efter overkraft borjar ingen ny cykel"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "halltiden_raknas_fran_kommandot",
+        "st": "PROGRAM ST270_PRESSTATION\nVAR\n    steg    : INT := 0;\n    xNed    : BOOL := FALSE;\n    xUp     : BOOL := FALSE;\n    xHold   : BOOL := FALSE;\n    xDone   : BOOL := FALSE;\n    xSparr  : BOOL := FALSE;\n    trigSaf : F_TRIG;\n    tmrHold : TON;\nEND_VAR\n\n(* ST270_SAF_OK ar sakerhets-PLC:ns fardiga forregning: tvahandsdonet och\n   ljusridan. Logiken LAS den och skriver aldrig i den; den upprepar ingen\n   samtidighetskontroll och overbygger inget flimmer. Ett avbrott pa fallande\n   flank sparrar pressen til manuell aterstart. *)\ntrigSaf(CLK := ST270_SAF_OK);\n\nIF trigSaf.Q THEN\n    xSparr := TRUE;\nEND_IF;\n\n(* Halltiden 0,80 s borjar nar pressen NATT BOTTENLAGET, alltsa nar\n   ST270_PRS_BOTTOM gar hog, aldrig nar nedrorelsen kommenderas. *)\ntmrHold(IN := xHold, PT := T#800ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xNed := FALSE;\n    xUp := FALSE;\n    xHold := FALSE;\n    xDone := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST270_PRT_PRS AND ST270_PRS_TOP AND ST270_SAF_OK\n                    AND NOT xSparr THEN\n                steg := 1;\n            END_IF;\n        1:\n            xNed := TRUE;\n            xHold := TRUE;\n            steg := 2;\n        2:\n            IF ST270_PRS_BOTTOM THEN\n                xNed := FALSE;\n                IF ST270_PRS_FORCE >= 40.0 AND ST270_PRS_FORCE <= 80.0 THEN\n                    xHold := TRUE;\n                    steg := 3;\n                ELSE\n                    (* Bottenlage utan arbetskraft, eller overkraft over\n                       pressens tak 80 kN: pressen kor upp och cykeln\n                       avbryts. *)\n                    xUp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        3:\n            IF tmrHold.Q THEN\n                xHold := FALSE;\n                xUp := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST270_PRS_TOP THEN\n                xUp := FALSE;\n                xDone := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST270_PRT_PRS THEN\n                xDone := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            (* Avbruten cykel: pressen kor upp och star sedan stilla. *)\n            IF NOT ST270_PRS_TOP THEN\n                xUp := TRUE;\n            ELSE\n                xUp := FALSE;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): nedrorelsen\n   bara med sluten sakerhetskrets och utan aterstartssparr, upprorelsen\n   aldrig samtidigt som nedrorelsen. *)\nST270_PRS_DOWN := xNed AND ST270_SAF_OK AND EMG_OK AND AIR_OK AND NOT xSparr;\nST270_PRS_UP := xUp AND EMG_OK AND AIR_OK AND NOT xNed;\nST270_CYC_DONE := xDone;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Halltidens krets startar i samma andetag som nedrorelsen kommenderas, i stallet for nar pressen natt bottenlaget. Pa papper blir cykeln 0,80 s kortare och takten ser battre ut, men varje detalj som behovar hela halltiden pressas under tryck kortare an proceskravet, och materialet far inte satta sig.",
+        "faller_pa": [
+          "en_cykel_med_halltid_fran_bottenlaget@4000ms:ST270_PRS_UP"
+        ]
+      },
+      {
+        "namn": "sakerhetsavbrottet_overbryggs",
+        "st": "PROGRAM ST270_PRESSTATION\nVAR\n    steg    : INT := 0;\n    xNed    : BOOL := FALSE;\n    xUp     : BOOL := FALSE;\n    xHold   : BOOL := FALSE;\n    xDone   : BOOL := FALSE;\n    xSparr  : BOOL := FALSE;\n    trigSaf : F_TRIG;\n    tmrHold : TON;\nEND_VAR\n\n(* ST270_SAF_OK ar sakerhets-PLC:ns fardiga forregning: tvahandsdonet och\n   ljusridan. Logiken LAS den och skriver aldrig i den; den upprepar ingen\n   samtidighetskontroll och overbygger inget flimmer. Ett avbrott pa fallande\n   flank sparrar pressen til manuell aterstart. *)\ntrigSaf(CLK := ST270_SAF_OK);\n\nIF FALSE AND trigSaf.Q THEN\n    xSparr := TRUE;\nEND_IF;\n\n(* Halltiden 0,80 s borjar nar pressen NATT BOTTENLAGET, alltsa nar\n   ST270_PRS_BOTTOM gar hog, aldrig nar nedrorelsen kommenderas. *)\ntmrHold(IN := xHold, PT := T#800ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xNed := FALSE;\n    xUp := FALSE;\n    xHold := FALSE;\n    xDone := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST270_PRT_PRS AND ST270_PRS_TOP AND ST270_SAF_OK\n                    AND NOT xSparr THEN\n                steg := 1;\n            END_IF;\n        1:\n            xNed := TRUE;\n            steg := 2;\n        2:\n            IF ST270_PRS_BOTTOM THEN\n                xNed := FALSE;\n                IF ST270_PRS_FORCE >= 40.0 AND ST270_PRS_FORCE <= 80.0 THEN\n                    xHold := TRUE;\n                    steg := 3;\n                ELSE\n                    (* Bottenlage utan arbetskraft, eller overkraft over\n                       pressens tak 80 kN: pressen kor upp och cykeln\n                       avbryts. *)\n                    xUp := TRUE;\n                    steg := 9;\n                END_IF;\n            END_IF;\n        3:\n            IF tmrHold.Q THEN\n                xHold := FALSE;\n                xUp := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST270_PRS_TOP THEN\n                xUp := FALSE;\n                xDone := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST270_PRT_PRS THEN\n                xDone := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            (* Avbruten cykel: pressen kor upp och star sedan stilla. *)\n            IF NOT ST270_PRS_TOP THEN\n                xUp := TRUE;\n            ELSE\n                xUp := FALSE;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): nedrorelsen\n   bara med sluten sakerhetskrets och utan aterstartssparr, upprorelsen\n   aldrig samtidigt som nedrorelsen. *)\nST270_PRS_DOWN := xNed AND ST270_SAF_OK AND EMG_OK AND AIR_OK AND NOT xSparr;\nST270_PRS_UP := xUp AND EMG_OK AND AIR_OK AND NOT xNed;\nST270_CYC_DONE := xDone;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Avbrottssparrnen efter sakerhetssignalens fallande flank finns som kod men kan aldrig lasas hog. Ett 40 ms langt avbrott under nedrorelsen behandlas som vanligt flimmer: pressen aterupptar rorelsen sa fort signalen kommer tillbaka, och det ar precis den sortens overbrygning uppgiften forbjuder.",
+        "faller_pa": [
+          "sakerhetssignalen_faller_mitt_i_nedrorelsen@3000ms:ST270_PRS_DOWN"
+        ]
+      },
+      {
+        "namn": "presskraften_lases_aldrig",
+        "st": "PROGRAM ST270_PRESSTATION\nVAR\n    steg    : INT := 0;\n    xNed    : BOOL := FALSE;\n    xUp     : BOOL := FALSE;\n    xHold   : BOOL := FALSE;\n    xDone   : BOOL := FALSE;\n    xSparr  : BOOL := FALSE;\n    trigSaf : F_TRIG;\n    tmrHold : TON;\nEND_VAR\n\n(* ST270_SAF_OK ar sakerhets-PLC:ns fardiga forregning: tvahandsdonet och\n   ljusridan. Logiken LAS den och skriver aldrig i den; den upprepar ingen\n   samtidighetskontroll och overbygger inget flimmer. Ett avbrott pa fallande\n   flank sparrar pressen til manuell aterstart. *)\ntrigSaf(CLK := ST270_SAF_OK);\n\nIF trigSaf.Q THEN\n    xSparr := TRUE;\nEND_IF;\n\n(* Halltiden 0,80 s borjar nar pressen NATT BOTTENLAGET, alltsa nar\n   ST270_PRS_BOTTOM gar hog, aldrig nar nedrorelsen kommenderas. *)\ntmrHold(IN := xHold, PT := T#800ms);\n\nIF NOT EMG_OK OR NOT AIR_OK THEN\n    xNed := FALSE;\n    xUp := FALSE;\n    xHold := FALSE;\n    xDone := FALSE;\n    steg := 0;\nELSE\n    CASE steg OF\n        0:\n            IF ST270_PRT_PRS AND ST270_PRS_TOP AND ST270_SAF_OK\n                    AND NOT xSparr THEN\n                steg := 1;\n            END_IF;\n        1:\n            xNed := TRUE;\n            steg := 2;\n        2:\n            IF ST270_PRS_BOTTOM THEN\n                xNed := FALSE;\n                xHold := TRUE;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrHold.Q THEN\n                xHold := FALSE;\n                xUp := TRUE;\n                steg := 4;\n            END_IF;\n        4:\n            IF ST270_PRS_TOP THEN\n                xUp := FALSE;\n                xDone := TRUE;\n                steg := 5;\n            END_IF;\n        5:\n            IF NOT ST270_PRT_PRS THEN\n                xDone := FALSE;\n                steg := 0;\n            END_IF;\n        9:\n            (* Avbruten cykel: pressen kor upp och star sedan stilla. *)\n            IF NOT ST270_PRS_TOP THEN\n                xUp := TRUE;\n            ELSE\n                xUp := FALSE;\n            END_IF;\n    ELSE\n        steg := 0;\n    END_CASE;\nEND_IF;\n\n(* En skrivning per utgang, forreglingarna i samma uttryck (F7): nedrorelsen\n   bara med sluten sakerhetskrets och utan aterstartssparr, upprorelsen\n   aldrig samtidigt som nedrorelsen. *)\nST270_PRS_DOWN := xNed AND ST270_SAF_OK AND EMG_OK AND AIR_OK AND NOT xSparr;\nST270_PRS_UP := xUp AND EMG_OK AND AIR_OK AND NOT xNed;\nST270_CYC_DONE := xDone;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bottenlagets givare racker som bekrastelse; presskraften lases aldrig. En press som natt botten utan arbetskraft har antingen en saknad detalj eller en som ligger fel, och en som overstiger 80 kN ar pa vag att forstora verktyget - bada fallen fortsatter som normal cykel och halltiden raknas pa tomhet.",
+        "faller_pa": [
+          "bottenlage_utan_arbetskraft@3300ms:ST270_PRS_UP"
+        ]
+      }
+    ]
+  }
 }
