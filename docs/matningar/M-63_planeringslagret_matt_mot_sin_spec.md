@@ -613,9 +613,21 @@ uppgifter bär **inga cellmått, inga relationer och ingen processordning**, så
 säger alltså ingenting om de två grindarna. Det som saknas är en samling
 beställningar som bär cellmått — och den finns inte.
 
+**Att samtalet håller för en riktig operatör.** Två turer räcker i provet, med
+svar jag skrev själv (§6.3). Om en människas svar går att läsa lika bra är
+**inte mätt**, och det är samma oprövade yta som textläsningen — bara ett steg
+senare i samtalet.
+
+**Att `get_transform` svarar med exakt de tal `set_transform` fick.**
+Efterkontrollen efter en placering jämför med `==`. Det är den hårda läsningen
+och den enda som går att skriva utan en **mätt** tolerans — men att VC lagrar
+och lämnar tillbaka samma dubbel är en **hypotes**, inte en mätning. Faller den
+i fas 5a är det ett tal att mäta, inte en kontroll att mjuka upp i förväg.
+
 **Att felen jag inte letade efter inte finns.** Mätningen jämförde spec mot kod.
 Den letade inte efter fel i den kod som redan fanns, utöver det som föll ut på
-vägen.
+vägen. De fyra i §6.2 hittades inte av ett prov — de hittades av att skriva som
+en människa skriver, och det säger något om vad proven ensamma är värda.
 
 ---
 
