@@ -5,7 +5,15 @@ beskriver **omfånget**: hur stor VC:s API-yta är, hur den delar sig i domäner
 vad ett verktyg per domän skulle heta och bygga på, i vilken ordning det ska
 byggas, och — lika viktigt — **vad som inte går att bygga alls**.
 
-Måttet: källprojektet bär 448 verktyg (`20_arv.md`). Vi bär 21.
+Måttet: källprojektet bär 448 verktyg (`20_arv.md`). Vi bar **21** när
+dokumentet skrevs och bär **122** nu (`verktyg.register.domaner()`,
+2026-09-05). Talen i avsnitt 2 och 4 är från skrivtillfället; avsnitt 9
+räknar om dem och säger vad som *faktiskt* byggdes.
+
+**Fas 19** gör analysen körbar från andra hållet — inte API-yta mot
+verktyg, utan *arbete* mot verktyg: `docs/spec/48_personaprofiler.md` bär
+sju profilers alla arbetssteg och `tests/protocol/kor_fas19_tackning.py`
+mäter hur stor andel av dem registret täcker.
 
 beskriver: `svc/vc_assist_svc/api_index.py`, `svc/vc_assist_svc/verktyg/`,
 `docs/referens/vc_api/`, `docs/referens/vc_dotnet/`
@@ -88,6 +96,27 @@ felklass det här dokumentet självt kan lida av, och den kontrollen är körd.*
 | fordon | 1 | 20 | 9 | 4 | 0 |
 | vy | 3 | 2 | 18 | 0 | 0 |
 | **summa** | **204** | **966** | **1159** | **175** | **21** |
+
+Kolumnen **byggda verktyg** är från skrivtillfället. Mätt om 2026-09-05,
+med registrets egna domännamn (`verktyg.register.domaner()`):
+
+| Registerdomän | Verktyg | Vilka av de 23 API-domänerna den rör |
+|---|---|---|
+| `transport` | 25 | flöde, transportsystem, process, produkt, statistik |
+| `robot` | 24 | robot, kinematik, program |
+| `signals` | 21 | signal |
+| `scene` | 15 | scen |
+| `simulation` | 11 | simulering |
+| `measure` | 7 | mätning |
+| `composition` | 6 | komposition |
+| `catalog` | 6 | ingen — tjänstens eget katalogindex |
+| `knowledge` | 4 | ingen — API-indexet självt |
+| `eyes` | 3 | ingen — bänkens och ögats egna svar |
+| **summa** | **122** | 109 i API-domänerna, 13 utanför |
+
+Två av registrets domäner spänner över flera API-domäner, så en
+verktygssiffra **per API-domän** går inte att ge utan att gissa. Den
+gissningen görs inte här.
 
 Två domäner av 23 är påbörjade. De bär 17 av 204 typer och 76 av 966 metoder.
 **Täckningen är alltså 8 procent av typerna, mätt.**
@@ -1004,7 +1033,8 @@ kontoåtkomst.
 | Domäner | 23 | indelning av de 204 typerna, summan kontrollerad |
 | Typer / metoder / egenskaper / händelser | 204 / 966 / 1159 / 175 | `ApiIndex.statistik()` |
 | Konstanter | 709, varav 151 typnamn och 105 utan motsvarande typ | räknat på namnform |
-| Byggda verktyg | 21 i 2 domäner | `verktyg.register.domaner()` |
+| Byggda verktyg vid skrivningen | 21 i 2 domäner | `verktyg.register.domaner()` |
+| Byggda verktyg 2026-09-05 | **122 i 10 domäner** | samma anrop, se avsnitt 9 |
 | Föreslagna nya verktyg | **324 i 23 domäner** | räknat på tabellraderna i avsnitt 4 |
 | Totalt bibliotek | **345** | 21 + 324 |
 | Rundor | 15, om 16–25 verktyg | avsnitt 6 |
@@ -1022,3 +1052,36 @@ namnger ytor som är kontrollerade mot indexet vid skrivningen. Det är inte
 samma sak som att de är **provade i en körande VC**. Det görs runda för runda,
 mot `formaga.py`, och ett verktyg vars yta saknas i den VC som kör exponeras
 inte alls.
+
+
+---
+
+## 9. Vad som faktiskt byggdes — räkningen mot planen
+
+Dokumentets avsnitt 4 föreslår 345 namn och avsnitt 6 lägger dem i 15 rundor.
+Det gick inte så. Mätt 2026-09-05 genom att slå upp varje verktygsnamn ur
+avsnitt 4:s tabeller mot `verktyg.REGISTER`:
+
+| Tal | Värde |
+|---|---|
+| Namn föreslagna i avsnitt 4 | 345 |
+| Av dem som finns i registret idag | **55** |
+| Föreslagna men fortfarande obyggda | 290 |
+| Verktyg i registret som avsnitt 4 **aldrig föreslog** | **67 av 122** |
+
+**Mer än hälften av det byggda biblioteket står inte i planen.** Det är inte
+ett fel i bygget — de 67 är signalkartan, transportlagret, robotens
+programsida, katalogen och kunskapsverktygen, alltså sådant som byggdes för
+att en cell behövde det. Men det säger något om avsnitt 6: **byggordningen
+följdes inte, och den har inte skrivits om efter varje runda.** Rundtabellen
+ska läsas som en prioritering från skrivtillfället, inte som en plan under
+exekvering.
+
+Det är också skälet till att fas 19 mäter från andra hållet. En plan som
+räknar API-yta säger vad som *går* att bygga. `48_personaprofiler.md` räknar
+**arbetssteg**, och den nämnaren går inte att uppfylla genom att bygga
+ytterligare ett verktyg på en yta ingen ber om — mätt: 6 av 122 byggda verktyg
+är i dag sådana som ingen profils arbetssteg pekar på.
+
+Beläggen: `docs/matningar/M-100_personatackningen.md`,
+`tests/protocol/fas19_personatackningen.md`.
