@@ -402,11 +402,11 @@ def losa(scen, relationer=(), raster_m=None, budget=NODBUDGET):
     de räknas som givna. Relationer som rör dem prövas ändå.
     """
     if not isinstance(scen, Scen):
-        raise Layoutfel("losa tar en Scen")
+        raise Layoutfel("losa takes a Scen")
     relationer = tuple(relationer)
     for r in relationer:
         if not isinstance(r, Relation):
-            raise Layoutfel("en relation måste ärva Relation, fick %r" % (r,))
+            raise Layoutfel("a relation must inherit Relation, got %r" % (r,))
         for n in r.berorda():
             scen.objekt(n)  # okänt namn är ett hårt fel, inte en varning
     steg_m = (FORSLAGSRASTER_M if raster_m is None
