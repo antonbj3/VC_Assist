@@ -316,6 +316,7 @@ SKRIPTBETEENDEN_MB = [
     ("c.createBehaviour(vcConst.VC_SCRIPT, 'x')", "typen via ett attribut"),
     ("c.createBehaviour(*[VC_SCRIPT, 'x'])", "uppackade argument"),
     ("c.createBehaviour(**{'type': VC_SCRIPT, 'name': 'x'})", "nyckelordsargument"),
+    ("setattr(b, 'Script', kod)", "tilldelning till .Script via setattr"),
 ]
 
 

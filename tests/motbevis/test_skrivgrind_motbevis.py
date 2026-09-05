@@ -47,19 +47,6 @@ def test_en_skrivning_skriven_som_dunderanrop_maste_ocksa_fastna(kod, skal):
 
 # ---- 2. skriptbeteendegrinden är fail-open ------------------------------
 
-SKRIPTBETEENDEN = [
-    ("setattr(b, 'Script', kod)", "tilldelning till .Script via setattr"),
-]
-
-
-@pytest.mark.parametrize("kod,skal", SKRIPTBETEENDEN,
-                         ids=[s for _, s in SKRIPTBETEENDEN])
-def test_skriptbeteende_maste_upptackas_oavsett_hur_typen_skrivs(kod, skal):
-    skal_lista = S.skapar_skriptbeteende(kod)
-    assert skal_lista, (
-        "%r (%s) gav tom lista: pump._op_exec_queue köar den utan invändning, "
-        "och vid godkännande dör bryggan utan väg tillbaka (M-13)" % (kod, skal))
-
 
 def test_grinden_ar_fail_closed_nar_typargumentet_inte_gar_att_avgora():
     """I3: okänt är inte ett godkännande.
