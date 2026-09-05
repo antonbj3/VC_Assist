@@ -8,7 +8,7 @@ material som verkligen rör sig igenom. Trasigt fall: en komponent som saknar
 ett av specens krävda beteenden får **inte** kunna kopplas — och felet ska säga
 vilket beteende som fattas"*
 **körs av:** `tests/protocol/kor_fas20_modellen.py` (mot VC),
-`tests/enhet/test_komponentmodell.py` (utan VC, 189 prov)
+`tests/enhet/test_komponentmodell.py` (utan VC, 199 prov)
 **mätning:** `M-101`
 **föregångare:** `M-40` (två tysta villkor), `M-41` (produkten flödar),
 `M-67` (kopplingen flyttar ingenting)
