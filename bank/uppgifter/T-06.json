@@ -291,5 +291,156 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: bandhastigheten 0,50 m/s och kartonglangden 400 mm = 0,400 m ger normal passage over fotocellen pa 0,400 / 0,50 = 0,80 s. Tidsgransen for blockering ar satt till 2,0 s sammanhangande skymning (> 2 * 0,8 s). Mellan stoppen glesas kartongerna ut med 0,8 s * 0,50 m/s = 0,40 m = 400 mm, vilket motsvarar en hel kartonglangd och forhindrar inpressning over 15 mm. Detta ar manniskans facit skrivet ur scenarios normal, rate_lag, rate_hog, blk_flimrar samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Backtryckshantering och stegvis kaskadstopp foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_T06_BACKTRYCK\nVAR\n    tmrBlk    : TON;\n    tmrStp70  : TON;\n    tmrStp60  : TON;\n    tmrStrt70 : TON;\n    tmrStrt60 : TON;\n    blockerad : BOOL := FALSE;\n    hadeBlock : BOOL := FALSE;\nEND_VAR\n\ntmrBlk(IN := EMG_OK AND ST080_PEC_END, PT := T#2000ms);\nIF tmrBlk.Q THEN\n    blockerad := TRUE;\n    hadeBlock := TRUE;\nELSIF NOT ST080_PEC_END THEN\n    blockerad := FALSE;\nEND_IF;\n\nST080_BLK_ACT := blockerad;\n\ntmrStp70(IN := blockerad, PT := T#800ms);\ntmrStp60(IN := tmrStp70.Q, PT := T#800ms);\n\ntmrStrt70(IN := NOT blockerad AND hadeBlock, PT := T#800ms);\ntmrStrt60(IN := tmrStrt70.Q, PT := T#800ms);\nIF tmrStrt60.Q THEN\n    hadeBlock := FALSE;\nEND_IF;\n\nIF NOT EMG_OK THEN\n    ST060_CNV_RUN := FALSE;\n    ST070_CNV_RUN := FALSE;\n    ST080_CNV_RUN := FALSE;\n    ST080_BLK_ACT := FALSE;\n    blockerad := FALSE;\n    hadeBlock := FALSE;\nELSE\n    IF blockerad THEN\n        ST080_CNV_RUN := FALSE;\n        ST070_CNV_RUN := NOT tmrStp70.Q;\n        ST060_CNV_RUN := NOT tmrStp60.Q;\n    ELSIF hadeBlock THEN\n        ST080_CNV_RUN := TRUE;\n        ST070_CNV_RUN := tmrStrt70.Q;\n        ST060_CNV_RUN := tmrStrt60.Q;\n    ELSE\n        ST080_CNV_RUN := TRUE;\n        ST070_CNV_RUN := TRUE;\n        ST060_CNV_RUN := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "normal_drift_och_kaskadstopp",
+        "beskrivning": "Normal drift dar blockering uppstar och kaskadstopp stoppar ST080 direkt, sedan ST070 efter 0,8 s, sedan ST060 efter ytterligare 0,8 s.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST080_PEC_END": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {},
+            "krav": {
+              "ST080_BLK_ACT": false,
+              "ST080_CNV_RUN": true,
+              "ST070_CNV_RUN": true,
+              "ST060_CNV_RUN": true
+            },
+            "varfor": "alla tre banorna igang vid normaldrift"
+          },
+          {
+            "t_ms": 1100,
+            "satt": {
+              "ST080_PEC_END": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 3200,
+            "satt": {},
+            "krav": {
+              "ST080_BLK_ACT": true,
+              "ST080_CNV_RUN": false,
+              "ST070_CNV_RUN": true,
+              "ST060_CNV_RUN": true
+            },
+            "varfor": "ST080 stoppas forst av alla vid blockering"
+          },
+          {
+            "t_ms": 4100,
+            "satt": {},
+            "krav": {
+              "ST080_CNV_RUN": false,
+              "ST070_CNV_RUN": false,
+              "ST060_CNV_RUN": true
+            },
+            "varfor": "ST070 stoppas efter 0,8 s"
+          },
+          {
+            "t_ms": 5000,
+            "satt": {},
+            "krav": {
+              "ST080_CNV_RUN": false,
+              "ST070_CNV_RUN": false,
+              "ST060_CNV_RUN": false
+            },
+            "varfor": "ST060 stoppas sist efter 1,6 s totalt"
+          }
+        ]
+      },
+      {
+        "id": "flimmer_utloser_inte_blockering",
+        "beskrivning": "En kartong som passerar pa 0,8 s utloser inte blockeringslarm.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST080_PEC_END": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1000,
+            "satt": {
+              "ST080_PEC_END": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 1800,
+            "satt": {
+              "ST080_PEC_END": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2000,
+            "satt": {},
+            "krav": {
+              "ST080_BLK_ACT": false,
+              "ST080_CNV_RUN": true
+            },
+            "varfor": "en passage pa 0,8 s ar inte blockering"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST060_CNV_RUN": false,
+          "ST070_CNV_RUN": false,
+          "ST080_CNV_RUN": false,
+          "ST080_BLK_ACT": false
+        },
+        "varfor": "vid nodstopp ska alla banor stannas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "blk_act_flank",
+        "sekvens": "normal_drift_och_kaskadstopp",
+        "signal": "ST080_BLK_ACT",
+        "typ": "RISE",
+        "fran_ms": 3000,
+        "till_ms": 3300,
+        "antal": 1,
+        "varfor": "blockeringslarm ska ga hog exakt en gang efter 2,0 s kontinuerlig skymning"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "banorna_stoppas_i_fel_ordning",
+        "st": "PROGRAM ST_T06_BACKTRYCK\nVAR\n    tmrBlk    : TON;\n    blockerad : BOOL := FALSE;\nEND_VAR\n\ntmrBlk(IN := EMG_OK AND ST080_PEC_END, PT := T#2000ms);\nIF tmrBlk.Q THEN\n    blockerad := TRUE;\nELSIF NOT ST080_PEC_END THEN\n    blockerad := FALSE;\nEND_IF;\n\nST080_BLK_ACT := blockerad;\n\nIF NOT EMG_OK THEN\n    ST060_CNV_RUN := FALSE;\n    ST070_CNV_RUN := FALSE;\n    ST080_CNV_RUN := FALSE;\nELSE\n    IF blockerad THEN\n        ST060_CNV_RUN := FALSE;\n        ST070_CNV_RUN := TRUE;\n        ST080_CNV_RUN := TRUE;\n    ELSE\n        ST060_CNV_RUN := TRUE;\n        ST070_CNV_RUN := TRUE;\n        ST080_CNV_RUN := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Banorna stoppas i flodesordning (framifran) i stallet for bakifran, sa kartongerna packas ihop och trycks sonder.",
+        "faller_pa": [
+          "normal_drift_och_kaskadstopp@3200ms:ST080_CNV_RUN"
+        ]
+      }
+    ]
+  }
 }

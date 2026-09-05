@@ -294,5 +294,166 @@
     "gate_code": null
   },
   "verified_status": "unverified",
-  "last_run": null
+  "last_run": null,
+  "facit_spar": {
+    "harkomst": "RAKNAD: banhastigheten 24 m/min = 0,40 m/s och lastbararens langd 600 mm ger passagetiden 0,600 / 0,40 = 1,50 s per lastbarare i sammanflodet. Vid takten 20 lastbarare per minut ger cykeltiden 60/20 = 3,0 s per enhet, vilket rymmer 1,5 s passage och 1,5 s vaxlingstid med full marginal. Detta ar manniskans facit skrivet ur scenarios normal, gap_lag, gap_hog, bada_last samt expect fore korning. M-124 provar facitformen.",
+    "standard": "Inbordes forregling av sammanflode pa rullbanor foljer anlaggningens specifikation; nodstopp forreglar enligt IEC 60204-1:2016 9.2.3.4.2 \"Emergency stop\" och IEC 61131-3:2013 6.6.3.5 \"Standard function blocks\" (TON, tabell 46).",
+    "scan_ms": 20,
+    "referens": "PROGRAM ST_T03_SAMMANFLODE\nVAR\n    steg      : INT := 0;\n    nastaBana : INT := 1;\n    tmrPass   : TON;\nEND_VAR\n\ntmrPass(IN := (steg = 3) AND NOT ST030_PEC_MERGE, PT := T#1500ms);\n\nIF NOT EMG_OK THEN\n    ST030_STP1_OPEN := FALSE;\n    ST030_STP2_OPEN := FALSE;\n    ST030_CNV_RUN   := FALSE;\n    steg := 0;\nELSE\n    ST030_CNV_RUN := TRUE;\n\n    CASE steg OF\n        0:\n            ST030_STP1_OPEN := FALSE;\n            ST030_STP2_OPEN := FALSE;\n            IF NOT ST030_PEC_MERGE THEN\n                IF nastaBana = 1 THEN\n                    IF ST030_PEC_LANE1 THEN\n                        ST030_STP1_OPEN := TRUE;\n                        steg := 1;\n                    ELSIF ST030_PEC_LANE2 THEN\n                        ST030_STP2_OPEN := TRUE;\n                        steg := 2;\n                    END_IF;\n                ELSE\n                    IF ST030_PEC_LANE2 THEN\n                        ST030_STP2_OPEN := TRUE;\n                        steg := 2;\n                    ELSIF ST030_PEC_LANE1 THEN\n                        ST030_STP1_OPEN := TRUE;\n                        steg := 1;\n                    END_IF;\n                END_IF;\n            END_IF;\n        1:\n            IF ST030_PEC_MERGE THEN\n                ST030_STP1_OPEN := FALSE;\n                nastaBana := 2;\n                steg := 3;\n            END_IF;\n        2:\n            IF ST030_PEC_MERGE THEN\n                ST030_STP2_OPEN := FALSE;\n                nastaBana := 1;\n                steg := 3;\n            END_IF;\n        3:\n            IF tmrPass.Q THEN\n                steg := 0;\n            END_IF;\n    END_CASE;\nEND_IF;\nEND_PROGRAM\n",
+    "sekvenser": [
+      {
+        "id": "vaxelvis_slappning",
+        "beskrivning": "Bada banorna har last och slapps vaxelvis till sammanflodet.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST030_PEC_LANE1": false,
+              "ST030_PEC_LANE2": false,
+              "ST030_PEC_MERGE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST030_CNV_RUN": true,
+              "ST030_STP1_OPEN": false,
+              "ST030_STP2_OPEN": false
+            },
+            "varfor": "innan lastbarare anlander ar bada grindarna stangda"
+          },
+          {
+            "t_ms": 200,
+            "satt": {
+              "ST030_PEC_LANE1": true,
+              "ST030_PEC_LANE2": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 300,
+            "satt": {},
+            "krav": {
+              "ST030_STP1_OPEN": true,
+              "ST030_STP2_OPEN": false
+            },
+            "varfor": "bana 1 slapps forst"
+          },
+          {
+            "t_ms": 400,
+            "satt": {
+              "ST030_PEC_MERGE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 500,
+            "satt": {},
+            "krav": {
+              "ST030_STP1_OPEN": false,
+              "ST030_STP2_OPEN": false
+            },
+            "varfor": "grind 1 stangs nar enhet gar in i merge"
+          },
+          {
+            "t_ms": 600,
+            "satt": {
+              "ST030_PEC_MERGE": false
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 2200,
+            "satt": {},
+            "krav": {
+              "ST030_STP2_OPEN": true,
+              "ST030_STP1_OPEN": false
+            },
+            "varfor": "efter 1,5 s fritt sammanflode slapps nasta enhet fran bana 2"
+          }
+        ]
+      },
+      {
+        "id": "bada_slappsignalerna_aldrig_hoga",
+        "beskrivning": "Verifera att bada grindarna aldrig ar oppna i samma scan.",
+        "steg": [
+          {
+            "t_ms": 0,
+            "satt": {
+              "EMG_OK": true,
+              "ST030_PEC_LANE1": true,
+              "ST030_PEC_LANE2": true,
+              "ST030_PEC_MERGE": true
+            },
+            "krav": {},
+            "varfor": ""
+          },
+          {
+            "t_ms": 100,
+            "satt": {},
+            "krav": {
+              "ST030_STP1_OPEN": false,
+              "ST030_STP2_OPEN": false
+            },
+            "varfor": "medan merge ar upptagen ar bada grindarna stangda"
+          }
+        ]
+      }
+    ],
+    "invarianter": [
+      {
+        "namn": "aldrig_bada_grindarna_oppna",
+        "sekvens": "*",
+        "nar": {
+          "ST030_STP1_OPEN": true
+        },
+        "kraver": {
+          "ST030_STP2_OPEN": false
+        },
+        "varfor": "bada stoppgrindarna far aldrig vara oppna i samma scan"
+      },
+      {
+        "namn": "ingen_rorelse_vid_nodstopp",
+        "sekvens": "*",
+        "nar": {
+          "EMG_OK": false
+        },
+        "kraver": {
+          "ST030_CNV_RUN": false,
+          "ST030_STP1_OPEN": false,
+          "ST030_STP2_OPEN": false
+        },
+        "varfor": "vid nodstopp ska all transport stanna och grindar stangas"
+      }
+    ],
+    "flanker": [
+      {
+        "namn": "stp1_flank",
+        "sekvens": "vaxelvis_slappning",
+        "signal": "ST030_STP1_OPEN",
+        "typ": "RISE",
+        "fran_ms": 200,
+        "till_ms": 400,
+        "antal": 1,
+        "varfor": "grind 1 ska oppnas exakt en gang for forsta enheten"
+      }
+    ],
+    "motbevis": [
+      {
+        "namn": "bada_grindarna_oppnar_samtidigt",
+        "st": "PROGRAM ST_T03_SAMMANFLODE\nVAR\n    steg : INT := 0;\nEND_VAR\n\nIF NOT EMG_OK THEN\n    ST030_STP1_OPEN := FALSE;\n    ST030_STP2_OPEN := FALSE;\n    ST030_CNV_RUN   := FALSE;\nELSE\n    ST030_CNV_RUN := TRUE;\n    IF ST030_PEC_LANE1 THEN\n        ST030_STP1_OPEN := TRUE;\n    END_IF;\n    IF ST030_PEC_LANE2 THEN\n        ST030_STP2_OPEN := TRUE;\n    END_IF;\nEND_IF;\nEND_PROGRAM\n",
+        "vad_som_ar_fel": "Bada banornas slappsignaler beraknas oberoende och gar hoga i samma scanfonster, sa tva lastbarare kilas fast i sammanflodet.",
+        "faller_pa": [
+          "vaxelvis_slappning@300ms:ST030_STP2_OPEN"
+        ]
+      }
+    ]
+  }
 }
