@@ -514,3 +514,37 @@ def test_ingen_korpuspost_binder_ett_biblioteksnamn_som_inte_finns():
             assert n.strip(), "%s bar ett tomt vc_namn" % b.modell
             assert n.lower() not in sedda
             sedda.add(n.lower())
+
+
+def _korpus(vc_namn, falt, varde, enhet, citat):
+    return TD.Korpus([TD.Modellblad(
+        modell=vc_namn, tillverkare="Provtillverkaren", vc_namn=(vc_namn,),
+        uppgifter={falt: TD.Uppgift(falt=falt, varde=varde, enhet=enhet,
+                                    kalla=_kalla(citat))})])
+
+
+def test_nar_bada_kallorna_har_ett_tal_och_de_skiljer_sig_sags_det():
+    """TRASIG FIXTUR. M-107:s oppna motbevis: berikningen lat tillverkarens tal
+    vinna och sa INGENTING om motsagelsen.
+
+    UR10e ar det skarpaste verkliga fallet - model.xml skriver 12, Universal
+    Robots skriver 12,5 kg, och en cell som valjer robot efter last raknade da
+    med ett halvt kilo for lite utan att nagon fick veta det.
+    """
+    blad = _Attrappblad("UR10e", {"maxpayload": "12"})
+    svar = TD.berika(blad, korpus=_korpus("UR10e", "nyttolast", 12.5, "kg",
+                                          "Payload 12.5 kg"),
+                     falt=("nyttolast",))["nyttolast"]
+    assert svar.lage == TD.FINNS and svar.varde == 12.5
+    assert svar.motsagelse, "motsagelsen far inte avgoras tyst"
+    assert "12" in svar.motsagelse and "12.5" in svar.motsagelse
+    assert "inte avgjort" in svar.motsagelse
+
+
+def test_samma_tal_ur_bada_kallorna_ar_ingen_motsagelse():
+    """Kontrollriktningen: en varning som alltid star ar ingen varning."""
+    blad = _Attrappblad("R-2000", {"maxpayload": "210"})
+    svar = TD.berika(blad, korpus=_korpus("R-2000", "nyttolast", 210.0, "kg",
+                                          "Payload 210 kg"),
+                     falt=("nyttolast",))["nyttolast"]
+    assert svar.motsagelse == ""

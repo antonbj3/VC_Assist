@@ -73,7 +73,7 @@ import json
 import os
 import re
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass, replace, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
 # ---------------------------------------------------------------------------
@@ -495,6 +495,15 @@ class Svar:
     ordagrant: str = ""
     kalltyp: str = ""       # "tillverkarens datablad", "model.xml", ...
     lasning: str = ""       # ordagrant par / positionslast kolumn
+    # Vad DEN ANDRA kallan sa om samma falt, nar de sager olika. Tomt betyder
+    # inte "de var overens" - det betyder att bara en av dem hade ett tal.
+    #
+    # VARFOR FALTET FINNS (M-107): berikningen lat tillverkarens tal vinna och
+    # sa ingenting om motsagelsen. UR10e ar skarpast - model.xml skriver 12,
+    # Universal Robots skriver 12,5 kg, och en cell som valjer robot efter last
+    # raknade da med ett halvt kilo for lite UTAN att nagon fick veta det.
+    # Ett tyst avgjort motsagelse ar ett svar som ser fardigt ut.
+    motsagelse: str = ""
 
     def __post_init__(self):
         faltdef(self.falt)
@@ -838,6 +847,26 @@ SKAL_NOLLA = (
     "tillverkat ett faktum.")
 
 
+def _samma_tal(ordagrant: str, varde) -> bool:
+    """Ar modellens omarkta tal samma tal som tillverkarens?
+
+    Bara en STRANGjamforelse pa talet, aldrig en enhetsomvandling: modellens
+    tal saknar enhet, och att rakna om ett tal vars enhet man inte vet ar just
+    det fel `jamforbar` finns for att hindra. 12 mot 12,5 ar olika. 2500 mot
+    2500 ar samma. 2,51 m mot 2500 gar INTE att avgora, och da sags de vara
+    olika - att gissa att de ar lika vore att avgora motsagelsen tyst igen.
+    """
+    try:
+        a = float(str(ordagrant).replace(",", "."))
+    except (TypeError, ValueError):
+        return False
+    try:
+        b = float(varde)
+    except (TypeError, ValueError):
+        return False
+    return abs(a - b) < 1e-9
+
+
 def _katalogsvar(falt: str, vckalla: str, ordagrant: str) -> Svar:
     skal = SKAL_KATALOGFALT
     if _ar_nolla(ordagrant):
@@ -873,12 +902,28 @@ def berika(blad, korpus: Optional[Korpus], falt: Sequence[str] = ()) -> Dict[str
     ut: Dict[str, Svar] = {}
     for f in falten:
         faltdef(f)
+        vc_namn = None
+        for kfalt, vart in KATALOGFALT.items():
+            if vart == f and kat.get(kfalt) is not None:
+                vc_namn = kfalt
+                break
         if post is not None:
             s = post.svar(f)
             if s.lage == FINNS:
+                # BADA kallorna har ett tal om samma falt. Modellens saknar
+                # enhet (model.xml bar inget enhetsfalt), sa talen gar inte att
+                # jamfora kanoniskt - men de gar att STALLA BREDVID varandra,
+                # och det ar skillnaden mot att tiga.
+                if vc_namn is not None:
+                    modelltal = str(kat[vc_namn]).strip()
+                    if modelltal and not _samma_tal(modelltal, s.varde):
+                        s = replace(s, motsagelse=(
+                            "model.xml (%s) sager %s utan enhet; tillverkarens "
+                            "datablad sager %s %s. Talen ar inte samma, och "
+                            "vilket som galler i en cell ar inte avgjort har"
+                            % (vc_namn, modelltal, s.varde, s.enhet)))
                 ut[f] = s
                 continue
-        vc_namn = None
         for kfalt, vart in KATALOGFALT.items():
             if vart == f and kat.get(kfalt) is not None:
                 vc_namn = kfalt
