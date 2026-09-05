@@ -77,7 +77,13 @@ PLC_SKAN_S = 0.040               # Satt av M-20.
 # braketten diskvalificeras de otackta flankerna var for sig (sekvensdom,
 # fasforhallande) i stallet for att gora hela korningen obestambar (M-87 §5:
 # "ogat hade blivit blint av att bli arligt").
-PLC_AXEL_MAX_ANDEL = 0.10        # PRELIMINAR. Satts av matning M-97.
+# MATT (M-97, nio VC-korningar): friska korningar 0,0-1,0 % otackta rader
+# (sex korningar), SIGSTOP-storda 3,3-5,7 % (tre korningar; 300 ms, 100 ms
+# och 30 ms-jitter). De storda falldes av rad- och flanklagren (plc_gammal,
+# steg inom osakerheten) innan braketten. Braketten ar darfor ett BAKSTOPP
+# over allt som matts - tio ganger den friska toppen - och har i VC bara
+# fallt syntetiska fixturer. Det star i M-97:s LIMITS.
+PLC_AXEL_MAX_ANDEL = 0.10        # Satt av M-97.
 
 
 # ---- kvaternion- och vektormatematik ------------------------------------
