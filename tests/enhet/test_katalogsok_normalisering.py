@@ -44,6 +44,10 @@ _BIBLIOTEK = [
     ("IRB 360-3/1130", "ABB"),
     ("IRB 360-1/1600", "ABB"),
     ("IRB 910SC-3/0.55", "ABB"),
+    # Ur den skalade fixturen: den har traffades av en for slapp
+    # efterledsrunga innan tva lattnader slutade staplas.
+    ("TS 5 - Rotate Unit", "Bosch Rexroth"),
+    ("IR-TS5-55Z15S-INT", "INOVANCE"),
     ("M-10iD/12", "Fanuc"),
     ("LR Mate 200iD/7L", "Fanuc"),
     ("KR 10 R1100 sixx", "KUKA"),
@@ -89,6 +93,11 @@ def namn(svar):
     # heter "0" .. "7" (8 av 3201, M-161), och utan sparr blir den har fragan
     # ett jokertecken over hela tillverkarens sortiment.
     "KUKA 1",
+    # DEN SKALADE FIXTUREN FALLDE DEN HAR, och den ar hela skalet till att
+    # efterledsrungan matchar RAKT och aldrig normaliserat: bada orden foll,
+    # stubben blev "ts5", och "ts5" ligger inne i normaliserade
+    # "IR-TS5-55Z15S-INT" - en komponent som inte har med fragan att gora.
+    "INOVANCE TS 5 - Rotate Unit",
 ])
 def test_en_fraga_som_ska_ge_SAKNAS_ger_noll_traffar(fraga):
     assert kat().sok(fraga=fraga).totalt == 0, fraga

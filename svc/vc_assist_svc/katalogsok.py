@@ -362,16 +362,26 @@ class Katalog(object):
         #    Kravet pa ett sifferbarande ord kvar ar det som gor att
         #    "ABB IRB 360-1/1130 FlexPicker" stannar pa "IRB 360-1/1130" och
         #    darmed pa NOLL traffar i stallet for att glida till en granne.
+        #
+        #    TVA LATTNADER FAR INTE STAPLAS. Rungan matchar RAKT och aldrig
+        #    normaliserat: att kasta en del av fragan ar redan en lattnad, och
+        #    att samtidigt strunta i skiljetecknen gor stubben till nagot annat
+        #    an en beteckning. MATT: den skalade fixturen fallde precis det.
+        #    "INOVANCE TS 5 - Rotate Unit" tappade bada orden, stubben blev
+        #    "ts5", och den ligger inne i normaliserade "IR-TS5-55Z15S-INT" -
+        #    en traff pa en komponent som inte har med fragan att gora. Rakt
+        #    matchar "ts 5 -" ingenting, och "IRB 910SC-3/0.55" matchar sig
+        #    sjalv, sa den enda vinsten star kvar.
         delar = kvar.split()
         while len(delar) > 1 and delar[-1].isalpha():
             delar = delar[:-1]
             if not any(any(c.isdigit() for c in d) for d in delar):
                 break
-            dn = normalisera(" ".join(delar))
-            if len(dn) < MIN_BETECKNING:
+            stubbe = " ".join(delar)
+            if len(normalisera(stubbe)) < MIN_BETECKNING:
                 break
             slappt = " ".join(kvar.split()[len(delar):])
-            steg.append((lambda namn, x=dn: x in normalisera(namn), tv,
+            steg.append((lambda namn, x=stubbe.lower(): x in namn.lower(), tv,
                          "\"%s\" last som tillverkare; \"%s\" slapptes ur "
                          "namnet" % (tv, slappt)))
         return steg
