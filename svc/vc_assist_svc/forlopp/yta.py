@@ -55,7 +55,7 @@ MAX_HANDELSERADER = 12          # Satt av M-64.
 # pekar på modellen eller på en körning och aldrig på bryggan.
 TYSTNADSTAK_S = 5.0             # PRELIMINÄR. Satts av M-28.
 
-SAKNAS = "saknas"
+SAKNAS = "MISSING"
 
 # Ögonblicksbildens formatversion. Ändras formen höjs talet, och `fran_json`
 # vägrar läsa en annan version: en läsare som gissar sig genom ett okänt
