@@ -1,0 +1,444 @@
+[
+ {
+  "uppgift": "A-07",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "A-08",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "C-04",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "kvitteringsknappen_star_kvar_hog@1600ms:ST420_RB_HOLD",
+   "kvitteringsknappen_star_kvar_hog@1600ms:ST420_STA_SAFE",
+   "flank:ingen_start_pa_en_kvarhallen_knapp"
+  ]
+ },
+ {
+  "uppgift": "C-06",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "H-04",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "H-05",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "H-05",
+  "inst": "trigDone",
+  "clk": "ST490_XFR_DONE",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "L-01",
+  "inst": "trigPall",
+  "clk": "ST150_PLT_PRS",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "atta_kollin_ett_lager@520ms:ST150_LYR_CNT",
+   "atta_kollin_ett_lager@2980ms:ST150_LYR_CNT",
+   "atta_kollin_ett_lager@3380ms:ST150_LYR_CNT",
+   "atta_kollin_ett_lager@3380ms:ST150_PLT_FULL",
+   "atta_kollin_ett_lager@3560ms:ST150_VAC_ON"
+  ]
+ },
+ {
+  "uppgift": "L-01",
+  "inst": "trigPrt",
+  "clk": "ST150_PRT_PRS",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "nodstopp_och_tryckluft@680ms:ST150_RB_START",
+   "nodstopp_och_tryckluft@1180ms:ST150_RB_START",
+   "flank:ett_avlagg_per_kolli_efter_nodstopp"
+  ]
+ },
+ {
+  "uppgift": "L-05",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "L-06",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 2,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "L-07",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "P-03",
+  "inst": "trigOppet",
+  "clk": "ST120_MLD_OPEN",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "lang_kylning_och_ett_uttag@18100ms:ST120_VAC_ON",
+   "lang_kylning_och_ett_uttag@18100ms:ST120_RB_CLEAR",
+   "lang_kylning_och_ett_uttag@18500ms:ST120_MLD_CLOSE_OK",
+   "lang_kylning_och_ett_uttag@18500ms:ST120_RB_CLEAR",
+   "invariant:inget_uttag_mot_ett_stangt_verktyg@lang_kylning_och_ett_uttag"
+  ]
+ },
+ {
+  "uppgift": "P-06",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "P-07",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": true,
+   "x0.25": false,
+   "x0.5": true,
+   "x2.0": true,
+   "upprepa2": true,
+   "hall3": true
+  }
+ },
+ {
+  "uppgift": "S-01",
+  "inst": "trigPart",
+  "clk": "ST190_PEC_PART",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "tva_burkar_hog_sedan_lag@480ms:ST190_CNV_RUN",
+   "tva_burkar_hog_sedan_lag@1080ms:ST190_CNV_RUN",
+   "tva_burkar_hog_sedan_lag@2080ms:ST190_PSH_OUT",
+   "tva_burkar_hog_sedan_lag@2080ms:ST190_CNV_RUN",
+   "tva_burkar_hog_sedan_lag@2300ms:ST190_PSH_OUT"
+  ]
+ },
+ {
+  "uppgift": "S-05",
+  "inst": "trigSc",
+  "clk": "ST200_PML_SC",
+  "n_byten": 11,
+  "godkand": false,
+  "koder": [
+   "hel_produktionscykel@860ms:ST200_PML_STATE",
+   "hel_produktionscykel@860ms:ST200_CNV_RUN",
+   "hel_produktionscykel@1060ms:ST200_PML_STATE",
+   "hold_ar_internt_suspend_ar_externt@1060ms:ST200_PML_STATE",
+   "hold_ar_internt_suspend_ar_externt@1260ms:ST200_PML_STATE"
+  ]
+ },
+ {
+  "uppgift": "S-06",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "S-07",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 2,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "S-07",
+  "inst": "trigPart",
+  "clk": "ST510_PEC_PART",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "betyget_under_kravet@1800ms:ST510_LBL_PRINT",
+   "flank:en_utskrift_per_kasserad_kartong"
+  ]
+ },
+ {
+  "uppgift": "S-07",
+  "inst": "trigDone",
+  "clk": "ST510_SCN_DONE",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "T-01",
+  "inst": "trigPec",
+  "clk": "ST010_PEC_PART",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "niva_ar_ingen_flank@2600ms:ST010_STP_OPEN",
+   "flank:ingen_andra_oppning_utan_flank"
+  ]
+ },
+ {
+  "uppgift": "T-02",
+  "inst": "trigAuto",
+  "clk": "SYS_AUTO",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "forslutningen_kvitterar_aldrig@3700ms:ST020_SEA_CLOSE",
+   "nodstopp_kraver_manuell_aterstallning@1200ms:ST020_IDX_START",
+   "flank:inget_index_pa_aterstallt_nodstopp"
+  ]
+ },
+ {
+  "uppgift": "T-02",
+  "inst": "trigHome",
+  "clk": "ST020_IDX_HOME",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "en_cykel@320ms:ST020_IDX_START",
+   "en_cykel@320ms:ST020_SEA_CLOSE",
+   "en_cykel@1880ms:ST020_IDX_START",
+   "en_cykel@1880ms:ST020_SEA_CLOSE",
+   "kvittensen_kommer_fore_uppehallet@320ms:ST020_IDX_START"
+  ]
+ },
+ {
+  "uppgift": "T-04",
+  "inst": "trigIn",
+  "clk": "ST040_PEC_IN",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "raknaren_foljer_flanker@5000ms:ST040_BUF_COUNT",
+   "raknaren_foljer_flanker@5000ms:ST040_BUF_FULL",
+   "raknaren_foljer_flanker@5000ms:ST040_STP_IN_OPEN",
+   "raknaren_foljer_flanker@19800ms:ST040_BUF_COUNT",
+   "raknaren_foljer_flanker@22100ms:ST040_STP_OUT_OPEN"
+  ]
+ },
+ {
+  "uppgift": "T-04",
+  "inst": "trigUt",
+  "clk": "ST040_PEC_OUT",
+  "n_byten": 2,
+  "godkand": false,
+  "koder": [
+   "raknaren_foljer_flanker@19800ms:ST040_BUF_COUNT",
+   "raknaren_foljer_flanker@19800ms:ST040_BUF_FULL",
+   "raknaren_foljer_flanker@19800ms:ST040_STP_IN_OPEN",
+   "raknaren_foljer_flanker@22100ms:ST040_STP_OUT_OPEN",
+   "raknaren_foljer_flanker@22100ms:ST040_BUF_COUNT"
+  ]
+ },
+ {
+  "uppgift": "T-05",
+  "inst": "trigAuto",
+  "clk": "SYS_AUTO",
+  "n_byten": 1,
+  "godkand": false,
+  "koder": [
+   "givarfel_over_magasinets_rymd@800ms:SYS_ALARM",
+   "givarfel_over_magasinets_rymd@800ms:ST050_CNV_RUN",
+   "givarfel_over_magasinets_rymd@1600ms:SYS_ALARM",
+   "givarfel_over_magasinets_rymd@1600ms:ST050_CNV_RUN",
+   "flank:ett_larm_per_givarfel"
+  ]
+ },
+ {
+  "uppgift": "T-07",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "T-08",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ },
+ {
+  "uppgift": "T-09",
+  "inst": "trigReset",
+  "clk": "SYS_RESET",
+  "n_byten": 1,
+  "godkand": true,
+  "koder": [],
+  "synlig": {
+   "facit": false,
+   "x0.25": false,
+   "x0.5": false,
+   "x2.0": false,
+   "upprepa2": false,
+   "hall3": false
+  }
+ }
+]

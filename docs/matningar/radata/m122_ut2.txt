@@ -1,0 +1,63 @@
+uppgifter 26  referens GODKAND 26/26  (19s)
+skador 808  fangade 717  overlevde 91
+fangade per lager Counter({'beteende': 374, 'text': 343})
+fangade per (vantat -> lager) Counter({('beteende', 'beteende'): 374, ('text', 'text'): 273, ('beteende', 'text'): 70})
+
+sort                         n  text  bete  over |  SKILL   PERT   OSYN
+AND_TILL_OR                 77     0    67    10 |      2      5      3
+END_IF_STRUKEN              78    78     0     0 |      0      0      0
+FALSKT_TILL_SANT            78     0    21    57 |      6      0     51
+FLANKENS_Q_TILL_SIGNAL      68    68     0     0 |      0      0      0
+FLANK_TILL_NIVA             30     0    30     0 |      0      0      0
+ICKE_ASCII                  78    78     0     0 |      0      0      0
+JAMFORELSE_VAND             57     2    54     1 |      0      0      1
+NOT_STRUKEN                 76     0    73     3 |      0      2      1
+OR_TILL_AND                 34     0    30     4 |      0      2      2
+SANT_TILL_FALSKT            76     0    63    13 |      3      2      8
+SEMIKOLON_STRUKET           78    78     0     0 |      0      0      0
+TID_FORDUBBLAD              39     0    36     3 |      1      1      1
+TID_OGILTIG                 39    39     0     0 |      0      0      0
+
+overlevande BETEENDEmutanter: 91
+  klass: Counter({'OSYNLIG': 67, 'SYNLIG_BARA_UNDER_PERTURBATION': 12, 'SKILLNAD_PA_FACITSTIMULUS': 12})
+  synlig under facit    : 12
+  synlig under x0.25    : 8
+  synlig under x0.5     : 9
+  synlig under x2.0     : 19
+  synlig under upprepa2 : 19
+  synlig under hall3    : 18
+  radtyp x klass: Counter({('INITIERARE', 'OSYNLIG'): 55, ('KOD', 'SYNLIG_BARA_UNDER_PERTURBATION'): 12, ('KOD', 'OSYNLIG'): 12, ('INITIERARE', 'SKILLNAD_PA_FACITSTIMULUS'): 9, ('KOD', 'SKILLNAD_PA_FACITSTIMULUS'): 3})
+  KODRADS-overlevare: 27  klass: {'SYNLIG_BARA_UNDER_PERTURBATION': 12, 'SKILLNAD_PA_FACITSTIMULUS': 3, 'OSYNLIG': 12}
+    kodrads-overlevare synliga under facit    : 3
+    kodrads-overlevare synliga under x0.25    : 1
+    kodrads-overlevare synliga under x0.5     : 2
+    kodrads-overlevare synliga under x2.0     : 10
+    kodrads-overlevare synliga under upprepa2 : 10
+    kodrads-overlevare synliga under hall3    : 9
+  per uppgift (overlevande beteende / SKILLNAD / PERT / OSYN):
+    A-03    5   2   2   1
+    A-07    2   0   0   2
+    A-08    1   0   0   1
+    C-04    5   0   0   5
+    C-06    2   0   0   2
+    H-01    2   0   0   2
+    H-04    5   1   1   3
+    H-05    5   1   0   4
+    L-01    3   0   0   3
+    L-05    4   1   0   3
+    L-06    2   0   0   2
+    L-07    3   0   1   2
+    P-03   10   0   7   3
+    P-06    1   0   0   1
+    P-07    3   0   0   3
+    S-01    4   1   0   3
+    S-05    3   0   0   3
+    S-06    3   0   0   3
+    S-07    7   3   1   3
+    T-01    3   0   0   3
+    T-02    4   0   0   4
+    T-04    3   0   0   3
+    T-05    4   1   0   3
+    T-07    1   0   0   1
+    T-08    2   0   0   2
+    T-09    4   2   0   2

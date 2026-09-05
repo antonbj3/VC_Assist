@@ -1,0 +1,18 @@
+skador: 806   fangade: 471   slappta: 335   (58 %)
+av vilket lager: {'text': 457, 'beteende': 14}
+
+  AND_TILL_OR               77 skador,  21 fangade ( 27 %)
+  END_IF_STRUKEN            78 skador,  78 fangade (100 %)
+  FALSKT_TILL_SANT          76 skador,  21 fangade ( 28 %)
+  FLANKENS_Q_TILL_SIGNAL    68 skador,  68 fangade (100 %)
+  FLANK_TILL_NIVA           30 skador,  24 fangade ( 80 %)
+  ICKE_ASCII                78 skador,  78 fangade (100 %)
+  JAMFORELSE_VAND           57 skador,  19 fangade ( 33 %)
+  NOT_STRUKEN               76 skador,  21 fangade ( 28 %)
+  OR_TILL_AND               34 skador,  12 fangade ( 35 %)
+  SANT_TILL_FALSKT          76 skador,  21 fangade ( 28 %)
+  SEMIKOLON_STRUKET         78 skador,  61 fangade ( 78 %)
+  TID_FORDUBBLAD            39 skador,   8 fangade ( 21 %)
+  TID_OGILTIG               39 skador,  39 fangade (100 %)
+
+slappta per uppgift (topp 10): [('A-08', 21), ('C-04', 21), ('S-06', 20), ('T-02', 20), ('H-05', 19), ('H-01', 18), ('H-04', 18), ('L-01', 18), ('T-01', 18), ('T-05', 18)]

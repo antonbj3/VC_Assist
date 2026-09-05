@@ -1,0 +1,58 @@
+{
+ "antal": {
+  "NOT_STRUKEN": 76,
+  "AND_TILL_OR": 77,
+  "SANT_TILL_FALSKT": 76,
+  "FALSKT_TILL_SANT": 76,
+  "FLANKENS_Q_TILL_SIGNAL": 68,
+  "TID_FORDUBBLAD": 39,
+  "TID_OGILTIG": 39,
+  "END_IF_STRUKEN": 78,
+  "SEMIKOLON_STRUKET": 78,
+  "ICKE_ASCII": 78,
+  "OR_TILL_AND": 34,
+  "FLANK_TILL_NIVA": 30,
+  "JAMFORELSE_VAND": 57
+ },
+ "fangad": {
+  "FLANKENS_Q_TILL_SIGNAL": 68,
+  "TID_OGILTIG": 39,
+  "END_IF_STRUKEN": 78,
+  "SEMIKOLON_STRUKET": 61,
+  "ICKE_ASCII": 78,
+  "NOT_STRUKEN": 21,
+  "AND_TILL_OR": 21,
+  "OR_TILL_AND": 12,
+  "SANT_TILL_FALSKT": 21,
+  "FALSKT_TILL_SANT": 21,
+  "FLANK_TILL_NIVA": 24,
+  "TID_FORDUBBLAD": 8,
+  "JAMFORELSE_VAND": 19
+ },
+ "av": {
+  "text": 457,
+  "beteende": 14
+ },
+ "slapp_per_uppgift": {
+  "A-03": 16,
+  "A-08": 21,
+  "C-04": 21,
+  "H-01": 18,
+  "H-04": 18,
+  "H-05": 19,
+  "L-01": 18,
+  "L-06": 17,
+  "L-07": 16,
+  "P-03": 17,
+  "P-07": 17,
+  "S-01": 15,
+  "S-05": 11,
+  "S-06": 20,
+  "T-01": 18,
+  "T-02": 20,
+  "T-05": 18,
+  "T-07": 17,
+  "T-08": 18
+ },
+ "n": 806
+}
