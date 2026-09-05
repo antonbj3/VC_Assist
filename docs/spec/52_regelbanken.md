@@ -106,3 +106,39 @@ fåtal räknebara villkor, och den ersätter ingen människa.
 
 Ingenting i den här specen är byggt. Den beskriver en idé och den gräns som
 avgör om idén är bra eller farlig.
+
+---
+
+## 6. Vad research bekräftat (M-118) och lagt till
+
+`M-118` gick igenom `ISO 13857`, `ISO 10218-1/-2`, `ISO/TS 15066`,
+`ISO 13849-1`, `IEC 62061`, juridiken (2006/42/EG, 2023/1230) och tre
+befintliga verktyg (SICK Safety Designer, Pilz PAScal, Sistema/IFA). Fem
+punkter, i fallande styrka:
+
+1. **Gränsen i §1 har externt stöd, ordagrant.** SICK Safety Designers egen
+   driftinstruktion säger till användaren: *"You need suitable expertise and
+   experience. You must be able to assess if the machine is operating
+   safely."* Bedömningen ligger på personen, aldrig på verktyget — i en
+   marknadsledande produkt, inte bara i vår egen försiktighet.
+2. **§2:s mönster (`T` mäts, katalogen räcker inte) återkommer en nivå in i
+   `ISO 13849-1`:** `MTTFd = B10d / (0,1 × nop)`, där `nop` (manövreringar
+   per år) inte står i katalogen och antingen härleds ur cellens egen
+   drifttakt eller måste mätas om den verkliga takten avviker. En
+   katalogsiffra ärver aldrig sin motparts verklighetsgrad.
+3. **En ny formelbärande yta:** `ISO/TS 15066` (kollaborativ kraft/tryck) är
+   den mest räknebara standarden av alla undersökta — kraft/tryck räknas ur
+   robotens EFFEKTIVA massa i kontaktpunkten, en geometrisk härledning, mot en
+   tabell i standardens Annex A. Dess status är dock omtvistad: innehållet
+   ska vara upptaget i `ISO 10218-2:2025`, ej bekräftat mot primärkälla.
+4. **Rörligt mål, ett till:** `ISO 10218-1/-2:2011` (banken citerar dem i
+   `A-07`, `H-04`) är ersatt av **:2025**-utgåvorna (utgivna 2025-01-31).
+   Ingen paragrafommappning är gjord.
+5. **Juridiken pekar åt samma håll som §1, men artikelnumren i
+   2023/1230 är overifierade** (en enda, ej dubbelkontrollerad källa) — se
+   `M-118` §3b innan de citeras som fakta. Det som ÄR verifierat, ordagrant
+   och mot primärkälla: 2006/42/EG Annex I punkt 1 lägger riskbedömningsplikten
+   på "the manufacturer... or his authorised representative", aldrig på ett
+   verktyg.
+
+Fullständigt (inklusive vad som INTE gick att belägga): `docs/matningar/M-118_maskinsakerhet_rakningsbart_och_ansvarsgransen.md`.
