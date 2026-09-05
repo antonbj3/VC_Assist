@@ -34,7 +34,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from .text import meningar, normalisera
+from .text import meningar, normalisera, utan_diakritik
 
 _HAR = os.path.dirname(os.path.abspath(__file__))
 ROT = os.path.normpath(os.path.join(_HAR, "..", "..", ".."))
@@ -249,9 +249,11 @@ class Sakerhetsgrind(object):
                                 "agenten far lasa den, aldrig skriva den"
                                 % ren)
                     kalla = kalla or "signalkarta"
-            lag = ren.lower()
+            # Samma avdiakritisering som i granska_text: en tagg som heter
+            # NODSTOPP_OK och en som heter NÖDSTOPP_OK ar samma sakerhetsord.
+            lag = utan_diakritik(ren).lower()
             for ord_ in SAKERHETSORD:
-                if ord_ in lag and skrivande:
+                if utan_diakritik(ord_) in lag and skrivande:
                     skal.append("%r ror en sakerhetsfunktion (%s) i ett "
                                 "skrivande anrop" % (ren, ord_))
                     kalla = kalla or "ordlista"
@@ -274,10 +276,21 @@ class Sakerhetsgrind(object):
         skal = []
         for m in meningar(text or ""):
             lag = m.lag
-            sak = next((o for o in SAKERHETSORD if o in lag), None)
+            # BADA sidor avdiakritiseras. MATT 2026-09-05 (M-105): listan ar
+            # skriven med tvillingpar ("nodstopp"/"nödstopp"), men tva ord
+            # saknade sin tvilling - "sakerhetsplc" och "sakerhetsgrind" - och
+            # jamforelsen gjordes mot ett rent `.lower()`. Meningen "vi byglar
+            # säkerhetsgrinden tillfälligt" gick alltsa rakt igenom en
+            # SAKERHETSgrind. Att fylla i de tva luckorna for hand hade varit
+            # samma fel en gang till, bara senare: en handskriven tvillinglista
+            # glommer nasta ord ocksa.
+            lag = utan_diakritik(lag)
+            sak = next((o for o in SAKERHETSORD if utan_diakritik(o) in lag),
+                       None)
             if sak is None:
                 continue
-            kring = next((o for o in KRINGGAENDEORD if o in lag), None)
+            kring = next((o for o in KRINGGAENDEORD
+                          if utan_diakritik(o) in lag), None)
             if kring is None:
                 continue
             skal.append("meningen %r foreslar att %s satts ur spel (%s); "
