@@ -329,4 +329,16 @@ def test_skriptbeteende_maste_upptackas_oavsett_hur_typen_skrivs(kod, skal):
         "och vid godkännande dör bryggan utan väg tillbaka (M-13)" % (kod, skal))
 
 
+def test_grinden_ar_fail_closed_nar_typargumentet_inte_gar_att_avgora():
+    """I3: okänt är inte ett godkännande.
+
+    Ett `createBehaviour` vars typ inte går att läsa syntaktiskt ska räknas
+    som ett skriptbeteende, precis som `granska()` räknar ogenomskinliga
+    anrop som skrivande. I dag räknas det som ofarligt.
+    """
+    assert S.skapar_skriptbeteende("c.createBehaviour(typen, namnet)"), (
+        "typargumentet gick inte att avgöra och grinden svarade 'ofarligt'")
+
+
+
 

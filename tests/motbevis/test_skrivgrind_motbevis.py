@@ -44,16 +44,3 @@ def test_en_skrivning_skriven_som_dunderanrop_maste_ocksa_fastna(kod, skal):
         "%r dömdes som LÄSANDE och skulle köras direkt i exec, utan kö (%s)"
         % (kod, skal))
 
-
-# ---- 2. skriptbeteendegrinden är fail-open ------------------------------
-
-
-def test_grinden_ar_fail_closed_nar_typargumentet_inte_gar_att_avgora():
-    """I3: okänt är inte ett godkännande.
-
-    Ett `createBehaviour` vars typ inte går att läsa syntaktiskt ska räknas
-    som ett skriptbeteende, precis som `granska()` räknar ogenomskinliga
-    anrop som skrivande. I dag räknas det som ofarligt.
-    """
-    assert S.skapar_skriptbeteende("c.createBehaviour(typen, namnet)"), (
-        "typargumentet gick inte att avgöra och grinden svarade 'ofarligt'")
