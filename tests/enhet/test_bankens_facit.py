@@ -171,6 +171,58 @@ def test_en_karnutgang_som_inte_ar_utsignal_falls(bank, matningar, verifierade):
     assert "KARNUTGANG_EJ_UTSIGNAL" in _koder(p, matningar, verifierade)
 
 
+# ------------------------------------------------------------- larmskulden
+
+class _Falsk(object):
+    def __init__(self, data):
+        self.data = data
+
+
+def test_larmskulden_hittar_en_uppgift_som_ber_om_ett_larm_den_inte_kan_ge():
+    """Trasig fixtur for skuldraknaren: ett scenario som sager larma i en
+    signalkarta utan SYS_ALARM."""
+    post = {"task_id": "X-42",
+            "control": {"signals": [
+                {"name": "ST999_CNV_RUN", "dir": "out", "type": "bool"},
+                {"name": "EMG_OK", "dir": "in", "type": "bool"}]},
+            "scenarios": [{"id": "a", "typ": "vandning", "signal": None,
+                           "beskrivning": "givaren faller bort",
+                           "forvantat": "styrningen ska larma och stanna"}]}
+    utan_larm, utan_kvittens = G.larmskuld([_Falsk(post)])
+    assert utan_larm == ["X-42"]
+    assert utan_kvittens == []
+
+
+def test_larmskulden_hittar_ett_larm_ingen_kan_kvittera():
+    post = {"task_id": "X-43",
+            "control": {"signals": [
+                {"name": "SYS_ALARM", "dir": "out", "type": "bool"},
+                {"name": "EMG_OK", "dir": "in", "type": "bool"}]},
+            "scenarios": []}
+    utan_larm, utan_kvittens = G.larmskuld([_Falsk(post)])
+    assert utan_larm == [] and utan_kvittens == ["X-43"]
+
+
+def test_larmskulden_star_pa_sitt_tak(bank):
+    """Sparren far bara ga at ett hall. Vaxer listan har en ny uppgift lagts in
+    som ber om ett larm den inte kan ge; krymper den ska talet skrivas ned."""
+    utan_larm, utan_kvittens = G.larmskuld(bank)
+    assert len(utan_larm) <= G.LARMSKULD, sorted(set(utan_larm))
+    assert len(utan_kvittens) <= G.KVITTENSSKULD, sorted(set(utan_kvittens))
+    assert len(utan_larm) == G.LARMSKULD, (
+        "skulden ar nere i %d men taket star pa %d; skriv ned det nya talet i "
+        "kor_bankens_facit.py och i M-106" % (len(utan_larm), G.LARMSKULD))
+
+
+def test_ingen_av_de_nya_uppgifterna_ber_om_ett_larm_den_inte_kan_ge(bank):
+    """M-106:s egna tolv uppgifter bar alla SYS_ALARM och SYS_RESET."""
+    nya = {"P-06", "P-07", "A-07", "A-08", "H-05", "S-06", "S-07",
+           "T-08", "T-09", "L-06", "L-07", "C-06"}
+    utan_larm, utan_kvittens = G.larmskuld(bank)
+    assert not (set(utan_larm) & nya), sorted(set(utan_larm) & nya)
+    assert not (set(utan_kvittens) & nya), sorted(set(utan_kvittens) & nya)
+
+
 # -------------------------------------------------------- korningens egen post
 
 def test_korningen_bar_en_giltig_bankpost():

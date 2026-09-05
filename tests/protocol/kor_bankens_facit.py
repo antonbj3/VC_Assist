@@ -169,6 +169,19 @@ HAR_SIFFRA = re.compile(r"\d")
 
 _MNUMMER = re.compile(r"\bM-\d+\b")
 
+# En uppgift vars scenarier sager "larma" men vars signalkarta saknar
+# SYS_ALARM ber om nagot den inte gett signalen till. MATT i M-106: 30 av
+# bankens uppgifter gor det, och tva till har SYS_ALARM men ingen SYS_RESET
+# att kvittera med. Alla 32 ar aldre an M-106; ingen av de tolv nya uppgifterna
+# ar bland dem.
+#
+# Talen ar SKULDTAK och far bara ga at ett hall. En ny uppgift som lagger till
+# sig i listan faller korningen; blir listan kortare ska talet skrivas ned har,
+# annars slutar sparren mata sin egen storhet.
+LARMSKULD = 30                  # Matt i M-106.
+KVITTENSSKULD = 2               # Matt i M-106.
+SAGER_LARM = re.compile(r"\blarm", re.I)
+
 
 # --------------------------------------------- de verifierade paragraferna
 
@@ -343,6 +356,24 @@ def granska_antaganden(post):
                 tid, "TAL_UTAN_ENHET",
                 "%r har vardet %r, ett bart tal utan storhet" % (vad, varde)))
     return brister
+
+
+def larmskuld(bank):
+    """Uppgifter som ber om ett larm de inte kan ge, och larm ingen kan kvittera."""
+    utan_larm, utan_kvittens = [], []
+    for u in bank:
+        d = u.data
+        signaler = (d.get("control") or {}).get("signals") or []
+        ut = set(s["name"] for s in signaler if s.get("dir") == "out")
+        inn = set(s["name"] for s in signaler if s.get("dir") == "in")
+        sager = any(SAGER_LARM.search("%s %s" % (sc.get("forvantat") or "",
+                                                 sc.get("beskrivning") or ""))
+                    for sc in (d.get("scenarios") or []))
+        if sager and "SYS_ALARM" not in ut:
+            utan_larm.append(d["task_id"])
+        if "SYS_ALARM" in ut and "SYS_RESET" not in inn:
+            utan_kvittens.append(d["task_id"])
+    return utan_larm, utan_kvittens
 
 
 def granska_signalkarta(post):
@@ -630,6 +661,24 @@ def main(argv=None):
             print("    %s" % ", ".join(utan_facit))
         print()
 
+    utan_larm, utan_kvittens = larmskuld(bank)
+    if not a.tyst:
+        print("LARMSKULD — uppgifter som ber om ett larm de inte kan ge")
+        print("  utan SYS_ALARM  : %d (taket ar %d)" % (len(utan_larm), LARMSKULD))
+        print("  utan SYS_RESET  : %d (taket ar %d)"
+              % (len(utan_kvittens), KVITTENSSKULD))
+        print()
+    if len(utan_larm) > LARMSKULD:
+        brister.append(Brist("BANKEN", "LARMSKULD_VAXER",
+                             "%d uppgifter sager larma utan SYS_ALARM, taket ar "
+                             "%d: %s" % (len(utan_larm), LARMSKULD,
+                                         ", ".join(sorted(set(utan_larm))))))
+    if len(utan_kvittens) > KVITTENSSKULD:
+        brister.append(Brist("BANKEN", "KVITTENSSKULD_VAXER",
+                             "%d uppgifter har SYS_ALARM utan SYS_RESET, taket "
+                             "ar %d: %s" % (len(utan_kvittens), KVITTENSSKULD,
+                                            ", ".join(sorted(set(utan_kvittens))))))
+
     golvbrist = len(med_facit) < SPARFACIT_GOLV
     if golvbrist:
         brister.append(Brist("BANKEN", "TACKNING_UNDER_GOLVET",
@@ -669,6 +718,9 @@ def main(argv=None):
                 "med_sparfacit": med_facit,
                 "utan_sparfacit": utan_facit,
                 "golv": SPARFACIT_GOLV,
+                "larmskuld": {"utan_sys_alarm": sorted(utan_larm),
+                              "utan_sys_reset": sorted(utan_kvittens),
+                              "tak": [LARMSKULD, KVITTENSSKULD]},
                 "brister": [{"uppgift": b.uppgift, "kod": b.kod, "text": b.text}
                             for b in brister],
                 "trasiga_fall": [{"vad": v, "vantad_kod": k, "foll": f,
