@@ -175,13 +175,15 @@ project measures more.
 ## Where this is going
 
 **Natural language across the whole job.** The input is plain language, and it
-should cover the range a real engineer works in: a precise specification, a
-rough intention, or a change to a cell that already exists — *speed this line
-up*, *why does station 3 starve*, *swap that gripper*. The 122 tools underneath
-already read and modify a running scene, and the planner already turns a build
-order into a buildable spec or names the two conditions that collide. The route
-from a loose sentence about an existing cell to the work being done is the piece
-still to build.
+covers the range an engineer actually works in: a precise specification, a rough
+intention, or a change to a cell that already exists.
+
+Asking about a running cell works today — *why does station 3 starve* is answered
+from the eye's own measurements, quoting the rows it read, and it cannot touch
+the scene while it does so. Changing one — *swap that gripper* — has its gates
+built: an ambiguous sentence returns the candidates and switches every writing
+tool off until you answer. Optimising one — *speed this line up* — is not built,
+and is refused with that reason rather than half-attempted.
 
 **Line-level generation.** Faults between stations are a different problem from
 faults inside one — five classes of them exist that every station passes on its
