@@ -176,19 +176,25 @@ Regeln i det här projektet är att varje påstående antingen är **mätt**, me
 kommando eller filreferens, eller märkt **antaget**. Ett grönt påstående utan
 mätning är precis det projektet är byggt för att undvika.
 
-### Plattformar
+### Plattformar och universalitet (M-139)
 
-| | Läge | Vad det betyder |
+Varje kombination klassas ärligt som **mätt**, **oprövat** eller **går inte**. Inga "borde fungera":
+
+| Kombination | Status | Vad det betyder |
 |---|---|---|
-| **Linux + Wine 11.16** | **prövat** | VC Premium 4.10 startar, licens nås, bryggan lever, ögat mäter. Allt headless |
-| **Windows** | **OPRÖVAT** | Ingen VC-installation på Windows finns här — kontrollerat. Koden är plattformsneutral och Windows-vägen är prövad **logiskt**, med en injicerad Windows-miljö mot ett attrappträd. Det är en prövning av logiken, inte av Windows. Ingen rad i det här repot är en mätning på Windows |
-| **VC 4.10** | **prövat** | Tilläggets sökväg, uppstartskroken, API-ytan, pumpen — allt mätt på 4.10 |
-| **VC 5.0** | **OPRÖVAT** | Skolans licensserver har 4.10, så 5.0 går inte att köra här. Att 5.0:s tilläggsmapp heter `Python 3` är sannolikt, inte mätt. Installationen kan lägga tillägget där och märker då sökvägen `OPROVAD` |
-| **VC:s gränssnitt under last** | **OPRÖVAT** | Allt är kört headless. Att pumpen aldrig blockerar är visat mekaniskt, men "ingen märkbar frysning" är en syn, inte en slutsats |
-| **Python 3.10–3.13** | **prövat** | Mätt i M-90 och M-109. Full funktion inklusive verifiering |
-| **Python 3.9** | **delvis prövat** | Mätt i M-109: installationen fungerar, verifieringsmetoden saknar sys.stdlib_module_names |
-| **Python ≤ 3.8** | **stöds ej** | Ej prövat och stöds ej |
-| **VC Python 2.7 & 3.x (ext/)** | **prövat** | Alla 11 filer i ext/ är giltiga i både 2.7 och 3.x; kontrolleras mekaniskt vid varje installation (E5) |
+| **Linux + Wine 11.16 + VC 4.10** | **mätt** | VC Premium 4.10 startar, licens nås, bryggan lever, ögat mäter (M-01, M-112). Allt headless |
+| **Linux + VC nativ (utan Wine)** | **går inte** | Visual Components är en Windows-binär (.exe) |
+| **Linux (musl / Alpine)** | **mätt** | Installation och verktygskedja fungerar (M-109) |
+| **Windows x64 + VC 4.10 (nativ)** | **oprövat** | 16 mekaniserade acceptanspunkter i kor_E1; väntar på Windows-maskinkörning (M-44) |
+| **Windows ARM64** | **går inte** | Utgivarens paket strucpp-win32-arm64.zip är ett x64-bygge (M-56) |
+| **Windows + OneDrive-omdirigering** | **mätt** | Upptäckt via registret och expandvars verifierad mot kupa och attrappträd (M-91, E2) |
+| **VC 5.0 (Python 3)** | **oprövat** | Förberedd i installera.py men omätt (skolans licens gäller 4.10) |
+| **VC ≤ 3.x** | **går inte** | Saknar modernt API och tilläggsarkitektur |
+| **VC:s gränssnitt under last** | **oprövat** | Allt är kört headless. Att pumpen aldrig blockerar är visat mekaniskt, men "ingen märkbar frysning" är en syn, inte en slutsats |
+| **Python 3.10–3.13** | **mätt** | Mätt i M-90 och M-109. Full funktion inklusive verifiering |
+| **Python 3.9** | **delvis mätt** | Mätt i M-109: installationen fungerar, verifieringsmetoden saknar sys.stdlib_module_names |
+| **Python ≤ 3.8** | **går inte** | End-of-life; stöds ej |
+| **VC Python 2.7 & 3.x (ext/)** | **mätt** | Alla 11 filer i ext/ kompilerar i CPython 2.7.18 och 3.13; kontrolleras mekaniskt vid varje installation (E5) |
 
 ### Faser (`docs/spec/70_faser.md`)
 
