@@ -144,8 +144,32 @@ Reglerna ska matas in i systemprompten via `plc/forhandsregler.py`, som redan
 gör det för de befintliga klasserna — så modellen får veta kravet innan den
 skriver, inte efter.
 
-## Om du blir klar
+---
 
-Gå vidare med: `docs/spec/60_plc.md` säger vad PLC-lagret ska klara. Läs den
-mot vad som finns och skriv en lista över varje mening i specen som ingen kod
-uppfyller. Den listan är nästa kö.
+## Överflöd — när de sju punkterna är slut
+
+**A8. Vad OpenPLC gör som IEC 61131-3 inte säger.** Varje motor har sina egna
+avvikelser. Hitta dem: heltalsspill, division med noll, `TIME`-aritmetik över
+dygnsgränsen, strängar över sin deklarerade längd. För var och en: vad säger
+standarden, vad gör matiec, vad gör vår tolk. Skillnaderna hör hemma i
+`tests/enhet/test_st_svep_mot_strucpp.py`-mönstret som permanenta fall.
+
+**A9. Retentiva variabler över omstart.** `RETAIN` betyder att värdet överlever
+en varmstart. Vår tolk har inget omstartsbegrepp alls. Bygg det, och mät hur
+många av bankens uppgifter som skulle döma annorlunda med en omstart mitt i
+spåret.
+
+**A10. Flanken över skanngränsen.** `R_TRIG` som utvärderas två gånger i samma
+skann ger olika svar beroende på ordning. Bygg en uppgift där ordningen spelar
+roll, kör den på båda motorerna, och se om de är överens. Det är den klassiskt
+svåraste buggen i PLC-kod och vi har inte prövat den en enda gång.
+
+**A11. Vad händer när ST:n är korrekt men PLC:n inte hinner.** Cykeltiden är
+ett tak. Skriv kod som är riktig men för långsam för sitt eget tak, och mät om
+någon del av kedjan säger till. Om ingen gör det: en användare kan få kod som
+fungerar i bänken och missar sin deadline i verkligheten.
+
+**A12. Läs `docs/spec/60_plc.md` mening för mening.** Varje mening som ingen
+kod uppfyller blir en rad i en lista med filnamn och radnummer där den borde ha
+uppfyllts. Listan är nästa kö, och den är värd mer än gissningar om vad som
+saknas.

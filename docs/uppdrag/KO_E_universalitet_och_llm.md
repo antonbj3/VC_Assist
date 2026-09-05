@@ -113,8 +113,31 @@ Wine/inte-Wine, med tre möjliga celler: **mätt**, **oprövat**, **går inte**.
 Ingen cell får säga "borde fungera". Tabellen blir README:s
 kompatibilitetsavsnitt, och den blir ärlig.
 
-## Om du blir klar
+---
 
-`docs/spec/25_kontextbudget.md` beskriver hur mycket som får plats i en modells
-sammanhang. Mät det mot verkligheten: hur stor blir systemprompten med alla
-regler från `forhandsregler.py`, och vad ryker först när den inte får plats?
+## Överflöd — när de sju punkterna är slut
+
+**E8. En ren maskin, hela vägen.** `M-90` körde installationen på en ren
+Linux-maskin. Gör om det för hela kedjan: klona repot i en tom container, följ
+README steg för steg utan att veta något, och skriv ner varje ställe där en
+instruktion inte räcker. En instruktion som kräver att man redan kan systemet
+är ingen instruktion.
+
+**E9. Felmeddelandena som användaren möter.** Gå igenom varje felväg i
+`install/` och `ext/` och läs meddelandet som en användare som inte byggt
+systemet. Säger det vad som är fel, var, och vad man gör åt det? Ett fel som
+bara namnger ett undantag är ett fel som skickar användaren till oss.
+
+**E10. Vad tillägget gör när VC är en annan version.** VC 4.10 är mätt. Vad
+händer i 4.9 eller 5.0 — dör tillägget tyst, eller säger det ifrån? Bygg
+versionskontrollen så att en oprövad version säger *oprövad*, inte kraschar och
+inte låtsas fungera.
+
+**E11. Kontextbudgeten mot verkligheten.** Mät hur stor systemprompten blir med
+alla regler från `forhandsregler.py`, och vad som ryker först när den inte får
+plats. Om reglerna trängs ut av uppgiftstexten faller grindarna tyst — och det
+är precis den sortens tysta fel `M-119` letade efter.
+
+**E12. Skriv README:s installationsavsnitt om, mätt.** Varje steg ska ha körts
+av dig, i den ordningen, på en maskin utan förkunskap. Varje påstående som du
+inte kört stryks eller märks **oprövat**.

@@ -113,8 +113,43 @@ Rätta sedan den av de två texterna som ljuger.
 Det här är precis den sorten teknisk skuld projektet är strängast mot: något
 som **felaktigt tros vara gjort**.
 
-## Om du blir klar
+---
 
-`docs/spec/42_ogat_utbyggt.md` är enligt fasplanen *"ospecificerat i faser"*.
-Skriv fasplanen för resten av den: varje mening i specen ska ha en fas, en
-grind och en trasig fixtur, eller strykas som något vi inte tänker bygga.
+## VC och licensen, som det faktiskt ligger
+
+Kontrollerat 2026-09-05: VC Premium 4.10 **kör**, VPN uppe på `ppp0`, headless
+på `:99`. Licensen fungerar. `~/bin/vc-test.sh` startar VPN själv om det ligger
+nere och vägrar starta VC utan licens i stället för att starta halvt.
+
+Licensen är alltså ingen risk du behöver planera runt. Skulle den ändå fallera
+mitt i ett pass är felraden värd att skriva ner som en mätning — servern har
+en gång svarat med feature mismatch, fel produkt eller version, inte platsbrist,
+och det tog tid att skilja från platsbrist.
+
+## Överflöd — när de sju punkterna är slut
+
+**D8. Domarna mot inspelade scener.** Projektet har spår från tidigare
+VC-körningar. Kör alla fem domarna mot varje inspelat spår och räkna hur ofta
+de är oense. Två domare som alltid säger samma sak är en domare.
+
+**D9. Vad ögat inte kan se, av konstruktion.** `M-115` visade att `F15` är
+strukturellt osynlig för spårbaserad verifiering. Gör listan färdig: vilka av
+felklasserna i `docs/spec/82_felklasser.md` går principiellt inte att se i ett
+spår, hur mycket man än förbättrar domarna? Den listan är produktens ärliga
+gräns och hör hemma i README.
+
+**D10. Provtagningsfrekvensen mot vad som ska ses.** Ögat provtar 17,2 Hz tyst
+och 224,7 Hz under trafik. En rörelse som är klar på 30 ms syns inte vid 17 Hz.
+Räkna, per domare, vilken snabbaste händelse den kan se — och jämför mot vad
+bankens uppgifter faktiskt kräver. Om någon uppgift kräver mer än ögat ger, är
+den uppgiftens dom ogiltig.
+
+**D11. Millimeter och meter.** `M-86` mätte hela scenen i meter åt båda håll med
+noll drift. Enhetsbytet är ändå en av de klassiska felkällorna. Leta i koden
+efter varje ställe där en längd byter enhet och kontrollera att omvandlingen
+finns på båda hållen. Ett ställe som bara omvandlar åt ena hållet är en bugg
+som väntar.
+
+**D12. Kvaternionen.** Skalär först, `(x,y,z,w) = (q.Y,q.Z,q.W,q.X)` — mätt i
+`M-72`. Kontrollera varje ställe i koden som rör rotationer mot den regeln, och
+skriv en trasig fixtur som fäller den vanliga felordningen.

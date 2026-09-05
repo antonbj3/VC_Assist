@@ -147,8 +147,29 @@ repot, och disken var full i morse. Flytta mätningen in i
 `docs/matningar/` och committa den. En mätning som bara finns i `/tmp` finns
 inte.
 
-## Om du blir klar
+---
 
-`docs/spec/82_felklasser.md` räknar upp felklasserna. Jämför dem mot
-mutationsmotorns sorter: varje felklass som ingen mutation kan framkalla är en
-klass vi påstår oss hantera utan att ha prövat det.
+## Överflöd — när de sju punkterna är slut
+
+**C8. Mutera domaren i stället för koden.** Vänd på det: skada `bank/domare.py`
+och se om provsviten fångar det. En domare som fortfarande dömer rätt med en
+skadad regel har en regel som aldrig används.
+
+**C9. Skada specen.** Ändra ett krav i en uppgifts `expect` och kontrollera att
+referenslösningen då blir röd. Om den förblir grön prövar uppgiften inte det
+kravet — och kravet står i specen utan att någonsin mätas.
+
+**C10. Två skador samtidigt.** Alla 808 skador är enskilda. I verkligheten
+kommer fel i par, och två fel kan ta ut varandra så att utfallet ser rätt ut.
+Kör par av skador på de uppgifter som har flest överlevare och räkna hur ofta
+paret är osynligt fast båda delarna var synliga var för sig.
+
+**C11. Hur många stimuli behövs egentligen.** Om fångstgraden är lika hög med
+hälften av scenarierna är hälften av dem dekoration. Svep: ta bort scenarier ett
+i taget och mät. De scenarier som inte ändrar något kan strykas — eller så
+avslöjar de att bänken inte mäter det de var till för.
+
+**C12. Kalibrera mot verkliga buggar.** Mutationerna är påhittade fel. Leta i
+`docs/spec/82_felklasser.md` och i projektets egna mätningar efter fel som
+faktiskt inträffat, och kontrollera att mutationsmotorn kan framkalla var och
+en. En motor som bara gör fel vi hittat på mäter vår fantasi, inte verkligheten.

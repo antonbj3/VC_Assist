@@ -112,8 +112,31 @@ Mekanisera klassningen som ett fält i uppgiften, och gör det obligatoriskt.
 `docs/spec/85_bankkontraktet.md` säger redan att facitkällan aldrig får ligga
 i `under_prov` — det är en regel utan mekanism idag.
 
-## Om du blir klar
+---
 
-Ta `docs/spec/83_scenarier.md` och mät täckningen: hur många av de scenarier
-specen beskriver har någon uppgift i banken? Varje scenario utan uppgift är en
-sorts fel vi säger oss pröva utan att pröva den.
+## Överflöd — när de sju punkterna är slut
+
+**B8. Svårighetsgraden är omätt.** Banken har 63 uppgifter och ingen vet vilka
+som är svåra. Härled svårighet ur data du redan har: antal varv i flerskott,
+andel lösta i enskott, antal överlevande mutanter. Om de tre måtten inte pekar
+åt samma håll har du hittat något — de mäter olika saker och minst ett av dem
+mäter inte svårighet.
+
+**B9. Uppgifter som alltid är gröna säger ingenting.** En uppgift som löses av
+alla i första försöket mäter ingen skillnad. Räkna dem. Om de är många är
+bankens medeltal uppblåst av uppgifter som inte skiljer bra från dåligt.
+
+**B10. Bygg de uppgifter banken saknar.** `docs/spec/83_scenarier.md` och
+`docs/spec/48_personaprofiler.md` beskriver arbete som ingen uppgift täcker.
+`M-100` mätte 76 obyggda arbetssteg. Välj de tio som är närmast produktens kärna
+och skriv uppgifter för dem, med facit enligt kontraktet.
+
+**B11. Samma uppgift, olika formulering.** Skriv om fem uppgifters prompt utan
+att ändra vad som efterfrågas, och kör båda versionerna. Om talen skiljer sig
+mäter bänken formulering snarare än förmåga — och då är varje jämförelse mellan
+armar osäker med den marginalen.
+
+**B12. Vad kostar ett varv, i sekunder och i tokens.** `M-110` rapporterade
+≈950k in och 41k ut. Bryt ner det per varv och per uppgift. Ett flerskott som
+kostar tio gånger ett enskott för att lösa två uppgifter till är ett annat
+värde än ett som kostar dubbelt.
