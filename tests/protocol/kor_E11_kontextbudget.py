@@ -26,13 +26,12 @@ BANKPOST = {
         "docs/spec/25_kontextbudget.md, avsnitt 1 tabellen (5 % for systemprompt).",
     "facitkalla_filer": (
         "docs/spec/25_kontextbudget.md",
-        "svc/vc_assist_svc/plc/forhandsregler.py",
     ),
     "trasiga_fall": (
         "ett kontextfonster dar reglerna trangs ut utan varning maste fällas",
         "en trunkering som klipper ogats regler fore syntaxregler maste fällas",
     ),
-    "kraver": ("budget",),
+    "kraver": ("inget",),
     "matningar": ("M-141", "M-102", "M-119"),
 }
 

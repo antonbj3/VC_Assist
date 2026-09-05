@@ -48,7 +48,7 @@ BANKPOST = {
         "tysta fel dar fel symbol returneras maste fällas",
         "delstrangstraffar utan ordgrans far inte raknas som namntraff",
     ),
-    "kraver": ("bank",),
+    "kraver": ("inget",),
     "matningar": ("M-136", "M-119", "M-84"),
 }
 
