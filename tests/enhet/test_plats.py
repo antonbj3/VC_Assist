@@ -248,6 +248,38 @@ def test_windows_sokningen_hittar_i_onedrive(tmp_path):
     assert sokvag == mapp
 
 
+def test_onedrive_med_procentvariabler_hittas_med_expandvars(tmp_path):
+    """Trasig fixtur for E2: OneDrive definierad med %USERPROFILE%."""
+    profil = tmp_path / "profil"
+    onedrive = profil / "OneDrive - Ftg"
+    dok = onedrive / "Documents"
+    os.makedirs(str(dok))
+    mapp = _bygg(dok, M01_DELAR)
+    # Miljovariabeln bar oexpanderad Windows-form %USERPROFILE%
+    env = {
+        "USERPROFILE": str(profil),
+        "OneDrive": "%USERPROFILE%\\OneDrive - Ftg",
+    }
+    sokvag, kalla = plats.tillaggsmapp(env=env, plattform="win32")
+    assert sokvag == mapp, "Sokningen borde ha hittat mappen genom ntpath.expandvars"
+
+
+def test_onedrive_misslyckas_med_tydligt_besked(tmp_path):
+    """Trasig fixtur for E2: misslyckad sokning maste lamna tydligt besked."""
+    profil = tmp_path / "profil"
+    os.makedirs(str(profil))
+    env = {
+        "USERPROFILE": str(profil),
+        "OneDrive": "%USERPROFILE%\\OneDrive - Ftg",
+    }
+    sokvag, kalla = plats.tillaggsmapp(env=env, plattform="win32")
+    assert sokvag is None
+    # Skall namna vad som letades efter, var den letade och hur anvandaren loser det
+    assert "hittade inte tillaggsmappen 'vc_assist'" in kalla
+    assert "OneDrive - Ftg" in kalla
+    assert "VC_ASSIST_DIR" in kalla
+
+
 # --------------------------------------------------------------------------
 # Wine-detektionen
 # --------------------------------------------------------------------------

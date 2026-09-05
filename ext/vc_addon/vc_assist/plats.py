@@ -271,7 +271,46 @@ def kandidatsokvagar(uri):
 # Tillaggsmappen
 # --------------------------------------------------------------------------
 
-def dokumentrotter(env=None, plattform=None, expanduser=None):
+def _expandera_windows(stig, env=None):
+    """Expandera %VAR% i en sokvag med ntpath.expandvars (aven nar den kors pa Linux)."""
+    if not stig:
+        return stig
+    import ntpath
+    if env is not None:
+        import re
+        def _ersatt(m):
+            return env.get(m.group(1), m.group(0))
+        stig = re.sub(r"%([^%]+)%", _ersatt, stig)
+    stig = ntpath.expandvars(stig)
+    if os.sep == "/":
+        stig = stig.replace("\\", "/")
+    return os.path.normpath(stig)
+
+
+def skalmapp_windows(env=None, winreg_modul=None):
+    """Windows egen 'Personal'-mapp ur registret, expanderad med ntpath."""
+    if winreg_modul is None:
+        try:
+            import winreg as winreg_modul
+        except ImportError:
+            try:
+                import _winreg as winreg_modul
+            except ImportError:
+                return None
+    for nyckel in (
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+    ):
+        try:
+            with winreg_modul.OpenKey(winreg_modul.HKEY_CURRENT_USER, nyckel) as k:
+                varde, typ = winreg_modul.QueryValueEx(k, "Personal")
+                return _expandera_windows(varde, env)
+        except Exception:
+            continue
+    return None
+
+
+def dokumentrotter(env=None, plattform=None, expanduser=None, winreg_modul=None):
     """Mappar dar ``<foretag>/<version>/My Commands`` kan ligga.
 
     Windows-leden ar inte kosmetik: ``Documents`` kan vara omdirigerad till
@@ -285,14 +324,26 @@ def dokumentrotter(env=None, plattform=None, expanduser=None):
     kandidater = [os.path.join(hem, "Documents"),
                   os.path.join(hem, "My Documents")]
     if ar_windows(plattform):
+        skal = skalmapp_windows(env=env, winreg_modul=winreg_modul)
+        if skal:
+            kandidater.append(_expandera_windows(skal, env))
         profil = env.get("USERPROFILE")
         if profil:
             kandidater.append(os.path.join(profil, "Documents"))
+            profil_exp = _expandera_windows(profil, env)
+            if profil_exp != profil:
+                kandidater.append(os.path.join(profil_exp, "Documents"))
+            kandidater.append(os.path.join(profil_exp, "OneDrive", "Documents"))
+            kandidater.append(os.path.join(profil_exp, "OneDrive"))
         for nyckel in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer"):
             rot = env.get(nyckel)
             if rot:
                 kandidater.append(os.path.join(rot, "Documents"))
                 kandidater.append(rot)
+                rot_exp = _expandera_windows(rot, env)
+                if rot_exp != rot:
+                    kandidater.append(os.path.join(rot_exp, "Documents"))
+                    kandidater.append(rot_exp)
     ut = []
     for k in kandidater:
         if k and k not in ut:
@@ -329,8 +380,12 @@ def leta_tillaggsmapp(rotter, walk=None, isdir=None, paketnamn=PAKETNAMN,
     return None
 
 
+class TillaggsmappSaknas(RuntimeError):
+    """Tillaggsmappen gick inte att hitta."""
+
+
 def tillaggsmapp(env=None, plattform=None, expanduser=None, isdir=None,
-                 walk=None):
+                 walk=None, winreg_modul=None):
     """Tillaggets egen mapp, harledd i tre led med fallande sakerhet.
 
     1. ``VC_ASSIST_DIR`` som sokvag - satt av ``__init__.py`` i det normala
@@ -339,7 +394,7 @@ def tillaggsmapp(env=None, plattform=None, expanduser=None, isdir=None,
        ``getApplicationPath()`` faktiskt ger (M-01).
     3. En djupbegransad sokning under dokumentmapparna.
 
-    Returnerar ``(sokvag, kalla)``; ``(None, "hittade inget")`` nar inget av
+    Returnerar ``(sokvag, kalla)``; ``(None, felbesked)`` nar inget av
     leden svarade. Kallan loggas av anroparen: en brygga som startar fran fel
     led ar inte samma sak som en som startar fran ratt.
     """
@@ -355,8 +410,24 @@ def tillaggsmapp(env=None, plattform=None, expanduser=None, isdir=None,
             if isdir(kandidat):
                 return kandidat, "VC_ASSIST_DIR som file:///-URI"
     rotter = dokumentrotter(env=env, plattform=plattform,
-                            expanduser=expanduser)
+                            expanduser=expanduser, winreg_modul=winreg_modul)
     traff = leta_tillaggsmapp(rotter, walk=walk, isdir=isdir)
     if traff:
         return traff, "sokning under dokumentmapparna"
-    return None, "hittade inget under %s" % ", ".join(rotter)
+    fel = (
+        "hittade inte tillaggsmappen '%s' (med markorfilen '%s'). "
+        "Genomsokta dokumentrotter: [%s]. "
+        "Satt miljovariabeln VC_ASSIST_DIR eller %s till mappen dar tillagget ar installerat."
+        % (PAKETNAMN, MARKORFIL, ", ".join(rotter), HEMVARIABEL)
+    )
+    return None, fel
+
+
+def tillaggsmapp_eller_kasta(env=None, plattform=None, expanduser=None,
+                             isdir=None, walk=None, winreg_modul=None):
+    mapp, kalla = tillaggsmapp(env=env, plattform=plattform,
+                               expanduser=expanduser, isdir=isdir,
+                               walk=walk, winreg_modul=winreg_modul)
+    if mapp is None:
+        raise TillaggsmappSaknas(kalla)
+    return mapp, kalla

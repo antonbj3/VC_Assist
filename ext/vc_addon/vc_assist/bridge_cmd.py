@@ -83,7 +83,10 @@ def _tillaggsmapp():
     """
     if _plats is not None:
         mapp, kalla = _plats.tillaggsmapp()
-        _log("tillaggsmapp: %s (%s)" % (mapp, kalla))
+        if mapp is not None:
+            _log("tillaggsmapp: %s (%s)" % (mapp, kalla))
+        else:
+            _log("KRITISKT FEL: %s" % (kalla,))
         return mapp
     # Reservvag utan plats: exakt det som gallde fore M-44. Hellre en sokning
     # som syns i loggen an en gissad sokvag som tyst pekar fel.
@@ -95,6 +98,7 @@ def _tillaggsmapp():
     for rot, mappar, filer in os.walk(os.path.join(hem, "Documents")):
         if "pump.py" in filer and os.path.basename(rot) == "vc_assist":
             return rot
+    _log("KRITISKT FEL: hittade inte tillaggsmappen under ~/Documents och plats.py saknades")
     return None
 
 
@@ -383,7 +387,13 @@ def _starta():
     _log("=== uppstart %s ===" % time.strftime("%Y-%m-%d %H:%M:%S"))
     d = _tillaggsmapp()
     if d is None:
-        _log("hittade inte tillaggsmappen; bryggan startar inte")
+        msg = "hittade inte tillaggsmappen; bryggan startar inte. Se detaljer i loggen ovan."
+        _log("KRITISKT FEL: " + msg)
+        try:
+            import sys
+            sys.stderr.write("VC Assist FEL: %s\n" % msg)
+        except Exception:
+            pass
         return
     _log("tillaggsmapp: %s" % d)
     try:
