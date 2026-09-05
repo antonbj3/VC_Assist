@@ -49,7 +49,7 @@ MAX_RADER = 10                  # Satt av M-60.
 # for brett, och det ar den upplysningen den behover.
 BRED_FRAGA = 40                 # Satt av M-60.
 
-SAKNAS = "saknas"
+SAKNAS = "MISSING"
 
 # Sa manga tecken maste sta kvar av BETECKNINGEN sedan ett ledande
 # tillverkarnamn strukits, for att ledet ska fa strykas alls.

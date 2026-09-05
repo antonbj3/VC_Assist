@@ -398,9 +398,9 @@ def test_en_egenskap_utan_quantity_far_ingen_enhet(blad):
     e = blad.egenskap("ConveyorSpeed")
     assert e.kvantitet == ""
     rad = e.rad()
-    assert "storhet saknas" in rad
+    assert "storhet MISSING" in rad
     for enhet in ("mm", "m/s", "kg", "grader", "deg", "sek"):
-        assert enhet not in rad.replace("saknas", ""), \
+        assert enhet not in rad.replace("MISSING", ""), \
             "en enhet dok upp ur ett talvarde: %s" % rad
 
 
@@ -425,7 +425,7 @@ def test_ett_saknat_katalogfalt_ar_none_och_inte_noll(tmp_path):
     b = KD.las(_vcmx(tmp_path / "utan.vcmx"))
     assert b.rackvidd_mm is None
     assert "Reach (deklarerat falt i katalogposten, ENHET EJ DEKLARERAD i " \
-           "filen): saknas" in KD.text(b)
+           "filen): MISSING" in KD.text(b)
 
 
 # --- signalerna: M-84:s oppna fraga ------------------------------------------
@@ -462,7 +462,7 @@ def test_utan_boolska_signaler_sags_det_rent_ut(tmp_path):
                  flags=re.S)
     b = KD.las(_vcmx(tmp_path / "inga.vcmx", rsc=rsc))
     assert b.signaler_av_typ("rSimBoolSignal") == []
-    assert "SIGNALER: saknas" in KD.text(b)
+    assert "SIGNALER: MISSING" in KD.text(b)
 
 
 # --- beteenden, granssnitt, leder --------------------------------------------
@@ -493,7 +493,7 @@ def test_den_nastade_ledkedjan_ger_ALLA_leder(blad):
     assert a1.max_hastighet == "288"
     # Axis2 saknar MaxSpeed i attrappen och ska da saga saknas, inte noll.
     assert blad.leder[1].max_hastighet == ""
-    assert "maxhastighet saknas" in blad.leder[1].rad()
+    assert "maxhastighet MISSING" in blad.leder[1].rad()
 
 
 def test_ledens_granser_far_ingen_enhet(blad):
@@ -558,7 +558,7 @@ def test_ett_helt_avsnitt_som_saknas_sags_saknas(tmp_path):
     rsc = re.sub(r'VariableSpace ""\n\{.*?\n\}\n', "", RSC, flags=re.S)
     b = KD.las(_vcmx(tmp_path / "nakna.vcmx", rsc=rsc))
     assert b.egenskaper == []
-    assert "EGENSKAPER (det getProperty(namn) slar upp): saknas" in KD.text(b)
+    assert "EGENSKAPER (det getProperty(namn) slar upp): MISSING" in KD.text(b)
 
 
 def test_taken_star_i_koden_och_har_sin_matning():

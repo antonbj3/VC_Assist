@@ -72,7 +72,7 @@ from typing import Dict, List, Optional, Tuple
 METADATA = "component.rsc"
 KATALOGPOST = "model.xml"
 
-SAKNAS = "saknas"
+SAKNAS = "MISSING"
 
 
 class Databladfel(Exception):
