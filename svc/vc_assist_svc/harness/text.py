@@ -661,6 +661,29 @@ def namn_i(text: str, bara_pastaenden: bool = True) -> Tuple[Namnpastaende, ...]
 
 # ---- normalisering -------------------------------------------------------
 
+def utan_diakritik(text: str) -> str:
+    """Texten utan sina prickar: "sakerhetsgrind" ur "säkerhetsgrind".
+
+    VARFOR DEN LIGGER HAR OCH INTE I VARJE GRIND: repots KOD ar translittererad
+    ("falls", "matt", "harkomst") medan det som grindarna LASER - modellens
+    svar, operatorens begaran, korpusens regeltexter, matningarna - ar skrivet
+    i riktig svenska. En ordlista skriven i ASCII kan darfor aldrig fyra pa den
+    enda stavning en verklig text anvander.
+
+    MATT tre ganger: M-70 (`skuld._ARLIGHET`, atta av elva grenar doda),
+    M-105 (`instruktioner._KORSREFERENSER` bar "som namnts" medan 46 av 46
+    regeltexter i korpusen innehaller a, a eller o; `sakerhet.SAKERHETSORD`
+    saknade tvillingarna till "sakerhetsgrind" och "sakerhetsplc", sa
+    "vi byglar säkerhetsgrinden tillfälligt" gick rakt igenom sakerhetsgrinden).
+
+    Lagningen ar INTE att skriva tvillingar for hand. En handskriven
+    tvillinglista glommer nasta ord ocksa - det ar samma fel en gang till, bara
+    senare. Bada sidor avdiakritiseras i stallet, en gang, har.
+    """
+    rent = unicodedata.normalize("NFKD", text or "")
+    return "".join(c for c in rent if not unicodedata.combining(c))
+
+
 def normalisera(namn: str) -> str:
     """Jamforelseform for namn: utan diakriter, gemener, ihopdraget.
 
@@ -668,6 +691,4 @@ def normalisera(namn: str) -> str:
     bar bade blanksteg och versaler ("Conveyor 1"), och en modell citerar dem
     inte alltid tecken for tecken.
     """
-    rent = unicodedata.normalize("NFKD", namn or "")
-    rent = "".join(c for c in rent if not unicodedata.combining(c))
-    return re.sub(r"[\s_-]+", "", rent).lower()
+    return re.sub(r"[\s_-]+", "", utan_diakritik(namn)).lower()
