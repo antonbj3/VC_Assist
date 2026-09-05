@@ -45,7 +45,7 @@ class Krav(object):
         self.mall = mall
         fel = bankschema.granska_facitrad(sektion, mall)
         if fel:
-            raise Verifieringsfel("kravet %r i %s: %s" % (mall, sektion, fel))
+            raise Verifieringsfel("the requirement %r in %s: %s" % (mall, sektion, fel))
 
     def __repr__(self):
         return "Krav(%s, %r)" % (self.sektion, self.mall)
@@ -80,7 +80,7 @@ class Uppskjutet(object):
         self.skal = skal
         fel = bankschema.granska_facitrad(sektion, mall)
         if fel:
-            raise Verifieringsfel("det uppskjutna kravet %r i %s: %s"
+            raise Verifieringsfel("the deferred requirement %r in %s: %s"
                                   % (mall, sektion, fel))
         if not isinstance(skal, str) or len(skal.strip()) < MIN_SKAL_TECKEN:
             raise Verifieringsfel(
@@ -101,7 +101,7 @@ class Uppskjutet(object):
 
 def _nycklar(data, vantade, vad):
     if not isinstance(data, dict):
-        raise Verifieringsfel("%s: forvantade ett objekt, fick %s"
+        raise Verifieringsfel("%s: expected an object, got %s"
                               % (vad, type(data).__name__))
     saknade = sorted(set(vantade) - set(data))
     okanda = sorted(set(data) - set(vantade))
@@ -160,16 +160,16 @@ class Verifieringskrav(object):
         self.forbjudna = list(forbjudna)
         self.uppskjutna = list(uppskjutna)
         if dom not in K.DOMAR:
-            raise Verifieringsfel("domen %r ar inte en av %s"
+            raise Verifieringsfel("the verdict %r is not one of %s"
                                   % (dom, ", ".join(K.DOMAR)))
         for lista, vad in ((self.rader, "rader"),
                            (self.forbjudna, "forbjudna")):
             for k in lista:
                 if not isinstance(k, Krav):
-                    raise Verifieringsfel("%s: %r ar inget Krav" % (vad, k))
+                    raise Verifieringsfel("%s: %r is not a Krav" % (vad, k))
         for u in self.uppskjutna:
             if not isinstance(u, Uppskjutet):
-                raise Verifieringsfel("uppskjutna: %r ar inget Uppskjutet" % (u,))
+                raise Verifieringsfel("deferred: %r is not an Uppskjutet" % (u,))
         # Regel 5 i ogats kontrakt, och bankens lintkod M14: ett PASS som
         # KRAVER en hederlighetsovertradelse ar en sjalvmotsagelse. Ogats egen
         # las() vagrar lasa en sadan rapport, sa kravet kunde aldrig uppfyllas.
