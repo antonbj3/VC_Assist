@@ -96,8 +96,11 @@ _GRANSSNITT = re.compile(r'rSimInterface')
 
 # Familjen lases ur STRUKTUREN, inte ur katalognamnet. Markorerna ar samma som
 # datablad.FAMILJEMARKORER och star bara pa ett stalle i sak - de dubbleras har
-# for att katalogindexet inte ska bero pa databladslagret, och ett prov binder
-# ihop de tva listorna sa att de inte kan glida isar.
+# for att katalogindexet inte ska bero pa databladslagret. Provet som binder
+# ihop dem heter tests/enhet/test_katalogindex.py::test_familjemarkorerna_ar_identiska_med_databladets
+# - NAMNET star har med flit: den har kommentaren pastod i ett dygn att ett
+# prov fanns, och det gjorde det inte. Ett lofte utan namn gar inte att
+# kontrollera, och det ar precis darfor det overlevde (M-77).
 #
 # MATT (M-69): katalognamnet "Robots" har 1736 komponenter, men 466 robotar TILL
 # ligger i kataloger som heter Archiv, Legacy, extra och ultra. For
