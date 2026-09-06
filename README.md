@@ -1,5 +1,7 @@
 # VC Assist
 
+![VC Assist logo](docs/logo/vc_assist_A_v1.png)
+
 VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
 code on a real soft-PLC against a simulated plant, and reads what actually
 happened in the simulation to decide whether the code is correct.
@@ -27,18 +29,7 @@ standard library only, on both platforms.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A["plain-text<br/>order"] --> B["scene built in<br/>the simulator"]
-    B --> C["ST code"]
-    C --> D["OpenPLC drives<br/>the plant"]
-    D --> E(["THE EYE<br/>reads what happened"])
-    E --> F["GOLD"]
-    E -.->|"what went wrong,<br/>in words"| C
-
-    style E fill:#1f6feb,color:#fff
-    style F fill:#238636,color:#fff
-```
+![How it works](docs/flow/flow1.png)
 
 Each step, concretely:
 
@@ -110,16 +101,7 @@ Four checks read the code as **text**: does it compile, is anything unreachable,
 do the names and types exist, are the function blocks real. They are fast, they
 need no simulator, and they can all pass on code that is wrong.
 
-```mermaid
-flowchart LR
-    M["model's<br/>draft"] --> T["1-4 · reads the TEXT<br/><i>compile · analysis<br/>names · calls</i>"]
-    T --> O["5 · THE EYE<br/><i>runs the code against<br/>the plant and watches</i>"]
-    O --> G["GOLD"]
-    O -.->|"the failure, in words"| M
-
-    style O fill:#1f6feb,color:#fff
-    style G fill:#238636,color:#fff
-```
+![Text checks vs the eye](docs/flow/flow2.png)
 
 The first four are fast and need no simulator. But a station can pass every one
 of them — syntax clean, names real, sequence in order — and still release its
@@ -162,19 +144,7 @@ recorded with the reasoning that produced it, or put back to you as a question.
 Nothing is filled in silently, and the questions that block the build are marked
 apart from the ones that do not.
 
-```mermaid
-flowchart LR
-    O["your order,<br/>plain language"] --> R{"each thing the<br/>build needs"}
-    R -->|"derivable from the<br/>catalogue or the scene"| A["decided, and it<br/>shows you why"]
-    R -->|"your call to make"| Q["asked, with<br/>the options"]
-    A --> B["buildable spec"]
-    Q -->|"changes what gets built"| S["waits for<br/>your answer"]
-    Q -->|"does not"| B
-
-    style A fill:#1f6feb,color:#fff
-    style S fill:#3a2d0b,color:#fff
-    style B fill:#238636,color:#fff
-```
+![Derived or asked](docs/flow/flow3.png)
 
 There is no difficulty setting and no complexity tier. The amount of work is
 whatever the order leaves unresolved.
