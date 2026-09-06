@@ -195,7 +195,7 @@ off a line running a normal shift gives the sequence and little else, because
 nothing in it ever went wrong.
 
 **Line-level generation.** Faults between stations are a different problem from
-faults inside one — five classes of them exist that every station passes on its
+faults inside one — several classes of them exist that every station passes on its
 own. Generating and correcting the control code for a *complete line*, on the
 eye's own reports, is the next milestone. The rig is built and waiting on a run.
 
