@@ -1,6 +1,6 @@
 # VC Assist
 
-![VC Assist logo](docs/logo/vc_assist_A_v1.png)
+![VC Assist logo](docs/logo/vc_assist_banner.png)
 
 VC Assist generates IEC 61131-3 Structured Text for industrial cells, runs that
 code on a real soft-PLC against a simulated plant, and reads what actually
