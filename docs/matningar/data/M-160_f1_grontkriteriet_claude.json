@@ -1,0 +1,89 @@
+{
+ "foll": [],
+ "giltigt": true,
+ "gront": true,
+ "guld_korningar": 3,
+ "guld_korningar_med_gold": 2,
+ "guld_kravda": 2,
+ "kompositionsfall_kravda": 3,
+ "kompositionsfall_lagade": 4,
+ "kriterium_guld": true,
+ "kriterium_komposition": true,
+ "n": 3,
+ "ogiltighetsskal": [],
+ "per_guldkorning": [
+  {
+   "gold": false,
+   "korning": 1,
+   "slog_i_taket": false,
+   "utfall": "KORNINGSFEL",
+   "varv_till_gold": null
+  },
+  {
+   "gold": true,
+   "korning": 2,
+   "slog_i_taket": false,
+   "utfall": "LOST",
+   "varv_till_gold": 3
+  },
+  {
+   "gold": true,
+   "korning": 3,
+   "slog_i_taket": false,
+   "utfall": "LOST",
+   "varv_till_gold": 1
+  }
+ ],
+ "per_kompositionsfall": [
+  {
+   "fall": "K1",
+   "giltiga_korningar": 3,
+   "korningar": 3,
+   "lagade_korningar": 3,
+   "lagat": true,
+   "ogiltiga_korningar": 0,
+   "seeden_foll_i": 3,
+   "seeden_slappte_igenom_i": 0
+  },
+  {
+   "fall": "K2",
+   "giltiga_korningar": 3,
+   "korningar": 3,
+   "lagade_korningar": 2,
+   "lagat": true,
+   "ogiltiga_korningar": 0,
+   "seeden_foll_i": 3,
+   "seeden_slappte_igenom_i": 0
+  },
+  {
+   "fall": "K3",
+   "giltiga_korningar": 3,
+   "korningar": 3,
+   "lagade_korningar": 3,
+   "lagat": true,
+   "ogiltiga_korningar": 0,
+   "seeden_foll_i": 3,
+   "seeden_slappte_igenom_i": 0
+  },
+  {
+   "fall": "K4",
+   "giltiga_korningar": 3,
+   "korningar": 3,
+   "lagade_korningar": 2,
+   "lagat": true,
+   "ogiltiga_korningar": 0,
+   "seeden_foll_i": 3,
+   "seeden_slappte_igenom_i": 0
+  },
+  {
+   "fall": "K5",
+   "giltiga_korningar": 2,
+   "korningar": 3,
+   "lagade_korningar": 2,
+   "lagat": false,
+   "ogiltiga_korningar": 0,
+   "seeden_foll_i": 2,
+   "seeden_slappte_igenom_i": 1
+  }
+ ]
+}

@@ -1,0 +1,647 @@
+{
+ "fall": [
+  "K1",
+  "K2",
+  "K3",
+  "K4",
+  "K5"
+ ],
+ "forhandsregler": true,
+ "grontkriteriet": {
+  "foll": [
+   "giltighet",
+   "komposition"
+  ],
+  "giltigt": false,
+  "gront": false,
+  "guld_korningar": 3,
+  "guld_korningar_med_gold": 2,
+  "guld_kravda": 2,
+  "kompositionsfall_kravda": 3,
+  "kompositionsfall_lagade": 0,
+  "kriterium_guld": true,
+  "kriterium_komposition": false,
+  "n": 3,
+  "ogiltighetsskal": [
+   "bara 0 av 5 kompositionsfall korda"
+  ],
+  "per_guldkorning": [
+   {
+    "gold": false,
+    "korning": 1,
+    "slog_i_taket": false,
+    "utfall": "KORNINGSFEL",
+    "varv_till_gold": null
+   },
+   {
+    "gold": true,
+    "korning": 2,
+    "slog_i_taket": false,
+    "utfall": "LOST",
+    "varv_till_gold": 3
+   },
+   {
+    "gold": true,
+    "korning": 3,
+    "slog_i_taket": false,
+    "utfall": "LOST",
+    "varv_till_gold": 1
+   }
+  ],
+  "per_kompositionsfall": []
+ },
+ "guld_arm": [
+  {
+   "fel": "OpenPlcFel(\"the compilation failed (FAILED, exit 1):\\np...\\n/usr/bin/ccache g++ -std=c++17 -O1 -pipe -fPIC -Wall -DSTRUCPP_THREADED -fno-gnu-unique -MMD -MP -Wno-unknown-pragmas -Wno-deprecated-declarations -I core/generated -I core/generated/strucpp_runtime/include -I core/src/plc_app/include -DSTRUCPP_SHIM_HAS_RETAIN -c core/strucpp_runtime/runtime_v4_entry.cpp -o build/runtime_v4_entry.o\\n[INFO] Compiling python_loader.c...\\n/usr/bin/ccache gcc -O2 -fPIC -MMD -MP -I core/src/plc_app -c core/src/plc_app/python_loader.c -o build/python_loader.o\\n[ERROR] core/generated/generated.cpp: In member function ‘virtual void strucpp::Program_ST8::run()’:\\n[ERROR] core/generated/generated.cpp:155:32: error: no matching function for call to ‘NOT(int)’\\n[ERROR]   155 |     if ((((B_LAGET == 2) & (NOT((A_LAGET == 2) | (A_LAGET == 3)))) & (KOR)) & (!NODSTOPP)) {\\n[ERROR]       |                             ~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\n[ERROR] In file included from core/generated/generated.hpp:11,\\n[ERROR]                  from core/generated/generated.cpp:4:\\n[ERROR] core/generated/strucpp_runtime/include/iec_std_lib.hpp:1261:10: note: candidate: ‘template<class T, typename std::enable_if<is_any_bit_v<T>, int>::type <anonymous> > T strucpp::NOT(T)’\\n[ERROR]  1261 | inline T NOT(T value) noexcept {\\n[ERROR]       |          ^~~\\n[ERROR] core/generated/strucpp_runtime/include/iec_std_lib.hpp:1261:10: note:   template argument deduction/substitution failed:\\n[ERROR] core/generated/strucpp_runtime/include/iec_std_lib.hpp:1260:45: error: no type named ‘type’ in ‘struct std::enable_if<false, int>’\\n[ERROR]  1260 | template<typename T, enable_if_any_bit<T> = 0>\\n[ERROR]       |                                             ^\\n[ERROR] make: *** [scripts/Makefile.strucpp:178: build/generated.o] Error 1\\n[ERROR] make: *** Waiting for unfinished jobs....\\n[ERROR] Build failed (exit=2)\\n[ERROR] mv: cannot stat 'build/new_libplc.so': No such file or directory\\n[ERROR] Cleanup failed (exit=1)\\n[WARNING] PLC program has not been updated because the build failed\\n\")",
+   "gold": false,
+   "lage": "rent",
+   "leverantor": "f1/claude-cli",
+   "lost": false,
+   "max_varv": 4,
+   "modell": "sonnet",
+   "ogonkorningar": 2,
+   "sekunder": 389.9,
+   "slog_i_taket": false,
+   "torrkorning": false,
+   "transportfel": [],
+   "uppgift": "linan",
+   "upprepning": 1,
+   "utfall": "KORNINGSFEL",
+   "varv_korda": 0,
+   "varv_till_gold": null
+  },
+  {
+   "anrop": 3,
+   "ej_korda": {
+    "anropsvalidering": "API-indexet saknas; grinden kunde inte kora"
+   },
+   "gold": true,
+   "guld_niva": "gold_line_verified",
+   "guld_skal": "2 stationer och linan gav PASS",
+   "kostnad_usd": 0.4002,
+   "lage": "rent",
+   "leverantor": "f1/claude-cli",
+   "lost": true,
+   "max_varv": 4,
+   "modell": "sonnet",
+   "ogats_sista_dom": "PASS",
+   "ogonkorningar": 3,
+   "sekunder": 740.5,
+   "slog_i_taket": false,
+   "torrkorning": false,
+   "transportfel": [],
+   "uppgift": "linan",
+   "upprepning": 2,
+   "utfall": "LOST",
+   "varv": [
+    {
+     "domar": [
+      {
+       "grind": "station",
+       "koder": [],
+       "ok": true,
+       "utdata": ""
+      },
+      {
+       "grind": "oga",
+       "koder": [
+        "oga:fail:sequence",
+        "oga:inconclusive:sekvensen"
+       ],
+       "ok": false,
+       "utdata": "--- ogat dom over stationA, ordagrant ---\nEYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:03:15 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=2.200s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=10.300s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=18.400s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=26.200s\n  EDGE ST8A_Givare/Puls RISE t=33.100s\n  EDGE ST8A_Givare/Puls FALL t=34.300s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=42.400s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=50.500s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=58.300s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=66.400s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=74.200s\n  EDGE ST8B_Givare/Puls RISE t=1.000s\n  EDGE ST8B_Givare/Puls FALL t=2.200s\n  EDGE ST8B_Givare/Puls RISE t=9.100s\n  EDGE ST8B_Givare/Puls FALL t=10.300s\n  EDGE ST8B_Givare/Puls RISE t=17.200s\n  EDGE ST8B_Givare/Puls FALL t=18.400s\n  EDGE ST8B_Givare/Puls RISE t=25.000s\n  EDGE ST8B_Givare/Puls FALL t=26.200s\n  EDGE ST8B_Givare/Puls RISE t=33.100s\n  EDGE ST8B_Givare/Puls FALL t=34.300s\n  EDGE ST8B_Givare/Puls RISE t=41.200s\n  EDGE ST8B_Givare/Puls FALL t=42.400s\n  EDGE ST8B_Givare/Puls RISE t=49.000s\n  EDGE ST8B_Givare/Puls FALL t=50.500s\n  EDGE ST8B_Givare/Puls RISE t=57.100s\n  EDGE ST8B_Givare/Puls FALL t=58.300s\n  EDGE ST8B_Givare/Puls RISE t=65.200s\n  EDGE ST8B_Givare/Puls FALL t=66.400s\n  EDGE ST8B_Givare/Puls RISE t=73.000s\n  EDGE ST8B_Givare/Puls FALL t=74.200s\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=9 late=0 truncated=1 req=3\n  STEP 0 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 1 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 2 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 3 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 4 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 5 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 6 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 7 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 8 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=4 still=12 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=0.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL sequence: stationens sekvens hölls inte: cykel 0: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 1: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 2: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten\n--- ogat dom over stationB, ordagrant ---\nEYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:03:15 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=2.200s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=10.300s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=18.400s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=26.200s\n  EDGE ST8A_Givare/Puls RISE t=33.100s\n  EDGE ST8A_Givare/Puls FALL t=34.300s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=42.400s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=50.500s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=58.300s\n  EDGE ST8A_G"
+      }
+     ],
+     "kropp": "a_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\nIF NOT kor OR nodstopp THEN\n    a_slapp := FALSE;\n    b_slapp := FALSE;\nELSE\n    CASE a_laget OF\n        0:\n            IF a_flank.Q THEN\n                a_laget := 1;\n            END_IF;\n        1:\n            a_tid(IN := TRUE, PT := T#2s);\n            IF a_tid.Q THEN\n                a_tid(IN := FALSE);\n                a_laget := 2;\n            END_IF;\n        2:\n            IF NOT b_slapp THEN\n                a_utid(IN := TRUE, PT := T#1s);\n                a_laget := 3;\n            END_IF;\n        3:\n            IF a_utid.Q THEN\n                a_utid(IN := FALSE);\n                a_laget := 0;\n            END_IF;\n    END_CASE;\n\n    CASE b_laget OF\n        0:\n            IF b_flank.Q THEN\n                b_laget := 1;\n            END_IF;\n        1:\n            b_tid(IN := TRUE, PT := T#2s);\n            IF b_tid.Q THEN\n                b_tid(IN := FALSE);\n                b_laget := 2;\n            END_IF;\n        2:\n            IF NOT a_slapp THEN\n                b_utid(IN := TRUE, PT := T#1s);\n                b_laget := 3;\n            END_IF;\n        3:\n            IF b_utid.Q THEN\n                b_utid(IN := FALSE);\n                b_laget := 0;\n            END_IF;\n    END_CASE;\n\n    a_slapp := (a_laget = 2) AND NOT b_slapp;\n    b_slapp := (b_laget = 2) AND NOT a_slapp;\nEND_IF;\n\na_stopp := (a_laget = 1) OR (a_laget = 2);\nb_stopp := (b_laget = 1) OR (b_laget = 2);",
+     "nummer": 1,
+     "upprepar": null
+    },
+    {
+     "domar": [
+      {
+       "grind": "station",
+       "koder": [],
+       "ok": true,
+       "utdata": ""
+      },
+      {
+       "grind": "oga",
+       "koder": [
+        "oga:fail:sequence",
+        "oga:pass:allt"
+       ],
+       "ok": false,
+       "utdata": "--- ogat dom over stationA, ordagrant ---\nEYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:06:52 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.900s\n  EDGE ST8A_Givare/Puls FALL t=4.900s\n  EDGE ST8A_Givare/Puls RISE t=10.000s\n  EDGE ST8A_Givare/Puls FALL t=12.700s\n  EDGE ST8A_Givare/Puls RISE t=17.500s\n  EDGE ST8A_Givare/Puls FALL t=20.200s\n  EDGE ST8A_Givare/Puls RISE t=25.600s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.900s\n  EDGE ST8A_Givare/Puls FALL t=37.600s\n  EDGE ST8A_Givare/Puls RISE t=42.100s\n  EDGE ST8A_Givare/Puls FALL t=44.800s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.900s\n  EDGE ST8A_Givare/Puls FALL t=76.900s\n  EDGE ST8B_Givare/Puls RISE t=1.300s\n  EDGE ST8B_Givare/Puls FALL t=4.000s\n  EDGE ST8B_Givare/Puls RISE t=10.900s\n  EDGE ST8B_Givare/Puls FALL t=13.600s\n  EDGE ST8B_Givare/Puls RISE t=18.400s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=25.900s\n  EDGE ST8B_Givare/Puls FALL t=28.900s\n  EDGE ST8B_Givare/Puls RISE t=35.500s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=68.500s\n  EDGE ST8B_Givare/Puls RISE t=73.600s\n  EDGE ST8B_Givare/Puls FALL t=76.300s\n  EDGE ST8_Linje/Kor FALL t=26.800s\n  EDGE ST8_Linje/Kor RISE t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=2.500s\n  EDGE ST8A_Don/Stopp FALL t=4.300s\n  EDGE ST8A_Don/Stopp RISE t=10.600s\n  EDGE ST8A_Don/Stopp FALL t=12.400s\n  EDGE ST8A_Don/Stopp RISE t=18.100s\n  EDGE ST8A_Don/Stopp FALL t=19.900s\n  EDGE ST8A_Don/Stopp RISE t=26.200s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=35.500s\n  EDGE ST8A_Don/Stopp FALL t=37.300s\n  EDGE ST8A_Don/Stopp RISE t=42.700s\n  EDGE ST8A_Don/Stopp FALL t=44.500s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=74.500s\n  EDGE ST8A_Don/Stopp FALL t=76.300s\n  EDGE ST8A_Don/Slapp RISE t=4.900s\n  EDGE ST8A_Don/Slapp FALL t=5.500s\n  EDGE ST8A_Don/Slapp RISE t=12.400s\n  EDGE ST8A_Don/Slapp FALL t=13.300s\n  EDGE ST8A_Don/Slapp RISE t=19.900s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=37.300s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=44.500s\n  EDGE ST8A_Don/Slapp FALL t=45.700s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.200s\n  EDGE ST8A_Don/Slapp RISE t=77.200s\n  EDGE ST8A_Don/Slapp FALL t=77.500s\n  EDGE ST8B_Don/Stopp RISE t=1.900s\n  EDGE ST8B_Don/Stopp FALL t=3.700s\n  EDGE ST8B_Don/Stopp RISE t=11.500s\n  EDGE ST8B_Don/Stopp FALL t=13.300s\n  EDGE ST8B_Don/Stopp RISE t=19.000s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.500s\n  EDGE ST8B_Don/Stopp FALL t=28.300s\n  EDGE ST8B_Don/Stopp RISE t=36.100s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.200s\n  EDGE ST8B_Don/Stopp RISE t=74.200s\n  EDGE ST8B_Don/Stopp FALL t=76.000s\n  EDGE ST8B_Don/Slapp RISE t=3.700s\n  EDGE ST8B_Don/Slapp FALL t=4.900s"
+      }
+     ],
+     "kropp": "a_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\nIF a_flank.Q AND a_laget = 0 THEN\n    a_laget := 1;\nEND_IF;\n\nIF b_flank.Q AND b_laget = 0 THEN\n    b_laget := 1;\nEND_IF;\n\na_tid(IN := (a_laget = 1), PT := T#2s);\nIF a_tid.Q THEN\n    a_laget := 2;\nEND_IF;\n\nb_tid(IN := (b_laget = 1), PT := T#2s);\nIF b_tid.Q THEN\n    b_laget := 2;\nEND_IF;\n\na_utid(IN := (a_laget = 2), PT := T#1s);\nIF a_utid.Q THEN\n    a_laget := 0;\nEND_IF;\n\nb_utid(IN := (b_laget = 2), PT := T#1s);\nIF b_utid.Q THEN\n    b_laget := 0;\nEND_IF;\n\na_stopp := (a_laget = 1);\nb_stopp := (b_laget = 1);\n\nb_slapp := (b_laget = 2) AND kor AND NOT nodstopp;\na_slapp := (a_laget = 2) AND kor AND NOT nodstopp AND NOT b_slapp;\n",
+     "nummer": 2,
+     "upprepar": null
+    },
+    {
+     "domar": [
+      {
+       "grind": "station",
+       "koder": [],
+       "ok": true,
+       "utdata": ""
+      },
+      {
+       "grind": "oga",
+       "koder": [
+        "oga:pass:allt"
+       ],
+       "ok": true,
+       "utdata": "--- ogat dom over stationA, ordagrant ---\nEYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:12:25 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.300s\n  EDGE ST8A_Givare/Puls FALL t=4.000s\n  EDGE ST8A_Givare/Puls RISE t=9.400s\n  EDGE ST8A_Givare/Puls FALL t=12.100s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.300s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.300s\n  EDGE ST8A_Givare/Puls FALL t=37.000s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.400s\n  EDGE ST8A_Givare/Puls FALL t=60.100s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.300s\n  EDGE ST8A_Givare/Puls FALL t=76.000s\n  EDGE ST8B_Givare/Puls RISE t=1.900s\n  EDGE ST8B_Givare/Puls FALL t=5.200s\n  EDGE ST8B_Givare/Puls RISE t=10.600s\n  EDGE ST8B_Givare/Puls FALL t=13.300s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.800s\n  EDGE ST8B_Givare/Puls RISE t=34.900s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.600s\n  EDGE ST8B_Givare/Puls FALL t=46.300s\n  EDGE ST8B_Givare/Puls RISE t=51.100s\n  EDGE ST8B_Givare/Puls FALL t=53.800s\n  EDGE ST8B_Givare/Puls RISE t=58.600s\n  EDGE ST8B_Givare/Puls FALL t=61.300s\n  EDGE ST8B_Givare/Puls RISE t=66.100s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.500s\n  EDGE ST8B_Givare/Puls FALL t=77.200s\n  EDGE ST8_Linje/Kor FALL t=26.500s\n  EDGE ST8_Linje/Kor RISE t=27.700s\n  EDGE ST8A_Don/Stopp RISE t=1.900s\n  EDGE ST8A_Don/Stopp FALL t=3.700s\n  EDGE ST8A_Don/Stopp RISE t=10.000s\n  EDGE ST8A_Don/Stopp FALL t=11.800s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.900s\n  EDGE ST8A_Don/Stopp FALL t=28.300s\n  EDGE ST8A_Don/Stopp RISE t=34.900s\n  EDGE ST8A_Don/Stopp FALL t=36.700s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=58.000s\n  EDGE ST8A_Don/Stopp FALL t=59.800s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.900s\n  EDGE ST8A_Don/Stopp FALL t=75.700s\n  EDGE ST8A_Don/Slapp RISE t=3.700s\n  EDGE ST8A_Don/Slapp FALL t=4.900s\n  EDGE ST8A_Don/Slapp RISE t=11.800s\n  EDGE ST8A_Don/Slapp FALL t=13.000s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.300s\n  EDGE ST8A_Don/Slapp FALL t=29.200s\n  EDGE ST8A_Don/Slapp RISE t=36.700s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.800s\n  EDGE ST8A_Don/Slapp FALL t=61.000s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.700s\n  EDGE ST8A_Don/Slapp FALL t=76.900s\n  EDGE ST8B_Don/Stopp RISE t=2.500s\n  EDGE ST8B_Don/Stopp FALL t=4.900s\n  EDGE ST8B_Don/Stopp RISE t=11.200s\n  EDGE ST8B_Don/Stopp FALL t=13.000s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=29.200s\n  EDGE ST8B_Don/Stopp RISE t=35.500s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=44.200s\n  EDGE ST8B_Don/Stopp FALL t=46.000s\n  EDGE ST8B_Don/Stopp RISE t=51.700s\n  EDGE ST8B_Don/Stopp FALL t=53.500s\n  EDGE ST8B_Don/Stopp RISE t=59.200s\n  EDGE ST8B_Don/Stopp FALL t=61.000s\n  EDGE ST8B_Don/Stopp RISE t=66.700s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=75.100s\n  EDGE ST8B_Don/Stopp FALL t=76.900"
+      }
+     ],
+     "kropp": "a_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\na_tid(IN := (a_laget = 1), PT := T#2s);\nb_tid(IN := (b_laget = 1), PT := T#2s);\na_utid(IN := (a_laget = 3), PT := T#1s);\nb_utid(IN := (b_laget = 3), PT := T#1s);\n\nIF a_laget = 3 AND a_utid.Q THEN\n    a_laget := 0;\nEND_IF;\n\nIF b_laget = 3 AND b_utid.Q THEN\n    b_laget := 0;\nEND_IF;\n\nIF a_laget = 2 AND kor AND NOT nodstopp AND NOT (b_laget = 3) THEN\n    a_laget := 3;\nEND_IF;\n\nIF b_laget = 2 AND kor AND NOT nodstopp AND NOT (a_laget = 2) AND NOT (a_laget = 3) THEN\n    b_laget := 3;\nEND_IF;\n\nIF a_laget = 1 AND a_tid.Q THEN\n    a_laget := 2;\nEND_IF;\n\nIF b_laget = 1 AND b_tid.Q THEN\n    b_laget := 2;\nEND_IF;\n\nIF a_laget = 0 AND a_flank.Q THEN\n    a_laget := 1;\nEND_IF;\n\nIF b_laget = 0 AND b_flank.Q THEN\n    b_laget := 1;\nEND_IF;\n\na_stopp := (a_laget = 1) OR (a_laget = 2);\nb_stopp := (b_laget = 1) OR (b_laget = 2);\n\na_slapp := (a_laget = 3);\nb_slapp := (b_laget = 3);\n",
+     "nummer": 3,
+     "upprepar": null
+    }
+   ],
+   "varv_korda": 3,
+   "varv_till_gold": 3
+  },
+  {
+   "anrop": 1,
+   "ej_korda": {
+    "anropsvalidering": "API-indexet saknas; grinden kunde inte kora"
+   },
+   "gold": true,
+   "guld_niva": "gold_line_verified",
+   "guld_skal": "2 stationer och linan gav PASS",
+   "kostnad_usd": 0.1395,
+   "lage": "rent",
+   "leverantor": "f1/claude-cli",
+   "lost": true,
+   "max_varv": 4,
+   "modell": "sonnet",
+   "ogats_sista_dom": "PASS",
+   "ogonkorningar": 1,
+   "sekunder": 256.9,
+   "slog_i_taket": false,
+   "torrkorning": false,
+   "transportfel": [],
+   "uppgift": "linan",
+   "upprepning": 3,
+   "utfall": "LOST",
+   "varv": [
+    {
+     "domar": [
+      {
+       "grind": "station",
+       "koder": [],
+       "ok": true,
+       "utdata": ""
+      },
+      {
+       "grind": "oga",
+       "koder": [
+        "oga:pass:allt"
+       ],
+       "ok": true,
+       "utdata": "--- ogat dom over stationA, ordagrant ---\nEYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:16:41 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=3.700s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=11.800s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=28.300s\n  EDGE ST8A_Givare/Puls RISE t=34.000s\n  EDGE ST8A_Givare/Puls FALL t=36.700s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=51.700s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=75.700s\n  EDGE ST8B_Givare/Puls RISE t=2.200s\n  EDGE ST8B_Givare/Puls FALL t=4.900s\n  EDGE ST8B_Givare/Puls RISE t=9.700s\n  EDGE ST8B_Givare/Puls FALL t=13.000s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.500s\n  EDGE ST8B_Givare/Puls RISE t=34.300s\n  EDGE ST8B_Givare/Puls FALL t=37.900s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.200s\n  EDGE ST8B_Givare/Puls FALL t=76.900s\n  EDGE ST8_Linje/Kor FALL t=26.200s\n  EDGE ST8_Linje/Kor RISE t=27.400s\n  EDGE ST8A_Don/Stopp RISE t=1.600s\n  EDGE ST8A_Don/Stopp FALL t=3.400s\n  EDGE ST8A_Don/Stopp RISE t=9.700s\n  EDGE ST8A_Don/Stopp FALL t=11.500s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.600s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=34.600s\n  EDGE ST8A_Don/Stopp FALL t=36.400s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.600s\n  EDGE ST8A_Don/Stopp FALL t=51.400s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.600s\n  EDGE ST8A_Don/Stopp FALL t=75.400s\n  EDGE ST8A_Don/Slapp RISE t=3.400s\n  EDGE ST8A_Don/Slapp FALL t=4.600s\n  EDGE ST8A_Don/Slapp RISE t=11.500s\n  EDGE ST8A_Don/Slapp FALL t=12.700s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.000s\n  EDGE ST8A_Don/Slapp FALL t=28.900s\n  EDGE ST8A_Don/Slapp RISE t=36.400s\n  EDGE ST8A_Don/Slapp FALL t=37.600s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.400s\n  EDGE ST8A_Don/Slapp FALL t=52.600s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.400s\n  EDGE ST8A_Don/Slapp FALL t=76.600s\n  EDGE ST8B_Don/Stopp RISE t=2.800s\n  EDGE ST8B_Don/Stopp FALL t=4.600s\n  EDGE ST8B_Don/Stopp RISE t=10.300s\n  EDGE ST8B_Don/Stopp FALL t=12.700s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=28.900s\n  EDGE ST8B_Don/Stopp RISE t=34.900s\n  EDGE ST8B_Don/Stopp FALL t=37.600s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=74.800s\n  EDGE ST8B_Don/Stopp FALL t=76.600s\n"
+      }
+     ],
+     "kropp": "(* Rising edge detection: a new product must trigger the station once, not on level *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\n(* Processing timers use current step so this scan sees a fresh Q *)\na_tid(IN := a_laget = 1, PT := T#2s);\nb_tid(IN := b_laget = 1, PT := T#2s);\n\n(* Station A step sequence: wait for product -> process -> request outfeed -> idle *)\nCASE a_laget OF\n  0:\n    IF a_flank.Q THEN\n      a_laget := 1;\n    END_IF;\n  1:\n    IF a_tid.Q THEN\n      a_laget := 2;\n    END_IF;\n  2:\n    IF a_utid.Q THEN\n      a_laget := 0;\n    END_IF;\nEND_CASE;\n\n(* Station B step sequence: same shape as station A *)\nCASE b_laget OF\n  0:\n    IF b_flank.Q THEN\n      b_laget := 1;\n    END_IF;\n  1:\n    IF b_tid.Q THEN\n      b_laget := 2;\n    END_IF;\n  2:\n    IF b_utid.Q THEN\n      b_laget := 0;\n    END_IF;\nEND_CASE;\n\n(* Shared outfeeder: mutual exclusion by priority, both blocked when line is not running *)\na_slapp := (a_laget = 2) AND kor AND NOT nodstopp;\nb_slapp := (b_laget = 2) AND NOT (a_laget = 2) AND kor AND NOT nodstopp;\n\n(* Outfeed timers run only while the shared device is actually granted *)\na_utid(IN := a_slapp, PT := T#1s);\nb_utid(IN := b_slapp, PT := T#1s);\n\n(* Brake stays out while holding or waiting for the outfeeder, released once outfeed runs *)\na_stopp := (a_laget = 1) OR ((a_laget = 2) AND NOT a_slapp);\nb_stopp := (b_laget = 1) OR ((b_laget = 2) AND NOT b_slapp);",
+     "nummer": 1,
+     "upprepar": null
+    }
+   ],
+   "varv_korda": 1,
+   "varv_till_gold": 1
+  }
+ ],
+ "komposition": [],
+ "konfig": "LINJE",
+ "lage": "rent",
+ "max_varv": 4,
+ "modell": "sonnet",
+ "n": 3,
+ "ogonvarv": [
+  {
+   "anlaggning": {
+    "steg": 417
+   },
+   "domar": {
+    "linan": {
+     "dom": [
+      "FAIL",
+      "timing: stationens tider hölls inte: cykel 0: ST8B_Givare/Puls RISE kom redan 3.60 s efter starten, fonstret ar 4.09-8.89 s; cykel 1: ST8B_Givare/Puls RISE kom redan 3.80 s efter starten, fonstret ar 4.09-8.89 s; cykel 2: ST8B_Givare/Puls RISE kom redan 3.60 s efter starten, fonstret ar 4.09-8.89 s"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T02:56:38 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls FALL t=0.700s\n  EDGE ST8A_Givare/Puls RISE t=5.800s\n  EDGE ST8A_Givare/Puls FALL t=8.500s\n  EDGE ST8A_Givare/Puls RISE t=13.900s\n  EDGE ST8A_Givare/Puls FALL t=16.600s\n  EDGE ST8A_Givare/Puls RISE t=22.000s\n  EDGE ST8A_Givare/Puls FALL t=24.700s\n  EDGE ST8A_Givare/Puls RISE t=29.800s\n  EDGE ST8A_Givare/Puls FALL t=32.800s\n  EDGE ST8A_Givare/Puls RISE t=38.500s\n  EDGE ST8A_Givare/Puls FALL t=41.200s\n  EDGE ST8A_Givare/Puls RISE t=46.000s\n  EDGE ST8A_Givare/Puls FALL t=48.700s\n  EDGE ST8A_Givare/Puls RISE t=53.800s\n  EDGE ST8A_Givare/Puls FALL t=56.500s\n  EDGE ST8A_Givare/Puls RISE t=61.900s\n  EDGE ST8A_Givare/Puls FALL t=64.600s\n  EDGE ST8A_Givare/Puls RISE t=70.000s\n  EDGE ST8A_Givare/Puls FALL t=72.700s\n  EDGE ST8A_Givare/Puls RISE t=77.800s\n  EDGE ST8B_Givare/Puls FALL t=1.300s\n  EDGE ST8B_Givare/Puls RISE t=5.200s\n  EDGE ST8B_Givare/Puls FALL t=7.900s\n  EDGE ST8B_Givare/Puls RISE t=13.300s\n  EDGE ST8B_Givare/Puls FALL t=16.000s\n  EDGE ST8B_Givare/Puls RISE t=21.100s\n  EDGE ST8B_Givare/Puls FALL t=23.800s\n  EDGE ST8B_Givare/Puls RISE t=29.200s\n  EDGE ST8B_Givare/Puls FALL t=32.200s\n  EDGE ST8B_Givare/Puls RISE t=37.600s\n  EDGE ST8B_Givare/Puls FALL t=40.300s\n  EDGE ST8B_Givare/Puls RISE t=45.700s\n  EDGE ST8B_Givare/Puls FALL t=48.400s\n  EDGE ST8B_Givare/Puls RISE t=53.200s\n  EDGE ST8B_Givare/Puls FALL t=55.900s\n  EDGE ST8B_Givare/Puls RISE t=61.000s\n  EDGE ST8B_Givare/Puls FALL t=63.700s\n  EDGE ST8B_Givare/Puls RISE t=69.100s\n  EDGE ST8B_Givare/Puls FALL t=71.800s\n  EDGE ST8B_Givare/Puls RISE t=77.200s\n  EDGE ST8B_Givare/Puls FALL t=79.900s\n  EDGE ST8_Linje/Kor FALL t=30.400s\n  EDGE ST8_Linje/Kor RISE t=31.600s\n  EDGE ST8A_Don/Stopp FALL t=0.400s\n  EDGE ST8A_Don/Stopp RISE t=6.400s\n  EDGE ST8A_Don/Stopp FALL t=8.200s\n  EDGE ST8A_Don/Stopp RISE t=14.500s\n  EDGE ST8A_Don/Stopp FALL t=16.300s\n  EDGE ST8A_Don/Stopp RISE t=22.600s\n  EDGE ST8A_Don/Stopp FALL t=24.400s\n  EDGE ST8A_Don/Stopp RISE t=30.400s\n  EDGE ST8A_Don/Stopp FALL t=32.500s\n  EDGE ST8A_Don/Stopp RISE t=39.100s\n  EDGE ST8A_Don/Stopp FALL t=40.900s\n  EDGE ST8A_Don/Stopp RISE t=46.600s\n  EDGE ST8A_Don/Stopp FALL t=48.400s\n  EDGE ST8A_Don/Stopp RISE t=54.400s\n  EDGE ST8A_Don/Stopp FALL t=56.200s\n  EDGE ST8A_Don/Stopp RISE t=62.500s\n  EDGE ST8A_Don/Stopp FALL t=64.300s\n  EDGE ST8A_Don/Stopp RISE t=70.600s\n  EDGE ST8A_Don/Stopp FALL t=72.400s\n  EDGE ST8A_Don/Stopp RISE t=78.400s\n  EDGE ST8A_Don/Slapp RISE t=0.400s\n  EDGE ST8A_Don/Slapp FALL t=1.600s\n  EDGE ST8A_Don/Slapp RISE t=8.200s\n  EDGE ST8A_Don/Slapp FALL t=9.500s\n  EDGE ST8A_Don/Slapp RISE t=16.300s\n  EDGE ST8A_Don/Slapp FALL t=17.500s\n  EDGE ST8A_Don/Slapp RISE t=24.400s\n  EDGE ST8A_Don/Slapp FALL t=25.600s\n  EDGE ST8A_Don/Slapp RISE t=32.500s\n  EDGE ST8A_Don/Slapp FALL t=33.400s\n  EDGE ST8A_Don/Slapp RISE t=40.900s\n  EDGE ST8A_Don/Slapp FALL t=42.100s\n  EDGE ST8A_Don/Slapp RISE t=48.400s\n  EDGE ST8A_Don/Slapp FALL t=49.600s\n  EDGE ST8A_Don/Slapp RISE t=56.200s\n  EDGE ST8A_Don/Slapp FALL t=57.400s\n  EDGE ST8A_Don/Slapp RISE t=64.300s\n  EDGE ST8A_Don/Slapp FALL t=65.500s\n  EDGE ST8A_Don/Slapp RISE t=72.400s\n  EDGE ST8A_Don/Slapp FALL t=73.600s\n  EDGE ST8B_Don/Stopp FALL t=0.700s\n  EDGE ST8B_Don/Stopp RISE t=5.800s\n  EDGE ST8B_Don/Stopp FALL t=7.600s\n  EDGE ST8B_Don/Stopp RISE t=13.900s\n  EDGE ST8B_Don/Stopp FALL t=15.700s\n  EDGE ST8B_Don/Stopp RISE t=21.700s\n  EDGE ST8B_Don/Stopp FALL t=23.500s\n  EDGE ST8B_Don/Stopp RISE t=29.800s\n  EDGE ST8B_Don/Stopp FALL t=31.600s\n  EDGE ST8B_Don/Stopp RISE t=38.200s\n  EDGE ST8B_Don/Stopp FALL t=40.000s\n  EDGE ST8B_Don/Stopp RISE t=46.300s\n  EDGE ST8B_Don/Stopp FALL t=48.100s\n  EDGE ST8B_Don/Stopp RISE t=53.800s\n  EDGE ST8B_Don/Stopp FALL t=55.600s\n  EDGE ST8B_Don/Stopp RISE t=61.600s\n  EDGE ST8B_Don/Stopp FALL t=63.400s\n  EDGE ST8B_Don/Stopp RISE t=69.700s\n  EDGE ST8B_Don/Stopp FALL t=71.500s\n  EDGE ST8B_Don/Stopp RISE t=77.800s\n  EDGE ST8B_Don/Stopp FALL t=79.600s\n  EDGE ST8B_Don/Slapp RISE t=1.600s\n  EDGE ST8B_Don/Slapp FALL t=2.500s\n  EDGE ST8B_Don/Slapp RISE t=7.600s\n  EDGE ST8B_Don/Slapp FALL t=8.200s\n  EDGE ST8B_Don/Slapp RISE t=9.500s\n  EDGE ST8B_Don/Slapp FALL t=10.300s\n  EDGE ST8B_Don/Slapp RISE t=15.700s\n  EDGE ST8B_Don/Slapp FALL t=16.300s\n  EDGE ST8B_Don/Slapp RISE t=17.500s\n  EDGE ST8B_Don/Slapp FALL t=18.400s\n  EDGE ST8B_Don/Slapp RISE t=23.500s\n  EDGE ST8B_Don/Slapp FALL t=24.400s\n  EDGE ST8B_Don/Slapp RISE t=25.600s\n  EDGE ST8B_Don/Slapp FALL t=26.500s\n  EDGE ST8B_Don/Slapp RISE t=32.200s\n  EDGE ST8B_Don/Slapp FALL t=32.500s\n  EDGE ST8B_Don/Slapp RISE t=33.400s\n  EDGE ST8B_Don/Slapp FALL t=34.300s\n  EDGE ST8B_Don/Slapp RISE t=40.000s\n  EDGE ST8B_Don/Slapp FALL t=40.900s\n  EDGE ST8B_Don/Slapp RISE t=42.100s\n  EDGE ST8B_Don/Slapp FALL t=43.000s\n  EDGE ST8B_Don/Slapp RISE t=48.100s\n  EDGE ST8B_Don/Slapp FALL t=48.400s\n  EDGE ST8B_Don/Slapp RISE t=49.600s\n  EDGE ST8B_Don/Slapp FALL t=50.500s\n  EDGE ST8B_Don/Slapp RISE t=55.600s\n  EDGE ST8B_Don/Slapp FALL t=56.200s\n  EDGE ST8B_Don/Slapp RISE t=57.400s\n  EDGE ST8B_Don/Slapp FALL t=58.300s\n  EDGE ST8B_Don/Slapp RISE t=63.400s\n  EDGE ST8B_Don/Slapp FALL t=64.300s\n  EDGE ST8B_Don/Slapp RISE t=65.500s\n  EDGE ST8B_Don/Slapp FALL t=66.400s\n  EDGE ST8B_Don/Slapp RISE t=71.500s\n  EDGE ST8B_Don/Slapp FALL t=72.400s\n  EDGE ST8B_Don/Slapp RISE t=73.600s\n  EDGE ST8B_Don/Slapp FALL t=74.500s\n  EDGE ST8B_Don/Slapp RISE t=79.600s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=8 truncated=1 req=3\n  STEP 0 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 1 ST8B_Givare/Puls RISE TOO_EARLY t=3.800s win=4.09s..8.89s\n  STEP 2 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 3 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 5 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 6 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 7 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  STEP 8 ST8B_Givare/Puls RISE TOO_EARLY t=3.600s win=4.09s..8.89s\n  INTERLOCK ST8A_Don/Slapp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=6 still=10 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL timing: stationens tider hölls inte: cykel 0: ST8B_Givare/Puls RISE kom redan 3.60 s efter starten, fonstret ar 4.09-8.89 s; cykel 1: ST8B_Givare/Puls RISE kom redan 3.80 s efter starten, fonstret ar 4.09-8.89 s; cykel 2: ST8B_Givare/Puls RISE kom redan 3.60 s efter starten, fonstret ar 4.09-8.89 s\n"
+    },
+    "stationA": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T02:56:38 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls FALL t=0.700s\n  EDGE ST8A_Givare/Puls RISE t=5.800s\n  EDGE ST8A_Givare/Puls FALL t=8.500s\n  EDGE ST8A_Givare/Puls RISE t=13.900s\n  EDGE ST8A_Givare/Puls FALL t=16.600s\n  EDGE ST8A_Givare/Puls RISE t=22.000s\n  EDGE ST8A_Givare/Puls FALL t=24.700s\n  EDGE ST8A_Givare/Puls RISE t=29.800s\n  EDGE ST8A_Givare/Puls FALL t=32.800s\n  EDGE ST8A_Givare/Puls RISE t=38.500s\n  EDGE ST8A_Givare/Puls FALL t=41.200s\n  EDGE ST8A_Givare/Puls RISE t=46.000s\n  EDGE ST8A_Givare/Puls FALL t=48.700s\n  EDGE ST8A_Givare/Puls RISE t=53.800s\n  EDGE ST8A_Givare/Puls FALL t=56.500s\n  EDGE ST8A_Givare/Puls RISE t=61.900s\n  EDGE ST8A_Givare/Puls FALL t=64.600s\n  EDGE ST8A_Givare/Puls RISE t=70.000s\n  EDGE ST8A_Givare/Puls FALL t=72.700s\n  EDGE ST8A_Givare/Puls RISE t=77.800s\n  EDGE ST8B_Givare/Puls FALL t=1.300s\n  EDGE ST8B_Givare/Puls RISE t=5.200s\n  EDGE ST8B_Givare/Puls FALL t=7.900s\n  EDGE ST8B_Givare/Puls RISE t=13.300s\n  EDGE ST8B_Givare/Puls FALL t=16.000s\n  EDGE ST8B_Givare/Puls RISE t=21.100s\n  EDGE ST8B_Givare/Puls FALL t=23.800s\n  EDGE ST8B_Givare/Puls RISE t=29.200s\n  EDGE ST8B_Givare/Puls FALL t=32.200s\n  EDGE ST8B_Givare/Puls RISE t=37.600s\n  EDGE ST8B_Givare/Puls FALL t=40.300s\n  EDGE ST8B_Givare/Puls RISE t=45.700s\n  EDGE ST8B_Givare/Puls FALL t=48.400s\n  EDGE ST8B_Givare/Puls RISE t=53.200s\n  EDGE ST8B_Givare/Puls FALL t=55.900s\n  EDGE ST8B_Givare/Puls RISE t=61.000s\n  EDGE ST8B_Givare/Puls FALL t=63.700s\n  EDGE ST8B_Givare/Puls RISE t=69.100s\n  EDGE ST8B_Givare/Puls FALL t=71.800s\n  EDGE ST8B_Givare/Puls RISE t=77.200s\n  EDGE ST8B_Givare/Puls FALL t=79.900s\n  EDGE ST8_Linje/Kor FALL t=30.400s\n  EDGE ST8_Linje/Kor RISE t=31.600s\n  EDGE ST8A_Don/Stopp FALL t=0.400s\n  EDGE ST8A_Don/Stopp RISE t=6.400s\n  EDGE ST8A_Don/Stopp FALL t=8.200s\n  EDGE ST8A_Don/Stopp RISE t=14.500s\n  EDGE ST8A_Don/Stopp FALL t=16.300s\n  EDGE ST8A_Don/Stopp RISE t=22.600s\n  EDGE ST8A_Don/Stopp FALL t=24.400s\n  EDGE ST8A_Don/Stopp RISE t=30.400s\n  EDGE ST8A_Don/Stopp FALL t=32.500s\n  EDGE ST8A_Don/Stopp RISE t=39.100s\n  EDGE ST8A_Don/Stopp FALL t=40.900s\n  EDGE ST8A_Don/Stopp RISE t=46.600s\n  EDGE ST8A_Don/Stopp FALL t=48.400s\n  EDGE ST8A_Don/Stopp RISE t=54.400s\n  EDGE ST8A_Don/Stopp FALL t=56.200s\n  EDGE ST8A_Don/Stopp RISE t=62.500s\n  EDGE ST8A_Don/Stopp FALL t=64.300s\n  EDGE ST8A_Don/Stopp RISE t=70.600s\n  EDGE ST8A_Don/Stopp FALL t=72.400s\n  EDGE ST8A_Don/Stopp RISE t=78.400s\n  EDGE ST8A_Don/Slapp RISE t=0.400s\n  EDGE ST8A_Don/Slapp FALL t=1.600s\n  EDGE ST8A_Don/Slapp RISE t=8.200s\n  EDGE ST8A_Don/Slapp FALL t=9.500s\n  EDGE ST8A_Don/Slapp RISE t=16.300s\n  EDGE ST8A_Don/Slapp FALL t=17.500s\n  EDGE ST8A_Don/Slapp RISE t=24.400s\n  EDGE ST8A_Don/Slapp FALL t=25.600s\n  EDGE ST8A_Don/Slapp RISE t=32.500s\n  EDGE ST8A_Don/Slapp FALL t=33.400s\n  EDGE ST8A_Don/Slapp RISE t=40.900s\n  EDGE ST8A_Don/Slapp FALL t=42.100s\n  EDGE ST8A_Don/Slapp RISE t=48.400s\n  EDGE ST8A_Don/Slapp FALL t=49.600s\n  EDGE ST8A_Don/Slapp RISE t=56.200s\n  EDGE ST8A_Don/Slapp FALL t=57.400s\n  EDGE ST8A_Don/Slapp RISE t=64.300s\n  EDGE ST8A_Don/Slapp FALL t=65.500s\n  EDGE ST8A_Don/Slapp RISE t=72.400s\n  EDGE ST8A_Don/Slapp FALL t=73.600s\n  EDGE ST8B_Don/Stopp FALL t=0.700s\n  EDGE ST8B_Don/Stopp RISE t=5.800s\n  EDGE ST8B_Don/Stopp FALL t=7.600s\n  EDGE ST8B_Don/Stopp RISE t=13.900s\n  EDGE ST8B_Don/Stopp FALL t=15.700s\n  EDGE ST8B_Don/Stopp RISE t=21.700s\n  EDGE ST8B_Don/Stopp FALL t=23.500s\n  EDGE ST8B_Don/Stopp RISE t=29.800s\n  EDGE ST8B_Don/Stopp FALL t=31.600s\n  EDGE ST8B_Don/Stopp RISE t=38.200s\n  EDGE ST8B_Don/Stopp FALL t=40.000s\n  EDGE ST8B_Don/Stopp RISE t=46.300s\n  EDGE ST8B_Don/Stopp FALL t=48.100s\n  EDGE ST8B_Don/Stopp RISE t=53.800s\n  EDGE ST8B_Don/Stopp FALL t=55.600s\n  EDGE ST8B_Don/Stopp RISE t=61.600s\n  EDGE ST8B_Don/Stopp FALL t=63.400s\n  EDGE ST8B_Don/Stopp RISE t=69.700s\n  EDGE ST8B_Don/Stopp FALL t=71.500s\n  EDGE ST8B_Don/Stopp RISE t=77.800s\n  EDGE ST8B_Don/Stopp FALL t=79.600s\n  EDGE ST8B_Don/Slapp RISE t=1.600s\n  EDGE ST8B_Don/Slapp FALL t=2.500s\n  EDGE ST8B_Don/Slapp RISE t=7.600s\n  EDGE ST8B_Don/Slapp FALL t=8.200s\n  EDGE ST8B_Don/Slapp RISE t=9.500s\n  EDGE ST8B_Don/Slapp FALL t=10.300s\n  EDGE ST8B_Don/Slapp RISE t=15.700s\n  EDGE ST8B_Don/Slapp FALL t=16.300s\n  EDGE ST8B_Don/Slapp RISE t=17.500s\n  EDGE ST8B_Don/Slapp FALL t=18.400s\n  EDGE ST8B_Don/Slapp RISE t=23.500s\n  EDGE ST8B_Don/Slapp FALL t=24.400s\n  EDGE ST8B_Don/Slapp RISE t=25.600s\n  EDGE ST8B_Don/Slapp FALL t=26.500s\n  EDGE ST8B_Don/Slapp RISE t=32.200s\n  EDGE ST8B_Don/Slapp FALL t=32.500s\n  EDGE ST8B_Don/Slapp RISE t=33.400s\n  EDGE ST8B_Don/Slapp FALL t=34.300s\n  EDGE ST8B_Don/Slapp RISE t=40.000s\n  EDGE ST8B_Don/Slapp FALL t=40.900s\n  EDGE ST8B_Don/Slapp RISE t=42.100s\n  EDGE ST8B_Don/Slapp FALL t=43.000s\n  EDGE ST8B_Don/Slapp RISE t=48.100s\n  EDGE ST8B_Don/Slapp FALL t=48.400s\n  EDGE ST8B_Don/Slapp RISE t=49.600s\n  EDGE ST8B_Don/Slapp FALL t=50.500s\n  EDGE ST8B_Don/Slapp RISE t=55.600s\n  EDGE ST8B_Don/Slapp FALL t=56.200s\n  EDGE ST8B_Don/Slapp RISE t=57.400s\n  EDGE ST8B_Don/Slapp FALL t=58.300s\n  EDGE ST8B_Don/Slapp RISE t=63.400s\n  EDGE ST8B_Don/Slapp FALL t=64.300s\n  EDGE ST8B_Don/Slapp RISE t=65.500s\n  EDGE ST8B_Don/Slapp FALL t=66.400s\n  EDGE ST8B_Don/Slapp RISE t=71.500s\n  EDGE ST8B_Don/Slapp FALL t=72.400s\n  EDGE ST8B_Don/Slapp RISE t=73.600s\n  EDGE ST8B_Don/Slapp FALL t=74.500s\n  EDGE ST8B_Don/Slapp RISE t=79.600s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=6 still=10 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    },
+    "stationB": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T02:56:38 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls FALL t=0.700s\n  EDGE ST8A_Givare/Puls RISE t=5.800s\n  EDGE ST8A_Givare/Puls FALL t=8.500s\n  EDGE ST8A_Givare/Puls RISE t=13.900s\n  EDGE ST8A_Givare/Puls FALL t=16.600s\n  EDGE ST8A_Givare/Puls RISE t=22.000s\n  EDGE ST8A_Givare/Puls FALL t=24.700s\n  EDGE ST8A_Givare/Puls RISE t=29.800s\n  EDGE ST8A_Givare/Puls FALL t=32.800s\n  EDGE ST8A_Givare/Puls RISE t=38.500s\n  EDGE ST8A_Givare/Puls FALL t=41.200s\n  EDGE ST8A_Givare/Puls RISE t=46.000s\n  EDGE ST8A_Givare/Puls FALL t=48.700s\n  EDGE ST8A_Givare/Puls RISE t=53.800s\n  EDGE ST8A_Givare/Puls FALL t=56.500s\n  EDGE ST8A_Givare/Puls RISE t=61.900s\n  EDGE ST8A_Givare/Puls FALL t=64.600s\n  EDGE ST8A_Givare/Puls RISE t=70.000s\n  EDGE ST8A_Givare/Puls FALL t=72.700s\n  EDGE ST8A_Givare/Puls RISE t=77.800s\n  EDGE ST8B_Givare/Puls FALL t=1.300s\n  EDGE ST8B_Givare/Puls RISE t=5.200s\n  EDGE ST8B_Givare/Puls FALL t=7.900s\n  EDGE ST8B_Givare/Puls RISE t=13.300s\n  EDGE ST8B_Givare/Puls FALL t=16.000s\n  EDGE ST8B_Givare/Puls RISE t=21.100s\n  EDGE ST8B_Givare/Puls FALL t=23.800s\n  EDGE ST8B_Givare/Puls RISE t=29.200s\n  EDGE ST8B_Givare/Puls FALL t=32.200s\n  EDGE ST8B_Givare/Puls RISE t=37.600s\n  EDGE ST8B_Givare/Puls FALL t=40.300s\n  EDGE ST8B_Givare/Puls RISE t=45.700s\n  EDGE ST8B_Givare/Puls FALL t=48.400s\n  EDGE ST8B_Givare/Puls RISE t=53.200s\n  EDGE ST8B_Givare/Puls FALL t=55.900s\n  EDGE ST8B_Givare/Puls RISE t=61.000s\n  EDGE ST8B_Givare/Puls FALL t=63.700s\n  EDGE ST8B_Givare/Puls RISE t=69.100s\n  EDGE ST8B_Givare/Puls FALL t=71.800s\n  EDGE ST8B_Givare/Puls RISE t=77.200s\n  EDGE ST8B_Givare/Puls FALL t=79.900s\n  EDGE ST8_Linje/Kor FALL t=30.400s\n  EDGE ST8_Linje/Kor RISE t=31.600s\n  EDGE ST8A_Don/Stopp FALL t=0.400s\n  EDGE ST8A_Don/Stopp RISE t=6.400s\n  EDGE ST8A_Don/Stopp FALL t=8.200s\n  EDGE ST8A_Don/Stopp RISE t=14.500s\n  EDGE ST8A_Don/Stopp FALL t=16.300s\n  EDGE ST8A_Don/Stopp RISE t=22.600s\n  EDGE ST8A_Don/Stopp FALL t=24.400s\n  EDGE ST8A_Don/Stopp RISE t=30.400s\n  EDGE ST8A_Don/Stopp FALL t=32.500s\n  EDGE ST8A_Don/Stopp RISE t=39.100s\n  EDGE ST8A_Don/Stopp FALL t=40.900s\n  EDGE ST8A_Don/Stopp RISE t=46.600s\n  EDGE ST8A_Don/Stopp FALL t=48.400s\n  EDGE ST8A_Don/Stopp RISE t=54.400s\n  EDGE ST8A_Don/Stopp FALL t=56.200s\n  EDGE ST8A_Don/Stopp RISE t=62.500s\n  EDGE ST8A_Don/Stopp FALL t=64.300s\n  EDGE ST8A_Don/Stopp RISE t=70.600s\n  EDGE ST8A_Don/Stopp FALL t=72.400s\n  EDGE ST8A_Don/Stopp RISE t=78.400s\n  EDGE ST8A_Don/Slapp RISE t=0.400s\n  EDGE ST8A_Don/Slapp FALL t=1.600s\n  EDGE ST8A_Don/Slapp RISE t=8.200s\n  EDGE ST8A_Don/Slapp FALL t=9.500s\n  EDGE ST8A_Don/Slapp RISE t=16.300s\n  EDGE ST8A_Don/Slapp FALL t=17.500s\n  EDGE ST8A_Don/Slapp RISE t=24.400s\n  EDGE ST8A_Don/Slapp FALL t=25.600s\n  EDGE ST8A_Don/Slapp RISE t=32.500s\n  EDGE ST8A_Don/Slapp FALL t=33.400s\n  EDGE ST8A_Don/Slapp RISE t=40.900s\n  EDGE ST8A_Don/Slapp FALL t=42.100s\n  EDGE ST8A_Don/Slapp RISE t=48.400s\n  EDGE ST8A_Don/Slapp FALL t=49.600s\n  EDGE ST8A_Don/Slapp RISE t=56.200s\n  EDGE ST8A_Don/Slapp FALL t=57.400s\n  EDGE ST8A_Don/Slapp RISE t=64.300s\n  EDGE ST8A_Don/Slapp FALL t=65.500s\n  EDGE ST8A_Don/Slapp RISE t=72.400s\n  EDGE ST8A_Don/Slapp FALL t=73.600s\n  EDGE ST8B_Don/Stopp FALL t=0.700s\n  EDGE ST8B_Don/Stopp RISE t=5.800s\n  EDGE ST8B_Don/Stopp FALL t=7.600s\n  EDGE ST8B_Don/Stopp RISE t=13.900s\n  EDGE ST8B_Don/Stopp FALL t=15.700s\n  EDGE ST8B_Don/Stopp RISE t=21.700s\n  EDGE ST8B_Don/Stopp FALL t=23.500s\n  EDGE ST8B_Don/Stopp RISE t=29.800s\n  EDGE ST8B_Don/Stopp FALL t=31.600s\n  EDGE ST8B_Don/Stopp RISE t=38.200s\n  EDGE ST8B_Don/Stopp FALL t=40.000s\n  EDGE ST8B_Don/Stopp RISE t=46.300s\n  EDGE ST8B_Don/Stopp FALL t=48.100s\n  EDGE ST8B_Don/Stopp RISE t=53.800s\n  EDGE ST8B_Don/Stopp FALL t=55.600s\n  EDGE ST8B_Don/Stopp RISE t=61.600s\n  EDGE ST8B_Don/Stopp FALL t=63.400s\n  EDGE ST8B_Don/Stopp RISE t=69.700s\n  EDGE ST8B_Don/Stopp FALL t=71.500s\n  EDGE ST8B_Don/Stopp RISE t=77.800s\n  EDGE ST8B_Don/Stopp FALL t=79.600s\n  EDGE ST8B_Don/Slapp RISE t=1.600s\n  EDGE ST8B_Don/Slapp FALL t=2.500s\n  EDGE ST8B_Don/Slapp RISE t=7.600s\n  EDGE ST8B_Don/Slapp FALL t=8.200s\n  EDGE ST8B_Don/Slapp RISE t=9.500s\n  EDGE ST8B_Don/Slapp FALL t=10.300s\n  EDGE ST8B_Don/Slapp RISE t=15.700s\n  EDGE ST8B_Don/Slapp FALL t=16.300s\n  EDGE ST8B_Don/Slapp RISE t=17.500s\n  EDGE ST8B_Don/Slapp FALL t=18.400s\n  EDGE ST8B_Don/Slapp RISE t=23.500s\n  EDGE ST8B_Don/Slapp FALL t=24.400s\n  EDGE ST8B_Don/Slapp RISE t=25.600s\n  EDGE ST8B_Don/Slapp FALL t=26.500s\n  EDGE ST8B_Don/Slapp RISE t=32.200s\n  EDGE ST8B_Don/Slapp FALL t=32.500s\n  EDGE ST8B_Don/Slapp RISE t=33.400s\n  EDGE ST8B_Don/Slapp FALL t=34.300s\n  EDGE ST8B_Don/Slapp RISE t=40.000s\n  EDGE ST8B_Don/Slapp FALL t=40.900s\n  EDGE ST8B_Don/Slapp RISE t=42.100s\n  EDGE ST8B_Don/Slapp FALL t=43.000s\n  EDGE ST8B_Don/Slapp RISE t=48.100s\n  EDGE ST8B_Don/Slapp FALL t=48.400s\n  EDGE ST8B_Don/Slapp RISE t=49.600s\n  EDGE ST8B_Don/Slapp FALL t=50.500s\n  EDGE ST8B_Don/Slapp RISE t=55.600s\n  EDGE ST8B_Don/Slapp FALL t=56.200s\n  EDGE ST8B_Don/Slapp RISE t=57.400s\n  EDGE ST8B_Don/Slapp FALL t=58.300s\n  EDGE ST8B_Don/Slapp RISE t=63.400s\n  EDGE ST8B_Don/Slapp FALL t=64.300s\n  EDGE ST8B_Don/Slapp RISE t=65.500s\n  EDGE ST8B_Don/Slapp FALL t=66.400s\n  EDGE ST8B_Don/Slapp RISE t=71.500s\n  EDGE ST8B_Don/Slapp FALL t=72.400s\n  EDGE ST8B_Don/Slapp RISE t=73.600s\n  EDGE ST8B_Don/Slapp FALL t=74.500s\n  EDGE ST8B_Don/Slapp RISE t=79.600s\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8B_Don/Stopp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=6 still=10 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    }
+   },
+   "fall": "F1_guld_1_001",
+   "forgrindar": {
+    "anropsvalidering": true,
+    "deklarationsmatchning": true,
+    "kompilering": true,
+    "statisk_analys": true
+   },
+   "forsta_fallande": null,
+   "grindarnas_egna_ord": {
+    "anropsvalidering": "godkand: ja (kontrollerade 5 namn)",
+    "deklarationsmatchning": "GRIND 3 GODKAND\nGRIND 2: GODKAND",
+    "statisk_analys": "GODKAND"
+   },
+   "klockan_ok": true,
+   "klockkvot": 0.9899,
+   "konfig": "LINJE",
+   "kopplaren": {
+    "fallna": 0,
+    "fran_plc": [
+     "a_stopp",
+     "a_slapp",
+     "b_stopp",
+     "b_slapp"
+    ],
+    "lyckade": 417,
+    "max_ms": 204.02,
+    "median_ms": 56.04,
+    "min_ms": 26.14,
+    "oga": null,
+    "ogafel": 0,
+    "p95_ms": 73.71,
+    "till_plc": [
+     "a_givare",
+     "kor",
+     "b_givare"
+    ],
+    "varv": 417
+   },
+   "kropp": "PROGRAM ST8\nVAR\n    a_givare AT %IX0.0 : BOOL; (* fotocellen vid station A, banavstand 2400 mm *)\n    a_stopp AT %QX0.0 : BOOL; (* station A: bromsklacken ut, bana 1 stannar *)\n    a_slapp AT %QX0.1 : BOOL; (* station A: begar den DELADE utmataren *)\n    kor AT %IX0.2 : BOOL; (* linjens driftvaljare *)\n    nodstopp AT %IX0.3 : BOOL; {SAKERHET} (* nodstoppet ar utlost - skyddad (I15) *)\n    b_givare AT %IX0.1 : BOOL; (* fotocellen vid station B, banavstand 1400 mm *)\n    b_stopp AT %QX0.2 : BOOL; (* station B: bromsklacken ut, bana 2 stannar *)\n    b_slapp AT %QX0.3 : BOOL; (* station B: begar den DELADE utmataren *)\nEND_VAR\nVAR\n    a_laget : INT;\n    a_flank : R_TRIG;\n    a_tid : TON;\n    a_utid : TON;\n    b_laget : INT;\n    b_flank : R_TRIG;\n    b_tid : TON;\n    b_utid : TON;\nEND_VAR\n(* VC_ASSIST KROPP BORJAR *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\nCASE a_laget OF\n  0:\n    IF a_flank.Q THEN\n      a_laget := 1;\n    END_IF;\n  1:\n    IF a_tid.Q THEN\n      a_laget := 2;\n    END_IF;\n  2:\n    IF a_utid.Q THEN\n      a_laget := 0;\n    END_IF;\nEND_CASE;\n\nCASE b_laget OF\n  0:\n    IF b_flank.Q THEN\n      b_laget := 1;\n    END_IF;\n  1:\n    IF b_tid.Q THEN\n      b_laget := 2;\n    END_IF;\n  2:\n    IF b_utid.Q THEN\n      b_laget := 0;\n    END_IF;\nEND_CASE;\n\na_tid(IN := (a_laget = 1), PT := T#2s);\nb_tid(IN := (b_laget = 1), PT := T#2s);\n\na_slapp := (a_laget = 2) AND kor AND NOT nodstopp;\nb_slapp := (b_laget = 2) AND kor AND NOT nodstopp AND NOT a_slapp;\n\na_utid(IN := a_slapp, PT := T#1s);\nb_utid(IN := b_slapp, PT := T#1s);\n\na_stopp := (a_laget = 1);\nb_stopp := (b_laget = 1);\n(* VC_ASSIST KROPP SLUTAR *)\nEND_PROGRAM\n",
+   "oga_stopp": {
+    "dur_s": 80.0,
+    "rate_hz": 10.0,
+    "saknade": [
+     {
+      "spec": "app.Components",
+      "varfor": "en komponent saknar Name: ReferenceError"
+     }
+    ],
+    "samples": 800
+   },
+   "ogonvarv": 1,
+   "plc_tillstand": "RUNNING",
+   "uppvarmning": {
+    "sekunder": 45.0,
+    "varv": 150
+   }
+  },
+  {
+   "anlaggning": {
+    "steg": 417
+   },
+   "domar": {
+    "linan": {
+     "dom": [
+      "INCONCLUSIVE",
+      "sekvensen gick inte att döma: ingen FALL-flank pa ST8A_Don/Slapp: ingen cykel borjade ens: sekvensen gick inte att doma: ingen FALL-flank pa ST8A_Don/Slapp: ingen cykel borjade ens"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:03:15 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=2.200s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=10.300s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=18.400s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=26.200s\n  EDGE ST8A_Givare/Puls RISE t=33.100s\n  EDGE ST8A_Givare/Puls FALL t=34.300s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=42.400s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=50.500s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=58.300s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=66.400s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=74.200s\n  EDGE ST8B_Givare/Puls RISE t=1.000s\n  EDGE ST8B_Givare/Puls FALL t=2.200s\n  EDGE ST8B_Givare/Puls RISE t=9.100s\n  EDGE ST8B_Givare/Puls FALL t=10.300s\n  EDGE ST8B_Givare/Puls RISE t=17.200s\n  EDGE ST8B_Givare/Puls FALL t=18.400s\n  EDGE ST8B_Givare/Puls RISE t=25.000s\n  EDGE ST8B_Givare/Puls FALL t=26.200s\n  EDGE ST8B_Givare/Puls RISE t=33.100s\n  EDGE ST8B_Givare/Puls FALL t=34.300s\n  EDGE ST8B_Givare/Puls RISE t=41.200s\n  EDGE ST8B_Givare/Puls FALL t=42.400s\n  EDGE ST8B_Givare/Puls RISE t=49.000s\n  EDGE ST8B_Givare/Puls FALL t=50.500s\n  EDGE ST8B_Givare/Puls RISE t=57.100s\n  EDGE ST8B_Givare/Puls FALL t=58.300s\n  EDGE ST8B_Givare/Puls RISE t=65.200s\n  EDGE ST8B_Givare/Puls FALL t=66.400s\n  EDGE ST8B_Givare/Puls RISE t=73.000s\n  EDGE ST8B_Givare/Puls FALL t=74.200s\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=0 broken=0 late=0 truncated=0 req=3\n  INTERLOCK ST8A_Don/Slapp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=4 still=12 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=0.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT INCONCLUSIVE sekvensen gick inte att döma: ingen FALL-flank pa ST8A_Don/Slapp: ingen cykel borjade ens: sekvensen gick inte att doma: ingen FALL-flank pa ST8A_Don/Slapp: ingen cykel borjade ens\n"
+    },
+    "stationA": {
+     "dom": [
+      "FAIL",
+      "sequence: stationens sekvens hölls inte: cykel 0: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 1: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 2: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:03:15 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=2.200s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=10.300s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=18.400s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=26.200s\n  EDGE ST8A_Givare/Puls RISE t=33.100s\n  EDGE ST8A_Givare/Puls FALL t=34.300s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=42.400s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=50.500s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=58.300s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=66.400s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=74.200s\n  EDGE ST8B_Givare/Puls RISE t=1.000s\n  EDGE ST8B_Givare/Puls FALL t=2.200s\n  EDGE ST8B_Givare/Puls RISE t=9.100s\n  EDGE ST8B_Givare/Puls FALL t=10.300s\n  EDGE ST8B_Givare/Puls RISE t=17.200s\n  EDGE ST8B_Givare/Puls FALL t=18.400s\n  EDGE ST8B_Givare/Puls RISE t=25.000s\n  EDGE ST8B_Givare/Puls FALL t=26.200s\n  EDGE ST8B_Givare/Puls RISE t=33.100s\n  EDGE ST8B_Givare/Puls FALL t=34.300s\n  EDGE ST8B_Givare/Puls RISE t=41.200s\n  EDGE ST8B_Givare/Puls FALL t=42.400s\n  EDGE ST8B_Givare/Puls RISE t=49.000s\n  EDGE ST8B_Givare/Puls FALL t=50.500s\n  EDGE ST8B_Givare/Puls RISE t=57.100s\n  EDGE ST8B_Givare/Puls FALL t=58.300s\n  EDGE ST8B_Givare/Puls RISE t=65.200s\n  EDGE ST8B_Givare/Puls FALL t=66.400s\n  EDGE ST8B_Givare/Puls RISE t=73.000s\n  EDGE ST8B_Givare/Puls FALL t=74.200s\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=9 late=0 truncated=1 req=3\n  STEP 0 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 1 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 2 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 3 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 4 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 5 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 6 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 7 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 8 ST8A_Don/Stopp RISE MISSING win=0.00s..1.26s\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=4 still=12 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=0.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL sequence: stationens sekvens hölls inte: cykel 0: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 1: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 2: ST8A_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten\n"
+    },
+    "stationB": {
+     "dom": [
+      "FAIL",
+      "sequence: stationens sekvens hölls inte: cykel 0: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 1: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 2: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:03:15 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=2.200s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=10.300s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=18.400s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=26.200s\n  EDGE ST8A_Givare/Puls RISE t=33.100s\n  EDGE ST8A_Givare/Puls FALL t=34.300s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=42.400s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=50.500s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=58.300s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=66.400s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=74.200s\n  EDGE ST8B_Givare/Puls RISE t=1.000s\n  EDGE ST8B_Givare/Puls FALL t=2.200s\n  EDGE ST8B_Givare/Puls RISE t=9.100s\n  EDGE ST8B_Givare/Puls FALL t=10.300s\n  EDGE ST8B_Givare/Puls RISE t=17.200s\n  EDGE ST8B_Givare/Puls FALL t=18.400s\n  EDGE ST8B_Givare/Puls RISE t=25.000s\n  EDGE ST8B_Givare/Puls FALL t=26.200s\n  EDGE ST8B_Givare/Puls RISE t=33.100s\n  EDGE ST8B_Givare/Puls FALL t=34.300s\n  EDGE ST8B_Givare/Puls RISE t=41.200s\n  EDGE ST8B_Givare/Puls FALL t=42.400s\n  EDGE ST8B_Givare/Puls RISE t=49.000s\n  EDGE ST8B_Givare/Puls FALL t=50.500s\n  EDGE ST8B_Givare/Puls RISE t=57.100s\n  EDGE ST8B_Givare/Puls FALL t=58.300s\n  EDGE ST8B_Givare/Puls RISE t=65.200s\n  EDGE ST8B_Givare/Puls FALL t=66.400s\n  EDGE ST8B_Givare/Puls RISE t=73.000s\n  EDGE ST8B_Givare/Puls FALL t=74.200s\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=9 late=0 truncated=1 req=3\n  STEP 0 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 1 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 2 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 3 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 4 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 5 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 6 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 7 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  STEP 8 ST8B_Don/Stopp RISE MISSING win=0.00s..1.26s\n  INTERLOCK ST8B_Don/Stopp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=16 moving=4 still=12 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=0.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL sequence: stationens sekvens hölls inte: cykel 0: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 1: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten; cykel 2: ST8B_Don/Stopp RISE uteblev i fonstret 0.00-1.26 s efter starten\n"
+    }
+   },
+   "fall": "F1_guld_2_001",
+   "forgrindar": {
+    "anropsvalidering": true,
+    "deklarationsmatchning": true,
+    "kompilering": true,
+    "statisk_analys": true
+   },
+   "forsta_fallande": null,
+   "grindarnas_egna_ord": {
+    "anropsvalidering": "godkand: ja (kontrollerade 5 namn)",
+    "deklarationsmatchning": "GRIND 3 GODKAND\nGRIND 2: GODKAND",
+    "statisk_analys": "GODKAND"
+   },
+   "klockan_ok": true,
+   "klockkvot": 0.9896,
+   "konfig": "LINJE",
+   "kopplaren": {
+    "fallna": 0,
+    "fran_plc": [
+     "a_stopp",
+     "a_slapp",
+     "b_stopp",
+     "b_slapp"
+    ],
+    "lyckade": 417,
+    "max_ms": 189.19,
+    "median_ms": 44.97,
+    "min_ms": 30.53,
+    "oga": null,
+    "ogafel": 0,
+    "p95_ms": 58.34,
+    "till_plc": [
+     "a_givare",
+     "kor",
+     "b_givare"
+    ],
+    "varv": 417
+   },
+   "kropp": "PROGRAM ST8\nVAR\n    a_givare AT %IX0.0 : BOOL; (* fotocellen vid station A, banavstand 2400 mm *)\n    a_stopp AT %QX0.0 : BOOL; (* station A: bromsklacken ut, bana 1 stannar *)\n    a_slapp AT %QX0.1 : BOOL; (* station A: begar den DELADE utmataren *)\n    kor AT %IX0.2 : BOOL; (* linjens driftvaljare *)\n    nodstopp AT %IX0.3 : BOOL; {SAKERHET} (* nodstoppet ar utlost - skyddad (I15) *)\n    b_givare AT %IX0.1 : BOOL; (* fotocellen vid station B, banavstand 1400 mm *)\n    b_stopp AT %QX0.2 : BOOL; (* station B: bromsklacken ut, bana 2 stannar *)\n    b_slapp AT %QX0.3 : BOOL; (* station B: begar den DELADE utmataren *)\nEND_VAR\nVAR\n    a_laget : INT;\n    a_flank : R_TRIG;\n    a_tid : TON;\n    a_utid : TON;\n    b_laget : INT;\n    b_flank : R_TRIG;\n    b_tid : TON;\n    b_utid : TON;\nEND_VAR\n(* VC_ASSIST KROPP BORJAR *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\nIF NOT kor OR nodstopp THEN\n    a_slapp := FALSE;\n    b_slapp := FALSE;\nELSE\n    CASE a_laget OF\n        0:\n            IF a_flank.Q THEN\n                a_laget := 1;\n            END_IF;\n        1:\n            a_tid(IN := TRUE, PT := T#2s);\n            IF a_tid.Q THEN\n                a_tid(IN := FALSE);\n                a_laget := 2;\n            END_IF;\n        2:\n            IF NOT b_slapp THEN\n                a_utid(IN := TRUE, PT := T#1s);\n                a_laget := 3;\n            END_IF;\n        3:\n            IF a_utid.Q THEN\n                a_utid(IN := FALSE);\n                a_laget := 0;\n            END_IF;\n    END_CASE;\n\n    CASE b_laget OF\n        0:\n            IF b_flank.Q THEN\n                b_laget := 1;\n            END_IF;\n        1:\n            b_tid(IN := TRUE, PT := T#2s);\n            IF b_tid.Q THEN\n                b_tid(IN := FALSE);\n                b_laget := 2;\n            END_IF;\n        2:\n            IF NOT a_slapp THEN\n                b_utid(IN := TRUE, PT := T#1s);\n                b_laget := 3;\n            END_IF;\n        3:\n            IF b_utid.Q THEN\n                b_utid(IN := FALSE);\n                b_laget := 0;\n            END_IF;\n    END_CASE;\n\n    a_slapp := (a_laget = 2) AND NOT b_slapp;\n    b_slapp := (b_laget = 2) AND NOT a_slapp;\nEND_IF;\n\na_stopp := (a_laget = 1) OR (a_laget = 2);\nb_stopp := (b_laget = 1) OR (b_laget = 2);\n(* VC_ASSIST KROPP SLUTAR *)\nEND_PROGRAM\n",
+   "oga_stopp": {
+    "dur_s": 80.0,
+    "rate_hz": 10.0,
+    "saknade": [
+     {
+      "spec": "app.Components",
+      "varfor": "en komponent saknar Name: ReferenceError"
+     }
+    ],
+    "samples": 800
+   },
+   "ogonvarv": 1,
+   "plc_tillstand": "RUNNING",
+   "uppvarmning": {
+    "sekunder": 45.0,
+    "varv": 150
+   }
+  },
+  {
+   "anlaggning": {
+    "steg": 417
+   },
+   "domar": {
+    "linan": {
+     "dom": [
+      "FAIL",
+      "sequence: stationens sekvens hölls inte: cykel 2: ST8B_Givare/Puls gick hog 2 ganger, hogst 1 ar tillatet"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:06:52 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.900s\n  EDGE ST8A_Givare/Puls FALL t=4.900s\n  EDGE ST8A_Givare/Puls RISE t=10.000s\n  EDGE ST8A_Givare/Puls FALL t=12.700s\n  EDGE ST8A_Givare/Puls RISE t=17.500s\n  EDGE ST8A_Givare/Puls FALL t=20.200s\n  EDGE ST8A_Givare/Puls RISE t=25.600s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.900s\n  EDGE ST8A_Givare/Puls FALL t=37.600s\n  EDGE ST8A_Givare/Puls RISE t=42.100s\n  EDGE ST8A_Givare/Puls FALL t=44.800s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.900s\n  EDGE ST8A_Givare/Puls FALL t=76.900s\n  EDGE ST8B_Givare/Puls RISE t=1.300s\n  EDGE ST8B_Givare/Puls FALL t=4.000s\n  EDGE ST8B_Givare/Puls RISE t=10.900s\n  EDGE ST8B_Givare/Puls FALL t=13.600s\n  EDGE ST8B_Givare/Puls RISE t=18.400s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=25.900s\n  EDGE ST8B_Givare/Puls FALL t=28.900s\n  EDGE ST8B_Givare/Puls RISE t=35.500s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=68.500s\n  EDGE ST8B_Givare/Puls RISE t=73.600s\n  EDGE ST8B_Givare/Puls FALL t=76.300s\n  EDGE ST8_Linje/Kor FALL t=26.800s\n  EDGE ST8_Linje/Kor RISE t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=2.500s\n  EDGE ST8A_Don/Stopp FALL t=4.300s\n  EDGE ST8A_Don/Stopp RISE t=10.600s\n  EDGE ST8A_Don/Stopp FALL t=12.400s\n  EDGE ST8A_Don/Stopp RISE t=18.100s\n  EDGE ST8A_Don/Stopp FALL t=19.900s\n  EDGE ST8A_Don/Stopp RISE t=26.200s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=35.500s\n  EDGE ST8A_Don/Stopp FALL t=37.300s\n  EDGE ST8A_Don/Stopp RISE t=42.700s\n  EDGE ST8A_Don/Stopp FALL t=44.500s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=74.500s\n  EDGE ST8A_Don/Stopp FALL t=76.300s\n  EDGE ST8A_Don/Slapp RISE t=4.900s\n  EDGE ST8A_Don/Slapp FALL t=5.500s\n  EDGE ST8A_Don/Slapp RISE t=12.400s\n  EDGE ST8A_Don/Slapp FALL t=13.300s\n  EDGE ST8A_Don/Slapp RISE t=19.900s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=37.300s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=44.500s\n  EDGE ST8A_Don/Slapp FALL t=45.700s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.200s\n  EDGE ST8A_Don/Slapp RISE t=77.200s\n  EDGE ST8A_Don/Slapp FALL t=77.500s\n  EDGE ST8B_Don/Stopp RISE t=1.900s\n  EDGE ST8B_Don/Stopp FALL t=3.700s\n  EDGE ST8B_Don/Stopp RISE t=11.500s\n  EDGE ST8B_Don/Stopp FALL t=13.300s\n  EDGE ST8B_Don/Stopp RISE t=19.000s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.500s\n  EDGE ST8B_Don/Stopp FALL t=28.300s\n  EDGE ST8B_Don/Stopp RISE t=36.100s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.200s\n  EDGE ST8B_Don/Stopp RISE t=74.200s\n  EDGE ST8B_Don/Stopp FALL t=76.000s\n  EDGE ST8B_Don/Slapp RISE t=3.700s\n  EDGE ST8B_Don/Slapp FALL t=4.900s\n  EDGE ST8B_Don/Slapp RISE t=13.300s\n  EDGE ST8B_Don/Slapp FALL t=14.500s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=22.000s\n  EDGE ST8B_Don/Slapp RISE t=28.600s\n  EDGE ST8B_Don/Slapp FALL t=29.500s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=39.100s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.200s\n  EDGE ST8B_Don/Slapp FALL t=69.400s\n  EDGE ST8B_Don/Slapp RISE t=76.000s\n  EDGE ST8B_Don/Slapp FALL t=77.200s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=8 broken=1 late=0 truncated=1 req=3\n  COUNT 2 ST8B_Givare/Puls n=2 max=1 EXCEEDED\n  INTERLOCK ST8A_Don/Slapp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL sequence: stationens sekvens hölls inte: cykel 2: ST8B_Givare/Puls gick hog 2 ganger, hogst 1 ar tillatet\n"
+    },
+    "stationA": {
+     "dom": [
+      "FAIL",
+      "sequence: stationens sekvens hölls inte: cykel 3: ST8A_Don/Slapp RISE uteblev i fonstret 1.50-6.86 s efter starten"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:06:52 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.900s\n  EDGE ST8A_Givare/Puls FALL t=4.900s\n  EDGE ST8A_Givare/Puls RISE t=10.000s\n  EDGE ST8A_Givare/Puls FALL t=12.700s\n  EDGE ST8A_Givare/Puls RISE t=17.500s\n  EDGE ST8A_Givare/Puls FALL t=20.200s\n  EDGE ST8A_Givare/Puls RISE t=25.600s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.900s\n  EDGE ST8A_Givare/Puls FALL t=37.600s\n  EDGE ST8A_Givare/Puls RISE t=42.100s\n  EDGE ST8A_Givare/Puls FALL t=44.800s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.900s\n  EDGE ST8A_Givare/Puls FALL t=76.900s\n  EDGE ST8B_Givare/Puls RISE t=1.300s\n  EDGE ST8B_Givare/Puls FALL t=4.000s\n  EDGE ST8B_Givare/Puls RISE t=10.900s\n  EDGE ST8B_Givare/Puls FALL t=13.600s\n  EDGE ST8B_Givare/Puls RISE t=18.400s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=25.900s\n  EDGE ST8B_Givare/Puls FALL t=28.900s\n  EDGE ST8B_Givare/Puls RISE t=35.500s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=68.500s\n  EDGE ST8B_Givare/Puls RISE t=73.600s\n  EDGE ST8B_Givare/Puls FALL t=76.300s\n  EDGE ST8_Linje/Kor FALL t=26.800s\n  EDGE ST8_Linje/Kor RISE t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=2.500s\n  EDGE ST8A_Don/Stopp FALL t=4.300s\n  EDGE ST8A_Don/Stopp RISE t=10.600s\n  EDGE ST8A_Don/Stopp FALL t=12.400s\n  EDGE ST8A_Don/Stopp RISE t=18.100s\n  EDGE ST8A_Don/Stopp FALL t=19.900s\n  EDGE ST8A_Don/Stopp RISE t=26.200s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=35.500s\n  EDGE ST8A_Don/Stopp FALL t=37.300s\n  EDGE ST8A_Don/Stopp RISE t=42.700s\n  EDGE ST8A_Don/Stopp FALL t=44.500s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=74.500s\n  EDGE ST8A_Don/Stopp FALL t=76.300s\n  EDGE ST8A_Don/Slapp RISE t=4.900s\n  EDGE ST8A_Don/Slapp FALL t=5.500s\n  EDGE ST8A_Don/Slapp RISE t=12.400s\n  EDGE ST8A_Don/Slapp FALL t=13.300s\n  EDGE ST8A_Don/Slapp RISE t=19.900s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=37.300s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=44.500s\n  EDGE ST8A_Don/Slapp FALL t=45.700s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.200s\n  EDGE ST8A_Don/Slapp RISE t=77.200s\n  EDGE ST8A_Don/Slapp FALL t=77.500s\n  EDGE ST8B_Don/Stopp RISE t=1.900s\n  EDGE ST8B_Don/Stopp FALL t=3.700s\n  EDGE ST8B_Don/Stopp RISE t=11.500s\n  EDGE ST8B_Don/Stopp FALL t=13.300s\n  EDGE ST8B_Don/Stopp RISE t=19.000s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.500s\n  EDGE ST8B_Don/Stopp FALL t=28.300s\n  EDGE ST8B_Don/Stopp RISE t=36.100s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.200s\n  EDGE ST8B_Don/Stopp RISE t=74.200s\n  EDGE ST8B_Don/Stopp FALL t=76.000s\n  EDGE ST8B_Don/Slapp RISE t=3.700s\n  EDGE ST8B_Don/Slapp FALL t=4.900s\n  EDGE ST8B_Don/Slapp RISE t=13.300s\n  EDGE ST8B_Don/Slapp FALL t=14.500s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=22.000s\n  EDGE ST8B_Don/Slapp RISE t=28.600s\n  EDGE ST8B_Don/Slapp FALL t=29.500s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=39.100s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.200s\n  EDGE ST8B_Don/Slapp FALL t=69.400s\n  EDGE ST8B_Don/Slapp RISE t=76.000s\n  EDGE ST8B_Don/Slapp FALL t=77.200s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=1 late=0 truncated=1 req=3\n  STEP 3 ST8A_Don/Slapp RISE MISSING win=1.50s..6.86s\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT FAIL sequence: stationens sekvens hölls inte: cykel 3: ST8A_Don/Slapp RISE uteblev i fonstret 1.50-6.86 s efter starten\n"
+    },
+    "stationB": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:06:52 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.900s\n  EDGE ST8A_Givare/Puls FALL t=4.900s\n  EDGE ST8A_Givare/Puls RISE t=10.000s\n  EDGE ST8A_Givare/Puls FALL t=12.700s\n  EDGE ST8A_Givare/Puls RISE t=17.500s\n  EDGE ST8A_Givare/Puls FALL t=20.200s\n  EDGE ST8A_Givare/Puls RISE t=25.600s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.900s\n  EDGE ST8A_Givare/Puls FALL t=37.600s\n  EDGE ST8A_Givare/Puls RISE t=42.100s\n  EDGE ST8A_Givare/Puls FALL t=44.800s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.900s\n  EDGE ST8A_Givare/Puls FALL t=76.900s\n  EDGE ST8B_Givare/Puls RISE t=1.300s\n  EDGE ST8B_Givare/Puls FALL t=4.000s\n  EDGE ST8B_Givare/Puls RISE t=10.900s\n  EDGE ST8B_Givare/Puls FALL t=13.600s\n  EDGE ST8B_Givare/Puls RISE t=18.400s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=25.900s\n  EDGE ST8B_Givare/Puls FALL t=28.900s\n  EDGE ST8B_Givare/Puls RISE t=35.500s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=68.500s\n  EDGE ST8B_Givare/Puls RISE t=73.600s\n  EDGE ST8B_Givare/Puls FALL t=76.300s\n  EDGE ST8_Linje/Kor FALL t=26.800s\n  EDGE ST8_Linje/Kor RISE t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=2.500s\n  EDGE ST8A_Don/Stopp FALL t=4.300s\n  EDGE ST8A_Don/Stopp RISE t=10.600s\n  EDGE ST8A_Don/Stopp FALL t=12.400s\n  EDGE ST8A_Don/Stopp RISE t=18.100s\n  EDGE ST8A_Don/Stopp FALL t=19.900s\n  EDGE ST8A_Don/Stopp RISE t=26.200s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=35.500s\n  EDGE ST8A_Don/Stopp FALL t=37.300s\n  EDGE ST8A_Don/Stopp RISE t=42.700s\n  EDGE ST8A_Don/Stopp FALL t=44.500s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=74.500s\n  EDGE ST8A_Don/Stopp FALL t=76.300s\n  EDGE ST8A_Don/Slapp RISE t=4.900s\n  EDGE ST8A_Don/Slapp FALL t=5.500s\n  EDGE ST8A_Don/Slapp RISE t=12.400s\n  EDGE ST8A_Don/Slapp FALL t=13.300s\n  EDGE ST8A_Don/Slapp RISE t=19.900s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=37.300s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=44.500s\n  EDGE ST8A_Don/Slapp FALL t=45.700s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.200s\n  EDGE ST8A_Don/Slapp RISE t=77.200s\n  EDGE ST8A_Don/Slapp FALL t=77.500s\n  EDGE ST8B_Don/Stopp RISE t=1.900s\n  EDGE ST8B_Don/Stopp FALL t=3.700s\n  EDGE ST8B_Don/Stopp RISE t=11.500s\n  EDGE ST8B_Don/Stopp FALL t=13.300s\n  EDGE ST8B_Don/Stopp RISE t=19.000s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.500s\n  EDGE ST8B_Don/Stopp FALL t=28.300s\n  EDGE ST8B_Don/Stopp RISE t=36.100s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.200s\n  EDGE ST8B_Don/Stopp RISE t=74.200s\n  EDGE ST8B_Don/Stopp FALL t=76.000s\n  EDGE ST8B_Don/Slapp RISE t=3.700s\n  EDGE ST8B_Don/Slapp FALL t=4.900s\n  EDGE ST8B_Don/Slapp RISE t=13.300s\n  EDGE ST8B_Don/Slapp FALL t=14.500s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=22.000s\n  EDGE ST8B_Don/Slapp RISE t=28.600s\n  EDGE ST8B_Don/Slapp FALL t=29.500s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=39.100s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.200s\n  EDGE ST8B_Don/Slapp FALL t=69.400s\n  EDGE ST8B_Don/Slapp RISE t=76.000s\n  EDGE ST8B_Don/Slapp FALL t=77.200s\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8B_Don/Stopp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    }
+   },
+   "fall": "F1_guld_2_002",
+   "forgrindar": {
+    "anropsvalidering": true,
+    "deklarationsmatchning": true,
+    "kompilering": true,
+    "statisk_analys": true
+   },
+   "forsta_fallande": null,
+   "grindarnas_egna_ord": {
+    "anropsvalidering": "godkand: ja (kontrollerade 5 namn)",
+    "deklarationsmatchning": "GRIND 3 GODKAND\nGRIND 2: GODKAND",
+    "statisk_analys": "GODKAND"
+   },
+   "klockan_ok": true,
+   "klockkvot": 0.9897,
+   "konfig": "LINJE",
+   "kopplaren": {
+    "fallna": 0,
+    "fran_plc": [
+     "a_stopp",
+     "a_slapp",
+     "b_stopp",
+     "b_slapp"
+    ],
+    "lyckade": 417,
+    "max_ms": 192.27,
+    "median_ms": 47.17,
+    "min_ms": 28.53,
+    "oga": null,
+    "ogafel": 0,
+    "p95_ms": 56.94,
+    "till_plc": [
+     "a_givare",
+     "kor",
+     "b_givare"
+    ],
+    "varv": 417
+   },
+   "kropp": "PROGRAM ST8\nVAR\n    a_givare AT %IX0.0 : BOOL; (* fotocellen vid station A, banavstand 2400 mm *)\n    a_stopp AT %QX0.0 : BOOL; (* station A: bromsklacken ut, bana 1 stannar *)\n    a_slapp AT %QX0.1 : BOOL; (* station A: begar den DELADE utmataren *)\n    kor AT %IX0.2 : BOOL; (* linjens driftvaljare *)\n    nodstopp AT %IX0.3 : BOOL; {SAKERHET} (* nodstoppet ar utlost - skyddad (I15) *)\n    b_givare AT %IX0.1 : BOOL; (* fotocellen vid station B, banavstand 1400 mm *)\n    b_stopp AT %QX0.2 : BOOL; (* station B: bromsklacken ut, bana 2 stannar *)\n    b_slapp AT %QX0.3 : BOOL; (* station B: begar den DELADE utmataren *)\nEND_VAR\nVAR\n    a_laget : INT;\n    a_flank : R_TRIG;\n    a_tid : TON;\n    a_utid : TON;\n    b_laget : INT;\n    b_flank : R_TRIG;\n    b_tid : TON;\n    b_utid : TON;\nEND_VAR\n(* VC_ASSIST KROPP BORJAR *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\nIF a_flank.Q AND a_laget = 0 THEN\n    a_laget := 1;\nEND_IF;\n\nIF b_flank.Q AND b_laget = 0 THEN\n    b_laget := 1;\nEND_IF;\n\na_tid(IN := (a_laget = 1), PT := T#2s);\nIF a_tid.Q THEN\n    a_laget := 2;\nEND_IF;\n\nb_tid(IN := (b_laget = 1), PT := T#2s);\nIF b_tid.Q THEN\n    b_laget := 2;\nEND_IF;\n\na_utid(IN := (a_laget = 2), PT := T#1s);\nIF a_utid.Q THEN\n    a_laget := 0;\nEND_IF;\n\nb_utid(IN := (b_laget = 2), PT := T#1s);\nIF b_utid.Q THEN\n    b_laget := 0;\nEND_IF;\n\na_stopp := (a_laget = 1);\nb_stopp := (b_laget = 1);\n\nb_slapp := (b_laget = 2) AND kor AND NOT nodstopp;\na_slapp := (a_laget = 2) AND kor AND NOT nodstopp AND NOT b_slapp;\n(* VC_ASSIST KROPP SLUTAR *)\nEND_PROGRAM\n",
+   "oga_stopp": {
+    "dur_s": 80.0,
+    "rate_hz": 10.0,
+    "saknade": [
+     {
+      "spec": "app.Components",
+      "varfor": "en komponent saknar Name: ReferenceError"
+     }
+    ],
+    "samples": 800
+   },
+   "ogonvarv": 2,
+   "plc_tillstand": "RUNNING",
+   "uppvarmning": {
+    "sekunder": 45.0,
+    "varv": 150
+   }
+  },
+  {
+   "anlaggning": {
+    "steg": 417
+   },
+   "domar": {
+    "linan": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:12:25 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.300s\n  EDGE ST8A_Givare/Puls FALL t=4.000s\n  EDGE ST8A_Givare/Puls RISE t=9.400s\n  EDGE ST8A_Givare/Puls FALL t=12.100s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.300s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.300s\n  EDGE ST8A_Givare/Puls FALL t=37.000s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.400s\n  EDGE ST8A_Givare/Puls FALL t=60.100s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.300s\n  EDGE ST8A_Givare/Puls FALL t=76.000s\n  EDGE ST8B_Givare/Puls RISE t=1.900s\n  EDGE ST8B_Givare/Puls FALL t=5.200s\n  EDGE ST8B_Givare/Puls RISE t=10.600s\n  EDGE ST8B_Givare/Puls FALL t=13.300s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.800s\n  EDGE ST8B_Givare/Puls RISE t=34.900s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.600s\n  EDGE ST8B_Givare/Puls FALL t=46.300s\n  EDGE ST8B_Givare/Puls RISE t=51.100s\n  EDGE ST8B_Givare/Puls FALL t=53.800s\n  EDGE ST8B_Givare/Puls RISE t=58.600s\n  EDGE ST8B_Givare/Puls FALL t=61.300s\n  EDGE ST8B_Givare/Puls RISE t=66.100s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.500s\n  EDGE ST8B_Givare/Puls FALL t=77.200s\n  EDGE ST8_Linje/Kor FALL t=26.500s\n  EDGE ST8_Linje/Kor RISE t=27.700s\n  EDGE ST8A_Don/Stopp RISE t=1.900s\n  EDGE ST8A_Don/Stopp FALL t=3.700s\n  EDGE ST8A_Don/Stopp RISE t=10.000s\n  EDGE ST8A_Don/Stopp FALL t=11.800s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.900s\n  EDGE ST8A_Don/Stopp FALL t=28.300s\n  EDGE ST8A_Don/Stopp RISE t=34.900s\n  EDGE ST8A_Don/Stopp FALL t=36.700s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=58.000s\n  EDGE ST8A_Don/Stopp FALL t=59.800s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.900s\n  EDGE ST8A_Don/Stopp FALL t=75.700s\n  EDGE ST8A_Don/Slapp RISE t=3.700s\n  EDGE ST8A_Don/Slapp FALL t=4.900s\n  EDGE ST8A_Don/Slapp RISE t=11.800s\n  EDGE ST8A_Don/Slapp FALL t=13.000s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.300s\n  EDGE ST8A_Don/Slapp FALL t=29.200s\n  EDGE ST8A_Don/Slapp RISE t=36.700s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.800s\n  EDGE ST8A_Don/Slapp FALL t=61.000s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.700s\n  EDGE ST8A_Don/Slapp FALL t=76.900s\n  EDGE ST8B_Don/Stopp RISE t=2.500s\n  EDGE ST8B_Don/Stopp FALL t=4.900s\n  EDGE ST8B_Don/Stopp RISE t=11.200s\n  EDGE ST8B_Don/Stopp FALL t=13.000s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=29.200s\n  EDGE ST8B_Don/Stopp RISE t=35.500s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=44.200s\n  EDGE ST8B_Don/Stopp FALL t=46.000s\n  EDGE ST8B_Don/Stopp RISE t=51.700s\n  EDGE ST8B_Don/Stopp FALL t=53.500s\n  EDGE ST8B_Don/Stopp RISE t=59.200s\n  EDGE ST8B_Don/Stopp FALL t=61.000s\n  EDGE ST8B_Don/Stopp RISE t=66.700s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=75.100s\n  EDGE ST8B_Don/Stopp FALL t=76.900s\n  EDGE ST8B_Don/Slapp RISE t=4.900s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=13.000s\n  EDGE ST8B_Don/Slapp FALL t=14.200s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=29.200s\n  EDGE ST8B_Don/Slapp FALL t=30.100s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=38.800s\n  EDGE ST8B_Don/Slapp RISE t=46.000s\n  EDGE ST8B_Don/Slapp FALL t=47.200s\n  EDGE ST8B_Don/Slapp RISE t=53.500s\n  EDGE ST8B_Don/Slapp FALL t=54.700s\n  EDGE ST8B_Don/Slapp RISE t=61.000s\n  EDGE ST8B_Don/Slapp FALL t=62.200s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.900s\n  EDGE ST8B_Don/Slapp FALL t=78.100s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8A_Don/Slapp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    },
+    "stationA": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:12:25 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.300s\n  EDGE ST8A_Givare/Puls FALL t=4.000s\n  EDGE ST8A_Givare/Puls RISE t=9.400s\n  EDGE ST8A_Givare/Puls FALL t=12.100s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.300s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.300s\n  EDGE ST8A_Givare/Puls FALL t=37.000s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.400s\n  EDGE ST8A_Givare/Puls FALL t=60.100s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.300s\n  EDGE ST8A_Givare/Puls FALL t=76.000s\n  EDGE ST8B_Givare/Puls RISE t=1.900s\n  EDGE ST8B_Givare/Puls FALL t=5.200s\n  EDGE ST8B_Givare/Puls RISE t=10.600s\n  EDGE ST8B_Givare/Puls FALL t=13.300s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.800s\n  EDGE ST8B_Givare/Puls RISE t=34.900s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.600s\n  EDGE ST8B_Givare/Puls FALL t=46.300s\n  EDGE ST8B_Givare/Puls RISE t=51.100s\n  EDGE ST8B_Givare/Puls FALL t=53.800s\n  EDGE ST8B_Givare/Puls RISE t=58.600s\n  EDGE ST8B_Givare/Puls FALL t=61.300s\n  EDGE ST8B_Givare/Puls RISE t=66.100s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.500s\n  EDGE ST8B_Givare/Puls FALL t=77.200s\n  EDGE ST8_Linje/Kor FALL t=26.500s\n  EDGE ST8_Linje/Kor RISE t=27.700s\n  EDGE ST8A_Don/Stopp RISE t=1.900s\n  EDGE ST8A_Don/Stopp FALL t=3.700s\n  EDGE ST8A_Don/Stopp RISE t=10.000s\n  EDGE ST8A_Don/Stopp FALL t=11.800s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.900s\n  EDGE ST8A_Don/Stopp FALL t=28.300s\n  EDGE ST8A_Don/Stopp RISE t=34.900s\n  EDGE ST8A_Don/Stopp FALL t=36.700s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=58.000s\n  EDGE ST8A_Don/Stopp FALL t=59.800s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.900s\n  EDGE ST8A_Don/Stopp FALL t=75.700s\n  EDGE ST8A_Don/Slapp RISE t=3.700s\n  EDGE ST8A_Don/Slapp FALL t=4.900s\n  EDGE ST8A_Don/Slapp RISE t=11.800s\n  EDGE ST8A_Don/Slapp FALL t=13.000s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.300s\n  EDGE ST8A_Don/Slapp FALL t=29.200s\n  EDGE ST8A_Don/Slapp RISE t=36.700s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.800s\n  EDGE ST8A_Don/Slapp FALL t=61.000s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.700s\n  EDGE ST8A_Don/Slapp FALL t=76.900s\n  EDGE ST8B_Don/Stopp RISE t=2.500s\n  EDGE ST8B_Don/Stopp FALL t=4.900s\n  EDGE ST8B_Don/Stopp RISE t=11.200s\n  EDGE ST8B_Don/Stopp FALL t=13.000s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=29.200s\n  EDGE ST8B_Don/Stopp RISE t=35.500s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=44.200s\n  EDGE ST8B_Don/Stopp FALL t=46.000s\n  EDGE ST8B_Don/Stopp RISE t=51.700s\n  EDGE ST8B_Don/Stopp FALL t=53.500s\n  EDGE ST8B_Don/Stopp RISE t=59.200s\n  EDGE ST8B_Don/Stopp FALL t=61.000s\n  EDGE ST8B_Don/Stopp RISE t=66.700s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=75.100s\n  EDGE ST8B_Don/Stopp FALL t=76.900s\n  EDGE ST8B_Don/Slapp RISE t=4.900s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=13.000s\n  EDGE ST8B_Don/Slapp FALL t=14.200s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=29.200s\n  EDGE ST8B_Don/Slapp FALL t=30.100s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=38.800s\n  EDGE ST8B_Don/Slapp RISE t=46.000s\n  EDGE ST8B_Don/Slapp FALL t=47.200s\n  EDGE ST8B_Don/Slapp RISE t=53.500s\n  EDGE ST8B_Don/Slapp FALL t=54.700s\n  EDGE ST8B_Don/Slapp RISE t=61.000s\n  EDGE ST8B_Don/Slapp FALL t=62.200s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.900s\n  EDGE ST8B_Don/Slapp FALL t=78.100s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    },
+    "stationB": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:12:25 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.300s\n  EDGE ST8A_Givare/Puls FALL t=4.000s\n  EDGE ST8A_Givare/Puls RISE t=9.400s\n  EDGE ST8A_Givare/Puls FALL t=12.100s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.300s\n  EDGE ST8A_Givare/Puls FALL t=28.600s\n  EDGE ST8A_Givare/Puls RISE t=34.300s\n  EDGE ST8A_Givare/Puls FALL t=37.000s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.300s\n  EDGE ST8A_Givare/Puls FALL t=52.000s\n  EDGE ST8A_Givare/Puls RISE t=57.400s\n  EDGE ST8A_Givare/Puls FALL t=60.100s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.300s\n  EDGE ST8A_Givare/Puls FALL t=76.000s\n  EDGE ST8B_Givare/Puls RISE t=1.900s\n  EDGE ST8B_Givare/Puls FALL t=5.200s\n  EDGE ST8B_Givare/Puls RISE t=10.600s\n  EDGE ST8B_Givare/Puls FALL t=13.300s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.800s\n  EDGE ST8B_Givare/Puls RISE t=34.900s\n  EDGE ST8B_Givare/Puls FALL t=38.200s\n  EDGE ST8B_Givare/Puls RISE t=43.600s\n  EDGE ST8B_Givare/Puls FALL t=46.300s\n  EDGE ST8B_Givare/Puls RISE t=51.100s\n  EDGE ST8B_Givare/Puls FALL t=53.800s\n  EDGE ST8B_Givare/Puls RISE t=58.600s\n  EDGE ST8B_Givare/Puls FALL t=61.300s\n  EDGE ST8B_Givare/Puls RISE t=66.100s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.500s\n  EDGE ST8B_Givare/Puls FALL t=77.200s\n  EDGE ST8_Linje/Kor FALL t=26.500s\n  EDGE ST8_Linje/Kor RISE t=27.700s\n  EDGE ST8A_Don/Stopp RISE t=1.900s\n  EDGE ST8A_Don/Stopp FALL t=3.700s\n  EDGE ST8A_Don/Stopp RISE t=10.000s\n  EDGE ST8A_Don/Stopp FALL t=11.800s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.900s\n  EDGE ST8A_Don/Stopp FALL t=28.300s\n  EDGE ST8A_Don/Stopp RISE t=34.900s\n  EDGE ST8A_Don/Stopp FALL t=36.700s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.900s\n  EDGE ST8A_Don/Stopp FALL t=51.700s\n  EDGE ST8A_Don/Stopp RISE t=58.000s\n  EDGE ST8A_Don/Stopp FALL t=59.800s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.900s\n  EDGE ST8A_Don/Stopp FALL t=75.700s\n  EDGE ST8A_Don/Slapp RISE t=3.700s\n  EDGE ST8A_Don/Slapp FALL t=4.900s\n  EDGE ST8A_Don/Slapp RISE t=11.800s\n  EDGE ST8A_Don/Slapp FALL t=13.000s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.300s\n  EDGE ST8A_Don/Slapp FALL t=29.200s\n  EDGE ST8A_Don/Slapp RISE t=36.700s\n  EDGE ST8A_Don/Slapp FALL t=37.900s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.700s\n  EDGE ST8A_Don/Slapp FALL t=52.900s\n  EDGE ST8A_Don/Slapp RISE t=59.800s\n  EDGE ST8A_Don/Slapp FALL t=61.000s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.700s\n  EDGE ST8A_Don/Slapp FALL t=76.900s\n  EDGE ST8B_Don/Stopp RISE t=2.500s\n  EDGE ST8B_Don/Stopp FALL t=4.900s\n  EDGE ST8B_Don/Stopp RISE t=11.200s\n  EDGE ST8B_Don/Stopp FALL t=13.000s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=29.200s\n  EDGE ST8B_Don/Stopp RISE t=35.500s\n  EDGE ST8B_Don/Stopp FALL t=37.900s\n  EDGE ST8B_Don/Stopp RISE t=44.200s\n  EDGE ST8B_Don/Stopp FALL t=46.000s\n  EDGE ST8B_Don/Stopp RISE t=51.700s\n  EDGE ST8B_Don/Stopp FALL t=53.500s\n  EDGE ST8B_Don/Stopp RISE t=59.200s\n  EDGE ST8B_Don/Stopp FALL t=61.000s\n  EDGE ST8B_Don/Stopp RISE t=66.700s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=75.100s\n  EDGE ST8B_Don/Stopp FALL t=76.900s\n  EDGE ST8B_Don/Slapp RISE t=4.900s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=13.000s\n  EDGE ST8B_Don/Slapp FALL t=14.200s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=29.200s\n  EDGE ST8B_Don/Slapp FALL t=30.100s\n  EDGE ST8B_Don/Slapp RISE t=37.900s\n  EDGE ST8B_Don/Slapp FALL t=38.800s\n  EDGE ST8B_Don/Slapp RISE t=46.000s\n  EDGE ST8B_Don/Slapp FALL t=47.200s\n  EDGE ST8B_Don/Slapp RISE t=53.500s\n  EDGE ST8B_Don/Slapp FALL t=54.700s\n  EDGE ST8B_Don/Slapp RISE t=61.000s\n  EDGE ST8B_Don/Slapp FALL t=62.200s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.900s\n  EDGE ST8B_Don/Slapp FALL t=78.100s\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8B_Don/Stopp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    }
+   },
+   "fall": "F1_guld_2_003",
+   "forgrindar": {
+    "anropsvalidering": true,
+    "deklarationsmatchning": true,
+    "kompilering": true,
+    "statisk_analys": true
+   },
+   "forsta_fallande": null,
+   "grindarnas_egna_ord": {
+    "anropsvalidering": "godkand: ja (kontrollerade 5 namn)",
+    "deklarationsmatchning": "GRIND 3 GODKAND\nGRIND 2: GODKAND",
+    "statisk_analys": "GODKAND"
+   },
+   "klockan_ok": true,
+   "klockkvot": 0.9897,
+   "konfig": "LINJE",
+   "kopplaren": {
+    "fallna": 0,
+    "fran_plc": [
+     "a_stopp",
+     "a_slapp",
+     "b_stopp",
+     "b_slapp"
+    ],
+    "lyckade": 417,
+    "max_ms": 179.77,
+    "median_ms": 45.37,
+    "min_ms": 29.03,
+    "oga": null,
+    "ogafel": 0,
+    "p95_ms": 57.83,
+    "till_plc": [
+     "a_givare",
+     "kor",
+     "b_givare"
+    ],
+    "varv": 417
+   },
+   "kropp": "PROGRAM ST8\nVAR\n    a_givare AT %IX0.0 : BOOL; (* fotocellen vid station A, banavstand 2400 mm *)\n    a_stopp AT %QX0.0 : BOOL; (* station A: bromsklacken ut, bana 1 stannar *)\n    a_slapp AT %QX0.1 : BOOL; (* station A: begar den DELADE utmataren *)\n    kor AT %IX0.2 : BOOL; (* linjens driftvaljare *)\n    nodstopp AT %IX0.3 : BOOL; {SAKERHET} (* nodstoppet ar utlost - skyddad (I15) *)\n    b_givare AT %IX0.1 : BOOL; (* fotocellen vid station B, banavstand 1400 mm *)\n    b_stopp AT %QX0.2 : BOOL; (* station B: bromsklacken ut, bana 2 stannar *)\n    b_slapp AT %QX0.3 : BOOL; (* station B: begar den DELADE utmataren *)\nEND_VAR\nVAR\n    a_laget : INT;\n    a_flank : R_TRIG;\n    a_tid : TON;\n    a_utid : TON;\n    b_laget : INT;\n    b_flank : R_TRIG;\n    b_tid : TON;\n    b_utid : TON;\nEND_VAR\n(* VC_ASSIST KROPP BORJAR *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\na_tid(IN := (a_laget = 1), PT := T#2s);\nb_tid(IN := (b_laget = 1), PT := T#2s);\na_utid(IN := (a_laget = 3), PT := T#1s);\nb_utid(IN := (b_laget = 3), PT := T#1s);\n\nIF a_laget = 3 AND a_utid.Q THEN\n    a_laget := 0;\nEND_IF;\n\nIF b_laget = 3 AND b_utid.Q THEN\n    b_laget := 0;\nEND_IF;\n\nIF a_laget = 2 AND kor AND NOT nodstopp AND NOT (b_laget = 3) THEN\n    a_laget := 3;\nEND_IF;\n\nIF b_laget = 2 AND kor AND NOT nodstopp AND NOT (a_laget = 2) AND NOT (a_laget = 3) THEN\n    b_laget := 3;\nEND_IF;\n\nIF a_laget = 1 AND a_tid.Q THEN\n    a_laget := 2;\nEND_IF;\n\nIF b_laget = 1 AND b_tid.Q THEN\n    b_laget := 2;\nEND_IF;\n\nIF a_laget = 0 AND a_flank.Q THEN\n    a_laget := 1;\nEND_IF;\n\nIF b_laget = 0 AND b_flank.Q THEN\n    b_laget := 1;\nEND_IF;\n\na_stopp := (a_laget = 1) OR (a_laget = 2);\nb_stopp := (b_laget = 1) OR (b_laget = 2);\n\na_slapp := (a_laget = 3);\nb_slapp := (b_laget = 3);\n(* VC_ASSIST KROPP SLUTAR *)\nEND_PROGRAM\n",
+   "oga_stopp": {
+    "dur_s": 80.0,
+    "rate_hz": 10.0,
+    "saknade": [
+     {
+      "spec": "app.Components",
+      "varfor": "en komponent saknar Name: ReferenceError"
+     }
+    ],
+    "samples": 800
+   },
+   "ogonvarv": 3,
+   "plc_tillstand": "RUNNING",
+   "uppvarmning": {
+    "sekunder": 45.0,
+    "varv": 150
+   }
+  },
+  {
+   "anlaggning": {
+    "steg": 417
+   },
+   "domar": {
+    "linan": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:16:41 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=3.700s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=11.800s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=28.300s\n  EDGE ST8A_Givare/Puls RISE t=34.000s\n  EDGE ST8A_Givare/Puls FALL t=36.700s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=51.700s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=75.700s\n  EDGE ST8B_Givare/Puls RISE t=2.200s\n  EDGE ST8B_Givare/Puls FALL t=4.900s\n  EDGE ST8B_Givare/Puls RISE t=9.700s\n  EDGE ST8B_Givare/Puls FALL t=13.000s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.500s\n  EDGE ST8B_Givare/Puls RISE t=34.300s\n  EDGE ST8B_Givare/Puls FALL t=37.900s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.200s\n  EDGE ST8B_Givare/Puls FALL t=76.900s\n  EDGE ST8_Linje/Kor FALL t=26.200s\n  EDGE ST8_Linje/Kor RISE t=27.400s\n  EDGE ST8A_Don/Stopp RISE t=1.600s\n  EDGE ST8A_Don/Stopp FALL t=3.400s\n  EDGE ST8A_Don/Stopp RISE t=9.700s\n  EDGE ST8A_Don/Stopp FALL t=11.500s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.600s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=34.600s\n  EDGE ST8A_Don/Stopp FALL t=36.400s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.600s\n  EDGE ST8A_Don/Stopp FALL t=51.400s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.600s\n  EDGE ST8A_Don/Stopp FALL t=75.400s\n  EDGE ST8A_Don/Slapp RISE t=3.400s\n  EDGE ST8A_Don/Slapp FALL t=4.600s\n  EDGE ST8A_Don/Slapp RISE t=11.500s\n  EDGE ST8A_Don/Slapp FALL t=12.700s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.000s\n  EDGE ST8A_Don/Slapp FALL t=28.900s\n  EDGE ST8A_Don/Slapp RISE t=36.400s\n  EDGE ST8A_Don/Slapp FALL t=37.600s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.400s\n  EDGE ST8A_Don/Slapp FALL t=52.600s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.400s\n  EDGE ST8A_Don/Slapp FALL t=76.600s\n  EDGE ST8B_Don/Stopp RISE t=2.800s\n  EDGE ST8B_Don/Stopp FALL t=4.600s\n  EDGE ST8B_Don/Stopp RISE t=10.300s\n  EDGE ST8B_Don/Stopp FALL t=12.700s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=28.900s\n  EDGE ST8B_Don/Stopp RISE t=34.900s\n  EDGE ST8B_Don/Stopp FALL t=37.600s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=74.800s\n  EDGE ST8B_Don/Stopp FALL t=76.600s\n  EDGE ST8B_Don/Slapp RISE t=4.600s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=12.700s\n  EDGE ST8B_Don/Slapp FALL t=13.600s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=28.900s\n  EDGE ST8B_Don/Slapp FALL t=29.800s\n  EDGE ST8B_Don/Slapp RISE t=37.600s\n  EDGE ST8B_Don/Slapp FALL t=38.500s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.600s\n  EDGE ST8B_Don/Slapp FALL t=77.800s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8A_Don/Slapp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    },
+    "stationA": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:16:41 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=3.700s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=11.800s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=28.300s\n  EDGE ST8A_Givare/Puls RISE t=34.000s\n  EDGE ST8A_Givare/Puls FALL t=36.700s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=51.700s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=75.700s\n  EDGE ST8B_Givare/Puls RISE t=2.200s\n  EDGE ST8B_Givare/Puls FALL t=4.900s\n  EDGE ST8B_Givare/Puls RISE t=9.700s\n  EDGE ST8B_Givare/Puls FALL t=13.000s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.500s\n  EDGE ST8B_Givare/Puls RISE t=34.300s\n  EDGE ST8B_Givare/Puls FALL t=37.900s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.200s\n  EDGE ST8B_Givare/Puls FALL t=76.900s\n  EDGE ST8_Linje/Kor FALL t=26.200s\n  EDGE ST8_Linje/Kor RISE t=27.400s\n  EDGE ST8A_Don/Stopp RISE t=1.600s\n  EDGE ST8A_Don/Stopp FALL t=3.400s\n  EDGE ST8A_Don/Stopp RISE t=9.700s\n  EDGE ST8A_Don/Stopp FALL t=11.500s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.600s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=34.600s\n  EDGE ST8A_Don/Stopp FALL t=36.400s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.600s\n  EDGE ST8A_Don/Stopp FALL t=51.400s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.600s\n  EDGE ST8A_Don/Stopp FALL t=75.400s\n  EDGE ST8A_Don/Slapp RISE t=3.400s\n  EDGE ST8A_Don/Slapp FALL t=4.600s\n  EDGE ST8A_Don/Slapp RISE t=11.500s\n  EDGE ST8A_Don/Slapp FALL t=12.700s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.000s\n  EDGE ST8A_Don/Slapp FALL t=28.900s\n  EDGE ST8A_Don/Slapp RISE t=36.400s\n  EDGE ST8A_Don/Slapp FALL t=37.600s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.400s\n  EDGE ST8A_Don/Slapp FALL t=52.600s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.400s\n  EDGE ST8A_Don/Slapp FALL t=76.600s\n  EDGE ST8B_Don/Stopp RISE t=2.800s\n  EDGE ST8B_Don/Stopp FALL t=4.600s\n  EDGE ST8B_Don/Stopp RISE t=10.300s\n  EDGE ST8B_Don/Stopp FALL t=12.700s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=28.900s\n  EDGE ST8B_Don/Stopp RISE t=34.900s\n  EDGE ST8B_Don/Stopp FALL t=37.600s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=74.800s\n  EDGE ST8B_Don/Stopp FALL t=76.600s\n  EDGE ST8B_Don/Slapp RISE t=4.600s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=12.700s\n  EDGE ST8B_Don/Slapp FALL t=13.600s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=28.900s\n  EDGE ST8B_Don/Slapp FALL t=29.800s\n  EDGE ST8B_Don/Slapp RISE t=37.600s\n  EDGE ST8B_Don/Slapp FALL t=38.500s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.600s\n  EDGE ST8B_Don/Slapp FALL t=77.800s\n  LATENCY ST8A_Don/Stopp -> ST8_BromsA 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8A_Don/Stopp+ST8A_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    },
+    "stationB": {
+     "dom": [
+      "PASS",
+      "allt inom marginal"
+     ],
+     "text": "EYES v2\nTEMPLATE fas8_linan\nRUN 2026-09-06T03:16:41 DUR 80.000s SAMPLES 800 RATE 10.00Hz\nSECTION MOTION\nSECTION TIMING\n  EDGE ST8A_Givare/Puls RISE t=1.000s\n  EDGE ST8A_Givare/Puls FALL t=3.700s\n  EDGE ST8A_Givare/Puls RISE t=9.100s\n  EDGE ST8A_Givare/Puls FALL t=11.800s\n  EDGE ST8A_Givare/Puls RISE t=17.200s\n  EDGE ST8A_Givare/Puls FALL t=19.900s\n  EDGE ST8A_Givare/Puls RISE t=25.000s\n  EDGE ST8A_Givare/Puls FALL t=28.300s\n  EDGE ST8A_Givare/Puls RISE t=34.000s\n  EDGE ST8A_Givare/Puls FALL t=36.700s\n  EDGE ST8A_Givare/Puls RISE t=41.200s\n  EDGE ST8A_Givare/Puls FALL t=43.900s\n  EDGE ST8A_Givare/Puls RISE t=49.000s\n  EDGE ST8A_Givare/Puls FALL t=51.700s\n  EDGE ST8A_Givare/Puls RISE t=57.100s\n  EDGE ST8A_Givare/Puls FALL t=59.800s\n  EDGE ST8A_Givare/Puls RISE t=65.200s\n  EDGE ST8A_Givare/Puls FALL t=67.900s\n  EDGE ST8A_Givare/Puls RISE t=73.000s\n  EDGE ST8A_Givare/Puls FALL t=75.700s\n  EDGE ST8B_Givare/Puls RISE t=2.200s\n  EDGE ST8B_Givare/Puls FALL t=4.900s\n  EDGE ST8B_Givare/Puls RISE t=9.700s\n  EDGE ST8B_Givare/Puls FALL t=13.000s\n  EDGE ST8B_Givare/Puls RISE t=18.100s\n  EDGE ST8B_Givare/Puls FALL t=21.100s\n  EDGE ST8B_Givare/Puls RISE t=26.200s\n  EDGE ST8B_Givare/Puls FALL t=29.500s\n  EDGE ST8B_Givare/Puls RISE t=34.300s\n  EDGE ST8B_Givare/Puls FALL t=37.900s\n  EDGE ST8B_Givare/Puls RISE t=43.300s\n  EDGE ST8B_Givare/Puls FALL t=46.000s\n  EDGE ST8B_Givare/Puls RISE t=50.800s\n  EDGE ST8B_Givare/Puls FALL t=53.500s\n  EDGE ST8B_Givare/Puls RISE t=58.300s\n  EDGE ST8B_Givare/Puls FALL t=61.000s\n  EDGE ST8B_Givare/Puls RISE t=65.800s\n  EDGE ST8B_Givare/Puls FALL t=69.100s\n  EDGE ST8B_Givare/Puls RISE t=74.200s\n  EDGE ST8B_Givare/Puls FALL t=76.900s\n  EDGE ST8_Linje/Kor FALL t=26.200s\n  EDGE ST8_Linje/Kor RISE t=27.400s\n  EDGE ST8A_Don/Stopp RISE t=1.600s\n  EDGE ST8A_Don/Stopp FALL t=3.400s\n  EDGE ST8A_Don/Stopp RISE t=9.700s\n  EDGE ST8A_Don/Stopp FALL t=11.500s\n  EDGE ST8A_Don/Stopp RISE t=17.800s\n  EDGE ST8A_Don/Stopp FALL t=19.600s\n  EDGE ST8A_Don/Stopp RISE t=25.600s\n  EDGE ST8A_Don/Stopp FALL t=28.000s\n  EDGE ST8A_Don/Stopp RISE t=34.600s\n  EDGE ST8A_Don/Stopp FALL t=36.400s\n  EDGE ST8A_Don/Stopp RISE t=41.800s\n  EDGE ST8A_Don/Stopp FALL t=43.600s\n  EDGE ST8A_Don/Stopp RISE t=49.600s\n  EDGE ST8A_Don/Stopp FALL t=51.400s\n  EDGE ST8A_Don/Stopp RISE t=57.700s\n  EDGE ST8A_Don/Stopp FALL t=59.500s\n  EDGE ST8A_Don/Stopp RISE t=65.800s\n  EDGE ST8A_Don/Stopp FALL t=67.600s\n  EDGE ST8A_Don/Stopp RISE t=73.600s\n  EDGE ST8A_Don/Stopp FALL t=75.400s\n  EDGE ST8A_Don/Slapp RISE t=3.400s\n  EDGE ST8A_Don/Slapp FALL t=4.600s\n  EDGE ST8A_Don/Slapp RISE t=11.500s\n  EDGE ST8A_Don/Slapp FALL t=12.700s\n  EDGE ST8A_Don/Slapp RISE t=19.600s\n  EDGE ST8A_Don/Slapp FALL t=20.800s\n  EDGE ST8A_Don/Slapp RISE t=28.000s\n  EDGE ST8A_Don/Slapp FALL t=28.900s\n  EDGE ST8A_Don/Slapp RISE t=36.400s\n  EDGE ST8A_Don/Slapp FALL t=37.600s\n  EDGE ST8A_Don/Slapp RISE t=43.600s\n  EDGE ST8A_Don/Slapp FALL t=44.800s\n  EDGE ST8A_Don/Slapp RISE t=51.400s\n  EDGE ST8A_Don/Slapp FALL t=52.600s\n  EDGE ST8A_Don/Slapp RISE t=59.500s\n  EDGE ST8A_Don/Slapp FALL t=60.700s\n  EDGE ST8A_Don/Slapp RISE t=67.600s\n  EDGE ST8A_Don/Slapp FALL t=68.800s\n  EDGE ST8A_Don/Slapp RISE t=75.400s\n  EDGE ST8A_Don/Slapp FALL t=76.600s\n  EDGE ST8B_Don/Stopp RISE t=2.800s\n  EDGE ST8B_Don/Stopp FALL t=4.600s\n  EDGE ST8B_Don/Stopp RISE t=10.300s\n  EDGE ST8B_Don/Stopp FALL t=12.700s\n  EDGE ST8B_Don/Stopp RISE t=18.700s\n  EDGE ST8B_Don/Stopp FALL t=20.800s\n  EDGE ST8B_Don/Stopp RISE t=26.800s\n  EDGE ST8B_Don/Stopp FALL t=28.900s\n  EDGE ST8B_Don/Stopp RISE t=34.900s\n  EDGE ST8B_Don/Stopp FALL t=37.600s\n  EDGE ST8B_Don/Stopp RISE t=43.900s\n  EDGE ST8B_Don/Stopp FALL t=45.700s\n  EDGE ST8B_Don/Stopp RISE t=51.400s\n  EDGE ST8B_Don/Stopp FALL t=53.200s\n  EDGE ST8B_Don/Stopp RISE t=58.900s\n  EDGE ST8B_Don/Stopp FALL t=60.700s\n  EDGE ST8B_Don/Stopp RISE t=66.400s\n  EDGE ST8B_Don/Stopp FALL t=68.800s\n  EDGE ST8B_Don/Stopp RISE t=74.800s\n  EDGE ST8B_Don/Stopp FALL t=76.600s\n  EDGE ST8B_Don/Slapp RISE t=4.600s\n  EDGE ST8B_Don/Slapp FALL t=5.800s\n  EDGE ST8B_Don/Slapp RISE t=12.700s\n  EDGE ST8B_Don/Slapp FALL t=13.600s\n  EDGE ST8B_Don/Slapp RISE t=20.800s\n  EDGE ST8B_Don/Slapp FALL t=21.700s\n  EDGE ST8B_Don/Slapp RISE t=28.900s\n  EDGE ST8B_Don/Slapp FALL t=29.800s\n  EDGE ST8B_Don/Slapp RISE t=37.600s\n  EDGE ST8B_Don/Slapp FALL t=38.500s\n  EDGE ST8B_Don/Slapp RISE t=45.700s\n  EDGE ST8B_Don/Slapp FALL t=46.900s\n  EDGE ST8B_Don/Slapp RISE t=53.200s\n  EDGE ST8B_Don/Slapp FALL t=54.400s\n  EDGE ST8B_Don/Slapp RISE t=60.700s\n  EDGE ST8B_Don/Slapp FALL t=61.900s\n  EDGE ST8B_Don/Slapp RISE t=68.800s\n  EDGE ST8B_Don/Slapp FALL t=69.700s\n  EDGE ST8B_Don/Slapp RISE t=76.600s\n  EDGE ST8B_Don/Slapp FALL t=77.800s\n  LATENCY ST8B_Don/Stopp -> ST8_BromsB 0.0ms\n  RACE none\nSECTION SEQUENCE\n  CYCLES judged=9 broken=0 late=0 truncated=1 req=3\n  INTERLOCK ST8B_Don/Stopp+ST8B_Don/Slapp OK overlap=0.000s\nSECTION THROUGHPUT\nSECTION SAFETY\n  COLLISION none\nSECTION SCENE\n  OBJECTS total=17 moving=8 still=9 unread=0\n  THINNED factor=1 OK budget=5.0ms median=0.000ms\n  IDLE_COMMANDED none\n  FLUNG none\nSECTION HONESTY\n  TELEPORT_TRANSFER OK\n  BLOWUP OK vmax=4.0m/s\n  UNDERGROUND OK zmin=0.000m\n  NEVER_GRIPPED OK\nSECTION LIMITS\n  NOT_SIMULATED sensor_bounce\n  NOT_SIMULATED actuator_dynamics\n  NOT_SIMULATED fieldbus_jitter\n  NOT_SIMULATED degraded_modes\n  NOT_SIMULATED real_hardware\n  RESOLUTION sample=100.0ms read=unknown join=13.45ms PRIOR phase=unknown\n  EXCLUDED plc_scan 40.0ms\nEYES VERDICT PASS allt inom marginal\n"
+    }
+   },
+   "fall": "F1_guld_3_001",
+   "forgrindar": {
+    "anropsvalidering": true,
+    "deklarationsmatchning": true,
+    "kompilering": true,
+    "statisk_analys": true
+   },
+   "forsta_fallande": null,
+   "grindarnas_egna_ord": {
+    "anropsvalidering": "godkand: ja (kontrollerade 5 namn)",
+    "deklarationsmatchning": "GRIND 3 GODKAND\nGRIND 2: GODKAND",
+    "statisk_analys": "GODKAND"
+   },
+   "klockan_ok": true,
+   "klockkvot": 0.9898,
+   "konfig": "LINJE",
+   "kopplaren": {
+    "fallna": 0,
+    "fran_plc": [
+     "a_stopp",
+     "a_slapp",
+     "b_stopp",
+     "b_slapp"
+    ],
+    "lyckade": 417,
+    "max_ms": 188.99,
+    "median_ms": 46.47,
+    "min_ms": 26.37,
+    "oga": null,
+    "ogafel": 0,
+    "p95_ms": 54.84,
+    "till_plc": [
+     "a_givare",
+     "kor",
+     "b_givare"
+    ],
+    "varv": 417
+   },
+   "kropp": "PROGRAM ST8\nVAR\n    a_givare AT %IX0.0 : BOOL; (* fotocellen vid station A, banavstand 2400 mm *)\n    a_stopp AT %QX0.0 : BOOL; (* station A: bromsklacken ut, bana 1 stannar *)\n    a_slapp AT %QX0.1 : BOOL; (* station A: begar den DELADE utmataren *)\n    kor AT %IX0.2 : BOOL; (* linjens driftvaljare *)\n    nodstopp AT %IX0.3 : BOOL; {SAKERHET} (* nodstoppet ar utlost - skyddad (I15) *)\n    b_givare AT %IX0.1 : BOOL; (* fotocellen vid station B, banavstand 1400 mm *)\n    b_stopp AT %QX0.2 : BOOL; (* station B: bromsklacken ut, bana 2 stannar *)\n    b_slapp AT %QX0.3 : BOOL; (* station B: begar den DELADE utmataren *)\nEND_VAR\nVAR\n    a_laget : INT;\n    a_flank : R_TRIG;\n    a_tid : TON;\n    a_utid : TON;\n    b_laget : INT;\n    b_flank : R_TRIG;\n    b_tid : TON;\n    b_utid : TON;\nEND_VAR\n(* VC_ASSIST KROPP BORJAR *)\n(* Rising edge detection: a new product must trigger the station once, not on level *)\na_flank(CLK := a_givare);\nb_flank(CLK := b_givare);\n\n(* Processing timers use current step so this scan sees a fresh Q *)\na_tid(IN := a_laget = 1, PT := T#2s);\nb_tid(IN := b_laget = 1, PT := T#2s);\n\n(* Station A step sequence: wait for product -> process -> request outfeed -> idle *)\nCASE a_laget OF\n  0:\n    IF a_flank.Q THEN\n      a_laget := 1;\n    END_IF;\n  1:\n    IF a_tid.Q THEN\n      a_laget := 2;\n    END_IF;\n  2:\n    IF a_utid.Q THEN\n      a_laget := 0;\n    END_IF;\nEND_CASE;\n\n(* Station B step sequence: same shape as station A *)\nCASE b_laget OF\n  0:\n    IF b_flank.Q THEN\n      b_laget := 1;\n    END_IF;\n  1:\n    IF b_tid.Q THEN\n      b_laget := 2;\n    END_IF;\n  2:\n    IF b_utid.Q THEN\n      b_laget := 0;\n    END_IF;\nEND_CASE;\n\n(* Shared outfeeder: mutual exclusion by priority, both blocked when line is not running *)\na_slapp := (a_laget = 2) AND kor AND NOT nodstopp;\nb_slapp := (b_laget = 2) AND NOT (a_laget = 2) AND kor AND NOT nodstopp;\n\n(* Outfeed timers run only while the shared device is actually granted *)\na_utid(IN := a_slapp, PT := T#1s);\nb_utid(IN := b_slapp, PT := T#1s);\n\n(* Brake stays out while holding or waiting for the outfeeder, released once outfeed runs *)\na_stopp := (a_laget = 1) OR ((a_laget = 2) AND NOT a_slapp);\nb_stopp := (b_laget = 1) OR ((b_laget = 2) AND NOT b_slapp);\n(* VC_ASSIST KROPP SLUTAR *)\nEND_PROGRAM\n",
+   "oga_stopp": {
+    "dur_s": 80.0,
+    "rate_hz": 10.0,
+    "saknade": [
+     {
+      "spec": "app.Components",
+      "varfor": "en komponent saknar Name: ReferenceError"
+     }
+    ],
+    "samples": 800
+   },
+   "ogonvarv": 1,
+   "plc_tillstand": "RUNNING",
+   "uppvarmning": {
+    "sekunder": 45.0,
+    "varv": 150
+   }
+  }
+ ],
+ "torrkorning": false,
+ "transport": "claude",
+ "varv": 5
+}
