@@ -138,7 +138,7 @@ appeared only when the stations were connected: a downstream station started on
 | **linear** | cost of reading the scene grows proportionally with component count, measured from 200 to 800 — 4.3 µs per component per sample on an i5-13600K running VC under Wine |
 | **20 /s** | scene samples taken while the simulation runs, its default rate |
 | **0** | positional drift over a full run |
-| **5 of 5** | classes of line fault caught that each station passed on its own |
+| **4 of 5** | classes of line fault caught that each station passed on its own — the fifth does not reproduce reliably when the run is repeated, so it is not counted |
 | **25 of 26** | tasks solved within four rounds of writing and correcting, median two |
 | **4 of 26** | solved on the first attempt — which is why the correction loop exists |
 | **834 of 899** | deliberate faults injected into working code, and caught |
