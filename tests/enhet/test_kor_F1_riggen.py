@@ -668,3 +668,46 @@ def test_en_okand_felklass_provas_aldrig_om():
     with pytest.raises(modellklient.Modellfel):
         f.svara("system", [{"roll": "anvandare", "text": "skriv"}], ())
     assert t.anrop == 1
+
+
+def test_ett_kompilatorfel_blir_en_DOM_inte_ett_korningsfel():
+    """TRASIG FIXTUR. Mätt i F1: `NOT(int)` fällde en kropp grind 3 släppt
+    igenom, undantaget bubblade upp till allfångsten och blev KORNINGSFEL.
+    Modellen fick veta att nagot gick fel, aldrig VAD.
+
+    For att ratta sig maste man fa veta exakt vad som ar fel, och kompilatorns
+    egna ord ar det enda stallet den uppgiften finns.
+    """
+    from vc_assist_svc.plc import paket as P
+
+    def kastar(_st):
+        raise P.Kompilatorfel(
+            "matiec: NOT(int) is not a valid operand at line 12")
+
+    steg = F1.Ogonsteg.__new__(F1.Ogonsteg)
+    steg.korningar = 0
+    steg.on_varv = None
+    steg.kor_scenen = kastar
+    dom = steg.doma("PROGRAM P END_PROGRAM")
+    assert dom.ok is False
+    assert "NOT(int)" in dom.utdata, "kompilatorns egna ord maste na modellen"
+    assert "line 12" in dom.utdata, "raden ar halva uppgiften"
+    assert "BYGGET_AVVISADE" in dom.koder
+
+
+def test_ett_byggfel_ar_riggens_fel_och_far_inte_bli_en_dom():
+    """Kontrollriktningen och den viktigaste: kompilatorn SAKNAS ar riggens
+    fel. Ett riggfel som blir en dom om modellens kod ar ett falskt rott (I3).
+    """
+    import pytest
+    from vc_assist_svc.plc import paket as P
+
+    def kastar(_st):
+        raise P.Byggfel("hittar ingen kompilator")
+
+    steg = F1.Ogonsteg.__new__(F1.Ogonsteg)
+    steg.korningar = 0
+    steg.on_varv = None
+    steg.kor_scenen = kastar
+    with pytest.raises(P.Byggfel):
+        steg.doma("PROGRAM P END_PROGRAM")

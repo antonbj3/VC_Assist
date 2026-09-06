@@ -142,6 +142,7 @@ from vc_assist_svc import guldgrind, modellklient                 # noqa: E402
 from vc_assist_svc.claudeadapter import ClaudeModell              # noqa: E402
 from vc_assist_svc.klient import Klient                           # noqa: E402
 from vc_assist_svc.api_index import bygg_validator                # noqa: E402
+from vc_assist_svc.plc import paket as _paket
 from vc_assist_svc.plc import reparation as R                     # noqa: E402
 from vc_assist_svc.plc import stationsgrind as S                  # noqa: E402
 from vc_assist_svc.plc.skelett import Skelett                     # noqa: E402
@@ -455,7 +456,26 @@ class Ogonsteg(R.Grindsteg):
 
     def doma(self, st_kalla: str) -> R.Grinddom:
         self.korningar += 1
-        rad = self.kor_scenen(st_kalla)
+        try:
+            rad = self.kor_scenen(st_kalla)
+        except _paket.Kompilatorfel as fel:
+            # KOMPILATORN KORDE OCH SA NEJ OM KODEN. Det ar en DOM, inte ett
+            # korningsfel - och skillnaden avgor om modellen kan ratta sig.
+            #
+            # MATT i F1: `NOT(int)` fallde en kropp grind 3 slappt igenom.
+            # Undantaget bubblade upp till korningens allfangst och blev
+            # KORNINGSFEL, sa modellen fick veta att "nagot gick fel" i
+            # stallet for VAD kompilatorn sa. For att ratta sig maste man fa
+            # veta exakt vad som ar fel, och kompilatorns egna ord ar det
+            # enda stallet den uppgiften finns.
+            #
+            # `_paket.Byggfel` fangas INTE har: den betyder att kompilatorn
+            # saknas eller att bygget gick sonder, alltsa riggens fel. Ett
+            # riggfel far aldrig bli en dom om modellens kod (I3).
+            self.senaste_rad = {"ogonvarv": self.korningar,
+                                "kompilatorfel": str(fel)}
+            return R.Grinddom(grind="bygge:matiec", ok=False,
+                              utdata=str(fel), koder=("BYGGET_AVVISADE",))
         rad["ogonvarv"] = self.korningar
         self.senaste_rad = rad
         if self.on_varv:
