@@ -18,12 +18,24 @@ modell är en **annan mätning**, och de får aldrig läggas ihop till ett tal.
 
 **Sammanfattningen först, för den är kort:**
 
-| halvan | modell | utfall |
-|---|---|---|
-| **guld** — GOLD inom fyra varv i ≥ 2 av 3 körningar | `google-vertex/gemini-3.8-flash` | **JA.** GOLD i 2 av 3, båda på **varv 2**. Den tredje körningen blev KORNINGSFEL på transporten, inte på modellen |
-| **komposition** — ≥ 3 av 5 fall lagade på ögats egna ord | `claude/sonnet` | *se §7* |
+**`F1 AR GRONT` på `claude/sonnet`**, räknat av riggens egen
+`grontkriteriet` över båda armarnas JSON:
 
-**De två halvorna kördes på olika modeller, och det är ett resultat i sig.**
+| halvan | krav | `claude/sonnet` | `google-vertex/gemini-3.8-flash` |
+|---|---|---|---|
+| **guld** | GOLD inom fyra varv i ≥ 2 av 3 körningar | **JA** — 2 av 3 (varv 3 och varv 1) | **JA** — 2 av 3, båda på varv 2 |
+| **komposition** | ≥ 3 av 5 fall lagade på ögats egna ord | **JA** — 4 av 5 | *ej körd, kvoten dog* |
+| **F1** | båda | **GRÖNT** | ofullständig |
+
+Hela F1 på `claude/sonnet`: **4,92 USD, 115 minuters väggtid, 41 ögonvarv.**
+
+**Det som `M-73` och `M-74` båda kallade sin egen gräns är inte längre sant.**
+Båda skriver samma mening — *"reparationsvarven är **noll** av samma skäl:
+ingen modell har fått något fel tillbaka att laga"*. Reparationsvarven är nu
+**21**, i en riktig VC-scen genom OpenPLC, och 4 av 5 kompositionsfel lagades
+på ögats egen felbeskrivning.
+
+**Guldarmen kördes på båda modellerna, och det var inte planerat.**
 Mitt i mätningen slutade `google-vertex/gemini-3.8-flash` svara, och orsaken
 är entydig: `403 This API method requires billing to be enabled` på
 `project-fbc92f92-4e11-47e5-bd0`. `opencode/muse-spark-1.3-contributor-free`
@@ -343,7 +355,13 @@ rad 24: [ODEKLARERAD/F4] finns_inte är inte deklarerad
 Alltså: den halva av kedjan som inte behöver VC är verifierad mot riktiga
 verktyg, inte bara mot inspelningar.
 
-## 4. Vad som INTE är mätt
+## 4. Vad som INTE var mätt när apparaten byggdes
+
+> Det här avsnittet skrevs **före** körningen och står kvar oförändrat.
+> Punkterna 1–3 och 5–6 är besvarade av §0 och §7; punkt 4 (kostnaden) står i
+> §7. Den enda som står kvar helt obesvarad är den sista.
+
+
 
 * **Ingenting om en modell.** Ingen modellslinga har körts. Riggen är
   apparaten; F1:s tal finns inte förrän den körts, och den här filen får inte
@@ -371,22 +389,41 @@ verktyg, inte bara mot inspelningar.
   ett tydligt besked". Riggen sparar seedens ögonord och varje varvs kropp så
   att frågan **går** att ställa i efterhand, men den ställer den inte.
 
-## 5. Vad som återstår: exakt ett kommando
-
-När operatören valt modell:
+## 5. Kommandona som faktiskt kördes
 
 ```
+# guldarmen                                        23 min, 0,54 USD
 python3 tests/protocol/kor_F1_modellen_skriver_linan.py \
-    --forfattare claude --modell sonnet \
+    --forfattare claude --modell sonnet --arm guld --upprepa 3 \
     --strucpp <npm-paketet, den med dist/ och libs/> \
     --runtime-include <strucpp_runtime/include> \
-    --upprepa 3 \
-    --json docs/matningar/data/M-160_f1.json
+    --json docs/matningar/data/M-160_f1_guld_claude.json
+
+# kompositionsarmen                                92 min, 4,38 USD
+python3 tests/protocol/kor_F1_modellen_skriver_linan.py \
+    --forfattare claude --modell sonnet --arm komposition --upprepa 3 \
+    --strucpp <...> --runtime-include <...> \
+    --json docs/matningar/data/M-160_f1_komposition_claude.json
+
+# den sammanraknade domen, ur riggens EGEN grontkriteriet-kod
+python3 scripts/f1_grontkriteriet.py \
+    docs/matningar/data/M-160_f1_guld_claude.json \
+    docs/matningar/data/M-160_f1_komposition_claude.json \
+    docs/matningar/data/M-160_f1_grontkriteriet_claude.json
 ```
 
-Byt `--forfattare claude --modell sonnet` mot `--forfattare opencode --modell
-<opencode-modell>` för den andra transporten. VC ska vara igång
-(`~/bin/vc-test.sh`) och OpenPLC-runtimen svara på `--bas`.
+Guldarmen kördes dessutom på `--forfattare opencode --modell
+google-vertex/gemini-3.8-flash` innan den kvoten dog
+(`docs/matningar/data/M-160_f1_guld.json`).
+
+**Det tredje kommandot behövs bara för att armarna kördes i två anrop.** Körs
+`--arm bada` i ett anrop räknar riggen själv. Att räkna ihop för hand är inte
+ett alternativ: siffran ska komma ur samma kod som dömde.
+
+VC ska vara igång (`~/bin/vc-test.sh`) och OpenPLC-runtimen svara på `--bas`.
+**Starta om VC precis innan armen startar.** `Bryggan` startar om VC mellan
+varje ögonvarv men **inte** före det första, så det första varvet ärver den
+VC-session som råkar köra.
 
 Förutsättningar riggen **inte** kan ordna själv, och som därför fäller med ett
 tydligt besked i stället för att gissa:
@@ -400,25 +437,197 @@ tydligt besked i stället för att gissa:
 * STruC++ npm-paketet och runtimens include-katalog.
 
 Kostnadsordningen, om kvoten är knapp: `--arm guld` först (3 körningar × ≤4
-ögonvarv), sedan `--arm komposition` (5 fall × 3 körningar × ≤5 ögonvarv). Ett
-ögonvarv är ~2–3 minuter väggtid.
+ögonvarv), sedan `--arm komposition` (5 fall × 3 körningar × ≤5 ögonvarv).
+**Mätt:** ett ögonvarv är ~4 minuter väggtid — VC-omstart, uppladdning,
+runtimeomstart, 45 s uppvärmning och 80 s mätning — och hela F1 blev 41
+ögonvarv på 115 minuter.
 
-## 6. Om F1 blir rött
+## 6. Om F1 blir rött (skrivet före körningen)
+
+> F1 blev **inte** rött på `claude/sonnet`. Stycket står kvar för att det var
+> villkoret körningen gick in med, och för att ett grönt som aldrig hade kunnat
+> bli rött inte är värt något.
+
+
 
 `KO_F §F1` säger det rakt ut, och det ska stå här också: **faller F1 är
 produkten bänken, inte slingan.** Ett rött F1 är den billigaste sanning
 projektet kan köpa, och riggen säger vilken halva som föll i stället för att
 bara säga nej.
 
+## 7. Kompositionsarmen och den sammanräknade domen — `claude/sonnet`
+
+`--forfattare claude --modell sonnet --arm komposition --upprepa 3`, femton
+körningar, 36 ögonvarv (15 seedvarv + 21 reparationsvarv), 92 minuters
+väggtid, **4,38 USD**. Noll transportfel.
+
+```
+komposition:  4 av 5 fall lagade (kravs 3)  -> JA
+    K1   lagat i 3 av 3 giltiga korningar   LAGAT
+    K2   lagat i 2 av 3 giltiga korningar   LAGAT
+    K3   lagat i 3 av 3 giltiga korningar   LAGAT
+    K4   lagat i 2 av 3 giltiga korningar   LAGAT
+    K5   lagat i 2 av 2 giltiga korningar (1 dar seeden slapp igenom)   -
+```
+
+Guldarmen kördes sedan på **samma** modell, så att F1 har en dom om **en**
+modell och inte om två:
+
+```
+guld:         GOLD i 2 av 3 korningar (kravs 2)  -> JA
+    korning 1: KORNINGSFEL    varv till GOLD None   (OpenPLC:s bygge, se 7.3)
+    korning 2: LOST           varv till GOLD 3
+    korning 3: LOST           varv till GOLD 1
+```
+
+Sammanräknat av **riggens egen** `grontkriteriet` över de två armarnas JSON
+(`scripts/f1_grontkriteriet.py`; armarna kördes i två anrop och varje anrop såg
+bara sin egen halva, men räkningen får inte göras för hand):
+
+```
+F1 AR GRONT
+```
+
+**Alltså: modellen skriver linan, ögat talar tillbaka, och modellen lagar på
+ögats egna ord.** Det som `M-73` och `M-74` båda kallade sin egen gräns —
+*"reparationsvarven är noll, ingen modell har fått något fel tillbaka att
+laga"* — är inte längre sant. Reparationsvarven är 21, och 4 av 5
+kompositionsfel lagades på ögats felbeskrivning.
+
+Kostnad, för den som ska planera nästa körning: **4,92 USD** och **115 minuters
+väggtid** för hela F1 på `claude/sonnet` (guldarmen 0,54 USD / 23 min,
+kompositionsarmen 4,38 USD / 92 min). Guldarmen på Gemini kostade 0,48 USD.
+
+### 7.1 F2: klassningen av varje misslyckat reparationsvarv
+
+Tre körningar av femton nådde inte GOLD. `KO_F §F2` kräver att varje
+misslyckat varv klassas i en av tre. Klassningen görs mot ögats **egna**
+domsrader, som ligger i JSON:en.
+
+| körning | varv | ögats ord | klass |
+|---|---|---|---|
+| **K2 #2** (LAST) | 1 | seed: `FAIL sequence` på stationB och linan, `ST8B_Don/Stopp RISE uteblev i fonstret 4.09–10.15 s`. Efter modellens rättning: stationA **PASS**, linan **PASS**, stationB `FAIL timing: cykel 3: ST8B_Don/Stopp RISE kom 1.80 s efter starten, fonstret ar 0.00–1.26 s` | **ögat sa rätt sak otydligt** |
+| **K4 #2** (TAK) | 1 | tre FAIL → efter rättning: linan **PASS**, stationA **PASS**, stationB `FAIL timing: cykel 3 … 1.80 s, fonstret ar 0.00–1.26 s` — **exakt samma** enstaka avvikelse som K2 #2 | **ögat sa rätt sak otydligt** |
+| **K4 #2** | 2 | ögat gick tillbaka till alla tre FAIL, med signal, cykel och fönster utskrivna. Modellen hade backat till det ursprungliga felet | **modellen kunde inte laga trots ett tydligt besked** |
+| **K4 #2** | 3 | ögat sa ingenting alls: kroppen föll på `grind:statisk_analys`, kod `SYNTAX` | **modellen kunde inte laga** (ögat kom aldrig till tals) |
+| **K4 #2** | 4 | linan `FAIL sequence`, stationA PASS, stationB `FAIL sequence: cykel 3` — en enda cykel | **ögat sa rätt sak otydligt** |
+| **K5 #3** | — | seeden **föll inte**: ögat gav PASS i alla tre cellerna på M-74:s egen K5-kropp | **ingen av de tre** — fixturen föll inte, se 7.2 |
+
+**Noll varv klassas som "ögat sa fel sak".** Varje domsrad namngav en riktig
+signal, en riktig cykel och ett riktigt fönster, och ingen av dem gick att visa
+vara falsk.
+
+**Men den vanligaste klassen är "rätt sak, otydligt", och den har en form.**
+Tre av fem misslyckade varv slutade på **samma** rad:
+
+```
+EYES VERDICT FAIL timing: stationens tider holls inte:
+cykel 3: ST8B_Don/Stopp RISE kom 1.80 s efter starten, fonstret ar 0.00-1.26 s
+```
+
+En enda cykel av åtta, 0,54 s utanför ett fönster, i **station B** — medan
+stationA och linan står PASS. `M-73` har redan mätt varför det händer:
+*"Station B:s processtid varierar och station A:s gör det inte … B väntar in
+det delade donet när A har det, och väntan är som mest en hel utmatning."*
+Bromsens utgång i station B är alltså fördröjd av **linans** kontention, inte
+av ett fel i modellens kod — men domen kommer från **stationsfacit**, som inte
+vet att linan finns.
+
+Det är den skarpaste F2-observationen körningen bär: ögat säger en sann sak på
+fel nivå. Ett stationsfacit som dömer en fördröjning linan själv orsakar ger
+modellen ett besked den inte kan handla på, och K2 #2 svarade på det enda
+sätt som var rimligt — den skickade tillbaka **samma kropp** (utfall `LAST`,
+låst, inte tak). Att slingan skiljer `LAST` från `TAK` är därför inte en
+detalj: den skillnaden är just det som gör klassen synlig.
+
+### 7.2 K5:s fixtur reproducerar inte vid n = 3 — och det är A2:s fynd på ögats sida
+
+Tre seedkörningar av **samma** K5-kropp, i samma rigg, med praktiskt taget
+samma klocka (0,9901 / 0,9901 / 0,9900) och samma 800 prov:
+
+| seed | stationA | stationB | linan | |
+|---|---|---|---|---|
+| K5 #1 | PASS | PASS | **FAIL** `sequence: cykel 7: ST8B_Don/Stopp RISE uteblev` | föll |
+| K5 #2 | PASS | **FAIL** `timing: cykel 4` | **FAIL** `sequence: cykel 4, 5` | föll |
+| K5 #3 | PASS | PASS | **PASS** | **släppte igenom** |
+
+`M-74` körde K5 **en** gång och skrev in den som ett kompositionsfel. Vid
+n = 3 faller den i 2 av 3, och när den faller är det på **en enda cykel** av
+åtta. Det är exakt `A2`:s mätning — att domaren inte är deterministisk vid
+n = 1 — nu visad på ögats sida, på M-74:s egen fixtur.
+
+Riggen räknade rätt utan att någon behövde tänka: en seed som ögat släpper
+igenom rapporteras `SEEDEN_FOLL_INTE` och fallet får **aldrig** räknas som
+lagat, hur duktig modellen än var i de andra två körningarna. K5 står därför
+som `-` trots 2 av 2 lagade giltiga körningar.
+
+**Det här är en rättelse till M-74, inte till F1.** M-74:s fem-av-fem gäller
+vid n = 1. Vid n = 3 är K5:s fällning marginell.
+
+### 7.3 OpenPLC:s bygge fäller kod som grind 3 släpper igenom, och dess ord når aldrig modellen
+
+Guldarmens första körning på Claude dog med `OpenPlcFel`:
+
+```
+core/generated/generated.cpp:155:32: error: no matching function for call to 'NOT(int)'
+  155 |     if ((((B_LAGET == 2) & (NOT((A_LAGET == 2) | (A_LAGET == 3)))) & (KOR)) & (!NODSTOPP)) {
+```
+
+Kroppen hade **passerat** grind 1–3, inklusive kompileringsgrinden, och föll
+sedan i OpenPLC:s eget bygge av den genererade C++-koden. Två saker följer:
+
+1. **Grind 3 och OpenPLC:s bygge är inte samma grind.** `NOT` på ett
+   jämförelseuttryck kommer igenom den ena och inte den andra.
+2. **Byggets ord når aldrig modellen.** Felet blir ett `KORNINGSFEL` — hela
+   körningen dör — i stället för en `Grinddom` vars `utdata` matas tillbaka.
+   Det är samma hål som ögat hade före F1, en nivå ned: en domare som ser ett
+   riktigt fel men vars ord inte går tillbaka in i slingan.
+
+Det är inte lagat här, för det ändrar vad armen mäter mitt i en mätning. Det
+står som en öppen punkt, och det är den billigaste kända förbättringen av
+slingan: **ett varv av fyra dog på en compiler-rad ingen fick läsa.**
+
+### 7.4 Guldarmens första varv når sällan ögat
+
+Sammanlagt över båda modellerna: i **tre** av de fyra guldkörningar som fick
+ett modellsvar föll det **första** varvet på den billiga kedjan — `SYNTAX` i
+statisk analys på Gemini (två av två), och på Claude gick körning 2 tre varv
+innan GOLD. Bara Claudes körning 3 nådde GOLD på **första** varvet.
+
+Guldarmens tak på fyra varv är alltså i praktiken inte fyra ögonvarv. Det är
+inte fel — en kropp som inte kompilerar ska aldrig kosta en VC-omstart — men
+den som läser "GOLD inom fyra varv" ska veta att en del av de fyra går åt till
+ST-syntax innan ögat sagt ett ord.
+
 ## LIMITS
 
-* Riggen är **byggd och prövad, inte körd**. Allt i §3 är prövat utan modell
-  och utan VC; allt i §1–2 är en beskrivning av apparaten, inte ett resultat.
-* Den dyra vägen (VC, OpenPLC, ögat) är oprövad i den här riggen. Den är
-  M-74:s `kor_en` ordagrant, men att F1 anropar den rätt är inte visat.
-* Torrkörningens ögondomar är **inspelade**. De bevisar att räkningen,
-  taket, låsningen och grönt-kriteriet fungerar — ingenting om vad ögat
-  faktiskt säger om en modellskriven kropp.
-* Ingen modell är vald, så inget tal här hör till någon modell.
-* Ingenting om fler än två stationer, om längre körningar, eller om scenen
-  under belastning. Det är F4–F7.
+* **Talen gäller `claude/sonnet` och ingen annan modell.** Guldarmen kördes
+  också på `google-vertex/gemini-3.8-flash` och gav samma utfall på sin halva,
+  men kompositionsarmen finns inte där: kvoten dog (`403 requires billing`).
+  `RATTELSER 2026-09-05 16:25` — en arm på en annan modell är en **annan
+  mätning**, och de två får inte läggas ihop.
+* **n = 3, och det syns i talen.** Två av fem kompositionsfall lagades i 2 av 3
+  körningar, inte 3 av 3, och K5:s **fixtur** föll bara i 2 av 3. Ett n = 3 gör
+  spridningen synlig; det gör den inte liten. Fler upprepningar skulle flytta
+  varje siffra i tabellen.
+* **En körning av femton dog på OpenPLC:s bygge** (`NOT(int)`) och räknas som
+  KORNINGSFEL. Talen ovan är därför inte hela armen, och det byggets ord når
+  aldrig modellen (§7.3).
+* **K5 räknas inte som lagat, och skälet är fixturens.** Modellen lagade det i
+  2 av 2 giltiga körningar. Att fallet ändå står `-` är regeln i §2.6, inte ett
+  mått på modellen.
+* **Ögats domsrader är stationsfacit och linjefacit, inte en förklaring.** Den
+  vanligaste orsaken till ett misslyckat reparationsvarv var en sann dom på fel
+  nivå (§7.1). Att ögat skulle kunna säga det bättre är **inte** mätt — det är
+  en hypotes körningen ställer, inte en den svarar på.
+* **Ett fall, en lina, en geometri, en takt.** M-74:s begränsningar gäller
+  oförändrat: fem klasser är inte alla klasser, och två stationer är inte tre.
+* **Ingenting om fler än två stationer, om längre körningar, eller om scenen
+  under belastning.** Det är F4–F7. `F7` är särskilt relevant efter den här
+  körningen: klockkvoten låg på 0,989–0,990 i **varje** ögonvarv, alltså på en
+  maskin som inte var hårt belastad.
+* **Grind 3 och OpenPLC:s bygge är inte samma grind** (§7.3). Hur ofta de är
+  oense är inte mätt — det hände en gång av arton.
+* **Kostnaden gäller den här uppställningen.** 4,92 USD och 115 minuter är
+  priset för n = 3 på fem fall plus tre guldkörningar, med ~4 minuter per
+  ögonvarv (VC-omstart, uppladdning, 45 s uppvärmning, 80 s mätning).
