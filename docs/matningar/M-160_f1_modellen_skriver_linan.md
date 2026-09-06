@@ -276,10 +276,17 @@ Kompositionsarmen seedar varje fall med M-74:s egen K-kropp, kör den genom
 igenom** rapporteras som `SEEDEN_FOLL_INTE` och räknas aldrig som lagad — då
 var fixturen trasig, inte modellen duktig.
 
-## 3. Vad som är prövat i dag, utan modell och utan VC
+## 3. Vad som var prövat innan riggen kördes, utan modell och utan VC
 
-`tests/enhet/test_kor_F1_riggen.py`, 30 prov, gröna. Provet skrevs **före**
-mekanismen och var rött.
+`tests/enhet/test_kor_F1_riggen.py`, **30 prov** när apparaten byggdes,
+**44 nu** — de fjorton nya är fixturerna till de fel körningen hittade (§0.1
+och §0.3), var och en röd mot en mutation av mekanismen den vaktar. Proven
+skrevs **före** sina mekanismer och var röda.
+
+> **Och ändå kunde riggen inte köra.** De 30 gröna proven gick alla genom
+> torrkörningens två byggare; den riktiga vägens två tog inga argument. Det är
+> avsnittets viktigaste rad: **en provsvit som bara når den billiga vägen mäter
+> den billiga vägen.**
 
 ### 3.1 De tre trasiga fixturerna
 
