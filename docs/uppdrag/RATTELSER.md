@@ -119,3 +119,62 @@ ur `print(` och `raise ...Fel(`. Ögats domsrader produceras med `return`, och
 fyra av dem bar svensk prosa som ingen räkning fångade. De är rättade nu, men
 talet 664 är ett **golv**, inte en fullständig räkning. Nästa svep bör läsa
 varje strängliteral som når en användare, oavsett hur den lämnar funktionen.
+
+## 2026-09-06 03:40 — kö F: F1 är körd och **grön**, och M-74:s K5 är rättad
+
+`F1` var *"den sista stora obesvarade frågan"*. Den är besvarad. `M-160` bär
+talen; det som gäller andra köer står här.
+
+**1. F1 är GRÖNT på `claude/sonnet`.** GOLD i 2 av 3 guldkörningar, och **4 av
+5 kompositionsfall lagade på ögats egna ord**. Räknat av riggens egen
+`grontkriteriet` över båda armarnas JSON. Kostnad: 4,92 USD, 115 minuters
+väggtid, 41 ögonvarv.
+
+**Det betyder att `55_innovationsplanen.md` §4:s frysning har fått sitt
+villkor uppfyllt.** Sex beslut väntade på den här kön. Ingen av dem är tagen
+här — det är operatörens — men premissen *"en yta framför en slinga ingen
+modell drivit igenom"* gäller inte längre.
+
+**2. Talen gäller `claude/sonnet`, inte Gemini.** Guldarmen kördes först på
+`google-vertex/gemini-3.8-flash` och gav **samma** utfall på sin halva (GOLD i
+2 av 3). Mitt i kompositionsarmen dog den kvoten:
+`403 This API method requires billing to be enabled` på
+`project-fbc92f92-4e11-47e5-bd0`. `opencode/muse-spark-1.3-contributor-free`
+svarar inte alls (tidsgräns på `Svara med exakt ordet OK.`).
+**Den som planerar en modellkörning idag: `claude` är den transport som
+fungerar.**
+
+**3. `M-74`:s K5 reproducerar inte vid n = 3.** M-74 körde varje
+kompositionsfall **en** gång. Kö F körde K5:s seed tre gånger, i samma rigg,
+med samma klocka (0,9901 / 0,9901 / 0,9900) och samma 800 prov: **FAIL, FAIL,
+PASS**. När den faller är det på **en enda cykel** av åtta. M-74:s
+"fem av fem" gäller alltså vid n = 1; vid n = 3 är K5 marginell. Det är
+`A2`:s fynd — domaren är inte deterministisk vid n = 1 — nu visat på **ögats**
+sida, på M-74:s egen fixtur. `M-74` är inte ändrad; rättelsen står i `M-160
+§7.2`.
+
+**4. Fas 8:s argparse-standard är inte M-73:s upplösning, och det är en fälla
+för alla som kör `kor_fas8_linan.py`.** Standardvärdena är 70 s mätning, 25 s
+uppvärmning och 20 Hz. `M-73` och `M-74` kördes **inte** där: M-73 skriver ut
+*"ogats serie: 80,0 s, 800 prov, 10,00 Hz"* och M-74 har *"45 s uppvärmning och
+80 s mätning"*. Två saker följer, båda mätta i dag:
+
+* Vid 20 Hz blir serien **684 586 byte** och ryms inte i bryggans svar (taket
+  är `MAX_KROPP // 2` = 524 288). `kor_en` returnerar då `fel` utan `domar` —
+  ögat får aldrig döma.
+* Facits fönster är räknade vid 0,1 s provintervall, och `M-73`:s fjärde fynd
+  är att ett prov vars tolerans är snävare än scenuppdateringens eftersläpning
+  **mäter eftersläpningen**.
+
+F1:s rigg har nu M-73:s tal i namngivna konstanter. **Den som kör
+`kor_fas8_linan.py` måste ange `--sekunder 80 --uppvarmning 45 --ogonrate 10`
+själv** — den filen är inte ändrad, den är M-73/M-74:s mark.
+
+**5. Grind 3 och OpenPLC:s eget bygge är inte samma grind, och byggets ord når
+aldrig modellen.** En modellskriven kropp passerade kompileringsgrinden och
+föll sedan i OpenPLC:s bygge:
+`error: no matching function for call to 'NOT(int)'` på
+`NOT((A_LAGET = 2) OR (A_LAGET = 3))`. Det blir ett `KORNINGSFEL` — hela
+körningen dör — i stället för en `Grinddom` vars ord matas tillbaka. Det är
+samma hål som ögat hade före F1, en nivå ned, och det är den billigaste kända
+förbättringen av slingan. **Inte lagat** — det ändrar vad armen mäter.
